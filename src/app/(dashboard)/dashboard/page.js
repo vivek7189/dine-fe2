@@ -47,7 +47,8 @@ import {
   FaTable,
   FaCloudUploadAlt,
   FaMicrophone,
-  FaMicrophoneSlash
+  FaMicrophoneSlash,
+  FaBed
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
@@ -82,6 +83,9 @@ function RestaurantPOSContent() {
   const [selectedTable, setSelectedTable] = useState(null);
   const [showTableSelector, setShowTableSelector] = useState(false);
   const [manualTableNumber, setManualTableNumber] = useState('');
+  const [manualRoomNumber, setManualRoomNumber] = useState('');
+  const [locationType, setLocationType] = useState('table'); // 'table' or 'room'
+  const [inRoomDiningEnabled, setInRoomDiningEnabled] = useState(false);
   
   // API state
   const [menuItems, setMenuItems] = useState([]);
@@ -771,6 +775,14 @@ function RestaurantPOSContent() {
       // Don't set error for menu loading failures - let user continue
     }
   };
+
+  // Load restaurant feature flags
+  useEffect(() => {
+    if (selectedRestaurant) {
+      const features = selectedRestaurant.features || {};
+      setInRoomDiningEnabled(features.inRoomDiningEnabled === true);
+    }
+  }, [selectedRestaurant]);
 
   const loadFloors = async (restaurantId) => {
     try {
@@ -1672,10 +1684,13 @@ function RestaurantPOSContent() {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       
       // Check if table number changed in edit mode
-      const tableToUse = tableNumber || selectedTable?.number;
+      // Determine if this is a room order
+      const isRoomOrder = selectedTable?.isRoom === true;
+      const roomNumber = isRoomOrder ? (selectedTable?.name || tableNumber) : null;
+      const tableToUse = !isRoomOrder ? (tableNumber || selectedTable?.number || selectedTable?.name) : null;
       let tableChanged = false;
       
-      if (currentOrder && tableToUse && tableToUse !== currentOrder.tableNumber) {
+      if (currentOrder && !isRoomOrder && tableToUse && tableToUse !== currentOrder.tableNumber) {
         tableChanged = true;
         console.log('⚠️ Table number changed from', currentOrder.tableNumber, 'to', tableToUse);
         
@@ -1701,7 +1716,8 @@ function RestaurantPOSContent() {
             name: item.name,
             price: item.price
           })),
-          tableNumber: tableToUse || currentOrder.tableNumber,
+          tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber) : null,
+          roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber) : null, // NEW: Include room number
           orderType,
           paymentMethod,
           status: 'completed', // Mark as completed
@@ -1716,7 +1732,8 @@ function RestaurantPOSContent() {
           customerInfo: {
             name: customerName || currentOrder.customerInfo?.name || 'Walk-in Customer',
             phone: customerMobile || currentOrder.customerInfo?.phone || null,
-            tableNumber: tableToUse || currentOrder.tableNumber || null
+            tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber || null) : null,
+            roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber || null) : null // NEW: Include room number
           }
         };
 
@@ -1756,10 +1773,16 @@ function RestaurantPOSContent() {
       } else {
         console.log('🆕 Creating new order for direct billing');
         
+        // Determine if this is a room order
+        const isRoomOrder = selectedTable?.isRoom === true;
+        const roomNumber = isRoomOrder ? (selectedTable?.name || tableToUse) : null;
+        const finalTableNumber = !isRoomOrder ? tableToUse : null;
+
         // Create new order for direct billing
       const orderData = {
         restaurantId: selectedRestaurant.id,
-          tableNumber: tableToUse || null,
+          tableNumber: finalTableNumber || null,
+          roomNumber: roomNumber || null, // NEW: Include room number for hotel orders
         orderType,
         paymentMethod,
           status: 'completed', // Set status to completed since payment is processed immediately
@@ -1782,9 +1805,10 @@ function RestaurantPOSContent() {
         customerInfo: {
             name: customerName || 'Walk-in Customer',
             phone: customerMobile || null,
-            tableNumber: tableToUse || null
+            tableNumber: finalTableNumber || null,
+            roomNumber: roomNumber || null // NEW: Include room number in customer info
         },
-        notes: ''
+        notes: isRoomOrder ? `Room order for Room ${roomNumber}` : ''
       };
 
         console.log('🛒 Creating order with data:', orderData);
@@ -1925,22 +1949,30 @@ function RestaurantPOSContent() {
       setProcessing(true);
       setError(null);
 
+      // Determine if this is a room order
+      const isRoomOrder = selectedTable?.isRoom === true;
+      const roomNumber = isRoomOrder ? (selectedTable?.name || tableNumber) : null;
+      const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
+
       const orderData = {
         restaurantId: selectedRestaurant?.id,
-        tableNumber: tableNumber || selectedTable?.number || null,
+        tableNumber: finalTableNumber || null,
+        roomNumber: roomNumber || null, // NEW: Include room number for hotel orders
         items: cart.map(item => ({
           menuItemId: item.id,
           quantity: item.quantity,
           notes: ''
         })),
-        customerInfo: {},
+        customerInfo: {
+          roomNumber: roomNumber || null // NEW: Include room number in customer info
+        },
       orderType,
         paymentMethod,
         staffInfo: {
           name: 'Staff Member',
           id: 'staff-001'
         },
-        notes: '',
+        notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
         status: 'pending' // Save as draft
       };
 
@@ -2218,6 +2250,19 @@ function RestaurantPOSContent() {
         capacity: 'N/A'
       });
       setManualTableNumber('');
+      setShowTableSelector(false);
+    }
+  };
+
+  const handleManualRoomSelection = () => {
+    if (manualRoomNumber.trim()) {
+      setSelectedTable({
+        name: manualRoomNumber.trim(),
+        floor: 'Room',
+        capacity: 'N/A',
+        isRoom: true
+      });
+      setManualRoomNumber('');
       setShowTableSelector(false);
     }
   };
@@ -4394,49 +4439,151 @@ function RestaurantPOSContent() {
             maxWidth: '400px'
           }}>
             <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>{t('dashboard.tableNumber')}</h2>
-              <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>{t('dashboard.enterTableNumber')}</p>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                {inRoomDiningEnabled ? 'Select Location' : t('dashboard.tableNumber')}
+              </h2>
+              <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
+                {inRoomDiningEnabled ? 'Enter table or room number' : t('dashboard.enterTableNumber')}
+              </p>
             </div>
             
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  {t('dashboard.tableNumber')}
-                </label>
-                <input
-                  type="text"
-                  value={manualTableNumber}
-                  onChange={(e) => setManualTableNumber(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
-                  placeholder="e.g., T1, Table 5, VIP1"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f9fafb'
-                  }}
-                />
-              </div>
-
-              <div style={{ padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <FaChair size={16} color="#0284c7" />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#0284c7' }}>
-                    Need to manage tables?
-                  </span>
+              {/* Location Type Selector (Table or Room) - Only show if in-room dining is enabled */}
+              {inRoomDiningEnabled && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Location Type
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationType('table');
+                        setManualRoomNumber('');
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        border: '2px solid',
+                        backgroundColor: locationType === 'table' ? '#e53e3e' : 'white',
+                        color: locationType === 'table' ? 'white' : '#374151',
+                        borderColor: locationType === 'table' ? '#e53e3e' : '#e5e7eb',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <FaTable size={14} />
+                      Table
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationType('room');
+                        setManualTableNumber('');
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        border: '2px solid',
+                        backgroundColor: locationType === 'room' ? '#e53e3e' : 'white',
+                        color: locationType === 'room' ? 'white' : '#374151',
+                        borderColor: locationType === 'room' ? '#e53e3e' : '#e5e7eb',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <FaBed size={14} />
+                      Room
+                    </button>
+                  </div>
                 </div>
-                <p style={{ fontSize: '12px', color: '#075985', margin: 0, lineHeight: '1.4' }}>
-                  Visit the Table Management page to set up floor layouts, add tables, and track table status.
-                </p>
-              </div>
+              )}
+
+              {/* Table Number Input */}
+              {(!inRoomDiningEnabled || locationType === 'table') && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    {t('dashboard.tableNumber')}
+                  </label>
+                  <input
+                    type="text"
+                    value={manualTableNumber}
+                    onChange={(e) => setManualTableNumber(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
+                    placeholder="e.g., T1, Table 5, VIP1"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: '#f9fafb'
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Room Number Input */}
+              {inRoomDiningEnabled && locationType === 'room' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Room Number
+                  </label>
+                  <input
+                    type="text"
+                    value={manualRoomNumber}
+                    onChange={(e) => setManualRoomNumber(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleManualRoomSelection()}
+                    placeholder="e.g., 101, 205, Suite 301"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: '#f9fafb'
+                    }}
+                  />
+                </div>
+              )}
+
+              {!inRoomDiningEnabled && (
+                <div style={{ padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <FaChair size={16} color="#0284c7" />
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#0284c7' }}>
+                      Need to manage tables?
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#075985', margin: 0, lineHeight: '1.4' }}>
+                    Visit the Table Management page to set up floor layouts, add tables, and track table status.
+                  </p>
+                </div>
+              )}
             </div>
             
             <div style={{ padding: '24px', backgroundColor: '#f9fafb', display: 'flex', gap: '12px' }}>
               <button
-                onClick={() => setShowTableSelector(false)}
+                onClick={() => {
+                  setShowTableSelector(false);
+                  setLocationType('table');
+                  setManualTableNumber('');
+                  setManualRoomNumber('');
+                }}
                 style={{
                   flex: 1,
                   backgroundColor: '#6b7280',
@@ -4452,17 +4599,21 @@ function RestaurantPOSContent() {
                 {t('common.cancel')}
               </button>
               <button
-                onClick={handleManualTableSelection}
-                disabled={!manualTableNumber.trim()}
+                onClick={inRoomDiningEnabled && locationType === 'room' ? handleManualRoomSelection : handleManualTableSelection}
+                disabled={inRoomDiningEnabled && locationType === 'room' 
+                  ? !manualRoomNumber.trim() 
+                  : !manualTableNumber.trim()}
                 style={{
                   flex: 1,
-                  backgroundColor: manualTableNumber.trim() ? '#e53e3e' : '#d1d5db',
+                  backgroundColor: (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber.trim() : manualTableNumber.trim()) 
+                    ? '#e53e3e' : '#d1d5db',
                   color: 'white',
                   padding: '12px 24px',
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
-                  cursor: manualTableNumber.trim() ? 'pointer' : 'not-allowed',
+                  cursor: (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber.trim() : manualTableNumber.trim()) 
+                    ? 'pointer' : 'not-allowed',
                   fontSize: '14px',
                   display: 'flex',
                   alignItems: 'center',
@@ -4470,8 +4621,17 @@ function RestaurantPOSContent() {
                   gap: '6px'
                 }}
               >
-                <FaChair size={14} />
-                {t('dashboard.tableNumber')}
+                {inRoomDiningEnabled && locationType === 'room' ? (
+                  <>
+                    <FaBed size={14} />
+                    Select Room
+                  </>
+                ) : (
+                  <>
+                    <FaTable size={14} />
+                    {t('dashboard.tableNumber')}
+                  </>
+                )}
               </button>
             </div>
           </div>
