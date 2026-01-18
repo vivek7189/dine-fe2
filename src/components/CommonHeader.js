@@ -85,6 +85,23 @@ export default function CommonHeader() {
               Restaurants
             </Link>
             
+            <Link 
+              href="/hotel" 
+              style={{ 
+                fontSize: '15px', 
+                fontWeight: '600', 
+                color: '#111827', 
+                textDecoration: 'none',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
+            >
+              Hotel
+            </Link>
+            
             <div 
               style={{ position: 'relative' }} 
               onMouseEnter={() => setShowProductsDropdown(true)} 
@@ -194,7 +211,8 @@ export default function CommonHeader() {
                       <FaStore size={18} color="#ef4444" />
                       <span style={{ fontWeight: '500', fontSize: '14px' }}>Restaurant Management System</span>
                     </Link>
-                    <Link 
+                    {/* Inventory Management - Commented out temporarily */}
+                    {/* <Link 
                       href="/products/inventory-management" 
                       style={{
                         display: 'flex',
@@ -216,7 +234,7 @@ export default function CommonHeader() {
                     >
                       <FaBoxes size={18} color="#ef4444" />
                       <span style={{ fontWeight: '500', fontSize: '14px' }}>Inventory Management</span>
-                    </Link>
+                    </Link> */}
                     <Link 
                       href="/products/supply-management" 
                       style={{

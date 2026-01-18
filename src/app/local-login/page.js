@@ -11,6 +11,8 @@ import {
   FaSignInAlt
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
+import RestaurantNameOnboarding from '../../components/RestaurantNameOnboarding';
+import { redirectToSubdomain } from '../../utils/subdomain';
 
 const LocalLogin = () => {
   const router = useRouter();
@@ -22,6 +24,7 @@ const LocalLogin = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showRestaurantOnboarding, setShowRestaurantOnboarding] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,17 +64,26 @@ const LocalLogin = () => {
       }
 
       if (data.success && data.token) {
-        // Store token and user data
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Store auth token in both cookie (for cross-subdomain) and localStorage (same as OTP login)
+        apiClient.setToken(data.token); // Stores in both cookie and localStorage
+        apiClient.setUser(data.user); // Stores in both cookie and localStorage
         
-        // If user has restaurants, set the first one as selected
-        if (data.restaurants && data.restaurants.length > 0) {
-          localStorage.setItem('selectedRestaurantId', data.restaurants[0].id);
+        // Handle first-time user experience (same as OTP login)
+        if (data.firstTimeUser || data.isNewUser) {
+          console.log('🎉 First-time user detected!');
+          // Show restaurant name onboarding
+          setShowRestaurantOnboarding(true);
+        } else {
+          // Redirect existing users (same as OTP login)
+          if (data.subdomainUrl) {
+            // Redirect to subdomain with token and user data
+            redirectToSubdomain(data.subdomainUrl, data.token, data.user);
+          } else if (data.redirectTo) {
+            router.replace(data.redirectTo);
+          } else {
+            router.replace('/dashboard');
+          }
         }
-
-        // Redirect to dashboard
-        router.push('/dashboard');
       } else {
         throw new Error('Invalid response from server');
       }
@@ -244,6 +256,15 @@ const LocalLogin = () => {
           </a>
         </div>
       </div>
+
+      {/* Restaurant Name Onboarding Modal (same as regular login) */}
+      {showRestaurantOnboarding && (
+        <RestaurantNameOnboarding
+          isOpen={showRestaurantOnboarding}
+          onClose={() => setShowRestaurantOnboarding(false)}
+          user={null} // Will be loaded from localStorage
+        />
+      )}
     </div>
   );
 };
