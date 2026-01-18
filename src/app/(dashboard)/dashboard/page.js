@@ -779,8 +779,26 @@ function RestaurantPOSContent() {
   // Load restaurant feature flags
   useEffect(() => {
     if (selectedRestaurant) {
-      const features = selectedRestaurant.features || {};
-      setInRoomDiningEnabled(features.inRoomDiningEnabled === true);
+      const features = selectedRestaurant.features;
+      
+      // Handle both array and object formats, and missing/null cases
+      let inRoomDiningEnabled = false;
+      
+      if (features) {
+        if (Array.isArray(features)) {
+          // If features is an array, check the first element
+          const firstFeature = features[0];
+          inRoomDiningEnabled = firstFeature?.inRoomDiningEnabled === true;
+        } else if (typeof features === 'object') {
+          // If features is an object, check directly
+          inRoomDiningEnabled = features.inRoomDiningEnabled === true;
+        }
+      }
+      
+      setInRoomDiningEnabled(inRoomDiningEnabled);
+    } else {
+      // Reset to false if no restaurant selected
+      setInRoomDiningEnabled(false);
     }
   }, [selectedRestaurant]);
 
