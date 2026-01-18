@@ -1361,7 +1361,24 @@ function RestaurantPOSContent() {
           }, 200);
         }
         
-          setTableNumber(order.tableNumber || '');
+          // Set table/room number and location type based on order data
+          if (order.roomNumber) {
+            // Order has room number - set location type to room
+            setLocationType('room');
+            setManualRoomNumber(order.roomNumber || '');
+            setTableNumber('');
+          } else if (order.tableNumber) {
+            // Order has table number - set location type to table
+            setLocationType('table');
+            setTableNumber(order.tableNumber || '');
+            setManualRoomNumber('');
+          } else {
+            // No table or room - default to table
+            setLocationType('table');
+            setTableNumber('');
+            setManualRoomNumber('');
+          }
+          
           setOrderType(order.orderType || 'dine-in');
           setPaymentMethod(order.paymentMethod || 'cash');
           

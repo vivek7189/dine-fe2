@@ -15,6 +15,7 @@ import {
   FaPhone,
   FaCheckCircle,
   FaUtensils,
+  FaBed,
   FaReceipt,
   FaSpinner,
   FaEye,
@@ -431,10 +432,19 @@ const OrderHistory = () => {
               </div>
               <div className="bg-white/60 p-4 rounded-lg border border-blue-200">
                 <div className="text-xs text-gray-600 mb-2 flex items-center gap-2 font-medium uppercase tracking-wide">
-                  <FaTable className="text-blue-600"/> {t('orderHistory.table')}
+                  {order.roomNumber || order.customerDisplay?.roomNumber ? (
+                    <FaBed className="text-blue-600"/> 
+                  ) : (
+                    <FaTable className="text-blue-600"/>
+                  )}
+                  {order.roomNumber || order.customerDisplay?.roomNumber ? 'Room' : t('orderHistory.table')}
                 </div>
-                <div className="font-semibold text-base text-gray-900 mb-1">{order.customerDisplay?.tableNumber || 'N/A'}</div>
-                <div className="text-sm text-gray-600 capitalize">{order.customerDisplay?.floorName || 'No floor'}</div>
+                <div className="font-semibold text-base text-gray-900 mb-1">
+                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}
+                </div>
+                <div className="text-sm text-gray-600 capitalize">
+                  {order.roomNumber || order.customerDisplay?.roomNumber ? 'Hotel Room' : (order.customerDisplay?.floorName || 'No floor')}
+                </div>
               </div>
               <div className="bg-white/60 p-4 rounded-lg border border-blue-200">
                 <div className="text-xs text-gray-600 mb-2 flex items-center gap-2 font-medium uppercase tracking-wide">
@@ -788,9 +798,13 @@ const OrderHistory = () => {
                             <FaUser className="text-gray-400" />
                             <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || 'Walk-in'}</span>
                           </div>
-                          <div className="flex items-center gap-2" title="Table">
-                            <FaTable className="text-gray-400" />
-                            <span>{order.customerDisplay?.tableNumber || 'N/A'}</span>
+                          <div className="flex items-center gap-2" title={order.roomNumber || order.customerDisplay?.roomNumber ? "Room" : "Table"}>
+                            {order.roomNumber || order.customerDisplay?.roomNumber ? (
+                              <FaBed className="text-gray-400" />
+                            ) : (
+                              <FaTable className="text-gray-400" />
+                            )}
+                            <span>{order.roomNumber || order.customerDisplay?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-2" title="Type">
                             <FaUtensils className="text-gray-400" />
@@ -878,10 +892,14 @@ const OrderHistory = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <FaTable className="text-gray-400 text-sm" />
+                            {order.roomNumber || order.customerDisplay?.roomNumber ? (
+                              <FaBed className="text-gray-400 text-sm" />
+                            ) : (
+                              <FaTable className="text-gray-400 text-sm" />
+                            )}
                             <div>
-                              <div className="text-xs text-gray-500">Table</div>
-                              <div className="text-sm font-medium text-gray-900">{order.customerDisplay?.tableNumber || 'N/A'}</div>
+                              <div className="text-xs text-gray-500">{order.roomNumber || order.customerDisplay?.roomNumber ? 'Room' : 'Table'}</div>
+                              <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1110,8 +1128,12 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 uppercase mb-2">Order Details:</h3>
                   <div className="text-gray-900 text-sm">
-                    {order.customerDisplay?.tableNumber && <p>Table: {order.customerDisplay.tableNumber}</p>}
-                    {order.customerDisplay?.floorName && <p>Floor: {order.customerDisplay.floorName}</p>}
+                    {(order.roomNumber || order.customerDisplay?.roomNumber) ? (
+                      <p>Room: {order.roomNumber || order.customerDisplay?.roomNumber}</p>
+                    ) : (
+                      order.customerDisplay?.tableNumber && <p>Table: {order.customerDisplay.tableNumber}</p>
+                    )}
+                    {order.customerDisplay?.floorName && !order.roomNumber && !order.customerDisplay?.roomNumber && <p>Floor: {order.customerDisplay.floorName}</p>}
                     {order.orderType && <p>Type: <span className="capitalize">{order.orderType.replace('-', ' ')}</span></p>}
                     {order.paymentMethod && <p>Payment: <span className="capitalize">{order.paymentMethod}</span></p>}
                   </div>
