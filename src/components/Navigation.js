@@ -59,9 +59,11 @@ function NavigationContent({ isHidden = false }) {
   const [orderhistoryBackgroundLoading, setOrderhistoryBackgroundLoading] = useState(false);
   const [customersBackgroundLoading, setCustomersBackgroundLoading] = useState(false);
   const [menuBackgroundLoading, setMenuBackgroundLoading] = useState(false);
-  const [analyticsBackgroundLoading, setAnalyticsBackgroundLoading] = useState(false);
+  // Analytics - Commented out temporarily
+  // const [analyticsBackgroundLoading, setAnalyticsBackgroundLoading] = useState(false);
   const [kotBackgroundLoading, setKotBackgroundLoading] = useState(false);
-  const [automationBackgroundLoading, setAutomationBackgroundLoading] = useState(false);
+  // Automation - Commented out temporarily
+  // const [automationBackgroundLoading, setAutomationBackgroundLoading] = useState(false);
   
   // Listen for background loading events from all pages
   useEffect(() => {
@@ -95,9 +97,11 @@ function NavigationContent({ isHidden = false }) {
     window.addEventListener('orderhistoryBackgroundLoading', handleOrderhistoryLoading);
     window.addEventListener('customersBackgroundLoading', handleCustomersLoading);
     window.addEventListener('menuBackgroundLoading', handleMenuLoading);
-    window.addEventListener('analyticsBackgroundLoading', handleAnalyticsLoading);
+    // Analytics - Commented out temporarily
+    // window.addEventListener('analyticsBackgroundLoading', handleAnalyticsLoading);
     window.addEventListener('kotBackgroundLoading', handleKotLoading);
-    window.addEventListener('automationBackgroundLoading', handleAutomationLoading);
+    // Automation - Commented out temporarily
+    // window.addEventListener('automationBackgroundLoading', handleAutomationLoading);
     
     return () => {
       window.removeEventListener('dashboardBackgroundLoading', handleDashboardLoading);
@@ -105,9 +109,11 @@ function NavigationContent({ isHidden = false }) {
       window.removeEventListener('orderhistoryBackgroundLoading', handleOrderhistoryLoading);
       window.removeEventListener('customersBackgroundLoading', handleCustomersLoading);
       window.removeEventListener('menuBackgroundLoading', handleMenuLoading);
-      window.removeEventListener('analyticsBackgroundLoading', handleAnalyticsLoading);
+      // Analytics - Commented out temporarily
+      // window.removeEventListener('analyticsBackgroundLoading', handleAnalyticsLoading);
       window.removeEventListener('kotBackgroundLoading', handleKotLoading);
-      window.removeEventListener('automationBackgroundLoading', handleAutomationLoading);
+      // Automation - Commented out temporarily
+      // window.removeEventListener('automationBackgroundLoading', handleAutomationLoading);
     };
   }, []);
   
@@ -320,11 +326,14 @@ function NavigationContent({ isHidden = false }) {
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'manager'] },
     { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', gradient: 'from-emerald-500 to-emerald-600', roles: ['owner', 'manager'] },
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', gradient: 'from-teal-500 to-teal-600', roles: ['owner', 'manager'] },
-    { id: 'analytics', name: t('nav.analytics'), icon: FaChartBar, href: '/analytics', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'manager'] },
+    // Analytics - Commented out temporarily
+    // { id: 'analytics', name: t('nav.analytics'), icon: FaChartBar, href: '/analytics', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', gradient: 'from-cyan-500 to-cyan-600', roles: ['owner'] },
     { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', gradient: 'from-pink-500 to-pink-600', roles: ['owner'] },
     { id: 'kot', name: t('nav.kot'), icon: FaPrint, href: '/kot', color: '#f97316', gradient: 'from-orange-500 to-orange-600', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'automation', name: 'Automation', icon: FaRobot, href: '/automation', color: '#10b981', gradient: 'from-emerald-500 to-emerald-600', roles: ['owner', 'manager'] },
+    { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'manager'] },
+    // Automation - Commented out temporarily
+    // { id: 'automation', name: 'Automation', icon: FaRobot, href: '/automation', color: '#10b981', gradient: 'from-emerald-500 to-emerald-600', roles: ['owner', 'manager'] },
   ];
 
   // Filter navigation items based on user role and page access
@@ -346,9 +355,10 @@ function NavigationContent({ isHidden = false }) {
         'customers': 'customers',
         'menu': 'menu',
         'inventory': 'inventory',
-        'analytics': 'analytics',
+        // 'analytics': 'analytics', // Commented out temporarily
         'kot': 'kot',
-        'admin': 'admin'
+        'admin': 'admin',
+        'hotel': 'hotel' // Added hotel access
       };
       
       const accessKey = accessMap[item.id];
@@ -480,9 +490,12 @@ function NavigationContent({ isHidden = false }) {
         (orderhistoryBackgroundLoading && pathname === '/orderhistory') ||
         (customersBackgroundLoading && pathname === '/customers') ||
         (menuBackgroundLoading && pathname === '/menu') ||
-        (analyticsBackgroundLoading && pathname === '/analytics') ||
-        (kotBackgroundLoading && pathname === '/kot') ||
-        (automationBackgroundLoading && pathname === '/automation')) && (
+        // Analytics - Commented out temporarily
+        // (analyticsBackgroundLoading && pathname === '/analytics') ||
+        (kotBackgroundLoading && pathname === '/kot')
+        // Automation - Commented out temporarily
+        // (automationBackgroundLoading && pathname === '/automation')
+        ) && (
         <div style={{
           position: 'fixed',
           top: '64px',
