@@ -1715,8 +1715,10 @@ function RestaurantPOSContent() {
       
       // Check if table number changed in edit mode
       // Determine if this is a room order
-      const isRoomOrder = selectedTable?.isRoom === true;
-      const roomNumber = isRoomOrder ? (selectedTable?.name || tableNumber) : null;
+      const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
+      const roomNumber = isRoomOrder 
+        ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
+        : null;
       const tableToUse = !isRoomOrder ? (tableNumber || selectedTable?.number || selectedTable?.name) : null;
       let tableChanged = false;
       
@@ -1804,8 +1806,10 @@ function RestaurantPOSContent() {
         console.log('🆕 Creating new order for direct billing');
         
         // Determine if this is a room order
-        const isRoomOrder = selectedTable?.isRoom === true;
-        const roomNumber = isRoomOrder ? (selectedTable?.name || tableToUse) : null;
+        const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
+        const roomNumber = isRoomOrder 
+          ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableToUse))
+          : null;
         const finalTableNumber = !isRoomOrder ? tableToUse : null;
 
         // Create new order for direct billing
@@ -1980,8 +1984,10 @@ function RestaurantPOSContent() {
       setError(null);
 
       // Determine if this is a room order
-      const isRoomOrder = selectedTable?.isRoom === true;
-      const roomNumber = isRoomOrder ? (selectedTable?.name || tableNumber) : null;
+      const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
+      const roomNumber = isRoomOrder 
+        ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
+        : null;
       const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
 
       const orderData = {
@@ -3956,6 +3962,11 @@ function RestaurantPOSContent() {
                 onTableNumberChange={setTableNumber}
                 onCustomerNameChange={setCustomerName}
                 onCustomerMobileChange={setCustomerMobile}
+                inRoomDiningEnabled={inRoomDiningEnabled}
+                locationType={locationType}
+                setLocationType={setLocationType}
+                manualRoomNumber={manualRoomNumber}
+                setManualRoomNumber={setManualRoomNumber}
                 processing={processing}
                 placingOrder={placingOrder}
                 orderSuccess={orderSuccess}
@@ -4054,6 +4065,11 @@ function RestaurantPOSContent() {
             onTableNumberChange={setTableNumber}
             onCustomerNameChange={setCustomerName}
             onCustomerMobileChange={setCustomerMobile}
+            inRoomDiningEnabled={inRoomDiningEnabled}
+            locationType={locationType}
+            setLocationType={setLocationType}
+            manualRoomNumber={manualRoomNumber}
+            setManualRoomNumber={setManualRoomNumber}
             processing={processing}
             placingOrder={placingOrder}
             orderSuccess={orderSuccess}
@@ -4101,6 +4117,11 @@ function RestaurantPOSContent() {
                     onTableNumberChange={setTableNumber}
                     onCustomerNameChange={setCustomerName}
                     onCustomerMobileChange={setCustomerMobile}
+                    inRoomDiningEnabled={inRoomDiningEnabled}
+                    locationType={locationType}
+                    setLocationType={setLocationType}
+                    manualRoomNumber={manualRoomNumber}
+                    setManualRoomNumber={setManualRoomNumber}
                     processing={processing}
                     placingOrder={placingOrder}
                     orderSuccess={orderSuccess}

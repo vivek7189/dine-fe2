@@ -20,7 +20,9 @@ import {
   FaMicrophone,
   FaMicrophoneSlash,
   FaChair,
-  FaExchangeAlt
+  FaExchangeAlt,
+  FaTable,
+  FaBed
 } from 'react-icons/fa';
 
 const OrderSummary = ({ 
@@ -58,7 +60,12 @@ const OrderSummary = ({
   restaurantName,
   taxSettings,
   menuItems = [],
-  onClose
+  onClose,
+  inRoomDiningEnabled = false,
+  locationType = 'table',
+  setLocationType,
+  manualRoomNumber = '',
+  setManualRoomNumber
 }) => {
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
@@ -1473,30 +1480,126 @@ const OrderSummary = ({
                     />
                   </div>
                   
-                  {/* Second Row on Mobile: Table Number (Full Width) */}
-                  {/* Table Number */}
-                  <input
-                    type="text"
-                    placeholder="Table No"
-                    value={tableNumber || ''}
-                    style={{
-                      width: isMobile ? '100%' : '20%',
-                      padding: isMobile ? '10px 12px' : '8px 10px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: isMobile ? '14px' : '12px',
-                      outline: 'none',
-                      backgroundColor: '#f9fafb',
-                      transition: 'border-color 0.2s'
-                    }}
-                    onChange={(e) => {
-                      if (typeof onTableNumberChange === 'function') {
-                        onTableNumberChange(e.target.value);
-                      }
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#ef4444'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  />
+                  {/* Second Row on Mobile: Table/Room Number (Full Width) */}
+                  {/* Location Type Selector (Table or Room) - Only show if in-room dining is enabled */}
+                  {inRoomDiningEnabled && (
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof setLocationType === 'function') {
+                              setLocationType('table');
+                              if (typeof setManualRoomNumber === 'function') {
+                                setManualRoomNumber('');
+                              }
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '2px solid',
+                            backgroundColor: locationType === 'table' ? '#ef4444' : 'white',
+                            color: locationType === 'table' ? 'white' : '#374151',
+                            borderColor: locationType === 'table' ? '#ef4444' : '#e5e7eb',
+                            fontWeight: '600',
+                            fontSize: isMobile ? '13px' : '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <FaTable size={12} />
+                          Table
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof setLocationType === 'function') {
+                              setLocationType('room');
+                              if (typeof onTableNumberChange === 'function') {
+                                onTableNumberChange('');
+                              }
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '2px solid',
+                            backgroundColor: locationType === 'room' ? '#ef4444' : 'white',
+                            color: locationType === 'room' ? 'white' : '#374151',
+                            borderColor: locationType === 'room' ? '#ef4444' : '#e5e7eb',
+                            fontWeight: '600',
+                            fontSize: isMobile ? '13px' : '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <FaBed size={12} />
+                          Room
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Table Number Input */}
+                  {(!inRoomDiningEnabled || locationType === 'table') && (
+                    <input
+                      type="text"
+                      placeholder="Table No"
+                      value={tableNumber || ''}
+                      style={{
+                        width: isMobile ? '100%' : '20%',
+                        padding: isMobile ? '10px 12px' : '8px 10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: isMobile ? '14px' : '12px',
+                        outline: 'none',
+                        backgroundColor: '#f9fafb',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onChange={(e) => {
+                        if (typeof onTableNumberChange === 'function') {
+                          onTableNumberChange(e.target.value);
+                        }
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#ef4444'}
+                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    />
+                  )}
+                  
+                  {/* Room Number Input */}
+                  {inRoomDiningEnabled && locationType === 'room' && (
+                    <input
+                      type="text"
+                      placeholder="Room No"
+                      value={manualRoomNumber || ''}
+                      style={{
+                        width: isMobile ? '100%' : '20%',
+                        padding: isMobile ? '10px 12px' : '8px 10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: isMobile ? '14px' : '12px',
+                        outline: 'none',
+                        backgroundColor: '#f9fafb',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onChange={(e) => {
+                        if (typeof setManualRoomNumber === 'function') {
+                          setManualRoomNumber(e.target.value);
+                        }
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#ef4444'}
+                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    />
+                  )}
                 </div>
               </div>
 
