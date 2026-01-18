@@ -21,10 +21,15 @@ import {
   FaTimes,
   FaReceipt,
   FaPrint,
-  FaEnvelope,
   FaIdCard,
   FaBuilding,
-  FaClock
+  FaClock,
+  FaBroom,
+  FaTools,
+  FaBan,
+  FaEdit,
+  FaTrash,
+  FaBookmark
 } from 'react-icons/fa';
 
 const Hotel = () => {
@@ -34,23 +39,67 @@ const Hotel = () => {
   const [success, setSuccess] = useState(null);
   const [restaurantId, setRestaurantId] = useState(null);
 
+  // Active tab
+  const [activeTab, setActiveTab] = useState('rooms'); // rooms, bookings, checkins
+
   // Data
+  const [rooms, setRooms] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [checkIns, setCheckIns] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('active');
+
+  // Filters
+  const [roomStatusFilter, setRoomStatusFilter] = useState('all');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('confirmed');
+  const [checkInStatusFilter, setCheckInStatusFilter] = useState('active');
 
   // Modals
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedCheckIn, setSelectedCheckIn] = useState(null);
   const [invoice, setInvoice] = useState(null);
 
   // Forms
-  const [checkInForm, setCheckInForm] = useState({
+  const [roomForm, setRoomForm] = useState({
+    roomNumber: '',
+    type: 'standard',
+    floor: 'Ground',
+    capacity: 2,
+    tariff: ''
+  });
+
+  const [bulkRoomForm, setBulkRoomForm] = useState({
+    fromNumber: '',
+    toNumber: '',
+    type: 'standard',
+    floor: 'Ground',
+    capacity: 2,
+    tariff: ''
+  });
+
+  const [bookingForm, setBookingForm] = useState({
+    roomNumber: '',
     guestName: '',
     guestPhone: '',
     guestEmail: '',
+    checkInDate: new Date().toISOString().split('T')[0],
+    checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    numberOfGuests: 1,
+    estimatedTariff: '',
+    specialRequests: ''
+  });
+
+  const [checkInForm, setCheckInForm] = useState({
     roomNumber: '',
+    guestName: '',
+    guestPhone: '',
+    guestEmail: '',
     checkInDate: new Date().toISOString().split('T')[0],
     checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     numberOfGuests: 1,
@@ -101,40 +150,223 @@ const Hotel = () => {
     loadRestaurant();
   }, []);
 
-  // Load check-ins
+  // Load data based on active tab
   useEffect(() => {
     if (restaurantId) {
-      loadCheckIns();
+      if (activeTab === 'rooms') {
+        loadRooms();
+      } else if (activeTab === 'bookings') {
+        loadBookings();
+      } else if (activeTab === 'checkins') {
+        loadCheckIns();
+      }
     }
-  }, [restaurantId, activeFilter]);
+  }, [restaurantId, activeTab, roomStatusFilter, bookingStatusFilter, checkInStatusFilter]);
 
-  const loadCheckIns = async () => {
+  const loadRooms = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getHotelCheckIns(restaurantId, activeFilter);
-      setCheckIns(response.checkIns || []);
+      const filters = roomStatusFilter !== 'all' ? { status: roomStatusFilter } : {};
+      const response = await apiClient.getRooms(restaurantId, filters);
+      setRooms(response.rooms || []);
     } catch (error) {
-      console.error('Error loading check-ins:', error);
-      setError('Failed to load hotel data');
+      console.error('Error loading rooms:', error);
+      setError('Failed to load rooms');
     } finally {
       setLoading(false);
     }
   };
 
+  const loadBookings = async () => {
+    try {
+      setLoading(true);
+      const filters = { status: bookingStatusFilter };
+      const response = await apiClient.getBookings(restaurantId, filters);
+      setBookings(response.bookings || []);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      setError('Failed to load bookings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCheckIns = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.getHotelCheckIns(restaurantId, checkInStatusFilter);
+      setCheckIns(response.checkIns || []);
+    } catch (error) {
+      console.error('Error loading check-ins:', error);
+      setError('Failed to load check-ins');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Room actions
+  const handleAddRoom = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      await apiClient.addRoom({
+        restaurantId,
+        ...roomForm
+      });
+
+      setSuccess('Room added successfully');
+      setShowAddRoomModal(false);
+      setRoomForm({
+        roomNumber: '',
+        type: 'standard',
+        floor: 'Ground',
+        capacity: 2,
+        tariff: ''
+      });
+      loadRooms();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      setError(error.message || 'Failed to add room');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkAddRooms = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      await apiClient.bulkAddRooms({
+        restaurantId,
+        ...bulkRoomForm
+      });
+
+      setSuccess('Rooms added successfully');
+      setShowBulkAddModal(false);
+      setBulkRoomForm({
+        fromNumber: '',
+        toNumber: '',
+        type: 'standard',
+        floor: 'Ground',
+        capacity: 2,
+        tariff: ''
+      });
+      loadRooms();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      setError(error.message || 'Failed to add rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateRoomStatus = async (roomId, newStatus) => {
+    try {
+      await apiClient.updateRoomStatus(roomId, newStatus);
+      setSuccess('Room status updated');
+      loadRooms();
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (error) {
+      setError('Failed to update room status');
+    }
+  };
+
+  const handleDeleteRoom = async (roomId) => {
+    if (!confirm('Are you sure you want to delete this room?')) return;
+
+    try {
+      await apiClient.deleteRoom(roomId);
+      setSuccess('Room deleted successfully');
+      loadRooms();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      setError(error.message || 'Failed to delete room');
+    }
+  };
+
+  // Booking actions
+  const handleCreateBooking = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      await apiClient.createBooking({
+        restaurantId,
+        roomNumber: bookingForm.roomNumber,
+        guestInfo: {
+          name: bookingForm.guestName,
+          phone: bookingForm.guestPhone,
+          email: bookingForm.guestEmail || null
+        },
+        checkInDate: bookingForm.checkInDate,
+        checkOutDate: bookingForm.checkOutDate,
+        numberOfGuests: parseInt(bookingForm.numberOfGuests),
+        estimatedTariff: parseFloat(bookingForm.estimatedTariff) || 0,
+        specialRequests: bookingForm.specialRequests || null
+      });
+
+      setSuccess('Booking created successfully');
+      setShowBookingModal(false);
+      setBookingForm({
+        roomNumber: '',
+        guestName: '',
+        guestPhone: '',
+        guestEmail: '',
+        checkInDate: new Date().toISOString().split('T')[0],
+        checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        numberOfGuests: 1,
+        estimatedTariff: '',
+        specialRequests: ''
+      });
+      loadBookings();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      setError(error.message || 'Failed to create booking');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+    try {
+      await apiClient.cancelBooking(bookingId);
+      setSuccess('Booking cancelled');
+      loadBookings();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      setError('Failed to cancel booking');
+    }
+  };
+
+  const handleCheckInFromBooking = async (booking) => {
+    try {
+      const response = await apiClient.convertBookingToCheckIn(booking.id, {
+        advancePayment: 0,
+        paymentMode: 'cash'
+      });
+      setSuccess('Checked in successfully');
+      loadBookings();
+      setActiveTab('checkins');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      setError('Failed to check in');
+    }
+  };
+
+  // Check-in/Check-out actions
   const handleCheckIn = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const checkIn = new Date(checkInForm.checkInDate);
-      const checkOut = new Date(checkInForm.checkOutDate);
-      const stayDuration = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-
-      if (stayDuration < 1) {
-        throw new Error('Check-out must be after check-in');
-      }
-
       await apiClient.hotelCheckIn({
         restaurantId,
         guestInfo: {
@@ -145,7 +377,7 @@ const Hotel = () => {
         roomNumber: checkInForm.roomNumber,
         checkInDate: checkInForm.checkInDate,
         checkOutDate: checkInForm.checkOutDate,
-        numberOfGuests: parseInt(checkInForm.numberOfGuests) || 1,
+        numberOfGuests: parseInt(checkInForm.numberOfGuests),
         roomTariff: parseFloat(checkInForm.roomTariff) || 0,
         advancePayment: parseFloat(checkInForm.advancePayment) || 0,
         paymentMode: checkInForm.paymentMode,
@@ -159,13 +391,13 @@ const Hotel = () => {
         } : null
       });
 
-      setSuccess(`Guest checked in to Room ${checkInForm.roomNumber}`);
+      setSuccess('Checked in successfully');
       setShowCheckInModal(false);
       setCheckInForm({
+        roomNumber: '',
         guestName: '',
         guestPhone: '',
         guestEmail: '',
-        roomNumber: '',
         checkInDate: new Date().toISOString().split('T')[0],
         checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         numberOfGuests: 1,
@@ -177,7 +409,8 @@ const Hotel = () => {
         gstNumber: '',
         gstCompanyName: ''
       });
-      loadCheckIns();
+      if (activeTab === 'rooms') loadRooms();
+      else loadCheckIns();
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       setError(error.message || 'Check-in failed');
@@ -204,14 +437,14 @@ const Hotel = () => {
         notes: checkOutForm.notes || null
       });
 
-      setSuccess(`Room ${selectedCheckIn.roomNumber} checked out successfully`);
+      setSuccess('Checked out successfully');
       setShowCheckOutModal(false);
       setCheckOutForm({ finalPayment: '', paymentMode: 'cash', discount: '', notes: '' });
       setSelectedCheckIn(null);
-      loadCheckIns();
+      if (activeTab === 'rooms') loadRooms();
+      else loadCheckIns();
       setTimeout(() => setSuccess(null), 3000);
 
-      // Show invoice
       setInvoice(response.invoice);
       setShowInvoiceModal(true);
     } catch (error) {
@@ -242,12 +475,48 @@ const Hotel = () => {
     }
   };
 
-  // Stats
-  const activeCheckInsCount = checkIns.filter(c => c.status === 'checked-in').length;
-  const totalRevenue = checkIns.reduce((sum, c) => sum + (c.totalPaid || 0), 0);
-  const pendingAmount = checkIns.filter(c => c.status === 'checked-in').reduce((sum, c) => sum + (c.balanceAmount || 0), 0);
+  const getRoomStatusColor = (status) => {
+    switch (status) {
+      case 'available': return 'bg-green-600';
+      case 'occupied': return 'bg-red-600';
+      case 'cleaning': return 'bg-yellow-600';
+      case 'maintenance': return 'bg-orange-600';
+      case 'reserved': return 'bg-blue-600';
+      case 'out-of-service': return 'bg-gray-600';
+      default: return 'bg-gray-400';
+    }
+  };
 
-  if (loading && !checkIns.length) {
+  const getRoomStatusText = (status) => {
+    switch (status) {
+      case 'available': return 'Available';
+      case 'occupied': return 'Occupied';
+      case 'cleaning': return 'Cleaning';
+      case 'maintenance': return 'Maintenance';
+      case 'reserved': return 'Reserved';
+      case 'out-of-service': return 'Out of Service';
+      default: return status;
+    }
+  };
+
+  const getRoomStatusIcon = (status) => {
+    switch (status) {
+      case 'available': return <FaBed />;
+      case 'occupied': return <FaUser />;
+      case 'cleaning': return <FaBroom />;
+      case 'maintenance': return <FaTools />;
+      case 'reserved': return <FaBookmark />;
+      case 'out-of-service': return <FaBan />;
+      default: return <FaBed />;
+    }
+  };
+
+  // Stats
+  const availableRooms = rooms.filter(r => r.status === 'available').length;
+  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+  const totalRevenue = checkIns.reduce((sum, c) => sum + (c.totalPaid || 0), 0);
+
+  if (loading && rooms.length === 0 && bookings.length === 0 && checkIns.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -270,55 +539,85 @@ const Hotel = () => {
                 Hotel Management
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Manage check-ins, check-outs & room billing
+                Manage rooms, bookings, check-ins & billing
               </p>
             </div>
-            <button
-              onClick={() => setShowCheckInModal(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-            >
-              <FaPlus /> New Check-In
-            </button>
+            <div className="flex gap-2">
+              {activeTab === 'rooms' && (
+                <>
+                  <button
+                    onClick={() => setShowBulkAddModal(true)}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <FaPlus /> Bulk Add
+                  </button>
+                  <button
+                    onClick={() => setShowAddRoomModal(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                  >
+                    <FaPlus /> Add Room
+                  </button>
+                </>
+              )}
+              {activeTab === 'bookings' && (
+                <button
+                  onClick={() => setShowBookingModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                >
+                  <FaPlus /> New Booking
+                </button>
+              )}
+              {activeTab === 'checkins' && (
+                <button
+                  onClick={() => setShowCheckInModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                >
+                  <FaPlus /> New Check-In
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm">Active Rooms</p>
-                <p className="text-3xl font-bold mt-2">{activeCheckInsCount}</p>
-                <p className="text-green-100 text-xs mt-1">Currently occupied</p>
+        {activeTab === 'rooms' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm">Available Rooms</p>
+                  <p className="text-3xl font-bold mt-2">{availableRooms}</p>
+                  <p className="text-green-100 text-xs mt-1">Ready to book</p>
+                </div>
+                <FaBed className="text-4xl opacity-50" />
               </div>
-              <FaBed className="text-4xl opacity-50" />
             </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-100 text-sm">Total Revenue</p>
-                <p className="text-3xl font-bold mt-2">₹{totalRevenue.toFixed(0)}</p>
-                <p className="text-red-100 text-xs mt-1">All bookings</p>
+            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-red-100 text-sm">Occupied Rooms</p>
+                  <p className="text-3xl font-bold mt-2">{occupiedRooms}</p>
+                  <p className="text-red-100 text-xs mt-1">Currently in use</p>
+                </div>
+                <FaUser className="text-4xl opacity-50" />
               </div>
-              <FaMoneyBillWave className="text-4xl opacity-50" />
             </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100 text-sm">Pending Dues</p>
-                <p className="text-3xl font-bold mt-2">₹{pendingAmount.toFixed(0)}</p>
-                <p className="text-yellow-100 text-xs mt-1">To be collected</p>
+            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-yellow-100 text-sm">Total Rooms</p>
+                  <p className="text-3xl font-bold mt-2">{rooms.length}</p>
+                  <p className="text-yellow-100 text-xs mt-1">In hotel</p>
+                </div>
+                <FaHotel className="text-4xl opacity-50" />
               </div>
-              <FaReceipt className="text-4xl opacity-50" />
             </div>
           </div>
-        </div>
+        )}
 
         {/* Messages */}
         {error && (
@@ -345,134 +644,716 @@ const Hotel = () => {
           <div className="border-b border-gray-200">
             <nav className="flex -mb-px">
               {[
-                { id: 'active', label: 'Active' },
-                { id: 'all', label: 'All' },
-                { id: 'checked-out', label: 'Checked Out' }
+                { id: 'rooms', label: 'Rooms', icon: FaBed },
+                { id: 'bookings', label: 'Bookings', icon: FaBookmark },
+                { id: 'checkins', label: 'Check-ins', icon: FaUserCheck }
               ].map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveFilter(tab.id)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`
                     flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors
-                    ${activeFilter === tab.id
+                    ${activeTab === tab.id
                       ? 'border-red-600 text-red-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }
                   `}
                 >
+                  <tab.icon />
                   {tab.label}
                 </button>
               ))}
             </nav>
           </div>
+
+          {/* Filters */}
+          <div className="p-4 bg-gray-50 border-b border-gray-200">
+            {activeTab === 'rooms' && (
+              <div className="flex gap-2">
+                {['all', 'available', 'occupied', 'cleaning', 'maintenance', 'reserved'].map(filter => (
+                  <button
+                    key={filter}
+                    onClick={() => setRoomStatusFilter(filter)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      roomStatusFilter === filter
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {activeTab === 'bookings' && (
+              <div className="flex gap-2">
+                {['confirmed', 'checked-in', 'cancelled'].map(filter => (
+                  <button
+                    key={filter}
+                    onClick={() => setBookingStatusFilter(filter)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      bookingStatusFilter === filter
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {activeTab === 'checkins' && (
+              <div className="flex gap-2">
+                {['active', 'all', 'checked-out'].map(filter => (
+                  <button
+                    key={filter}
+                    onClick={() => setCheckInStatusFilter(filter)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      checkInStatusFilter === filter
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {filter === 'active' ? 'Active' : filter === 'all' ? 'All' : 'Checked Out'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Check-ins List */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          {checkIns.length > 0 ? (
-            <div className="divide-y divide-gray-200">
-              {checkIns.map((checkIn) => (
-                <div key={checkIn.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
-                    {/* Room & Guest Info */}
-                    <div className="flex items-center gap-4 flex-1 min-w-[250px]">
-                      <div className={`w-16 h-16 rounded-lg ${checkIn.status === 'checked-in' ? 'bg-green-600' : 'bg-gray-400'} flex items-center justify-center text-white text-xl font-bold`}>
-                        {checkIn.roomNumber}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <FaUser className="text-gray-400" size={12} />
-                          {checkIn.guestName}
-                        </h3>
-                        <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                          <FaPhone className="text-gray-400" size={10} />
-                          {checkIn.guestPhone}
-                        </p>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <FaCalendar size={10} />
-                            {new Date(checkIn.checkInDate).toLocaleDateString()} - {new Date(checkIn.checkOutDate).toLocaleDateString()}
-                          </span>
-                          <span>• {checkIn.stayDuration} nights</span>
-                          {checkIn.numberOfGuests > 1 && <span>• {checkIn.numberOfGuests} guests</span>}
-                        </div>
+        {/* Content based on active tab */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          {/* ROOMS TAB */}
+          {activeTab === 'rooms' && (
+            rooms.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {rooms.map((room) => (
+                  <div
+                    key={room.id}
+                    className={`${getRoomStatusColor(room.status)} rounded-lg p-4 text-white relative group hover:shadow-lg transition-shadow cursor-pointer`}
+                  >
+                    {/* Room Number */}
+                    <div className="text-center mb-2">
+                      <div className="text-3xl font-bold">{room.roomNumber}</div>
+                      <div className="text-xs opacity-90">{room.floor}</div>
+                    </div>
+
+                    {/* Status Icon */}
+                    <div className="flex justify-center mb-2">
+                      <div className="text-2xl opacity-90">
+                        {getRoomStatusIcon(room.status)}
                       </div>
                     </div>
 
-                    {/* Billing Info */}
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600 mb-1">
-                        Room: ₹{checkIn.totalRoomCharges?.toFixed(2) || '0.00'}
-                        {checkIn.totalFoodCharges > 0 && (
-                          <span className="ml-2 text-yellow-600">
-                            | Food: ₹{checkIn.totalFoodCharges.toFixed(2)}
+                    {/* Status Text */}
+                    <div className="text-center text-xs font-medium mb-2">
+                      {getRoomStatusText(room.status)}
+                    </div>
+
+                    {/* Current Guest (if occupied) */}
+                    {room.currentGuest && (
+                      <div className="text-center text-xs opacity-90 truncate">
+                        {room.currentGuest}
+                      </div>
+                    )}
+
+                    {/* Room Type & Capacity */}
+                    <div className="text-center text-xs opacity-75 mt-2">
+                      {room.type} • {room.capacity} guests
+                    </div>
+
+                    {/* Action Buttons (on hover) */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-70 rounded-lg transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="flex gap-2">
+                        {room.status === 'available' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setCheckInForm({ ...checkInForm, roomNumber: room.roomNumber, roomTariff: room.tariff });
+                                setShowCheckInModal(true);
+                              }}
+                              className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                              title="Check In"
+                            >
+                              <FaUserCheck />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setBookingForm({ ...bookingForm, roomNumber: room.roomNumber, estimatedTariff: room.tariff });
+                                setShowBookingModal(true);
+                              }}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                              title="Book Room"
+                            >
+                              <FaBookmark />
+                            </button>
+                          </>
+                        )}
+                        {room.status === 'cleaning' && (
+                          <button
+                            onClick={() => handleUpdateRoomStatus(room.id, 'available')}
+                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                            title="Mark Available"
+                          >
+                            Available
+                          </button>
+                        )}
+                        {room.status === 'maintenance' && (
+                          <button
+                            onClick={() => handleUpdateRoomStatus(room.id, 'available')}
+                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                            title="Mark Available"
+                          >
+                            Available
+                          </button>
+                        )}
+                        {room.status !== 'occupied' && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateRoomStatus(room.id, 'maintenance')}
+                              className="px-3 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
+                              title="Maintenance"
+                            >
+                              <FaTools />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRoom(room.id)}
+                              className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                              title="Delete"
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FaHotel className="mx-auto text-gray-300 mb-4" size={48} />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No rooms found</h3>
+                <p className="text-sm text-gray-600 mb-4">Add your first room to get started</p>
+                <button
+                  onClick={() => setShowAddRoomModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
+                >
+                  <FaPlus /> Add Room
+                </button>
+              </div>
+            )
+          )}
+
+          {/* BOOKINGS TAB */}
+          {activeTab === 'bookings' && (
+            bookings.length > 0 ? (
+              <div className="divide-y divide-gray-200">
+                {bookings.map((booking) => (
+                  <div key={booking.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                          {booking.roomNumber}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{booking.guestName}</h3>
+                          <p className="text-sm text-gray-600">{booking.guestPhone}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {booking.status === 'confirmed' && (
+                          <>
+                            <button
+                              onClick={() => handleCheckInFromBooking(booking)}
+                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                            >
+                              Check In
+                            </button>
+                            <button
+                              onClick={() => handleCancelBooking(booking.id)}
+                              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {booking.status === 'cancelled' && (
+                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm">
+                            Cancelled
+                          </span>
+                        )}
+                        {booking.status === 'checked-in' && (
+                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
+                            Checked In
                           </span>
                         )}
                       </div>
-                      <p className={`text-2xl font-bold ${checkIn.status === 'checked-in' ? 'text-yellow-600' : 'text-green-600'}`}>
-                        {checkIn.status === 'checked-in' ? `₹${checkIn.balanceAmount?.toFixed(2) || '0.00'}` : 'Paid'}
-                      </p>
-                      <span className="text-xs text-gray-500">
-                        {checkIn.status === 'checked-in' ? 'Balance Due' : `Total: ₹${checkIn.totalPaid?.toFixed(2) || '0.00'}`}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      {checkIn.status === 'checked-in' ? (
-                        <button
-                          onClick={() => openCheckOut(checkIn)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium"
-                        >
-                          <FaSignOutAlt size={12} />
-                          Check Out
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => viewInvoice(checkIn)}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2 text-sm font-medium"
-                        >
-                          <FaFileInvoice size={12} />
-                          Invoice
-                        </button>
-                      )}
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FaBookmark className="mx-auto text-gray-300 mb-4" size={48} />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
+                <p className="text-sm text-gray-600 mb-4">Create your first booking</p>
+                <button
+                  onClick={() => setShowBookingModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
+                >
+                  <FaPlus /> New Booking
+                </button>
+              </div>
+            )
+          )}
 
-                  {/* Food Orders */}
-                  {checkIn.foodOrders && checkIn.foodOrders.length > 0 && (
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-xs font-semibold text-yellow-900 mb-2">
-                        <FaUtensils className="inline mr-1" size={10} />
-                        Food Orders ({checkIn.foodOrders.length})
-                      </p>
-                      <div className="flex gap-2 flex-wrap text-xs text-yellow-800">
-                        {checkIn.foodOrders.map((order, i) => (
-                          <span key={i} className="bg-yellow-100 px-2 py-1 rounded">
-                            Order #{order.orderNumber || i+1}: ₹{order.amount.toFixed(2)}
-                          </span>
-                        ))}
+          {/* CHECK-INS TAB */}
+          {activeTab === 'checkins' && (
+            checkIns.length > 0 ? (
+              <div className="divide-y divide-gray-200">
+                {checkIns.map((checkIn) => (
+                  <div key={checkIn.id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      {/* Room & Guest Info */}
+                      <div className="flex items-center gap-4 flex-1 min-w-[250px]">
+                        <div className={`w-16 h-16 rounded-lg ${checkIn.status === 'checked-in' ? 'bg-green-600' : 'bg-gray-400'} flex items-center justify-center text-white text-xl font-bold`}>
+                          {checkIn.roomNumber}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <FaUser className="text-gray-400" size={12} />
+                            {checkIn.guestName}
+                          </h3>
+                          <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                            <FaPhone className="text-gray-400" size={10} />
+                            {checkIn.guestPhone}
+                          </p>
+                          <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <FaCalendar size={10} />
+                              {new Date(checkIn.checkInDate).toLocaleDateString()} - {new Date(checkIn.checkOutDate).toLocaleDateString()}
+                            </span>
+                            <span>• {checkIn.stayDuration} nights</span>
+                            {checkIn.numberOfGuests > 1 && <span>• {checkIn.numberOfGuests} guests</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Billing Info */}
+                      <div className="text-right">
+                        <div className="text-sm text-gray-600 mb-1">
+                          Room: ₹{checkIn.totalRoomCharges?.toFixed(2) || '0.00'}
+                          {checkIn.totalFoodCharges > 0 && (
+                            <span className="ml-2 text-yellow-600">
+                              | Food: ₹{checkIn.totalFoodCharges.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-2xl font-bold ${checkIn.status === 'checked-in' ? 'text-yellow-600' : 'text-green-600'}`}>
+                          {checkIn.status === 'checked-in' ? `₹${checkIn.balanceAmount?.toFixed(2) || '0.00'}` : 'Paid'}
+                        </p>
+                        <span className="text-xs text-gray-500">
+                          {checkIn.status === 'checked-in' ? 'Balance Due' : `Total: ₹${checkIn.totalPaid?.toFixed(2) || '0.00'}`}
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        {checkIn.status === 'checked-in' ? (
+                          <button
+                            onClick={() => openCheckOut(checkIn)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium"
+                          >
+                            <FaSignOutAlt size={12} />
+                            Check Out
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => viewInvoice(checkIn)}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2 text-sm font-medium"
+                          >
+                            <FaFileInvoice size={12} />
+                            Invoice
+                          </button>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-12 text-center">
-              <FaHotel className="mx-auto text-gray-300 mb-4" size={48} />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No check-ins found</h3>
-              <p className="text-sm text-gray-600 mb-4">Create your first check-in to get started</p>
-              <button
-                onClick={() => setShowCheckInModal(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
-              >
-                <FaPlus /> New Check-In
-              </button>
-            </div>
+
+                    {/* Food Orders */}
+                    {checkIn.foodOrders && checkIn.foodOrders.length > 0 && (
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-xs font-semibold text-yellow-900 mb-2">
+                          <FaUtensils className="inline mr-1" size={10} />
+                          Food Orders ({checkIn.foodOrders.length})
+                        </p>
+                        <div className="flex gap-2 flex-wrap text-xs text-yellow-800">
+                          {checkIn.foodOrders.map((order, i) => (
+                            <span key={i} className="bg-yellow-100 px-2 py-1 rounded">
+                              Order #{order.orderNumber || i+1}: ₹{order.amount.toFixed(2)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FaUserCheck className="mx-auto text-gray-300 mb-4" size={48} />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No check-ins found</h3>
+                <p className="text-sm text-gray-600 mb-4">Check in a guest to get started</p>
+                <button
+                  onClick={() => setShowCheckInModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
+                >
+                  <FaPlus /> New Check-In
+                </button>
+              </div>
+            )
           )}
         </div>
       </div>
+
+      {/* Add Room Modal */}
+      {showAddRoomModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="bg-red-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+              <h2 className="text-xl font-bold">Add New Room</h2>
+              <button onClick={() => setShowAddRoomModal(false)} className="text-white hover:text-gray-200">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleAddRoom} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={roomForm.roomNumber}
+                    onChange={e => setRoomForm({ ...roomForm, roomNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+                  <select
+                    value={roomForm.type}
+                    onChange={e => setRoomForm({ ...roomForm, type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  >
+                    <option value="standard">Standard</option>
+                    <option value="deluxe">Deluxe</option>
+                    <option value="suite">Suite</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+                  <input
+                    type="text"
+                    value={roomForm.floor}
+                    onChange={e => setRoomForm({ ...roomForm, floor: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={roomForm.capacity}
+                    onChange={e => setRoomForm({ ...roomForm, capacity: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tariff (per night)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={roomForm.tariff}
+                    onChange={e => setRoomForm({ ...roomForm, tariff: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAddRoomModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:bg-gray-400"
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" size={14} />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus size={14} />
+                      Add Room
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Add Rooms Modal */}
+      {showBulkAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="bg-red-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+              <h2 className="text-xl font-bold">Bulk Add Rooms</h2>
+              <button onClick={() => setShowBulkAddModal(false)} className="text-white hover:text-gray-200">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleBulkAddRooms} className="p-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">From Room Number *</label>
+                    <input
+                      type="number"
+                      required
+                      value={bulkRoomForm.fromNumber}
+                      onChange={e => setBulkRoomForm({ ...bulkRoomForm, fromNumber: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">To Room Number *</label>
+                    <input
+                      type="number"
+                      required
+                      value={bulkRoomForm.toNumber}
+                      onChange={e => setBulkRoomForm({ ...bulkRoomForm, toNumber: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+                  <select
+                    value={bulkRoomForm.type}
+                    onChange={e => setBulkRoomForm({ ...bulkRoomForm, type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  >
+                    <option value="standard">Standard</option>
+                    <option value="deluxe">Deluxe</option>
+                    <option value="suite">Suite</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+                  <input
+                    type="text"
+                    value={bulkRoomForm.floor}
+                    onChange={e => setBulkRoomForm({ ...bulkRoomForm, floor: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={bulkRoomForm.capacity}
+                    onChange={e => setBulkRoomForm({ ...bulkRoomForm, capacity: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tariff (per night)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={bulkRoomForm.tariff}
+                    onChange={e => setBulkRoomForm({ ...bulkRoomForm, tariff: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkAddModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:bg-gray-400"
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" size={14} />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus size={14} />
+                      Add Rooms
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-red-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+              <h2 className="text-xl font-bold">New Booking</h2>
+              <button onClick={() => setShowBookingModal(false)} className="text-white hover:text-gray-200">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateBooking} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bookingForm.roomNumber}
+                    onChange={e => setBookingForm({ ...bookingForm, roomNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bookingForm.guestName}
+                    onChange={e => setBookingForm({ ...bookingForm, guestName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={bookingForm.guestPhone}
+                    onChange={e => setBookingForm({ ...bookingForm, guestPhone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={bookingForm.guestEmail}
+                    onChange={e => setBookingForm({ ...bookingForm, guestEmail: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Check-In Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={bookingForm.checkInDate}
+                    onChange={e => setBookingForm({ ...bookingForm, checkInDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Check-Out Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={bookingForm.checkOutDate}
+                    onChange={e => setBookingForm({ ...bookingForm, checkOutDate: e.target.value })}
+                    min={bookingForm.checkInDate}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of Guests</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={bookingForm.numberOfGuests}
+                    onChange={e => setBookingForm({ ...bookingForm, numberOfGuests: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Tariff/Night</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={bookingForm.estimatedTariff}
+                    onChange={e => setBookingForm({ ...bookingForm, estimatedTariff: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+                  <textarea
+                    value={bookingForm.specialRequests}
+                    onChange={e => setBookingForm({ ...bookingForm, specialRequests: e.target.value })}
+                    rows="2"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowBookingModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:bg-gray-400"
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" size={14} />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <FaBookmark size={14} />
+                      Create Booking
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Check-In Modal */}
       {showCheckInModal && (
@@ -748,7 +1629,7 @@ const Hotel = () => {
         </div>
       )}
 
-      {/* Invoice Modal - Detailed & Professional */}
+      {/* Invoice Modal - Detailed & Professional (keeping from previous version) */}
       {showInvoiceModal && invoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">

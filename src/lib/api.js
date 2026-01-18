@@ -1644,6 +1644,80 @@ class ApiClient {
     });
   }
 
+  // Room Management APIs
+
+  // Add a single room
+  async addRoom(roomData) {
+    return this.request('/api/room', {
+      method: 'POST',
+      body: roomData,
+    });
+  }
+
+  // Bulk add rooms
+  async bulkAddRooms(bulkData) {
+    return this.request('/api/rooms/bulk', {
+      method: 'POST',
+      body: bulkData,
+    });
+  }
+
+  // Get all rooms
+  async getRooms(restaurantId, filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.floor) params.append('floor', filters.floor);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return this.request(`/api/rooms/${restaurantId}${queryString}`);
+  }
+
+  // Update room status
+  async updateRoomStatus(roomId, status, currentGuest = null) {
+    return this.request(`/api/room/${roomId}/status`, {
+      method: 'PATCH',
+      body: { status, currentGuest },
+    });
+  }
+
+  // Delete room
+  async deleteRoom(roomId) {
+    return this.request(`/api/room/${roomId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Create booking (reservation)
+  async createBooking(bookingData) {
+    return this.request('/api/booking', {
+      method: 'POST',
+      body: bookingData,
+    });
+  }
+
+  // Get bookings
+  async getBookings(restaurantId, filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.date) params.append('date', filters.date);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return this.request(`/api/bookings/${restaurantId}${queryString}`);
+  }
+
+  // Cancel booking
+  async cancelBooking(bookingId) {
+    return this.request(`/api/booking/${bookingId}/cancel`, {
+      method: 'PATCH',
+    });
+  }
+
+  // Convert booking to check-in
+  async convertBookingToCheckIn(bookingId, checkInData) {
+    return this.request(`/api/booking/${bookingId}/checkin`, {
+      method: 'POST',
+      body: checkInData,
+    });
+  }
+
   // Search guests
   async searchGuests(restaurantId, searchParams) {
     const params = new URLSearchParams();
