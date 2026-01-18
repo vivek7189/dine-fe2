@@ -64,6 +64,7 @@ const Hotel = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedCheckIn, setSelectedCheckIn] = useState(null);
   const [invoice, setInvoice] = useState(null);
+  const [openRoomDropdown, setOpenRoomDropdown] = useState(null);
 
   // Forms
   const [roomForm, setRoomForm] = useState({
@@ -161,13 +162,27 @@ const Hotel = () => {
         loadCheckIns();
       }
     }
-  }, [restaurantId, activeTab, roomStatusFilter, bookingStatusFilter, checkInStatusFilter]);
+  }, [restaurantId, activeTab, bookingStatusFilter, checkInStatusFilter]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenRoomDropdown(null);
+    };
+
+    if (openRoomDropdown) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [openRoomDropdown]);
 
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const filters = roomStatusFilter !== 'all' ? { status: roomStatusFilter } : {};
-      const response = await apiClient.getRooms(restaurantId, filters);
+      const response = await apiClient.getRooms(restaurantId, {});
       setRooms(response.rooms || []);
     } catch (error) {
       console.error('Error loading rooms:', error);
@@ -668,23 +683,6 @@ const Hotel = () => {
 
           {/* Filters */}
           <div className="p-4 bg-gray-50 border-b border-gray-200">
-            {activeTab === 'rooms' && (
-              <div className="flex gap-2">
-                {['all', 'available', 'occupied', 'cleaning', 'maintenance', 'reserved'].map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setRoomStatusFilter(filter)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                      roomStatusFilter === filter
-                        ? 'bg-red-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </button>
-                ))}
-              </div>
-            )}
             {activeTab === 'bookings' && (
               <div className="flex gap-2">
                 {['confirmed', 'checked-in', 'cancelled'].map(filter => (
@@ -731,7 +729,8 @@ const Hotel = () => {
                 {rooms.map((room) => (
                   <div
                     key={room.id}
-                    className={`${getRoomStatusColor(room.status)} rounded-lg p-4 text-white relative group hover:shadow-lg transition-shadow cursor-pointer`}
+                    className={`${getRoomStatusColor(room.status)} rounded-lg p-4 text-white relative hover:shadow-lg transition-shadow cursor-pointer`}
+                    onClick={() => setOpenRoomDropdown(openRoomDropdown === room.id ? null : room.id)}
                   >
                     {/* Room Number */}
                     <div className="text-center mb-2">
@@ -763,71 +762,73 @@ const Hotel = () => {
                       {room.type} • {room.capacity} guests
                     </div>
 
-                    {/* Action Buttons (on hover) */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-70 rounded-lg transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="flex gap-2">
+                    {/* Action Dropdown (on click) */}
+                    {openRoomDropdown === room.id && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-10 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         {room.status === 'available' && (
                           <>
                             <button
                               onClick={() => {
                                 setCheckInForm({ ...checkInForm, roomNumber: room.roomNumber, roomTariff: room.tariff });
                                 setShowCheckInModal(true);
+                                setOpenRoomDropdown(null);
                               }}
-                              className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                              title="Check In"
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                             >
-                              <FaUserCheck />
+                              <FaUserCheck className="text-green-600" />
+                              Check In
                             </button>
                             <button
                               onClick={() => {
                                 setBookingForm({ ...bookingForm, roomNumber: room.roomNumber, estimatedTariff: room.tariff });
                                 setShowBookingModal(true);
+                                setOpenRoomDropdown(null);
                               }}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                              title="Book Room"
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                             >
-                              <FaBookmark />
+                              <FaBookmark className="text-blue-600" />
+                              Book Room
                             </button>
                           </>
                         )}
-                        {room.status === 'cleaning' && (
+                        {(room.status === 'cleaning' || room.status === 'maintenance') && (
                           <button
-                            onClick={() => handleUpdateRoomStatus(room.id, 'available')}
-                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                            title="Mark Available"
+                            onClick={() => {
+                              handleUpdateRoomStatus(room.id, 'available');
+                              setOpenRoomDropdown(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                           >
-                            Available
-                          </button>
-                        )}
-                        {room.status === 'maintenance' && (
-                          <button
-                            onClick={() => handleUpdateRoomStatus(room.id, 'available')}
-                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                            title="Mark Available"
-                          >
-                            Available
+                            <FaCheckCircle className="text-green-600" />
+                            Mark Available
                           </button>
                         )}
                         {room.status !== 'occupied' && (
                           <>
                             <button
-                              onClick={() => handleUpdateRoomStatus(room.id, 'maintenance')}
-                              className="px-3 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
-                              title="Maintenance"
+                              onClick={() => {
+                                handleUpdateRoomStatus(room.id, 'maintenance');
+                                setOpenRoomDropdown(null);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                             >
-                              <FaTools />
+                              <FaTools className="text-orange-600" />
+                              Mark Maintenance
                             </button>
                             <button
-                              onClick={() => handleDeleteRoom(room.id)}
-                              className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
-                              title="Delete"
+                              onClick={() => {
+                                handleDeleteRoom(room.id);
+                                setOpenRoomDropdown(null);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-t border-gray-200"
                             >
-                              <FaTrash />
+                              <FaTrash className="text-red-600" />
+                              Delete Room
                             </button>
                           </>
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
