@@ -784,15 +784,27 @@ function RestaurantPOSContent() {
       // Handle both array and object formats, and missing/null cases
       let inRoomDiningEnabled = false;
       
-      if (features) {
-        if (Array.isArray(features)) {
-          // If features is an array, check the first element
-          const firstFeature = features[0];
-          inRoomDiningEnabled = firstFeature?.inRoomDiningEnabled === true;
-        } else if (typeof features === 'object') {
-          // If features is an object, check directly
-          inRoomDiningEnabled = features.inRoomDiningEnabled === true;
+      try {
+        if (features) {
+          if (Array.isArray(features)) {
+            // If features is an array, check the first element
+            // Handles: features: [] or features: [{inRoomDiningEnabled: true/false}]
+            if (features.length > 0) {
+              const firstFeature = features[0];
+              inRoomDiningEnabled = firstFeature?.inRoomDiningEnabled === true;
+            }
+            // Empty array [] defaults to false
+          } else if (typeof features === 'object' && features !== null) {
+            // If features is an object, check directly
+            // Handles: features: {} or features: {inRoomDiningEnabled: true/false}
+            inRoomDiningEnabled = features.inRoomDiningEnabled === true;
+          }
         }
+        // Missing/null/undefined features defaults to false
+      } catch (error) {
+        console.error('Error reading features flag:', error);
+        // On any error, default to false (safe fallback)
+        inRoomDiningEnabled = false;
       }
       
       setInRoomDiningEnabled(inRoomDiningEnabled);
