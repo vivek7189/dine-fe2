@@ -52,6 +52,28 @@ const Hotel = () => {
   const [bookingStatusFilter, setBookingStatusFilter] = useState('confirmed');
   const [checkInStatusFilter, setCheckInStatusFilter] = useState('active');
 
+  // Room availability state for date-based viewing
+  const [roomsViewDate, setRoomsViewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [roomsViewMode, setRoomsViewMode] = useState('current'); // 'current' or 'scheduled'
+  const [roomAvailability, setRoomAvailability] = useState(null);
+
+  // Bookings calendar view state
+  const [calendarView, setCalendarView] = useState(true); // true = calendar, false = list
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date().toISOString().split('T')[0]);
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth() + 1);
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [calendarSummary, setCalendarSummary] = useState(null);
+  const [selectedDateBookings, setSelectedDateBookings] = useState([]);
+
+  // Room history state
+  const [historyFilters, setHistoryFilters] = useState({
+    startDate: '',
+    endDate: '',
+    roomId: '',
+    status: ''
+  });
+  const [history, setHistory] = useState([]);
+
   // Modals
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
   const [showBulkAddModal, setShowBulkAddModal] = useState(false);
@@ -163,6 +185,8 @@ const Hotel = () => {
         loadBookings();
       } else if (activeTab === 'checkins') {
         loadCheckIns();
+      } else if (activeTab === 'history') {
+        loadHistory();
       }
     }
   }, [restaurantId, activeTab, bookingStatusFilter, checkInStatusFilter]);
@@ -194,6 +218,116 @@ const Hotel = () => {
       setLoading(false);
     }
   };
+
+  const loadRoomAvailability = async () => {
+    try {
+      const response = await apiClient.request(
+        `/api/hotel/rooms/availability?date=${roomsViewDate}&restaurantId=${restaurantId}`
+      );
+      setRoomAvailability(response);
+    } catch (error) {
+      console.error('Error loading room availability:', error);
+    }
+  };
+
+  // Load room availability when date changes
+  useEffect(() => {
+    if (restaurantId && activeTab === 'rooms' && roomsViewDate) {
+      loadRoomAvailability();
+    }
+  }, [roomsViewDate, restaurantId, activeTab]);
+
+  const loadCalendarSummary = async () => {
+    try {
+      const response = await apiClient.request(
+        `/api/hotel/calendar/summary?month=${calendarMonth}&year=${calendarYear}&restaurantId=${restaurantId}`
+      );
+      setCalendarSummary(response);
+    } catch (error) {
+      console.error('Error loading calendar summary:', error);
+    }
+  };
+
+  const loadDateBookings = async (date) => {
+    try {
+      // Filter bookings and check-ins for the selected date
+      const allBookings = await apiClient.getBookings(restaurantId, {});
+      const allCheckIns = await apiClient.getCheckIns(restaurantId, { status: 'all' });
+
+      const selectedDate = new Date(date);
+      selectedDate.setHours(0, 0, 0, 0);
+
+      const filtered = [];
+
+      // Filter bookings
+      (allBookings.bookings || []).forEach(booking => {
+        const checkIn = new Date(booking.checkInDate);
+        const checkOut = new Date(booking.checkOutDate);
+        checkIn.setHours(0, 0, 0, 0);
+        checkOut.setHours(0, 0, 0, 0);
+
+        if (checkIn <= selectedDate && checkOut > selectedDate) {
+          filtered.push({ ...booking, type: 'booking' });
+        }
+      });
+
+      // Filter check-ins
+      (allCheckIns.checkIns || []).forEach(checkIn => {
+        const ciDate = new Date(checkIn.checkInDate);
+        const coDate = new Date(checkIn.checkOutDate);
+        ciDate.setHours(0, 0, 0, 0);
+        coDate.setHours(0, 0, 0, 0);
+
+        if (ciDate <= selectedDate && coDate > selectedDate) {
+          filtered.push({ ...checkIn, type: 'check-in' });
+        }
+      });
+
+      setSelectedDateBookings(filtered);
+    } catch (error) {
+      console.error('Error loading date bookings:', error);
+    }
+  };
+
+  const loadHistory = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({ restaurantId });
+      if (historyFilters.startDate) params.append('startDate', historyFilters.startDate);
+      if (historyFilters.endDate) params.append('endDate', historyFilters.endDate);
+      if (historyFilters.roomId) params.append('roomId', historyFilters.roomId);
+      if (historyFilters.status) params.append('status', historyFilters.status);
+
+      const response = await apiClient.request(`/api/hotel/history?${params.toString()}`);
+      setHistory(response.history || []);
+    } catch (error) {
+      console.error('Error loading history:', error);
+      setError('Failed to load room history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load calendar summary when month changes
+  useEffect(() => {
+    if (restaurantId && activeTab === 'bookings' && calendarView) {
+      loadCalendarSummary();
+    }
+  }, [calendarMonth, calendarYear, restaurantId, activeTab, calendarView]);
+
+  // Load bookings for selected date
+  useEffect(() => {
+    if (restaurantId && activeTab === 'bookings' && selectedCalendarDate) {
+      loadDateBookings(selectedCalendarDate);
+    }
+  }, [selectedCalendarDate, restaurantId, activeTab]);
+
+  // Load history when filters change
+  useEffect(() => {
+    if (restaurantId && activeTab === 'history') {
+      loadHistory();
+    }
+  }, [historyFilters, restaurantId, activeTab]);
 
   const loadBookings = async () => {
     try {
@@ -313,19 +447,93 @@ const Hotel = () => {
     setError(null);
 
     try {
+      // Validate dates
+      const checkIn = new Date(bookingForm.checkInDate);
+      const checkOut = new Date(bookingForm.checkOutDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Check if check-in date is in the past
+      if (checkIn < today) {
+        setError('Check-in date cannot be in the past');
+        setLoading(false);
+        return;
+      }
+
+      // Check if check-out is after check-in
+      if (checkOut <= checkIn) {
+        setError('Check-out date must be after check-in date');
+        setLoading(false);
+        return;
+      }
+
+      // Check 120-day advance booking limit
+      const daysInFuture = Math.floor((checkIn - today) / (1000 * 60 * 60 * 24));
+      if (daysInFuture > 120) {
+        setError('Cannot book more than 120 days in advance');
+        setLoading(false);
+        return;
+      }
+
+      // Validate overlap with backend
+      try {
+        const validationResponse = await apiClient.request('/api/hotel/bookings/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            restaurantId,
+            roomNumber: bookingForm.roomNumber,
+            checkInDate: bookingForm.checkInDate,
+            checkOutDate: bookingForm.checkOutDate
+          })
+        });
+
+        if (validationResponse.hasConflict) {
+          const conflictMessage = validationResponse.conflicts.length > 0
+            ? `Room is already booked by ${validationResponse.conflicts[0].guestName} for these dates`
+            : 'Room is already booked for these dates';
+          setError(conflictMessage);
+          setLoading(false);
+          return;
+        }
+      } catch (validationError) {
+        console.error('Validation error:', validationError);
+        setError('Failed to validate booking. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Check if room is unavailable and ask for override
+      const selectedRoom = rooms.find(r => r.roomNumber === bookingForm.roomNumber);
+      let overrideUnavailable = false;
+
+      if (selectedRoom && (selectedRoom.status === 'out-of-service' || selectedRoom.status === 'maintenance')) {
+        const confirmed = window.confirm(
+          `Room ${bookingForm.roomNumber} is currently marked as ${selectedRoom.status}. Do you want to book it anyway?`
+        );
+
+        if (!confirmed) {
+          setLoading(false);
+          return;
+        }
+        overrideUnavailable = true;
+      }
+
+      // Create booking
       await apiClient.createBooking({
         restaurantId,
         roomNumber: bookingForm.roomNumber,
         guestInfo: {
           name: bookingForm.guestName,
-          phone: bookingForm.guestPhone,
+          phone: bookingForm.guestPhone || null, // Phone is now optional
           email: bookingForm.guestEmail || null
         },
         checkInDate: bookingForm.checkInDate,
         checkOutDate: bookingForm.checkOutDate,
         numberOfGuests: parseInt(bookingForm.numberOfGuests),
         estimatedTariff: parseFloat(bookingForm.estimatedTariff) || 0,
-        specialRequests: bookingForm.specialRequests || null
+        specialRequests: bookingForm.specialRequests || null,
+        overrideUnavailable
       });
 
       setSuccess('Booking created successfully');
@@ -342,6 +550,9 @@ const Hotel = () => {
         specialRequests: ''
       });
       loadBookings();
+      if (calendarView) {
+        loadCalendarSummary(); // Refresh calendar if in calendar view
+      }
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       setError(error.message || 'Failed to create booking');
@@ -602,6 +813,7 @@ const Hotel = () => {
     switch (status) {
       case 'available': return 'bg-green-600';
       case 'occupied': return 'bg-red-600';
+      case 'booked': return 'bg-blue-600';
       case 'cleaning': return 'bg-yellow-600';
       case 'maintenance': return 'bg-orange-600';
       case 'reserved': return 'bg-blue-600';
@@ -614,6 +826,7 @@ const Hotel = () => {
     switch (status) {
       case 'available': return 'Available';
       case 'occupied': return 'Occupied';
+      case 'booked': return 'Booked';
       case 'cleaning': return 'Cleaning';
       case 'maintenance': return 'Maintenance';
       case 'reserved': return 'Reserved';
@@ -626,11 +839,26 @@ const Hotel = () => {
     switch (status) {
       case 'available': return <FaBed />;
       case 'occupied': return <FaUser />;
+      case 'booked': return <FaBookmark />;
       case 'cleaning': return <FaBroom />;
       case 'maintenance': return <FaTools />;
       case 'reserved': return <FaBookmark />;
       case 'out-of-service': return <FaBan />;
       default: return <FaBed />;
+    }
+  };
+
+  // Determine which status to show based on view mode
+  const getRoomDisplayStatus = (room) => {
+    if (!roomAvailability) return room.status;
+
+    const roomData = roomAvailability.rooms?.find(r => r.id === room.id);
+    if (!roomData) return room.status;
+
+    if (roomsViewMode === 'current') {
+      return roomData.currentStatus;
+    } else {
+      return roomData.scheduledStatus;
     }
   };
 
@@ -769,7 +997,8 @@ const Hotel = () => {
               {[
                 { id: 'rooms', label: 'Rooms', icon: FaBed },
                 { id: 'bookings', label: 'Bookings', icon: FaBookmark },
-                { id: 'checkins', label: 'Check-ins', icon: FaUserCheck }
+                { id: 'checkins', label: 'Check-ins', icon: FaUserCheck },
+                { id: 'history', label: 'Room History', icon: FaClock }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -832,12 +1061,59 @@ const Hotel = () => {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           {/* ROOMS TAB */}
           {activeTab === 'rooms' && (
-            rooms.length > 0 ? (
+            <>
+              {/* Date Picker and View Mode Toggle */}
+              <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b">
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-gray-700">
+                    View Date:
+                  </label>
+                  <input
+                    type="date"
+                    value={roomsViewDate}
+                    onChange={(e) => setRoomsViewDate(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    onClick={() => setRoomsViewDate(new Date().toISOString().split('T')[0])}
+                    className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 transition-colors"
+                  >
+                    Today
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setRoomsViewMode('current')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      roomsViewMode === 'current'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Current Status
+                  </button>
+                  <button
+                    onClick={() => setRoomsViewMode('scheduled')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      roomsViewMode === 'scheduled'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Scheduled Status
+                  </button>
+                </div>
+              </div>
+
+              {rooms.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {rooms.map((room) => (
+                {rooms.map((room) => {
+                  const displayStatus = getRoomDisplayStatus(room);
+                  return (
                   <div
                     key={room.id}
-                    className={`${getRoomStatusColor(room.status)} rounded-lg p-4 text-white relative hover:shadow-lg transition-shadow cursor-pointer`}
+                    className={`${getRoomStatusColor(displayStatus)} rounded-lg p-4 text-white relative hover:shadow-lg transition-shadow cursor-pointer`}
                     onClick={() => setOpenRoomDropdown(openRoomDropdown === room.id ? null : room.id)}
                   >
                     {/* Room Number */}
@@ -849,13 +1125,13 @@ const Hotel = () => {
                     {/* Status Icon */}
                     <div className="flex justify-center mb-2">
                       <div className="text-2xl opacity-90">
-                        {getRoomStatusIcon(room.status)}
+                        {getRoomStatusIcon(displayStatus)}
                       </div>
                     </div>
 
                     {/* Status Text */}
                     <div className="text-center text-xs font-medium mb-2">
-                      {getRoomStatusText(room.status)}
+                      {getRoomStatusText(displayStatus)}
                     </div>
 
                     {/* Current Guest (if occupied) */}
@@ -938,7 +1214,8 @@ const Hotel = () => {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
@@ -953,72 +1230,292 @@ const Hotel = () => {
                 </button>
               </div>
             )
+            }
+            </>
           )}
 
           {/* BOOKINGS TAB */}
           {activeTab === 'bookings' && (
-            bookings.length > 0 ? (
-              <div className="divide-y divide-gray-200">
-                {bookings.map((booking) => (
-                  <div key={booking.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
-                          {booking.roomNumber}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{booking.guestName}</h3>
-                          <p className="text-sm text-gray-600">{booking.guestPhone}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()}
-                          </p>
-                        </div>
+            <>
+              {/* View Toggle */}
+              <div className="mb-6 flex items-center justify-between pb-4 border-b">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCalendarView(true)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      calendarView ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Calendar View
+                  </button>
+                  <button
+                    onClick={() => setCalendarView(false)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !calendarView ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    List View
+                  </button>
+                </div>
+              </div>
+
+              {calendarView ? (
+                /* Calendar View */
+                <div className="grid grid-cols-3 gap-6">
+                  {/* Calendar Component */}
+                  <div className="col-span-2">
+                    <div className="bg-white rounded-lg">
+                      {/* Month Navigation */}
+                      <div className="flex items-center justify-between mb-6">
+                        <button
+                          onClick={() => {
+                            if (calendarMonth === 1) {
+                              setCalendarMonth(12);
+                              setCalendarYear(calendarYear - 1);
+                            } else {
+                              setCalendarMonth(calendarMonth - 1);
+                            }
+                          }}
+                          className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                        >
+                          Previous
+                        </button>
+
+                        <h3 className="text-xl font-semibold">
+                          {new Date(calendarYear, calendarMonth - 1).toLocaleDateString('en-US', {
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </h3>
+
+                        <button
+                          onClick={() => {
+                            if (calendarMonth === 12) {
+                              setCalendarMonth(1);
+                              setCalendarYear(calendarYear + 1);
+                            } else {
+                              setCalendarMonth(calendarMonth + 1);
+                            }
+                          }}
+                          className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                        >
+                          Next
+                        </button>
                       </div>
-                      <div className="flex gap-2">
-                        {booking.status === 'confirmed' && (
-                          <>
-                            <button
-                              onClick={() => handleCheckInFromBooking(booking)}
-                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                            >
-                              Check In
-                            </button>
-                            <button
-                              onClick={() => handleCancelBooking(booking.id)}
-                              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                        {booking.status === 'cancelled' && (
-                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm">
-                            Cancelled
-                          </span>
-                        )}
-                        {booking.status === 'checked-in' && (
-                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
-                            Checked In
-                          </span>
-                        )}
+
+                      {/* Calendar Grid */}
+                      <div className="grid grid-cols-7 gap-2">
+                        {/* Weekday Headers */}
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                          <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
+                            {day}
+                          </div>
+                        ))}
+
+                        {/* Calendar Days */}
+                        {(() => {
+                          const firstDay = new Date(calendarYear, calendarMonth - 1, 1);
+                          const lastDay = new Date(calendarYear, calendarMonth, 0);
+                          const daysInMonth = lastDay.getDate();
+                          const startDayOfWeek = firstDay.getDay();
+
+                          const days = [];
+
+                          // Empty cells before month starts
+                          for (let i = 0; i < startDayOfWeek; i++) {
+                            days.push(<div key={`empty-${i}`} className="aspect-square" />);
+                          }
+
+                          // Actual days
+                          for (let day = 1; day <= daysInMonth; day++) {
+                            const dateStr = `${calendarYear}-${String(calendarMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const isSelected = dateStr === selectedCalendarDate;
+                            const isToday = dateStr === new Date().toISOString().split('T')[0];
+                            const isPast = new Date(dateStr) < new Date(new Date().toISOString().split('T')[0]);
+
+                            const summary = calendarSummary?.summary?.[dateStr] || { bookingCount: 0, occupancyRate: 0, availableRooms: calendarSummary?.totalRooms || 0 };
+
+                            days.push(
+                              <button
+                                key={dateStr}
+                                onClick={() => setSelectedCalendarDate(dateStr)}
+                                className={`
+                                  aspect-square p-2 rounded-lg border transition-all text-left
+                                  ${isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}
+                                  ${isToday ? 'ring-2 ring-blue-300' : ''}
+                                  ${isPast ? 'bg-gray-50' : 'bg-white'}
+                                `}
+                              >
+                                <div className="text-sm font-semibold mb-1">{day}</div>
+                                {summary.bookingCount > 0 && (
+                                  <div className="text-xs space-y-1">
+                                    <div className="text-gray-600">
+                                      {summary.bookingCount} booking{summary.bookingCount !== 1 ? 's' : ''}
+                                    </div>
+                                    <div className={`font-medium ${
+                                      summary.occupancyRate > 80 ? 'text-red-600' :
+                                      summary.occupancyRate > 50 ? 'text-yellow-600' :
+                                      'text-green-600'
+                                    }`}>
+                                      {Math.round(summary.occupancyRate)}%
+                                    </div>
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          }
+
+                          return days;
+                        })()}
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <FaBookmark className="mx-auto text-gray-300 mb-4" size={48} />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
-                <p className="text-sm text-gray-600 mb-4">Create your first booking</p>
-                <button
-                  onClick={() => setShowBookingModal(true)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
-                >
-                  <FaPlus /> New Booking
-                </button>
-              </div>
-            )
+
+                  {/* Booking Detail Sidebar */}
+                  <div className="col-span-1">
+                    <div className="bg-gray-50 rounded-lg p-6 max-h-[calc(100vh-300px)] overflow-y-auto sticky top-6">
+                      <h3 className="text-lg font-semibold mb-4">
+                        Bookings for {new Date(selectedCalendarDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </h3>
+
+                      {selectedDateBookings.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 text-sm">
+                          No bookings for this date
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {selectedDateBookings.map(booking => (
+                            <div
+                              key={booking.id}
+                              className="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-gray-900">Room {booking.roomNumber}</span>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  booking.status === 'confirmed' || booking.type === 'booking' ? 'bg-green-100 text-green-700' :
+                                  booking.status === 'checked-in' || booking.type === 'check-in' ? 'bg-blue-100 text-blue-700' :
+                                  booking.status === 'checked-out' ? 'bg-gray-100 text-gray-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  {booking.type === 'check-in' ? 'Checked In' : booking.status}
+                                </span>
+                              </div>
+
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <div className="font-medium">{booking.guestName}</div>
+                                <div>{booking.guestPhone || 'No phone'}</div>
+                                <div className="flex items-center gap-2 text-xs">
+                                  <span>{new Date(booking.checkInDate).toLocaleDateString()}</span>
+                                  <span>→</span>
+                                  <span>{new Date(booking.checkOutDate).toLocaleDateString()}</span>
+                                </div>
+                                {(booking.totalAmount || booking.estimatedTariff) && (
+                                  <div className="font-medium text-gray-900 mt-2">
+                                    ₹{booking.totalAmount || (booking.estimatedTariff * booking.stayDuration)}
+                                  </div>
+                                )}
+                              </div>
+
+                              {booking.type === 'booking' && booking.status === 'confirmed' && (
+                                <div className="flex gap-2 mt-3">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCheckInFromBooking(booking);
+                                    }}
+                                    className="flex-1 px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                                  >
+                                    Check In
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCancelBooking(booking.id);
+                                    }}
+                                    className="flex-1 px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* List View */
+                bookings.length > 0 ? (
+                  <div className="divide-y divide-gray-200">
+                    {bookings.map((booking) => (
+                      <div key={booking.id} className="p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                              {booking.roomNumber}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{booking.guestName}</h3>
+                              <p className="text-sm text-gray-600">{booking.guestPhone || 'No phone'}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {booking.status === 'confirmed' && (
+                              <>
+                                <button
+                                  onClick={() => handleCheckInFromBooking(booking)}
+                                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                                >
+                                  Check In
+                                </button>
+                                <button
+                                  onClick={() => handleCancelBooking(booking.id)}
+                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                            {booking.status === 'cancelled' && (
+                              <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm">
+                                Cancelled
+                              </span>
+                            )}
+                            {booking.status === 'checked-in' && (
+                              <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
+                                Checked In
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FaBookmark className="mx-auto text-gray-300 mb-4" size={48} />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
+                    <p className="text-sm text-gray-600 mb-4">Create your first booking</p>
+                    <button
+                      onClick={() => setShowBookingModal(true)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
+                    >
+                      <FaPlus /> New Booking
+                    </button>
+                  </div>
+                )
+              )}
+            </>
           )}
 
           {/* CHECK-INS TAB */}
@@ -1125,6 +1622,154 @@ const Hotel = () => {
                 </button>
               </div>
             )
+          )}
+
+          {/* ROOM HISTORY TAB */}
+          {activeTab === 'history' && (
+            <>
+              {/* Filters */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={historyFilters.startDate}
+                      onChange={(e) => setHistoryFilters({...historyFilters, startDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={historyFilters.endDate}
+                      onChange={(e) => setHistoryFilters({...historyFilters, endDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Room
+                    </label>
+                    <select
+                      value={historyFilters.roomId}
+                      onChange={(e) => setHistoryFilters({...historyFilters, roomId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">All Rooms</option>
+                      {rooms.map(room => (
+                        <option key={room.id} value={room.id}>
+                          Room {room.roomNumber}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={historyFilters.status}
+                      onChange={(e) => setHistoryFilters({...historyFilters, status: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">All</option>
+                      <option value="checked-out">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* History Table */}
+              {history.length > 0 ? (
+                <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date Range
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Room
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Guest
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Duration
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Amount
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {history.map(record => (
+                        <tr key={record.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(record.checkInDate).toLocaleDateString()} - {new Date(record.checkOutDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            Room {record.roomNumber}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div>{record.guestName}</div>
+                            <div className="text-xs text-gray-500">{record.guestPhone || 'No phone'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {Math.ceil((new Date(record.checkOutDate) - new Date(record.checkInDate)) / (1000 * 60 * 60 * 24))} nights
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              record.status === 'checked-out' ? 'bg-green-100 text-green-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {record.status === 'checked-out' ? 'Completed' : record.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ₹{record.totalCharges || record.totalAmount || 0}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => viewInvoice(record)}
+                              className="text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              View Invoice
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <FaClock className="mx-auto text-gray-300 mb-4" size={48} />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No history found</h3>
+                  <p className="text-sm text-gray-600">
+                    {historyFilters.startDate || historyFilters.endDate || historyFilters.roomId || historyFilters.status
+                      ? 'Try adjusting your filters'
+                      : 'Past check-outs will appear here'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -1364,13 +2009,13 @@ const Hotel = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
                   <input
                     type="tel"
-                    required
                     value={bookingForm.guestPhone}
                     onChange={e => setBookingForm({ ...bookingForm, guestPhone: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Optional"
                   />
                 </div>
                 <div>
@@ -1487,13 +2132,13 @@ const Hotel = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
                   <input
                     type="tel"
-                    required
                     value={checkInForm.guestPhone}
                     onChange={e => setCheckInForm({ ...checkInForm, guestPhone: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Optional"
                   />
                 </div>
                 <div>
