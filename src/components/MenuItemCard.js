@@ -47,6 +47,48 @@ const MenuItemCard = ({
   const isOutOfStock = item.isAvailable === false;
   const [showOutOfStockLabel, setShowOutOfStockLabel] = useState(false);
   
+  // Image loading state management to prevent flickering - must be at top level
+  const imageUrl = getDisplayImage(item);
+  const hasImage = imageUrl !== null;
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const imageRef = useRef(null);
+  const loadedImagesCache = useRef(new Set());
+
+  // Check if image is already loaded in cache
+  useEffect(() => {
+    if (hasImage && imageUrl) {
+      // Check if image is already in browser cache or our cache
+      if (loadedImagesCache.current.has(imageUrl)) {
+        setImageLoaded(true);
+        return;
+      }
+
+      // Preload image
+      const img = new Image();
+      img.onload = () => {
+        loadedImagesCache.current.add(imageUrl);
+        setImageLoaded(true);
+        setImageError(false);
+      };
+      img.onerror = () => {
+        setImageError(true);
+        setImageLoaded(false);
+      };
+      img.src = imageUrl;
+    }
+  }, [imageUrl, hasImage]);
+
+  // Reset loading state when image URL changes
+  useEffect(() => {
+    if (hasImage && imageUrl) {
+      if (!loadedImagesCache.current.has(imageUrl)) {
+        setImageLoaded(false);
+        setImageError(false);
+      }
+    }
+  }, [imageUrl, hasImage]);
+  
   if (!useModernDesign) {
     // Original Compact Design (Exact old style)
     
@@ -317,50 +359,6 @@ const MenuItemCard = ({
       </div>
     );
   }
-
-  // Compact Modern Design (Professional & Efficient)
-  const imageUrl = getDisplayImage(item);
-  const hasImage = imageUrl !== null;
-  
-  // Image loading state management to prevent flickering
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  const imageRef = useRef(null);
-  const loadedImagesCache = useRef(new Set());
-
-  // Check if image is already loaded in cache
-  useEffect(() => {
-    if (hasImage && imageUrl) {
-      // Check if image is already in browser cache or our cache
-      if (loadedImagesCache.current.has(imageUrl)) {
-        setImageLoaded(true);
-        return;
-      }
-
-      // Preload image
-      const img = new Image();
-      img.onload = () => {
-        loadedImagesCache.current.add(imageUrl);
-        setImageLoaded(true);
-        setImageError(false);
-      };
-      img.onerror = () => {
-        setImageError(true);
-        setImageLoaded(false);
-      };
-      img.src = imageUrl;
-    }
-  }, [imageUrl, hasImage]);
-
-  // Reset loading state when image URL changes
-  useEffect(() => {
-    if (hasImage && imageUrl) {
-      if (!loadedImagesCache.current.has(imageUrl)) {
-        setImageLoaded(false);
-        setImageError(false);
-      }
-    }
-  }, [imageUrl, hasImage]);
 
   // Full Image Overlay Design when image exists
   if (hasImage) {
