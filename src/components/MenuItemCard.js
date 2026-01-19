@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { FaPlus, FaMinus, FaLeaf, FaDrumstickBite, FaStar, FaFire, FaClock, FaHeart } from 'react-icons/fa';
+import { useState, useEffect, useRef } from 'react';
+import { FaPlus, FaMinus, FaLeaf, FaDrumstickBite, FaStar, FaFire, FaClock, FaHeart, FaUtensils } from 'react-icons/fa';
 import { getDisplayImage } from '../utils/placeholderImages';
 
 const MenuItemCard = ({ 
@@ -321,6 +321,46 @@ const MenuItemCard = ({
   // Compact Modern Design (Professional & Efficient)
   const imageUrl = getDisplayImage(item);
   const hasImage = imageUrl !== null;
+  
+  // Image loading state management to prevent flickering
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const imageRef = useRef(null);
+  const loadedImagesCache = useRef(new Set());
+
+  // Check if image is already loaded in cache
+  useEffect(() => {
+    if (hasImage && imageUrl) {
+      // Check if image is already in browser cache or our cache
+      if (loadedImagesCache.current.has(imageUrl)) {
+        setImageLoaded(true);
+        return;
+      }
+
+      // Preload image
+      const img = new Image();
+      img.onload = () => {
+        loadedImagesCache.current.add(imageUrl);
+        setImageLoaded(true);
+        setImageError(false);
+      };
+      img.onerror = () => {
+        setImageError(true);
+        setImageLoaded(false);
+      };
+      img.src = imageUrl;
+    }
+  }, [imageUrl, hasImage]);
+
+  // Reset loading state when image URL changes
+  useEffect(() => {
+    if (hasImage && imageUrl) {
+      if (!loadedImagesCache.current.has(imageUrl)) {
+        setImageLoaded(false);
+        setImageError(false);
+      }
+    }
+  }, [imageUrl, hasImage]);
 
   // Full Image Overlay Design when image exists
   if (hasImage) {
@@ -387,20 +427,70 @@ const MenuItemCard = ({
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 0
+          zIndex: 0,
+          backgroundColor: '#1f2937' // Dark background while loading
         }}>
-          <img
-            src={imageUrl}
-            alt={item.name}
-            style={{
+          {/* Placeholder/Skeleton while loading */}
+          {!imageLoaded && !imageError && (
+            <div style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover'
-            }}
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
+              backgroundColor: '#374151',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '3px solid rgba(255, 255, 255, 0.1)',
+                borderTop: '3px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            </div>
+          )}
+          
+          {/* Actual Image - Only show when loaded */}
+          {imageLoaded && !imageError && (
+            <img
+              ref={imageRef}
+              src={imageUrl}
+              alt={item.name}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                opacity: imageLoaded ? 1 : 0,
+                transition: 'opacity 0.2s ease-in-out'
+              }}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => {
+                setImageLoaded(true);
+                loadedImagesCache.current.add(imageUrl);
+              }}
+              onError={() => {
+                setImageError(true);
+                setImageLoaded(false);
+              }}
+            />
+          )}
+          
+          {/* Error fallback - show dark background if image fails */}
+          {imageError && (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: '#1f2937',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <FaUtensils size={24} color="#6b7280" />
+            </div>
+          )}
           
           {/* Dark Gradient Overlay for text visibility */}
           <div style={{
@@ -410,7 +500,8 @@ const MenuItemCard = ({
             right: 0,
             bottom: 0,
             background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.8) 100%)',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            zIndex: 1
           }} />
         </div>
 
@@ -1050,3 +1141,18 @@ const MenuItemCard = ({
 };
 
 export default MenuItemCard;
+
+// Add CSS for loading spinner animation
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `;
+  if (!document.head.querySelector('style[data-menu-item-spinner]')) {
+    style.setAttribute('data-menu-item-spinner', 'true');
+    document.head.appendChild(style);
+  }
+}
