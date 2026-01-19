@@ -857,14 +857,13 @@ const Customers = () => {
       </Head>
       
       <div style={{ 
-        minHeight: '100vh', 
+        width: '100%',
         backgroundColor: '#f9fafb',
-        paddingTop: isMobile ? '60px' : '80px' // Reduced padding for mobile
+        paddingTop: 0 // Align to top
       }}>
         <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto', 
-          padding: isMobile ? '8px' : '24px' // Reduced padding for mobile
+          width: '100%', 
+          padding: isMobile ? '8px' : '24px'
         }}>
           {/* Header - More Compact */}
           <div style={{ 

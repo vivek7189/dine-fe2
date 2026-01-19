@@ -614,7 +614,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+      <div style={{ width: '100%', padding: '32px 20px' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h1 style={{ 

@@ -2924,8 +2924,7 @@ function RestaurantPOSContent() {
             display: 'flex',
             alignItems: 'center',
             gap: isMobile ? '12px' : '20px',
-            maxWidth: '1400px',
-            margin: '0 auto',
+            width: '100%',
             flexWrap: isMobile ? 'wrap' : 'nowrap'
           }}>
             {/* Left: Microphone Icon & Status */}
@@ -3516,7 +3515,8 @@ function RestaurantPOSContent() {
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            marginRight: !isMobile && viewMode === 'orders' ? '400px' : '0'
           }}>
             {/* Responsive Layout */}
             <div style={{ 
@@ -4003,7 +4003,7 @@ function RestaurantPOSContent() {
           <div style={{
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
-            paddingRight: !isMobile && viewMode === 'orders' ? '420px' : '20px',
+            paddingRight: !isMobile && viewMode === 'orders' ? '410px' : '20px',
             overflowY: isMobile ? 'visible' : 'auto',
             height: isMobile ? 'auto' : '100%',
             scrollbarWidth: 'none',
@@ -4144,7 +4144,7 @@ function RestaurantPOSContent() {
             position: 'fixed',
             right: 0,
             top: 0,
-            width: '420px',
+            width: '400px',
             height: '100vh',
             display: 'flex',
             flexDirection: 'column',

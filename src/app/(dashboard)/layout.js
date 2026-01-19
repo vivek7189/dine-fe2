@@ -84,15 +84,17 @@ function DashboardLayoutContent({ children }) {
         {/* Sidebar Navigation */}
         <Sidebar />
 
-        {/* Main Content with left padding for sidebar */}
+        {/* Main Content with dynamic width based on sidebar */}
         <main
-          className="flex-1 overflow-auto transition-all duration-300"
+          className="overflow-auto transition-all duration-300"
           style={{
             backgroundColor: '#f9fafb',
-            marginLeft: isMobile ? '0' : (sidebarCollapsed ? '70px' : '240px')
+            width: isMobile ? '100%' : `calc(100% - ${sidebarCollapsed ? '70px' : '240px'})`,
+            marginLeft: isMobile ? '0' : (sidebarCollapsed ? '70px' : '240px'),
+            height: '100vh'
           }}
         >
-          <div className="p-4">
+          <div style={{ width: '100%', minHeight: '100%' }}>
             {children}
           </div>
         </main>

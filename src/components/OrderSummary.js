@@ -519,13 +519,13 @@ const OrderSummary = ({
                   color: 'white',
                   border: orderType === 'dine-in' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
                   borderRadius: isMobile ? '4px' : '6px',
-                  padding: isMobile ? '4px 6px' : '6px 10px',
-                  fontSize: isMobile ? '9px' : '11px',
+                  padding: isMobile ? '4px 6px' : '6px 12px',
+                  fontSize: isMobile ? '9px' : '10px',
                   fontWeight: '700',
                   cursor: 'pointer',
                   backdropFilter: 'blur(10px)',
-                  minWidth: isMobile ? '40px' : '50px',
-                  boxShadow: orderType === 'dine-in' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                  boxShadow: orderType === 'dine-in' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                  whiteSpace: 'nowrap'
                 }}
                 title="Dine In"
               >
@@ -538,13 +538,13 @@ const OrderSummary = ({
                   color: 'white',
                   border: orderType === 'takeaway' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
                   borderRadius: isMobile ? '4px' : '6px',
-                  padding: isMobile ? '4px 6px' : '6px 10px',
-                  fontSize: isMobile ? '9px' : '11px',
+                  padding: isMobile ? '4px 6px' : '6px 12px',
+                  fontSize: isMobile ? '9px' : '10px',
                   fontWeight: '700',
                   cursor: 'pointer',
                   backdropFilter: 'blur(10px)',
-                  minWidth: isMobile ? '40px' : '50px',
-                  boxShadow: orderType === 'takeaway' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                  boxShadow: orderType === 'takeaway' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                  whiteSpace: 'nowrap'
                 }}
                 title="Takeaway"
               >
@@ -557,13 +557,13 @@ const OrderSummary = ({
                   color: 'white',
                   border: orderType === 'delivery' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
                   borderRadius: isMobile ? '4px' : '6px',
-                  padding: isMobile ? '4px 6px' : '6px 10px',
-                  fontSize: isMobile ? '9px' : '11px',
+                  padding: isMobile ? '4px 6px' : '6px 12px',
+                  fontSize: isMobile ? '9px' : '10px',
                   fontWeight: '700',
                   cursor: 'pointer',
                   backdropFilter: 'blur(10px)',
-                  minWidth: isMobile ? '40px' : '50px',
-                  boxShadow: orderType === 'delivery' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                  boxShadow: orderType === 'delivery' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                  whiteSpace: 'nowrap'
                 }}
                 title="Delivery"
               >

@@ -2486,8 +2486,7 @@ const MenuManagement = () => {
         }
       `}</style>
       <div style={{ 
-        maxWidth: '1400px', 
-        margin: '0 auto', 
+        width: '100%', 
         padding: '20px', 
         position: 'relative',
         paddingBottom: '40px'

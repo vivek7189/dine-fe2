@@ -616,7 +616,7 @@ const OrderHistory = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
       {/* Header Section */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="bg-gradient-to-br from-red-500 to-red-600 p-3 rounded-xl shadow-lg">
@@ -758,7 +758,7 @@ const OrderHistory = () => {
         
       {/* Orders List */}
       <div className="flex-1 p-4 sm:px-6 sm:py-6 overflow-y-auto">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           {orders.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-16 text-center">
               <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -974,7 +974,7 @@ const OrderHistory = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="max-w-7xl mx-auto mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl shadow-md border border-gray-200 p-4">
+          <div className="w-full px-4 sm:px-6 lg:px-8 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl shadow-md border border-gray-200 p-4">
             <div className="text-sm text-gray-600">
               <span className="font-medium text-gray-900">{t('orderHistory.showing')}</span>{' '}
               {((currentPage - 1) * limit) + 1}-{Math.min(currentPage * limit, totalOrders)} {t('orderHistory.of')} {totalOrders} {t('orderHistory.orders')}

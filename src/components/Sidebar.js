@@ -246,35 +246,28 @@ export default function Sidebar() {
       >
         <div className="flex flex-col h-full">
           {/* Logo Section */}
-          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-center px-4 py-5 border-b border-gray-100">
             <div
               onClick={() => router.push('/dashboard')}
               className="flex items-center gap-2 cursor-pointer"
+              style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', width: '100%' }}
             >
               <div
                 className="flex items-center justify-center rounded-lg"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  background: '#ef4444'
+                  width: isCollapsed ? '44px' : '48px',
+                  height: isCollapsed ? '44px' : '48px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)'
                 }}
               >
-                <FaUtensils color="white" size={14} />
+                <FaUtensils color="white" size={isCollapsed ? 20 : 22} />
               </div>
               {!isCollapsed && (
-                <h1 className="text-lg font-bold text-gray-900 m-0">DineOpen</h1>
+                <h1 className="text-xl font-bold text-gray-900 m-0" style={{ fontSize: '20px', fontWeight: '700' }}>DineOpen</h1>
               )}
             </div>
-            <button
-              onClick={toggleCollapse}
-              className="hidden md:flex items-center justify-center w-5 h-5 rounded-md hover:bg-gray-100 transition-all"
-              style={{
-                border: '1px solid #e5e7eb',
-                color: '#6b7280'
-              }}
-            >
-              {isCollapsed ? <FaChevronRight size={10} /> : <FaChevronLeft size={10} />}
-            </button>
           </div>
 
           {/* Restaurant Info (for staff) */}
@@ -290,8 +283,8 @@ export default function Sidebar() {
           )}
 
           {/* Navigation Items */}
-          <nav className="flex-1 overflow-y-auto py-2 px-2">
-            <div className="space-y-0.5">
+          <nav className="flex-1 overflow-y-auto py-3 px-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: isCollapsed ? '3px' : '8px' }}>
               {isNavigationReady ? (
                 navItems.map((item, index) => {
                   const IconComponent = item.icon;
@@ -300,32 +293,72 @@ export default function Sidebar() {
                   return (
                     <Link key={item.id} href={item.href} onClick={(e) => handleNavigation(item.href, e)}>
                       <div
-                        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer group ${
-                          isActive
-                            ? 'bg-gray-50'
-                            : 'hover:bg-gray-50'
+                        className={`relative flex items-center transition-all cursor-pointer group ${
+                          isCollapsed ? 'justify-center' : 'gap-3'
                         }`}
+                        style={{
+                          padding: isCollapsed ? '10px' : '10px 12px',
+                          borderRadius: '10px',
+                          backgroundColor: isActive 
+                            ? `${item.color}15` 
+                            : 'transparent',
+                          borderLeft: isActive && !isCollapsed 
+                            ? `3px solid ${item.color}` 
+                            : 'none',
+                          marginLeft: isActive && !isCollapsed ? '4px' : '0',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
                         title={isCollapsed ? item.name : ''}
                       >
-                        <IconComponent
-                          size={18}
+                        <div
                           style={{
-                            color: isActive ? item.color : '#9ca3af',
-                            minWidth: '18px'
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: isCollapsed ? '36px' : 'auto',
+                            height: isCollapsed ? '36px' : 'auto',
+                            borderRadius: isCollapsed ? '8px' : '0',
+                            backgroundColor: isActive && isCollapsed 
+                              ? `${item.color}20` 
+                              : 'transparent',
+                            transition: 'all 0.2s ease'
                           }}
-                        />
+                        >
+                          <IconComponent
+                            size={isCollapsed ? 20 : 18}
+                            style={{
+                              color: isActive ? item.color : '#6b7280',
+                              minWidth: isCollapsed ? '20px' : '18px',
+                              transition: 'color 0.2s ease'
+                            }}
+                          />
+                        </div>
                         {!isCollapsed && (
                           <span
                             className="text-sm font-medium"
-                            style={{ color: isActive ? '#1f2937' : '#6b7280' }}
+                            style={{ 
+                              color: isActive ? '#1f2937' : '#6b7280',
+                              fontWeight: isActive ? '600' : '500'
+                            }}
                           >
                             {item.name}
                           </span>
                         )}
                         {/* Tooltip for collapsed state */}
                         {isCollapsed && (
-                          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                          <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
                             {item.name}
+                            <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
                           </div>
                         )}
                       </div>
@@ -345,16 +378,17 @@ export default function Sidebar() {
                 <div
                   className="flex items-center justify-center rounded-full flex-shrink-0"
                   style={{
-                    width: '32px',
-                    height: '32px',
+                    width: '36px',
+                    height: '36px',
                     background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}
                 >
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-white font-semibold text-xs">{getUserInitials()}</span>
+                    <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -372,28 +406,58 @@ export default function Sidebar() {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-3">
                 <div
                   className="flex items-center justify-center rounded-full group cursor-pointer relative"
                   style={{
-                    width: '32px',
-                    height: '32px',
+                    width: '36px',
+                    height: '36px',
                     background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}
                 >
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-white font-semibold text-xs">{getUserInitials()}</span>
+                    <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
                   )}
                   {/* Tooltip */}
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                  <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
                     {getUserDisplayName()}
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
                   </div>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Collapse Toggle Button - At Bottom */}
+          <div className="border-t border-gray-100 px-2 py-3">
+            <button
+              onClick={toggleCollapse}
+              className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-50 transition-colors group relative"
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              style={{
+                minHeight: '40px'
+              }}
+            >
+              {isCollapsed ? (
+                <FaChevronRight size={16} color="#6b7280" />
+              ) : (
+                <>
+                  <FaChevronLeft size={16} color="#6b7280" style={{ marginRight: '8px' }} />
+                  <span className="text-xs text-gray-600 font-medium">Collapse</span>
+                </>
+              )}
+              {/* Tooltip for collapsed state */}
+              {isCollapsed && (
+                <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
+                  Expand
+                  <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                </div>
+              )}
+            </button>
           </div>
         </div>
       </aside>
