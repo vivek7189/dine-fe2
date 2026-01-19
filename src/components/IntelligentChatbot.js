@@ -335,8 +335,8 @@ const IntelligentChatbot = ({
 
   return (
     <>
-      {/* Chatbot Toggle Button */}
-      <button
+      {/* Chatbot Toggle Button - Commented out to hide icon */}
+      {/* <button
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'fixed',
@@ -366,7 +366,7 @@ const IntelligentChatbot = ({
         }}
       >
         <FaRobot size={24} />
-      </button>
+      </button> */}
 
       {/* Chatbot Interface */}
       {isOpen && (

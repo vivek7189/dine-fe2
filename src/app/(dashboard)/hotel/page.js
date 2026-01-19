@@ -120,6 +120,8 @@ const Hotel = () => {
     notes: ''
   });
 
+  const [foodOrdersPaidStatus, setFoodOrdersPaidStatus] = useState({});
+
   // Load restaurant
   useEffect(() => {
     const loadRestaurant = async () => {
@@ -445,17 +447,30 @@ const Hotel = () => {
         amount: parseFloat(checkOutForm.discount)
       }] : [];
 
+      // Prepare food orders with their paid status
+      const foodOrdersStatus = selectedCheckIn.foodOrders
+        ?.filter(o => o.status !== 'cancelled')
+        .map(order => ({
+          orderId: order.orderId,
+          amount: order.amount,
+          isPaid: foodOrdersPaidStatus[order.orderId] || false,
+          status: order.status,
+          paymentStatus: order.paymentStatus
+        })) || [];
+
       const response = await apiClient.hotelCheckOut(selectedCheckIn.id, {
         finalPayment: parseFloat(checkOutForm.finalPayment) || 0,
         paymentMode: checkOutForm.paymentMode,
         discounts,
-        notes: checkOutForm.notes || null
+        notes: checkOutForm.notes || null,
+        foodOrdersStatus // Pass the paid status of food orders
       });
 
       setSuccess('Checked out successfully');
       setShowCheckOutModal(false);
       setCheckOutForm({ finalPayment: '', paymentMode: 'cash', discount: '', notes: '' });
       setSelectedCheckIn(null);
+      setFoodOrdersPaidStatus({});
       if (activeTab === 'rooms') loadRooms();
       else loadCheckIns();
       setTimeout(() => setSuccess(null), 3000);
@@ -471,8 +486,31 @@ const Hotel = () => {
 
   const openCheckOut = (checkIn) => {
     setSelectedCheckIn(checkIn);
+
+    // Initialize food orders paid status
+    // Mark orders as paid if: status is 'completed' AND paymentStatus is 'paid'
+    // Mark orders as unpaid if: status is not 'completed' OR order is pending/confirmed (KOT orders)
+    const paidStatusMap = {};
+    if (checkIn.foodOrders && checkIn.foodOrders.length > 0) {
+      checkIn.foodOrders.forEach(order => {
+        // Exclude cancelled orders from the bill entirely
+        if (order.status !== 'cancelled') {
+          // Order is paid if status is 'completed' and payment is marked as paid
+          paidStatusMap[order.orderId] = order.status === 'completed' && order.paymentStatus === 'paid';
+        }
+      });
+    }
+    setFoodOrdersPaidStatus(paidStatusMap);
+
+    // Calculate unpaid food charges (exclude paid and cancelled orders)
+    const unpaidFoodCharges = checkIn.foodOrders
+      ?.filter(order => order.status !== 'cancelled' && !(order.status === 'completed' && order.paymentStatus === 'paid'))
+      .reduce((sum, order) => sum + (order.amount || 0), 0) || 0;
+
+    const balanceWithUnpaidFood = (checkIn.totalRoomCharges || 0) + unpaidFoodCharges - (checkIn.advancePayment || 0);
+
     setCheckOutForm({
-      finalPayment: checkIn.balanceAmount?.toFixed(2) || '0.00',
+      finalPayment: balanceWithUnpaidFood.toFixed(2),
       paymentMode: 'cash',
       discount: '',
       notes: ''
@@ -1532,17 +1570,91 @@ const Hotel = () => {
               </button>
             </div>
             <form onSubmit={handleCheckOut} className="p-6">
+              {/* Food Orders Section */}
+              {selectedCheckIn.foodOrders && selectedCheckIn.foodOrders.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FaUtensils className="text-yellow-600" />
+                    Food Orders ({selectedCheckIn.foodOrders.filter(o => o.status !== 'cancelled').length})
+                  </h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    {selectedCheckIn.foodOrders.filter(o => o.status !== 'cancelled').map((order) => {
+                      const isPaid = foodOrdersPaidStatus[order.orderId] || false;
+                      return (
+                        <div key={order.orderId} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={isPaid}
+                              onChange={(e) => {
+                                const newStatus = { ...foodOrdersPaidStatus, [order.orderId]: e.target.checked };
+                                setFoodOrdersPaidStatus(newStatus);
+
+                                // Recalculate balance
+                                const unpaidOrders = selectedCheckIn.foodOrders.filter(o =>
+                                  o.status !== 'cancelled' && !newStatus[o.orderId]
+                                );
+                                const unpaidFood = unpaidOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+                                const newBalance = (selectedCheckIn.totalRoomCharges || 0) + unpaidFood - (selectedCheckIn.advancePayment || 0);
+                                setCheckOutForm({ ...checkOutForm, finalPayment: newBalance.toFixed(2) });
+                              }}
+                              className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-900">Order #{order.orderNumber || order.orderId?.slice(-6)}</span>
+                                {order.status === 'completed' && order.paymentStatus === 'paid' && (
+                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">Auto-Paid</span>
+                                )}
+                                {order.status !== 'completed' && (
+                                  <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-semibold rounded">KOT</span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-gray-500">{new Date(order.createdAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-sm text-gray-900">₹{order.amount?.toFixed(2)}</div>
+                            {isPaid && <span className="text-[10px] text-green-600 font-medium">Paid</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 italic">
+                    ✓ Check the box if order bill was already paid separately
+                  </p>
+                </div>
+              )}
+
+              {/* Charges Summary */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Room Charges:</span>
                     <span className="font-semibold">₹{selectedCheckIn.totalRoomCharges?.toFixed(2)}</span>
                   </div>
-                  {selectedCheckIn.totalFoodCharges > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Food Charges:</span>
-                      <span className="font-semibold">₹{selectedCheckIn.totalFoodCharges.toFixed(2)}</span>
-                    </div>
+                  {selectedCheckIn.foodOrders && selectedCheckIn.foodOrders.length > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Food Charges (Unpaid):</span>
+                        <span className="font-semibold">
+                          ₹{selectedCheckIn.foodOrders
+                            .filter(o => o.status !== 'cancelled' && !foodOrdersPaidStatus[o.orderId])
+                            .reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                        </span>
+                      </div>
+                      {selectedCheckIn.foodOrders.some(o => foodOrdersPaidStatus[o.orderId]) && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Food Charges (Already Paid):</span>
+                          <span className="font-semibold line-through">
+                            ₹{selectedCheckIn.foodOrders
+                              .filter(o => foodOrdersPaidStatus[o.orderId])
+                              .reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </>
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Advance Paid:</span>
@@ -1551,7 +1663,7 @@ const Hotel = () => {
                   <div className="h-px bg-green-200 my-2" />
                   <div className="flex justify-between text-lg">
                     <span className="font-bold text-green-900">Balance Due:</span>
-                    <span className="font-bold text-green-900">₹{selectedCheckIn.balanceAmount?.toFixed(2)}</span>
+                    <span className="font-bold text-green-900">₹{checkOutForm.finalPayment}</span>
                   </div>
                 </div>
               </div>
@@ -1744,6 +1856,63 @@ const Hotel = () => {
                 </div>
               )}
 
+              {/* Food Orders Detail */}
+              {invoice.foodOrders && invoice.foodOrders.length > 0 && (
+                <div className="mb-6 pb-6 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FaUtensils className="text-yellow-600" />
+                    Food Orders ({invoice.foodOrders.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {invoice.foodOrders.map((order, idx) => (
+                      <div key={idx} className={`p-3 rounded-lg border-2 ${order.isPaid ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-semibold text-gray-900">
+                                Order #{order.orderNumber || order.orderId?.slice(-6)}
+                              </span>
+                              {order.isPaid ? (
+                                <span className="px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded">PAID</span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-yellow-600 text-white text-xs font-bold rounded">UNPAID</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className={`font-bold text-lg ${order.isPaid ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                              ₹{order.amount?.toFixed(2)}
+                            </div>
+                            {order.isPaid && <p className="text-xs text-green-600 font-medium">Excluded from bill</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700">Total Food Orders:</span>
+                      <span className="font-semibold">₹{invoice.foodOrders.reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mt-1">
+                      <span className="text-green-700">Already Paid (Excluded):</span>
+                      <span className="font-semibold text-green-700 line-through">
+                        ₹{invoice.foodOrders.filter(o => o.isPaid).reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold mt-2 pt-2 border-t border-blue-300">
+                      <span className="text-gray-900">Included in Bill:</span>
+                      <span className="text-gray-900">
+                        ₹{invoice.foodOrders.filter(o => !o.isPaid).reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Charges Breakdown */}
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -1759,7 +1928,7 @@ const Hotel = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700 flex items-center gap-2">
                         <FaUtensils className="text-yellow-600" size={12} />
-                        Food & Beverage Charges
+                        Food & Beverage Charges (Unpaid Only)
                       </span>
                       <span className="font-semibold text-gray-900">₹{invoice.foodCharges.toFixed(2)}</span>
                     </div>

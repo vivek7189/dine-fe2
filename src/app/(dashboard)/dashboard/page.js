@@ -1893,6 +1893,27 @@ function RestaurantPOSContent() {
         console.log('✅ Order created successfully:', orderId);
         console.log('✅ Order response:', orderResponse);
 
+      // Link order to hotel check-in if this is a room order
+      if (isRoomOrder && roomNumber) {
+        try {
+          console.log('🏨 Linking order to hotel check-in for room:', roomNumber);
+          const checkInResponse = await apiClient.getCheckInByRoom(selectedRestaurant.id, roomNumber);
+          if (checkInResponse.checkIn && checkInResponse.checkIn.status === 'checked-in') {
+            await apiClient.linkOrderToCheckIn(
+              checkInResponse.checkIn.id,
+              orderId,
+              getTotalAmount()
+            );
+            console.log('✅ Order linked to check-in:', checkInResponse.checkIn.id);
+          } else {
+            console.warn('⚠️ No active check-in found for room:', roomNumber);
+          }
+        } catch (error) {
+          console.error('❌ Failed to link order to check-in:', error);
+          // Continue with order processing even if linking fails
+        }
+      }
+
       // Update table status if table is selected
       if (selectedTable && selectedTable.id) {
         await apiClient.updateTableStatus(selectedTable.id, 'occupied', orderId);
@@ -2195,9 +2216,17 @@ function RestaurantPOSContent() {
         }
       } else {
         // Create new order
+        // Determine if this is a room order
+        const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
+        const roomNumber = isRoomOrder
+          ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
+          : null;
+        const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
+
         const orderData = {
           restaurantId: selectedRestaurant?.id,
-          tableNumber: tableNumber || selectedTable?.number || null,
+          tableNumber: finalTableNumber || null,
+          roomNumber: roomNumber || null,
           items: cart.map(item => ({
             menuItemId: item.id,
             quantity: item.quantity,
@@ -2209,7 +2238,8 @@ function RestaurantPOSContent() {
           customerInfo: {
             name: customerName || null,
             phone: customerMobile || null,
-            tableNumber: tableNumber || selectedTable?.number || null
+            tableNumber: finalTableNumber || null,
+            roomNumber: roomNumber || null
           },
           orderType,
           paymentMethod,
@@ -2217,13 +2247,34 @@ function RestaurantPOSContent() {
             name: 'Staff Member',
             id: 'staff-001'
           },
-          notes: '',
+          notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
           status: 'confirmed' // Place order to kitchen
         };
 
         console.log('Creating order with data:', orderData);
       const response = await apiClient.createOrder(orderData);
       console.log('Create order response:', response);
+
+        // Link order to hotel check-in if this is a room order
+        if (isRoomOrder && roomNumber && response.order) {
+          try {
+            console.log('🏨 Linking KOT order to hotel check-in for room:', roomNumber);
+            const checkInResponse = await apiClient.getCheckInByRoom(selectedRestaurant.id, roomNumber);
+            if (checkInResponse.checkIn && checkInResponse.checkIn.status === 'checked-in') {
+              await apiClient.linkOrderToCheckIn(
+                checkInResponse.checkIn.id,
+                response.order.id,
+                getTotalAmount()
+              );
+              console.log('✅ KOT order linked to check-in:', checkInResponse.checkIn.id);
+            } else {
+              console.warn('⚠️ No active check-in found for room:', roomNumber);
+            }
+          } catch (error) {
+            console.error('❌ Failed to link KOT order to check-in:', error);
+            // Continue with order processing even if linking fails
+          }
+        }
         
         if (response.order) {
           console.log('Updating order status to confirmed...');

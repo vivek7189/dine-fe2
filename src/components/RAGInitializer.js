@@ -97,7 +97,9 @@ const RAGInitializer = ({ restaurantId, onInitialized }) => {
   };
 
   if (!isVisible) {
-    return (
+    // RAG Icon Button - Commented out to hide icon
+    return null;
+    /* return (
       <button
         onClick={() => setIsVisible(true)}
         style={{
@@ -130,7 +132,7 @@ const RAGInitializer = ({ restaurantId, onInitialized }) => {
       >
         <FaCog size={20} />
       </button>
-    );
+    ); */
   }
 
   return (

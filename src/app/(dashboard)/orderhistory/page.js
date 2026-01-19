@@ -139,13 +139,14 @@ const OrderHistory = () => {
   };
 
   const getStatusStyle = (status, orderFlow) => {
-    if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: t('common.billing') || 'Billing' };
-    if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('common.kot') || 'Kitchen' };
-    if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: t('orderHistory.status.completed') };
-    if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('orderHistory.status.confirmed') };
-    if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: t('orderHistory.status.pending') };
-    if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: t('orderHistory.status.cancelled') };
-    return { bg: '#f3f4f6', text: '#374151', border: '#d1d5db', label: status };
+    if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing' };
+    if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Kitchen' };
+    if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Completed' };
+    if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Confirmed' };
+    if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: 'Pending' };
+    if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: 'Cancelled' };
+    const capitalizeStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+    return { bg: '#f3f4f6', text: '#374151', border: '#d1d5db', label: capitalizeStatus };
   };
 
   const fetchOrders = useCallback(async (useCache = true) => {
@@ -432,18 +433,18 @@ const OrderHistory = () => {
               </div>
               <div className="bg-white/60 p-4 rounded-lg border border-blue-200">
                 <div className="text-xs text-gray-600 mb-2 flex items-center gap-2 font-medium uppercase tracking-wide">
-                  {order.roomNumber || order.customerDisplay?.roomNumber ? (
-                    <FaBed className="text-blue-600"/> 
+                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
+                    <FaBed className="text-blue-600"/>
                   ) : (
                     <FaTable className="text-blue-600"/>
                   )}
-                  {order.roomNumber || order.customerDisplay?.roomNumber ? 'Room' : t('orderHistory.table')}
+                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? 'Room' : t('orderHistory.table')}
                 </div>
                 <div className="font-semibold text-base text-gray-900 mb-1">
-                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}
+                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}
                 </div>
                 <div className="text-sm text-gray-600 capitalize">
-                  {order.roomNumber || order.customerDisplay?.roomNumber ? 'Hotel Room' : (order.customerDisplay?.floorName || 'No floor')}
+                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? 'Hotel Room' : (order.customerDisplay?.floorName || 'No floor')}
                 </div>
               </div>
               <div className="bg-white/60 p-4 rounded-lg border border-blue-200">
@@ -798,13 +799,13 @@ const OrderHistory = () => {
                             <FaUser className="text-gray-400" />
                             <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || 'Walk-in'}</span>
                           </div>
-                          <div className="flex items-center gap-2" title={order.roomNumber || order.customerDisplay?.roomNumber ? "Room" : "Table"}>
-                            {order.roomNumber || order.customerDisplay?.roomNumber ? (
+                          <div className="flex items-center gap-2" title={order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? "Room" : "Table"}>
+                            {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
                               <FaBed className="text-gray-400" />
                             ) : (
                               <FaTable className="text-gray-400" />
                             )}
-                            <span>{order.roomNumber || order.customerDisplay?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</span>
+                            <span>{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-2" title="Type">
                             <FaUtensils className="text-gray-400" />
@@ -892,14 +893,14 @@ const OrderHistory = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {order.roomNumber || order.customerDisplay?.roomNumber ? (
+                            {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
                               <FaBed className="text-gray-400 text-sm" />
                             ) : (
                               <FaTable className="text-gray-400 text-sm" />
                             )}
                             <div>
-                              <div className="text-xs text-gray-500">{order.roomNumber || order.customerDisplay?.roomNumber ? 'Room' : 'Table'}</div>
-                              <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</div>
+                              <div className="text-xs text-gray-500">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? 'Room' : 'Table'}</div>
+                              <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1128,12 +1129,12 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 uppercase mb-2">Order Details:</h3>
                   <div className="text-gray-900 text-sm">
-                    {(order.roomNumber || order.customerDisplay?.roomNumber) ? (
-                      <p>Room: {order.roomNumber || order.customerDisplay?.roomNumber}</p>
+                    {(order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber) ? (
+                      <p>Room: {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber}</p>
                     ) : (
                       order.customerDisplay?.tableNumber && <p>Table: {order.customerDisplay.tableNumber}</p>
                     )}
-                    {order.customerDisplay?.floorName && !order.roomNumber && !order.customerDisplay?.roomNumber && <p>Floor: {order.customerDisplay.floorName}</p>}
+                    {order.customerDisplay?.floorName && !order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && <p>Floor: {order.customerDisplay.floorName}</p>}
                     {order.orderType && <p>Type: <span className="capitalize">{order.orderType.replace('-', ' ')}</span></p>}
                     {order.paymentMethod && <p>Payment: <span className="capitalize">{order.paymentMethod}</span></p>}
                   </div>
