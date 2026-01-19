@@ -3927,9 +3927,15 @@ function RestaurantPOSContent() {
                 gap: '10px',
                 marginTop: '16px',
                 overflowX: 'auto',
-                scrollbarWidth: 'none',
+                overflowY: 'hidden',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#d1d5db transparent',
                 msOverflowStyle: 'none',
-                paddingBottom: '4px'
+                paddingBottom: '4px',
+                maxWidth: !isMobile && viewMode === 'orders' ? 'calc(100% - 450px)' : '100%',
+                width: '100%',
+                flexShrink: 0,
+                WebkitOverflowScrolling: 'touch'
               }} className="hide-scrollbar">
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
