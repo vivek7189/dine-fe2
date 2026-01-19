@@ -117,7 +117,8 @@ const Hotel = () => {
     finalPayment: '',
     paymentMode: 'cash',
     discount: '',
-    notes: ''
+    notes: '',
+    roomTariff: ''
   });
 
   const [foodOrdersPaidStatus, setFoodOrdersPaidStatus] = useState({});
@@ -447,28 +448,34 @@ const Hotel = () => {
         amount: parseFloat(checkOutForm.discount)
       }] : [];
 
-      // Prepare food orders with their paid status
+      // Prepare food orders with their paid status using FULL order IDs
       const foodOrdersStatus = selectedCheckIn.foodOrders
         ?.filter(o => o.status !== 'cancelled')
-        .map(order => ({
-          orderId: order.orderId,
-          amount: order.amount,
-          isPaid: foodOrdersPaidStatus[order.orderId] || false,
-          status: order.status,
-          paymentStatus: order.paymentStatus
-        })) || [];
+        .map(order => {
+          const fullOrderId = order.id || order.orderId;
+          return {
+            orderId: fullOrderId,
+            amount: order.amount,
+            isPaid: foodOrdersPaidStatus[fullOrderId] || false,
+            status: order.status,
+            paymentStatus: order.paymentStatus,
+            dailyOrderId: order.dailyOrderId || order.orderNumber,
+            createdAt: order.createdAt
+          };
+        }) || [];
 
       const response = await apiClient.hotelCheckOut(selectedCheckIn.id, {
         finalPayment: parseFloat(checkOutForm.finalPayment) || 0,
         paymentMode: checkOutForm.paymentMode,
         discounts,
         notes: checkOutForm.notes || null,
+        roomTariff: parseFloat(checkOutForm.roomTariff) || 0,
         foodOrdersStatus // Pass the paid status of food orders
       });
 
       setSuccess('Checked out successfully');
       setShowCheckOutModal(false);
-      setCheckOutForm({ finalPayment: '', paymentMode: 'cash', discount: '', notes: '' });
+      setCheckOutForm({ finalPayment: '', paymentMode: 'cash', discount: '', notes: '', roomTariff: '' });
       setSelectedCheckIn(null);
       setFoodOrdersPaidStatus({});
       if (activeTab === 'rooms') loadRooms();
@@ -487,7 +494,7 @@ const Hotel = () => {
   const openCheckOut = (checkIn) => {
     setSelectedCheckIn(checkIn);
 
-    // Initialize food orders paid status
+    // Initialize food orders paid status using FULL orderId (database ID, not daily number)
     // Mark orders as paid if: status is 'completed' AND paymentStatus is 'paid'
     // Mark orders as unpaid if: status is not 'completed' OR order is pending/confirmed (KOT orders)
     const paidStatusMap = {};
@@ -495,8 +502,10 @@ const Hotel = () => {
       checkIn.foodOrders.forEach(order => {
         // Exclude cancelled orders from the bill entirely
         if (order.status !== 'cancelled') {
+          // IMPORTANT: Use the full database orderId, NOT dailyOrderId
+          const fullOrderId = order.id || order.orderId;
           // Order is paid if status is 'completed' and payment is marked as paid
-          paidStatusMap[order.orderId] = order.status === 'completed' && order.paymentStatus === 'paid';
+          paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
         }
       });
     }
@@ -513,7 +522,8 @@ const Hotel = () => {
       finalPayment: balanceWithUnpaidFood.toFixed(2),
       paymentMode: 'cash',
       discount: '',
-      notes: ''
+      notes: '',
+      roomTariff: checkIn.roomTariff || checkIn.room?.tariff || '' // Pre-fill room tariff if available
     });
     setShowCheckOutModal(true);
   };
@@ -1562,14 +1572,14 @@ const Hotel = () => {
       {/* Check-Out Modal */}
       {showCheckOutModal && selectedCheckIn && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md">
-            <div className="bg-green-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="bg-green-600 text-white p-4 rounded-t-lg flex items-center justify-between flex-shrink-0">
               <h2 className="text-xl font-bold">Check Out - Room {selectedCheckIn.roomNumber}</h2>
               <button onClick={() => { setShowCheckOutModal(false); setSelectedCheckIn(null); }} className="text-white hover:text-gray-200">
                 <FaTimes size={20} />
               </button>
             </div>
-            <form onSubmit={handleCheckOut} className="p-6">
+            <form onSubmit={handleCheckOut} className="flex-1 overflow-y-auto p-6">
               {/* Food Orders Section */}
               {selectedCheckIn.foodOrders && selectedCheckIn.foodOrders.length > 0 && (
                 <div className="mb-4">
@@ -1579,21 +1589,27 @@ const Hotel = () => {
                   </h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
                     {selectedCheckIn.foodOrders.filter(o => o.status !== 'cancelled').map((order) => {
-                      const isPaid = foodOrdersPaidStatus[order.orderId] || false;
+                      // IMPORTANT: Use full database order ID, NOT daily order number
+                      const fullOrderId = order.id || order.orderId;
+                      const isPaid = foodOrdersPaidStatus[fullOrderId] || false;
+                      // Display daily order number for readability, but use full ID for logic
+                      const displayOrderNumber = order.dailyOrderId || order.orderNumber || fullOrderId?.slice(-6);
+
                       return (
-                        <div key={order.orderId} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                        <div key={fullOrderId} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
                           <div className="flex items-center gap-2 flex-1">
                             <input
                               type="checkbox"
                               checked={isPaid}
                               onChange={(e) => {
-                                const newStatus = { ...foodOrdersPaidStatus, [order.orderId]: e.target.checked };
+                                const newStatus = { ...foodOrdersPaidStatus, [fullOrderId]: e.target.checked };
                                 setFoodOrdersPaidStatus(newStatus);
 
-                                // Recalculate balance
-                                const unpaidOrders = selectedCheckIn.foodOrders.filter(o =>
-                                  o.status !== 'cancelled' && !newStatus[o.orderId]
-                                );
+                                // Recalculate balance using full order IDs
+                                const unpaidOrders = selectedCheckIn.foodOrders.filter(o => {
+                                  const oFullId = o.id || o.orderId;
+                                  return o.status !== 'cancelled' && !newStatus[oFullId];
+                                });
                                 const unpaidFood = unpaidOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
                                 const newBalance = (selectedCheckIn.totalRoomCharges || 0) + unpaidFood - (selectedCheckIn.advancePayment || 0);
                                 setCheckOutForm({ ...checkOutForm, finalPayment: newBalance.toFixed(2) });
@@ -1602,7 +1618,7 @@ const Hotel = () => {
                             />
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-gray-900">Order #{order.orderNumber || order.orderId?.slice(-6)}</span>
+                                <span className="text-xs font-medium text-gray-900">Order #{displayOrderNumber}</span>
                                 {order.status === 'completed' && order.paymentStatus === 'paid' && (
                                   <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">Auto-Paid</span>
                                 )}
@@ -1610,7 +1626,7 @@ const Hotel = () => {
                                   <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-semibold rounded">KOT</span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-gray-500">{new Date(order.createdAt).toLocaleString()}</p>
+                              <p className="text-[11px] text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -1640,16 +1656,25 @@ const Hotel = () => {
                         <span className="text-gray-600">Food Charges (Unpaid):</span>
                         <span className="font-semibold">
                           ₹{selectedCheckIn.foodOrders
-                            .filter(o => o.status !== 'cancelled' && !foodOrdersPaidStatus[o.orderId])
+                            .filter(o => {
+                              const fullId = o.id || o.orderId;
+                              return o.status !== 'cancelled' && !foodOrdersPaidStatus[fullId];
+                            })
                             .reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
                         </span>
                       </div>
-                      {selectedCheckIn.foodOrders.some(o => foodOrdersPaidStatus[o.orderId]) && (
+                      {selectedCheckIn.foodOrders.some(o => {
+                        const fullId = o.id || o.orderId;
+                        return foodOrdersPaidStatus[fullId];
+                      }) && (
                         <div className="flex justify-between text-green-600">
                           <span>Food Charges (Already Paid):</span>
                           <span className="font-semibold line-through">
                             ₹{selectedCheckIn.foodOrders
-                              .filter(o => foodOrdersPaidStatus[o.orderId])
+                              .filter(o => {
+                                const fullId = o.id || o.orderId;
+                                return foodOrdersPaidStatus[fullId];
+                              })
                               .reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
                           </span>
                         </div>
@@ -1668,6 +1693,44 @@ const Hotel = () => {
                 </div>
               </div>
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Room Tariff per Night *
+                    <span className="text-xs text-gray-500 ml-2">(Edit if needed)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={checkOutForm.roomTariff}
+                    onChange={e => {
+                      const newTariff = parseFloat(e.target.value) || 0;
+                      const nights = selectedCheckIn.stayDuration || 1;
+                      const newRoomCharges = newTariff * nights;
+
+                      // Recalculate balance with new room tariff
+                      const unpaidFood = selectedCheckIn.foodOrders
+                        ?.filter(o => {
+                          const fullId = o.id || o.orderId;
+                          return o.status !== 'cancelled' && !foodOrdersPaidStatus[fullId];
+                        })
+                        .reduce((sum, o) => sum + (o.amount || 0), 0) || 0;
+
+                      const newBalance = newRoomCharges + unpaidFood - (selectedCheckIn.advancePayment || 0);
+
+                      setCheckOutForm({
+                        ...checkOutForm,
+                        roomTariff: e.target.value,
+                        finalPayment: newBalance.toFixed(2)
+                      });
+                    }}
+                    placeholder="Enter room tariff per night"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {selectedCheckIn.stayDuration || 1} night(s) × ₹{checkOutForm.roomTariff || 0} = ₹{((parseFloat(checkOutForm.roomTariff) || 0) * (selectedCheckIn.stayDuration || 1)).toFixed(2)}
+                  </p>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Final Payment Amount *</label>
                   <input
@@ -1711,16 +1774,18 @@ const Hotel = () => {
                   />
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-3 mt-6">
+            </form>
+            <div className="border-t border-gray-200 p-4 bg-gray-50 rounded-b-lg flex-shrink-0">
+              <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => { setShowCheckOutModal(false); setSelectedCheckIn(null); }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 bg-white"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  onClick={handleCheckOut}
                   disabled={loading}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:bg-gray-400"
                 >
@@ -1737,7 +1802,7 @@ const Hotel = () => {
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -1864,33 +1929,37 @@ const Hotel = () => {
                     Food Orders ({invoice.foodOrders.length})
                   </h3>
                   <div className="space-y-2">
-                    {invoice.foodOrders.map((order, idx) => (
-                      <div key={idx} className={`p-3 rounded-lg border-2 ${order.isPaid ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-semibold text-gray-900">
-                                Order #{order.orderNumber || order.orderId?.slice(-6)}
-                              </span>
-                              {order.isPaid ? (
-                                <span className="px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded">PAID</span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-yellow-600 text-white text-xs font-bold rounded">UNPAID</span>
-                              )}
+                    {invoice.foodOrders.map((order, idx) => {
+                      // Display daily order number for readability
+                      const displayOrderNumber = order.dailyOrderId || order.orderNumber || order.orderId?.slice(-6);
+                      return (
+                        <div key={order.orderId || idx} className={`p-3 rounded-lg border-2 ${order.isPaid ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-semibold text-gray-900">
+                                  Order #{displayOrderNumber}
+                                </span>
+                                {order.isPaid ? (
+                                  <span className="px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded">PAID</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-yellow-600 text-white text-xs font-bold rounded">UNPAID</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-600">
+                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                              </p>
                             </div>
-                            <p className="text-xs text-gray-600">
-                              {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className={`font-bold text-lg ${order.isPaid ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                              ₹{order.amount?.toFixed(2)}
+                            <div className="text-right">
+                              <div className={`font-bold text-lg ${order.isPaid ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                                ₹{order.amount?.toFixed(2)}
+                              </div>
+                              {order.isPaid && <p className="text-xs text-green-600 font-medium">Excluded from bill</p>}
                             </div>
-                            {order.isPaid && <p className="text-xs text-green-600 font-medium">Excluded from bill</p>}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex justify-between text-sm">
