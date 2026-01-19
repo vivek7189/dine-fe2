@@ -1893,25 +1893,10 @@ function RestaurantPOSContent() {
         console.log('✅ Order created successfully:', orderId);
         console.log('✅ Order response:', orderResponse);
 
-      // Link order to hotel check-in if this is a room order
+      // NOTE: Backend automatically links room orders to hotel check-ins
+      // No need to manually link here to avoid duplicates
       if (isRoomOrder && roomNumber) {
-        try {
-          console.log('🏨 Linking order to hotel check-in for room:', roomNumber);
-          const checkInResponse = await apiClient.getCheckInByRoom(selectedRestaurant.id, roomNumber);
-          if (checkInResponse.checkIn && checkInResponse.checkIn.status === 'checked-in') {
-            await apiClient.linkOrderToCheckIn(
-              checkInResponse.checkIn.id,
-              orderId,
-              getTotalAmount()
-            );
-            console.log('✅ Order linked to check-in:', checkInResponse.checkIn.id);
-          } else {
-            console.warn('⚠️ No active check-in found for room:', roomNumber);
-          }
-        } catch (error) {
-          console.error('❌ Failed to link order to check-in:', error);
-          // Continue with order processing even if linking fails
-        }
+        console.log('🏨 Room order created for room:', roomNumber, '- Backend will handle check-in linking');
       }
 
       // Update table status if table is selected
@@ -2255,27 +2240,12 @@ function RestaurantPOSContent() {
       const response = await apiClient.createOrder(orderData);
       console.log('Create order response:', response);
 
-        // Link order to hotel check-in if this is a room order
+        // NOTE: Backend automatically links room orders to hotel check-ins
+        // No need to manually link here to avoid duplicates
         if (isRoomOrder && roomNumber && response.order) {
-          try {
-            console.log('🏨 Linking KOT order to hotel check-in for room:', roomNumber);
-            const checkInResponse = await apiClient.getCheckInByRoom(selectedRestaurant.id, roomNumber);
-            if (checkInResponse.checkIn && checkInResponse.checkIn.status === 'checked-in') {
-              await apiClient.linkOrderToCheckIn(
-                checkInResponse.checkIn.id,
-                response.order.id,
-                getTotalAmount()
-              );
-              console.log('✅ KOT order linked to check-in:', checkInResponse.checkIn.id);
-            } else {
-              console.warn('⚠️ No active check-in found for room:', roomNumber);
-            }
-          } catch (error) {
-            console.error('❌ Failed to link KOT order to check-in:', error);
-            // Continue with order processing even if linking fails
-          }
+          console.log('🏨 KOT room order created for room:', roomNumber, '- Backend will handle check-in linking');
         }
-        
+
         if (response.order) {
           console.log('Updating order status to confirmed...');
           // Update order status to confirmed (sent to kitchen)
