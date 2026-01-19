@@ -124,6 +124,29 @@ function RestaurantPOSContent() {
   
   // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
+  // Listen for sidebar collapse state changes
+  useEffect(() => {
+    const checkSidebarState = () => {
+      const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+      setSidebarCollapsed(collapsed);
+    };
+
+    // Check initial state
+    checkSidebarState();
+
+    // Listen for storage changes
+    window.addEventListener('storage', checkSidebarState);
+    
+    // Listen for custom sidebar toggle event
+    const handleSidebarToggle = () => checkSidebarState();
+    window.addEventListener('sidebarToggle', handleSidebarToggle);
+
+    return () => {
+      window.removeEventListener('storage', checkSidebarState);
+      window.removeEventListener('sidebarToggle', handleSidebarToggle);
+    };
+  }, []);
   
   // Card design toggle state
   const [useModernCards, setUseModernCards] = useState(true);
@@ -3517,10 +3540,14 @@ function RestaurantPOSContent() {
             zIndex: 100,
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
             marginRight: !isMobile && viewMode === 'orders' ? '450px' : '0',
-            maxWidth: !isMobile && viewMode === 'orders' ? 'calc(100% - 450px)' : '100%',
-            width: '100%',
+            width: !isMobile && viewMode === 'orders' 
+              ? `calc(100vw - ${sidebarCollapsed ? '520px' : '690px'})` 
+              : '100%',
+            maxWidth: !isMobile && viewMode === 'orders' 
+              ? `calc(100vw - ${sidebarCollapsed ? '520px' : '690px'})` 
+              : '100%',
             boxSizing: 'border-box',
-            maxWidth: '1100px',
+            overflow: 'hidden'
           }}>
             {/* Responsive Layout */}
             <div style={{ 
@@ -3529,8 +3556,9 @@ function RestaurantPOSContent() {
               alignItems: isMobile ? 'stretch' : 'center', 
               justifyContent: 'space-between', 
               gap: isMobile ? '8px' : '10px',
-              // Ensure consistent width
-              width: '100%'
+              width: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box'
             }}>
               {/* First Row on Mobile - Search & Voice */}
               <div style={{ 
@@ -3937,10 +3965,11 @@ function RestaurantPOSContent() {
                 msOverflowStyle: 'none',
                 paddingBottom: '4px',
                 width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
                 flexShrink: 0,
                 WebkitOverflowScrolling: 'touch',
-                boxSizing: 'border-box',
-                maxWidth: !isMobile && viewMode === 'orders' ? 'calc(100% - 450px)' : '1100px',
+                boxSizing: 'border-box'
               }} className="hide-scrollbar">
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
