@@ -3516,7 +3516,10 @@ function RestaurantPOSContent() {
             top: 0,
             zIndex: 100,
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            marginRight: !isMobile && viewMode === 'orders' ? '450px' : '0'
+            marginRight: !isMobile && viewMode === 'orders' ? '450px' : '0',
+            maxWidth: !isMobile && viewMode === 'orders' ? 'calc(100% - 450px)' : '100%',
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
             {/* Responsive Layout */}
             <div style={{ 
@@ -3932,10 +3935,10 @@ function RestaurantPOSContent() {
                 scrollbarColor: '#d1d5db transparent',
                 msOverflowStyle: 'none',
                 paddingBottom: '4px',
-                maxWidth: !isMobile && viewMode === 'orders' ? 'calc(100% - 450px)' : '100%',
                 width: '100%',
                 flexShrink: 0,
-                WebkitOverflowScrolling: 'touch'
+                WebkitOverflowScrolling: 'touch',
+                boxSizing: 'border-box'
               }} className="hide-scrollbar">
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
