@@ -3956,21 +3956,12 @@ function RestaurantPOSContent() {
             {viewMode === 'orders' && (
               <div style={{
                 display: 'flex',
-                gap: '10px',
-                marginTop: '16px',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#d1d5db transparent',
-                msOverflowStyle: 'none',
-                paddingBottom: '4px',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginTop: '12px',
                 width: '100%',
-                maxWidth: '100%',
-                minWidth: 0,
-                flexShrink: 0,
-                WebkitOverflowScrolling: 'touch',
                 boxSizing: 'border-box'
-              }} className="hide-scrollbar">
+              }}>
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
                   const categoryItems = category.id === 'all-items'
@@ -3987,48 +3978,86 @@ function RestaurantPOSContent() {
                         if (isMobile) setShowMobileSidebar(false);
                       }}
                       style={{
-                        padding: isMobile ? '7px 14px' : '8px 18px',
-                        borderRadius: '24px',
-                        border: 'none',
-                        backgroundColor: isSelected ? '#ef4444' : '#f3f4f6',
+                        padding: isMobile ? '6px 12px' : '6px 14px',
+                        borderRadius: '20px',
+                        border: isSelected ? '2px solid #ef4444' : '1.5px solid #e5e7eb',
+                        backgroundColor: isSelected 
+                          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                          : '#ffffff',
+                        background: isSelected 
+                          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                          : '#ffffff',
                         color: isSelected ? 'white' : '#374151',
-                        fontSize: isMobile ? '12px' : '13px',
-                        fontWeight: isSelected ? '600' : '500',
+                        fontSize: isMobile ? '11px' : '12px',
+                        fontWeight: isSelected ? '700' : '600',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
                         whiteSpace: 'nowrap',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: isMobile ? '6px' : '8px',
-                        boxShadow: isSelected ? '0 2px 8px rgba(239, 68, 68, 0.25)' : 'none',
+                        gap: isMobile ? '4px' : '6px',
+                        boxShadow: isSelected 
+                          ? '0 3px 10px rgba(239, 68, 68, 0.35)' 
+                          : '0 1px 3px rgba(0, 0, 0, 0.08)',
                         letterSpacing: '-0.01em',
-                        transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                        transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                        position: 'relative',
+                        overflow: 'hidden'
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          e.target.style.backgroundColor = '#e5e7eb';
-                          e.target.style.transform = 'scale(1.02)';
+                          e.currentTarget.style.backgroundColor = '#f9fafb';
+                          e.currentTarget.style.borderColor = '#d1d5db';
+                          e.currentTarget.style.transform = 'scale(1.03)';
+                          e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.12)';
+                        } else {
+                          e.currentTarget.style.transform = 'scale(1.08)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.45)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) {
-                          e.target.style.backgroundColor = '#f3f4f6';
-                          e.target.style.transform = 'scale(1)';
+                          e.currentTarget.style.backgroundColor = '#ffffff';
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.08)';
+                        } else {
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                          e.currentTarget.style.boxShadow = '0 3px 10px rgba(239, 68, 68, 0.35)';
                         }
                       }}
                     >
-                      <span style={{ fontSize: '14px' }}>{category.icon}</span>
-                      <span>{category.name}</span>
+                      {/* Shimmer effect for selected */}
+                      {isSelected && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: '-100%',
+                          width: '100%',
+                          height: '100%',
+                          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                          animation: 'shimmer 2s infinite'
+                        }} />
+                      )}
+                      <span style={{
+                        position: 'relative',
+                        zIndex: 1
+                      }}>
+                        {category.name}
+                      </span>
                       {categoryItems.length > 0 && (
                         <span style={{
-                          fontSize: '11px',
-                          backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#e5e7eb',
-                          color: isSelected ? 'white' : '#4b5563',
-                          padding: '3px 8px',
-                          borderRadius: '12px',
+                          fontSize: '10px',
+                          backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#f3f4f6',
+                          color: isSelected ? 'white' : '#6b7280',
+                          padding: '2px 7px',
+                          borderRadius: '10px',
                           fontWeight: '700',
-                          minWidth: '22px',
-                          textAlign: 'center'
+                          minWidth: '18px',
+                          textAlign: 'center',
+                          position: 'relative',
+                          zIndex: 1,
+                          border: isSelected ? '1px solid rgba(255,255,255,0.2)' : 'none'
                         }}>
                           {categoryItems.length}
                         </span>
