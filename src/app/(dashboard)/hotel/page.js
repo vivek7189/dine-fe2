@@ -455,7 +455,7 @@ const Hotel = () => {
           const fullOrderId = order.id || order.orderId;
           return {
             orderId: fullOrderId,
-            amount: order.amount,
+            amount: order.amount || order.finalAmount || 0,
             isPaid: foodOrdersPaidStatus[fullOrderId] || false,
             status: order.status,
             paymentStatus: order.paymentStatus,
@@ -502,12 +502,25 @@ const Hotel = () => {
     // Fetch latest order details to get current status/paymentStatus
     if (checkIn.foodOrders && checkIn.foodOrders.length > 0) {
       try {
-        // Fetch all order details to get latest status
+        // Fetch all order details to get latest status and final amount (with tax)
         const orderPromises = checkIn.foodOrders.map(async (order) => {
           const fullOrderId = order.id || order.orderId;
           try {
             const orderResponse = await apiClient.getOrderById(fullOrderId);
-            return orderResponse?.order || order;
+            const latestOrder = orderResponse?.order || order;
+            
+            // Calculate final amount with tax if not already present
+            let finalAmount = latestOrder.finalAmount;
+            if (!finalAmount && latestOrder.totalAmount) {
+              // Calculate tax if tax settings are available
+              const taxAmount = latestOrder.taxAmount || 0;
+              finalAmount = latestOrder.totalAmount + taxAmount;
+            }
+            
+            return {
+              ...latestOrder,
+              finalAmount: finalAmount || latestOrder.totalAmount || order.amount
+            };
           } catch (err) {
             console.error('Failed to fetch order:', fullOrderId, err);
             return order; // Fallback to cached data
@@ -516,23 +529,27 @@ const Hotel = () => {
 
         const latestOrders = await Promise.all(orderPromises);
 
-        // Update checkIn with latest order data
+        // Update checkIn with latest order data including final amount
         checkIn.foodOrders = latestOrders.map((latestOrder, idx) => {
           const originalOrder = checkIn.foodOrders[idx];
+          const finalAmount = latestOrder.finalAmount || latestOrder.totalAmount + (latestOrder.taxAmount || 0) || originalOrder.amount;
+          
           return {
             ...originalOrder,
             status: latestOrder.status || originalOrder.status,
-            paymentStatus: latestOrder.paymentStatus || originalOrder.paymentStatus
+            paymentStatus: latestOrder.paymentStatus || originalOrder.paymentStatus,
+            amount: finalAmount, // Update amount to include tax
+            finalAmount: finalAmount
           };
         });
 
-        // Build paid status map
+        // Build paid status map - auto-check if order is completed and paid
         checkIn.foodOrders.forEach(order => {
           if (order.status !== 'cancelled') {
             const fullOrderId = order.id || order.orderId;
-            // Order is paid if status is 'completed' and payment is marked as paid
-            // Also check if paymentStatus is 'paid' (already paid separately)
-            paidStatusMap[fullOrderId] = (order.status === 'completed' && order.paymentStatus === 'paid') || order.paymentStatus === 'paid';
+            // Order is paid if status is 'completed' AND paymentStatus is 'paid'
+            // This will auto-check the checkbox
+            paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
           }
         });
       } catch (error) {
@@ -541,9 +558,9 @@ const Hotel = () => {
         checkIn.foodOrders.forEach(order => {
           if (order.status !== 'cancelled') {
             const fullOrderId = order.id || order.orderId;
-            // Order is paid if status is 'completed' and payment is marked as paid
-            // Also check if paymentStatus is 'paid' (already paid separately)
-            paidStatusMap[fullOrderId] = (order.status === 'completed' && order.paymentStatus === 'paid') || order.paymentStatus === 'paid';
+            // Order is paid if status is 'completed' AND paymentStatus is 'paid'
+            // This will auto-check the checkbox
+            paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
           }
         });
       }
@@ -551,9 +568,13 @@ const Hotel = () => {
     setFoodOrdersPaidStatus(paidStatusMap);
 
     // Calculate unpaid food charges (exclude paid and cancelled orders)
+    // Use finalAmount (with tax) if available, otherwise use amount
     const unpaidFoodCharges = checkIn.foodOrders
-      ?.filter(order => order.status !== 'cancelled' && !(order.status === 'completed' && order.paymentStatus === 'paid'))
-      .reduce((sum, order) => sum + (order.amount || 0), 0) || 0;
+      ?.filter(order => {
+        const fullId = order.id || order.orderId;
+        return order.status !== 'cancelled' && !foodOrdersPaidStatus[fullId];
+      })
+      .reduce((sum, order) => sum + (order.amount || order.finalAmount || 0), 0) || 0;
 
     const balanceWithUnpaidFood = (checkIn.totalRoomCharges || 0) + unpaidFoodCharges - (checkIn.advancePayment || 0);
 
@@ -1082,7 +1103,7 @@ const Hotel = () => {
                         <div className="flex gap-2 flex-wrap text-xs text-yellow-800">
                           {checkIn.foodOrders.map((order, i) => (
                             <span key={i} className="bg-yellow-100 px-2 py-1 rounded">
-                              Order #{order.orderNumber || i+1}: ₹{order.amount.toFixed(2)}
+                              Order #{order.orderNumber || i+1}: ₹{(order.amount || order.finalAmount || 0).toFixed(2)}
                             </span>
                           ))}
                         </div>
@@ -1649,7 +1670,7 @@ const Hotel = () => {
                                   const oFullId = o.id || o.orderId;
                                   return o.status !== 'cancelled' && !newStatus[oFullId];
                                 });
-                                const unpaidFood = unpaidOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+                                const unpaidFood = unpaidOrders.reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0);
                                 const newBalance = (selectedCheckIn.totalRoomCharges || 0) + unpaidFood - (selectedCheckIn.advancePayment || 0);
                                 setCheckOutForm({ ...checkOutForm, finalPayment: newBalance.toFixed(2) });
                               }}
@@ -1682,7 +1703,7 @@ const Hotel = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-semibold text-sm text-gray-900">₹{order.amount?.toFixed(2)}</div>
+                            <div className="font-semibold text-sm text-gray-900">₹{(order.amount || order.finalAmount || 0).toFixed(2)}</div>
                             {isPaid && <span className="text-[10px] text-green-600 font-medium">Paid</span>}
                           </div>
                         </div>
@@ -1712,7 +1733,7 @@ const Hotel = () => {
                               const fullId = o.id || o.orderId;
                               return o.status !== 'cancelled' && !foodOrdersPaidStatus[fullId];
                             })
-                            .reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                            .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0).toFixed(2)}
                         </span>
                       </div>
                       {selectedCheckIn.foodOrders.some(o => {
@@ -1727,7 +1748,7 @@ const Hotel = () => {
                                 const fullId = o.id || o.orderId;
                                 return foodOrdersPaidStatus[fullId];
                               })
-                              .reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                              .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0).toFixed(2)}
                           </span>
                         </div>
                       )}
@@ -1766,7 +1787,7 @@ const Hotel = () => {
                           const fullId = o.id || o.orderId;
                           return o.status !== 'cancelled' && !foodOrdersPaidStatus[fullId];
                         })
-                        .reduce((sum, o) => sum + (o.amount || 0), 0) || 0;
+                        .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0) || 0;
 
                       const newBalance = newRoomCharges + unpaidFood - (selectedCheckIn.advancePayment || 0);
 
@@ -2012,7 +2033,7 @@ const Hotel = () => {
                             </div>
                             <div className="text-right">
                               <div className={`font-bold text-lg ${order.isPaid ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                                ₹{order.amount?.toFixed(2)}
+                                ₹{(order.amount || order.finalAmount || 0).toFixed(2)}
                               </div>
                               {order.isPaid && <p className="text-xs text-green-600 font-medium">Excluded from bill</p>}
                             </div>
