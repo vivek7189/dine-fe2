@@ -491,23 +491,59 @@ const Hotel = () => {
     }
   };
 
-  const openCheckOut = (checkIn) => {
+  const openCheckOut = async (checkIn) => {
     setSelectedCheckIn(checkIn);
 
     // Initialize food orders paid status using FULL orderId (database ID, not daily number)
     // Mark orders as paid if: status is 'completed' AND paymentStatus is 'paid'
     // Mark orders as unpaid if: status is not 'completed' OR order is pending/confirmed (KOT orders)
     const paidStatusMap = {};
+
+    // Fetch latest order details to get current status/paymentStatus
     if (checkIn.foodOrders && checkIn.foodOrders.length > 0) {
-      checkIn.foodOrders.forEach(order => {
-        // Exclude cancelled orders from the bill entirely
-        if (order.status !== 'cancelled') {
-          // IMPORTANT: Use the full database orderId, NOT dailyOrderId
+      try {
+        // Fetch all order details to get latest status
+        const orderPromises = checkIn.foodOrders.map(async (order) => {
           const fullOrderId = order.id || order.orderId;
-          // Order is paid if status is 'completed' and payment is marked as paid
-          paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
-        }
-      });
+          try {
+            const orderResponse = await apiClient.getOrderById(fullOrderId);
+            return orderResponse?.order || order;
+          } catch (err) {
+            console.error('Failed to fetch order:', fullOrderId, err);
+            return order; // Fallback to cached data
+          }
+        });
+
+        const latestOrders = await Promise.all(orderPromises);
+
+        // Update checkIn with latest order data
+        checkIn.foodOrders = latestOrders.map((latestOrder, idx) => {
+          const originalOrder = checkIn.foodOrders[idx];
+          return {
+            ...originalOrder,
+            status: latestOrder.status || originalOrder.status,
+            paymentStatus: latestOrder.paymentStatus || originalOrder.paymentStatus
+          };
+        });
+
+        // Build paid status map
+        checkIn.foodOrders.forEach(order => {
+          if (order.status !== 'cancelled') {
+            const fullOrderId = order.id || order.orderId;
+            // Order is paid if status is 'completed' and payment is marked as paid
+            paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
+          }
+        });
+      } catch (error) {
+        console.error('Failed to fetch latest order statuses:', error);
+        // Fallback to using cached data
+        checkIn.foodOrders.forEach(order => {
+          if (order.status !== 'cancelled') {
+            const fullOrderId = order.id || order.orderId;
+            paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
+          }
+        });
+      }
     }
     setFoodOrdersPaidStatus(paidStatusMap);
 

@@ -481,6 +481,10 @@ class ApiClient {
     return this.request(`/api/orders/${restaurantId}${queryString}`);
   }
 
+  async getOrderById(orderId) {
+    return this.request(`/api/orders/details/${orderId}`);
+  }
+
   async updateOrderStatus(orderId, status, restaurantId = null) {
     const body = { status };
     if (restaurantId) {
