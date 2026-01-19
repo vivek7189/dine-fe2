@@ -1391,9 +1391,10 @@ const OrderSummary = ({
             <div style={{ 
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)', 
               color: 'white', 
-              padding: '12px', 
+              padding: '10px 12px', 
               borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              marginBottom: '8px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('common.total')}</span>
@@ -1404,9 +1405,9 @@ const OrderSummary = ({
 
           {/* Actions Section */}
           {!orderSuccess?.show && (
-            <div style={{ padding: '20px' }}>
+            <div style={{ padding: '8px 16px 12px 16px' }}>
               {/* Customer Information */}
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '8px' }}>
                 <div style={{ 
                   fontSize: '12px', 
                   fontWeight: '700', 
@@ -1422,14 +1423,16 @@ const OrderSummary = ({
                 <div style={{ 
                   display: 'flex', 
                   flexDirection: isMobile ? 'column' : 'row',
-                  gap: isMobile ? '10px' : '8px',
-                  alignItems: isMobile ? 'stretch' : 'center'
+                  gap: isMobile ? '8px' : '6px',
+                  alignItems: isMobile ? 'stretch' : 'center',
+                  flexWrap: 'wrap'
                 }}>
                   {/* First Row on Mobile: Customer Name & Mobile Number */}
                   <div style={{
                     display: 'flex',
-                    gap: '8px',
-                    flex: isMobile ? '0 0 auto' : '1'
+                    gap: '6px',
+                    flex: isMobile ? '0 0 auto' : '1',
+                    minWidth: isMobile ? '100%' : '200px'
                   }}>
                     {/* Customer Name */}
                     <input
@@ -1484,14 +1487,17 @@ const OrderSummary = ({
                   {/* Combined Table/Room Selector with Input Box */}
                   <div style={{ 
                     display: 'flex', 
-                    gap: '8px', 
+                    gap: '4px', 
                     alignItems: 'stretch',
-                    width: isMobile ? '100%' : 'auto'
+                    width: isMobile ? '100%' : 'auto',
+                    flex: isMobile ? '0 0 auto' : '0 0 auto',
+                    minWidth: isMobile ? '100%' : '280px',
+                    maxWidth: isMobile ? '100%' : '100%'
                   }}>
                     {/* Location Type Selector (Table or Room) - Only show if in-room dining is enabled */}
                     {inRoomDiningEnabled ? (
                       <>
-                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', gap: '0', flexShrink: 0 }}>
                           <button
                             type="button"
                             onClick={() => {
@@ -1503,7 +1509,7 @@ const OrderSummary = ({
                               }
                             }}
                             style={{
-                              padding: isMobile ? '10px 14px' : '8px 12px',
+                              padding: isMobile ? '10px 12px' : '7px 10px',
                               borderRadius: '6px 0 0 6px',
                               border: '2px solid',
                               borderRight: 'none',
@@ -1511,16 +1517,16 @@ const OrderSummary = ({
                               color: locationType === 'table' ? 'white' : '#374151',
                               borderColor: locationType === 'table' ? '#ef4444' : '#e5e7eb',
                               fontWeight: '600',
-                              fontSize: isMobile ? '13px' : '12px',
+                              fontSize: isMobile ? '12px' : '11px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '4px',
+                              gap: '3px',
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            <FaTable size={12} />
+                            <FaTable size={11} />
                             Table
                           </button>
                           <button
@@ -1534,23 +1540,23 @@ const OrderSummary = ({
                               }
                             }}
                             style={{
-                              padding: isMobile ? '10px 14px' : '8px 12px',
+                              padding: isMobile ? '10px 12px' : '7px 10px',
                               borderRadius: '0 6px 6px 0',
                               border: '2px solid',
                               backgroundColor: locationType === 'room' ? '#ef4444' : 'white',
                               color: locationType === 'room' ? 'white' : '#374151',
                               borderColor: locationType === 'room' ? '#ef4444' : '#e5e7eb',
                               fontWeight: '600',
-                              fontSize: isMobile ? '13px' : '12px',
+                              fontSize: isMobile ? '12px' : '11px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '4px',
+                              gap: '3px',
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            <FaBed size={12} />
+                            <FaBed size={11} />
                             Room
                           </button>
                         </div>
@@ -1561,8 +1567,9 @@ const OrderSummary = ({
                           value={locationType === 'room' ? (manualRoomNumber || '') : (tableNumber || '')}
                           style={{
                             flex: 1,
-                            minWidth: '100px',
-                            padding: isMobile ? '10px 12px' : '8px 10px',
+                            minWidth: '80px',
+                            maxWidth: '120px',
+                            padding: isMobile ? '10px 12px' : '7px 10px',
                             border: '2px solid #d1d5db',
                             borderRadius: '6px',
                             fontSize: isMobile ? '14px' : '12px',
