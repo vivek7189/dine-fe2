@@ -2839,16 +2839,15 @@ function RestaurantPOSContent() {
   // Removed full screen success - using inline success instead
 
   return (
-    <div 
+    <div
       className={`page-transition ${isLoading ? 'loading' : ''}`}
-      style={{ 
-      height: isMobile ? 'auto' : 'calc(100vh - 80px)', // Full height minus navigation on desktop
-      backgroundColor: '#f8fafc', 
-      display: 'flex', 
+      style={{
+      height: '100%',
+      backgroundColor: '#f9fafb',
+      display: 'flex',
       flexDirection: 'column',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-      overflow: 'visible', // Always allow scrolling
-      minHeight: isMobile ? '100vh' : 'calc(100vh - 80px)' // Ensure full viewport height minus nav
+      overflow: 'visible',
+      minHeight: '100%'
     }}>
       {/* Restaurant Change Loading Overlay */}
       {restaurantChangeLoading && (
@@ -3217,13 +3216,13 @@ function RestaurantPOSContent() {
         marginTop: isListeningVoice ? (isMobile ? '120px' : '100px') : '0',
         transition: 'margin-top 0.3s ease-out'
       }}>
-        {/* Desktop Menu Sections Sidebar - Redesigned */}
-        {!isMobile && viewMode === 'orders' && (
-          <div style={{ 
-            width: sidebarCollapsed ? '60px' : '280px', 
+        {/* Desktop Menu Sections Sidebar - Hidden (categories moved to chips) */}
+        {false && !isMobile && viewMode === 'orders' && (
+          <div style={{
+            width: sidebarCollapsed ? '60px' : '280px',
             height: '100%',
-            backgroundColor: '#ffffff', 
-            borderRight: '1px solid #f3f4f6', 
+            backgroundColor: '#ffffff',
+            borderRight: '1px solid #f3f4f6',
             boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
             position: 'relative',
             overflow: 'hidden',
@@ -3510,10 +3509,10 @@ function RestaurantPOSContent() {
           ) : (
           <>
             {/* Compact Header - Mobile Optimized */}
-          <div style={{ 
-            padding: isMobile ? '8px' : '12px', 
-            backgroundColor: 'white', 
-            borderBottom: '1px solid #f3f4f6'
+          <div style={{
+            padding: isMobile ? '8px' : '12px 16px',
+            backgroundColor: 'white',
+            borderBottom: '1px solid #f1f5f9'
           }}>
             {/* Responsive Layout */}
             <div style={{ 
@@ -3916,28 +3915,107 @@ function RestaurantPOSContent() {
                 )}
                     </div>
             </div>
+
+            {/* Category Chips - Below Search */}
+            {viewMode === 'orders' && (
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginTop: '14px',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                paddingBottom: '2px'
+              }} className="hide-scrollbar">
+                {categories.map((category, index) => {
+                  const isSelected = selectedCategory === category.id;
+                  const categoryItems = category.id === 'all-items'
+                    ? (menuItems || [])
+                    : category.id === 'favorites'
+                    ? (menuItems || []).filter(item => item.isFavorite === true)
+                    : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => {
+                        setSelectedCategory(category.id);
+                        if (isMobile) setShowMobileSidebar(false);
+                      }}
+                      style={{
+                        padding: isMobile ? '6px 12px' : '7px 16px',
+                        borderRadius: '16px',
+                        border: isSelected ? 'none' : '1px solid #e5e7eb',
+                        backgroundColor: isSelected ? '#111827' : 'white',
+                        color: isSelected ? 'white' : '#6b7280',
+                        fontSize: isMobile ? '12px' : '13px',
+                        fontWeight: isSelected ? '600' : '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: isMobile ? '6px' : '8px',
+                        boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                        letterSpacing: '-0.01em'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.target.style.backgroundColor = '#f9fafb';
+                          e.target.style.borderColor = '#d1d5db';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.target.style.backgroundColor = 'white';
+                          e.target.style.borderColor = '#e5e7eb';
+                        }
+                      }}
+                    >
+                      <span style={{ fontSize: '14px' }}>{category.icon}</span>
+                      <span>{category.name}</span>
+                      {categoryItems.length > 0 && (
+                        <span style={{
+                          fontSize: '11px',
+                          backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#f3f4f6',
+                          color: isSelected ? 'white' : '#6b7280',
+                          padding: '2px 7px',
+                          borderRadius: '12px',
+                          fontWeight: '600',
+                          minWidth: '20px',
+                          textAlign: 'center'
+                        }}>
+                          {categoryItems.length}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          
-          <div style={{ 
-            flex: 1, 
-            padding: isMobile ? '16px' : '8px', 
+
+          <div style={{
+            flex: 1,
+            padding: isMobile ? '16px' : '16px 20px',
             overflowY: isMobile ? 'visible' : 'auto',
             height: isMobile ? 'auto' : '100%',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            width: viewMode === 'tables' ? '100%' : undefined
+            width: '100%',
+            maxWidth: '1600px',
+            margin: '0 auto'
           }} className="hide-scrollbar">
             {viewMode === 'orders' ? (
             <div style={{
               display: 'grid',
               gridTemplateColumns: useModernCards
-                ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(150px, 1fr))')
-                : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(150px, 1fr))'),
+                ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
+                : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
               gap: useModernCards
-                ? (isMobile ? '12px' : '20px')
-                : (isMobile ? '10px' : '16px'),
-              justifyContent: 'center',
-              padding: useModernCards ? '0 12px' : '0 8px'
+                ? (isMobile ? '12px' : '16px')
+                : (isMobile ? '10px' : '14px'),
+              justifyContent: 'start'
             }}>
               {filteredItems.map((item) => {
                 const quantityInCart = getItemQuantityInCart(item.id);

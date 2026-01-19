@@ -267,9 +267,13 @@ export default function Sidebar() {
             </div>
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 transition-colors"
+              className="hidden md:flex items-center justify-center w-5 h-5 rounded-md hover:bg-gray-100 transition-all"
+              style={{
+                border: '1px solid #e5e7eb',
+                color: '#6b7280'
+              }}
             >
-              {isCollapsed ? <FaChevronRight size={12} color="#9ca3af" /> : <FaChevronLeft size={12} color="#9ca3af" />}
+              {isCollapsed ? <FaChevronRight size={10} /> : <FaChevronLeft size={10} />}
             </button>
           </div>
 
