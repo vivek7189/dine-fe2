@@ -531,7 +531,8 @@ const Hotel = () => {
           if (order.status !== 'cancelled') {
             const fullOrderId = order.id || order.orderId;
             // Order is paid if status is 'completed' and payment is marked as paid
-            paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
+            // Also check if paymentStatus is 'paid' (already paid separately)
+            paidStatusMap[fullOrderId] = (order.status === 'completed' && order.paymentStatus === 'paid') || order.paymentStatus === 'paid';
           }
         });
       } catch (error) {
@@ -540,7 +541,9 @@ const Hotel = () => {
         checkIn.foodOrders.forEach(order => {
           if (order.status !== 'cancelled') {
             const fullOrderId = order.id || order.orderId;
-            paidStatusMap[fullOrderId] = order.status === 'completed' && order.paymentStatus === 'paid';
+            // Order is paid if status is 'completed' and payment is marked as paid
+            // Also check if paymentStatus is 'paid' (already paid separately)
+            paidStatusMap[fullOrderId] = (order.status === 'completed' && order.paymentStatus === 'paid') || order.paymentStatus === 'paid';
           }
         });
       }
@@ -1655,14 +1658,27 @@ const Hotel = () => {
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-medium text-gray-900">Order #{displayOrderNumber}</span>
-                                {order.status === 'completed' && order.paymentStatus === 'paid' && (
+                                {isPaid && (
+                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">Already Paid</span>
+                                )}
+                                {!isPaid && order.status === 'completed' && order.paymentStatus === 'paid' && (
                                   <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">Auto-Paid</span>
                                 )}
-                                {order.status !== 'completed' && (
+                                {!isPaid && order.status !== 'completed' && (
                                   <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-semibold rounded">KOT</span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</p>
+                              <p className="text-[11px] text-gray-500">
+                                {order.createdAt 
+                                  ? (order.createdAt._seconds 
+                                      ? new Date(order.createdAt._seconds * 1000).toLocaleString()
+                                      : new Date(order.createdAt).toLocaleString())
+                                  : (order.linkedAt?._seconds 
+                                      ? new Date(order.linkedAt._seconds * 1000).toLocaleString()
+                                      : order.linkedAt 
+                                        ? new Date(order.linkedAt).toLocaleString()
+                                        : 'N/A')}
+                              </p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -1983,7 +1999,15 @@ const Hotel = () => {
                                 )}
                               </div>
                               <p className="text-xs text-gray-600">
-                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                                {order.createdAt 
+                                  ? (order.createdAt._seconds 
+                                      ? new Date(order.createdAt._seconds * 1000).toLocaleString()
+                                      : new Date(order.createdAt).toLocaleString())
+                                  : (order.linkedAt?._seconds 
+                                      ? new Date(order.linkedAt._seconds * 1000).toLocaleString()
+                                      : order.linkedAt 
+                                        ? new Date(order.linkedAt).toLocaleString()
+                                        : 'N/A')}
                               </p>
                             </div>
                             <div className="text-right">
