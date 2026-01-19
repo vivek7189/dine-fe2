@@ -397,29 +397,28 @@ const OrderSummary = ({
   };
   
   return (
-    <div style={{ 
-      width: isMobile ? '100vw' : '100%', 
-      height: isMobile ? '100vh' : '100%',
+    <div style={{
+      width: isMobile ? '100vw' : '100%',
+      height: isMobile ? '100vh' : '100vh',
       position: isMobile ? 'fixed' : 'relative',
       top: isMobile ? 0 : 'auto',
       left: isMobile ? 0 : 'auto',
       zIndex: isMobile ? 1000 : 'auto',
-      backgroundColor: 'white', 
-      borderLeft: isMobile ? 'none' : '2px solid #e5e7eb', 
-      display: 'flex', 
+      backgroundColor: 'white',
+      borderLeft: isMobile ? 'none' : '1px solid #e5e7eb',
+      display: 'flex',
       flexDirection: 'column',
-      boxShadow: isMobile ? 'none' : '-4px 0 20px rgba(0, 0, 0, 0.08)',
-      overflowY: 'auto'
+      boxShadow: isMobile ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
+      overflow: 'hidden'
     }}>
       {/* Header - More Compact */}
-      <div style={{ 
-        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)', 
-        padding: '12px', 
+      <div style={{
+        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+        padding: '14px 16px',
         color: 'white',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3)',
-        borderRadius: '5px'
+        flexShrink: 0
       }}>
         {/* Background Pattern */}
         <div style={{
@@ -686,13 +685,17 @@ const OrderSummary = ({
       )}
 
       {/* Cart Items */}
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
-        padding: '8px',
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: '12px',
         scrollbarWidth: 'thin',
-        scrollbarColor: '#cbd5e1 transparent'
-      }}>
+        scrollbarColor: '#cbd5e1 transparent',
+        minHeight: 0
+      }}
+      className="hide-scrollbar"
+      >
         {cart.length === 0 ? (
           <div style={{ 
             display: 'flex',

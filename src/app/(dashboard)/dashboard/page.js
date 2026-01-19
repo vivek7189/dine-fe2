@@ -3512,7 +3512,11 @@ function RestaurantPOSContent() {
           <div style={{
             padding: isMobile ? '8px' : '12px 16px',
             backgroundColor: 'white',
-            borderBottom: '1px solid #f1f5f9'
+            borderBottom: '1px solid #f1f5f9',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
           }}>
             {/* Responsive Layout */}
             <div style={{ 
@@ -3920,12 +3924,12 @@ function RestaurantPOSContent() {
             {viewMode === 'orders' && (
               <div style={{
                 display: 'flex',
-                gap: '8px',
-                marginTop: '14px',
+                gap: '10px',
+                marginTop: '16px',
                 overflowX: 'auto',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
-                paddingBottom: '2px'
+                paddingBottom: '4px'
               }} className="hide-scrollbar">
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
@@ -3943,32 +3947,33 @@ function RestaurantPOSContent() {
                         if (isMobile) setShowMobileSidebar(false);
                       }}
                       style={{
-                        padding: isMobile ? '6px 12px' : '7px 16px',
-                        borderRadius: '16px',
-                        border: isSelected ? 'none' : '1px solid #e5e7eb',
-                        backgroundColor: isSelected ? '#111827' : 'white',
-                        color: isSelected ? 'white' : '#6b7280',
+                        padding: isMobile ? '7px 14px' : '8px 18px',
+                        borderRadius: '24px',
+                        border: 'none',
+                        backgroundColor: isSelected ? '#ef4444' : '#f3f4f6',
+                        color: isSelected ? 'white' : '#374151',
                         fontSize: isMobile ? '12px' : '13px',
                         fontWeight: isSelected ? '600' : '500',
                         cursor: 'pointer',
-                        transition: 'all 0.15s ease',
+                        transition: 'all 0.2s ease',
                         whiteSpace: 'nowrap',
                         display: 'flex',
                         alignItems: 'center',
                         gap: isMobile ? '6px' : '8px',
-                        boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-                        letterSpacing: '-0.01em'
+                        boxShadow: isSelected ? '0 2px 8px rgba(239, 68, 68, 0.25)' : 'none',
+                        letterSpacing: '-0.01em',
+                        transform: isSelected ? 'scale(1.02)' : 'scale(1)'
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          e.target.style.backgroundColor = '#f9fafb';
-                          e.target.style.borderColor = '#d1d5db';
+                          e.target.style.backgroundColor = '#e5e7eb';
+                          e.target.style.transform = 'scale(1.02)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) {
-                          e.target.style.backgroundColor = 'white';
-                          e.target.style.borderColor = '#e5e7eb';
+                          e.target.style.backgroundColor = '#f3f4f6';
+                          e.target.style.transform = 'scale(1)';
                         }
                       }}
                     >
@@ -3977,12 +3982,12 @@ function RestaurantPOSContent() {
                       {categoryItems.length > 0 && (
                         <span style={{
                           fontSize: '11px',
-                          backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#f3f4f6',
-                          color: isSelected ? 'white' : '#6b7280',
-                          padding: '2px 7px',
+                          backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#e5e7eb',
+                          color: isSelected ? 'white' : '#4b5563',
+                          padding: '3px 8px',
                           borderRadius: '12px',
-                          fontWeight: '600',
-                          minWidth: '20px',
+                          fontWeight: '700',
+                          minWidth: '22px',
                           textAlign: 'center'
                         }}>
                           {categoryItems.length}
@@ -3998,12 +4003,12 @@ function RestaurantPOSContent() {
           <div style={{
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
+            paddingRight: !isMobile && viewMode === 'orders' ? '420px' : '20px',
             overflowY: isMobile ? 'visible' : 'auto',
             height: isMobile ? 'auto' : '100%',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             width: '100%',
-            maxWidth: '1600px',
             margin: '0 auto'
           }} className="hide-scrollbar">
             {viewMode === 'orders' ? (
@@ -4135,12 +4140,15 @@ function RestaurantPOSContent() {
             {!isMobile && (
               <>
                 {viewMode === 'orders' ? (
-          <div style={{ 
-            width: '30%', 
-            minWidth: '320px',
-            height: '100%',
+          <div style={{
+            position: 'fixed',
+            right: 0,
+            top: 0,
+            width: '420px',
+            height: '100vh',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            zIndex: 90
           }}>
           {console.log('🖥️ Dashboard: Rendering OrderSummary with cart:', cart)}
           <OrderSummary
