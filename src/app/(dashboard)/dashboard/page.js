@@ -3516,7 +3516,7 @@ function RestaurantPOSContent() {
             top: 0,
             zIndex: 100,
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            marginRight: !isMobile && viewMode === 'orders' ? '400px' : '0'
+            marginRight: !isMobile && viewMode === 'orders' ? '450px' : '0'
           }}>
             {/* Responsive Layout */}
             <div style={{ 
@@ -3706,10 +3706,10 @@ function RestaurantPOSContent() {
 
                 {/* Short Code Search - Mobile Optimized */}
                 {viewMode === 'orders' && (
-                <div style={{ position: 'relative', flex: isMobile ? '1' : '0 0 70px', minWidth: isMobile ? '0' : '70px' }}>
+                <div style={{ position: 'relative', flex: isMobile ? '1' : '0 0 70px', minWidth: isMobile ? '0' : '90px' }}>
                   <input
                     type="text"
-                    placeholder={isMobile ? "SC" : "SHORT C"}
+                    placeholder={isMobile ? "SC" : "SHORT CODE"}
                     value={shortCodeSearch}
                     onChange={(e) => setShortCodeSearch(e.target.value)}
                     onKeyPress={handleShortCodeSearch}
@@ -4003,7 +4003,7 @@ function RestaurantPOSContent() {
           <div style={{
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
-            paddingRight: !isMobile && viewMode === 'orders' ? '410px' : '20px',
+            paddingRight: !isMobile && viewMode === 'orders' ? '460px' : '20px',
             overflowY: isMobile ? 'visible' : 'auto',
             height: isMobile ? 'auto' : '100%',
             scrollbarWidth: 'none',
@@ -4144,7 +4144,7 @@ function RestaurantPOSContent() {
             position: 'fixed',
             right: 0,
             top: 0,
-            width: '400px',
+            width: '450px',
             height: '100vh',
             display: 'flex',
             flexDirection: 'column',

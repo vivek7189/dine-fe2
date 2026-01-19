@@ -17,7 +17,8 @@ import {
   FaRobot,
   FaChevronLeft,
   FaChevronRight,
-  FaBars
+  FaBars,
+  FaUser
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -146,10 +147,16 @@ export default function Sidebar() {
     { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', roles: ['owner'] },
     { id: 'kot', name: t('nav.kot'), icon: FaPrint, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'manager'] },
+    { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'manager', 'waiter', 'employee'] },
   ];
 
   const navItems = getAllNavItems().filter(item => {
     if (!user || !user.role) return false;
+
+    // Profile is always accessible to all users
+    if (item.id === 'profile') {
+      return true;
+    }
 
     if (user.role === 'employee' || user.role === 'manager') {
       if (!pageAccess) return false;
@@ -374,60 +381,66 @@ export default function Sidebar() {
           {/* User Section */}
           <div className="border-t border-gray-100 px-2 py-3">
             {!isCollapsed ? (
-              <div className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group relative">
-                <div
-                  className="flex items-center justify-center rounded-full flex-shrink-0"
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  {user?.photoURL ? (
-                    <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
-                  )}
+              <Link href="/profile" onClick={(e) => handleNavigation('/profile', e)}>
+                <div className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group relative">
+                  <div
+                    className="flex items-center justify-center rounded-full flex-shrink-0"
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-900 truncate">{getUserDisplayName()}</p>
+                    <p className="text-xs text-gray-500">{user?.role}</p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleLogout();
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Logout"
+                  >
+                    <FaSignOutAlt size={14} color="#ef4444" />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-900 truncate">{getUserDisplayName()}</p>
-                  <p className="text-xs text-gray-500">{user?.role}</p>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLogout();
-                  }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <FaSignOutAlt size={14} color="#ef4444" />
-                </button>
-              </div>
+              </Link>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <div
-                  className="flex items-center justify-center rounded-full group cursor-pointer relative"
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  {user?.photoURL ? (
-                    <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
-                  )}
-                  {/* Tooltip */}
-                  <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
-                    {getUserDisplayName()}
-                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                <Link href="/profile" onClick={(e) => handleNavigation('/profile', e)}>
+                  <div
+                    className="flex items-center justify-center rounded-full group cursor-pointer relative"
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
+                    )}
+                    {/* Tooltip */}
+                    <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
+                      {getUserDisplayName()}
+                      <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                    </div>
                   </div>
-                </div>
+                </Link>
               </div>
             )}
           </div>

@@ -397,23 +397,23 @@ const OrderSummary = ({
   };
   
   return (
-    <div style={{
-      width: isMobile ? '100vw' : '100%',
+    <div style={{ 
+      width: isMobile ? '100vw' : '100%', 
       height: isMobile ? '100vh' : '100vh',
       position: isMobile ? 'fixed' : 'relative',
       top: isMobile ? 0 : 'auto',
       left: isMobile ? 0 : 'auto',
       zIndex: isMobile ? 1000 : 'auto',
-      backgroundColor: 'white',
+      backgroundColor: 'white', 
       borderLeft: isMobile ? 'none' : '1px solid #e5e7eb',
-      display: 'flex',
+      display: 'flex', 
       flexDirection: 'column',
       boxShadow: isMobile ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
       overflow: 'hidden'
     }}>
       {/* Header - More Compact */}
-      <div style={{
-        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+      <div style={{ 
+        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)', 
         padding: '14px 16px',
         color: 'white',
         position: 'relative',
@@ -685,9 +685,9 @@ const OrderSummary = ({
       )}
 
       {/* Cart Items */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto', 
         overflowX: 'hidden',
         padding: '12px',
         scrollbarWidth: 'thin',
@@ -1368,7 +1368,7 @@ const OrderSummary = ({
       {cart.length > 0 && (
         <div style={{ borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
           {/* Total */}
-          <div style={{ padding: '12px' }}>
+          <div style={{ padding: '2px 12px' }}>
             {/* Tax Breakdown - Compact */}
             {(taxBreakdown.length > 0 || totalTax > 0) && (
               <div style={{ 
@@ -1408,7 +1408,7 @@ const OrderSummary = ({
 
           {/* Actions Section */}
           {!orderSuccess?.show && (
-            <div style={{ padding: '8px 16px 12px 16px' }}>
+            <div style={{ padding: '2px 16px 12px 16px' }}>
               {/* Customer Information */}
               <div style={{ marginBottom: '8px' }}>
                 <div style={{ 
@@ -1423,19 +1423,22 @@ const OrderSummary = ({
                   {t('dashboard.customerName')}
                 </div>
                 
+                {/* Validation states */}
+                {(() => {
+                  const mobileDigits = (customerMobile || '').replace(/\D/g, '');
+                  const isValidMobile = mobileDigits.length === 10;
+                  const isValidName = (customerName || '').trim().length > 3;
+                  const isValidTable = (tableNumber || '').trim().length > 0 && /\d/.test(tableNumber);
+                  const isValidRoom = (manualRoomNumber || '').trim().length > 0 && /\d/.test(manualRoomNumber);
+                  const isValidLocation = locationType === 'room' ? isValidRoom : isValidTable;
+                  
+                  return (
                 <div style={{ 
                   display: 'flex', 
                   flexDirection: isMobile ? 'column' : 'row',
-                  gap: isMobile ? '8px' : '6px',
-                  alignItems: isMobile ? 'stretch' : 'center',
-                  flexWrap: 'wrap'
-                }}>
-                  {/* First Row on Mobile: Customer Name & Mobile Number */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '6px',
-                    flex: isMobile ? '0 0 auto' : '1',
-                    minWidth: isMobile ? '100%' : '200px'
+                      gap: isMobile ? '8px' : '6px',
+                      alignItems: isMobile ? 'stretch' : 'center',
+                      flexWrap: 'wrap'
                   }}>
                     {/* Customer Name */}
                     <input
@@ -1443,9 +1446,10 @@ const OrderSummary = ({
                       placeholder={t('dashboard.customerName')}
                       value={customerName || ''}
                       style={{
-                        flex: 1,
+                          flex: isMobile ? '0 0 auto' : '1',
+                          minWidth: isMobile ? '100%' : '120px',
                         padding: isMobile ? '10px 12px' : '8px 10px',
-                        border: '1px solid #d1d5db',
+                          border: `2px solid ${isValidName ? '#22c55e' : '#d1d5db'}`,
                         borderRadius: '6px',
                         fontSize: isMobile ? '14px' : '12px',
                         outline: 'none',
@@ -1457,8 +1461,14 @@ const OrderSummary = ({
                           onCustomerNameChange(e.target.value);
                         }
                       }}
-                      onFocus={(e) => e.target.style.borderColor = '#ef4444'}
-                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                        onFocus={(e) => {
+                          const val = e.target.value.trim();
+                          e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#d1d5db';
+                        }}
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#d1d5db';
+                        }}
                     />
                     
                     {/* Customer Mobile */}
@@ -1466,10 +1476,12 @@ const OrderSummary = ({
                       type="tel"
                       placeholder="Mobile Number"
                       value={customerMobile || ''}
+                        maxLength={10}
                       style={{
-                        flex: 1,
+                          flex: isMobile ? '0 0 auto' : '1',
+                          minWidth: isMobile ? '100%' : '120px',
                         padding: isMobile ? '10px 12px' : '8px 10px',
-                        border: '1px solid #d1d5db',
+                          border: `2px solid ${isValidMobile ? '#22c55e' : '#d1d5db'}`,
                         borderRadius: '6px',
                         fontSize: isMobile ? '14px' : '12px',
                         outline: 'none',
@@ -1477,103 +1489,34 @@ const OrderSummary = ({
                         transition: 'border-color 0.2s'
                       }}
                       onChange={(e) => {
+                          // Only allow digits
+                          const digits = e.target.value.replace(/\D/g, '');
                         if (typeof onCustomerMobileChange === 'function') {
-                          onCustomerMobileChange(e.target.value);
-                        }
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#ef4444'}
-                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                    />
-                  </div>
-                  
-                  {/* Second Row on Mobile: Table/Room Number (Full Width) */}
-                  {/* Combined Table/Room Selector with Input Box */}
-                  <div style={{ 
-                    display: 'flex', 
-                    gap: '4px', 
-                    alignItems: 'stretch',
-                    width: isMobile ? '100%' : 'auto',
-                    flex: isMobile ? '0 0 auto' : '0 0 auto',
-                    minWidth: isMobile ? '100%' : '280px',
-                    maxWidth: isMobile ? '100%' : '100%'
-                  }}>
-                    {/* Location Type Selector (Table or Room) - Only show if in-room dining is enabled */}
-                    {inRoomDiningEnabled ? (
-                      <>
-                        <div style={{ display: 'flex', gap: '0', flexShrink: 0 }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (typeof setLocationType === 'function') {
-                                setLocationType('table');
-                                if (typeof setManualRoomNumber === 'function') {
-                                  setManualRoomNumber('');
-                                }
-                              }
-                            }}
-                            style={{
-                              padding: isMobile ? '10px 12px' : '7px 10px',
-                              borderRadius: '6px 0 0 6px',
-                              border: '2px solid',
-                              borderRight: 'none',
-                              backgroundColor: locationType === 'table' ? '#ef4444' : 'white',
-                              color: locationType === 'table' ? 'white' : '#374151',
-                              borderColor: locationType === 'table' ? '#ef4444' : '#e5e7eb',
-                              fontWeight: '600',
-                              fontSize: isMobile ? '12px' : '11px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '3px',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            <FaTable size={11} />
-                            Table
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (typeof setLocationType === 'function') {
-                                setLocationType('room');
-                                if (typeof onTableNumberChange === 'function') {
-                                  onTableNumberChange('');
-                                }
-                              }
-                            }}
-                            style={{
-                              padding: isMobile ? '10px 12px' : '7px 10px',
-                              borderRadius: '0 6px 6px 0',
-                              border: '2px solid',
-                              backgroundColor: locationType === 'room' ? '#ef4444' : 'white',
-                              color: locationType === 'room' ? 'white' : '#374151',
-                              borderColor: locationType === 'room' ? '#ef4444' : '#e5e7eb',
-                              fontWeight: '600',
-                              fontSize: isMobile ? '12px' : '11px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '3px',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            <FaBed size={11} />
-                            Room
-                          </button>
-                        </div>
-                        {/* Input Box - Shows Table or Room based on selection */}
+                            onCustomerMobileChange(digits);
+                          }
+                        }}
+                        onFocus={(e) => {
+                          const digits = (e.target.value || '').replace(/\D/g, '');
+                          e.target.style.borderColor = digits.length === 10 ? '#22c55e' : '#d1d5db';
+                        }}
+                        onBlur={(e) => {
+                          const digits = (e.target.value || '').replace(/\D/g, '');
+                          e.target.style.borderColor = digits.length === 10 ? '#22c55e' : '#d1d5db';
+                        }}
+                      />
+                      
+                      {/* Table/Room Number - Inline when not in-room dining, or when in-room dining is enabled */}
+                      {!inRoomDiningEnabled ? (
+                        /* Simple Table Input - All on one line */
                         <input
                           type="text"
-                          placeholder={locationType === 'room' ? 'Room No' : 'Table No'}
-                          value={locationType === 'room' ? (manualRoomNumber || '') : (tableNumber || '')}
+                          placeholder="Table No"
+                          value={tableNumber || ''}
                           style={{
-                            flex: 1,
-                            minWidth: '80px',
-                            maxWidth: '120px',
-                            padding: isMobile ? '10px 12px' : '7px 10px',
-                            border: '2px solid #d1d5db',
+                            flex: '0 0 auto',
+                            width: isMobile ? '100%' : '80px',
+                            padding: isMobile ? '10px 12px' : '8px 10px',
+                            border: `2px solid ${isValidTable ? '#22c55e' : '#d1d5db'}`,
                             borderRadius: '6px',
                             fontSize: isMobile ? '14px' : '12px',
                             outline: 'none',
@@ -1581,47 +1524,136 @@ const OrderSummary = ({
                             transition: 'border-color 0.2s'
                           }}
                           onChange={(e) => {
-                            if (locationType === 'room') {
-                              if (typeof setManualRoomNumber === 'function') {
-                                setManualRoomNumber(e.target.value);
-                              }
-                            } else {
-                              if (typeof onTableNumberChange === 'function') {
-                                onTableNumberChange(e.target.value);
-                              }
+                            if (typeof onTableNumberChange === 'function') {
+                              onTableNumberChange(e.target.value);
                             }
                           }}
-                          onFocus={(e) => e.target.style.borderColor = '#ef4444'}
-                          onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                          onFocus={(e) => {
+                            const val = e.target.value.trim();
+                            e.target.style.borderColor = (val.length > 0 && /\d/.test(val)) ? '#22c55e' : '#d1d5db';
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value.trim();
+                            e.target.style.borderColor = (val.length > 0 && /\d/.test(val)) ? '#22c55e' : '#d1d5db';
+                          }}
                         />
-                      </>
-                    ) : (
-                      /* Table Number Input - When in-room dining is disabled */
-                      <input
-                        type="text"
-                        placeholder="Table No"
-                        value={tableNumber || ''}
-                        style={{
-                          width: isMobile ? '100%' : '20%',
-                          padding: isMobile ? '10px 12px' : '8px 10px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: isMobile ? '14px' : '12px',
-                          outline: 'none',
-                          backgroundColor: '#f9fafb',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onChange={(e) => {
-                          if (typeof onTableNumberChange === 'function') {
-                            onTableNumberChange(e.target.value);
-                          }
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#ef4444'}
-                        onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                      />
-                    )}
-                  </div>
-                </div>
+                      ) : (
+                        /* Combined Table/Room Selector with Input Box */
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '4px', 
+                          alignItems: 'stretch',
+                          width: isMobile ? '100%' : 'auto',
+                          flex: '0 0 auto',
+                          minWidth: isMobile ? '100%' : 'auto'
+                        }}>
+                          <div style={{ display: 'flex', gap: '0', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (typeof setLocationType === 'function') {
+                                  setLocationType('table');
+                                  if (typeof setManualRoomNumber === 'function') {
+                                    setManualRoomNumber('');
+                                  }
+                                }
+                              }}
+                              style={{
+                                padding: isMobile ? '10px 12px' : '7px 10px',
+                                borderRadius: '6px 0 0 6px',
+                                border: '2px solid',
+                                borderRight: 'none',
+                                backgroundColor: locationType === 'table' ? '#ef4444' : 'white',
+                                color: locationType === 'table' ? 'white' : '#374151',
+                                borderColor: locationType === 'table' ? '#ef4444' : '#e5e7eb',
+                                fontWeight: '600',
+                                fontSize: isMobile ? '12px' : '11px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '3px',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <FaTable size={11} />
+                              Table
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (typeof setLocationType === 'function') {
+                                  setLocationType('room');
+                                  if (typeof onTableNumberChange === 'function') {
+                                    onTableNumberChange('');
+                                  }
+                                }
+                              }}
+                              style={{
+                                padding: isMobile ? '10px 12px' : '7px 10px',
+                                borderRadius: '0 6px 6px 0',
+                                border: '2px solid',
+                                backgroundColor: locationType === 'room' ? '#ef4444' : 'white',
+                                color: locationType === 'room' ? 'white' : '#374151',
+                                borderColor: locationType === 'room' ? '#ef4444' : '#e5e7eb',
+                                fontWeight: '600',
+                                fontSize: isMobile ? '12px' : '11px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '3px',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <FaBed size={11} />
+                              Room
+                            </button>
+                          </div>
+                          {/* Input Box - Shows Table or Room based on selection */}
+                          <input
+                            type="text"
+                            placeholder={locationType === 'room' ? 'Room No' : 'Table No'}
+                            value={locationType === 'room' ? (manualRoomNumber || '') : (tableNumber || '')}
+                            style={{
+                              flex: 1,
+                              minWidth: '60px',
+                              maxWidth: '80px',
+                              padding: isMobile ? '10px 12px' : '7px 10px',
+                              border: `2px solid ${isValidLocation ? '#22c55e' : '#d1d5db'}`,
+                              borderRadius: '6px',
+                              fontSize: isMobile ? '14px' : '12px',
+                              outline: 'none',
+                              backgroundColor: '#f9fafb',
+                              transition: 'border-color 0.2s'
+                            }}
+                            onChange={(e) => {
+                              if (locationType === 'room') {
+                                if (typeof setManualRoomNumber === 'function') {
+                                  setManualRoomNumber(e.target.value);
+                                }
+                              } else {
+                                if (typeof onTableNumberChange === 'function') {
+                                  onTableNumberChange(e.target.value);
+                                }
+                              }
+                            }}
+                            onFocus={(e) => {
+                              const val = e.target.value.trim();
+                              const hasDigits = /\d/.test(val);
+                              e.target.style.borderColor = (val.length > 0 && hasDigits) ? '#22c55e' : '#3b82f6';
+                            }}
+                            onBlur={(e) => {
+                              const val = e.target.value.trim();
+                              const hasDigits = /\d/.test(val);
+                              e.target.style.borderColor = (val.length > 0 && hasDigits) ? '#22c55e' : '#d1d5db';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Payment Method Selection */}

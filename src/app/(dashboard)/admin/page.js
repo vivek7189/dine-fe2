@@ -1245,8 +1245,8 @@ const Admin = () => {
             </div>
           ) : (
             // Desktop Header Layout
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                 <div style={{ 
                   width: '56px', 
                   height: '56px', 
@@ -1269,8 +1269,14 @@ const Admin = () => {
                 </div>
               </div>
               
-              {/* Desktop Tab Navigation */}
-              <div style={{ display: 'flex', gap: '8px' }}>
+              {/* Desktop Tab Navigation - Separate Section */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px', 
+                flexWrap: 'wrap',
+                paddingTop: '16px',
+                borderTop: '1px solid #f3f4f6'
+              }}>
               <button
                 onClick={() => setActiveTab('restaurants')}
                 style={{
@@ -1285,7 +1291,8 @@ const Admin = () => {
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FaStore size={14} />
@@ -1305,7 +1312,8 @@ const Admin = () => {
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FaUsers size={14} />
@@ -1325,7 +1333,8 @@ const Admin = () => {
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FaUtensils size={14} />
@@ -1345,7 +1354,8 @@ const Admin = () => {
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FaUserCog size={14} />
@@ -1365,7 +1375,8 @@ const Admin = () => {
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FaPercentage size={14} />
@@ -1385,7 +1396,8 @@ const Admin = () => {
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FaClock size={14} />
@@ -1405,7 +1417,8 @@ const Admin = () => {
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <FaGoogle size={14} />
