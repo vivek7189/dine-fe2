@@ -65,6 +65,7 @@ const Hotel = () => {
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [calendarSummary, setCalendarSummary] = useState(null);
   const [selectedDateBookings, setSelectedDateBookings] = useState([]);
+  const [loadingDateBookings, setLoadingDateBookings] = useState(false);
 
   // Room history state
   const [historyFilters, setHistoryFilters] = useState({
@@ -205,6 +206,8 @@ const Hotel = () => {
     if (restaurantId) {
       if (activeTab === 'rooms') {
         loadRooms();
+        // Also load bookings so cancel booking option works on room cards
+        loadBookings();
       } else if (activeTab === 'bookings') {
         loadBookings();
       } else if (activeTab === 'checkins') {
@@ -213,7 +216,14 @@ const Hotel = () => {
         loadHistory();
       }
     }
-  }, [restaurantId, activeTab, bookingStatusFilter, checkInStatusFilter]);
+  }, [restaurantId, activeTab, bookingStatusFilter]);
+  
+  // Reload check-ins when filter changes
+  useEffect(() => {
+    if (restaurantId && activeTab === 'checkins') {
+      loadCheckIns();
+    }
+  }, [checkInStatusFilter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -277,35 +287,85 @@ const Hotel = () => {
 
   const loadDateBookings = async (date) => {
     try {
+      setLoadingDateBookings(true);
       // Filter bookings and check-ins for the selected date
       const allBookings = await apiClient.getBookings(restaurantId, {});
-      const allCheckIns = await apiClient.getCheckIns(restaurantId, { status: 'all' });
+      const allCheckIns = await apiClient.getHotelCheckIns(restaurantId, 'all');
 
       const selectedDate = new Date(date);
       selectedDate.setHours(0, 0, 0, 0);
 
       const filtered = [];
 
-      // Filter bookings
+      // Filter bookings - include all statuses except cancelled
       (allBookings.bookings || []).forEach(booking => {
-        const checkIn = new Date(booking.checkInDate);
-        const checkOut = new Date(booking.checkOutDate);
+        // Skip cancelled bookings
+        if (booking.status === 'cancelled') return;
+        
+        // Parse dates - handle both string dates and Firestore Timestamps
+        let checkIn;
+        let checkOut;
+        
+        if (booking.checkInDate instanceof Date) {
+          checkIn = new Date(booking.checkInDate);
+        } else if (booking.checkInDate && booking.checkInDate._seconds) {
+          checkIn = new Date(booking.checkInDate._seconds * 1000);
+        } else if (booking.checkInDate) {
+          checkIn = new Date(booking.checkInDate);
+        } else {
+          return; // Skip if no valid check-in date
+        }
+        
+        if (booking.checkOutDate instanceof Date) {
+          checkOut = new Date(booking.checkOutDate);
+        } else if (booking.checkOutDate && booking.checkOutDate._seconds) {
+          checkOut = new Date(booking.checkOutDate._seconds * 1000);
+        } else if (booking.checkOutDate) {
+          checkOut = new Date(booking.checkOutDate);
+        } else {
+          return; // Skip if no valid check-out date
+        }
+        
         checkIn.setHours(0, 0, 0, 0);
         checkOut.setHours(0, 0, 0, 0);
 
-        if (checkIn <= selectedDate && checkOut > selectedDate) {
+        // Hotel industry standard: Check-in date is booked, check-out date is available
+        if (checkIn <= selectedDate && selectedDate < checkOut) {
           filtered.push({ ...booking, type: 'booking' });
         }
       });
 
       // Filter check-ins
       (allCheckIns.checkIns || []).forEach(checkIn => {
-        const ciDate = new Date(checkIn.checkInDate);
-        const coDate = new Date(checkIn.checkOutDate);
+        // Parse dates - handle both string dates and Firestore Timestamps
+        let ciDate;
+        let coDate;
+        
+        if (checkIn.checkInDate instanceof Date) {
+          ciDate = new Date(checkIn.checkInDate);
+        } else if (checkIn.checkInDate && checkIn.checkInDate._seconds) {
+          ciDate = new Date(checkIn.checkInDate._seconds * 1000);
+        } else if (checkIn.checkInDate) {
+          ciDate = new Date(checkIn.checkInDate);
+        } else {
+          return; // Skip if no valid check-in date
+        }
+        
+        if (checkIn.checkOutDate instanceof Date) {
+          coDate = new Date(checkIn.checkOutDate);
+        } else if (checkIn.checkOutDate && checkIn.checkOutDate._seconds) {
+          coDate = new Date(checkIn.checkOutDate._seconds * 1000);
+        } else if (checkIn.checkOutDate) {
+          coDate = new Date(checkIn.checkOutDate);
+        } else {
+          return; // Skip if no valid check-out date
+        }
+        
         ciDate.setHours(0, 0, 0, 0);
         coDate.setHours(0, 0, 0, 0);
 
-        if (ciDate <= selectedDate && coDate > selectedDate) {
+        // Hotel industry standard: Check-in date is occupied, check-out date is available
+        if (ciDate <= selectedDate && selectedDate < coDate) {
           filtered.push({ ...checkIn, type: 'check-in' });
         }
       });
@@ -313,6 +373,9 @@ const Hotel = () => {
       setSelectedDateBookings(filtered);
     } catch (error) {
       console.error('Error loading date bookings:', error);
+      setError('Failed to load bookings for selected date');
+    } finally {
+      setLoadingDateBookings(false);
     }
   };
 
@@ -359,8 +422,8 @@ const Hotel = () => {
   const loadBookings = async () => {
     try {
       setLoading(true);
-      const filters = { status: bookingStatusFilter };
-      const response = await apiClient.getBookings(restaurantId, filters);
+      // Load all bookings without status filter
+      const response = await apiClient.getBookings(restaurantId, {});
       setBookings(response.bookings || []);
     } catch (error) {
       console.error('Error loading bookings:', error);
@@ -373,11 +436,37 @@ const Hotel = () => {
   const loadCheckIns = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getHotelCheckIns(restaurantId, checkInStatusFilter);
-      setCheckIns(response.checkIns || []);
+      // Always load all check-ins from backend to ensure we get everything
+      const response = await apiClient.getHotelCheckIns(restaurantId, 'all');
+      let allCheckIns = response.checkIns || [];
+      
+      // Debug: Check if room 106 check-in exists
+      const room106CheckIn = allCheckIns.find(ci => ci.roomNumber === '106' || ci.roomNumber === 106);
+      if (room106CheckIn) {
+        console.log('Room 106 check-in found:', {
+          id: room106CheckIn.id,
+          roomNumber: room106CheckIn.roomNumber,
+          status: room106CheckIn.status,
+          guestName: room106CheckIn.guestName
+        });
+      } else {
+        console.warn('Room 106 check-in NOT found. Total check-ins:', allCheckIns.length);
+        console.log('All check-ins:', allCheckIns.map(ci => ({ roomNumber: ci.roomNumber, status: ci.status })));
+      }
+      
+      // Apply filter on client side
+      if (checkInStatusFilter !== 'all') {
+        if (checkInStatusFilter === 'active') {
+          allCheckIns = allCheckIns.filter(ci => ci.status === 'checked-in');
+        } else {
+          allCheckIns = allCheckIns.filter(ci => ci.status === checkInStatusFilter);
+        }
+      }
+      
+      setCheckIns(allCheckIns);
     } catch (error) {
       console.error('Error loading check-ins:', error);
-      setError('Failed to load check-ins');
+      setError('Failed to load check-ins: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -498,7 +587,7 @@ const Hotel = () => {
           }
         }
         
-        await apiClient.updateRoomStatus(roomId, newStatus);
+      await apiClient.updateRoomStatus(roomId, newStatus);
       }
       
       // Optimistically update the room status in local state
@@ -720,19 +809,30 @@ const Hotel = () => {
     }
   };
 
-  const handleCheckInFromBooking = async (booking) => {
-    try {
-      const response = await apiClient.convertBookingToCheckIn(booking.id, {
-        advancePayment: 0,
-        paymentMode: 'cash'
-      });
-      setSuccess('Checked in successfully');
-      loadBookings();
-      setActiveTab('checkins');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (error) {
-      setError('Failed to check in');
-    }
+  const handleCheckInFromBooking = (booking) => {
+    // Pre-fill check-in form with booking data and open modal
+    setCheckInForm({
+      roomNumber: booking.roomNumber || '',
+      guestName: booking.guestName || '',
+      guestPhone: booking.guestPhone || '',
+      guestEmail: booking.guestEmail || '',
+      checkInDate: booking.checkInDate ? (typeof booking.checkInDate === 'string' ? booking.checkInDate : new Date(booking.checkInDate).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+      checkOutDate: booking.checkOutDate ? (typeof booking.checkOutDate === 'string' ? booking.checkOutDate : new Date(booking.checkOutDate).toISOString().split('T')[0]) : new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      numberOfGuests: booking.numberOfGuests || 1,
+      roomTariff: booking.estimatedTariff || booking.roomTariff || '',
+      advancePayment: booking.advancePayment || '',
+      paymentMode: booking.paymentMode || 'cash',
+      idProofType: booking.idProofType || 'aadhar',
+      idProofNumber: booking.idProofNumber || '',
+      gstNumber: booking.gstNumber || '',
+      gstCompanyName: booking.gstCompanyName || ''
+    });
+    
+    // Store booking ID for reference (in case we need it later)
+    setSelectedBooking(booking);
+    
+    // Open check-in modal
+    setShowCheckInModal(true);
   };
 
   // Check-in/Check-out actions
@@ -767,6 +867,18 @@ const Hotel = () => {
       });
 
       setSuccess('Checked in successfully');
+      
+      // Refresh all relevant data
+      await loadBookings();
+      await loadCheckIns();
+      await loadRooms();
+      
+      // Refresh room availability if on rooms tab
+      if (activeTab === 'rooms' && roomsViewDate) {
+        await loadRoomAvailability();
+      }
+      
+      // Close modal and reset form
       setShowCheckInModal(false);
       setCheckInForm({
         roomNumber: '',
@@ -784,8 +896,8 @@ const Hotel = () => {
         gstNumber: '',
         gstCompanyName: ''
       });
-      if (activeTab === 'rooms') loadRooms();
-      else loadCheckIns();
+      setSelectedBooking(null);
+      
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       setError(error.message || 'Check-in failed');
@@ -1166,29 +1278,19 @@ const Hotel = () => {
 
           {/* Filters */}
           <div className="p-4 bg-gray-50 border-b border-gray-200">
-            {activeTab === 'bookings' && (
-              <div className="flex gap-2">
-                {['confirmed', 'checked-in', 'cancelled'].map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setBookingStatusFilter(filter)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                      bookingStatusFilter === filter
-                        ? 'bg-red-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Removed booking status filters as requested */}
             {activeTab === 'checkins' && (
               <div className="flex gap-2">
                 {['active', 'all', 'checked-out'].map(filter => (
                   <button
                     key={filter}
-                    onClick={() => setCheckInStatusFilter(filter)}
+                    onClick={() => {
+                      setCheckInStatusFilter(filter);
+                      // Reload check-ins when filter changes
+                      if (restaurantId) {
+                        loadCheckIns();
+                      }
+                    }}
                     className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                       checkInStatusFilter === filter
                         ? 'bg-red-600 text-white'
@@ -1323,37 +1425,133 @@ const Hotel = () => {
                       <div className="absolute top-[30%] left-[50%] bg-white rounded-lg shadow-2xl border border-gray-200 z-30 min-w-[200px] overflow-hidden" style={{ transform: 'translate(-50%, 0)' }} onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-col py-1">
                           {effectiveStatus === 'available' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setCheckInForm({ ...checkInForm, roomNumber: room.roomNumber, roomTariff: room.tariff });
+                                setShowCheckInModal(true);
+                                setOpenRoomDropdown(null);
+                              }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                            >
+                                <FaUserCheck className="text-green-600 text-base" />
+                              Check In
+                            </button>
+                            <button
+                              onClick={() => {
+                                setBookingForm({ ...bookingForm, roomNumber: room.roomNumber, estimatedTariff: room.tariff });
+                                setShowBookingModal(true);
+                                setOpenRoomDropdown(null);
+                              }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                            >
+                                <FaBookmark className="text-blue-600 text-base" />
+                              Book Room
+                            </button>
+                          </>
+                        )}
+                          {effectiveStatus === 'booked' && (() => {
+                            // Find the booking for this room and date from roomAvailability
+                            const roomData = roomAvailability?.rooms?.find(r => r.id === room.id);
+                            const bookingInfo = roomData?.booking;
+                            
+                            // Try to find booking from roomAvailability first, then from bookings list
+                            let fullBooking = null;
+                            
+                            if (bookingInfo?.id) {
+                              // Find the full booking details from bookings list
+                              fullBooking = bookings.find(b => b.id === bookingInfo.id);
+                              
+                              // If not found in bookings list, create a booking object from bookingInfo
+                              if (!fullBooking && bookingInfo) {
+                                fullBooking = {
+                                  id: bookingInfo.id,
+                                  roomNumber: room.roomNumber,
+                                  roomId: room.id,
+                                  guestName: bookingInfo.guestName,
+                                  checkInDate: bookingInfo.checkInDate,
+                                  checkOutDate: bookingInfo.checkOutDate,
+                                  status: bookingInfo.status || 'confirmed'
+                                };
+                              }
+                            } else {
+                              // Fallback: find booking by room number and date
+                              const queryDate = new Date(roomsViewDate);
+                              queryDate.setHours(0, 0, 0, 0);
+                              
+                              fullBooking = bookings.find(b => {
+                                if (b.status !== 'confirmed') return false;
+                                if (b.roomNumber !== room.roomNumber && b.roomId !== room.id) return false;
+                                
+                                // Check if booking overlaps with query date
+                                const checkIn = new Date(b.checkInDate);
+                                const checkOut = new Date(b.checkOutDate);
+                                checkIn.setHours(0, 0, 0, 0);
+                                checkOut.setHours(0, 0, 0, 0);
+                                
+                                return checkIn <= queryDate && queryDate < checkOut;
+                              });
+                            }
+                            
+                            // Only show options if we have a confirmed booking
+                            if (!fullBooking || (fullBooking.status !== 'confirmed' && fullBooking.status !== 'checked-in')) return null;
+                            
+                            return (
+                              <>
+                                {/* Check In option for booked rooms */}
+                                {fullBooking.status === 'confirmed' && (
+                                  <button
+                                    onClick={() => {
+                                      // Convert booking to check-in
+                                      handleCheckInFromBooking(fullBooking);
+                                      setOpenRoomDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                  >
+                                    <FaUserCheck className="text-green-600 text-base" />
+                                    Check In
+                                  </button>
+                                )}
+                                {/* Cancel Booking option */}
+                                {fullBooking.status === 'confirmed' && (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBooking(fullBooking);
+                                      setShowCancelBookingModal(true);
+                                      setOpenRoomDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                  >
+                                    <FaBan className="text-red-600 text-base" />
+                                    Cancel Booking
+                                  </button>
+                                )}
+                                <div className="border-t border-gray-200 my-1"></div>
+                              </>
+                            );
+                          })()}
+                          {effectiveStatus === 'occupied' && (
                             <>
                               <button
                                 onClick={() => {
-                                  setCheckInForm({ ...checkInForm, roomNumber: room.roomNumber, roomTariff: room.tariff });
-                                  setShowCheckInModal(true);
+                                  // Navigate to check-ins tab
+                                  setActiveTab('checkins');
                                   setOpenRoomDropdown(null);
                                 }}
                                 className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                               >
-                                <FaUserCheck className="text-green-600 text-base" />
-                                Check In
+                                <FaSignOutAlt className="text-blue-600 text-base" />
+                                Check Out
                               </button>
-                              <button
-                                onClick={() => {
-                                  setBookingForm({ ...bookingForm, roomNumber: room.roomNumber, estimatedTariff: room.tariff });
-                                  setShowBookingModal(true);
-                                  setOpenRoomDropdown(null);
-                                }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-                              >
-                                <FaBookmark className="text-blue-600 text-base" />
-                                Book Room
-                              </button>
+                              <div className="border-t border-gray-200 my-1"></div>
                             </>
                           )}
                           {(effectiveStatus === 'cleaning' || effectiveStatus === 'maintenance') && (
-                            <button
-                              onClick={() => {
-                                handleUpdateRoomStatus(room.id, 'available');
-                                setOpenRoomDropdown(null);
-                              }}
+                          <button
+                            onClick={() => {
+                              handleUpdateRoomStatus(room.id, 'available');
+                              setOpenRoomDropdown(null);
+                            }}
                               disabled={loadingRooms[room.id]}
                               className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
@@ -1362,39 +1560,40 @@ const Hotel = () => {
                               ) : (
                                 <FaCheckCircle className="text-green-600 text-base" />
                               )}
-                              Mark Available
-                            </button>
-                          )}
-                          {effectiveStatus !== 'occupied' && effectiveStatus !== 'maintenance' && (
-                            <>
-                              <button
-                                onClick={() => {
+                            Mark Available
+                          </button>
+                        )}
+                          {effectiveStatus !== 'maintenance' && (
+                          <>
+                            <button
+                              onClick={() => {
                                   setSelectedRoom(room);
                                   setShowMaintenanceModal(true);
-                                  setOpenRoomDropdown(null);
-                                }}
+                                setOpenRoomDropdown(null);
+                              }}
                                 className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-                              >
+                            >
                                 <FaTools className="text-orange-600 text-base" />
-                                Mark Maintenance
-                              </button>
+                              Mark Maintenance
+                            </button>
                             </>
                           )}
-                          {effectiveStatus !== 'occupied' && (
+                          {/* Delete Room option - available for all statuses except maintenance */}
+                          {effectiveStatus !== 'maintenance' && (
                             <>
                               <div className="border-t border-gray-200 my-1"></div>
-                              <button
-                                onClick={() => {
+                            <button
+                              onClick={() => {
                                   setSelectedRoom(room);
                                   setShowDeleteRoomModal(true);
-                                  setOpenRoomDropdown(null);
-                                }}
+                                setOpenRoomDropdown(null);
+                              }}
                                 className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
-                              >
+                            >
                                 <FaTrash className="text-red-600 text-base" />
-                                Delete Room
-                              </button>
-                            </>
+                              Delete Room
+                            </button>
+                          </>
                           )}
                         </div>
                       </div>
@@ -1526,26 +1725,35 @@ const Hotel = () => {
                                 key={dateStr}
                                 onClick={() => setSelectedCalendarDate(dateStr)}
                                 className={`
-                                  aspect-square p-2 rounded-lg border transition-all text-left
-                                  ${isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}
-                                  ${isToday ? 'ring-2 ring-blue-300' : ''}
-                                  ${isPast ? 'bg-gray-50' : 'bg-white'}
+                                  aspect-square p-2 rounded-xl border-2 transition-all text-left relative overflow-hidden
+                                  ${isSelected ? 'border-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 ring-4 ring-blue-200 shadow-lg scale-105 z-10' : 'border-gray-200 hover:border-blue-400 hover:shadow-md'}
+                                  ${isToday ? 'ring-2 ring-blue-400 border-blue-500' : ''}
+                                  ${isPast ? 'bg-gray-50 opacity-75' : 'bg-white'}
                                 `}
                               >
-                                <div className="text-sm font-semibold mb-1">{day}</div>
+                                <div className={`text-sm font-bold mb-1 ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>{day}</div>
                                 {summary.bookingCount > 0 && (
-                                  <div className="text-xs space-y-1">
-                                    <div className="text-gray-600">
-                                      {summary.bookingCount} booking{summary.bookingCount !== 1 ? 's' : ''}
-                                    </div>
-                                    <div className={`font-medium ${
-                                      summary.occupancyRate > 80 ? 'text-red-600' :
-                                      summary.occupancyRate > 50 ? 'text-yellow-600' :
-                                      'text-green-600'
+                                  <div className="space-y-1">
+                                    <div className={`text-xs font-semibold px-1.5 py-0.5 rounded-full inline-block ${
+                                      summary.bookingCount >= 5 ? 'bg-red-100 text-red-700' :
+                                      summary.bookingCount >= 3 ? 'bg-orange-100 text-orange-700' :
+                                      'bg-green-100 text-green-700'
                                     }`}>
-                                      {Math.round(summary.occupancyRate)}%
+                                      {summary.bookingCount} {summary.bookingCount === 1 ? 'booking' : 'bookings'}
                                     </div>
+                                    {summary.occupancyRate > 0 && (
+                                      <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                        summary.occupancyRate > 80 ? 'bg-red-200 text-red-800' :
+                                        summary.occupancyRate > 50 ? 'bg-yellow-200 text-yellow-800' :
+                                        'bg-green-200 text-green-800'
+                                      }`}>
+                                        {Math.round(summary.occupancyRate)}% full
+                                      </div>
+                                    )}
                                   </div>
+                                )}
+                                {isSelected && (
+                                  <div className="absolute top-0 right-0 w-3 h-3 bg-blue-600 rounded-bl-full"></div>
                                 )}
                               </button>
                             );
@@ -1559,72 +1767,122 @@ const Hotel = () => {
 
                   {/* Booking Detail Sidebar */}
                   <div className="col-span-1">
-                    <div className="bg-gray-50 rounded-lg p-6 max-h-[calc(100vh-300px)] overflow-y-auto sticky top-6">
-                      <h3 className="text-lg font-semibold mb-4">
-                        Bookings for {new Date(selectedCalendarDate).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </h3>
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 max-h-[calc(100vh-300px)] overflow-y-auto sticky top-6 shadow-lg border border-gray-200">
+                      <div className="mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">
+                          {new Date(selectedCalendarDate).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {selectedDateBookings.length} {selectedDateBookings.length === 1 ? 'booking' : 'bookings'}
+                        </p>
+                      </div>
 
-                      {selectedDateBookings.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 text-sm">
-                          No bookings for this date
+                      {loadingDateBookings ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                          <FaSpinner className="animate-spin text-3xl text-blue-600 mb-3" />
+                          <p className="text-sm text-gray-600">Loading bookings...</p>
+                        </div>
+                      ) : selectedDateBookings.length === 0 ? (
+                        <div className="text-center py-12">
+                          <FaCalendar className="mx-auto text-gray-300 mb-3" size={48} />
+                          <p className="text-gray-500 text-sm font-medium">No bookings for this date</p>
+                          <p className="text-gray-400 text-xs mt-1">All rooms are available</p>
                         </div>
                       ) : (
                         <div className="space-y-3">
                           {selectedDateBookings.map(booking => (
                             <div
                               key={booking.id}
-                              className="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-colors"
+                              className="p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group"
+                              onClick={() => {
+                                if (booking.type === 'booking' && booking.status === 'confirmed') {
+                                  setSelectedBooking(booking);
+                                  handleCheckInFromBooking(booking);
+                                }
+                              }}
                             >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="font-semibold text-gray-900">Room {booking.roomNumber}</span>
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                  booking.status === 'confirmed' || booking.type === 'booking' ? 'bg-green-100 text-green-700' :
-                                  booking.status === 'checked-in' || booking.type === 'check-in' ? 'bg-blue-100 text-blue-700' :
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white text-lg ${
+                                    booking.type === 'check-in' || booking.status === 'checked-in' ? 'bg-blue-600' :
+                                    booking.status === 'confirmed' ? 'bg-green-600' :
+                                    'bg-gray-600'
+                                  }`}>
+                                    {booking.roomNumber}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-gray-900">{booking.guestName || 'Guest'}</div>
+                                    {booking.guestPhone && (
+                                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                        <FaPhone className="text-[10px]" />
+                                        {booking.guestPhone}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                  booking.type === 'check-in' || booking.status === 'checked-in' ? 'bg-blue-100 text-blue-700' :
+                                  booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                                   booking.status === 'checked-out' ? 'bg-gray-100 text-gray-700' :
                                   'bg-red-100 text-red-700'
                                 }`}>
-                                  {booking.type === 'check-in' ? 'Checked In' : booking.status}
+                                  {booking.type === 'check-in' ? 'Checked In' : booking.status || 'Confirmed'}
                                 </span>
                               </div>
 
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <div className="font-medium">{booking.guestName}</div>
-                                <div>{booking.guestPhone || 'No phone'}</div>
+                              <div className="text-sm text-gray-600 space-y-2 border-t border-gray-100 pt-2">
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span>{new Date(booking.checkInDate).toLocaleDateString()}</span>
-                                  <span>→</span>
-                                  <span>{new Date(booking.checkOutDate).toLocaleDateString()}</span>
+                                  <FaCalendar className="text-gray-400" />
+                                  <span>
+                                    {(() => {
+                                      const checkIn = booking.checkInDate ? (typeof booking.checkInDate === 'string' ? new Date(booking.checkInDate) : booking.checkInDate._seconds ? new Date(booking.checkInDate._seconds * 1000) : new Date(booking.checkInDate)) : null;
+                                      const checkOut = booking.checkOutDate ? (typeof booking.checkOutDate === 'string' ? new Date(booking.checkOutDate) : booking.checkOutDate._seconds ? new Date(booking.checkOutDate._seconds * 1000) : new Date(booking.checkOutDate)) : null;
+                                      if (checkIn && checkOut) {
+                                        return `${checkIn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${checkOut.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
+                                      }
+                                      return 'Dates not available';
+                                    })()}
+                                  </span>
                                 </div>
-                                {(booking.totalAmount || booking.estimatedTariff) && (
-                                  <div className="font-medium text-gray-900 mt-2">
-                                    ₹{booking.totalAmount || (booking.estimatedTariff * booking.stayDuration)}
+                                {booking.numberOfGuests && (
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <FaUser className="text-gray-400" />
+                                    <span>{booking.numberOfGuests} {booking.numberOfGuests === 1 ? 'guest' : 'guests'}</span>
+                                  </div>
+                                )}
+                                {(booking.estimatedTariff || booking.roomTariff || booking.totalAmount) && (
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-gray-900">
+                                    <FaMoneyBillWave className="text-green-500" />
+                                    <span>₹{booking.totalAmount || booking.estimatedTariff || booking.roomTariff || 0}</span>
                                   </div>
                                 )}
                               </div>
-
                               {booking.type === 'booking' && booking.status === 'confirmed' && (
-                                <div className="flex gap-2 mt-3">
+                                <div className="mt-3 pt-2 border-t border-gray-100 flex gap-2">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCheckInFromBooking(booking);
                                     }}
-                                    className="flex-1 px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                                    className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                                   >
+                                    <FaUserCheck />
                                     Check In
                                   </button>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleCancelBooking(booking.id);
+                                      setSelectedBooking(booking);
+                                      setShowCancelBookingModal(true);
                                     }}
-                                    className="flex-1 px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                                    className="flex-1 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                                   >
+                                    <FaBan />
                                     Cancel
                                   </button>
                                 </div>
@@ -1638,71 +1896,71 @@ const Hotel = () => {
                 </div>
               ) : (
                 /* List View */
-                bookings.length > 0 ? (
-                  <div className="divide-y divide-gray-200">
-                    {bookings.map((booking) => (
-                      <div key={booking.id} className="p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
-                              {booking.roomNumber}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{booking.guestName}</h3>
+            bookings.length > 0 ? (
+              <div className="divide-y divide-gray-200">
+                {bookings.map((booking) => (
+                  <div key={booking.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                          {booking.roomNumber}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{booking.guestName}</h3>
                               <p className="text-sm text-gray-600">{booking.guestPhone || 'No phone'}</p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            {booking.status === 'confirmed' && (
-                              <>
-                                <button
-                                  onClick={() => handleCheckInFromBooking(booking)}
-                                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                                >
-                                  Check In
-                                </button>
-                                <button
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {booking.status === 'confirmed' && (
+                          <>
+                            <button
+                              onClick={() => handleCheckInFromBooking(booking)}
+                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                            >
+                              Check In
+                            </button>
+                            <button
                                   onClick={() => {
                                     setSelectedBooking(booking);
                                     setShowCancelBookingModal(true);
                                   }}
-                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            )}
-                            {booking.status === 'cancelled' && (
-                              <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm">
-                                Cancelled
-                              </span>
-                            )}
-                            {booking.status === 'checked-in' && (
-                              <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
-                                Checked In
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {booking.status === 'cancelled' && (
+                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm">
+                            Cancelled
+                          </span>
+                        )}
+                        {booking.status === 'checked-in' && (
+                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
+                            Checked In
+                          </span>
+                        )}
                       </div>
-                    ))}
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <FaBookmark className="mx-auto text-gray-300 mb-4" size={48} />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
-                    <p className="text-sm text-gray-600 mb-4">Create your first booking</p>
-                    <button
-                      onClick={() => setShowBookingModal(true)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
-                    >
-                      <FaPlus /> New Booking
-                    </button>
-                  </div>
-                )
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FaBookmark className="mx-auto text-gray-300 mb-4" size={48} />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
+                <p className="text-sm text-gray-600 mb-4">Create your first booking</p>
+                <button
+                  onClick={() => setShowBookingModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 inline-flex items-center gap-2"
+                >
+                  <FaPlus /> New Booking
+                </button>
+              </div>
+            )
               )}
             </>
           )}
@@ -2605,7 +2863,7 @@ const Hotel = () => {
                   </div>
                   {selectedCheckIn.foodOrders && selectedCheckIn.foodOrders.length > 0 && (
                     <>
-                      <div className="flex justify-between">
+                    <div className="flex justify-between">
                         <span className="text-gray-600">Food Charges (Unpaid):</span>
                         <span className="font-semibold">
                           ₹{selectedCheckIn.foodOrders
@@ -2630,7 +2888,7 @@ const Hotel = () => {
                               })
                               .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0).toFixed(2)}
                           </span>
-                        </div>
+                    </div>
                       )}
                     </>
                   )}
