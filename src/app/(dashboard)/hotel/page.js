@@ -56,6 +56,7 @@ const Hotel = () => {
   const [roomsViewDate, setRoomsViewDate] = useState(new Date().toISOString().split('T')[0]);
   const [roomsViewMode, setRoomsViewMode] = useState('current'); // 'current' or 'scheduled'
   const [roomAvailability, setRoomAvailability] = useState(null);
+  const [loadingRoomAvailability, setLoadingRoomAvailability] = useState(false);
 
   // Bookings calendar view state
   const [calendarView, setCalendarView] = useState(true); // true = calendar, false = list
@@ -233,12 +234,15 @@ const Hotel = () => {
 
   const loadRoomAvailability = async () => {
     try {
+      setLoadingRoomAvailability(true);
       const response = await apiClient.request(
         `/api/hotel/rooms/availability?date=${roomsViewDate}&restaurantId=${restaurantId}`
       );
       setRoomAvailability(response);
     } catch (error) {
       console.error('Error loading room availability:', error);
+    } finally {
+      setLoadingRoomAvailability(false);
     }
   };
 
@@ -522,13 +526,12 @@ const Hotel = () => {
       try {
         const validationResponse = await apiClient.request('/api/hotel/bookings/validate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: {
             restaurantId,
             roomNumber: bookingForm.roomNumber,
             checkInDate: bookingForm.checkInDate,
             checkOutDate: bookingForm.checkOutDate
-          })
+          }
         });
 
         if (validationResponse.hasConflict) {
@@ -1150,7 +1153,16 @@ const Hotel = () => {
               </div>
 
               {rooms.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 relative">
+                {/* Loading Overlay for Date Change */}
+                {loadingRoomAvailability && (
+                  <div className="absolute inset-0 bg-white bg-opacity-80 rounded-lg flex items-center justify-center z-40 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-3">
+                      <FaSpinner className="animate-spin text-3xl text-blue-600" />
+                      <p className="text-sm font-medium text-gray-700">Loading room availability...</p>
+                    </div>
+                  </div>
+                )}
                 {rooms.map((room) => {
                   const displayStatus = getRoomDisplayStatus(room);
                   return (
@@ -1251,7 +1263,7 @@ const Hotel = () => {
                               Mark Available
                             </button>
                           )}
-                          {room.status !== 'occupied' && (
+                          {room.status !== 'occupied' && room.status !== 'maintenance' && (
                             <>
                               <button
                                 onClick={() => {
@@ -1264,6 +1276,10 @@ const Hotel = () => {
                                 <FaTools className="text-orange-600 text-base" />
                                 Mark Maintenance
                               </button>
+                            </>
+                          )}
+                          {room.status !== 'occupied' && (
+                            <>
                               <div className="border-t border-gray-200 my-1"></div>
                               <button
                                 onClick={() => {

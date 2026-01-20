@@ -15,14 +15,18 @@ class ApiClient {
     //   console.log('🔑 Token preview:', token.substring(0, 20) + '...');
     // }
 
+    // Merge headers properly to ensure Authorization token is always included
+    const headers = {
+      // Only set Content-Type for non-FormData requests
+      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(options.headers || {}),
+      // Always add Authorization token if available (this should override any conflicting header)
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+
     const config = {
-      headers: {
-        // Only set Content-Type for non-FormData requests
-        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-        ...options.headers,
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
       ...options,
+      headers,
     };
 
     // SECURITY: Commented out to prevent exposing sensitive auth data in console logs
