@@ -1687,6 +1687,22 @@ class ApiClient {
     });
   }
 
+  async getRoomMaintenanceSchedules(roomId, restaurantId) {
+    const params = new URLSearchParams();
+    params.append('restaurantId', restaurantId);
+    return this.request(`/api/room/${roomId}/maintenance?${params.toString()}`);
+  }
+
+  async cancelRoomMaintenance(roomId, restaurantId, startDate = null, endDate = null) {
+    const params = new URLSearchParams();
+    params.append('restaurantId', restaurantId);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return this.request(`/api/room/${roomId}/maintenance?${params.toString()}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Delete room
   async deleteRoom(roomId) {
     return this.request(`/api/room/${roomId}`, {
@@ -1712,9 +1728,10 @@ class ApiClient {
   }
 
   // Cancel booking
-  async cancelBooking(bookingId) {
+  async cancelBooking(bookingId, reason) {
     return this.request(`/api/booking/${bookingId}/cancel`, {
       method: 'PATCH',
+      body: { reason }
     });
   }
 

@@ -83,6 +83,17 @@ const Hotel = () => {
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [showCancelMaintenanceModal, setShowCancelMaintenanceModal] = useState(false);
+  const [showDeleteRoomModal, setShowDeleteRoomModal] = useState(false);
+  const [deleteRoomReason, setDeleteRoomReason] = useState('');
+  const [showCancelBookingModal, setShowCancelBookingModal] = useState(false);
+  const [cancelBookingReason, setCancelBookingReason] = useState('');
+  const [roomMaintenanceSchedules, setRoomMaintenanceSchedules] = useState([]);
+  const [cancelMaintenanceForm, setCancelMaintenanceForm] = useState({
+    option: 'all', // 'all' or 'range'
+    startDate: '',
+    endDate: ''
+  });
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -432,7 +443,7 @@ const Hotel = () => {
     }
   };
 
-  const handleUpdateRoomStatus = async (roomId, newStatus, maintenanceSchedule = null) => {
+  const handleUpdateRoomStatus = async (roomId, newStatus, maintenanceSchedule = null, cancelDateRange = null) => {
     // Set loading state for this specific room
     setLoadingRooms(prev => ({ ...prev, [roomId]: true }));
     
@@ -444,10 +455,67 @@ const Hotel = () => {
           body: maintenanceSchedule
         });
       } else {
+        // If marking as available, check maintenance schedules first
+        if (newStatus === 'available' && restaurantId) {
+          try {
+            // Get maintenance schedules for this room
+            const schedulesResponse = await apiClient.getRoomMaintenanceSchedules(roomId, restaurantId);
+            const schedules = schedulesResponse.schedules || [];
+            
+            if (schedules.length > 0) {
+              // Check if it's a single day maintenance (all schedules are single day)
+              const allSingleDay = schedules.every(s => {
+                const start = new Date(s.startDate);
+                const end = new Date(s.endDate);
+                return start.toISOString().split('T')[0] === end.toISOString().split('T')[0];
+              });
+              
+              if (allSingleDay && schedules.length === 1) {
+                // Single day maintenance - cancel immediately
+                await apiClient.cancelRoomMaintenance(roomId, restaurantId);
+              } else {
+                // Multiple days or multiple schedules - show modal
+                setRoomMaintenanceSchedules(schedules);
+                setSelectedRoom(rooms.find(r => r.id === roomId));
+                setShowCancelMaintenanceModal(true);
+                setLoadingRooms(prev => {
+                  const newState = { ...prev };
+                  delete newState[roomId];
+                  return newState;
+                });
+                return; // Exit early, modal will handle the cancellation
+              }
+            } else if (cancelDateRange) {
+              // Cancel maintenance for specific date range
+              await apiClient.cancelRoomMaintenance(roomId, restaurantId, cancelDateRange.startDate, cancelDateRange.endDate);
+            } else {
+              // No maintenance schedules, just cancel all (safety check)
+              await apiClient.cancelRoomMaintenance(roomId, restaurantId);
+            }
+          } catch (maintenanceError) {
+            // Log but don't fail - maintenance cancellation is optional
+            console.warn('Could not cancel maintenance schedules:', maintenanceError);
+          }
+        }
+        
         await apiClient.updateRoomStatus(roomId, newStatus);
       }
       
-      // Show success feedback for this room
+      // Optimistically update the room status in local state
+      setRooms(prevRooms => prevRooms.map(room => 
+        room.id === roomId ? { ...room, status: newStatus } : room
+      ));
+      
+      // Reload rooms and availability - await to ensure data is fresh
+      // Use a separate loading state to avoid interfering with per-room loading
+      const roomsResponse = await apiClient.getRooms(restaurantId, {});
+      setRooms(roomsResponse.rooms || []);
+      
+      if (restaurantId && roomsViewDate) {
+        await loadRoomAvailability();
+      }
+      
+      // Show success feedback for this room after data is reloaded
       setSuccessRooms(prev => ({ ...prev, [roomId]: Date.now() }));
       setTimeout(() => {
         setSuccessRooms(prev => {
@@ -456,14 +524,14 @@ const Hotel = () => {
           return newState;
         });
       }, 2000);
-      
-      // Reload rooms and availability in background
+    } catch (error) {
+      console.error('Error updating room status:', error);
+      setError('Failed to update room status');
+      // Reload rooms on error to get correct state
       loadRooms();
       if (restaurantId && roomsViewDate) {
         loadRoomAvailability();
       }
-    } catch (error) {
-      setError('Failed to update room status');
     } finally {
       // Clear loading state
       setLoadingRooms(prev => {
@@ -474,16 +542,24 @@ const Hotel = () => {
     }
   };
 
-  const handleDeleteRoom = async (roomId) => {
-    if (!confirm('Are you sure you want to delete this room?')) return;
-
+  const handleDeleteRoom = async (roomId, reason) => {
     try {
+      setLoadingRooms(prev => ({ ...prev, [roomId]: true }));
       await apiClient.deleteRoom(roomId);
       setSuccess('Room deleted successfully');
       loadRooms();
       setTimeout(() => setSuccess(null), 3000);
+      setShowDeleteRoomModal(false);
+      setDeleteRoomReason('');
+      setSelectedRoom(null);
     } catch (error) {
       setError(error.message || 'Failed to delete room');
+    } finally {
+      setLoadingRooms(prev => {
+        const newState = { ...prev };
+        delete newState[roomId];
+        return newState;
+      });
     }
   };
 
@@ -584,6 +660,13 @@ const Hotel = () => {
 
       setSuccess('Booking created successfully');
       setShowBookingModal(false);
+      
+      // Reload bookings and room availability to reflect the new booking
+      await loadBookings();
+      if (restaurantId && roomsViewDate) {
+        await loadRoomAvailability();
+      }
+      
       setBookingForm({
         roomNumber: '',
         guestName: '',
@@ -607,16 +690,33 @@ const Hotel = () => {
     }
   };
 
-  const handleCancelBooking = async (bookingId) => {
-    if (!confirm('Are you sure you want to cancel this booking?')) return;
-
+  const handleCancelBooking = async (bookingId, reason) => {
     try {
-      await apiClient.cancelBooking(bookingId);
-      setSuccess('Booking cancelled');
+      setLoadingRooms(prev => ({ ...prev, [bookingId]: true }));
+      const response = await apiClient.cancelBooking(bookingId, reason);
+      setSuccess('Booking cancelled successfully. Room is now available for the cancelled dates.');
+      
+      // Refresh bookings list
       loadBookings();
+      
+      // Refresh room availability to reflect the cancellation
+      // This ensures the room shows as available for the cancelled booking dates
+      if (roomsViewDate) {
+        await loadRoomAvailability();
+      }
+      
+      // Also refresh the rooms list to update room status
+      await loadRooms();
+      
       setTimeout(() => setSuccess(null), 3000);
+      setShowCancelBookingModal(false);
+      setSelectedBooking(null);
+      setCancelBookingReason('');
     } catch (error) {
-      setError('Failed to cancel booking');
+      setError('Failed to cancel booking: ' + (error.message || 'Unknown error'));
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoadingRooms(prev => ({ ...prev, [bookingId]: false }));
     }
   };
 
@@ -1165,6 +1265,8 @@ const Hotel = () => {
                 )}
                 {rooms.map((room) => {
                   const displayStatus = getRoomDisplayStatus(room);
+                  // Use displayStatus for dropdown logic, but fallback to room.status if displayStatus is not available
+                  const effectiveStatus = displayStatus || room.status;
                   return (
                   <div
                     key={room.id}
@@ -1220,7 +1322,7 @@ const Hotel = () => {
                     {openRoomDropdown === room.id && (
                       <div className="absolute top-[30%] left-[50%] bg-white rounded-lg shadow-2xl border border-gray-200 z-30 min-w-[200px] overflow-hidden" style={{ transform: 'translate(-50%, 0)' }} onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-col py-1">
-                          {room.status === 'available' && (
+                          {effectiveStatus === 'available' && (
                             <>
                               <button
                                 onClick={() => {
@@ -1246,7 +1348,7 @@ const Hotel = () => {
                               </button>
                             </>
                           )}
-                          {(room.status === 'cleaning' || room.status === 'maintenance') && (
+                          {(effectiveStatus === 'cleaning' || effectiveStatus === 'maintenance') && (
                             <button
                               onClick={() => {
                                 handleUpdateRoomStatus(room.id, 'available');
@@ -1263,7 +1365,7 @@ const Hotel = () => {
                               Mark Available
                             </button>
                           )}
-                          {room.status !== 'occupied' && room.status !== 'maintenance' && (
+                          {effectiveStatus !== 'occupied' && effectiveStatus !== 'maintenance' && (
                             <>
                               <button
                                 onClick={() => {
@@ -1278,12 +1380,13 @@ const Hotel = () => {
                               </button>
                             </>
                           )}
-                          {room.status !== 'occupied' && (
+                          {effectiveStatus !== 'occupied' && (
                             <>
                               <div className="border-t border-gray-200 my-1"></div>
                               <button
                                 onClick={() => {
-                                  handleDeleteRoom(room.id);
+                                  setSelectedRoom(room);
+                                  setShowDeleteRoomModal(true);
                                   setOpenRoomDropdown(null);
                                 }}
                                 className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
@@ -1562,7 +1665,10 @@ const Hotel = () => {
                                   Check In
                                 </button>
                                 <button
-                                  onClick={() => handleCancelBooking(booking.id)}
+                                  onClick={() => {
+                                    setSelectedBooking(booking);
+                                    setShowCancelBookingModal(true);
+                                  }}
                                   className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
                                 >
                                   Cancel
@@ -1720,7 +1826,14 @@ const Hotel = () => {
                     <input
                       type="date"
                       value={historyFilters.startDate}
-                      onChange={(e) => setHistoryFilters({...historyFilters, startDate: e.target.value})}
+                      onChange={(e) => {
+                        const newStart = e.target.value;
+                        // Auto-adjust end date if it's before the new start date
+                        const newEnd = historyFilters.endDate && historyFilters.endDate < newStart 
+                          ? newStart 
+                          : historyFilters.endDate;
+                        setHistoryFilters({...historyFilters, startDate: newStart, endDate: newEnd});
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -1732,7 +1845,16 @@ const Hotel = () => {
                     <input
                       type="date"
                       value={historyFilters.endDate}
-                      onChange={(e) => setHistoryFilters({...historyFilters, endDate: e.target.value})}
+                      onChange={(e) => {
+                        const newEnd = e.target.value;
+                        // Ensure end date is not before start date
+                        if (historyFilters.startDate && newEnd < historyFilters.startDate) {
+                          setError('End date cannot be before start date');
+                          return;
+                        }
+                        setHistoryFilters({...historyFilters, endDate: newEnd});
+                      }}
+                      min={historyFilters.startDate || undefined}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -2116,7 +2238,14 @@ const Hotel = () => {
                     type="date"
                     required
                     value={bookingForm.checkInDate}
-                    onChange={e => setBookingForm({ ...bookingForm, checkInDate: e.target.value })}
+                    onChange={e => {
+                      const newCheckIn = e.target.value;
+                      // Auto-adjust check-out date if it's before the new check-in date
+                      const newCheckOut = bookingForm.checkOutDate < newCheckIn 
+                        ? newCheckIn 
+                        : bookingForm.checkOutDate;
+                      setBookingForm({ ...bookingForm, checkInDate: newCheckIn, checkOutDate: newCheckOut });
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
                 </div>
@@ -2126,7 +2255,15 @@ const Hotel = () => {
                     type="date"
                     required
                     value={bookingForm.checkOutDate}
-                    onChange={e => setBookingForm({ ...bookingForm, checkOutDate: e.target.value })}
+                    onChange={e => {
+                      const newCheckOut = e.target.value;
+                      // Ensure check-out is not before check-in
+                      if (newCheckOut < bookingForm.checkInDate) {
+                        setError('Check-out date cannot be before check-in date');
+                        return;
+                      }
+                      setBookingForm({ ...bookingForm, checkOutDate: newCheckOut });
+                    }}
                     min={bookingForm.checkInDate}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
@@ -2249,7 +2386,14 @@ const Hotel = () => {
                     type="date"
                     required
                     value={checkInForm.checkInDate}
-                    onChange={e => setCheckInForm({ ...checkInForm, checkInDate: e.target.value })}
+                    onChange={e => {
+                      const newCheckIn = e.target.value;
+                      // Auto-adjust check-out date if it's before the new check-in date
+                      const newCheckOut = checkInForm.checkOutDate < newCheckIn 
+                        ? newCheckIn 
+                        : checkInForm.checkOutDate;
+                      setCheckInForm({ ...checkInForm, checkInDate: newCheckIn, checkOutDate: newCheckOut });
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
                 </div>
@@ -2259,7 +2403,15 @@ const Hotel = () => {
                     type="date"
                     required
                     value={checkInForm.checkOutDate}
-                    onChange={e => setCheckInForm({ ...checkInForm, checkOutDate: e.target.value })}
+                    onChange={e => {
+                      const newCheckOut = e.target.value;
+                      // Ensure check-out is not before check-in
+                      if (newCheckOut < checkInForm.checkInDate) {
+                        setError('Check-out date cannot be before check-in date');
+                        return;
+                      }
+                      setCheckInForm({ ...checkInForm, checkOutDate: newCheckOut });
+                    }}
                     min={checkInForm.checkInDate}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
@@ -3005,7 +3157,14 @@ const Hotel = () => {
                         <input
                           type="date"
                           value={maintenanceForm.startDate}
-                          onChange={(e) => setMaintenanceForm({ ...maintenanceForm, startDate: e.target.value })}
+                          onChange={(e) => {
+                            const newStart = e.target.value;
+                            // Auto-adjust end date if it's before the new start date
+                            const newEnd = maintenanceForm.endDate < newStart 
+                              ? newStart 
+                              : maintenanceForm.endDate;
+                            setMaintenanceForm({ ...maintenanceForm, startDate: newStart, endDate: newEnd });
+                          }}
                           min={new Date().toISOString().split('T')[0]}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                           required
@@ -3018,7 +3177,15 @@ const Hotel = () => {
                         <input
                           type="date"
                           value={maintenanceForm.endDate}
-                          onChange={(e) => setMaintenanceForm({ ...maintenanceForm, endDate: e.target.value })}
+                          onChange={(e) => {
+                            const newEnd = e.target.value;
+                            // Ensure end date is not before start date
+                            if (newEnd < maintenanceForm.startDate) {
+                              setError('End date cannot be before start date');
+                              return;
+                            }
+                            setMaintenanceForm({ ...maintenanceForm, endDate: newEnd });
+                          }}
                           min={maintenanceForm.startDate}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                           required
@@ -3078,6 +3245,407 @@ const Hotel = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Maintenance Modal */}
+      {showCancelMaintenanceModal && selectedRoom && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FaTools className="text-orange-600" />
+                  Cancel Maintenance - Room {selectedRoom.roomNumber}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowCancelMaintenanceModal(false);
+                    setSelectedRoom(null);
+                    setRoomMaintenanceSchedules([]);
+                    setCancelMaintenanceForm({
+                      option: 'all',
+                      startDate: '',
+                      endDate: ''
+                    });
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes size={20} />
+                </button>
+              </div>
+
+              {/* Show maintenance schedules */}
+              {roomMaintenanceSchedules.length > 0 && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Active Maintenance Schedules:</p>
+                  {roomMaintenanceSchedules.map((schedule, idx) => (
+                    <div key={idx} className="text-sm text-gray-600 mb-1">
+                      {new Date(schedule.startDate).toLocaleDateString()} - {new Date(schedule.endDate).toLocaleDateString()}
+                      {schedule.reason && <span className="text-gray-500"> ({schedule.reason})</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setLoadingRooms(prev => ({ ...prev, [selectedRoom.id]: true }));
+                  
+                  try {
+                    if (cancelMaintenanceForm.option === 'all') {
+                      // Cancel all maintenance schedules
+                      await apiClient.cancelRoomMaintenance(selectedRoom.id, restaurantId);
+                    } else {
+                      // Cancel for specific date range
+                      if (!cancelMaintenanceForm.startDate || !cancelMaintenanceForm.endDate) {
+                        setError('Please select both start and end dates');
+                        setLoadingRooms(prev => {
+                          const newState = { ...prev };
+                          delete newState[selectedRoom.id];
+                          return newState;
+                        });
+                        return;
+                      }
+                      await apiClient.cancelRoomMaintenance(
+                        selectedRoom.id, 
+                        restaurantId, 
+                        cancelMaintenanceForm.startDate, 
+                        cancelMaintenanceForm.endDate
+                      );
+                    }
+                    
+                    // Update room status to available
+                    await apiClient.updateRoomStatus(selectedRoom.id, 'available');
+                    
+                    // Reload data
+                    const roomsResponse = await apiClient.getRooms(restaurantId, {});
+                    setRooms(roomsResponse.rooms || []);
+                    
+                    if (restaurantId && roomsViewDate) {
+                      await loadRoomAvailability();
+                    }
+                    
+                    setShowCancelMaintenanceModal(false);
+                    setSelectedRoom(null);
+                    setRoomMaintenanceSchedules([]);
+                    setCancelMaintenanceForm({
+                      option: 'all',
+                      startDate: '',
+                      endDate: ''
+                    });
+                    
+                    setSuccess('Maintenance cancelled successfully');
+                    setTimeout(() => setSuccess(null), 3000);
+                  } catch (error) {
+                    console.error('Error cancelling maintenance:', error);
+                    setError('Failed to cancel maintenance');
+                  } finally {
+                    setLoadingRooms(prev => {
+                      const newState = { ...prev };
+                      delete newState[selectedRoom.id];
+                      return newState;
+                    });
+                  }
+                }}
+              >
+                <div className="space-y-4">
+                  {/* Option Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Cancel Maintenance
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCancelMaintenanceForm({ ...cancelMaintenanceForm, option: 'all' })}
+                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
+                          cancelMaintenanceForm.option === 'all'
+                            ? 'border-green-600 bg-green-50 text-green-700'
+                            : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        All Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCancelMaintenanceForm({ ...cancelMaintenanceForm, option: 'range' })}
+                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
+                          cancelMaintenanceForm.option === 'range'
+                            ? 'border-green-600 bg-green-50 text-green-700'
+                            : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        Specific Range
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Date Range Selection */}
+                  {cancelMaintenanceForm.option === 'range' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Start Date
+                        </label>
+                        <input
+                          type="date"
+                          value={cancelMaintenanceForm.startDate}
+                          onChange={(e) => {
+                            const newStart = e.target.value;
+                            // Auto-adjust end date if it's before the new start date
+                            const newEnd = cancelMaintenanceForm.endDate && cancelMaintenanceForm.endDate < newStart 
+                              ? newStart 
+                              : cancelMaintenanceForm.endDate;
+                            setCancelMaintenanceForm({ ...cancelMaintenanceForm, startDate: newStart, endDate: newEnd });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          required={cancelMaintenanceForm.option === 'range'}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={cancelMaintenanceForm.endDate}
+                          onChange={(e) => {
+                            const newEnd = e.target.value;
+                            // Ensure end date is not before start date
+                            if (cancelMaintenanceForm.startDate && newEnd < cancelMaintenanceForm.startDate) {
+                              setError('End date cannot be before start date');
+                              return;
+                            }
+                            setCancelMaintenanceForm({ ...cancelMaintenanceForm, endDate: newEnd });
+                          }}
+                          min={cancelMaintenanceForm.startDate || undefined}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          required={cancelMaintenanceForm.option === 'range'}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCancelMaintenanceModal(false);
+                      setSelectedRoom(null);
+                      setRoomMaintenanceSchedules([]);
+                      setCancelMaintenanceForm({
+                        option: 'all',
+                        startDate: '',
+                        endDate: ''
+                      });
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loadingRooms[selectedRoom.id]}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loadingRooms[selectedRoom.id] ? (
+                      <>
+                        <FaSpinner className="animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <FaCheckCircle />
+                        Mark Available
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Booking Modal */}
+      {showCancelBookingModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FaBan className="text-red-600" />
+                  Cancel Booking - Room {selectedBooking.roomNumber}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowCancelBookingModal(false);
+                    setSelectedBooking(null);
+                    setCancelBookingReason('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes size={20} />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-4">
+                  Are you sure you want to cancel the booking for room <span className="font-semibold">{selectedBooking.roomNumber}</span>?
+                  <br />
+                  <span className="text-xs text-gray-500 mt-2 block">
+                    Guest: {selectedBooking.guestName}
+                    <br />
+                    Dates: {new Date(selectedBooking.checkInDate).toLocaleDateString()} - {new Date(selectedBooking.checkOutDate).toLocaleDateString()}
+                  </span>
+                </p>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for Cancellation <span className="text-red-600">*</span>
+                  </label>
+                  <textarea
+                    value={cancelBookingReason}
+                    onChange={(e) => setCancelBookingReason(e.target.value)}
+                    placeholder="e.g., Guest requested cancellation, no-show, room unavailable, etc."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    required
+                  />
+                  {cancelBookingReason.trim().length === 0 && (
+                    <p className="text-xs text-red-600 mt-1">Reason is required</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCancelBookingModal(false);
+                    setSelectedBooking(null);
+                    setCancelBookingReason('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!cancelBookingReason.trim()) {
+                      setError('Please provide a reason for cancellation');
+                      return;
+                    }
+                    handleCancelBooking(selectedBooking.id, cancelBookingReason);
+                  }}
+                  disabled={!cancelBookingReason.trim() || loadingRooms[selectedBooking.id]}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loadingRooms[selectedBooking.id] ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    <>
+                      <FaBan />
+                      Cancel Booking
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Room Modal */}
+      {showDeleteRoomModal && selectedRoom && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FaTrash className="text-red-600" />
+                  Delete Room {selectedRoom.roomNumber}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowDeleteRoomModal(false);
+                    setSelectedRoom(null);
+                    setDeleteRoomReason('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes size={20} />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-4">
+                  Are you sure you want to delete room <span className="font-semibold">{selectedRoom.roomNumber}</span>? 
+                  This action cannot be undone.
+                </p>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for Deletion <span className="text-red-600">*</span>
+                  </label>
+                  <textarea
+                    value={deleteRoomReason}
+                    onChange={(e) => setDeleteRoomReason(e.target.value)}
+                    placeholder="e.g., Room no longer in use, renovation, etc."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    required
+                  />
+                  {deleteRoomReason.trim().length === 0 && (
+                    <p className="text-xs text-red-600 mt-1">Reason is required</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteRoomModal(false);
+                    setSelectedRoom(null);
+                    setDeleteRoomReason('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!deleteRoomReason.trim()) {
+                      setError('Please provide a reason for deletion');
+                      return;
+                    }
+                    handleDeleteRoom(selectedRoom.id, deleteRoomReason);
+                  }}
+                  disabled={!deleteRoomReason.trim() || loadingRooms[selectedRoom.id]}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loadingRooms[selectedRoom.id] ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash />
+                      Delete Room
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
