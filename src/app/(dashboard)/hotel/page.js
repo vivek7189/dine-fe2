@@ -947,8 +947,24 @@ const Hotel = () => {
       setCheckOutForm({ finalPayment: '', paymentMode: 'cash', discount: '', notes: '', roomTariff: '' });
       setSelectedCheckIn(null);
       setFoodOrdersPaidStatus({});
-      if (activeTab === 'rooms') loadRooms();
-      else loadCheckIns();
+      
+      // Refresh all relevant data after checkout
+      // This ensures room status updates correctly, especially for bookings that were released
+      if (activeTab === 'rooms') {
+        await Promise.all([
+          loadRooms(),
+          loadRoomAvailability(),
+          loadBookings()
+        ]);
+      } else {
+        await Promise.all([
+          loadCheckIns(),
+          loadRooms(),
+          loadRoomAvailability(),
+          loadBookings()
+        ]);
+      }
+      
       setTimeout(() => setSuccess(null), 3000);
 
       setInvoice(response.invoice);
