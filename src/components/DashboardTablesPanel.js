@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils } from 'react-icons/fa';
+import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 
@@ -55,6 +55,7 @@ export default function DashboardTablesPanel({
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderError, setOrderError] = useState(null);
+  const [outOfServiceModal, setOutOfServiceModal] = useState({ open: false, table: null });
 
   // Prefer floor.tables if present; fall back to flat tables prop
   const grouped = useMemo(() => {
@@ -135,6 +136,16 @@ export default function DashboardTablesPanel({
     }
   };
 
+  const handleTakeOrderGuarded = (table) => {
+    const status = table.status?.toLowerCase();
+    if (status === 'out-of-service') {
+      setOutOfServiceModal({ open: true, table });
+      return;
+    }
+    if (sliderOpen) handleSliderClose();
+    if (onTakeOrder) onTakeOrder(table.name || table.number);
+  };
+
   const closeSlider = () => {
     setSliderOpen(false);
     setSliderMinimized(false);
@@ -175,6 +186,22 @@ export default function DashboardTablesPanel({
           border: '#3b82f6', // Blue-500 (Darker border)
           label: 'Reserved',
           icon: FaClock
+        };
+      case 'cleaning':
+        return {
+          color: '#6b7280', // Gray-500
+          bg: '#f3f4f6', // Gray-100
+          border: '#9ca3af', // Gray-400
+          label: 'Cleaning',
+          icon: FaTools
+        };
+      case 'out-of-service':
+        return {
+          color: '#ef4444', // Red-500
+          bg: '#fef2f2', // Red-50
+          border: '#ef4444', // Red-500
+          label: 'Out of Service',
+          icon: FaBan
         };
       case 'serving':
         return {
@@ -286,6 +313,8 @@ export default function DashboardTablesPanel({
               const isOccupied = status === 'occupied';
               const isAvailable = status === 'available';
               const isReserved = status === 'reserved';
+              const isCleaning = status === 'cleaning';
+              const isOutOfService = status === 'out-of-service';
 
               return (
                 <div 
@@ -394,57 +423,106 @@ export default function DashboardTablesPanel({
                       {isAvailable ? (
                         <button
                           className="btn-action"
-                          onClick={() => {
-                            if (sliderOpen) handleSliderClose();
-                            if (onTakeOrder) onTakeOrder(t.name || t.number);
-                          }}
+                          onClick={() => handleTakeOrderGuarded(t)}
                           style={{
                             width: '100%',
                             padding: '8px 12px',
-                            background: '#059669', // Emerald 600 - Solid
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                            fontSize: '11px', // Smaller font
+                            background: '#059669',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '11px',
                             fontWeight: 600,
-                          cursor: 'pointer',
+                            cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '6px', // Smaller gap
+                            gap: '6px',
                             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.target.style.background = '#047857'; // Emerald 700
-                        }}
-                        onMouseLeave={(e) => {
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#047857';
+                          }}
+                          onMouseLeave={(e) => {
                             e.target.style.background = '#059669';
-                        }}
-                      >
-                        <FaReceipt size={10} />
+                          }}
+                        >
+                          <FaReceipt size={10} />
                           Take Order
-                      </button>
+                        </button>
+                      ) : isOutOfService ? (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            className="btn-action"
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              background: '#fef2f2',
+                              color: '#ef4444',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              cursor: 'not-allowed',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                            disabled
+                          >
+                            <FaBan size={10} />
+                            Out of Service
+                          </button>
+                          <button
+                            className="btn-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTakeOrderGuarded(t);
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              background: '#ffffff',
+                              color: '#ef4444',
+                              border: '1px solid #ef4444',
+                              borderRadius: '6px',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = '#fef2f2'}
+                            onMouseLeave={(e) => e.target.style.background = '#ffffff'}
+                          >
+                            <FaReceipt size={10} />
+                            Override
+                          </button>
+                        </div>
                       ) : (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
+                          <button
                             className="btn-action"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                            onClick={(e) => {
+                              e.stopPropagation();
                               if (t.currentOrderId) handleViewOrderClick(t.currentOrderId, t);
-                        }}
-                        style={{
+                            }}
+                            style={{
                               flex: 1,
-                              padding: '6px 8px', // Smaller padding
+                              padding: '6px 8px',
                               background: '#ffffff',
                               color: '#4b5563',
                               border: '1px solid #d1d5db',
                               borderRadius: '6px',
-                              fontSize: '10px', // Smaller font
+                              fontSize: '10px',
                               fontWeight: 600,
                               cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                               gap: '4px'
                             }}
                             onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
@@ -452,41 +530,39 @@ export default function DashboardTablesPanel({
                           >
                             <FaEye size={10} />
                             View
-                      </button>
+                          </button>
                           <button
                             className="btn-action"
-                        onClick={(e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
                               if (sliderOpen) handleSliderClose();
-                              // Navigate to dashboard with orderId and mode=edit to load order in edit mode
                               if (t.currentOrderId) {
                                 router.push(`/dashboard?orderId=${t.currentOrderId}&mode=edit`);
-                              } else if (onTakeOrder) {
-                                // Fallback if no order ID - just take new order
-                                onTakeOrder(t.name || t.number);
+                              } else {
+                                handleTakeOrderGuarded(t);
                               }
-                        }}
-                        style={{
-                          flex: 1,
-                              padding: '6px 8px', // Smaller padding
-                              background: '#eff6ff', // Very light blue
-                              color: '#2563eb', // Blue 600
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              background: '#eff6ff',
+                              color: '#2563eb',
                               border: '1px solid #bfdbfe',
-                          borderRadius: '6px',
-                              fontSize: '10px', // Smaller font
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
+                              borderRadius: '6px',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
                               justifyContent: 'center',
                               gap: '4px'
                             }}
                             onMouseEnter={(e) => e.target.style.background = '#dbeafe'}
                             onMouseLeave={(e) => e.target.style.background = '#eff6ff'}
                           >
-                            <FaUtensils size={10} />
-                            Add
-                      </button>
+                            <FaReceipt size={10} />
+                            {t.currentOrderId ? 'Add' : 'Take Order'}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -504,6 +580,81 @@ export default function DashboardTablesPanel({
         <div style={{ textAlign: 'center', color: '#9ca3af', padding: '40px', background: '#f9fafb', borderRadius: '12px' }}>
           <FaChair size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
           <div>No floors or tables found.</div>
+        </div>
+      )}
+
+      {/* Out of Service Override Modal */}
+      {outOfServiceModal.open && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.35)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            padding: '20px',
+            width: '90%',
+            maxWidth: '420px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FaBan size={18} color="#ef4444" />
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>Table Out of Service</div>
+                <div style={{ fontSize: '13px', color: '#4b5563' }}>
+                  Table {outOfServiceModal.table?.name || outOfServiceModal.table?.number} is marked as out of service. Proceed anyway?
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              <button
+                onClick={() => setOutOfServiceModal({ open: false, table: null })}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  background: '#fff',
+                  color: '#374151',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const tbl = outOfServiceModal.table;
+                  setOutOfServiceModal({ open: false, table: null });
+                  if (tbl) handleTakeOrderGuarded({ ...tbl, status: 'available' });
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+              >
+                Proceed
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
