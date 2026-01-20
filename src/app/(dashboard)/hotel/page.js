@@ -672,9 +672,9 @@ const Hotel = () => {
         return;
       }
 
-      // Check if check-out is after check-in
-      if (checkOut <= checkIn) {
-        setError('Check-out date must be after check-in date');
+      // Check if check-out is before check-in (same day is allowed)
+      if (checkOut < checkIn) {
+        setError('Check-out date cannot be before check-in date');
         setLoading(false);
         return;
       }
@@ -1228,8 +1228,8 @@ const Hotel = () => {
           </div>
         )}
 
-        {/* Messages */}
-        {error && (
+        {/* Messages - Only show when modals are closed */}
+        {error && !showBookingModal && !showCheckInModal && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-center gap-3">
             <FaExclamationTriangle className="text-red-600" />
             <div className="flex-1">
@@ -1594,7 +1594,7 @@ const Hotel = () => {
                               Delete Room
                             </button>
                           </>
-                          )}
+                        )}
                         </div>
                       </div>
                     )}
@@ -2445,11 +2445,28 @@ const Hotel = () => {
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="bg-red-600 text-white p-4 rounded-t-lg flex items-center justify-between">
               <h2 className="text-xl font-bold">New Booking</h2>
-              <button onClick={() => setShowBookingModal(false)} className="text-white hover:text-gray-200">
+              <button onClick={() => {
+                setShowBookingModal(false);
+                setError(null);
+              }} className="text-white hover:text-gray-200">
                 <FaTimes size={20} />
               </button>
             </div>
             <form onSubmit={handleCreateBooking} className="p-6">
+              {/* Error Display in Modal */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-center gap-3">
+                  <FaExclamationTriangle className="text-red-600 flex-shrink-0" />
+                  <p className="text-red-800 text-sm flex-1">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => setError(null)}
+                    className="text-red-600 hover:text-red-800 flex-shrink-0"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
@@ -2515,7 +2532,7 @@ const Hotel = () => {
                     value={bookingForm.checkOutDate}
                     onChange={e => {
                       const newCheckOut = e.target.value;
-                      // Ensure check-out is not before check-in
+                      // Ensure check-out is not before check-in (same day is allowed)
                       if (newCheckOut < bookingForm.checkInDate) {
                         setError('Check-out date cannot be before check-in date');
                         return;
@@ -2559,7 +2576,10 @@ const Hotel = () => {
               <div className="flex items-center justify-end gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowBookingModal(false)}
+                  onClick={() => {
+                    setShowBookingModal(false);
+                    setError(null);
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
@@ -2593,11 +2613,28 @@ const Hotel = () => {
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="bg-red-600 text-white p-4 rounded-t-lg flex items-center justify-between">
               <h2 className="text-xl font-bold">New Check-In</h2>
-              <button onClick={() => setShowCheckInModal(false)} className="text-white hover:text-gray-200">
+              <button onClick={() => {
+                setShowCheckInModal(false);
+                setError(null);
+              }} className="text-white hover:text-gray-200">
                 <FaTimes size={20} />
               </button>
             </div>
             <form onSubmit={handleCheckIn} className="p-6">
+              {/* Error Display in Modal */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-center gap-3">
+                  <FaExclamationTriangle className="text-red-600 flex-shrink-0" />
+                  <p className="text-red-800 text-sm flex-1">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => setError(null)}
+                    className="text-red-600 hover:text-red-800 flex-shrink-0"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name *</label>
@@ -2663,7 +2700,7 @@ const Hotel = () => {
                     value={checkInForm.checkOutDate}
                     onChange={e => {
                       const newCheckOut = e.target.value;
-                      // Ensure check-out is not before check-in
+                      // Ensure check-out is not before check-in (same day is allowed)
                       if (newCheckOut < checkInForm.checkInDate) {
                         setError('Check-out date cannot be before check-in date');
                         return;
@@ -2739,7 +2776,10 @@ const Hotel = () => {
               <div className="flex items-center justify-end gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowCheckInModal(false)}
+                  onClick={() => {
+                    setShowCheckInModal(false);
+                    setError(null);
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
