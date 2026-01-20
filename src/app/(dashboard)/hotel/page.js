@@ -147,13 +147,6 @@ const Hotel = () => {
     reason: ''
   });
 
-  const [maintenanceForm, setMaintenanceForm] = useState({
-    duration: 'today', // 'today' or 'custom'
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-    reason: ''
-  });
-
   const [checkOutForm, setCheckOutForm] = useState({
     finalPayment: '',
     paymentMode: 'cash',
@@ -1213,8 +1206,8 @@ const Hotel = () => {
 
                     {/* Action Dropdown (on click) */}
                     {openRoomDropdown === room.id && (
-                      <div className="absolute inset-0 bg-white bg-opacity-95 rounded-lg shadow-xl border-2 border-gray-300 z-30 flex flex-col justify-center items-center overflow-hidden backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                        <div className="w-full flex flex-col gap-1.5 px-3">
+                      <div className="absolute top-[30%] left-[50%] bg-white rounded-lg shadow-2xl border border-gray-200 z-30 min-w-[200px] overflow-hidden" style={{ transform: 'translate(-50%, 0)' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-col py-1">
                           {room.status === 'available' && (
                             <>
                               <button
@@ -1223,9 +1216,9 @@ const Hotel = () => {
                                   setShowCheckInModal(true);
                                   setOpenRoomDropdown(null);
                                 }}
-                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                               >
-                                <FaUserCheck className="text-green-600" />
+                                <FaUserCheck className="text-green-600 text-base" />
                                 Check In
                               </button>
                               <button
@@ -1234,9 +1227,9 @@ const Hotel = () => {
                                   setShowBookingModal(true);
                                   setOpenRoomDropdown(null);
                                 }}
-                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                               >
-                                <FaBookmark className="text-blue-600" />
+                                <FaBookmark className="text-blue-600 text-base" />
                                 Book Room
                               </button>
                             </>
@@ -1248,12 +1241,12 @@ const Hotel = () => {
                                 setOpenRoomDropdown(null);
                               }}
                               disabled={loadingRooms[room.id]}
-                              className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {loadingRooms[room.id] ? (
-                                <FaSpinner className="animate-spin text-green-600" />
+                                <FaSpinner className="animate-spin text-green-600 text-base" />
                               ) : (
-                                <FaCheckCircle className="text-green-600" />
+                                <FaCheckCircle className="text-green-600 text-base" />
                               )}
                               Mark Available
                             </button>
@@ -1266,19 +1259,20 @@ const Hotel = () => {
                                   setShowMaintenanceModal(true);
                                   setOpenRoomDropdown(null);
                                 }}
-                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                               >
-                                <FaTools className="text-orange-600" />
+                                <FaTools className="text-orange-600 text-base" />
                                 Mark Maintenance
                               </button>
+                              <div className="border-t border-gray-200 my-1"></div>
                               <button
                                 onClick={() => {
                                   handleDeleteRoom(room.id);
                                   setOpenRoomDropdown(null);
                                 }}
-                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg flex items-center justify-center gap-2 transition-colors border-t border-gray-200 mt-1 pt-2"
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
                               >
-                                <FaTrash className="text-red-600" />
+                                <FaTrash className="text-red-600 text-base" />
                                 Delete Room
                               </button>
                             </>
