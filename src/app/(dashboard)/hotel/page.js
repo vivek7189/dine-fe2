@@ -81,12 +81,17 @@ const Hotel = () => {
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedCheckIn, setSelectedCheckIn] = useState(null);
   const [invoice, setInvoice] = useState(null);
   const [openRoomDropdown, setOpenRoomDropdown] = useState(null);
+  
+  // Per-card loading states
+  const [loadingRooms, setLoadingRooms] = useState({}); // { roomId: true/false }
+  const [successRooms, setSuccessRooms] = useState({}); // { roomId: timestamp }
 
   // Forms
   const [roomForm, setRoomForm] = useState({
@@ -133,6 +138,20 @@ const Hotel = () => {
     idProofNumber: '',
     gstNumber: '',
     gstCompanyName: ''
+  });
+
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    duration: 'today', // 'today' or 'custom'
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    reason: ''
+  });
+
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    duration: 'today', // 'today' or 'custom'
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    reason: ''
   });
 
   const [checkOutForm, setCheckOutForm] = useState({
@@ -416,14 +435,45 @@ const Hotel = () => {
     }
   };
 
-  const handleUpdateRoomStatus = async (roomId, newStatus) => {
+  const handleUpdateRoomStatus = async (roomId, newStatus, maintenanceSchedule = null) => {
+    // Set loading state for this specific room
+    setLoadingRooms(prev => ({ ...prev, [roomId]: true }));
+    
     try {
-      await apiClient.updateRoomStatus(roomId, newStatus);
-      setSuccess('Room status updated');
+      // If maintenance with schedule, use new API endpoint
+      if (newStatus === 'maintenance' && maintenanceSchedule) {
+        await apiClient.request(`/api/room/${roomId}/maintenance`, {
+          method: 'POST',
+          body: maintenanceSchedule
+        });
+      } else {
+        await apiClient.updateRoomStatus(roomId, newStatus);
+      }
+      
+      // Show success feedback for this room
+      setSuccessRooms(prev => ({ ...prev, [roomId]: Date.now() }));
+      setTimeout(() => {
+        setSuccessRooms(prev => {
+          const newState = { ...prev };
+          delete newState[roomId];
+          return newState;
+        });
+      }, 2000);
+      
+      // Reload rooms and availability in background
       loadRooms();
-      setTimeout(() => setSuccess(null), 2000);
+      if (restaurantId && roomsViewDate) {
+        loadRoomAvailability();
+      }
     } catch (error) {
       setError('Failed to update room status');
+    } finally {
+      // Clear loading state
+      setLoadingRooms(prev => {
+        const newState = { ...prev };
+        delete newState[roomId];
+        return newState;
+      });
     }
   };
 
@@ -1113,9 +1163,24 @@ const Hotel = () => {
                   return (
                   <div
                     key={room.id}
-                    className={`${getRoomStatusColor(displayStatus)} rounded-lg p-4 text-white relative hover:shadow-lg transition-shadow cursor-pointer`}
-                    onClick={() => setOpenRoomDropdown(openRoomDropdown === room.id ? null : room.id)}
+                    className={`${getRoomStatusColor(displayStatus)} rounded-lg p-4 text-white relative hover:shadow-lg transition-all cursor-pointer ${
+                      loadingRooms[room.id] ? 'opacity-60 pointer-events-none' : ''
+                    } ${successRooms[room.id] ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}
+                    onClick={() => !loadingRooms[room.id] && setOpenRoomDropdown(openRoomDropdown === room.id ? null : room.id)}
                   >
+                    {/* Loading Overlay */}
+                    {loadingRooms[room.id] && (
+                      <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-20">
+                        <FaSpinner className="animate-spin text-2xl" />
+                      </div>
+                    )}
+                    
+                    {/* Success Indicator */}
+                    {successRooms[room.id] && (
+                      <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1 z-10 animate-pulse">
+                        <FaCheckCircle className="text-white text-xs" />
+                      </div>
+                    )}
                     {/* Room Number */}
                     <div className="text-center mb-2">
                       <div className="text-3xl font-bold">{room.roomNumber}</div>
@@ -1148,69 +1213,77 @@ const Hotel = () => {
 
                     {/* Action Dropdown (on click) */}
                     {openRoomDropdown === room.id && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-10 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        {room.status === 'available' && (
-                          <>
+                      <div className="absolute inset-0 bg-white bg-opacity-95 rounded-lg shadow-xl border-2 border-gray-300 z-30 flex flex-col justify-center items-center overflow-hidden backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-full flex flex-col gap-1.5 px-3">
+                          {room.status === 'available' && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setCheckInForm({ ...checkInForm, roomNumber: room.roomNumber, roomTariff: room.tariff });
+                                  setShowCheckInModal(true);
+                                  setOpenRoomDropdown(null);
+                                }}
+                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                              >
+                                <FaUserCheck className="text-green-600" />
+                                Check In
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setBookingForm({ ...bookingForm, roomNumber: room.roomNumber, estimatedTariff: room.tariff });
+                                  setShowBookingModal(true);
+                                  setOpenRoomDropdown(null);
+                                }}
+                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                              >
+                                <FaBookmark className="text-blue-600" />
+                                Book Room
+                              </button>
+                            </>
+                          )}
+                          {(room.status === 'cleaning' || room.status === 'maintenance') && (
                             <button
                               onClick={() => {
-                                setCheckInForm({ ...checkInForm, roomNumber: room.roomNumber, roomTariff: room.tariff });
-                                setShowCheckInModal(true);
+                                handleUpdateRoomStatus(room.id, 'available');
                                 setOpenRoomDropdown(null);
                               }}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              disabled={loadingRooms[room.id]}
+                              className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                              <FaUserCheck className="text-green-600" />
-                              Check In
+                              {loadingRooms[room.id] ? (
+                                <FaSpinner className="animate-spin text-green-600" />
+                              ) : (
+                                <FaCheckCircle className="text-green-600" />
+                              )}
+                              Mark Available
                             </button>
-                            <button
-                              onClick={() => {
-                                setBookingForm({ ...bookingForm, roomNumber: room.roomNumber, estimatedTariff: room.tariff });
-                                setShowBookingModal(true);
-                                setOpenRoomDropdown(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                            >
-                              <FaBookmark className="text-blue-600" />
-                              Book Room
-                            </button>
-                          </>
-                        )}
-                        {(room.status === 'cleaning' || room.status === 'maintenance') && (
-                          <button
-                            onClick={() => {
-                              handleUpdateRoomStatus(room.id, 'available');
-                              setOpenRoomDropdown(null);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            <FaCheckCircle className="text-green-600" />
-                            Mark Available
-                          </button>
-                        )}
-                        {room.status !== 'occupied' && (
-                          <>
-                            <button
-                              onClick={() => {
-                                handleUpdateRoomStatus(room.id, 'maintenance');
-                                setOpenRoomDropdown(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                            >
-                              <FaTools className="text-orange-600" />
-                              Mark Maintenance
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeleteRoom(room.id);
-                                setOpenRoomDropdown(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-t border-gray-200"
-                            >
-                              <FaTrash className="text-red-600" />
-                              Delete Room
-                            </button>
-                          </>
-                        )}
+                          )}
+                          {room.status !== 'occupied' && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedRoom(room);
+                                  setShowMaintenanceModal(true);
+                                  setOpenRoomDropdown(null);
+                                }}
+                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                              >
+                                <FaTools className="text-orange-600" />
+                                Mark Maintenance
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleDeleteRoom(room.id);
+                                  setOpenRoomDropdown(null);
+                                }}
+                                className="w-full px-3 py-2.5 text-center text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg flex items-center justify-center gap-2 transition-colors border-t border-gray-200 mt-1 pt-2"
+                              >
+                                <FaTrash className="text-red-600" />
+                                Delete Room
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2809,6 +2882,192 @@ const Hotel = () => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance Modal */}
+      {showMaintenanceModal && selectedRoom && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FaTools className="text-orange-600" />
+                  Mark Room {selectedRoom.roomNumber} as Maintenance
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowMaintenanceModal(false);
+                    setSelectedRoom(null);
+                    setMaintenanceForm({
+                      duration: 'today',
+                      startDate: new Date().toISOString().split('T')[0],
+                      endDate: new Date().toISOString().split('T')[0],
+                      reason: ''
+                    });
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes size={20} />
+                </button>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const today = new Date().toISOString().split('T')[0];
+                  
+                  let schedule = {
+                    restaurantId,
+                    roomId: selectedRoom.id,
+                    roomNumber: selectedRoom.roomNumber,
+                    reason: maintenanceForm.reason || 'Maintenance required'
+                  };
+
+                  if (maintenanceForm.duration === 'today') {
+                    schedule.startDate = today;
+                    schedule.endDate = today;
+                  } else {
+                    schedule.startDate = maintenanceForm.startDate;
+                    schedule.endDate = maintenanceForm.endDate;
+                  }
+
+                  await handleUpdateRoomStatus(selectedRoom.id, 'maintenance', schedule);
+                  setShowMaintenanceModal(false);
+                  setSelectedRoom(null);
+                  setMaintenanceForm({
+                    duration: 'today',
+                    startDate: new Date().toISOString().split('T')[0],
+                    endDate: new Date().toISOString().split('T')[0],
+                    reason: ''
+                  });
+                }}
+              >
+                <div className="space-y-4">
+                  {/* Duration Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Maintenance Duration
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const today = new Date().toISOString().split('T')[0];
+                          setMaintenanceForm({
+                            ...maintenanceForm,
+                            duration: 'today',
+                            startDate: today,
+                            endDate: today
+                          });
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
+                          maintenanceForm.duration === 'today'
+                            ? 'border-orange-600 bg-orange-50 text-orange-700'
+                            : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        Today Only
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMaintenanceForm({ ...maintenanceForm, duration: 'custom' })}
+                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
+                          maintenanceForm.duration === 'custom'
+                            ? 'border-orange-600 bg-orange-50 text-orange-700'
+                            : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        Custom Range
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Custom Date Range */}
+                  {maintenanceForm.duration === 'custom' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Start Date
+                        </label>
+                        <input
+                          type="date"
+                          value={maintenanceForm.startDate}
+                          onChange={(e) => setMaintenanceForm({ ...maintenanceForm, startDate: e.target.value })}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={maintenanceForm.endDate}
+                          onChange={(e) => setMaintenanceForm({ ...maintenanceForm, endDate: e.target.value })}
+                          min={maintenanceForm.startDate}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reason (Optional) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reason (Optional)
+                    </label>
+                    <textarea
+                      value={maintenanceForm.reason}
+                      onChange={(e) => setMaintenanceForm({ ...maintenanceForm, reason: e.target.value })}
+                      placeholder="e.g., AC repair, plumbing work..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMaintenanceModal(false);
+                      setSelectedRoom(null);
+                      setMaintenanceForm({
+                        duration: 'today',
+                        startDate: new Date().toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0],
+                        reason: ''
+                      });
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loadingRooms[selectedRoom.id]}
+                    className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loadingRooms[selectedRoom.id] ? (
+                      <>
+                        <FaSpinner className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FaTools />
+                        Mark Maintenance
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
