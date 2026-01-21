@@ -1011,8 +1011,8 @@ const OrderHistory = () => {
       )}
 
       {selectedOrderForInvoice && (
-        <InvoiceModal 
-          order={selectedOrderForInvoice} 
+        <InvoiceModal
+          order={selectedOrderForInvoice}
           restaurant={restaurant}
           onClose={() => setSelectedOrderForInvoice(null)}
           onDownloadPDF={handleDownloadPDF}
@@ -1020,6 +1020,132 @@ const OrderHistory = () => {
           formatDate={formatDate}
         />
       )}
+
+      {/* KOT Printer Setup Note */}
+      {restaurantId && <KOTPrinterNote restaurantId={restaurantId} />}
+    </div>
+  );
+};
+
+// KOT Printer Setup Note Component
+const KOTPrinterNote = ({ restaurantId }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const printKotUrl = `https://dineopen.com/print-kot?restaurant=${restaurantId}`;
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(printKotUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-200 px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Collapsed View - Always Visible */}
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 mt-0.5">
+            <FaPrint className="text-blue-600 text-sm" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-gray-700">
+              <span className="font-semibold text-blue-800">KOT Auto-Print Setup:</span> Open the URL below in Chrome kiosk mode on your kitchen PC to auto-print orders to thermal printer.
+            </p>
+
+            {/* URL Copy Section */}
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-blue-200 text-blue-900 font-mono break-all">
+                {printKotUrl}
+              </code>
+              <button
+                onClick={copyToClipboard}
+                className="flex-shrink-0 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <FaCopy className="text-xs" />
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+
+            {/* Expand/Collapse Toggle */}
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            >
+              {isExpanded ? (
+                <>
+                  <FaChevronUp className="text-xs" /> Hide setup instructions
+                </>
+              ) : (
+                <>
+                  <FaChevronDown className="text-xs" /> Show detailed setup instructions (Windows & Mac)
+                </>
+              )}
+            </button>
+
+            {/* Expanded Content */}
+            {isExpanded && (
+              <div className="mt-4 space-y-4 text-xs text-gray-700 bg-white rounded-lg border border-blue-200 p-4">
+                {/* Windows Instructions */}
+                <div>
+                  <h4 className="font-bold text-gray-900 flex items-center gap-2 mb-2">
+                    <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Windows</span>
+                    Chrome Kiosk Setup
+                  </h4>
+                  <ol className="list-decimal list-inside space-y-1.5 text-gray-600 ml-2">
+                    <li><strong>Set thermal printer as default:</strong> Settings → Printers & Scanners → Select your printer → Set as default</li>
+                    <li><strong>Create Chrome shortcut:</strong> Right-click Desktop → New → Shortcut</li>
+                    <li><strong>Enter this target:</strong>
+                      <code className="block mt-1 bg-gray-100 p-2 rounded text-xs font-mono break-all">
+                        &quot;C:\Program Files\Google\Chrome\Application\chrome.exe&quot; --kiosk --kiosk-printing &quot;{printKotUrl}&quot;
+                      </code>
+                    </li>
+                    <li><strong>Name it:</strong> &quot;KOT Printer&quot; and click Finish</li>
+                    <li><strong>Auto-start (optional):</strong> Press <kbd className="bg-gray-200 px-1 rounded">Win+R</kbd> → type <code className="bg-gray-100 px-1 rounded">shell:startup</code> → copy shortcut there</li>
+                    <li><strong>To exit kiosk:</strong> Press <kbd className="bg-gray-200 px-1 rounded">Alt+F4</kbd> or <kbd className="bg-gray-200 px-1 rounded">Ctrl+W</kbd></li>
+                  </ol>
+                </div>
+
+                {/* Mac Instructions */}
+                <div className="pt-3 border-t border-gray-200">
+                  <h4 className="font-bold text-gray-900 flex items-center gap-2 mb-2">
+                    <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded">macOS</span>
+                    Chrome Kiosk Setup
+                  </h4>
+                  <ol className="list-decimal list-inside space-y-1.5 text-gray-600 ml-2">
+                    <li><strong>Set thermal printer as default:</strong> System Settings → Printers & Scanners → Right-click printer → Set as default</li>
+                    <li><strong>Open Terminal</strong> (Applications → Utilities → Terminal)</li>
+                    <li><strong>Run this command:</strong>
+                      <code className="block mt-1 bg-gray-100 p-2 rounded text-xs font-mono break-all">
+                        /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --kiosk --kiosk-printing &quot;{printKotUrl}&quot;
+                      </code>
+                    </li>
+                    <li><strong>Create Automator app (optional):</strong> Open Automator → New Application → Add &quot;Run Shell Script&quot; → Paste command above → Save as &quot;KOT Printer.app&quot;</li>
+                    <li><strong>Auto-start (optional):</strong> System Settings → General → Login Items → Add &quot;KOT Printer.app&quot;</li>
+                    <li><strong>To exit kiosk:</strong> Press <kbd className="bg-gray-200 px-1 rounded">Cmd+Q</kbd> or <kbd className="bg-gray-200 px-1 rounded">Cmd+W</kbd></li>
+                  </ol>
+                </div>
+
+                {/* Important Notes */}
+                <div className="pt-3 border-t border-gray-200 bg-amber-50 -mx-4 -mb-4 p-4 rounded-b-lg">
+                  <h4 className="font-bold text-amber-800 mb-2">Important Notes:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-amber-700 ml-2">
+                    <li>The <code className="bg-amber-100 px-1 rounded">--kiosk-printing</code> flag enables <strong>silent printing</strong> (no print dialog)</li>
+                    <li>Thermal printer must be set as the <strong>default system printer</strong></li>
+                    <li>Page polls for new orders every <strong>5 seconds</strong> and auto-prints</li>
+                    <li>Each order prints <strong>only once</strong> (tracked via database)</li>
+                    <li>Use the <strong>Reprint</strong> button on the page if you need to print again</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
