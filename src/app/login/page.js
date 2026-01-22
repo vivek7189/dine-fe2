@@ -1886,7 +1886,7 @@ const Login = () => {
                     transition: "all 0.2s"
                   }}
                 >
-                  Don't have an account? Register
+                  Don&apos;t have an account? Register
                 </button>
               </form>
             </>
