@@ -24,6 +24,18 @@ const Profile = () => {
   const [editMode, setEditMode] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // Email/Phone linking state
+  const [linkingEmail, setLinkingEmail] = useState(false);
+  const [linkingPhone, setLinkingPhone] = useState(false);
+  const [linkEmail, setLinkEmail] = useState('');
+  const [linkPhone, setLinkPhone] = useState('');
+  const [linkPassword, setLinkPassword] = useState('');
+  const [linkConfirmPassword, setLinkConfirmPassword] = useState('');
+  const [linkOtp, setLinkOtp] = useState('');
+  const [linkOtpSent, setLinkOtpSent] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkError, setLinkError] = useState('');
 
   useEffect(() => {
     setIsClient(true);
@@ -116,6 +128,194 @@ const Profile = () => {
       console.error('Error saving name:', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Link Email
+  const handleSendEmailOtp = async () => {
+    if (!linkEmail || !linkEmail.includes('@')) {
+      setLinkError('Please enter a valid email address');
+      return;
+    }
+
+    setLinkLoading(true);
+    setLinkError('');
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const response = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiClient.getToken()}`
+        },
+        body: JSON.stringify({ email: linkEmail, purpose: 'linking' })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        // Check if email already exists
+        if (data.error && data.error.includes('already registered')) {
+          throw new Error('This email is already registered. Please use a different email or login with this email instead.');
+        }
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
+      setLinkOtpSent(true);
+    } catch (err) {
+      setLinkError(err.message || 'Failed to send OTP');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const handleLinkEmail = async (e) => {
+    e.preventDefault();
+    if (!linkOtp || linkOtp.length !== 6) {
+      setLinkError('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    if (linkPassword && linkPassword !== linkConfirmPassword) {
+      setLinkError('Passwords do not match');
+      return;
+    }
+
+    setLinkLoading(true);
+    setLinkError('');
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const response = await fetch(`${backendUrl}/api/user/link-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiClient.getToken()}`
+        },
+        body: JSON.stringify({
+          email: linkEmail,
+          password: linkPassword || undefined,
+          confirmPassword: linkConfirmPassword || undefined,
+          otp: linkOtp
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        // Check if email already exists
+        if (data.emailExists || (data.error && data.error.includes('already registered'))) {
+          throw new Error('This email is already registered. Please use a different email or login with this email instead.');
+        }
+        throw new Error(data.error || 'Failed to link email');
+      }
+
+      // Update user in localStorage
+      const updatedUser = { ...user, email: linkEmail, emailVerified: true };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      
+      // Reset state
+      setLinkingEmail(false);
+      setLinkEmail('');
+      setLinkPassword('');
+      setLinkConfirmPassword('');
+      setLinkOtp('');
+      setLinkOtpSent(false);
+    } catch (err) {
+      setLinkError(err.message || 'Failed to link email');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  // Send Phone OTP for linking
+  const handleSendPhoneOtp = async () => {
+    if (!linkPhone) {
+      setLinkError('Please enter a phone number');
+      return;
+    }
+
+    // Normalize phone (add + if missing)
+    const normalizedPhone = linkPhone.startsWith('+') ? linkPhone : `+${linkPhone}`;
+
+    setLinkLoading(true);
+    setLinkError('');
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // Use same OTP API as login page
+      const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ phone: normalizedPhone })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
+      setLinkOtpSent(true);
+      setLinkPhone(normalizedPhone); // Store normalized phone
+    } catch (err) {
+      setLinkError(err.message || 'Failed to send OTP');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  // Link Phone with OTP verification
+  const handleLinkPhone = async (e) => {
+    e.preventDefault();
+    if (!linkPhone) {
+      setLinkError('Please enter a phone number');
+      return;
+    }
+
+    if (!linkOtp || linkOtp.length !== 4) {
+      setLinkError('Please enter a valid 4-digit OTP');
+      return;
+    }
+
+    setLinkLoading(true);
+    setLinkError('');
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const response = await fetch(`${backendUrl}/api/user/link-phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiClient.getToken()}`
+        },
+        body: JSON.stringify({ 
+          phone: linkPhone,
+          otp: linkOtp
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        // Check if phone already exists
+        if (data.phoneExists || (data.error && data.error.includes('already registered'))) {
+          throw new Error('This phone number is already registered. Please use a different phone number or login with this phone instead.');
+        }
+        throw new Error(data.error || 'Failed to link phone');
+      }
+
+      // Update user in localStorage
+      const updatedUser = { ...user, phone: linkPhone, phoneVerified: true };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      
+      // Reset state
+      setLinkingPhone(false);
+      setLinkPhone('');
+      setLinkOtp('');
+      setLinkOtpSent(false);
+      setLinkError('');
+    } catch (err) {
+      setLinkError(err.message || 'Failed to link phone');
+    } finally {
+      setLinkLoading(false);
     }
   };
 
@@ -352,7 +552,7 @@ const Profile = () => {
           {/* Information Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Email Card */}
-            {hasEmail && (
+            {hasEmail ? (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -396,10 +596,236 @@ const Profile = () => {
                   </p>
                 </div>
               </div>
+            ) : (
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#fef3c7',
+                borderRadius: '12px',
+                border: '1px solid #fbbf24'
+              }}>
+                {!linkingEmail ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <FaEnvelope size={20} color="#f59e0b" />
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
+                        Link Email Address
+                      </p>
+                    </div>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#78350f' }}>
+                      Link your email to enable email/password login and receive important notifications.
+                    </p>
+                    <button
+                      onClick={() => setLinkingEmail(true)}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#f59e0b',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Link Email
+                    </button>
+                  </>
+                ) : (
+                  <form onSubmit={linkOtpSent ? handleLinkEmail : handleSendEmailOtp}>
+                    {linkError && (
+                      <div style={{
+                        padding: '12px',
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        borderRadius: '8px',
+                        marginBottom: '16px',
+                        fontSize: '13px'
+                      }}>
+                        {linkError}
+                      </div>
+                    )}
+                    {!linkOtpSent ? (
+                      <>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            value={linkEmail}
+                            onChange={(e) => setLinkEmail(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '2px solid #fbbf24',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                            placeholder="your@email.com"
+                            required
+                          />
+                        </div>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
+                            Password (Optional)
+                          </label>
+                          <input
+                            type="password"
+                            value={linkPassword}
+                            onChange={(e) => setLinkPassword(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '2px solid #fbbf24',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                            placeholder="Create password for email login"
+                          />
+                        </div>
+                        {linkPassword && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
+                              Confirm Password
+                            </label>
+                            <input
+                              type="password"
+                              value={linkConfirmPassword}
+                              onChange={(e) => setLinkConfirmPassword(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '12px',
+                                border: '2px solid #fbbf24',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                              placeholder="Confirm password"
+                            />
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="submit"
+                            disabled={linkLoading || !linkEmail}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              backgroundColor: linkLoading || !linkEmail ? '#d1d5db' : '#f59e0b',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: linkLoading || !linkEmail ? 'not-allowed' : 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            {linkLoading ? 'Sending...' : 'Send OTP'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLinkingEmail(false);
+                              setLinkEmail('');
+                              setLinkPassword('');
+                              setLinkConfirmPassword('');
+                              setLinkError('');
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              backgroundColor: 'transparent',
+                              color: '#78350f',
+                              border: '2px solid #fbbf24',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
+                            Enter OTP sent to {linkEmail}
+                          </label>
+                          <input
+                            type="text"
+                            value={linkOtp}
+                            onChange={(e) => setLinkOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            style={{
+                              width: '100%',
+                              padding: '16px',
+                              border: '2px solid #fbbf24',
+                              borderRadius: '8px',
+                              fontSize: '24px',
+                              outline: 'none',
+                              letterSpacing: '8px',
+                              textAlign: 'center',
+                              fontWeight: 'bold',
+                              boxSizing: 'border-box'
+                            }}
+                            placeholder="123456"
+                            maxLength={6}
+                            required
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="submit"
+                            disabled={linkLoading || linkOtp.length !== 6}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              backgroundColor: linkLoading || linkOtp.length !== 6 ? '#d1d5db' : '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: linkLoading || linkOtp.length !== 6 ? 'not-allowed' : 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            {linkLoading ? 'Linking...' : 'Verify & Link'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLinkOtpSent(false);
+                              setLinkOtp('');
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              backgroundColor: 'transparent',
+                              color: '#78350f',
+                              border: '2px solid #fbbf24',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            Back
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </form>
+                )}
+              </div>
             )}
 
             {/* Phone Card */}
-            {hasPhone && (
+            {hasPhone ? (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -442,6 +868,193 @@ const Profile = () => {
                     {user.phone}
                   </p>
                 </div>
+              </div>
+            ) : (
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '12px',
+                border: '1px solid #60a5fa'
+              }}>
+                {!linkingPhone ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <FaPhone size={20} color="#3b82f6" />
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1e40af' }}>
+                        Link Phone Number
+                      </p>
+                    </div>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#1e3a8a' }}>
+                      Link your phone number to enable phone OTP login.
+                    </p>
+                    <button
+                      onClick={() => setLinkingPhone(true)}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Link Phone
+                    </button>
+                  </>
+                ) : (
+                  <form onSubmit={linkOtpSent ? handleLinkPhone : (e) => { e.preventDefault(); handleSendPhoneOtp(); }}>
+                    {linkError && (
+                      <div style={{
+                        padding: '12px',
+                        backgroundColor: linkError.includes('successfully') ? '#d1fae5' : '#fee2e2',
+                        color: linkError.includes('successfully') ? '#065f46' : '#dc2626',
+                        borderRadius: '8px',
+                        marginBottom: '16px',
+                        fontSize: '13px'
+                      }}>
+                        {linkError}
+                      </div>
+                    )}
+                    {!linkOtpSent ? (
+                      <>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
+                            Phone Number (with country code)
+                          </label>
+                          <input
+                            type="tel"
+                            value={linkPhone}
+                            onChange={(e) => setLinkPhone(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '2px solid #60a5fa',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                            placeholder="+919876543210"
+                            required
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="submit"
+                            disabled={linkLoading || !linkPhone}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              backgroundColor: linkLoading || !linkPhone ? '#d1d5db' : '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: linkLoading || !linkPhone ? 'not-allowed' : 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            {linkLoading ? 'Sending OTP...' : 'Send OTP'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLinkingPhone(false);
+                              setLinkPhone('');
+                              setLinkOtp('');
+                              setLinkOtpSent(false);
+                              setLinkError('');
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              backgroundColor: 'transparent',
+                              color: '#1e40af',
+                              border: '2px solid #60a5fa',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
+                            Enter OTP sent to {linkPhone}
+                          </label>
+                          <input
+                            type="text"
+                            value={linkOtp}
+                            onChange={(e) => setLinkOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            style={{
+                              width: '100%',
+                              padding: '16px',
+                              border: '2px solid #60a5fa',
+                              borderRadius: '8px',
+                              fontSize: '24px',
+                              outline: 'none',
+                              letterSpacing: '8px',
+                              textAlign: 'center',
+                              fontWeight: 'bold',
+                              boxSizing: 'border-box'
+                            }}
+                            placeholder="1234"
+                            maxLength={4}
+                            required
+                          />
+                          <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                            For testing use: <strong style={{ color: '#3b82f6' }}>1234</strong> (if phone is +919000000000)
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="submit"
+                            disabled={linkLoading || linkOtp.length !== 4}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              backgroundColor: linkLoading || linkOtp.length !== 4 ? '#d1d5db' : '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: linkLoading || linkOtp.length !== 4 ? 'not-allowed' : 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            {linkLoading ? 'Verifying...' : 'Verify & Link'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLinkOtpSent(false);
+                              setLinkOtp('');
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              backgroundColor: 'transparent',
+                              color: '#1e40af',
+                              border: '2px solid #60a5fa',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            Back
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </form>
+                )}
               </div>
             )}
 

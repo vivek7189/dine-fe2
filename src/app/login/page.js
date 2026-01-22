@@ -196,12 +196,22 @@ const countries = [
 const Login = () => {
   const router = useRouter();
   const [loginType, setLoginType] = useState('owner'); // 'owner' or 'staff'
-  const [step, setStep] = useState('phone'); // 'phone' or 'otp'
+  const [step, setStep] = useState('phone'); // 'phone', 'otp', 'email-login', 'email-register', 'email-otp'
+  const [authMethod, setAuthMethod] = useState('phone'); // 'phone', 'email', 'gmail'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [staffCredentials, setStaffCredentials] = useState({ loginId: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Email/password state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [emailOtp, setEmailOtp] = useState('');
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   
   // Country selection state
   const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Default to India
@@ -626,6 +636,166 @@ const Login = () => {
     router.replace('/dashboard');
   };
 
+  // Email/Password Registration
+  const handleEmailRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!email || !password || !confirmPassword || !name) {
+        setError('All fields are required');
+        setLoading(false);
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        setLoading(false);
+        return;
+      }
+
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters');
+        setLoading(false);
+        return;
+      }
+
+      // First send OTP
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const otpResponse = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, purpose: 'registration' })
+      });
+
+      const otpData = await otpResponse.json();
+      if (!otpResponse.ok) {
+        throw new Error(otpData.error || 'Failed to send OTP');
+      }
+
+      setEmailOtpSent(true);
+      setStep('email-otp');
+      setLoading(false);
+    } catch (err) {
+      console.error('Email registration error:', err);
+      setError(err.message || 'Failed to send verification email');
+      setLoading(false);
+    }
+  };
+
+  // Verify Email OTP and Complete Registration
+  const handleEmailOtpVerify = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!emailOtp || emailOtp.length !== 6) {
+        setError('Please enter a valid 6-digit OTP');
+        setLoading(false);
+        return;
+      }
+
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const registerResponse = await fetch(`${backendUrl}/api/auth/email/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          confirmPassword,
+          name,
+          otp: emailOtp
+        })
+      });
+
+      const registerData = await registerResponse.json();
+      if (!registerResponse.ok) {
+        throw new Error(registerData.error || 'Registration failed');
+      }
+
+      if (registerData.token) {
+        apiClient.setToken(registerData.token);
+        apiClient.setUser(registerData.user);
+
+        if (registerData.firstTimeUser) {
+          setShowRestaurantOnboarding(true);
+        } else {
+          router.replace(registerData.redirectTo || '/dashboard');
+        }
+      } else {
+        setError('Registration successful but login failed. Please login.');
+        setStep('email-login');
+      }
+    } catch (err) {
+      console.error('Email OTP verification error:', err);
+      setError(err.message || 'OTP verification failed');
+      setLoading(false);
+    }
+  };
+
+  // Email/Password Login
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!email || !password) {
+        setError('Email and password are required');
+        setLoading(false);
+        return;
+      }
+
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const loginResponse = await fetch(`${backendUrl}/api/auth/email/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const loginData = await loginResponse.json();
+      if (!loginResponse.ok) {
+        if (loginData.verificationRequired) {
+          // Email not verified - send OTP
+          const otpResponse = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, purpose: 'linking' })
+          });
+          const otpData = await otpResponse.json();
+          if (otpResponse.ok) {
+            setStep('email-otp');
+            setEmailOtpSent(true);
+            setError('Please verify your email with the OTP sent to your inbox');
+          } else {
+            throw new Error(otpData.error || 'Failed to send verification OTP');
+          }
+        } else {
+          throw new Error(loginData.error || 'Login failed');
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (loginData.token) {
+        apiClient.setToken(loginData.token);
+        apiClient.setUser(loginData.user);
+
+        if (loginData.subdomainUrl) {
+          redirectToSubdomain(loginData.subdomainUrl, loginData.token, loginData.user);
+        } else {
+          router.replace(loginData.redirectTo || '/dashboard');
+        }
+      }
+    } catch (err) {
+      console.error('Email login error:', err);
+      setError(err.message || 'Login failed');
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
@@ -992,6 +1162,72 @@ const Login = () => {
               fontWeight: "500"
             }}>
               {error}
+            </div>
+          )}
+
+          {/* Auth Method Selector for Owner Login - Always visible for Phone/Email */}
+          {loginType === 'owner' && (step === 'phone' || step === 'otp' || step === 'email-login' || step === 'email-register' || step === 'email-otp') && (
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '20px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '4px',
+                backgroundColor: '#f9fafb'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod('phone');
+                    setStep('phone');
+                    setError('');
+                    setOtp('');
+                    setOtpSent(false);
+                    setEmailOtpSent(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: (authMethod === 'phone' || step === 'phone' || step === 'otp') ? '#e53e3e' : 'transparent',
+                    color: (authMethod === 'phone' || step === 'phone' || step === 'otp') ? 'white' : '#6b7280',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <FaPhone style={{ marginRight: '8px', display: 'inline' }} />
+                  Phone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod('email');
+                    setStep('email-login');
+                    setError('');
+                    setOtp('');
+                    setOtpSent(false);
+                    setEmailOtpSent(false);
+                    setIsRegistering(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: (authMethod === 'email' || step === 'email-login' || step === 'email-register' || step === 'email-otp') ? '#e53e3e' : 'transparent',
+                    color: (authMethod === 'email' || step === 'email-login' || step === 'email-register' || step === 'email-otp') ? 'white' : '#6b7280',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  📧 Email
+                </button>
+              </div>
             </div>
           )}
 
@@ -1502,6 +1738,507 @@ const Login = () => {
                     <FaCheck size={16} />
                   )}
                   {loading ? "Verifying..." : "Verify and Login"}
+                </button>
+              </form>
+            </>
+          ) : loginType === 'owner' && step === 'email-login' ? (
+            <>
+              <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                <div style={{
+                  width: "60px",
+                  height: "60px",
+                  backgroundColor: "#fef7f0",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                  border: "2px solid #fed7aa"
+                }}>
+                  📧
+                </div>
+                <h2 style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "#1f2937",
+                  margin: "0 0 8px 0"
+                }}>
+                  Email Login
+                </h2>
+                <p style={{
+                  color: "#6b7280",
+                  margin: 0,
+                  fontSize: "14px"
+                }}>
+                  Login with your email and password
+                </p>
+              </div>
+
+              <form onSubmit={handleEmailLogin}>
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px"
+                  }}>
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      outline: "none",
+                      backgroundColor: "#fef7f0",
+                      transition: "all 0.2s",
+                      boxSizing: "border-box"
+                    }}
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: "24px" }}>
+                  <label style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px"
+                  }}>
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      outline: "none",
+                      backgroundColor: "#fef7f0",
+                      transition: "all 0.2s",
+                      boxSizing: "border-box"
+                    }}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !email || !password}
+                  style={{
+                    width: "100%",
+                    background: !loading && email && password
+                      ? "linear-gradient(135deg, #10b981, #059669)"
+                      : "#d1d5db",
+                    color: "white",
+                    padding: "16px",
+                    borderRadius: "12px",
+                    fontWeight: "700",
+                    fontSize: "16px",
+                    border: "none",
+                    cursor: !loading && email && password ? "pointer" : "not-allowed",
+                    transition: "all 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    marginBottom: "16px"
+                  }}
+                >
+                  {loading ? (
+                    <FaSpinner className="animate-spin" size={16} />
+                  ) : (
+                    <FaArrowRight size={16} />
+                  )}
+                  {loading ? "Logging in..." : "Login"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegistering(true);
+                    setStep('email-register');
+                    setError('');
+                  }}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    color: "#e53e3e",
+                    padding: "12px",
+                    borderRadius: "12px",
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    border: "2px solid #e53e3e",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Don't have an account? Register
+                </button>
+              </form>
+            </>
+          ) : loginType === 'owner' && step === 'email-register' ? (
+            <>
+              <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                <div style={{
+                  width: "60px",
+                  height: "60px",
+                  backgroundColor: "#fef7f0",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                  border: "2px solid #fed7aa"
+                }}>
+                  📧
+                </div>
+                <h2 style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "#1f2937",
+                  margin: "0 0 8px 0"
+                }}>
+                  Create Account
+                </h2>
+                <p style={{
+                  color: "#6b7280",
+                  margin: 0,
+                  fontSize: "14px"
+                }}>
+                  Register with email and password
+                </p>
+              </div>
+
+              <form onSubmit={handleEmailRegister}>
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px"
+                  }}>
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      outline: "none",
+                      backgroundColor: "#fef7f0",
+                      transition: "all 0.2s",
+                      boxSizing: "border-box"
+                    }}
+                    placeholder="Your name"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px"
+                  }}>
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      outline: "none",
+                      backgroundColor: "#fef7f0",
+                      transition: "all 0.2s",
+                      boxSizing: "border-box"
+                    }}
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px"
+                  }}>
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      outline: "none",
+                      backgroundColor: "#fef7f0",
+                      transition: "all 0.2s",
+                      boxSizing: "border-box"
+                    }}
+                    placeholder="At least 6 characters"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: "24px" }}>
+                  <label style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px"
+                  }}>
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      outline: "none",
+                      backgroundColor: "#fef7f0",
+                      transition: "all 0.2s",
+                      boxSizing: "border-box"
+                    }}
+                    placeholder="Confirm your password"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !email || !password || !confirmPassword || !name}
+                  style={{
+                    width: "100%",
+                    background: !loading && email && password && confirmPassword && name
+                      ? "linear-gradient(135deg, #10b981, #059669)"
+                      : "#d1d5db",
+                    color: "white",
+                    padding: "16px",
+                    borderRadius: "12px",
+                    fontWeight: "700",
+                    fontSize: "16px",
+                    border: "none",
+                    cursor: !loading && email && password && confirmPassword && name ? "pointer" : "not-allowed",
+                    transition: "all 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    marginBottom: "16px"
+                  }}
+                >
+                  {loading ? (
+                    <FaSpinner className="animate-spin" size={16} />
+                  ) : (
+                    <FaArrowRight size={16} />
+                  )}
+                  {loading ? "Sending OTP..." : "Continue"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegistering(false);
+                    setStep('email-login');
+                    setError('');
+                  }}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    color: "#e53e3e",
+                    padding: "12px",
+                    borderRadius: "12px",
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    border: "2px solid #e53e3e",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Already have an account? Login
+                </button>
+              </form>
+            </>
+          ) : loginType === 'owner' && step === 'email-otp' ? (
+            <>
+              <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                <div style={{
+                  width: "60px",
+                  height: "60px",
+                  backgroundColor: "#fef7f0",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                  border: "2px solid #fed7aa"
+                }}>
+                  📧
+                </div>
+                <h2 style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "#1f2937",
+                  margin: "0 0 8px 0"
+                }}>
+                  Verify Email
+                </h2>
+                <p style={{
+                  color: "#6b7280",
+                  margin: 0,
+                  fontSize: "14px"
+                }}>
+                  Enter the 6-digit code sent to {email}
+                </p>
+              </div>
+
+              <form onSubmit={handleEmailOtpVerify}>
+                <div style={{ marginBottom: "24px" }}>
+                  <label style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px"
+                  }}>
+                    OTP Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={emailOtp}
+                    onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="123456"
+                    maxLength={6}
+                    style={{
+                      width: "100%",
+                      padding: "16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "12px",
+                      fontSize: "24px",
+                      outline: "none",
+                      backgroundColor: "#fef7f0",
+                      transition: "all 0.2s",
+                      letterSpacing: "8px",
+                      textAlign: "center",
+                      fontWeight: "bold"
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#e53e3e";
+                      e.target.style.backgroundColor = "white";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#e5e7eb";
+                      e.target.style.backgroundColor = "#fef7f0";
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || emailOtp.length !== 6}
+                  style={{
+                    width: "100%",
+                    background: (emailOtp.length === 6 && !loading)
+                      ? "linear-gradient(135deg, #10b981, #059669)"
+                      : "#d1d5db",
+                    color: "white",
+                    padding: "16px",
+                    borderRadius: "12px",
+                    fontWeight: "700",
+                    fontSize: "16px",
+                    border: "none",
+                    cursor: (emailOtp.length === 6 && !loading) ? "pointer" : "not-allowed",
+                    transition: "all 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    marginBottom: "16px"
+                  }}
+                >
+                  {loading ? (
+                    <FaSpinner className="animate-spin" size={16} />
+                  ) : (
+                    <FaCheck size={16} />
+                  )}
+                  {loading ? "Verifying..." : "Verify and Continue"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+                      await fetch(`${backendUrl}/api/auth/email/send-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                          email, 
+                          purpose: isRegistering ? 'registration' : 'linking' 
+                        })
+                      });
+                      setError('');
+                    } catch (err) {
+                      setError('Failed to resend OTP');
+                    }
+                    setLoading(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    color: "#e53e3e",
+                    padding: "12px",
+                    borderRadius: "12px",
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    border: "2px solid #e53e3e",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Resend OTP
                 </button>
               </form>
             </>
