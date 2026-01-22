@@ -669,9 +669,22 @@ const Login = () => {
         body: JSON.stringify({ email, purpose: 'registration' })
       });
 
-      const otpData = await otpResponse.json();
+      let otpData;
+      try {
+        otpData = await otpResponse.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        setError('Failed to send OTP. Please try again.');
+        setLoading(false);
+        return;
+      }
+
       if (!otpResponse.ok) {
-        throw new Error(otpData.error || 'Failed to send OTP');
+        const errorMessage = otpData?.error || otpData?.message || `Failed to send OTP (${otpResponse.status})`;
+        console.error('Email OTP send error:', errorMessage, otpData);
+        setError(errorMessage);
+        setLoading(false);
+        return;
       }
 
       setEmailOtpSent(true);
@@ -679,7 +692,8 @@ const Login = () => {
       setLoading(false);
     } catch (err) {
       console.error('Email registration error:', err);
-      setError(err.message || 'Failed to send verification email');
+      const errorMessage = err.message || 'Failed to send verification email';
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -710,9 +724,22 @@ const Login = () => {
         })
       });
 
-      const registerData = await registerResponse.json();
+      let registerData;
+      try {
+        registerData = await registerResponse.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        setError('Registration failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
       if (!registerResponse.ok) {
-        throw new Error(registerData.error || 'Registration failed');
+        const errorMessage = registerData?.error || registerData?.message || `Registration failed (${registerResponse.status})`;
+        console.error('Email registration error:', errorMessage, registerData);
+        setError(errorMessage);
+        setLoading(false);
+        return;
       }
 
       if (registerData.token) {
@@ -755,7 +782,16 @@ const Login = () => {
         body: JSON.stringify({ email, password })
       });
 
-      const loginData = await loginResponse.json();
+      let loginData;
+      try {
+        loginData = await loginResponse.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        setError('Login failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
       if (!loginResponse.ok) {
         if (loginData.verificationRequired) {
           // Email not verified - send OTP
@@ -769,14 +805,21 @@ const Login = () => {
             setStep('email-otp');
             setEmailOtpSent(true);
             setError('Please verify your email with the OTP sent to your inbox');
+            setLoading(false);
+            return;
           } else {
-            throw new Error(otpData.error || 'Failed to send verification OTP');
+            const errorMessage = otpData.error || otpData.message || 'Failed to send verification OTP';
+            setError(errorMessage);
+            setLoading(false);
+            return;
           }
         } else {
-          throw new Error(loginData.error || 'Login failed');
+          const errorMessage = loginData.error || loginData.message || 'Login failed';
+          console.error('Email login error:', errorMessage);
+          setError(errorMessage);
+          setLoading(false);
+          return;
         }
-        setLoading(false);
-        return;
       }
 
       if (loginData.token) {

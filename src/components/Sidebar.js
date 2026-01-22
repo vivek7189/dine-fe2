@@ -254,11 +254,11 @@ export default function Sidebar() {
       >
         <div className="flex flex-col h-full">
           {/* Logo Section */}
-          <div className="flex items-center justify-center px-4 py-5 border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 py-5 border-b border-gray-100">
             <div
               onClick={() => router.push('/dashboard')}
               className="flex items-center gap-2 cursor-pointer"
-              style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', width: '100%' }}
+              style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', flex: 1 }}
             >
               <div
                 className="flex items-center justify-center rounded-lg"
@@ -276,6 +276,21 @@ export default function Sidebar() {
                 <h1 className="text-xl font-bold text-gray-900 m-0" style={{ fontSize: '20px', fontWeight: '700' }}>DineOpen</h1>
               )}
             </div>
+            {/* Collapse toggle near logo - only in expanded mode */}
+            {!isCollapsed && (
+              <button
+                onClick={toggleCollapse}
+                className="flex items-center justify-center rounded-lg hover:bg-gray-100 transition-all duration-200"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  marginLeft: '8px'
+                }}
+                title="Collapse sidebar"
+              >
+                <FaChevronLeft size={14} color="#9ca3af" />
+              </button>
+            )}
           </div>
 
           {/* Restaurant Info (for staff) */}
@@ -382,52 +397,65 @@ export default function Sidebar() {
           {/* User Section */}
           <div className="border-t border-gray-100 px-2 py-3">
             {!isCollapsed ? (
-              <Link href="/profile" onClick={(e) => handleNavigation('/profile', e)}>
-                <div className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group relative">
-                  <div
-                    className="flex items-center justify-center rounded-full flex-shrink-0"
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
-                      overflow: 'hidden',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    {user?.photoURL ? (
-                      <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
-                    )}
+              <div className="flex flex-col gap-2">
+                {/* User Info */}
+                <Link href="/profile" onClick={(e) => handleNavigation('/profile', e)}>
+                  <div className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-xl transition-all cursor-pointer">
+                    <div
+                      className="flex items-center justify-center rounded-full flex-shrink-0"
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+                      }}
+                    >
+                      {user?.photoURL ? (
+                        <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white font-semibold text-sm">{getUserInitials()}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{getUserDisplayName()}</p>
+                      <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-900 truncate">{getUserDisplayName()}</p>
-                    <p className="text-xs text-gray-500">{user?.role}</p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleLogout();
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Logout"
-                  >
-                    <FaSignOutAlt size={14} color="#ef4444" />
-                  </button>
-                </div>
-              </Link>
+                </Link>
+
+                {/* Logout Button */}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all duration-200 group"
+                  style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fee2e2';
+                    e.currentTarget.style.borderColor = '#fca5a5';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fef2f2';
+                    e.currentTarget.style.borderColor = '#fecaca';
+                  }}
+                >
+                  <FaSignOutAlt size={14} color="#ef4444" />
+                  <span className="text-sm font-medium" style={{ color: '#ef4444' }}>Logout</span>
+                </button>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <Link href="/profile" onClick={(e) => handleNavigation('/profile', e)}>
                   <div
                     className="flex items-center justify-center rounded-full group cursor-pointer relative"
                     style={{
-                      width: '36px',
-                      height: '36px',
+                      width: '40px',
+                      height: '40px',
                       background: user?.photoURL ? 'transparent' : getRoleColor(user?.role),
                       overflow: 'hidden',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
                     }}
                   >
                     {user?.photoURL ? (
@@ -442,32 +470,85 @@ export default function Sidebar() {
                     </div>
                   </div>
                 </Link>
+                {/* Collapsed Logout Button */}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-center rounded-xl transition-all duration-200 group relative"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fee2e2';
+                    e.currentTarget.style.borderColor = '#fca5a5';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fef2f2';
+                    e.currentTarget.style.borderColor = '#fecaca';
+                  }}
+                  title="Logout"
+                >
+                  <FaSignOutAlt size={16} color="#ef4444" />
+                  {/* Tooltip */}
+                  <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
+                    Logout
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                  </div>
+                </button>
               </div>
             )}
           </div>
 
-          {/* Collapse Toggle Button - At Bottom */}
-          <div className="border-t border-gray-100 px-2 py-3">
+          {/* Collapse Toggle Button - At Bottom (Enhanced) */}
+          <div className="px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
             <button
               onClick={toggleCollapse}
-              className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-50 transition-colors group relative"
+              className="w-full flex items-center justify-center rounded-xl transition-all duration-300 group relative overflow-hidden"
               title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               style={{
-                minHeight: '40px'
+                minHeight: '44px',
+                background: isCollapsed
+                  ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+                  : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)';
+                e.currentTarget.style.borderColor = '#cbd5e1';
+                e.currentTarget.style.transform = 'scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)';
+                e.currentTarget.style.borderColor = '#e2e8f0';
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
               {isCollapsed ? (
-                <FaChevronRight size={16} color="#6b7280" />
+                <div className="flex items-center justify-center">
+                  <FaChevronRight size={14} color="#64748b" style={{ transition: 'transform 0.2s' }} />
+                </div>
               ) : (
-                <>
-                  <FaChevronLeft size={16} color="#6b7280" style={{ marginRight: '8px' }} />
-                  <span className="text-xs text-gray-600 font-medium">Collapse</span>
-                </>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center justify-center rounded-lg"
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#e2e8f0'
+                    }}
+                  >
+                    <FaChevronLeft size={10} color="#64748b" />
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: '#64748b' }}>Collapse Menu</span>
+                </div>
               )}
               {/* Tooltip for collapsed state */}
               {isCollapsed && (
                 <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
-                  Expand
+                  Expand Menu
                   <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
                 </div>
               )}
