@@ -131,8 +131,8 @@ const KitchenOrderTicket = () => {
         setRefreshing(true);
       }
 
-      // STAGING BRANCH: Use staging backend URL
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-6g2w5y6wq-kapils-projects-bfc8fbae.vercel.app';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const kotApiUrl = `${backendUrl}/api/kot/${restaurantId}`;
       console.log('🌐 Making KOT API call to:', kotApiUrl);
       

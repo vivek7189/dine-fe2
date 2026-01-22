@@ -141,7 +141,8 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const response = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
         method: 'POST',
         headers: {
@@ -183,7 +184,8 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const response = await fetch(`${backendUrl}/api/user/link-email`, {
         method: 'POST',
         headers: {
@@ -239,7 +241,8 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       // Use same OTP API as login page
       const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
         method: 'POST',
@@ -279,7 +282,8 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const response = await fetch(`${backendUrl}/api/user/link-phone`, {
         method: 'POST',
         headers: {

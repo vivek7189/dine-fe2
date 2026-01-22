@@ -230,7 +230,9 @@ function NavigationContent({ isHidden = false }) {
               // Fallback: fetch restaurant data from API
             try {
               const token = localStorage.getItem('authToken');
-              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'}/api/restaurants`, {
+              // STAGING BRANCH: Hardcoded staging backend URL
+              const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+              const response = await fetch(`${backendUrl}/api/restaurants`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'
@@ -251,7 +253,9 @@ function NavigationContent({ isHidden = false }) {
             // For owners, get all their restaurants
             try {
               const token = localStorage.getItem('authToken');
-              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'}/api/restaurants`, {
+              // STAGING BRANCH: Hardcoded staging backend URL
+              const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+              const response = await fetch(`${backendUrl}/api/restaurants`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'

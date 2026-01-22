@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-// STAGING BRANCH: Use staging backend URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-6g2w5y6wq-kapils-projects-bfc8fbae.vercel.app';
+// STAGING BRANCH: Hardcoded staging backend URL
+const API_BASE_URL = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
 
 // KOT Receipt Component - Styled for 80mm thermal printer
 const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting }) => {

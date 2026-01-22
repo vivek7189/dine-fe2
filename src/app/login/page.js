@@ -413,7 +413,8 @@ const Login = () => {
       // Check if it's a dummy account (only for India +91)
       if (selectedCountry.code === 'IN' && isDummyAccount(phoneNumber)) {
         // Use backend OTP for dummy account
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        // STAGING BRANCH: Hardcoded staging backend URL
+        const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
         const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
           method: 'POST',
           headers: {
@@ -491,7 +492,8 @@ const Login = () => {
         const result = await verificationId.confirm(otp);
         
         // Call backend to get JWT token
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        // STAGING BRANCH: Hardcoded staging backend URL
+        const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
         const firebaseResponse = await fetch(`${backendUrl}/api/auth/firebase/verify`, {
           method: 'POST',
           headers: {
@@ -534,7 +536,8 @@ const Login = () => {
         }
       } else {
         // Verify backend OTP (for dummy account)
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        // STAGING BRANCH: Hardcoded staging backend URL
+        const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
         
         // Ensure we have the correct phone number for demo mode
         const actualPhoneNumber = phoneNumber || '9000000000';
@@ -2253,7 +2256,8 @@ const Login = () => {
                   onClick={async () => {
                     setLoading(true);
                     try {
-                      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+                      // STAGING BRANCH: Hardcoded staging backend URL
+        const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
                       await fetch(`${backendUrl}/api/auth/email/send-otp`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
