@@ -375,7 +375,8 @@ export default function BillingPage() {
       console.log('Current user data:', user);
       console.log('Selected plan:', plan);
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const API_BASE_URL = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       
       // If free-trial plan, just update subscription without payment
       if (plan.id === 'free-trial' || plan.price === 0) {
@@ -510,7 +511,8 @@ export default function BillingPage() {
     try {
       setPaymentProcessing(true);
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const API_BASE_URL = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       
       const response = await fetch(`${API_BASE_URL}/api/payments/verify`, {
         method: 'POST',
