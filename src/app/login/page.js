@@ -664,8 +664,8 @@ const Login = () => {
         return;
       }
 
-      // First send OTP
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const otpResponse = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -714,7 +714,8 @@ const Login = () => {
         return;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const registerResponse = await fetch(`${backendUrl}/api/auth/email/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -778,7 +779,8 @@ const Login = () => {
         return;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const loginResponse = await fetch(`${backendUrl}/api/auth/email/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -862,7 +864,8 @@ const Login = () => {
       console.log('Google login result:', result.user);
       
       // Send user data to backend (Firebase already verified the user)
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const googleResponse = await fetch(`${backendUrl}/api/auth/google`, {
         method: 'POST',
         headers: {
@@ -967,7 +970,8 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      // STAGING BRANCH: Hardcoded staging backend URL
+      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const response = await fetch(`${backendUrl}/api/auth/staff/login`, {
         method: 'POST',
         headers: {
