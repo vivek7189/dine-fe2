@@ -46,7 +46,9 @@ const LocalLogin = () => {
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app'}/api/auth/local-login`, {
+      // STAGING BRANCH: Use staging backend URL
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-6g2w5y6wq-kapils-projects-bfc8fbae.vercel.app';
+      const response = await fetch(`${backendUrl}/api/auth/local-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

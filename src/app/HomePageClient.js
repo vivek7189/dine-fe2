@@ -598,7 +598,7 @@ export default function LandingPage() {
               marginBottom: '32px',
               fontWeight: '400'
             }}>
-              The all-in-one restaurant management system that <strong>takes orders, manages bookings, and handles everything automatically.</strong> No hardware required. <strong>Just growth.</strong>
+              The all-in-one restaurant management system that <strong>takes orders for you, manages bookings, and handles everything automatically.</strong> No hardware required. <strong>Just growth.</strong>
             </p>
 
             {/* Feature Highlights Grid */}

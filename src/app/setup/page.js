@@ -53,7 +53,9 @@ const Setup = () => {
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app'}/api/admin/setup-client`, {
+      // STAGING BRANCH: Use staging backend URL
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-6g2w5y6wq-kapils-projects-bfc8fbae.vercel.app';
+      const response = await fetch(`${backendUrl}/api/admin/setup-client`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

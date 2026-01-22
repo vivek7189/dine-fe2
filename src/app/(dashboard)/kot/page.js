@@ -131,8 +131,9 @@ const KitchenOrderTicket = () => {
         setRefreshing(true);
       }
 
-      // Get KOT orders for this restaurant using the specific API endpoint
-      const kotApiUrl = `https://dine-backend-lake.vercel.app/api/kot/${restaurantId}`;
+      // STAGING BRANCH: Use staging backend URL
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-6g2w5y6wq-kapils-projects-bfc8fbae.vercel.app';
+      const kotApiUrl = `${backendUrl}/api/kot/${restaurantId}`;
       console.log('🌐 Making KOT API call to:', kotApiUrl);
       
       const response = await fetch(kotApiUrl, {
