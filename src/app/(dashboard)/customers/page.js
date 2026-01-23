@@ -645,12 +645,15 @@ const Customers = () => {
     .sort((a, b) => {
       let aValue = a[sortBy];
       let bValue = b[sortBy];
-      
+
       if (sortBy === 'lastOrderDate') {
         aValue = aValue ? new Date(aValue) : new Date(0);
         bValue = bValue ? new Date(bValue) : new Date(0);
+      } else if (sortBy === 'loyaltyPoints' || sortBy === 'totalOrders' || sortBy === 'totalSpent') {
+        aValue = aValue || 0;
+        bValue = bValue || 0;
       }
-      
+
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -985,6 +988,7 @@ const Customers = () => {
                   <option value="name">{t('customers.sort.name')}</option>
                   <option value="totalOrders">{t('customers.sort.orders')}</option>
                   <option value="totalSpent">{t('customers.sort.spent')}</option>
+                  <option value="loyaltyPoints">Loyalty Points</option>
                 </select>
                 
                 <button
@@ -1072,6 +1076,32 @@ const Customers = () => {
 
                     {/* Stats - More Compact */}
                     <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center' }}>
+                      {/* Crave App Badge */}
+                      {customer.source === 'customer_app' && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          backgroundColor: '#fce7f3',
+                          color: '#ec4899',
+                          fontSize: isMobile ? '10px' : '11px',
+                          fontWeight: '600',
+                          borderRadius: '12px'
+                        }}>
+                          <span style={{ width: '6px', height: '6px', backgroundColor: '#ec4899', borderRadius: '50%', display: 'inline-block' }}></span>
+                          Crave
+                        </div>
+                      )}
+                      {/* Loyalty Points */}
+                      {customer.loyaltyPoints > 0 && (
+                        <div style={{ textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#f59e0b' }}>
+                            {customer.loyaltyPoints}
+                          </p>
+                          <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>Points</p>
+                        </div>
+                      )}
                       <div style={{ textAlign: 'center' }}>
                         <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1f2937' }}>
                           {customer.totalOrders || 0}
