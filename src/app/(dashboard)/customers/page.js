@@ -750,9 +750,41 @@ const Customers = () => {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
-                        {order.orderNumber}
-                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
+                          {order.orderNumber}
+                        </h3>
+                        {/* Order Type Tag */}
+                        {order.orderTypeLabel && (
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            backgroundColor: order.orderType === 'dine_in' ? '#dbeafe' :
+                                           order.orderType === 'takeaway' ? '#fef3c7' :
+                                           order.orderType === 'delivery' ? '#dcfce7' : '#f3e8ff',
+                            color: order.orderType === 'dine_in' ? '#1e40af' :
+                                  order.orderType === 'takeaway' ? '#92400e' :
+                                  order.orderType === 'delivery' ? '#166534' : '#7e22ce'
+                          }}>
+                            {order.orderTypeLabel}
+                          </span>
+                        )}
+                        {/* Crave App Tag */}
+                        {order.orderSource === 'crave_app' && (
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            backgroundColor: '#fce7f3',
+                            color: '#be185d'
+                          }}>
+                            Crave
+                          </span>
+                        )}
+                      </div>
                       <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
                         {new Date(order.orderDate).toLocaleDateString()} at {new Date(order.orderDate).toLocaleTimeString()}
                       </p>
@@ -764,6 +796,20 @@ const Customers = () => {
                       {order.tableNumber && (
                         <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
                           {t('customers.orderHistory.table')}: {order.tableNumber}
+                        </p>
+                      )}
+                      {/* Discount info */}
+                      {(order.discountAmount > 0 || order.loyaltyDiscount > 0) && (
+                        <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#059669' }}>
+                          {order.discountAmount > 0 && `Offer: -₹${order.discountAmount}`}
+                          {order.discountAmount > 0 && order.loyaltyDiscount > 0 && ' | '}
+                          {order.loyaltyDiscount > 0 && `Loyalty: -₹${order.loyaltyDiscount}`}
+                        </p>
+                      )}
+                      {/* Loyalty points earned */}
+                      {order.loyaltyPointsEarned > 0 && (
+                        <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#7c3aed' }}>
+                          +{order.loyaltyPointsEarned} pts earned
                         </p>
                       )}
                     </div>

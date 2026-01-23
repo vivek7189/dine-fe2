@@ -1751,6 +1751,61 @@ class ApiClient {
 
     return this.request(`/api/hotel/guests/${restaurantId}?${params.toString()}`);
   }
+
+  // ==================== OFFERS MANAGEMENT ====================
+
+  // Get all offers for a restaurant
+  async getOffers(restaurantId) {
+    return this.request(`/api/offers/${restaurantId}`);
+  }
+
+  // Create a new offer
+  async createOffer(restaurantId, offerData) {
+    return this.request(`/api/offers/${restaurantId}`, {
+      method: 'POST',
+      body: offerData,
+    });
+  }
+
+  // Update an offer
+  async updateOffer(restaurantId, offerId, offerData) {
+    return this.request(`/api/offers/${restaurantId}/${offerId}`, {
+      method: 'PUT',
+      body: offerData,
+    });
+  }
+
+  // Delete an offer
+  async deleteOffer(restaurantId, offerId) {
+    return this.request(`/api/offers/${restaurantId}/${offerId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ==================== CUSTOMER APP SETTINGS ====================
+
+  // Get customer app settings
+  async getCustomerAppSettings(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/customer-app-settings`);
+  }
+
+  // Update customer app settings
+  async updateCustomerAppSettings(restaurantId, settings) {
+    return this.request(`/api/restaurants/${restaurantId}/customer-app-settings`, {
+      method: 'PUT',
+      body: settings,
+    });
+  }
+
+  // Get restaurant by code (public)
+  async getRestaurantByCode(code) {
+    return this.request(`/api/public/restaurant/code/${code}`);
+  }
+
+  // Get active offers (public)
+  async getActiveOffers(restaurantId) {
+    return this.request(`/api/public/offers/${restaurantId}`);
+  }
 }
 
 const apiClient = new ApiClient();
