@@ -228,8 +228,7 @@ export default function BillingPage() {
           // Fetch subscription data from backend (only for owners/admins)
           if (parsedUser.uid || parsedUser.id) {
             try {
-              // STAGING BRANCH: Hardcoded staging backend URL
-              const API_BASE_URL = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+              const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
               showNotification('info', 'Loading billing information...');
               
               // First try to get existing subscription
@@ -375,8 +374,7 @@ export default function BillingPage() {
       console.log('Current user data:', user);
       console.log('Selected plan:', plan);
       
-      // STAGING BRANCH: Hardcoded staging backend URL
-      const API_BASE_URL = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       
       // If free-trial plan, just update subscription without payment
       if (plan.id === 'free-trial' || plan.price === 0) {
@@ -511,8 +509,7 @@ export default function BillingPage() {
     try {
       setPaymentProcessing(true);
       
-      // STAGING BRANCH: Hardcoded staging backend URL
-      const API_BASE_URL = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       
       const response = await fetch(`${API_BASE_URL}/api/payments/verify`, {
         method: 'POST',

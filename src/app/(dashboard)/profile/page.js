@@ -191,8 +191,7 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      // STAGING BRANCH: Hardcoded staging backend URL
-      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const response = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
         method: 'POST',
         headers: {
@@ -234,8 +233,7 @@ const Profile = () => {
     setLinkLoading(true);
     setLinkError('');
     try {
-      // STAGING BRANCH: Hardcoded staging backend URL
-      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const response = await fetch(`${backendUrl}/api/user/link-email`, {
         method: 'POST',
         headers: {
@@ -303,7 +301,7 @@ const Profile = () => {
     try {
       // Check if it's a dummy/test number - use backend OTP
       if (isDummyPhoneNumber(normalizedPhone)) {
-        const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
         const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
           method: 'POST',
           headers: {
@@ -400,7 +398,7 @@ const Profile = () => {
       }
 
       // Call backend to link phone
-      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const response = await fetch(`${backendUrl}/api/user/link-phone`, {
         method: 'POST',
         headers: {

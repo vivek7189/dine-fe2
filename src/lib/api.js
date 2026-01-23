@@ -1,5 +1,4 @@
-// STAGING BRANCH: Hardcoded staging backend URL
-const API_BASE_URL = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 
 class ApiClient {
   constructor() {

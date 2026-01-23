@@ -131,8 +131,7 @@ const KitchenOrderTicket = () => {
         setRefreshing(true);
       }
 
-      // STAGING BRANCH: Hardcoded staging backend URL
-      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const kotApiUrl = `${backendUrl}/api/kot/${restaurantId}`;
       console.log('🌐 Making KOT API call to:', kotApiUrl);
       

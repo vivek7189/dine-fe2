@@ -5,8 +5,7 @@ const nextConfig = {
     domains: ['localhost', 'firebasestorage.googleapis.com', 'storage.googleapis.com'],
   },
   env: {
-    // STAGING BRANCH: Hardcoded staging backend URL (removed env var to prevent override)
-    NEXT_PUBLIC_API_URL: 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003',
   },
   // Ensure proper handling of client-side features
   experimental: {
