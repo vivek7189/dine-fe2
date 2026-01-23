@@ -178,7 +178,7 @@ const CustomerAppSettings = () => {
             Customer App (Crave)
           </h1>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-            Configure your restaurant's customer ordering app settings
+            Configure your restaurant&apos;s customer ordering app settings
           </p>
         </div>
 
