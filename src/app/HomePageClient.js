@@ -39,8 +39,7 @@ export default function LandingPage() {
   const [demoSubmitting, setDemoSubmitting] = useState(false);
   const [demoSuccess, setDemoSuccess] = useState(false);
   const [demoError, setDemoError] = useState('');
-  const [currency, setCurrency] = useState('USD');
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [currency, setCurrency] = useState('INR');
   
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 1024);
@@ -95,12 +94,18 @@ export default function LandingPage() {
   };
 
   const handleSubmitDemoRequest = async () => {
-    if (!demoRestaurantName.trim()) return setDemoError('Restaurant name is required');
     if (demoContactType === 'phone' && !demoPhone.trim()) return setDemoError('Phone number is required');
     if (demoContactType === 'email' && !demoEmail.trim()) return setDemoError('Email is required');
     setDemoSubmitting(true); setDemoError('');
     try {
-      const comment = `Restaurant: ${demoRestaurantName.trim()}\n${demoComment.trim()}`;
+      // Build comment: include restaurant name only if provided, then additional details
+      let comment = '';
+      if (demoRestaurantName.trim()) {
+        comment = `Restaurant: ${demoRestaurantName.trim()}`;
+      }
+      if (demoComment.trim()) {
+        comment = comment ? `${comment}\n${demoComment.trim()}` : demoComment.trim();
+      }
       await apiClient.submitDemoRequest(demoContactType, demoPhone.trim(), demoEmail.trim(), comment);
       setDemoSuccess(true);
       setTimeout(() => { 
@@ -115,28 +120,25 @@ export default function LandingPage() {
     finally { setDemoSubmitting(false); }
   };
 
-  const currencySymbols = { USD: '$', GBP: '£', INR: '₹' };
-  const currencyNames = { USD: 'USD', GBP: 'GBP', INR: 'INR' };
-
   const plans = [
     {
-      name: "Starter",
-      type: "starter",
-      price: currency === 'INR' ? '₹300' : currency === 'GBP' ? '£8' : '$10',
-      period: 'per month',
-      subPrice: currency === 'INR' ? 'Perfect for small restaurants' : 'Perfect for getting started',
-      features: ["AI Agent (Voice & Chat)", "QR Code Digital Menu", "POS Billing System", "Up to 10 Tables", "Basic Inventory", "Email Support"],
-      button: "Start Free Trial",
+      name: "Pay as You Go",
+      type: "payg",
+      price: currency === 'INR' ? '₹300' : '$5',
+      period: 'one-time',
+      subPrice: currency === 'INR' ? 'Then ₹150 / 500 orders' : 'Then $3 / 500 orders',
+      features: ["Restaurant Billing Software", "AI Agent (Voice/Chat)", "QR Menu", "Unlimited Tables", "KOT & Inventory", "CRM & Loyalty"],
+      button: "Get Started Free",
       popular: true
     },
     {
-      name: "Professional",
-      type: "professional",
-      price: currency === 'INR' ? '₹600' : currency === 'GBP' ? '£24' : '$30',
+      name: "Monthly Fixed",
+      type: "fixed",
+      price: currency === 'INR' ? '₹600' : '$15',
       period: 'per month',
-      subPrice: 'For growing restaurants',
-      features: ["Everything in Starter", "Unlimited Tables", "Advanced AI Analytics", "Multi-location Support", "Priority 24/7 Support", "API Access", "Custom Integrations"],
-      button: "Start Free Trial",
+      subPrice: 'Unlimited Orders',
+      features: ["All Features Included", "Priority Support", "Dedicated Account Manager", "Custom Onboarding", "API Access"],
+      button: "Start 1 Month Trial",
       popular: false
     }
   ];
@@ -552,31 +554,30 @@ export default function LandingPage() {
             alignItems: 'center',
             gap: '8px',
             padding: '8px 20px',
-            background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-            color: '#111827',
+            background: 'linear-gradient(135deg, #fff1f2 0%, #fee2e2 100%)',
+            color: '#be123c',
             borderRadius: '30px',
             fontSize: '13px',
             fontWeight: '700',
             marginBottom: '32px',
-            border: '1px solid #ddd6fe',
-            boxShadow: '0 2px 8px rgba(124, 58, 237, 0.15)',
+            border: '1px solid #fecdd3',
+            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.1)',
             animation: 'scale-in 0.5s ease-out'
           }}>
-            <FaRobot style={{ animation: 'pulse-glow 2s ease-in-out infinite' }} /> Next-Gen AI-Powered Restaurant Platform
+            <FaStar style={{ animation: 'pulse-glow 2s ease-in-out infinite' }} /> Top Rated Restaurant Point od Sale (POS) System.
           </div>
           
           <h1 style={{
-            fontSize: isMobile ? '36px' : '68px',
+            fontSize: isMobile ? '38px' : '72px',
             fontWeight: '900',
             lineHeight: '1.1',
             color: '#111827',
             marginBottom: '24px',
             letterSpacing: '-2px',
             animation: 'fade-in-up 0.6s ease-out 0.1s backwards',
-            minHeight: isMobile ? '140px' : '180px'
+            minHeight: isMobile ? '120px' : '160px'
           }}>
-            Next-Gen AI Platform<br/>
-            for{' '}
+            AI Agent for <br/>
             <span
               className={fadeState}
               style={{
@@ -603,7 +604,7 @@ export default function LandingPage() {
               marginBottom: '32px',
               fontWeight: '400'
             }}>
-              The world&apos;s first <strong>AI Agent that runs your restaurant 24/7.</strong> Takes orders via voice & chat, manages reservations, handles customer inquiries, and optimizes operations—<strong>all autonomously.</strong>
+              The all-in-one restaurant management system that <strong>takes orders for your restaurant, manages bookings, and handles everything automatically.</strong> No hardware required. <strong>Just growth.</strong>
             </p>
 
             {/* Feature Highlights Grid */}
@@ -613,98 +614,8 @@ export default function LandingPage() {
               gap: '16px',
               marginBottom: '24px'
             }}>
-              {/* Feature 1: AI Voice Agent */}
+              {/* Feature 1: POS System */}
               <div style={{
-                background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-                border: '2px solid #ddd6fe',
-                borderRadius: '16px',
-                padding: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(124, 58, 237, 0.15)';
-                e.currentTarget.style.borderColor = '#111827';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = '#ddd6fe';
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
-                }}>
-                  <FaMicrophone size={22} color="white" />
-                </div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
-                    AI Voice Ordering
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
-                    24/7 phone order agent
-                  </div>
-                </div>
-          </div>
-
-              {/* Feature 2: Smart Chat Agent */}
-            <div style={{
-                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                border: '2px solid #bbf7d0',
-                borderRadius: '16px',
-                padding: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(16, 185, 129, 0.15)';
-                e.currentTarget.style.borderColor = '#10b981';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = '#bbf7d0';
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                }}>
-                  <FaRobot size={22} color="white" />
-                </div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
-                    AI Chat Assistant
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
-                    WhatsApp & web ordering
-                  </div>
-                </div>
-            </div>
-
-              {/* Feature 3: Cloud POS */}
-            <div style={{
                 background: 'linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%)',
                 border: '2px solid #fecdd3',
                 borderRadius: '16px',
@@ -736,20 +647,110 @@ export default function LandingPage() {
                   flexShrink: 0,
                   boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
                 }}>
-                  <FaCloud size={22} color="white" />
+                  <FaReceipt size={22} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+                    Complete POS System
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Billing in seconds
+                  </div>
+                </div>
+          </div>
+
+              {/* Feature 2: Free QR Menu */}
+            <div style={{ 
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '2px solid #bbf7d0',
+                borderRadius: '16px',
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(16, 185, 129, 0.15)';
+                e.currentTarget.style.borderColor = '#10b981';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#bbf7d0';
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                }}>
+                  <FaQrcode size={22} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+                    Free QR Code Menu
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Goes live instantly
+                  </div>
+                </div>
+            </div>
+
+              {/* Feature 3: Auto Inventory */}
+            <div style={{ 
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                border: '2px solid #fcd34d',
+                borderRadius: '16px',
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(245, 158, 11, 0.15)';
+                e.currentTarget.style.borderColor = '#f59e0b';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#fcd34d';
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                }}>
+                  <FaBoxes size={22} color="white" />
                       </div>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
-                    Cloud-Based POS
+                    Auto Inventory Tracking
                     </div>
                   <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
-                    Works on any device
+                    Updates automatically
                       </div>
                     </div>
                   </div>
                 </div>
 
-            {/* AI Agent Highlight */}
+            {/* AI Voice Agent Highlight */}
             <div style={{
               background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
               border: '2px solid #e9d5ff',
@@ -763,7 +764,7 @@ export default function LandingPage() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.02)';
-              e.currentTarget.style.boxShadow = '0 16px 32px rgba(239, 68, 68, 0.15)';
+              e.currentTarget.style.boxShadow = '0 16px 32px rgba(139, 92, 246, 0.15)';
               e.currentTarget.style.borderColor = '#a78bfa';
             }}
             onMouseLeave={(e) => {
@@ -777,45 +778,45 @@ export default function LandingPage() {
                 right: '-10%',
                 width: '200px',
                 height: '200px',
-                background: 'radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%)',
                 borderRadius: '50%',
                 pointerEvents: 'none'
               }}></div>
               <div style={{
                 width: '64px',
                 height: '64px',
-                background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                 borderRadius: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                boxShadow: '0 8px 20px rgba(17, 24, 39, 0.4)',
+                boxShadow: '0 8px 20px rgba(139, 92, 246, 0.4)',
                 position: 'relative',
                 zIndex: 1
               }}>
-                <FaRobot size={28} color="white" />
+                <FaMicrophone size={28} color="white" />
                 </div>
-              <div style={{ flex: 1, position: 'relative', zIndex: 1, textAlign: 'left' }}>
+              <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'rgba(239, 68, 68, 0.1)',
+                  background: 'rgba(139, 92, 246, 0.1)',
                   padding: '4px 12px',
                   borderRadius: '20px',
                   fontSize: '11px',
                   fontWeight: '700',
-                  color: '#111827',
+                  color: '#7c3aed',
                   marginBottom: '8px'
                 }}>
                   <FaBolt size={10} /> AI-POWERED
               </div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#111827', marginBottom: '6px' }}>
-                  Your 24/7 Digital Employee
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#111827', marginBottom: '6px', whiteSpace: 'nowrap' }}>
+                  AI Agent for Bakeries
                 </div>
                 <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
-                  Takes orders via voice & chat, manages reservations, upsells automatically, and sends tickets to kitchen—<strong>all without human intervention.</strong>
+                  Takes phone orders, manages table bookings, and handles customer inquiries <strong>24/7 automatically</strong>. No staff needed.
                 </div>
               </div>
             </div>
@@ -930,7 +931,7 @@ export default function LandingPage() {
             borderRadius: '20px',
             border: '1px solid #fecaca'
           }}>
-            🤖 SMART AI ASSISTANT
+            🤖 AI AUTOMATION
           </div>
           <h2 style={{
             fontSize: isMobile ? '36px' : '56px',
@@ -940,7 +941,7 @@ export default function LandingPage() {
             lineHeight: '1.2',
             letterSpacing: '-1px'
           }}>
-            Your AI Assistant <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Never Sleeps</span>
+            AI Takes Orders While <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>You Focus on Food</span>
           </h2>
           <p style={{
             fontSize: isMobile ? '18px' : '22px',
@@ -949,7 +950,7 @@ export default function LandingPage() {
             margin: '0 auto 60px',
             lineHeight: '1.7'
           }}>
-            Our AI Agent works around the clock—taking phone calls, answering customer questions, processing orders via WhatsApp, and intelligently upselling. It never takes breaks, never calls in sick, and scales instantly during rush hours. <strong>Included in all plans.</strong>
+            Stop missing orders during peak hours. DineOpen AI chats with customers on WhatsApp, takes their orders, upsells add-ons automatically, and sends everything to your kitchen. No staff needed. <strong>Included free in all plans.</strong>
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '60px', alignItems: 'center' }}>
@@ -986,13 +987,13 @@ export default function LandingPage() {
                 {chatStep >= 3 && (
                   <div className="chat-bubble" style={{ alignSelf: 'flex-start', width: '100%' }}>
                     <div style={{ background: 'white', padding: '12px 16px', borderRadius: '16px 16px 16px 4px', fontSize: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '8px' }}>
-                      Here&apos;s our <strong>Chef&apos;s Special</strong> - Grilled Salmon! 🔥 Our most popular dish!
+                      Here&apos;s our <strong>Bestseller</strong> - Butter Chicken! 🔥 Customers love it!
                     </div>
                     <div style={{ background: 'white', padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #f3f4f6' }}>
-                      <div style={{ fontSize: '24px' }}>🍽️</div>
+                      <div style={{ fontSize: '24px' }}>🍗</div>
                       <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: '700', fontSize: '14px' }}>Grilled Salmon</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280' }}>{currency === 'INR' ? '₹850' : currency === 'GBP' ? '£18' : '$22'} • ⭐ 4.9 Rating</div>
+                        <div style={{ fontWeight: '700', fontSize: '14px' }}>Butter Chicken</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>₹ 320 • ⭐ 4.8 Rating</div>
                       </div>
                       <button style={{ padding: '6px 12px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', borderRadius: '8px', border: 'none', fontSize: '12px', fontWeight: 'bold' }}>Add</button>
                     </div>
@@ -1297,13 +1298,13 @@ export default function LandingPage() {
                 <FaReceipt size={28} color="#ef4444" />
               </div>
               <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#111827', marginBottom: '12px' }}>
-                Cloud POS System
+                POS Billing System
               </h3>
               <p style={{ fontSize: '16px', color: '#6b7280', lineHeight: '1.6', marginBottom: '20px' }}>
-                Fast & accurate billing software with tax compliance. Accept all payment methods—cash, cards, digital wallets. Works globally.
+                Fast & accurate billing software with GST support. Accept payments via cash, card, UPI & wallets. Print bills instantly.
               </p>
               <div style={{ fontSize: '14px', color: '#10b981', fontWeight: '700' }}>
-                ✓ Tax Compliant • ✓ All Payments • ✓ Any Device
+                ✓ GST Compliant • ✓ Multi-Payment • ✓ Instant Billing
               </div>
             </div>
 
@@ -1418,7 +1419,7 @@ export default function LandingPage() {
                 justifyContent: 'center',
                 marginBottom: '24px'
               }}>
-                <FaChartBar size={28} color="#3b82f6" />
+                <FaChartBar size={28} color="#7c3aed" />
               </div>
               <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#111827', marginBottom: '12px' }}>
                 Analytics & Reports
@@ -1563,150 +1564,34 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section - Clean Cards with Currency Selector */}
+      {/* Pricing Section - Clean Cards */}
       <section id="pricing" style={{ padding: '100px 20px', backgroundColor: 'white' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{
-            fontSize: '13px',
-            fontWeight: '800',
-            color: '#ef4444',
-            textTransform: 'uppercase',
-            letterSpacing: '1.5px',
-            marginBottom: '16px',
-            display: 'inline-block',
-            padding: '6px 16px',
-            background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-            borderRadius: '20px',
-            border: '1px solid #fecaca'
-          }}>
-            💰 TRANSPARENT PRICING
-          </div>
-          <h2 style={{ fontSize: isMobile ? '36px' : '52px', fontWeight: '900', marginBottom: '16px', letterSpacing: '-1px' }}>
-            Simple, <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Fair Pricing</span>
-          </h2>
-          <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '32px', maxWidth: '600px', margin: '0 auto 32px' }}>
-            Start free, scale as you grow. No hidden fees. Cancel anytime.
-          </p>
-
-          {/* Currency Selector */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '48px',
-            padding: '4px',
-            background: '#f3f4f6',
-            borderRadius: '12px'
-          }}>
-            {['USD', 'GBP', 'INR'].map((curr) => (
-              <button
-                key={curr}
-                onClick={() => setCurrency(curr)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: currency === curr ? 'white' : 'transparent',
-                  color: currency === curr ? '#111827' : '#6b7280',
-                  fontWeight: '700',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: currency === curr ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
-                }}
-              >
-                {currencySymbols[curr]} {curr}
-              </button>
-            ))}
-          </div>
-
+          <h2 style={{ fontSize: '42px', fontWeight: '800', marginBottom: '60px' }}>Simple Pricing</h2>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '32px' }}>
             {plans.map((plan, i) => (
-              <div key={i} style={{
-                padding: '40px',
-                borderRadius: '32px',
-                border: plan.popular ? '2px solid #111827' : '1px solid #e5e7eb',
-                background: plan.popular ? 'linear-gradient(135deg, #111827 0%, #1f2937 100%)' : 'white',
-                color: plan.popular ? 'white' : '#111827',
-                textAlign: 'left',
-                position: 'relative',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-8px)';
-                e.currentTarget.style.boxShadow = plan.popular ? '0 25px 50px -12px rgba(0, 0, 0, 0.25)' : '0 25px 50px -12px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}>
-                {plan.popular && <div style={{ position: 'absolute', top: '-12px', right: '40px', background: 'linear-gradient(135deg, #111827 0%, #374151 100%)', color: 'white', fontSize: '12px', fontWeight: '700', padding: '6px 16px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)' }}>MOST POPULAR</div>}
+              <div key={i} style={{ padding: '40px', borderRadius: '32px', border: plan.popular ? '2px solid #111827' : '1px solid #e5e7eb', background: plan.popular ? '#111827' : 'white', color: plan.popular ? 'white' : '#111827', textAlign: 'left', position: 'relative' }}>
+                {plan.popular && <div style={{ position: 'absolute', top: '-12px', right: '40px', background: '#ef4444', color: 'white', fontSize: '12px', fontWeight: '700', padding: '4px 12px', borderRadius: '20px' }}>POPULAR</div>}
                 <h3 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>{plan.name}</h3>
-                <div style={{ fontSize: '48px', fontWeight: '900', marginBottom: '4px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  {plan.price}
-                  <span style={{ fontSize: '16px', fontWeight: '500', opacity: 0.7 }}>/{plan.period.replace('per ', '')}</span>
-                </div>
-                <p style={{ opacity: 0.7, marginBottom: '32px', fontSize: '15px' }}>{plan.subPrice}</p>
-                <button
-                  onClick={handleLogin}
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    borderRadius: '12px',
-                    background: plan.popular ? 'white' : 'linear-gradient(135deg, #111827 0%, #1f2937 100%)',
-                    color: plan.popular ? '#111827' : 'white',
-                    border: 'none',
-                    fontWeight: '700',
-                    marginBottom: '32px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.target.style.transform = 'scale(1.02)'; }}
-                  onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }}
-                >{plan.button}</button>
+                <div style={{ fontSize: '42px', fontWeight: '800', marginBottom: '8px' }}>{plan.price}</div>
+                <p style={{ opacity: 0.7, marginBottom: '32px' }}>{plan.subPrice}</p>
+                <button style={{ width: '100%', padding: '16px', borderRadius: '12px', background: plan.popular ? 'white' : '#111827', color: plan.popular ? '#111827' : 'white', border: 'none', fontWeight: '700', marginBottom: '32px', cursor: 'pointer' }}>{plan.button}</button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {plan.features.map(f => (
-                    <div key={f} style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '15px' }}>
-                      <FaCheckCircle color={plan.popular ? '#ef4444' : '#10b981'} size={16} /> {f}
+                    <div key={f} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <FaCheckCircle color={plan.popular ? '#ef4444' : '#10b981'} /> {f}
                     </div>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Enterprise CTA */}
-          <div style={{ marginTop: '48px', padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
-            <p style={{ fontSize: '18px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-              Need a custom solution for your enterprise?
-            </p>
-            <p style={{ fontSize: '15px', color: '#6b7280', marginBottom: '16px' }}>
-              Multi-location support, custom integrations, dedicated account manager, and SLA guarantees.
-            </p>
-            <button
-              onClick={() => setShowDemoModal(true)}
-              style={{
-                padding: '12px 32px',
-                background: 'white',
-                border: '2px solid #111827',
-                borderRadius: '10px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { e.target.style.background = '#111827'; e.target.style.color = 'white'; }}
-              onMouseLeave={(e) => { e.target.style.background = 'white'; e.target.style.color = '#111827'; }}
-            >
-              Contact Sales
-            </button>
-          </div>
         </div>
       </section>
 
       {/* AEO SECTIONS - Added at the end of page */}
       
-      {/* What is DineOpen Section - AEO Optimized */}
+      {/* What is DineOpen Section */}
       <section style={{ padding: isMobile ? '60px 16px' : '80px 20px', backgroundColor: 'white' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <h2 style={{ fontSize: isMobile ? '28px' : '42px', fontWeight: '800', color: '#111827', marginBottom: '24px', textAlign: 'center' }}>
@@ -1714,209 +1599,200 @@ export default function LandingPage() {
           </h2>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '20px' }}>
-              <strong>DineOpen is an AI-powered restaurant management platform</strong> that uses autonomous AI agents to run your restaurant operations 24/7. It combines an intelligent AI voice assistant, cloud-based POS system, digital menu management, inventory tracking, and real-time analytics in one unified platform.
+              DineOpen is a cloud-based restaurant POS software and billing system designed for small and mid-sized restaurants in India. It combines point-of-sale billing, menu management, inventory tracking, and online order processing in one platform.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '20px' }}>
-              The AI Agent acts as your digital employee—it takes phone orders using natural voice conversation, processes WhatsApp and web orders, manages table reservations, answers customer questions, and intelligently upsells based on menu knowledge. The system works globally, requires no hardware installation, and runs on any device with internet access.
+              DineOpen is suitable for small restaurants, cafes, cloud kitchens, and food service businesses in India. It does not require hardware installation and works on any device with internet access. The system includes GST-ready billing, automatic tax calculations, and invoice generation compliant with Indian tax regulations.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151' }}>
-              DineOpen is designed for restaurants, cafes, cloud kitchens, bakeries, and food service businesses of all sizes worldwide. Pricing starts at $10/month (or equivalent in local currency), making advanced AI restaurant technology accessible to businesses of any size.
+              Pricing starts at ₹300 one-time payment or ₹600 per month for unlimited orders. DineOpen offers an affordable alternative to Zomato POS and Petpooja, with similar features at lower costs.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Core Features Section - AEO Optimized Q&A Format */}
+      {/* Core Features Section */}
       <section style={{ padding: isMobile ? '60px 16px' : '80px 20px', backgroundColor: '#f9fafb' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{ fontSize: isMobile ? '28px' : '42px', fontWeight: '800', color: '#111827', marginBottom: isMobile ? '32px' : '48px', textAlign: 'center' }}>
-            How Does DineOpen Work?
+            Core Features
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: isMobile ? '24px' : '32px' }}>
             <div style={{ background: 'white', padding: isMobile ? '24px' : '32px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                What is the AI Agent in DineOpen?
+                What is POS billing in DineOpen?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                The AI Agent is an autonomous digital assistant that handles customer interactions 24/7. It answers phone calls in natural conversation, takes orders via voice, processes WhatsApp messages, manages reservations, answers menu questions, and intelligently upsells—all without human intervention.
+                POS billing in DineOpen allows restaurants to process orders, generate bills, accept payments, and print receipts. The system supports multiple payment methods including cash, card, UPI, and digital wallets. Bills are automatically saved and can be retrieved for reporting.
               </p>
             </div>
 
             <div style={{ background: 'white', padding: isMobile ? '24px' : '32px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                How does AI voice ordering work?
+                How does menu management work in DineOpen?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                When customers call your restaurant, the AI Agent answers immediately and engages in natural conversation. It understands order requests, asks clarifying questions, suggests add-ons, confirms the order, and sends it directly to your kitchen. Handles multiple languages seamlessly.
+                Menu management in DineOpen lets restaurants create digital menus, add items with prices and descriptions, organize items by categories, and update availability in real-time. Menus can be shared via QR codes for contactless ordering. Changes to menu items reflect immediately across all devices.
               </p>
             </div>
 
             <div style={{ background: 'white', padding: isMobile ? '24px' : '32px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                What is the cloud POS system?
+                What is inventory management in DineOpen?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                DineOpen&apos;s cloud POS runs entirely in your web browser—no software installation or special hardware required. Process orders, generate bills, accept all payment methods (cash, cards, digital wallets), manage tables, and sync across all devices instantly. Access from anywhere.
+                Inventory management in DineOpen tracks stock levels, records purchases, monitors ingredient usage, and sends low-stock alerts. The system automatically deducts ingredients when orders are placed and generates purchase order suggestions based on consumption patterns.
               </p>
             </div>
 
             <div style={{ background: 'white', padding: isMobile ? '24px' : '32px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                How do QR code digital menus work?
+                How does online order management work?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                Upload your menu and DineOpen generates a shareable QR code. Customers scan with their phone—no app needed—browse the interactive menu, customize orders, and submit directly to your kitchen. Update prices or items anytime; changes reflect instantly across all locations.
+                Online order management in DineOpen processes orders from QR menus, AI voice agent phone calls, and web platforms. Orders appear in real-time on the POS system, can be accepted or rejected, and are automatically sent to the kitchen via KOT. The system tracks order status from placement to delivery.
               </p>
             </div>
 
             <div style={{ background: 'white', padding: isMobile ? '24px' : '32px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                Does DineOpen support international tax compliance?
+                Does DineOpen support GST billing?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                Yes, DineOpen supports configurable tax settings for global compliance. Set up VAT, GST, sales tax, or any local tax structure. The system automatically calculates taxes, generates compliant invoices, and maintains records for reporting in any jurisdiction.
+                Yes, DineOpen includes GST-ready billing software. It automatically calculates GST at applicable rates, generates tax-compliant invoices with HSN codes, maintains tax records, and exports data for GST filing. The system supports all GST slabs and formats invoices according to Indian regulations.
               </p>
             </div>
 
             <div style={{ background: 'white', padding: isMobile ? '24px' : '32px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                What analytics and insights does DineOpen provide?
+                What reports and analytics does DineOpen provide?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                Real-time dashboard shows live orders, revenue, popular items, peak hours, and performance metrics. AI-powered insights identify trends, predict demand, and suggest optimizations. Export detailed reports (PDF/Excel) for sales, inventory, and profitability.
+                DineOpen provides sales reports, daily and monthly revenue summaries, item-wise sales analysis, inventory reports, customer order history, and profit margin calculations. Reports can be exported as PDF or Excel files and are available in real-time through the dashboard.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Why DineOpen Section */}
+      {/* Comparison Section */}
       <section style={{ padding: isMobile ? '60px 16px' : '80px 20px', backgroundColor: 'white' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <h2 style={{ fontSize: isMobile ? '28px' : '42px', fontWeight: '800', color: '#111827', marginBottom: isMobile ? '24px' : '32px', textAlign: 'center' }}>
-            Why Choose DineOpen Over Traditional POS Systems?
+            How is DineOpen different from Zomato or Petpooja?
           </h2>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '20px' }}>
-              <strong>DineOpen is the only restaurant platform with a built-in autonomous AI Agent.</strong> Unlike traditional POS systems like Toast, Square, or Lightspeed that simply process transactions, DineOpen&apos;s AI actively works for you—taking orders, managing reservations, and engaging customers 24/7.
+              DineOpen offers similar features to Zomato POS and Petpooja but at lower costs. DineOpen pricing starts at ₹300 one-time or ₹600 per month, while Zomato and Petpooja typically charge higher monthly fees.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '20px' }}>
-              Traditional restaurant software requires expensive hardware, lengthy installations, and ongoing IT support. DineOpen is 100% cloud-based—start using it in minutes on any device you already own. No terminals to buy, no software to install, no technical expertise required.
+              DineOpen is cloud-based and does not require hardware installation, similar to Zomato POS. Both systems offer POS billing, menu management, inventory tracking, and online order processing. DineOpen focuses on simplicity and affordability for small restaurants.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '20px' }}>
-              Most POS providers charge hefty setup fees plus monthly subscriptions that increase as you grow. DineOpen offers transparent pricing starting at $10/month with no hidden fees, no long-term contracts, and no per-transaction charges. The AI Agent is included free in all plans.
+              Petpooja requires hardware setup and has higher upfront costs. DineOpen works on any device with internet access, reducing initial investment. Both systems support GST billing and provide restaurant management features.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151' }}>
-              Whether you run a single cafe or a multi-location restaurant group, DineOpen scales with you. The same platform that handles a 10-table bistro can manage a chain with hundreds of locations—all from one unified dashboard.
+              DineOpen is designed specifically for small and mid-sized restaurants in India, with simpler interfaces and lower pricing. Zomato POS and Petpooja target larger restaurant chains with more complex requirements and higher costs.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Use Cases Section - International */}
+      {/* Use Cases Section */}
       <section style={{ padding: isMobile ? '60px 16px' : '80px 20px', backgroundColor: '#f9fafb' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <h2 style={{ fontSize: isMobile ? '28px' : '42px', fontWeight: '800', color: '#111827', marginBottom: isMobile ? '32px' : '48px', textAlign: 'center' }}>
-            Who Uses DineOpen?
+            Use Cases
           </h2>
-
+          
           <div style={{ marginBottom: '40px' }}>
             <h3 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: '700', color: '#111827', marginBottom: '16px' }}>
-              What types of restaurants use DineOpen?
+              Who should use DineOpen?
             </h3>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '12px' }}>
-              DineOpen serves restaurants, cafes, coffee shops, fast-casual chains, fine dining establishments, cloud kitchens, ghost kitchens, food trucks, bakeries, bars, and any food service business worldwide that wants AI-powered automation.
+              DineOpen is suitable for small restaurants, cafes, cloud kitchens, food trucks, bakeries, and any food service business in India that needs affordable POS software and billing system.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151' }}>
-              From single-location independent restaurants to multi-unit franchises, DineOpen scales to fit your needs. The AI Agent particularly benefits high-volume operations that struggle with phone orders during peak hours, and businesses that want to provide 24/7 ordering without staffing costs.
+              Restaurants with 1-20 tables, cafes serving 50-500 customers daily, and cloud kitchens processing 20-200 orders per day will benefit from DineOpen. The system is designed for businesses that want simple, affordable restaurant management software without complex features or high costs.
             </p>
           </div>
 
           <div>
             <h3 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: '700', color: '#111827', marginBottom: '16px' }}>
-              Is DineOpen suitable for small businesses?
+              Is DineOpen good for small restaurants in India?
             </h3>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '12px' }}>
-              DineOpen is designed to make enterprise-grade AI technology accessible to businesses of all sizes. Pricing starts at just $10/month—making advanced AI ordering, inventory management, and analytics affordable for even the smallest cafes.
+              Yes, DineOpen is specifically designed for small restaurants in India. It offers affordable pricing starting at ₹300 one-time, making it accessible for small businesses with limited budgets.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '12px' }}>
-              Small restaurants benefit most from DineOpen&apos;s AI Agent—it&apos;s like hiring a staff member that works 24/7 without salary, benefits, or breaks. The system requires no technical expertise, no hardware investment, and no long-term commitments.
+              DineOpen includes all essential features small restaurants need: POS billing, menu management, inventory tracking, GST billing, and online orders. The system is simple to use and does not require technical expertise or hardware installation.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151' }}>
-              Get started in minutes on any device you already own. If your phone or tablet has internet access, you can run your entire restaurant operation with DineOpen.
+              Small restaurants can start using DineOpen immediately without setup fees or long-term contracts. The cloud-based system works on smartphones, tablets, or computers, eliminating the need for expensive POS hardware.
             </p>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section - AEO Optimized */}
+      {/* FAQ Section */}
       <section style={{ padding: isMobile ? '60px 16px' : '80px 20px', backgroundColor: 'white' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <h2 style={{ fontSize: isMobile ? '28px' : '42px', fontWeight: '800', color: '#111827', marginBottom: isMobile ? '32px' : '48px', textAlign: 'center' }}>
             Frequently Asked Questions
           </h2>
-
+          
           <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '24px' : '32px' }}>
             <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: isMobile ? '24px' : '32px' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
                 What is DineOpen?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                DineOpen is an AI-powered restaurant management platform with an autonomous AI Agent that handles customer orders via voice calls, WhatsApp, and web. It includes cloud POS, digital QR menus, inventory management, and real-time analytics. Pricing starts at $10/month globally.
+                DineOpen is a restaurant POS software and billing system designed for small and mid-sized restaurants in India. It includes menu management, inventory tracking, online order management, and GST-ready billing. DineOpen is a cloud-based alternative to Zomato POS and Petpooja, offering affordable pricing starting at ₹300 one-time or ₹600 per month.
               </p>
             </div>
 
             <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: isMobile ? '24px' : '32px' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                How does the AI Agent work?
+                Is DineOpen a POS system?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                The AI Agent is an autonomous digital employee that operates 24/7. It answers phone calls in natural conversation, takes orders, manages reservations, answers customer questions, and intelligently suggests add-ons. Orders are sent directly to your kitchen system without human intervention.
+                Yes, DineOpen is a complete POS system for restaurants. It includes billing software, table management, KOT (Kitchen Order Ticket) generation, inventory management, menu management, and online order processing. It works on any device with internet access and does not require hardware installation.
               </p>
             </div>
 
             <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: isMobile ? '24px' : '32px' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                Do I need special hardware?
+                Is DineOpen suitable for small restaurants?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                No. DineOpen is 100% cloud-based and runs in any web browser. Use any device you already have—computer, tablet, smartphone, or iPad. No terminals to purchase, no software to install. Start using it immediately after signup.
+                Yes, DineOpen is specifically designed for small and mid-sized restaurants in India. It offers affordable pricing starting at ₹300 one-time payment, making it accessible for small cafes, restaurants, and cloud kitchens. The system is simple to use and does not require technical expertise.
               </p>
             </div>
 
             <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: isMobile ? '24px' : '32px' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                What countries does DineOpen support?
+                Does DineOpen support GST billing in India?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                DineOpen works globally. The platform supports multiple currencies (USD, GBP, EUR, INR, and more), configurable tax settings for any jurisdiction, and multiple languages. Whether you&apos;re in the US, UK, Europe, Asia, or anywhere else—DineOpen works for you.
+                Yes, DineOpen includes GST-ready billing software. It automatically calculates GST, generates compliant invoices, and maintains records required for tax filing. The system supports all GST rates and formats invoices according to Indian tax regulations.
               </p>
             </div>
 
             <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: isMobile ? '24px' : '32px' }}>
               <h3 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                How much does DineOpen cost?
+                Can DineOpen replace Zomato POS?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                Plans start at $10/month (Starter) or $30/month (Professional). No setup fees, no long-term contracts, no hidden charges. The AI Agent is included free in all plans. Enterprise pricing is available for multi-location businesses with custom requirements.
-              </p>
-            </div>
-
-            <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: isMobile ? '24px' : '32px' }}>
-              <h3 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                Can I try DineOpen for free?
-              </h3>
-              <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                Yes! Start a free trial with full access to all features including the AI Agent. No credit card required. See how DineOpen transforms your restaurant operations before committing to any plan.
+                Yes, DineOpen can replace Zomato POS for restaurants. It offers similar features including POS billing, menu management, inventory tracking, and online orders. DineOpen is more affordable with pricing starting at ₹300 one-time compared to Zomato&apos;s monthly fees, and it does not require hardware installation.
               </p>
             </div>
 
             <div>
               <h3 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>
-                Is my data secure?
+                Is DineOpen cloud-based?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                DineOpen uses enterprise-grade security with encrypted data transmission, secure cloud storage, automatic backups, and compliance with international data protection standards. Your restaurant data is protected 24/7 with industry-leading security practices.
+                Yes, DineOpen is a cloud-based restaurant management software. It runs entirely in a web browser and does not require software installation or hardware setup. You can access DineOpen from any device with internet access, including computers, tablets, and smartphones.
               </p>
             </div>
           </div>
@@ -1931,7 +1807,7 @@ export default function LandingPage() {
               <div style={{ width: '32px', height: '32px', background: '#ef4444', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800' }}>DO</div>
               <span style={{ fontSize: '20px', fontWeight: '700' }}>DineOpen</span>
             </div>
-            <p style={{ color: '#6b7280' }}>AI-powered restaurant management for the modern world.</p>
+            <p style={{ color: '#6b7280' }}>The operating system for modern restaurants.</p>
           </div>
           <div>
             <h4 style={{ fontWeight: '700', marginBottom: '16px' }}>Product</h4>
@@ -1996,28 +1872,6 @@ export default function LandingPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                      Restaurant Name <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      placeholder="Enter your restaurant name" 
-                      value={demoRestaurantName} 
-                      onChange={(e) => setDemoRestaurantName(e.target.value)} 
-                      style={{ 
-                        width: '100%',
-                        padding: '14px 16px', 
-                        borderRadius: '12px', 
-                        border: '1px solid #e5e7eb',
-                        fontSize: '15px',
-                        transition: 'all 0.2s'
-                      }}
-                      onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
-                      onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
-                    />
-                  </div>
-
                   <div>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
                       Contact Method <span style={{ color: '#ef4444' }}>*</span>
@@ -2123,6 +1977,28 @@ export default function LandingPage() {
                         fontSize: '15px',
                         fontFamily: 'inherit',
                         resize: 'vertical',
+                        transition: 'all 0.2s'
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
+                      onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                      Restaurant Name (Optional)
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Enter your restaurant name" 
+                      value={demoRestaurantName} 
+                      onChange={(e) => setDemoRestaurantName(e.target.value)} 
+                      style={{ 
+                        width: '100%',
+                        padding: '14px 16px', 
+                        borderRadius: '12px', 
+                        border: '1px solid #e5e7eb',
+                        fontSize: '15px',
                         transition: 'all 0.2s'
                       }}
                       onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
