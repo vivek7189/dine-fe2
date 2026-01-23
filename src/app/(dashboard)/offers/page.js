@@ -1,0 +1,655 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  FaTag,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaToggleOn,
+  FaToggleOff,
+  FaTimes,
+  FaPercent,
+  FaRupeeSign,
+  FaGift,
+} from 'react-icons/fa';
+import apiClient from '../../../lib/api';
+
+const OffersManagement = () => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [restaurantId, setRestaurantId] = useState(null);
+  const [offers, setOffers] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(null);
+
+  const emptyOffer = {
+    name: '',
+    description: '',
+    discountType: 'percentage',
+    discountValue: 10,
+    minOrderValue: 0,
+    maxDiscount: null,
+    validFrom: new Date().toISOString().split('T')[0],
+    validUntil: '',
+    isActive: true,
+    usageLimit: null,
+    isFirstOrderOnly: false,
+    autoApply: false,
+  };
+
+  const [formData, setFormData] = useState(emptyOffer);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const id = localStorage.getItem('selectedRestaurantId');
+    if (id) {
+      setRestaurantId(id);
+      loadOffers(id);
+    } else {
+      router.push('/admin');
+    }
+  }, [router]);
+
+  const loadOffers = async (id) => {
+    try {
+      const response = await apiClient.get(`/api/offers/${id}`);
+      setOffers(response.offers || []);
+    } catch (error) {
+      console.error('Error loading offers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenModal = (offer = null) => {
+    if (offer) {
+      setEditingOffer(offer);
+      setFormData({
+        ...offer,
+        validFrom: offer.validFrom ? new Date(offer.validFrom).toISOString().split('T')[0] : '',
+        validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().split('T')[0] : '',
+      });
+    } else {
+      setEditingOffer(null);
+      setFormData(emptyOffer);
+    }
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name) {
+      alert('Please enter an offer name');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingOffer) {
+        await apiClient.put(`/api/offers/${restaurantId}/${editingOffer.id}`, formData);
+      } else {
+        await apiClient.post(`/api/offers/${restaurantId}`, formData);
+      }
+      await loadOffers(restaurantId);
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error saving offer:', error);
+      alert('Failed to save offer');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (offerId) => {
+    if (!confirm('Are you sure you want to delete this offer?')) return;
+
+    try {
+      await apiClient.delete(`/api/offers/${restaurantId}/${offerId}`);
+      await loadOffers(restaurantId);
+    } catch (error) {
+      console.error('Error deleting offer:', error);
+      alert('Failed to delete offer');
+    }
+  };
+
+  const handleToggleActive = async (offer) => {
+    try {
+      await apiClient.put(`/api/offers/${restaurantId}/${offer.id}`, {
+        ...offer,
+        isActive: !offer.isActive
+      });
+      await loadOffers(restaurantId);
+    } catch (error) {
+      console.error('Error toggling offer:', error);
+    }
+  };
+
+  const getDiscountLabel = (offer) => {
+    if (offer.discountType === 'percentage') {
+      return `${offer.discountValue}% OFF`;
+    }
+    return `Rs. ${offer.discountValue} OFF`;
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fef7f0' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '16px' : '24px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: isMobile ? '20px' : '32px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          border: '1px solid #fce7f3',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
+          <div>
+            <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <FaTag color="#ec4899" size={isMobile ? 24 : 28} />
+              Offers & Promotions
+            </h1>
+            <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+              Create and manage offers for your Crave app customers
+            </p>
+          </div>
+          <button
+            onClick={() => handleOpenModal()}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#ec4899',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
+            }}
+          >
+            <FaPlus />
+            Create Offer
+          </button>
+        </div>
+
+        {/* Offers List */}
+        {offers.length === 0 ? (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '48px',
+            textAlign: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            border: '1px solid #fce7f3'
+          }}>
+            <FaGift size={48} color="#9ca3af" style={{ marginBottom: '16px' }} />
+            <h3 style={{ color: '#374151', margin: '0 0 8px' }}>No Offers Yet</h3>
+            <p style={{ color: '#6b7280', margin: '0 0 24px' }}>
+              Create your first offer to attract more customers
+            </p>
+            <button
+              onClick={() => handleOpenModal()}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#ec4899',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Create Your First Offer
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {offers.map((offer) => (
+              <div
+                key={offer.id}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  border: offer.isActive ? '2px solid #10b981' : '1px solid #e5e7eb',
+                  opacity: offer.isActive ? 1 : 0.7
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <span style={{
+                        padding: '6px 12px',
+                        backgroundColor: offer.discountType === 'percentage' ? '#fef3c7' : '#dbeafe',
+                        color: offer.discountType === 'percentage' ? '#92400e' : '#1e40af',
+                        borderRadius: '20px',
+                        fontWeight: '700',
+                        fontSize: '14px'
+                      }}>
+                        {getDiscountLabel(offer)}
+                      </span>
+                      {offer.isFirstOrderOnly && (
+                        <span style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#f3e8ff',
+                          color: '#7c3aed',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          First Order Only
+                        </span>
+                      )}
+                      {offer.autoApply && (
+                        <span style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#dcfce7',
+                          color: '#16a34a',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          Auto-Apply
+                        </span>
+                      )}
+                    </div>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+                      {offer.name}
+                    </h3>
+                    {offer.description && (
+                      <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#6b7280' }}>
+                        {offer.description}
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: '#6b7280' }}>
+                      {offer.minOrderValue > 0 && (
+                        <span>Min order: Rs. {offer.minOrderValue}</span>
+                      )}
+                      {offer.maxDiscount && (
+                        <span>Max discount: Rs. {offer.maxDiscount}</span>
+                      )}
+                      {offer.usageLimit && (
+                        <span>Usage limit: {offer.usageCount || 0}/{offer.usageLimit}</span>
+                      )}
+                      {offer.validUntil && (
+                        <span>Valid until: {new Date(offer.validUntil).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => handleToggleActive(offer)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}
+                      title={offer.isActive ? 'Deactivate' : 'Activate'}
+                    >
+                      {offer.isActive ? (
+                        <FaToggleOn size={24} color="#10b981" />
+                      ) : (
+                        <FaToggleOff size={24} color="#9ca3af" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleOpenModal(offer)}
+                      style={{
+                        padding: '8px',
+                        backgroundColor: '#f3f4f6',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
+                      title="Edit"
+                    >
+                      <FaEdit color="#6b7280" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(offer.id)}
+                      style={{
+                        padding: '8px',
+                        backgroundColor: '#fee2e2',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
+                      title="Delete"
+                    >
+                      <FaTrash color="#dc2626" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+                {editingOffer ? 'Edit Offer' : 'Create Offer'}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}
+              >
+                <FaTimes size={20} color="#6b7280" />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Offer Name *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="e.g. New Year Special"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    minHeight: '80px',
+                    resize: 'vertical'
+                  }}
+                  placeholder="Describe the offer"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Discount Type
+                  </label>
+                  <select
+                    value={formData.discountType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discountType: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="flat">Flat Amount (Rs.)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Discount Value
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      value={formData.discountValue}
+                      onChange={(e) => setFormData(prev => ({ ...prev, discountValue: parseFloat(e.target.value) || 0 }))}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        paddingLeft: '36px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                      min={0}
+                    />
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }}>
+                      {formData.discountType === 'percentage' ? <FaPercent /> : <FaRupeeSign />}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Min Order Value (Rs.)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.minOrderValue}
+                    onChange={(e) => setFormData(prev => ({ ...prev, minOrderValue: parseInt(e.target.value) || 0 }))}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                    min={0}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Max Discount (Rs.)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.maxDiscount || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, maxDiscount: e.target.value ? parseInt(e.target.value) : null }))}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                    min={0}
+                    placeholder="No limit"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Valid From
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.validFrom}
+                    onChange={(e) => setFormData(prev => ({ ...prev, validFrom: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Valid Until
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.validUntil}
+                    onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Usage Limit (total uses)
+                </label>
+                <input
+                  type="number"
+                  value={formData.usageLimit || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, usageLimit: e.target.value ? parseInt(e.target.value) : null }))}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  min={0}
+                  placeholder="Unlimited"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.isFirstOrderOnly}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isFirstOrderOnly: e.target.checked }))}
+                    style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#374151' }}>First order only</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.autoApply}
+                    onChange={(e) => setFormData(prev => ({ ...prev, autoApply: e.target.checked }))}
+                    style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#374151' }}>Auto-apply (best offer applied automatically)</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                    style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#374151' }}>Active</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '14px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{
+                    flex: 1,
+                    padding: '14px',
+                    backgroundColor: saving ? '#9ca3af' : '#ec4899',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    cursor: saving ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {saving ? 'Saving...' : 'Save Offer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default OffersManagement;

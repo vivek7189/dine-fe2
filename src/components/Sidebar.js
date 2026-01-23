@@ -19,7 +19,9 @@ import {
   FaChevronRight,
   FaBars,
   FaUser,
-  FaFire
+  FaFire,
+  FaMobileAlt,
+  FaTag
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -150,6 +152,8 @@ export default function Sidebar() {
     { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', roles: ['owner'] },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'manager'] },
+    { id: 'customer-app', name: 'Crave App', icon: FaMobileAlt, href: '/customer-app', color: '#ec4899', roles: ['owner'] },
+    { id: 'offers', name: 'Offers', icon: FaTag, href: '/offers', color: '#f59e0b', roles: ['owner', 'manager'] },
     { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'manager', 'waiter', 'employee'] },
   ];
 
