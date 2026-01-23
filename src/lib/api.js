@@ -1806,6 +1806,19 @@ class ApiClient {
   async getActiveOffers(restaurantId) {
     return this.request(`/api/public/offers/${restaurantId}`);
   }
+
+  // Get customer app settings (public)
+  async getPublicCustomerAppSettings(restaurantId) {
+    return this.request(`/api/public/customer-app-settings/${restaurantId}`);
+  }
+
+  // Lookup customer by phone (public) - for loyalty points
+  async lookupCustomerByPhone(restaurantId, phone) {
+    return this.request('/api/public/customer/lookup', {
+      method: 'POST',
+      body: { restaurantId, phone },
+    });
+  }
 }
 
 const apiClient = new ApiClient();

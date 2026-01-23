@@ -186,6 +186,14 @@ const PlaceOrderContent = () => {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [checkingTheme, setCheckingTheme] = useState(true);
+
+  // Loyalty & Offers state
+  const [offers, setOffers] = useState([]);
+  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [customerData, setCustomerData] = useState(null);
+  const [customerAppSettings, setCustomerAppSettings] = useState(null);
+  const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
+  const [customerVerified, setCustomerVerified] = useState(false);
   
   // Derived values
   const restaurantId = searchParams.get('restaurant') || 'default';
@@ -255,6 +263,27 @@ const PlaceOrderContent = () => {
             console.log('✅ Loaded restaurant:', response.restaurant.name);
             console.log('✅ Loaded menu items:', response.menu.length);
             console.log('✅ Categories:', uniqueCategories);
+
+            // Load offers and customer app settings
+            try {
+              const [offersResponse, settingsResponse] = await Promise.all([
+                apiClient.getActiveOffers(restaurantId),
+                apiClient.getPublicCustomerAppSettings(restaurantId)
+              ]);
+
+              if (offersResponse?.offers) {
+                setOffers(offersResponse.offers);
+                console.log('✅ Loaded offers:', offersResponse.offers.length);
+              }
+
+              if (settingsResponse?.settings) {
+                setCustomerAppSettings(settingsResponse.settings);
+                console.log('✅ Loaded customer app settings');
+              }
+            } catch (extrasError) {
+              console.warn('⚠️ Failed to load offers/settings:', extrasError);
+              // Continue without offers/settings - not critical
+            }
           } else {
             throw new Error('Invalid API response format');
           }
@@ -323,12 +352,73 @@ const PlaceOrderContent = () => {
     });
   };
 
-  const getCartTotal = () => {
+  const getCartSubtotal = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
+  // Legacy function name for compatibility
+  const getCartTotal = () => getCartSubtotal();
+
   const getCartItemCount = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  // Calculate offer discount
+  const getOfferDiscount = () => {
+    if (!selectedOffer) return 0;
+    const subtotal = getCartSubtotal();
+
+    // Check minimum order
+    if (subtotal < (selectedOffer.minOrderValue || 0)) return 0;
+
+    // Check first order only
+    if (selectedOffer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) return 0;
+
+    let discount = 0;
+    if (selectedOffer.discountType === 'percentage') {
+      discount = (subtotal * selectedOffer.discountValue) / 100;
+      if (selectedOffer.maxDiscount && discount > selectedOffer.maxDiscount) {
+        discount = selectedOffer.maxDiscount;
+      }
+    } else {
+      discount = selectedOffer.discountValue;
+    }
+
+    return Math.min(discount, subtotal);
+  };
+
+  // Calculate loyalty discount
+  const getLoyaltyDiscount = () => {
+    if (!customerAppSettings?.loyaltySettings?.enabled) return 0;
+    if (!customerData || !redeemLoyaltyPoints) return 0;
+
+    const subtotal = getCartSubtotal();
+    const offerDiscount = getOfferDiscount();
+    const afterOffer = subtotal - offerDiscount;
+
+    const redemptionRate = customerAppSettings.loyaltySettings.redemptionRate || 100;
+    const maxRedemptionPercent = customerAppSettings.loyaltySettings.maxRedemptionPercent || 20;
+
+    // Calculate max loyalty discount
+    const maxFromPercent = (afterOffer * maxRedemptionPercent) / 100;
+    const maxFromPoints = redeemLoyaltyPoints / redemptionRate;
+
+    return Math.min(maxFromPercent, maxFromPoints, afterOffer);
+  };
+
+  // Get final total after all discounts
+  const getFinalTotal = () => {
+    const subtotal = getCartSubtotal();
+    const offerDiscount = getOfferDiscount();
+    const loyaltyDiscount = getLoyaltyDiscount();
+    return Math.max(0, subtotal - offerDiscount - loyaltyDiscount);
+  };
+
+  // Calculate loyalty points that will be earned
+  const getLoyaltyPointsToEarn = () => {
+    if (!customerAppSettings?.loyaltySettings?.enabled) return 0;
+    const pointsPerRupee = customerAppSettings.loyaltySettings.pointsPerRupee || 1;
+    return Math.floor(getFinalTotal() * pointsPerRupee);
   };
 
   // Filter menu - only by search term, not by category (we'll scroll instead)
@@ -454,6 +544,23 @@ const PlaceOrderContent = () => {
     }
   };
 
+  // Lookup customer to get loyalty points
+  const lookupCustomer = async () => {
+    if (!customerInfo.phone.trim()) return;
+
+    try {
+      const response = await apiClient.lookupCustomerByPhone(restaurantId, customerInfo.phone.trim());
+      if (response) {
+        setCustomerData(response.customer);
+        setCustomerVerified(true);
+        console.log('✅ Customer lookup:', response.found ? 'Found existing customer' : 'New customer');
+      }
+    } catch (error) {
+      console.warn('Customer lookup failed:', error);
+      // Not critical - continue without customer data
+    }
+  };
+
   const verifyOtp = async () => {
     if (!otp.trim() || otp.length !== 6) {
       setError('Please enter a valid 6-digit OTP');
@@ -468,6 +575,7 @@ const PlaceOrderContent = () => {
       if (verificationId === 'demo-verification-id') {
         if (otp === '123456') {
           // Demo OTP verification successful
+          await lookupCustomer(); // Lookup customer for loyalty points
           await placeOrderWithVerification('demo-firebase-uid');
           setOtpSent(false);
           setShowOtpModal(false);
@@ -485,21 +593,24 @@ const PlaceOrderContent = () => {
       try {
       const result = await verificationId.confirm(otp);
       const user = result.user;
-      
+
+      // Lookup customer for loyalty points before placing order
+      await lookupCustomer();
+
       // Get Firebase UID and proceed to place order
       await placeOrderWithVerification(user.uid);
-      
+
       setOtpSent(false);
       setShowOtpModal(false);
       setOtp('');
       setSendingOtp(false);
-        
+
       } catch (firebaseError) {
         console.error('Firebase OTP verification error:', firebaseError);
         setError(`Invalid OTP: ${firebaseError.message}`);
         setSendingOtp(false);
       }
-      
+
     } catch (err) {
       console.error('Error verifying OTP:', err);
       setError(`Invalid OTP: ${err.message}`);
@@ -545,11 +656,17 @@ const PlaceOrderContent = () => {
       setPlacingOrder(true);
       setError('');
 
+      // Calculate actual points to redeem (capped at available)
+      const actualRedeemPoints = customerData?.loyaltyPoints
+        ? Math.min(redeemLoyaltyPoints, customerData.loyaltyPoints)
+        : 0;
+
       const orderData = {
         customerPhone: customerInfo.phone.trim(),
         customerName: customerInfo.name.trim() || 'Customer',
         seatNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || 'Walk-in') : null,
-        roomNumber: orderType === 'room' ? (customerInfo.roomNumber.trim() || null) : null, // NEW: Include room number
+        roomNumber: orderType === 'room' ? (customerInfo.roomNumber.trim() || null) : null,
+        tableNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || null) : null,
         items: cart.map(item => ({
           menuItemId: item.id,
           name: item.name,
@@ -557,20 +674,35 @@ const PlaceOrderContent = () => {
           quantity: item.quantity,
           shortCode: item.shortCode
         })),
-        totalAmount: getCartTotal(),
+        totalAmount: getCartSubtotal(),
+        orderType: orderType === 'table' ? 'dine_in' : 'takeaway',
         notes: orderType === 'room'
           ? `Customer self-order for Room ${customerInfo.roomNumber || 'N/A'}`
           : `Customer self-order from seat ${customerInfo.seatNumber || 'Walk-in'}`,
         otp: 'verified',
-        verificationId: firebaseUid
+        verificationId: firebaseUid,
+        // Include offer if selected
+        offerId: selectedOffer?.id || null,
+        // Include loyalty points to redeem
+        redeemLoyaltyPoints: actualRedeemPoints
       };
 
       const response = await apiClient.placePublicOrder(restaurantId, orderData);
-      
-      setSuccess('Order placed successfully! Your order will be prepared shortly.');
+
+      // Build success message with loyalty info
+      let successMsg = 'Order placed successfully! Your order will be prepared shortly.';
+      if (response.order?.loyaltyPointsEarned > 0) {
+        successMsg += ` You earned ${response.order.loyaltyPointsEarned} loyalty points!`;
+      }
+
+      setSuccess(successMsg);
       setCart([]);
-      setCustomerInfo({ phone: '', seatNumber: customerInfo.seatNumber, name: '' });
-      
+      setCustomerInfo({ phone: '', seatNumber: customerInfo.seatNumber, roomNumber: '', name: '' });
+      setSelectedOffer(null);
+      setRedeemLoyaltyPoints(0);
+      setCustomerData(null);
+      setCustomerVerified(false);
+
       // Close all modals and stay on the same page
       setShowOtpModal(false);
       setShowCart(false);
@@ -1662,6 +1794,190 @@ const PlaceOrderContent = () => {
                   </div>
                 </div>
 
+                {/* Offers Section */}
+                {offers.length > 0 && (
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    marginBottom: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                  }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '16px' }}>🎁</span>
+                      Available Offers
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {offers.map(offer => {
+                        const isSelected = selectedOffer?.id === offer.id;
+                        const meetsMinOrder = getCartSubtotal() >= (offer.minOrderValue || 0);
+                        const isFirstOrderValid = !offer.isFirstOrderOnly || (customerData?.isFirstOrder ?? true);
+                        const isApplicable = meetsMinOrder && isFirstOrderValid;
+
+                        return (
+                          <button
+                            key={offer.id}
+                            onClick={() => isApplicable && setSelectedOffer(isSelected ? null : offer)}
+                            disabled={!isApplicable}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 12px',
+                              backgroundColor: isSelected ? '#fef2f2' : isApplicable ? '#f9fafb' : '#f3f4f6',
+                              border: isSelected ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              cursor: isApplicable ? 'pointer' : 'not-allowed',
+                              opacity: isApplicable ? 1 : 0.6,
+                              transition: 'all 0.2s ease',
+                              textAlign: 'left'
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', margin: '0 0 2px 0' }}>
+                                {offer.name}
+                              </p>
+                              <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>
+                                {offer.discountType === 'percentage'
+                                  ? `${offer.discountValue}% off${offer.maxDiscount ? ` (max ₹${offer.maxDiscount})` : ''}`
+                                  : `₹${offer.discountValue} off`}
+                                {offer.minOrderValue > 0 && ` on orders above ₹${offer.minOrderValue}`}
+                              </p>
+                              {!meetsMinOrder && (
+                                <p style={{ fontSize: '10px', color: '#ef4444', margin: '4px 0 0 0' }}>
+                                  Add ₹{(offer.minOrderValue - getCartSubtotal()).toFixed(0)} more to unlock
+                                </p>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <span style={{ color: '#ef4444', fontWeight: '700', fontSize: '12px' }}>Applied</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Loyalty Points Section */}
+                {customerAppSettings?.loyaltySettings?.enabled && (
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    marginBottom: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                  }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '16px' }}>💎</span>
+                      Loyalty Points
+                    </h4>
+
+                    {customerData?.loyaltyPoints > 0 ? (
+                      <div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '10px 12px',
+                          backgroundColor: '#f0fdf4',
+                          borderRadius: '8px',
+                          marginBottom: '10px'
+                        }}>
+                          <span style={{ fontSize: '13px', color: '#166534' }}>Available Points</span>
+                          <span style={{ fontSize: '16px', fontWeight: '700', color: '#166534' }}>
+                            {customerData.loyaltyPoints}
+                          </span>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
+                            Points to Redeem (max {Math.min(customerData.loyaltyPoints, Math.floor((getCartSubtotal() - getOfferDiscount()) * customerAppSettings.loyaltySettings.maxRedemptionPercent / 100 * customerAppSettings.loyaltySettings.redemptionRate))})
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max={Math.min(customerData.loyaltyPoints, Math.floor((getCartSubtotal() - getOfferDiscount()) * customerAppSettings.loyaltySettings.maxRedemptionPercent / 100 * customerAppSettings.loyaltySettings.redemptionRate))}
+                            value={redeemLoyaltyPoints}
+                            onChange={(e) => setRedeemLoyaltyPoints(parseInt(e.target.value) || 0)}
+                            style={{ width: '100%', accentColor: '#7c3aed' }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                            <span>Redeem: {redeemLoyaltyPoints} pts</span>
+                            <span>Discount: ₹{getLoyaltyDiscount().toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: '12px',
+                        backgroundColor: '#fefce8',
+                        borderRadius: '8px',
+                        textAlign: 'center'
+                      }}>
+                        <p style={{ fontSize: '12px', color: '#854d0e', margin: '0 0 4px 0' }}>
+                          {customerVerified ? 'No points yet - earn on this order!' : 'Verify phone to check your points'}
+                        </p>
+                        <p style={{ fontSize: '11px', color: '#a16207', margin: 0 }}>
+                          Earn {customerAppSettings.loyaltySettings.pointsPerRupee} point per ₹1 spent
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Points to earn */}
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '8px 12px',
+                      backgroundColor: '#f5f3ff',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{ fontSize: '11px', color: '#5b21b6' }}>Points you'll earn</span>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#7c3aed' }}>+{getLoyaltyPointsToEarn()}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Order Summary */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  marginBottom: '16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 12px 0' }}>
+                    Order Summary
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: '#6b7280' }}>Subtotal</span>
+                      <span style={{ color: '#374151' }}>₹{getCartSubtotal().toFixed(2)}</span>
+                    </div>
+                    {getOfferDiscount() > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                        <span style={{ color: '#059669' }}>Offer Discount</span>
+                        <span style={{ color: '#059669' }}>-₹{getOfferDiscount().toFixed(2)}</span>
+                      </div>
+                    )}
+                    {getLoyaltyDiscount() > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                        <span style={{ color: '#7c3aed' }}>Loyalty Discount</span>
+                        <span style={{ color: '#7c3aed' }}>-₹{getLoyaltyDiscount().toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '700' }}>
+                      <span style={{ color: '#1f2937' }}>Total</span>
+                      <span style={{ color: '#ef4444' }}>₹{getFinalTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Checkout Button */}
                   <button
                     onClick={placeOrder}
@@ -1713,7 +2029,7 @@ const PlaceOrderContent = () => {
                     ) : (
                       <>
                         <FaUtensils size={16} />
-                      Place Order - ₹{getCartTotal().toFixed(2)}
+                      Place Order - ₹{getFinalTotal().toFixed(2)}
                       </>
                     )}
                   </button>
