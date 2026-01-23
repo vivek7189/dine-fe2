@@ -1100,136 +1100,112 @@ const TableManagement = () => {
         <div style={{
           backgroundColor: 'white',
         borderBottom: '1px solid #e2e8f0',
-        padding: isMobile ? '16px' : '24px',
+        padding: isMobile ? '12px 16px' : '16px 24px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
       }}>
-        {/* Title Section */}
+        {/* Row 1: Title + Date Picker */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: isMobile ? '16px' : '20px'
+          marginBottom: '12px',
+          flexWrap: 'wrap',
+          gap: '12px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ 
-              width: isMobile ? '40px' : '48px',
-              height: isMobile ? '40px' : '48px',
+          {/* Title Section */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: isMobile ? '36px' : '40px',
+              height: isMobile ? '36px' : '40px',
               background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-              borderRadius: '12px',
-              display: 'flex', 
-              alignItems: 'center', 
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
             }}>
-              <FaChair color="white" size={isMobile ? 18 : 20} />
+              <FaChair color="white" size={isMobile ? 16 : 18} />
             </div>
             <div>
               <h1 style={{
-                fontSize: isMobile ? '20px' : '24px',
+                fontSize: isMobile ? '18px' : '20px',
                 fontWeight: 'bold',
                 color: '#1e293b',
-                margin: 0,
-                background: 'linear-gradient(135deg, #1e293b, #334155)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                margin: 0
               }}>
                 {t('tables.title')}
               </h1>
               <p style={{
-                fontSize: isMobile ? '12px' : '14px',
+                fontSize: isMobile ? '11px' : '12px',
                 color: '#64748b',
-                margin: '4px 0 0 0',
+                margin: '2px 0 0 0',
                 fontWeight: '500'
               }}>
-                {selectedRestaurant?.name} • Manage your restaurant seating
+                {selectedRestaurant?.name}
               </p>
             </div>
           </div>
-          
-          {/* Date Picker Section */}
+
+          {/* Date Picker */}
           <div style={{
-                display: 'flex',
-                alignItems: 'center',
-            gap: '12px',
-            marginBottom: isMobile ? '16px' : '20px'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 10px',
+            backgroundColor: '#f8fafc',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              backgroundColor: '#f8fafc',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <FaCalendarAlt size={16} color="#64748b" />
-              <label style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                View Date:
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+            <FaCalendarAlt size={14} color="#64748b" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
               style={{
                 border: 'none',
-                  backgroundColor: 'transparent',
-                  fontSize: '14px',
-                  color: '#1f2937',
-                  fontWeight: '500',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              />
-            </div>
-            
+                backgroundColor: 'transparent',
+                fontSize: '13px',
+                color: '#1f2937',
+                fontWeight: '500',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
             {loadingTableStatuses && (
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 12px',
-                backgroundColor: '#fef3c7',
-                borderRadius: '8px',
-                border: '1px solid #f59e0b'
-              }}>
-                <div style={{
-                  width: '12px',
-                  height: '12px',
-                  border: '2px solid #f59e0b',
-                  borderTop: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }} />
-                <span style={{
-                  fontSize: '12px',
-                  color: '#92400e',
-                  fontWeight: '500'
-                }}>
-                  Loading...
-                </span>
-          </div>
+                width: '14px',
+                height: '14px',
+                border: '2px solid #f59e0b',
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
             )}
+          </div>
         </div>
-        
+
+        {/* Row 2: Status Legend + Action Buttons */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
           {/* Compact Status Legend */}
           <div style={{
             display: 'flex',
-                alignItems: 'center',
-            gap: isMobile ? '8px' : '12px',
-            marginRight: '16px'
+            alignItems: 'center',
+            gap: '6px',
+            flexWrap: 'wrap'
           }}>
-            <div style={{
-              fontSize: isMobile ? '10px' : '12px',
-                fontWeight: '600',
-              color: '#64748b',
-              whiteSpace: 'nowrap'
+            <span style={{
+              fontSize: '11px',
+              fontWeight: '600',
+              color: '#64748b'
             }}>
               Status:
-            </div>
+            </span>
             {Object.entries({
               available: getTableStatusInfo('available'),
               occupied: getTableStatusInfo('occupied'),
@@ -1240,120 +1216,120 @@ const TableManagement = () => {
               <div key={status} style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: isMobile ? '4px 6px' : '6px 8px',
+                gap: '3px',
+                padding: '3px 6px',
                 backgroundColor: info.bg,
-                borderRadius: '6px',
+                borderRadius: '4px',
                 border: `1px solid ${info.border}`
               }}>
                 <div style={{
-                  width: isMobile ? '6px' : '8px',
-                  height: isMobile ? '6px' : '8px',
+                  width: '6px',
+                  height: '6px',
                   borderRadius: '50%',
                   backgroundColor: info.border
                 }} />
                 <span style={{
-                  fontSize: isMobile ? '9px' : '10px',
+                  fontSize: '10px',
                   fontWeight: '600',
-                  color: info.text,
-                  whiteSpace: 'nowrap'
+                  color: info.text
                 }}>
                   {info.label}
                 </span>
-          </div>
-            ))}
               </div>
-              
-          {/* Add Button */}
+            ))}
+          </div>
+
+          {/* Action Buttons */}
           <div style={{
             display: 'flex',
-            gap: '8px',
+            gap: '6px',
             alignItems: 'center'
           }}>
             {/* Book Table Button */}
-                  <button
-                    onClick={() => {
+            <button
+              onClick={() => {
                 setBookingFromHeader(true);
                 setSelectedTable(null);
                 setShowBookingForm(true);
-                    }}
-                    style={{
+              }}
+              style={{
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 color: 'white',
-                padding: isMobile ? '10px 16px' : '12px 20px',
-                borderRadius: '10px',
+                padding: '8px 12px',
+                borderRadius: '8px',
                 fontWeight: '600',
-                fontSize: isMobile ? '14px' : '16px',
+                fontSize: '13px',
                 border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-                transition: 'all 0.3s ease'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                e.target.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)';
               }}
             >
-              <FaCalendarAlt size={isMobile ? 14 : 16} />
-              Book Table
-                  </button>
-                
+              <FaCalendarAlt size={12} />
+              Book
+            </button>
+
             {/* Add Table Button */}
-                <button
+            <button
               onClick={() => setShowAddModal(true)}
-                  style={{
+              style={{
                 background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                    color: 'white',
-                padding: isMobile ? '10px 16px' : '12px 20px',
-                borderRadius: '10px',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
                 fontWeight: '600',
-                fontSize: isMobile ? '14px' : '16px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                transition: 'all 0.3s ease'
+                fontSize: '13px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                e.target.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)';
               }}
             >
-              <FaPlus size={isMobile ? 14 : 16} />
-              Add Table
-                </button>
-              </div>
-            </div>
+              <FaPlus size={12} />
+              Add
+            </button>
+          </div>
+        </div>
 
         {/* Compact Floor Navigation */}
-          <div style={{ 
-            display: 'flex', 
+          <div style={{
+            display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '6px',
           backgroundColor: '#f1f5f9',
-          padding: '8px',
-            borderRadius: '12px',
-          overflowX: 'auto'
+          padding: '6px 8px',
+            borderRadius: '8px',
+          overflowX: 'auto',
+          marginTop: '10px'
         }}>
                 <div style={{
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: '12px',
             fontWeight: '600',
             color: '#64748b',
             whiteSpace: 'nowrap',
-            marginRight: '8px'
+            marginRight: '4px'
           }}>
             {t('tables.floors')}:
                 </div>
@@ -1362,10 +1338,10 @@ const TableManagement = () => {
                     key={floor.id}
                     onClick={() => scrollToFloor(floor.id)}
                     style={{
-                padding: isMobile ? '8px 12px' : '10px 16px',
-                borderRadius: '8px',
+                padding: '6px 10px',
+                borderRadius: '6px',
                       fontWeight: '600',
-                fontSize: isMobile ? '12px' : '14px',
+                fontSize: '12px',
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
@@ -1373,29 +1349,27 @@ const TableManagement = () => {
                 color: '#475569',
                       display: 'flex',
                       alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                gap: '4px',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
                 whiteSpace: 'nowrap'
                     }}
                     onMouseEnter={(e) => {
                 e.target.style.backgroundColor = '#3b82f6';
                       e.target.style.color = 'white';
-                e.target.style.transform = 'translateY(-1px)';
                     }}
                     onMouseLeave={(e) => {
                 e.target.style.backgroundColor = 'white';
                 e.target.style.color = '#475569';
-                e.target.style.transform = 'translateY(0)';
                     }}
                   >
-              <FaHome size={isMobile ? 10 : 12} />
+              <FaHome size={10} />
                     {floor.name}
                     <span style={{
                 backgroundColor: '#e2e8f0',
                 color: '#475569',
-                padding: '2px 6px',
+                padding: '1px 5px',
                 borderRadius: '4px',
-                fontSize: isMobile ? '10px' : '11px',
+                fontSize: '10px',
                       fontWeight: 'bold'
                     }}>
                       {(floor.tables || []).length}
@@ -1405,17 +1379,17 @@ const TableManagement = () => {
                 <button
                   onClick={() => setShowAddFloor(true)}
                   style={{
-              padding: isMobile ? '8px 12px' : '10px 16px',
-              borderRadius: '8px',
+              padding: '6px 10px',
+              borderRadius: '6px',
                     fontWeight: '600',
-              fontSize: isMobile ? '12px' : '14px',
+              fontSize: '12px',
                     border: 'none',
                     cursor: 'pointer',
-              backgroundColor: '#f1f5f9',
+              backgroundColor: 'transparent',
               color: '#64748b',
                     display: 'flex',
                     alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               transition: 'all 0.2s',
               whiteSpace: 'nowrap'
             }}
@@ -1423,10 +1397,10 @@ const TableManagement = () => {
               e.target.style.backgroundColor = '#e2e8f0';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#f1f5f9';
+              e.target.style.backgroundColor = 'transparent';
             }}
           >
-            <FaPlus size={isMobile ? 10 : 12} />
+            <FaPlus size={10} />
                   {t('tables.addFloor')}
                 </button>
               </div>
