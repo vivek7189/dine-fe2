@@ -68,23 +68,25 @@ const CustomerAppSettings = () => {
     try {
       const response = await apiClient.get(`/api/restaurants/${id}/customer-app-settings`);
       if (response.settings) {
+        // Extract restaurant code from settings
+        const restaurantCode = response.settings.restaurantCode || '';
         setSettings(prev => ({
           ...prev,
           ...response.settings,
-          restaurantCode: response.restaurantCode || prev.restaurantCode
+          restaurantCode: restaurantCode || prev.restaurantCode
         }));
-      }
-      if (response.restaurantCode) {
-        setSettings(prev => ({ ...prev, restaurantCode: response.restaurantCode }));
-      }
-      // Try to load QR code
-      try {
-        const qrResponse = await apiClient.get(`/api/restaurants/${id}/qr-code`);
-        if (qrResponse.qrCode) {
-          setQrCodeUrl(qrResponse.qrCode);
+        
+        // If restaurant code exists, try to load QR code
+        if (restaurantCode) {
+          try {
+            const qrResponse = await apiClient.get(`/api/restaurants/${id}/qr-code`);
+            if (qrResponse.qrCode) {
+              setQrCodeUrl(qrResponse.qrCode);
+            }
+          } catch (qrErr) {
+            console.log('No QR code yet, but restaurant code exists');
+          }
         }
-      } catch (qrErr) {
-        console.log('No QR code yet');
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -96,13 +98,16 @@ const CustomerAppSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiClient.put(`/api/restaurants/${restaurantId}/customer-app-settings`, settings);
-      // Update restaurant code if changed
+      // Ensure restaurant code is linked to restaurant ID
       if (settings.restaurantCode) {
         await apiClient.patch(`/api/restaurants/${restaurantId}`, {
           restaurantCode: settings.restaurantCode.toUpperCase()
         });
       }
+      
+      // Save customer app settings
+      await apiClient.put(`/api/restaurants/${restaurantId}/customer-app-settings`, settings);
+      
       alert('Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -113,31 +118,70 @@ const CustomerAppSettings = () => {
   };
 
   const handleGenerateQR = async () => {
+    // Prevent multiple generations
+    if (qrCodeUrl) {
+      alert('QR code already exists. Please download the existing QR code.');
+      return;
+    }
+
+    if (!settings.restaurantCode) {
+      alert('Please generate a restaurant code first');
+      return;
+    }
+
     try {
+      // GET endpoint auto-generates QR if code exists
       const response = await apiClient.get(`/api/restaurants/${restaurantId}/qr-code`);
       if (response.qrCode) {
         setQrCodeUrl(response.qrCode);
+        alert('QR code generated successfully!');
+      } else {
+        alert('Failed to generate QR code. Please ensure restaurant code is saved.');
       }
     } catch (error) {
       console.error('Error generating QR:', error);
-      alert('Failed to generate QR code');
+      if (error.message && error.message.includes('Restaurant code not set')) {
+        alert('Please save the restaurant code first, then generate QR code.');
+      } else {
+        alert('Failed to generate QR code');
+      }
     }
   };
 
   const generateCode = async () => {
+    // Prevent multiple generations
+    if (settings.restaurantCode) {
+      alert('Restaurant code already exists. Please use the existing code.');
+      return;
+    }
+
     try {
       setGeneratingCode(true);
       const response = await apiClient.generateRestaurantCode(restaurantId);
       if (response.restaurantCode) {
-        setSettings(prev => ({ ...prev, restaurantCode: response.restaurantCode }));
-        // Also try to generate QR code with the new code
+        const newCode = response.restaurantCode;
+        setSettings(prev => ({ ...prev, restaurantCode: newCode }));
+        
+        // Immediately save the code to restaurant
         try {
-          const qrResponse = await apiClient.get(`/api/restaurants/${restaurantId}/qr-code`);
-          if (qrResponse.qrCode) {
-            setQrCodeUrl(qrResponse.qrCode);
+          await apiClient.patch(`/api/restaurants/${restaurantId}`, {
+            restaurantCode: newCode.toUpperCase()
+          });
+          
+          // Auto-generate QR code after code is saved
+          try {
+            const qrResponse = await apiClient.get(`/api/restaurants/${restaurantId}/qr-code`);
+            if (qrResponse.qrCode) {
+              setQrCodeUrl(qrResponse.qrCode);
+            }
+          } catch (qrErr) {
+            console.log('QR code will be available after settings are saved');
           }
-        } catch (qrErr) {
-          console.log('QR will be generated after save');
+          
+          alert('Restaurant code generated and saved successfully!');
+        } catch (saveErr) {
+          console.error('Error saving restaurant code:', saveErr);
+          alert('Code generated but failed to save. Please save settings manually.');
         }
       }
     } catch (error) {
@@ -253,24 +297,25 @@ const CustomerAppSettings = () => {
                 />
                 <button
                   onClick={generateCode}
-                  disabled={generatingCode}
-                  title="Generate Code"
+                  disabled={generatingCode || !!settings.restaurantCode}
+                  title={settings.restaurantCode ? "Code already generated" : "Generate Code"}
                   style={{
                     padding: '12px 16px',
-                    backgroundColor: generatingCode ? '#d1d5db' : '#ec4899',
+                    backgroundColor: generatingCode || settings.restaurantCode ? '#d1d5db' : '#ec4899',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: generatingCode ? 'not-allowed' : 'pointer',
+                    cursor: generatingCode || settings.restaurantCode ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
                     color: 'white',
                     fontWeight: '600',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    opacity: settings.restaurantCode ? 0.6 : 1
                   }}
                 >
                   <FaSync size={12} style={{ animation: generatingCode ? 'spin 1s linear infinite' : 'none' }} />
-                  {generatingCode ? '' : 'Generate'}
+                  {generatingCode ? 'Generating...' : settings.restaurantCode ? 'Generated' : 'Generate'}
                 </button>
                 <button
                   onClick={copyCode}
@@ -402,18 +447,20 @@ const CustomerAppSettings = () => {
                   </div>
                   <button
                     onClick={handleGenerateQR}
+                    disabled={!!qrCodeUrl || !settings.restaurantCode}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      backgroundColor: '#ec4899',
+                      backgroundColor: qrCodeUrl || !settings.restaurantCode ? '#d1d5db' : '#ec4899',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
                       fontWeight: '600',
-                      cursor: 'pointer'
+                      cursor: qrCodeUrl || !settings.restaurantCode ? 'not-allowed' : 'pointer',
+                      opacity: qrCodeUrl || !settings.restaurantCode ? 0.6 : 1
                     }}
                   >
-                    Generate QR Code
+                    {qrCodeUrl ? 'QR Code Generated' : !settings.restaurantCode ? 'Generate Code First' : 'Generate QR Code'}
                   </button>
                 </div>
               )}
