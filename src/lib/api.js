@@ -1797,6 +1797,13 @@ class ApiClient {
     });
   }
 
+  // Generate restaurant code
+  async generateRestaurantCode(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/generate-code`, {
+      method: 'POST',
+    });
+  }
+
   // Get restaurant by code (public)
   async getRestaurantByCode(code) {
     return this.request(`/api/public/restaurant/code/${code}`);

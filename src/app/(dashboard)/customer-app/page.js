@@ -13,6 +13,7 @@ import {
   FaCheck,
   FaToggleOn,
   FaToggleOff,
+  FaSync,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 
@@ -20,6 +21,7 @@ const CustomerAppSettings = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingCode, setGeneratingCode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [copied, setCopied] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
@@ -122,7 +124,32 @@ const CustomerAppSettings = () => {
     }
   };
 
+  const generateCode = async () => {
+    try {
+      setGeneratingCode(true);
+      const response = await apiClient.generateRestaurantCode(restaurantId);
+      if (response.restaurantCode) {
+        setSettings(prev => ({ ...prev, restaurantCode: response.restaurantCode }));
+        // Also try to generate QR code with the new code
+        try {
+          const qrResponse = await apiClient.get(`/api/restaurants/${restaurantId}/qr-code`);
+          if (qrResponse.qrCode) {
+            setQrCodeUrl(qrResponse.qrCode);
+          }
+        } catch (qrErr) {
+          console.log('QR will be generated after save');
+        }
+      }
+    } catch (error) {
+      console.error('Error generating code:', error);
+      alert('Failed to generate code');
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
   const copyCode = () => {
+    if (!settings.restaurantCode) return;
     navigator.clipboard.writeText(settings.restaurantCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -225,24 +252,55 @@ const CustomerAppSettings = () => {
                   maxLength={10}
                 />
                 <button
-                  onClick={copyCode}
+                  onClick={generateCode}
+                  disabled={generatingCode}
+                  title="Generate Code"
                   style={{
                     padding: '12px 16px',
-                    backgroundColor: copied ? '#10b981' : '#f3f4f6',
+                    backgroundColor: generatingCode ? '#d1d5db' : '#ec4899',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: 'pointer',
+                    cursor: generatingCode ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '12px'
+                  }}
+                >
+                  <FaSync size={12} style={{ animation: generatingCode ? 'spin 1s linear infinite' : 'none' }} />
+                  {generatingCode ? '' : 'Generate'}
+                </button>
+                <button
+                  onClick={copyCode}
+                  disabled={!settings.restaurantCode}
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: copied ? '#10b981' : settings.restaurantCode ? '#f3f4f6' : '#e5e7eb',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: settings.restaurantCode ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    opacity: settings.restaurantCode ? 1 : 0.5
                   }}
                 >
                   {copied ? <FaCheck color="white" /> : <FaCopy color="#6b7280" />}
                 </button>
               </div>
               <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>
-                Customers can use this code to find your restaurant in the Crave app
+                {settings.restaurantCode
+                  ? 'Customers can use this code to find your restaurant in the Crave app'
+                  : 'Click "Generate" to create a unique 6-character code for your restaurant'}
               </p>
+              <style jsx>{`
+                @keyframes spin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
             </div>
 
             <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 12px' }}>Order Types</h3>

@@ -309,6 +309,7 @@ const Customers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showOrderHistory, setShowOrderHistory] = useState(false);
+  const [showCustomerProfile, setShowCustomerProfile] = useState(false);
   const [sortBy, setSortBy] = useState('lastOrderDate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [isMobile, setIsMobile] = useState(false);
@@ -833,6 +834,372 @@ const Customers = () => {
     </div>
   );
 
+  // Customer Profile Modal - Detailed view with loyalty info
+  const CustomerProfileModal = () => {
+    if (!selectedCustomer) return null;
+
+    // Calculate loyalty stats
+    const orderHistory = selectedCustomer.orderHistory || [];
+    const totalPointsEarned = orderHistory.reduce((sum, o) => sum + (o.loyaltyPointsEarned || 0), 0);
+    const totalPointsRedeemed = orderHistory.reduce((sum, o) => sum + (o.loyaltyPointsRedeemed || 0), 0);
+    const currentPoints = selectedCustomer.loyaltyPoints || 0;
+    const redemptionHistory = orderHistory.filter(o => o.loyaltyPointsRedeemed > 0);
+
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+          padding: isMobile ? '16px' : '32px'
+        }}
+        onClick={() => {
+          setShowCustomerProfile(false);
+          setSelectedCustomer(null);
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            width: '100%',
+            maxWidth: isMobile ? '100%' : '700px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div style={{
+            padding: '24px',
+            background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+            color: 'white',
+            borderRadius: '16px 16px 0 0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px',
+                  fontWeight: '700'
+                }}>
+                  {(selectedCustomer.name || 'C')[0].toUpperCase()}
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700' }}>
+                    {selectedCustomer.name || 'Customer'}
+                  </h2>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+                    {selectedCustomer.phone || 'No phone'}
+                  </p>
+                  {selectedCustomer.source === 'customer_app' && (
+                    <span style={{
+                      display: 'inline-block',
+                      marginTop: '6px',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      backgroundColor: 'rgba(255,255,255,0.2)'
+                    }}>
+                      Crave App User
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCustomerProfile(false);
+                  setSelectedCustomer(null);
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  padding: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                <FaTimes size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Loyalty Points Summary */}
+          <div style={{ padding: '20px 24px', backgroundColor: '#faf5ff', borderBottom: '1px solid #e9d5ff' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaGift size={16} />
+              Loyalty Points
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px' }}>
+              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#7c3aed' }}>{currentPoints}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Current Points</p>
+              </div>
+              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#10b981' }}>+{totalPointsEarned}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Total Earned</p>
+              </div>
+              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#ef4444' }}>-{totalPointsRedeemed}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Total Redeemed</p>
+              </div>
+              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#f59e0b' }}>{redemptionHistory.length}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Redemptions</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Details & Stats */}
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
+              {/* Contact Info */}
+              <div>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Contact Information</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedCustomer.email && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
+                      <FaEnvelope size={12} style={{ color: '#9ca3af' }} />
+                      {selectedCustomer.email}
+                    </div>
+                  )}
+                  {selectedCustomer.city && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
+                      <FaMapMarkerAlt size={12} style={{ color: '#9ca3af' }} />
+                      {selectedCustomer.city}
+                    </div>
+                  )}
+                  {selectedCustomer.dob && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
+                      <FaCalendarAlt size={12} style={{ color: '#9ca3af' }} />
+                      DOB: {new Date(selectedCustomer.dob).toLocaleDateString()}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
+                    <FaCalendarAlt size={12} style={{ color: '#9ca3af' }} />
+                    Customer since: {selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString() : 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Stats */}
+              <div>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Order Statistics</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: '#6b7280' }}>Total Orders</span>
+                    <span style={{ fontWeight: '600', color: '#1f2937' }}>{selectedCustomer.totalOrders || orderHistory.length || 0}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: '#6b7280' }}>Total Spent</span>
+                    <span style={{ fontWeight: '600', color: '#ef4444' }}>₹{selectedCustomer.totalSpent || 0}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: '#6b7280' }}>Avg. Order Value</span>
+                    <span style={{ fontWeight: '600', color: '#1f2937' }}>
+                      ₹{(selectedCustomer.totalOrders > 0 ? (selectedCustomer.totalSpent / selectedCustomer.totalOrders).toFixed(0) : 0)}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: '#6b7280' }}>Last Order</span>
+                    <span style={{ fontWeight: '600', color: '#1f2937' }}>
+                      {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Redemption History */}
+          {redemptionHistory.length > 0 && (
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                Points Redemption History
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                {redemptionHistory.map((order, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    backgroundColor: '#fef2f2',
+                    borderRadius: '8px',
+                    fontSize: '13px'
+                  }}>
+                    <div>
+                      <span style={{ fontWeight: '600', color: '#1f2937' }}>{order.orderNumber}</span>
+                      <span style={{ color: '#6b7280', marginLeft: '8px' }}>
+                        {new Date(order.orderDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontWeight: '600', color: '#ef4444' }}>-{order.loyaltyPointsRedeemed} pts</span>
+                      <span style={{ color: '#6b7280', marginLeft: '8px' }}>(₹{order.loyaltyDiscount || 0} off)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Orders */}
+          <div style={{ padding: '20px 24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                Recent Orders ({orderHistory.length})
+              </h3>
+              {orderHistory.length > 0 && (
+                <button
+                  onClick={() => {
+                    setShowCustomerProfile(false);
+                    setShowOrderHistory(true);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#7c3aed',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  View All <FaArrowRight size={10} />
+                </button>
+              )}
+            </div>
+
+            {orderHistory.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                {orderHistory
+                  .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+                  .slice(0, 5)
+                  .map((order, index) => (
+                    <div key={index} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{order.orderNumber}</span>
+                          {order.orderTypeLabel && (
+                            <span style={{
+                              padding: '2px 6px',
+                              borderRadius: '8px',
+                              fontSize: '10px',
+                              fontWeight: '600',
+                              backgroundColor: order.orderType === 'dine_in' ? '#dbeafe' : order.orderType === 'takeaway' ? '#fef3c7' : '#dcfce7',
+                              color: order.orderType === 'dine_in' ? '#1e40af' : order.orderType === 'takeaway' ? '#92400e' : '#166534'
+                            }}>
+                              {order.orderTypeLabel}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                          {new Date(order.orderDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444' }}>₹{order.totalAmount}</span>
+                        {order.loyaltyPointsEarned > 0 && (
+                          <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#10b981' }}>+{order.loyaltyPointsEarned} pts</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280', fontSize: '13px' }}>
+                No orders yet
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px' }}>
+            <button
+              onClick={() => {
+                setShowCustomerProfile(false);
+                setCustomerForm({
+                  name: selectedCustomer.name || '',
+                  phone: selectedCustomer.phone || '',
+                  email: selectedCustomer.email || '',
+                  city: selectedCustomer.city || '',
+                  dob: selectedCustomer.dob || ''
+                });
+                setShowEditModal(true);
+              }}
+              style={{
+                flex: 1,
+                padding: '12px',
+                backgroundColor: '#f3f4f6',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                color: '#374151'
+              }}
+            >
+              <FaEdit size={14} />
+              Edit Profile
+            </button>
+            <button
+              onClick={() => {
+                setShowCustomerProfile(false);
+                setShowOrderHistory(true);
+              }}
+              style={{
+                flex: 1,
+                padding: '12px',
+                backgroundColor: '#7c3aed',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <FaHistory size={14} />
+              Full History
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -981,202 +1348,179 @@ const Customers = () => {
             </div>
           </div>
 
-          {/* Customer Engagement Section */}
-          <div style={{ 
-            backgroundColor: 'white', 
-            borderRadius: isMobile ? '12px' : '16px', 
-            padding: isMobile ? '16px' : '24px', 
-            marginBottom: isMobile ? '12px' : '24px',
+          {/* Customer Engagement Section - Compact */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: isMobile ? '12px' : '16px',
+            marginBottom: isMobile ? '12px' : '16px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)',
             border: '1px solid #e2e8f0'
           }}>
-            <div style={{ marginBottom: isMobile ? '12px' : '16px' }}>
-              <h2 style={{ 
-                margin: 0, 
-                fontSize: isMobile ? '18px' : '22px', 
-                fontWeight: '700', 
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: isMobile ? '14px' : '16px',
+                fontWeight: '600',
                 color: '#1f2937',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '6px'
               }}>
-                <FaGift size={isMobile ? 18 : 22} style={{ color: '#ef4444' }} />
+                <FaGift size={14} style={{ color: '#ef4444' }} />
                 Customer Engagement
               </h2>
-              <p style={{ 
-                margin: '8px 0 0 0', 
-                fontSize: isMobile ? '12px' : '14px', 
-                color: '#6b7280' 
-              }}>
-                Manage offers, loyalty programs, and customer app settings
-              </p>
             </div>
-            
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
-              gap: isMobile ? '12px' : '16px' 
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+              gap: '10px'
             }}>
-              {/* Offers Card */}
+              {/* Offers Card - Compact */}
               <div
                 onClick={() => router.push('/offers')}
                 style={{
-                  padding: isMobile ? '16px' : '20px',
-                  borderRadius: '12px',
+                  padding: '12px',
+                  borderRadius: '10px',
                   background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                  border: '2px solid #fbbf24',
+                  border: '1px solid #fbbf24',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(251, 191, 36, 0.2)'
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(251, 191, 36, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.25)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.2)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{
-                    width: isMobile ? '40px' : '48px',
-                    height: isMobile ? '40px' : '48px',
-                    backgroundColor: '#f59e0b',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white'
-                  }}>
-                    <FaTag size={isMobile ? 18 : 22} />
-                  </div>
-                  <FaArrowRight size={isMobile ? 14 : 16} style={{ color: '#f59e0b' }} />
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: '#f59e0b',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  flexShrink: 0
+                }}>
+                  <FaTag size={14} />
                 </div>
-                <h3 style={{ 
-                  margin: '0 0 8px 0', 
-                  fontSize: isMobile ? '16px' : '18px', 
-                  fontWeight: '700', 
-                  color: '#92400e' 
-                }}>
-                  Offers & Discounts
-                </h3>
-                <p style={{ 
-                  margin: 0, 
-                  fontSize: isMobile ? '12px' : '13px', 
-                  color: '#78350f',
-                  lineHeight: '1.5'
-                }}>
-                  Create and manage special offers, promotions, and discount codes for your customers
-                </p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#92400e' }}>
+                    Offers & Discounts
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#78350f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Manage promotions
+                  </p>
+                </div>
+                <FaArrowRight size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
               </div>
 
-              {/* Loyalty Card */}
-              <div
-                style={{
-                  padding: isMobile ? '16px' : '20px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)',
-                  border: '2px solid #ec4899',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(236, 72, 153, 0.2)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(236, 72, 153, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(236, 72, 153, 0.2)';
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{
-                    width: isMobile ? '40px' : '48px',
-                    height: isMobile ? '40px' : '48px',
-                    backgroundColor: '#ec4899',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white'
-                  }}>
-                    <FaGift size={isMobile ? 18 : 22} />
-                  </div>
-                  <FaArrowRight size={isMobile ? 14 : 16} style={{ color: '#ec4899' }} />
-                </div>
-                <h3 style={{ 
-                  margin: '0 0 8px 0', 
-                  fontSize: isMobile ? '16px' : '18px', 
-                  fontWeight: '700', 
-                  color: '#9f1239' 
-                }}>
-                  Loyalty Program
-                </h3>
-                <p style={{ 
-                  margin: 0, 
-                  fontSize: isMobile ? '12px' : '13px', 
-                  color: '#831843',
-                  lineHeight: '1.5'
-                }}>
-                  Track customer loyalty points, rewards, and engagement to build lasting relationships
-                </p>
-              </div>
-
-              {/* Customer App Card */}
+              {/* Loyalty Card - Compact */}
               <div
                 onClick={() => router.push('/customer-app')}
                 style={{
-                  padding: isMobile ? '16px' : '20px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                  border: '2px solid #6366f1',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)',
+                  border: '1px solid #ec4899',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(236, 72, 153, 0.25)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.2)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{
-                    width: isMobile ? '40px' : '48px',
-                    height: isMobile ? '40px' : '48px',
-                    backgroundColor: '#6366f1',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white'
-                  }}>
-                    <FaMobileAlt size={isMobile ? 18 : 22} />
-                  </div>
-                  <FaArrowRight size={isMobile ? 14 : 16} style={{ color: '#6366f1' }} />
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: '#ec4899',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  flexShrink: 0
+                }}>
+                  <FaGift size={14} />
                 </div>
-                <h3 style={{ 
-                  margin: '0 0 8px 0', 
-                  fontSize: isMobile ? '16px' : '18px', 
-                  fontWeight: '700', 
-                  color: '#312e81' 
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#9f1239' }}>
+                    Loyalty Program
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#831843', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Points & rewards
+                  </p>
+                </div>
+                <FaArrowRight size={12} style={{ color: '#ec4899', flexShrink: 0 }} />
+              </div>
+
+              {/* Customer App Card - Compact */}
+              <div
+                onClick={() => router.push('/customer-app')}
+                style={{
+                  padding: '12px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                  border: '1px solid #6366f1',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: '#6366f1',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  flexShrink: 0
                 }}>
-                  Crave App
-                </h3>
-                <p style={{ 
-                  margin: 0, 
-                  fontSize: isMobile ? '12px' : '13px', 
-                  color: '#1e1b4b',
-                  lineHeight: '1.5'
-                }}>
-                  Configure your customer mobile app settings, QR codes, and ordering preferences
-                </p>
+                  <FaMobileAlt size={14} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#312e81' }}>
+                    Crave App
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#1e1b4b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    QR codes & settings
+                  </p>
+                </div>
+                <FaArrowRight size={12} style={{ color: '#6366f1', flexShrink: 0 }} />
               </div>
             </div>
           </div>
@@ -1279,8 +1623,25 @@ const Customers = () => {
                     flexWrap: 'wrap',
                     gap: isMobile ? '8px' : '16px'
                   }}>
-                    {/* Customer Info */}
-                    <div style={{ flex: 1, minWidth: isMobile ? '150px' : '200px' }}>
+                    {/* Customer Info - Clickable */}
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: isMobile ? '150px' : '200px',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        borderRadius: '8px',
+                        margin: '-4px',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onClick={() => {
+                        setSelectedCustomer(customer);
+                        setShowCustomerProfile(true);
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      title="Click to view customer profile"
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '4px' : '8px' }}>
                         <div style={{
                           width: isMobile ? '32px' : '40px',
@@ -1297,8 +1658,9 @@ const Customers = () => {
                           {(customer.name || customer.phone || 'C').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h3 style={{ margin: 0, fontSize: isMobile ? '14px' : '16px', fontWeight: '600', color: '#1f2937' }}>
+                          <h3 style={{ margin: 0, fontSize: isMobile ? '14px' : '16px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {customer.name || t('customers.unnamed')}
+                            <FaEye size={isMobile ? 10 : 12} style={{ color: '#9ca3af', opacity: 0.7 }} />
                           </h3>
                           <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
                             {customer.phone && (
@@ -1497,6 +1859,7 @@ const Customers = () => {
         />
       )}
       {showOrderHistory && <OrderHistoryModal />}
+      {showCustomerProfile && <CustomerProfileModal />}
     </>
   );
 };
