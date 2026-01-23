@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FaUser,
@@ -14,6 +14,8 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import { auth } from '../../../../firebase';
+import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth';
 
 const Profile = () => {
   const router = useRouter();
@@ -37,6 +39,10 @@ const Profile = () => {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState('');
 
+  // Firebase phone auth state for linking
+  const [phoneVerificationId, setPhoneVerificationId] = useState(null);
+  const [isFirebasePhoneOTP, setIsFirebasePhoneOTP] = useState(false);
+
   useEffect(() => {
     setIsClient(true);
     const checkMobile = () => {
@@ -46,6 +52,48 @@ const Profile = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Initialize reCAPTCHA for phone verification
+  const setupRecaptcha = useCallback(() => {
+    if (typeof window !== 'undefined' && !window.recaptchaVerifierProfile) {
+      try {
+        window.recaptchaVerifierProfile = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA verified for profile phone linking');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            if (window.recaptchaVerifierProfile) {
+              window.recaptchaVerifierProfile.clear();
+              window.recaptchaVerifierProfile = null;
+            }
+          }
+        });
+        window.recaptchaVerifierProfile.render();
+      } catch (error) {
+        console.error('Error setting up reCAPTCHA:', error);
+      }
+    }
+  }, []);
+
+  // Setup recaptcha when phone linking starts
+  useEffect(() => {
+    if (linkingPhone && isClient) {
+      setupRecaptcha();
+    }
+    return () => {
+      // Cleanup recaptcha when unmounting or stopping phone linking
+      if (window.recaptchaVerifierProfile && !linkingPhone) {
+        try {
+          window.recaptchaVerifierProfile.clear();
+          window.recaptchaVerifierProfile = null;
+        } catch (e) {
+          console.log('Error clearing recaptcha:', e);
+        }
+      }
+    };
+  }, [linkingPhone, isClient, setupRecaptcha]);
 
   useEffect(() => {
     const loadUserData = () => {
@@ -132,7 +180,9 @@ const Profile = () => {
   };
 
   // Link Email
-  const handleSendEmailOtp = async () => {
+  const handleSendEmailOtp = async (e) => {
+    if (e) e.preventDefault();
+
     if (!linkEmail || !linkEmail.includes('@')) {
       setLinkError('Please enter a valid email address');
       return;
@@ -228,8 +278,17 @@ const Profile = () => {
     }
   };
 
-  // Send Phone OTP for linking
-  const handleSendPhoneOtp = async () => {
+  // Check if it's a test/dummy phone number
+  const isDummyPhoneNumber = (phone) => {
+    const normalizedPhone = phone.replace(/\D/g, '');
+    // Test numbers: +919000000000 or similar test patterns
+    return normalizedPhone.endsWith('9000000000') || normalizedPhone.endsWith('1234567890');
+  };
+
+  // Send Phone OTP for linking using Firebase
+  const handleSendPhoneOtp = async (e) => {
+    if (e) e.preventDefault();
+
     if (!linkPhone) {
       setLinkError('Please enter a phone number');
       return;
@@ -240,27 +299,70 @@ const Profile = () => {
 
     setLinkLoading(true);
     setLinkError('');
-    try {
-      // STAGING BRANCH: Hardcoded staging backend URL
-      const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
-      // Use same OTP API as login page
-      const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ phone: normalizedPhone })
-      });
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send OTP');
+    try {
+      // Check if it's a dummy/test number - use backend OTP
+      if (isDummyPhoneNumber(normalizedPhone)) {
+        const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
+        const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ phone: normalizedPhone })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to send OTP');
+        }
+
+        setIsFirebasePhoneOTP(false);
+        setLinkOtpSent(true);
+        setLinkPhone(normalizedPhone);
+      } else {
+        // Use Firebase OTP for real numbers
+        if (!window.recaptchaVerifierProfile) {
+          setupRecaptcha();
+          // Wait a bit for recaptcha to initialize
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        const appVerifier = window.recaptchaVerifierProfile;
+        if (!appVerifier) {
+          throw new Error('reCAPTCHA not initialized. Please refresh and try again.');
+        }
+
+        const confirmationResult = await signInWithPhoneNumber(auth, normalizedPhone, appVerifier);
+
+        setPhoneVerificationId(confirmationResult);
+        setIsFirebasePhoneOTP(true);
+        setLinkOtpSent(true);
+        setLinkPhone(normalizedPhone);
+      }
+    } catch (err) {
+      console.error('Error sending phone OTP:', err);
+
+      // Handle Firebase-specific errors
+      if (err.code === 'auth/invalid-phone-number') {
+        setLinkError('Invalid phone number format. Please include country code (e.g., +91)');
+      } else if (err.code === 'auth/too-many-requests') {
+        setLinkError('Too many attempts. Please try again later.');
+      } else if (err.code === 'auth/quota-exceeded') {
+        setLinkError('SMS quota exceeded. Please try again later.');
+      } else {
+        setLinkError(err.message || 'Failed to send OTP');
       }
 
-      setLinkOtpSent(true);
-      setLinkPhone(normalizedPhone); // Store normalized phone
-    } catch (err) {
-      setLinkError(err.message || 'Failed to send OTP');
+      // Reset recaptcha on error
+      if (window.recaptchaVerifierProfile) {
+        try {
+          window.recaptchaVerifierProfile.clear();
+          window.recaptchaVerifierProfile = null;
+        } catch (e) {
+          console.log('Error clearing recaptcha:', e);
+        }
+      }
     } finally {
       setLinkLoading(false);
     }
@@ -274,15 +376,30 @@ const Profile = () => {
       return;
     }
 
-    if (!linkOtp || linkOtp.length !== 4) {
-      setLinkError('Please enter a valid 4-digit OTP');
+    const otpLength = isFirebasePhoneOTP ? 6 : 4;
+    if (!linkOtp || linkOtp.length !== otpLength) {
+      setLinkError(`Please enter a valid ${otpLength}-digit OTP`);
       return;
     }
 
     setLinkLoading(true);
     setLinkError('');
+
     try {
-      // STAGING BRANCH: Hardcoded staging backend URL
+      let firebaseUid = null;
+
+      if (isFirebasePhoneOTP) {
+        // Verify Firebase OTP
+        if (!phoneVerificationId) {
+          throw new Error('Verification session expired. Please request a new OTP.');
+        }
+
+        const result = await phoneVerificationId.confirm(linkOtp);
+        firebaseUid = result.user.uid;
+        console.log('Firebase phone verified:', result.user.phoneNumber);
+      }
+
+      // Call backend to link phone
       const backendUrl = 'https://dine-backend-git-staging-kapils-projects-bfc8fbae.vercel.app';
       const response = await fetch(`${backendUrl}/api/user/link-phone`, {
         method: 'POST',
@@ -290,9 +407,11 @@ const Profile = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiClient.getToken()}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           phone: linkPhone,
-          otp: linkOtp
+          otp: linkOtp,
+          firebaseUid: firebaseUid, // Pass Firebase UID if verified via Firebase
+          verifiedViaFirebase: isFirebasePhoneOTP
         })
       });
 
@@ -309,15 +428,27 @@ const Profile = () => {
       const updatedUser = { ...user, phone: linkPhone, phoneVerified: true };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
-      
+
       // Reset state
       setLinkingPhone(false);
       setLinkPhone('');
       setLinkOtp('');
       setLinkOtpSent(false);
       setLinkError('');
+      setPhoneVerificationId(null);
+      setIsFirebasePhoneOTP(false);
     } catch (err) {
-      setLinkError(err.message || 'Failed to link phone');
+      console.error('Error linking phone:', err);
+
+      if (err.code === 'auth/invalid-verification-code') {
+        setLinkError('Invalid OTP. Please check and try again.');
+      } else if (err.code === 'auth/code-expired') {
+        setLinkError('OTP expired. Please request a new one.');
+        setLinkOtpSent(false);
+        setLinkOtp('');
+      } else {
+        setLinkError(err.message || 'Failed to link phone');
+      }
     } finally {
       setLinkLoading(false);
     }
@@ -636,7 +767,7 @@ const Profile = () => {
                     </button>
                   </>
                 ) : (
-                  <form onSubmit={linkOtpSent ? handleLinkEmail : handleSendEmailOtp}>
+                  <form onSubmit={linkOtpSent ? handleLinkEmail : (e) => handleSendEmailOtp(e)}>
                     {linkError && (
                       <div style={{
                         padding: '12px',
@@ -909,7 +1040,7 @@ const Profile = () => {
                     </button>
                   </>
                 ) : (
-                  <form onSubmit={linkOtpSent ? handleLinkPhone : (e) => { e.preventDefault(); handleSendPhoneOtp(); }}>
+                  <form onSubmit={linkOtpSent ? handleLinkPhone : (e) => handleSendPhoneOtp(e)}>
                     {linkError && (
                       <div style={{
                         padding: '12px',
@@ -971,6 +1102,8 @@ const Profile = () => {
                               setLinkOtp('');
                               setLinkOtpSent(false);
                               setLinkError('');
+                              setPhoneVerificationId(null);
+                              setIsFirebasePhoneOTP(false);
                             }}
                             style={{
                               padding: '12px 16px',
@@ -991,12 +1124,12 @@ const Profile = () => {
                       <>
                         <div style={{ marginBottom: '16px' }}>
                           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
-                            Enter OTP sent to {linkPhone}
+                            Enter {isFirebasePhoneOTP ? '6' : '4'}-digit OTP sent to {linkPhone}
                           </label>
                           <input
                             type="text"
                             value={linkOtp}
-                            onChange={(e) => setLinkOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            onChange={(e) => setLinkOtp(e.target.value.replace(/\D/g, '').slice(0, isFirebasePhoneOTP ? 6 : 4))}
                             style={{
                               width: '100%',
                               padding: '16px',
@@ -1009,27 +1142,29 @@ const Profile = () => {
                               fontWeight: 'bold',
                               boxSizing: 'border-box'
                             }}
-                            placeholder="1234"
-                            maxLength={4}
+                            placeholder={isFirebasePhoneOTP ? '123456' : '1234'}
+                            maxLength={isFirebasePhoneOTP ? 6 : 4}
                             required
                           />
-                          <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-                            For testing use: <strong style={{ color: '#3b82f6' }}>1234</strong> (if phone is +919000000000)
-                          </p>
+                          {!isFirebasePhoneOTP && (
+                            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                              For testing use: <strong style={{ color: '#3b82f6' }}>1234</strong> (if phone is +919000000000)
+                            </p>
+                          )}
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             type="submit"
-                            disabled={linkLoading || linkOtp.length !== 4}
+                            disabled={linkLoading || linkOtp.length !== (isFirebasePhoneOTP ? 6 : 4)}
                             style={{
                               flex: 1,
                               padding: '12px',
-                              backgroundColor: linkLoading || linkOtp.length !== 4 ? '#d1d5db' : '#10b981',
+                              backgroundColor: linkLoading || linkOtp.length !== (isFirebasePhoneOTP ? 6 : 4) ? '#d1d5db' : '#10b981',
                               color: 'white',
                               border: 'none',
                               borderRadius: '8px',
                               fontWeight: '600',
-                              cursor: linkLoading || linkOtp.length !== 4 ? 'not-allowed' : 'pointer',
+                              cursor: linkLoading || linkOtp.length !== (isFirebasePhoneOTP ? 6 : 4) ? 'not-allowed' : 'pointer',
                               fontSize: '14px'
                             }}
                           >
@@ -1040,6 +1175,7 @@ const Profile = () => {
                             onClick={() => {
                               setLinkOtpSent(false);
                               setLinkOtp('');
+                              setPhoneVerificationId(null);
                             }}
                             style={{
                               padding: '12px 16px',
@@ -1155,6 +1291,9 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Invisible reCAPTCHA container for phone verification */}
+      <div id="recaptcha-container-profile"></div>
     </div>
   );
 };
