@@ -4,11 +4,11 @@ import HomePageClient from './HomePageClient';
 export const dynamic = 'force-static';
 export const revalidate = false; // Never revalidate - fully static
 
-// Enhanced SEO Metadata for homepage - Optimized for search engines and AI chatbots
+// Enhanced SEO Metadata for homepage - Optimized for search engines and AI chatbots (International)
 export const metadata = {
-  title: 'Best Restaurant POS Software India 2025 | Free QR Menu + AI Agent + Inventory Management',
-  description: 'DineOpen - Complete Restaurant POS Software for India. Free QR Code Menu, AI Voice Assistant, Billing Software, Inventory Management & GST Billing. Affordable pricing from ₹300. Best alternative to Zomato POS & Petpooja. Perfect for small restaurants, cafes & cloud kitchens.',
-  keywords: 'restaurant POS software India, restaurant billing software, restaurant management software, free QR menu, AI restaurant assistant, inventory management software, restaurant POS system, GST billing software, cloud kitchen POS, cafe management software, restaurant software India, digital menu QR code, POS for small restaurants, restaurant billing system, online ordering system, KOT system, table management software, restaurant automation, voice AI waiter, cloud based POS, affordable restaurant software, zomato POS alternative, petpooja alternative, restaurant tech India, food business software, hospitality management system',
+  title: 'AI-Powered Restaurant Management System | Next-Gen POS & AI Agent | DineOpen',
+  description: 'DineOpen - The AI Agent-powered restaurant management platform. Autonomous AI takes orders via voice & chat 24/7, manages reservations, and runs your restaurant operations. Cloud-based POS, QR menus, inventory tracking. Starting at $10/month. Trusted by 500+ restaurants worldwide.',
+  keywords: 'AI restaurant management, AI agent for restaurants, restaurant AI assistant, autonomous restaurant POS, AI voice ordering system, restaurant management software, cloud POS system, QR code menu, digital ordering, restaurant automation, AI waiter, voice AI ordering, restaurant inventory management, table management system, kitchen display system, restaurant analytics, hospitality technology, food service automation, smart restaurant, next-gen POS',
   authors: [{ name: 'DineOpen Team' }],
   creator: 'DineOpen',
   publisher: 'DineOpen',
@@ -24,8 +24,8 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: 'Best Restaurant POS Software India 2025 | Free QR Menu + AI Agent',
-    description: 'Complete Restaurant Management Software with Free QR Code Menu, AI Voice Assistant, Billing, Inventory Management & GST Billing. Starting ₹300. Best alternative to Zomato POS. Perfect for small restaurants & cafes.',
+    title: 'AI-Powered Restaurant Management | Next-Gen POS with AI Agent | DineOpen',
+    description: 'Transform your restaurant with AI. Our autonomous AI Agent handles orders, reservations & customer service 24/7. Cloud POS, QR menus, real-time analytics. Starting at $10/month.',
     url: 'https://www.dineopen.com',
     siteName: 'DineOpen',
     images: [
@@ -33,7 +33,7 @@ export const metadata = {
         url: 'https://www.dineopen.com/favicon.png',
         width: 1200,
         height: 630,
-        alt: 'DineOpen - Best Restaurant POS Software India with Free QR Menu and AI Agent',
+        alt: 'DineOpen - AI-Powered Restaurant Management System with Autonomous AI Agent',
       },
     ],
     locale: 'en_US',
@@ -41,8 +41,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Best Restaurant POS Software India | Free QR Menu + AI Agent',
-    description: 'Complete Restaurant POS with Free QR Menu, AI Voice Assistant, Billing & Inventory Management. Starting ₹300. Best Zomato POS alternative for small restaurants.',
+    title: 'AI-Powered Restaurant Management | Autonomous AI Agent | DineOpen',
+    description: 'Next-gen restaurant platform with AI Agent that takes orders, manages reservations & handles operations 24/7. Cloud POS, QR menus, analytics. From $10/month.',
     images: ['https://www.dineopen.com/favicon.png'],
     creator: '@dineopen',
   },

@@ -1936,7 +1936,7 @@ const PlaceOrderContent = () => {
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '11px', color: '#5b21b6' }}>Points you'll earn</span>
+                      <span style={{ fontSize: '11px', color: '#5b21b6' }}>Points you&apos;ll earn</span>
                       <span style={{ fontSize: '13px', fontWeight: '600', color: '#7c3aed' }}>+{getLoyaltyPointsToEarn()}</span>
                     </div>
                   </div>
