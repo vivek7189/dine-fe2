@@ -661,7 +661,6 @@ const Login = () => {
         return;
       }
 
-      // First send OTP
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const otpResponse = await fetch(`${backendUrl}/api/auth/email/send-otp`, {
         method: 'POST',

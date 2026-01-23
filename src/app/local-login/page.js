@@ -46,7 +46,8 @@ const LocalLogin = () => {
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app'}/api/auth/local-login`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const response = await fetch(`${backendUrl}/api/auth/local-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

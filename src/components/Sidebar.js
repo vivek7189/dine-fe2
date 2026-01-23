@@ -19,7 +19,9 @@ import {
   FaChevronRight,
   FaBars,
   FaUser,
-  FaFire
+  FaFire,
+  FaMobileAlt,
+  FaTag
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -95,7 +97,8 @@ export default function Sidebar() {
           } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
             try {
               const token = localStorage.getItem('authToken');
-              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'}/api/restaurants`, {
+                const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+              const response = await fetch(`${backendUrl}/api/restaurants`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'
@@ -148,6 +151,8 @@ export default function Sidebar() {
     { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', roles: ['owner'] },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'manager'] },
+    // { id: 'customer-app', name: 'Crave App', icon: FaMobileAlt, href: '/customer-app', color: '#ec4899', roles: ['owner'] },
+    // { id: 'offers', name: 'Offers', icon: FaTag, href: '/offers', color: '#f59e0b', roles: ['owner', 'manager'] },
     { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'manager', 'waiter', 'employee'] },
   ];
 

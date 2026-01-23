@@ -453,6 +453,12 @@ const OrderHistory = () => {
                 </div>
                 <div className="font-semibold text-base text-gray-900 mb-1 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
                 <div className="text-sm text-gray-600 capitalize">{order.paymentMethod || 'Unpaid'}</div>
+                {order.orderSource === 'customer_app' && (
+                  <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">
+                    <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
+                    Crave App
+                  </div>
+                )}
               </div>
             </div>
 
@@ -811,10 +817,16 @@ const OrderHistory = () => {
                             <FaUtensils className="text-gray-400" />
                             <span className="capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
                           </div>
+                          {order.orderSource === 'customer_app' && (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">
+                              <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
+                              Crave
+                            </div>
+                          )}
                         </div>
                         <div className="col-span-6 sm:col-span-3 flex flex-col sm:items-start gap-2">
-                          <span 
-                            className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm" 
+                          <span
+                            className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
                             style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
                           >
                             {statusStyle.label}

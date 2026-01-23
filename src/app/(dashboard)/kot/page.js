@@ -131,8 +131,8 @@ const KitchenOrderTicket = () => {
         setRefreshing(true);
       }
 
-      // Get KOT orders for this restaurant using the specific API endpoint
-      const kotApiUrl = `https://dine-backend-lake.vercel.app/api/kot/${restaurantId}`;
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      const kotApiUrl = `${backendUrl}/api/kot/${restaurantId}`;
       console.log('🌐 Making KOT API call to:', kotApiUrl);
       
       const response = await fetch(kotApiUrl, {
@@ -1478,7 +1478,24 @@ const KitchenOrderTicket = () => {
                             Table {kot.tableNumber}
                           </div>
                         )}
-                        
+
+                        {kot.orderSource === 'customer_app' && (
+                          <div style={{
+                            fontSize: '10px',
+                            color: '#ec4899',
+                            fontWeight: '600',
+                            backgroundColor: '#fce7f3',
+                            padding: '2px 6px',
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', backgroundColor: '#ec4899', borderRadius: '50%' }}></span>
+                            Crave App
+                          </div>
+                        )}
+
                         {(kot.waiterName || kot.waiter) && (
                           <div style={{ fontSize: '11px', color: '#6b7280' }}>
                             {kot.waiterName || kot.waiter}
