@@ -44,7 +44,7 @@ export default function LandingPage() {
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth <= 1024);
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -96,12 +96,18 @@ export default function LandingPage() {
   };
 
   const handleSubmitDemoRequest = async () => {
-    if (!demoRestaurantName.trim()) return setDemoError('Restaurant name is required');
     if (demoContactType === 'phone' && !demoPhone.trim()) return setDemoError('Phone number is required');
     if (demoContactType === 'email' && !demoEmail.trim()) return setDemoError('Email is required');
     setDemoSubmitting(true); setDemoError('');
     try {
-      const comment = `Restaurant: ${demoRestaurantName.trim()}\n${demoComment.trim()}`;
+      // Build comment: include restaurant name only if provided, then additional details
+      let comment = '';
+      if (demoRestaurantName.trim()) {
+        comment = `Restaurant: ${demoRestaurantName.trim()}`;
+      }
+      if (demoComment.trim()) {
+        comment = comment ? `${comment}\n${demoComment.trim()}` : demoComment.trim();
+      }
       await apiClient.submitDemoRequest(demoContactType, demoPhone.trim(), demoEmail.trim(), comment);
       setDemoSuccess(true);
       setTimeout(() => { 
@@ -1003,7 +1009,7 @@ export default function LandingPage() {
             </div>
 
             {/* AI Features Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', textAlign: 'left' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px', textAlign: 'left' }}>
               {[
                  { title: "AI Voice Agent", desc: "Takes orders via phone calls automatically.", icon: <FaMicrophone/> },
                 { title: "Stock Verification", desc: "Checks availability before confirming.", icon: <FaBoxes/> },
@@ -1055,13 +1061,13 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '24px' : '32px' }}>
 
             {/* Card 1: Instant Menu Creation */}
             <div className="feature-card" style={{
               background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
               borderRadius: '32px',
-              padding: '48px',
+              padding: isMobile ? '32px' : '48px',
               position: 'relative',
               overflow: 'hidden',
               border: '2px solid #10b981',
@@ -1135,7 +1141,7 @@ export default function LandingPage() {
             <div className="feature-card" style={{
               background: 'white',
               borderRadius: '32px',
-              padding: '48px',
+              padding: isMobile ? '32px' : '48px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 10px 30px -10px rgba(0,0,0,0.08)',
               display: 'flex',
@@ -1172,7 +1178,7 @@ export default function LandingPage() {
                 padding: '24px',
                 border: '1px solid #e5e7eb'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'center', gap: isMobile ? '16px' : '0', marginBottom: '20px' }}>
                   <div style={{ textAlign: 'center', flex: 1 }}>
                     <div style={{
                       width: '56px',
@@ -1189,7 +1195,8 @@ export default function LandingPage() {
                     </div>
                     <div style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>Scan QR</div>
                   </div>
-                  <FaArrowRight size={20} color="#d1d5db" />
+                  {!isMobile && <FaArrowRight size={20} color="#d1d5db" />}
+                  {isMobile && <div style={{ fontSize: '20px', color: '#d1d5db' }}>↓</div>}
                   <div style={{ textAlign: 'center', flex: 1 }}>
                     <div style={{
                       width: '56px',
@@ -1206,7 +1213,8 @@ export default function LandingPage() {
                     </div>
                     <div style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>View Menu</div>
                   </div>
-                  <FaArrowRight size={20} color="#d1d5db" />
+                  {!isMobile && <FaArrowRight size={20} color="#d1d5db" />}
+                  {isMobile && <div style={{ fontSize: '20px', color: '#d1d5db' }}>↓</div>}
                   <div style={{ textAlign: 'center', flex: 1 }}>
                     <div style={{
                       width: '56px',
@@ -1276,11 +1284,11 @@ export default function LandingPage() {
             </p>
             </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '32px', marginBottom: '48px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? '24px' : '32px', marginBottom: isMobile ? '32px' : '48px' }}>
             {/* Feature 1: POS Billing */}
             <div className="feature-card" style={{
               background: 'white',
-              padding: '40px',
+              padding: isMobile ? '24px' : '40px',
               borderRadius: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
@@ -1311,7 +1319,7 @@ export default function LandingPage() {
             {/* Feature 2: Inventory Management */}
             <div className="feature-card" style={{
               background: 'white',
-              padding: '40px',
+              padding: isMobile ? '24px' : '40px',
               borderRadius: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
@@ -1342,7 +1350,7 @@ export default function LandingPage() {
             {/* Feature 3: Table Management */}
             <div className="feature-card" style={{
               background: 'white',
-              padding: '40px',
+              padding: isMobile ? '24px' : '40px',
               borderRadius: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
@@ -1373,7 +1381,7 @@ export default function LandingPage() {
             {/* Feature 4: KOT System */}
             <div className="feature-card" style={{
               background: 'white',
-              padding: '40px',
+              padding: isMobile ? '24px' : '40px',
               borderRadius: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
@@ -1404,7 +1412,7 @@ export default function LandingPage() {
             {/* Feature 5: Analytics & Reports */}
             <div className="feature-card" style={{
               background: 'white',
-              padding: '40px',
+              padding: isMobile ? '24px' : '40px',
               borderRadius: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
@@ -1435,7 +1443,7 @@ export default function LandingPage() {
             {/* Feature 6: CRM & Loyalty */}
             <div className="feature-card" style={{
               background: 'white',
-              padding: '40px',
+              padding: isMobile ? '24px' : '40px',
               borderRadius: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
@@ -1926,6 +1934,232 @@ export default function LandingPage() {
 
       
       <Footer />
+
+      {/* Demo Modal */}
+      {showDemoModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '520px', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+            <button 
+              onClick={() => {
+                setShowDemoModal(false);
+                setDemoRestaurantName('');
+                setDemoPhone('');
+                setDemoEmail('');
+                setDemoComment('');
+                setDemoError('');
+                setDemoSuccess(false);
+              }} 
+              style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#6b7280', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
+            >
+              <FaTimes />
+            </button>
+            
+            {demoSuccess ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                  <FaCheckCircle size={40} color="white" />
+                </div>
+                <h3 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '12px', color: '#111827' }}>Demo Request Submitted!</h3>
+                <p style={{ fontSize: '16px', color: '#6b7280' }}>We&apos;ll contact you shortly to schedule your demo.</p>
+              </div>
+            ) : (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                  <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <FaPlay size={28} color="#ef4444" />
+                  </div>
+                  <h3 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px', color: '#111827' }}>Request a Free Demo</h3>
+                  <p style={{ fontSize: '16px', color: '#6b7280' }}>See how DineOpen can transform your restaurant</p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                      Contact Method <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                      <button
+                        onClick={() => { setDemoContactType('phone'); setDemoEmail(''); }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 16px',
+                          borderRadius: '10px',
+                          border: `2px solid ${demoContactType === 'phone' ? '#ef4444' : '#e5e7eb'}`,
+                          background: demoContactType === 'phone' ? '#fef2f2' : 'white',
+                          color: demoContactType === 'phone' ? '#ef4444' : '#6b7280',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        📞 Phone
+                      </button>
+                      <button
+                        onClick={() => { setDemoContactType('email'); setDemoPhone(''); }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 16px',
+                          borderRadius: '10px',
+                          border: `2px solid ${demoContactType === 'email' ? '#ef4444' : '#e5e7eb'}`,
+                          background: demoContactType === 'email' ? '#fef2f2' : 'white',
+                          color: demoContactType === 'email' ? '#ef4444' : '#6b7280',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        ✉️ Email
+                      </button>
+                    </div>
+                  </div>
+
+                  {demoContactType === 'phone' ? (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                        Phone Number <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input 
+                        type="tel" 
+                        placeholder="+91 98765 43210" 
+                        value={demoPhone} 
+                        onChange={(e) => setDemoPhone(e.target.value)} 
+                        style={{ 
+                          width: '100%',
+                          padding: '14px 16px', 
+                          borderRadius: '12px', 
+                          border: '1px solid #e5e7eb',
+                          fontSize: '15px',
+                          transition: 'all 0.2s'
+                        }}
+                        onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
+                        onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                        Email Address <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input 
+                        type="email" 
+                        placeholder="your@email.com" 
+                        value={demoEmail} 
+                        onChange={(e) => setDemoEmail(e.target.value)} 
+                        style={{ 
+                          width: '100%',
+                          padding: '14px 16px', 
+                          borderRadius: '12px', 
+                          border: '1px solid #e5e7eb',
+                          fontSize: '15px',
+                          transition: 'all 0.2s'
+                        }}
+                        onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
+                        onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                      Additional Details (Optional)
+                    </label>
+                    <textarea 
+                      placeholder="Tell us about your restaurant, number of tables, current system, etc." 
+                      value={demoComment} 
+                      onChange={(e) => setDemoComment(e.target.value)} 
+                      rows={4}
+                      style={{ 
+                        width: '100%',
+                        padding: '14px 16px', 
+                        borderRadius: '12px', 
+                        border: '1px solid #e5e7eb',
+                        fontSize: '15px',
+                        fontFamily: 'inherit',
+                        resize: 'vertical',
+                        transition: 'all 0.2s'
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
+                      onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                      Restaurant Name (Optional)
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Enter your restaurant name" 
+                      value={demoRestaurantName} 
+                      onChange={(e) => setDemoRestaurantName(e.target.value)} 
+                      style={{ 
+                        width: '100%',
+                        padding: '14px 16px', 
+                        borderRadius: '12px', 
+                        border: '1px solid #e5e7eb',
+                        fontSize: '15px',
+                        transition: 'all 0.2s'
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
+                      onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                    />
+                  </div>
+
+                  {demoError && (
+                    <div style={{ 
+                      padding: '12px 16px', 
+                      background: '#fef2f2', 
+                      border: '1px solid #fecaca', 
+                      borderRadius: '10px', 
+                      color: '#dc2626', 
+                      fontSize: '14px' 
+                    }}>
+                      {demoError}
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={handleSubmitDemoRequest}
+                    disabled={demoSubmitting}
+                    style={{ 
+                      width: '100%',
+                      padding: '16px', 
+                      borderRadius: '12px', 
+                      background: demoSubmitting ? '#9ca3af' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+                      color: 'white', 
+                      fontWeight: '700', 
+                      fontSize: '16px',
+                      border: 'none', 
+                      cursor: demoSubmitting ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => { if (!demoSubmitting) e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.3)'; }}
+                    onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = 'none'; }}
+                  >
+                    {demoSubmitting ? (
+                      <>
+                        <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <FaPaperPlane /> Request Demo
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
     
   );
