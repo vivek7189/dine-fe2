@@ -1826,6 +1826,11 @@ class ApiClient {
       body: { restaurantId, phone },
     });
   }
+
+  // Get customer loyalty history (public) - for showing points history
+  async getCustomerLoyaltyHistory(customerId, page = 1, limit = 20, type = 'all') {
+    return this.request(`/api/public/customer/${customerId}/loyalty-history?page=${page}&limit=${limit}&type=${type}`);
+  }
 }
 
 const apiClient = new ApiClient();
