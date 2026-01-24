@@ -61,7 +61,7 @@ export default function Footer() {
   ];
 
   const socialLinks = [
-    { icon: FaFacebook, href: 'https://facebook.com/dineopen', label: 'Facebook' },
+    // { icon: FaFacebook, href: 'https://facebook.com/dineopen', label: 'Facebook' },
     { icon: FaTwitter, href: 'https://twitter.com/dineopenoffice', label: 'Twitter' },
     { icon: FaInstagram, href: 'https://instagram.com/dineopenofficial', label: 'Instagram' },
     { icon: FaLinkedin, href: 'https://linkedin.com/company/dineopen', label: 'LinkedIn' },
