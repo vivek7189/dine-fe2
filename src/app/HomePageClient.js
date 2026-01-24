@@ -8,6 +8,7 @@ import apiClient from '../lib/api';
 import SEOStructuredData from '../components/SEOStructuredData';
 import FAQSchema from '../components/FAQSchema';
 import CommonHeader from '../components/CommonHeader';
+import Footer from '../components/Footer';
 import { 
   FaUtensils, FaChartBar, FaTable, FaMobile, FaCloud, FaClock, FaUsers, FaCheckCircle, 
   FaArrowRight, FaBars, FaTimes, FaPlay, FaShieldAlt, FaHeadset, FaRocket, FaChevronDown, 
@@ -2057,6 +2058,8 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }

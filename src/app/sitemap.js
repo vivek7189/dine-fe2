@@ -11,6 +11,12 @@ export default function sitemap() {
       priority: 1.0,
     },
     {
+      url: `${baseUrl}/restaurant-pos-software-india`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    {
       url: `${baseUrl}/privacy`,
       lastModified: currentDate,
       changeFrequency: 'monthly',
@@ -30,6 +36,52 @@ export default function sitemap() {
     },
   ];
 
+  // Industry/Use-case pages (/for/*)
+  const industryPages = [
+    'restaurants',
+    'cafes',
+    'cloud-kitchens',
+    'bars-pubs',
+    'bakeries',
+    'food-trucks',
+    'hotels',
+  ].map((slug) => ({
+    url: `${baseUrl}/for/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
+
+  // Tool pages (/tools/*)
+  const toolPages = [
+    'qr-menu-generator',
+    'restaurant-invoice-generator',
+    'kot-system',
+    'table-management',
+    'loyalty-program',
+  ].map((slug) => ({
+    url: `${baseUrl}/tools/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }));
+
+  // Product pages
+  const productPages = [
+    'ai-agent',
+    'restaurant-management',
+    'pos-software',
+    'hotel-management',
+    'inventory-management',
+    'supply-management',
+    'billing-software',
+  ].map((slug) => ({
+    url: `${baseUrl}/products/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
+
   // Blog posts
   const blogPosts = [
     'why-dineopen-future-restaurant-management',
@@ -48,6 +100,11 @@ export default function sitemap() {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...blogPosts];
+  return [
+    ...staticPages,
+    ...industryPages,
+    ...toolPages,
+    ...productPages,
+    ...blogPosts
+  ];
 }
-

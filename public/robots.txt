@@ -43,6 +43,31 @@ Allow: /placeorder
 Allow: /privacy
 Allow: /terms
 
+# SEO Pages - Industry Solutions
+Allow: /restaurant-pos-software-india
+Allow: /for/restaurants
+Allow: /for/cafes
+Allow: /for/cloud-kitchens
+Allow: /for/bars-pubs
+Allow: /for/bakeries
+Allow: /for/food-trucks
+Allow: /for/hotels
+
+# SEO Pages - Free Tools
+Allow: /tools/qr-menu-generator
+Allow: /tools/restaurant-invoice-generator
+Allow: /tools/kot-system
+Allow: /tools/table-management
+Allow: /tools/loyalty-program
+
+# Product Pages
+Allow: /products/ai-agent
+Allow: /products/restaurant-management
+Allow: /products/pos-software
+Allow: /products/hotel-management
+Allow: /products/inventory-management
+Allow: /products/supply-management
+Allow: /products/billing-software
+
 # Crawl delay (optional)
 Crawl-delay: 1
-
