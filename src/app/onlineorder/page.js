@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft,
@@ -22,6 +22,69 @@ try {
 } catch (error) {
   console.warn('Firebase modules not available:', error.message);
 }
+
+// ============================================
+// CUSTOMER SESSION MANAGEMENT
+// This is SEPARATE from restaurant owner/staff auth
+// Customers can ONLY access onlineorder page, NOT dashboard
+// ============================================
+const CUSTOMER_SESSION_KEY = 'dine_customer_session'; // Different from main app auth
+const SESSION_EXPIRY_DAYS = 7; // Session valid for 7 days
+
+const getCustomerSession = (restaurantId) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const sessionData = localStorage.getItem(`${CUSTOMER_SESSION_KEY}_${restaurantId}`);
+    if (!sessionData) return null;
+
+    const session = JSON.parse(sessionData);
+
+    // Check if session is expired
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      localStorage.removeItem(`${CUSTOMER_SESSION_KEY}_${restaurantId}`);
+      return null;
+    }
+
+    // Verify session is for the correct restaurant (security check)
+    if (session.restaurantId !== restaurantId) {
+      return null;
+    }
+
+    return session;
+  } catch (error) {
+    console.warn('Error reading customer session:', error);
+    return null;
+  }
+};
+
+const saveCustomerSession = (restaurantId, sessionData) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
+
+    const session = {
+      ...sessionData,
+      restaurantId, // Store restaurant ID for security validation
+      expiresAt: expiresAt.toISOString(),
+      sessionType: 'customer', // Mark as customer session (NOT owner/staff)
+      createdAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(`${CUSTOMER_SESSION_KEY}_${restaurantId}`, JSON.stringify(session));
+  } catch (error) {
+    console.warn('Error saving customer session:', error);
+  }
+};
+
+const clearCustomerSession = (restaurantId) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(`${CUSTOMER_SESSION_KEY}_${restaurantId}`);
+  } catch (error) {
+    console.warn('Error clearing customer session:', error);
+  }
+};
 
 // Helper function to get category-specific colors
 const getCategoryColor = (category, opacity = 1) => {
@@ -91,6 +154,8 @@ const OnlineOrderContent = () => {
   // UI State for post-OTP experience
   const [currentView, setCurrentView] = useState('menu'); // 'menu', 'checkout', 'profile', 'history'
   const [firebaseUid, setFirebaseUid] = useState(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false); // New: separate login popup
+  const [sessionRestored, setSessionRestored] = useState(false); // Track if we've checked session
 
   const restaurantId = searchParams.get('restaurant') || 'default';
   const seatNumber = searchParams.get('seat') || '';
@@ -101,6 +166,67 @@ const OnlineOrderContent = () => {
       seatNumber
     }));
   }, [seatNumber]);
+
+  // ============================================
+  // RESTORE SESSION ON PAGE LOAD
+  // ============================================
+  useEffect(() => {
+    if (!restaurantId || restaurantId === 'default' || sessionRestored) return;
+
+    const restoreSession = async () => {
+      const session = getCustomerSession(restaurantId);
+
+      if (session && session.phone && session.firebaseUid) {
+        console.log('Restoring customer session for:', session.phone);
+
+        // Restore state from session
+        setCustomerInfo(prev => ({
+          ...prev,
+          phone: session.phone,
+          name: session.name || prev.name
+        }));
+        setFirebaseUid(session.firebaseUid);
+        setCustomerVerified(true);
+
+        // Restore customer data if available
+        if (session.customerData) {
+          setCustomerData(session.customerData);
+        }
+
+        // Fetch fresh customer data from server
+        try {
+          const response = await apiClient.lookupCustomerByPhone(restaurantId, session.phone);
+          if (response?.customer) {
+            setCustomerData(response.customer);
+
+            // Fetch loyalty history if customer found
+            if (response.found && response.customer?.id) {
+              try {
+                const historyResponse = await apiClient.getCustomerLoyaltyHistory(response.customer.id);
+                if (historyResponse) {
+                  setLoyaltyHistory(historyResponse);
+                }
+              } catch (historyError) {
+                console.warn('Failed to load loyalty history:', historyError);
+              }
+            }
+
+            // Update session with fresh customer data
+            saveCustomerSession(restaurantId, {
+              ...session,
+              customerData: response.customer
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to refresh customer data:', error);
+        }
+      }
+
+      setSessionRestored(true);
+    };
+
+    restoreSession();
+  }, [restaurantId, sessionRestored]);
 
   // Handle scroll
   useEffect(() => {
@@ -378,30 +504,41 @@ const OnlineOrderContent = () => {
       setSendingOtp(true);
       setError('');
 
+      let uid = null;
+
       if (verificationId === 'demo-verification-id') {
         if (otp === '123456') {
-          const customer = await lookupCustomer();
-          setFirebaseUid('demo-firebase-uid');
-          setOtpSent(false);
-          setShowOtpModal(false);
-          setOtp('');
-          // Navigate to checkout view
-          setCurrentView('checkout');
-          setShowCart(false);
+          uid = 'demo-firebase-uid';
+        } else {
+          setError('Invalid OTP. Use 123456 for demo.');
           return;
         }
-        setError('Invalid OTP. Use 123456 for demo.');
-        return;
+      } else {
+        const result = await verificationId.confirm(otp);
+        uid = result.user.uid;
       }
 
-      const result = await verificationId.confirm(otp);
-      const user = result.user;
+      // Lookup customer and get data
+      const customer = await lookupCustomer();
+      setFirebaseUid(uid);
 
-      await lookupCustomer();
-      setFirebaseUid(user.uid);
+      // ============================================
+      // SAVE SESSION TO LOCALSTORAGE
+      // This allows session to persist on refresh
+      // ============================================
+      saveCustomerSession(restaurantId, {
+        phone: customerInfo.phone.trim(),
+        name: customerInfo.name || customer?.name || '',
+        firebaseUid: uid,
+        customerData: customer,
+        customerId: customer?.id || null
+      });
+
       setOtpSent(false);
       setShowOtpModal(false);
+      setShowLoginPopup(false); // Close login popup
       setOtp('');
+
       // Navigate to checkout view
       setCurrentView('checkout');
       setShowCart(false);
@@ -489,12 +626,31 @@ const OnlineOrderContent = () => {
   };
 
   const handleLogout = () => {
+    // Clear session from localStorage
+    clearCustomerSession(restaurantId);
+
+    // Clear all customer state
     setCustomerVerified(false);
     setCustomerData(null);
     setFirebaseUid(null);
     setLoyaltyHistory(null);
     setCurrentView('menu');
     setRedeemLoyaltyPoints(0);
+    setCustomerInfo(prev => ({ ...prev, phone: '', name: '' }));
+  };
+
+  // ============================================
+  // HANDLE CART CLICK
+  // If not logged in, show login popup instead of cart
+  // ============================================
+  const handleCartClick = () => {
+    if (!customerVerified) {
+      // User not logged in - show login popup
+      setShowLoginPopup(true);
+    } else {
+      // User is logged in - show cart
+      setShowCart(true);
+    }
   };
 
   // Calculate tier progress
@@ -715,10 +871,12 @@ const OnlineOrderContent = () => {
               </button>
             )}
             <button
-              onClick={() => setShowCart(true)}
+              onClick={handleCartClick}
               style={{
                 position: 'relative',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                background: customerVerified
+                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                  : 'linear-gradient(135deg, #6b7280, #4b5563)',
                 color: 'white',
                 border: 'none',
                 padding: '10px',
@@ -727,9 +885,13 @@ const OnlineOrderContent = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+                gap: '6px',
+                boxShadow: customerVerified
+                  ? '0 2px 8px rgba(239, 68, 68, 0.3)'
+                  : '0 2px 8px rgba(107, 114, 128, 0.3)'
               }}
             >
+              {!customerVerified && <FaLock size={12} />}
               <FaShoppingCart size={16} />
               {getCartItemCount() > 0 && (
                 <span style={{
@@ -955,8 +1117,8 @@ const OnlineOrderContent = () => {
         )}
       </div>
 
-      {/* Cart Modal */}
-      {showCart && (
+      {/* Cart Modal - Only shown to logged-in users */}
+      {showCart && customerVerified && (
         <CartModal
           cart={cart}
           addToCart={addToCart}
@@ -968,10 +1130,34 @@ const OnlineOrderContent = () => {
           orderType={orderType}
           setOrderType={setOrderType}
           onClose={() => setShowCart(false)}
-          onCheckout={initiateCheckout}
+          onCheckout={() => {
+            setShowCart(false);
+            setCurrentView('checkout');
+          }}
           sendingOtp={sendingOtp}
           setCart={setCart}
           customerVerified={customerVerified}
+        />
+      )}
+
+      {/* Login Popup - Shows when user clicks cart without being logged in */}
+      {showLoginPopup && !customerVerified && (
+        <LoginPopup
+          customerInfo={customerInfo}
+          setCustomerInfo={setCustomerInfo}
+          sendingOtp={sendingOtp}
+          error={error}
+          setError={setError}
+          onClose={() => setShowLoginPopup(false)}
+          onSendOtp={async () => {
+            if (!customerInfo.phone.trim()) {
+              setError('Please enter your phone number');
+              return;
+            }
+            setError('');
+            await sendOtp();
+          }}
+          cartItemCount={getCartItemCount()}
         />
       )}
 
@@ -985,6 +1171,7 @@ const OnlineOrderContent = () => {
           error={error}
           onCancel={() => {
             setShowOtpModal(false);
+            setShowLoginPopup(false);
             setOtpSent(false);
             setOtp('');
           }}
@@ -1183,6 +1370,23 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               </button>
             </div>
           </div>
+          {/* Logged in user info */}
+          {customerVerified && customerInfo.phone && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '8px',
+              marginBottom: '8px'
+            }}>
+              <FaCheck size={12} color="#22c55e" />
+              <span style={{ fontSize: '13px', color: '#166534' }}>
+                Logged in as <strong>{customerInfo.phone}</strong>
+              </span>
+            </div>
+          )}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -1234,32 +1438,9 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
           )}
         </div>
 
-        {/* Checkout Section */}
+        {/* Checkout Section - Simplified for logged-in users */}
         {cart.length > 0 && (
           <div style={{ padding: '20px', borderTop: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}>
-            {/* Customer Info */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
-                <FaPhone size={10} style={{ marginRight: '4px' }} />
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                value={customerInfo.phone}
-                onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                placeholder="Enter phone number"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #f3f4f6',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
             {/* Order Type */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
@@ -1316,43 +1497,236 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               </div>
             )}
 
-            {/* Checkout Button */}
+            {/* Checkout Button - Direct checkout for logged-in users */}
             <button
               onClick={onCheckout}
-              disabled={sendingOtp || !customerInfo.phone.trim()}
               style={{
                 width: '100%',
-                background: sendingOtp || !customerInfo.phone.trim()
-                  ? '#d1d5db'
-                  : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 color: 'white',
                 padding: '16px',
                 borderRadius: '12px',
                 fontWeight: '700',
                 border: 'none',
-                cursor: sendingOtp || !customerInfo.phone.trim() ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: sendingOtp || !customerInfo.phone.trim() ? 'none' : '0 4px 12px rgba(239, 68, 68, 0.3)'
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
               }}
             >
-              {sendingOtp ? (
-                <>
-                  <FaSpinner size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                  Sending OTP...
-                </>
-              ) : (
-                <>
-                  <FaLock size={16} />
-                  Verify & Continue - ₹{getCartTotal().toFixed(2)}
-                </>
-              )}
+              <FaChevronRight size={16} />
+              Proceed to Checkout - ₹{getCartTotal().toFixed(2)}
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Login Popup Component - Shows when user clicks cart without being logged in
+const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError, onClose, onSendOtp, cartItemCount }) => {
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 250,
+      padding: '16px'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '24px',
+        padding: '28px',
+        maxWidth: '400px',
+        width: '100%',
+        boxShadow: '0 25px 50px rgba(0,0,0,0.25)'
+      }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            boxShadow: '0 8px 20px rgba(239, 68, 68, 0.3)'
+          }}>
+            <FaUser size={32} color="white" />
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1f2937', margin: '0 0 8px' }}>
+            Login to Continue
+          </h2>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+            {cartItemCount > 0
+              ? `You have ${cartItemCount} item${cartItemCount > 1 ? 's' : ''} in cart. Login to checkout!`
+              : 'Login to view your cart and place orders'}
+          </p>
+        </div>
+
+        {/* Benefits */}
+        <div style={{
+          backgroundColor: '#f0fdf4',
+          borderRadius: '12px',
+          padding: '14px',
+          marginBottom: '20px'
+        }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#166534', marginBottom: '8px' }}>
+            Benefits of logging in:
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {['Earn loyalty points on every order', 'Redeem points for discounts', 'Access exclusive offers', 'Track your order history'].map((benefit, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#15803d' }}>
+                <FaCheck size={10} color="#22c55e" /> {benefit}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            color: '#dc2626',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            marginBottom: '16px'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Phone Input */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '8px'
+          }}>
+            <FaPhone size={12} style={{ marginRight: '6px' }} />
+            Phone Number
+          </label>
+          <div style={{ position: 'relative' }}>
+            <span style={{
+              position: 'absolute',
+              left: '14px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#6b7280',
+              fontSize: '15px',
+              fontWeight: '500'
+            }}>
+              +91
+            </span>
+            <input
+              type="tel"
+              value={customerInfo.phone}
+              onChange={(e) => {
+                setError('');
+                setCustomerInfo({...customerInfo, phone: e.target.value.replace(/\D/g, '').slice(0, 10)});
+              }}
+              placeholder="Enter 10-digit number"
+              style={{
+                width: '100%',
+                padding: '14px 14px 14px 52px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '12px',
+                fontSize: '16px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#ef4444';
+                e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              background: '#f3f4f6',
+              color: '#6b7280',
+              border: 'none',
+              padding: '14px',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSendOtp}
+            disabled={sendingOtp || customerInfo.phone.length !== 10}
+            style={{
+              flex: 1.5,
+              background: sendingOtp || customerInfo.phone.length !== 10
+                ? '#d1d5db'
+                : 'linear-gradient(135deg, #ef4444, #dc2626)',
+              color: 'white',
+              border: 'none',
+              padding: '14px',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: sendingOtp || customerInfo.phone.length !== 10 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: sendingOtp || customerInfo.phone.length !== 10
+                ? 'none'
+                : '0 4px 12px rgba(239, 68, 68, 0.3)'
+            }}
+          >
+            {sendingOtp ? (
+              <>
+                <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                Sending OTP...
+              </>
+            ) : (
+              <>
+                <FaLock size={14} />
+                Get OTP
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Privacy Note */}
+        <p style={{
+          fontSize: '11px',
+          color: '#9ca3af',
+          textAlign: 'center',
+          marginTop: '16px',
+          marginBottom: 0
+        }}>
+          We&apos;ll send a verification code to your phone
+        </p>
       </div>
     </div>
   );
