@@ -280,7 +280,29 @@ const OnlineOrderContent = () => {
             ]);
 
             if (offersResponse?.offers) {
-              setOffers(offersResponse.offers);
+              // Filter out expired and inactive offers
+              const now = new Date();
+              const validOffers = offersResponse.offers.filter(offer => {
+                // Check if offer is active
+                if (!offer.isActive) return false;
+                // Check if offer has expired (validUntil)
+                if (offer.validUntil) {
+                  const expiryDate = new Date(offer.validUntil);
+                  // Set to end of day for expiry
+                  expiryDate.setHours(23, 59, 59, 999);
+                  if (expiryDate < now) return false;
+                }
+                // Check if offer has started (validFrom)
+                if (offer.validFrom) {
+                  const startDate = new Date(offer.validFrom);
+                  startDate.setHours(0, 0, 0, 0);
+                  if (startDate > now) return false;
+                }
+                // Check usage limit
+                if (offer.usageLimit && offer.usageCount >= offer.usageLimit) return false;
+                return true;
+              });
+              setOffers(validOffers);
             }
             if (settingsResponse?.settings) {
               setCustomerAppSettings(settingsResponse.settings);
@@ -801,199 +823,295 @@ const OnlineOrderContent = () => {
         }
       `}</style>
 
-      {/* Header */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        backgroundColor: 'white',
-        zIndex: 100,
-        padding: isScrolled ? '8px 12px' : '12px 16px',
-        boxShadow: isScrolled ? '0 2px 12px rgba(0,0,0,0.1)' : '0 1px 4px rgba(0,0,0,0.05)',
-        transition: 'all 0.2s ease-out'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: isScrolled ? '8px' : '12px'
-        }}>
-          {/* Logo & Restaurant Info */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Header - Branded */}
+      {(() => {
+        // Get branding colors
+        const brandColor = customerAppSettings?.branding?.primaryColor || '#ef4444';
+        const brandColorLight = brandColor + '22';
+        const brandColorShadow = brandColor + '44';
+        const logoUrl = customerAppSettings?.branding?.logoUrl || restaurant?.logo;
+        const tagline = customerAppSettings?.branding?.tagline || 'Online Ordering';
+        const headerStyle = customerAppSettings?.branding?.headerStyle || 'modern';
+
+        // Helper to darken color for gradient
+        const getDarkerShade = (hex) => {
+          const r = Math.max(0, parseInt(hex.slice(1, 3), 16) - 30);
+          const g = Math.max(0, parseInt(hex.slice(3, 5), 16) - 30);
+          const b = Math.max(0, parseInt(hex.slice(5, 7), 16) - 30);
+          return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        };
+        const brandColorDark = getDarkerShade(brandColor);
+
+        return (
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            background: headerStyle === 'gradient'
+              ? `linear-gradient(135deg, ${brandColor} 0%, ${brandColorDark} 100%)`
+              : headerStyle === 'solid'
+              ? brandColor
+              : 'white',
+            zIndex: 100,
+            padding: isScrolled ? '8px 12px' : '12px 16px',
+            boxShadow: isScrolled ? '0 2px 12px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.05)',
+            transition: 'all 0.2s ease-out'
+          }}>
             <div style={{
-              width: isScrolled ? '32px' : '40px',
-              height: isScrolled ? '32px' : '40px',
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+              justifyContent: 'space-between',
+              marginBottom: isScrolled ? '8px' : '12px'
             }}>
-              <span style={{ fontSize: isScrolled ? '16px' : '20px' }}>🍽️</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{
-                fontSize: isScrolled ? '14px' : '18px',
-                fontWeight: '700',
-                color: '#1f2937',
-                margin: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}>
-                {restaurant?.name || 'Restaurant'}
-              </h1>
-              {!isScrolled && (
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>
-                  Online Ordering
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* User/Cart Buttons */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {customerVerified && (
-              <button
-                onClick={() => setCurrentView('profile')}
-                style={{
-                  background: '#f3f4f6',
-                  border: 'none',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <FaUser size={16} color="#6b7280" />
-              </button>
-            )}
-            <button
-              onClick={handleCartClick}
-              style={{
-                position: 'relative',
-                background: customerVerified
-                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                  : 'linear-gradient(135deg, #6b7280, #4b5563)',
-                color: 'white',
-                border: 'none',
-                padding: '10px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                boxShadow: customerVerified
-                  ? '0 2px 8px rgba(239, 68, 68, 0.3)'
-                  : '0 2px 8px rgba(107, 114, 128, 0.3)'
-              }}
-            >
-              {!customerVerified && <FaLock size={12} />}
-              <FaShoppingCart size={16} />
-              {getCartItemCount() > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-6px',
-                  right: '-6px',
-                  backgroundColor: '#f59e0b',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
+              {/* Logo & Restaurant Info */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Restaurant Logo */}
+                <div style={{
+                  width: isScrolled ? '36px' : '48px',
+                  height: isScrolled ? '36px' : '48px',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  background: logoUrl
+                    ? 'white'
+                    : `linear-gradient(135deg, ${brandColor} 0%, ${brandColorDark} 100%)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '2px solid white'
+                  boxShadow: headerStyle === 'modern'
+                    ? `0 4px 12px ${brandColorShadow}`
+                    : '0 2px 8px rgba(0,0,0,0.15)',
+                  border: logoUrl ? '2px solid #f3f4f6' : 'none',
+                  transition: 'all 0.2s ease'
                 }}>
-                  {getCartItemCount()}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={restaurant?.name || 'Restaurant'}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<span style="font-size: 24px;">🍽️</span>';
+                      }}
+                    />
+                  ) : (
+                    <span style={{
+                      fontSize: isScrolled ? '18px' : '24px',
+                      filter: headerStyle !== 'modern' ? 'none' : 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))'
+                    }}>🍽️</span>
+                  )}
+                </div>
 
-        {/* Search */}
-        <div style={{ position: 'relative', marginBottom: isScrolled ? '8px' : '12px' }}>
-          <FaSearch size={14} color="#9ca3af" style={{
-            position: 'absolute',
-            left: '14px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 1
-          }} />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search food items..."
-            style={{
-              width: '100%',
-              padding: '12px 12px 12px 40px',
-              border: '2px solid #f3f4f6',
-              borderRadius: '12px',
-              fontSize: '14px',
-              outline: 'none',
-              backgroundColor: '#f9fafb',
-              boxSizing: 'border-box'
-            }}
-            onFocus={(e) => {
-              e.target.style.backgroundColor = '#ffffff';
-              e.target.style.borderColor = '#ef4444';
-            }}
-            onBlur={(e) => {
-              e.target.style.backgroundColor = '#f9fafb';
-              e.target.style.borderColor = '#f3f4f6';
-            }}
-          />
-        </div>
+                {/* Restaurant Name & Tagline */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h1 style={{
+                    fontSize: isScrolled ? '15px' : '20px',
+                    fontWeight: '700',
+                    color: ['gradient', 'solid'].includes(headerStyle) ? 'white' : '#1f2937',
+                    margin: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    textShadow: ['gradient', 'solid'].includes(headerStyle) ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                    letterSpacing: '-0.3px'
+                  }}>
+                    {restaurant?.name || 'Restaurant'}
+                  </h1>
+                  {!isScrolled && tagline && (
+                    <p style={{
+                      fontSize: '12px',
+                      color: ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.85)' : '#6b7280',
+                      margin: '3px 0 0',
+                      fontWeight: '500',
+                      letterSpacing: '0.2px'
+                    }}>
+                      {tagline}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-        {/* Categories */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          paddingBottom: '8px',
-          scrollbarWidth: 'none'
-        }}>
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => {
-                setSelectedCategory(category);
-                if (category !== 'all') {
-                  setTimeout(() => {
-                    const element = document.getElementById(`category-${category}`);
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              {/* User/Cart Buttons */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {customerVerified && (
+                  <button
+                    onClick={() => setCurrentView('profile')}
+                    style={{
+                      background: ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.2)' : '#f3f4f6',
+                      border: 'none',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backdropFilter: ['gradient', 'solid'].includes(headerStyle) ? 'blur(10px)' : 'none'
+                    }}
+                  >
+                    <FaUser size={16} color={['gradient', 'solid'].includes(headerStyle) ? 'white' : '#6b7280'} />
+                  </button>
+                )}
+                <button
+                  onClick={handleCartClick}
+                  style={{
+                    position: 'relative',
+                    background: customerVerified
+                      ? ['gradient', 'solid'].includes(headerStyle)
+                        ? 'rgba(255,255,255,0.95)'
+                        : `linear-gradient(135deg, ${brandColor}, ${brandColorDark})`
+                      : ['gradient', 'solid'].includes(headerStyle)
+                        ? 'rgba(255,255,255,0.3)'
+                        : 'linear-gradient(135deg, #6b7280, #4b5563)',
+                    color: customerVerified && ['gradient', 'solid'].includes(headerStyle) ? brandColor : 'white',
+                    border: 'none',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: customerVerified
+                      ? ['gradient', 'solid'].includes(headerStyle)
+                        ? '0 2px 8px rgba(0,0,0,0.15)'
+                        : `0 2px 8px ${brandColorShadow}`
+                      : '0 2px 8px rgba(107, 114, 128, 0.3)',
+                    backdropFilter: ['gradient', 'solid'].includes(headerStyle) ? 'blur(10px)' : 'none'
+                  }}
+                >
+                  {!customerVerified && <FaLock size={12} />}
+                  <FaShoppingCart size={16} />
+                  {getCartItemCount() > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      backgroundColor: ['gradient', 'solid'].includes(headerStyle) ? '#f59e0b' : brandColor,
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '20px',
+                      height: '20px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid white'
+                    }}>
+                      {getCartItemCount()}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+            {/* Search */}
+            <div style={{
+              position: 'relative',
+              marginBottom: isScrolled ? '8px' : '12px',
+              padding: ['gradient', 'solid'].includes(headerStyle) ? '0 4px' : 0
+            }}>
+              <FaSearch size={14} color="#9ca3af" style={{
+                position: 'absolute',
+                left: ['gradient', 'solid'].includes(headerStyle) ? '18px' : '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 1
+              }} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search food items..."
+                style={{
+                  width: '100%',
+                  padding: '12px 12px 12px 40px',
+                  border: ['gradient', 'solid'].includes(headerStyle) ? 'none' : '2px solid #f3f4f6',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  backgroundColor: ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.95)' : '#f9fafb',
+                  boxSizing: 'border-box',
+                  boxShadow: ['gradient', 'solid'].includes(headerStyle) ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
+                }}
+                onFocus={(e) => {
+                  e.target.style.backgroundColor = '#ffffff';
+                  e.target.style.borderColor = brandColor;
+                  e.target.style.boxShadow = `0 0 0 3px ${brandColor}22`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.backgroundColor = ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.95)' : '#f9fafb';
+                  e.target.style.borderColor = '#f3f4f6';
+                  e.target.style.boxShadow = ['gradient', 'solid'].includes(headerStyle) ? '0 2px 8px rgba(0,0,0,0.1)' : 'none';
+                }}
+              />
+            </div>
+
+            {/* Categories */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '8px',
+              scrollbarWidth: 'none',
+              padding: ['gradient', 'solid'].includes(headerStyle) ? '0 4px 8px' : '0 0 8px'
+            }}>
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    if (category !== 'all') {
+                      setTimeout(() => {
+                        const element = document.getElementById(`category-${category}`);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 100);
                     }
-                  }, 100);
-                }
-              }}
-              style={{
-                background: selectedCategory === category
-                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                  : '#ffffff',
-                color: selectedCategory === category ? 'white' : '#64748b',
-                border: selectedCategory === category ? 'none' : '1px solid #e5e7eb',
-                padding: '8px 16px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}
-            >
-              {category === 'all' ? 'All' : category}
-            </button>
-          ))}
-        </div>
-      </div>
+                  }}
+                  style={{
+                    background: selectedCategory === category
+                      ? ['gradient', 'solid'].includes(headerStyle)
+                        ? 'rgba(255,255,255,0.95)'
+                        : `linear-gradient(135deg, ${brandColor}, ${brandColorDark})`
+                      : ['gradient', 'solid'].includes(headerStyle)
+                        ? 'rgba(255,255,255,0.2)'
+                        : '#ffffff',
+                    color: selectedCategory === category
+                      ? ['gradient', 'solid'].includes(headerStyle) ? brandColor : 'white'
+                      : ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.9)' : '#64748b',
+                    border: selectedCategory === category
+                      ? 'none'
+                      : ['gradient', 'solid'].includes(headerStyle) ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e5e7eb',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    boxShadow: selectedCategory === category
+                      ? ['gradient', 'solid'].includes(headerStyle) ? '0 2px 8px rgba(0,0,0,0.15)' : `0 2px 8px ${brandColorShadow}`
+                      : 'none',
+                    backdropFilter: ['gradient', 'solid'].includes(headerStyle) ? 'blur(10px)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {category === 'all' ? 'All' : category}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Offers Banner - Carousel for multiple offers */}
+      {offers.length > 0 && (
+        <OffersBanner offers={offers} />
+      )}
 
       {/* Error/Success Messages */}
       {error && (
@@ -1180,6 +1298,256 @@ const OnlineOrderContent = () => {
       )}
 
       <div id="recaptcha-container" style={{ display: 'none' }}></div>
+    </div>
+  );
+};
+
+// Offers Banner Component - Shows carousel of active offers
+const OffersBanner = ({ offers }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Auto-rotate carousel
+  useEffect(() => {
+    if (offers.length <= 1 || isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % offers.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [offers.length, isPaused]);
+
+  if (offers.length === 0) return null;
+
+  const getOfferGradient = (index) => {
+    const gradients = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    ];
+    return gradients[index % gradients.length];
+  };
+
+  return (
+    <div
+      style={{
+        padding: '12px 16px',
+        backgroundColor: '#f8fafc'
+      }}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: '16px',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+      }}>
+        {/* Offer Cards Container */}
+        <div style={{
+          display: 'flex',
+          transition: 'transform 0.5s ease-in-out',
+          transform: `translateX(-${currentIndex * 100}%)`
+        }}>
+          {offers.map((offer, index) => (
+            <div
+              key={offer.id}
+              style={{
+                minWidth: '100%',
+                background: getOfferGradient(index),
+                padding: '20px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px'
+              }}>
+                {/* Offer Icon */}
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <span style={{ fontSize: '28px' }}>
+                    {offer.discountType === 'percentage' ? '🏷️' : '💰'}
+                  </span>
+                </div>
+
+                {/* Offer Details */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    color: 'white',
+                    marginBottom: '4px',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                  }}>
+                    {offer.name}
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'rgba(255,255,255,0.9)',
+                    marginBottom: '4px'
+                  }}>
+                    {offer.discountType === 'percentage'
+                      ? `${offer.discountValue}% OFF${offer.maxDiscount ? ` (Max ₹${offer.maxDiscount})` : ''}`
+                      : `₹${offer.discountValue} OFF`}
+                    {offer.minOrderValue > 0 && ` on orders above ₹${offer.minOrderValue}`}
+                  </div>
+                  {offer.validUntil && (
+                    <div style={{
+                      fontSize: '11px',
+                      color: 'rgba(255,255,255,0.75)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>⏰</span>
+                      Valid till {new Date(offer.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Discount Badge */}
+                <div style={{
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  borderRadius: '12px',
+                  padding: '8px 14px',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}>
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: '800',
+                    color: '#1f2937',
+                    textAlign: 'center',
+                    lineHeight: 1
+                  }}>
+                    {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `₹${offer.discountValue}`}
+                  </div>
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textAlign: 'center',
+                    textTransform: 'uppercase'
+                  }}>
+                    OFF
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Dots Indicator */}
+        {offers.length > 1 && (
+          <div style={{
+            position: 'absolute',
+            bottom: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '6px'
+          }}>
+            {offers.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                style={{
+                  width: currentIndex === index ? '20px' : '8px',
+                  height: '8px',
+                  borderRadius: '4px',
+                  backgroundColor: currentIndex === index ? 'white' : 'rgba(255,255,255,0.5)',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Navigation Arrows (for desktop) */}
+        {offers.length > 1 && (
+          <>
+            <button
+              onClick={() => setCurrentIndex((prev) => (prev - 1 + offers.length) % offers.length)}
+              style={{
+                position: 'absolute',
+                left: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                opacity: 0.8,
+                transition: 'opacity 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.opacity = 1}
+              onMouseLeave={(e) => e.target.style.opacity = 0.8}
+            >
+              <FaChevronRight style={{ transform: 'rotate(180deg)' }} size={12} color="#374151" />
+            </button>
+            <button
+              onClick={() => setCurrentIndex((prev) => (prev + 1) % offers.length)}
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                opacity: 0.8,
+                transition: 'opacity 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.opacity = 1}
+              onMouseLeave={(e) => e.target.style.opacity = 0.8}
+            >
+              <FaChevronRight size={12} color="#374151" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Offer Count Indicator */}
+      {offers.length > 1 && (
+        <div style={{
+          textAlign: 'center',
+          marginTop: '8px',
+          fontSize: '12px',
+          color: '#6b7280'
+        }}>
+          {offers.length} offers available
+        </div>
+      )}
     </div>
   );
 };
