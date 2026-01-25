@@ -1108,9 +1108,11 @@ const OnlineOrderContent = () => {
         );
       })()}
 
-      {/* Offers Banner - Carousel for multiple offers */}
+      {/* Offers Banner - Carousel for multiple offers - Right after header */}
       {offers.length > 0 && (
-        <OffersBanner offers={offers} />
+        <div style={{ marginTop: '0', marginBottom: '0' }}>
+          <OffersBanner offers={offers} />
+        </div>
       )}
 
       {/* Error/Success Messages */}
@@ -1319,13 +1321,16 @@ const OffersBanner = ({ offers }) => {
   if (offers.length === 0) return null;
 
   const getOfferGradient = (index) => {
+    // Darker gradients with better contrast for white text
     const gradients = [
-      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      'linear-gradient(135deg, #e63946 0%, #d62839 100%)', // Deep Red
+      'linear-gradient(135deg, #f77f00 0%, #fcbf49 100%)', // Orange-Yellow
+      'linear-gradient(135deg, #d62828 0%, #f77f00 100%)', // Red-Orange
+      'linear-gradient(135deg, #e85d04 0%, #dc2f02 100%)', // Deep Orange
+      'linear-gradient(135deg, #c1121f 0%, #780000 100%)', // Dark Red
+      'linear-gradient(135deg, #f72585 0%, #b5179e 100%)', // Pink-Purple
+      'linear-gradient(135deg, #fb8500 0%, #ffb703 100%)', // Orange-Yellow
+      'linear-gradient(135deg, #d00000 0%, #ff6b6b 100%)', // Red-Pink
     ];
     return gradients[index % gradients.length];
   };
@@ -1334,21 +1339,54 @@ const OffersBanner = ({ offers }) => {
     <div
       style={{
         padding: '12px 16px',
-        backgroundColor: '#f8fafc'
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e5e7eb',
+        position: 'sticky',
+        top: '0',
+        zIndex: 99,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
       }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes pulse {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+        }
+        .offer-card {
+          animation: slideIn 0.5s ease-out;
+        }
+        .offer-badge {
+          animation: pulse 2s ease-in-out infinite;
+        }
+      `}</style>
       <div style={{
         position: 'relative',
         overflow: 'hidden',
         borderRadius: '16px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+        maxWidth: '100%',
+        margin: '0 auto'
       }}>
         {/* Offer Cards Container */}
         <div style={{
           display: 'flex',
-          transition: 'transform 0.5s ease-in-out',
+          transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
           transform: `translateX(-${currentIndex * 100}%)`
         }}>
           {offers.map((offer, index) => (
@@ -1357,29 +1395,48 @@ const OffersBanner = ({ offers }) => {
               style={{
                 minWidth: '100%',
                 background: getOfferGradient(index),
-                padding: '20px',
-                boxSizing: 'border-box'
+                padding: '16px 18px',
+                boxSizing: 'border-box',
+                position: 'relative',
+                overflow: 'hidden'
               }}
             >
+              {/* Animated background pattern */}
+              <div style={{
+                position: 'absolute',
+                top: '-30%',
+                right: '-15%',
+                width: '150%',
+                height: '150%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%)',
+                animation: 'pulse 3s ease-in-out infinite',
+                pointerEvents: 'none'
+              }} />
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '16px'
+                gap: '14px',
+                position: 'relative',
+                zIndex: 1,
+                paddingLeft: offers.length > 1 ? '44px' : '0',
+                paddingRight: offers.length > 1 ? '44px' : '0'
               }}>
                 {/* Offer Icon */}
                 <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '14px',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
                   backgroundColor: 'rgba(255,255,255,0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  backdropFilter: 'blur(10px)'
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  border: '1px solid rgba(255,255,255,0.3)'
                 }}>
-                  <span style={{ fontSize: '28px' }}>
+                  <span style={{ fontSize: '24px', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))' }}>
                     {offer.discountType === 'percentage' ? '🏷️' : '💰'}
                   </span>
                 </div>
@@ -1387,61 +1444,80 @@ const OffersBanner = ({ offers }) => {
                 {/* Offer Details */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: '16px',
-                    fontWeight: '700',
+                    fontSize: '18px',
+                    fontWeight: '800',
                     color: 'white',
                     marginBottom: '4px',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    textShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                    letterSpacing: '-0.3px',
+                    lineHeight: '1.2'
                   }}>
                     {offer.name}
                   </div>
                   <div style={{
                     fontSize: '13px',
-                    color: 'rgba(255,255,255,0.9)',
-                    marginBottom: '4px'
+                    color: 'rgba(255,255,255,0.98)',
+                    marginBottom: '4px',
+                    fontWeight: '600',
+                    textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                    lineHeight: '1.3'
                   }}>
                     {offer.discountType === 'percentage'
                       ? `${offer.discountValue}% OFF${offer.maxDiscount ? ` (Max ₹${offer.maxDiscount})` : ''}`
                       : `₹${offer.discountValue} OFF`}
-                    {offer.minOrderValue > 0 && ` on orders above ₹${offer.minOrderValue}`}
+                    {offer.minOrderValue > 0 && (
+                      <span style={{ display: 'block', fontSize: '11px', marginTop: '3px', opacity: 0.95, fontWeight: '500', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+                        on orders above ₹{offer.minOrderValue}
+                      </span>
+                    )}
                   </div>
                   {offer.validUntil && (
                     <div style={{
                       fontSize: '11px',
-                      color: 'rgba(255,255,255,0.75)',
+                      color: 'rgba(255,255,255,0.95)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '4px',
+                      marginTop: '6px',
+                      fontWeight: '500',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.3)'
                     }}>
-                      <span>⏰</span>
-                      Valid till {new Date(offer.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      <span style={{ fontSize: '12px' }}>⏰</span>
+                      Valid till {new Date(offer.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
                   )}
                 </div>
 
                 {/* Discount Badge */}
                 <div style={{
-                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  backgroundColor: 'rgba(255,255,255,0.98)',
                   borderRadius: '12px',
-                  padding: '8px 14px',
+                  padding: '10px 14px',
                   flexShrink: 0,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                  boxShadow: '0 3px 12px rgba(0,0,0,0.3)',
+                  border: '2px solid rgba(255,255,255,0.7)',
+                  minWidth: '70px',
+                  position: 'relative',
+                  zIndex: 2
                 }}>
                   <div style={{
-                    fontSize: '20px',
-                    fontWeight: '800',
+                    fontSize: '24px',
+                    fontWeight: '900',
                     color: '#1f2937',
                     textAlign: 'center',
-                    lineHeight: 1
+                    lineHeight: 1,
+                    letterSpacing: '-0.5px'
                   }}>
                     {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `₹${offer.discountValue}`}
                   </div>
                   <div style={{
                     fontSize: '10px',
-                    fontWeight: '600',
+                    fontWeight: '700',
                     color: '#6b7280',
                     textAlign: 'center',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginTop: '2px'
                   }}>
                     OFF
                   </div>
@@ -1455,32 +1531,34 @@ const OffersBanner = ({ offers }) => {
         {offers.length > 1 && (
           <div style={{
             position: 'absolute',
-            bottom: '10px',
+            bottom: '12px',
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
-            gap: '6px'
+            gap: '6px',
+            zIndex: 10
           }}>
             {offers.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
                 style={{
-                  width: currentIndex === index ? '20px' : '8px',
-                  height: '8px',
-                  borderRadius: '4px',
-                  backgroundColor: currentIndex === index ? 'white' : 'rgba(255,255,255,0.5)',
-                  border: 'none',
+                  width: currentIndex === index ? '20px' : '6px',
+                  height: '6px',
+                  borderRadius: '3px',
+                  backgroundColor: currentIndex === index ? 'white' : 'rgba(255,255,255,0.6)',
+                  border: currentIndex === index ? 'none' : '1px solid rgba(255,255,255,0.3)',
                   padding: 0,
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: currentIndex === index ? '0 2px 6px rgba(0,0,0,0.25)' : 'none'
                 }}
               />
             ))}
           </div>
         )}
 
-        {/* Navigation Arrows (for desktop) */}
+        {/* Navigation Arrows */}
         {offers.length > 1 && (
           <>
             <button
@@ -1490,8 +1568,8 @@ const OffersBanner = ({ offers }) => {
                 left: '8px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                border: 'none',
+                backgroundColor: 'rgba(255,255,255,0.98)',
+                border: '2px solid rgba(0,0,0,0.1)',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',
@@ -1499,14 +1577,23 @@ const OffersBanner = ({ offers }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                opacity: 0.8,
-                transition: 'opacity 0.2s'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                opacity: 0.95,
+                transition: 'all 0.3s ease',
+                zIndex: 5
               }}
-              onMouseEnter={(e) => e.target.style.opacity = 1}
-              onMouseLeave={(e) => e.target.style.opacity = 0.8}
+              onMouseEnter={(e) => {
+                e.target.style.opacity = 1;
+                e.target.style.transform = 'translateY(-50%) scale(1.1)';
+                e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.opacity = 0.95;
+                e.target.style.transform = 'translateY(-50%) scale(1)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25)';
+              }}
             >
-              <FaChevronRight style={{ transform: 'rotate(180deg)' }} size={12} color="#374151" />
+              <FaChevronRight style={{ transform: 'rotate(180deg)' }} size={11} color="#374151" />
             </button>
             <button
               onClick={() => setCurrentIndex((prev) => (prev + 1) % offers.length)}
@@ -1515,8 +1602,8 @@ const OffersBanner = ({ offers }) => {
                 right: '8px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                border: 'none',
+                backgroundColor: 'rgba(255,255,255,0.98)',
+                border: '2px solid rgba(0,0,0,0.1)',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',
@@ -1524,14 +1611,23 @@ const OffersBanner = ({ offers }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                opacity: 0.8,
-                transition: 'opacity 0.2s'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                opacity: 0.95,
+                transition: 'all 0.3s ease',
+                zIndex: 5
               }}
-              onMouseEnter={(e) => e.target.style.opacity = 1}
-              onMouseLeave={(e) => e.target.style.opacity = 0.8}
+              onMouseEnter={(e) => {
+                e.target.style.opacity = 1;
+                e.target.style.transform = 'translateY(-50%) scale(1.1)';
+                e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.opacity = 0.95;
+                e.target.style.transform = 'translateY(-50%) scale(1)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25)';
+              }}
             >
-              <FaChevronRight size={12} color="#374151" />
+              <FaChevronRight size={11} color="#374151" />
             </button>
           </>
         )}
@@ -1543,9 +1639,17 @@ const OffersBanner = ({ offers }) => {
           textAlign: 'center',
           marginTop: '8px',
           fontSize: '12px',
-          color: '#6b7280'
+          color: '#6b7280',
+          fontWeight: '500'
         }}>
-          {offers.length} offers available
+          <span style={{ 
+            backgroundColor: '#f3f4f6', 
+            padding: '3px 10px', 
+            borderRadius: '10px',
+            display: 'inline-block'
+          }}>
+            {offers.length} {offers.length === 1 ? 'offer' : 'offers'} • Swipe to see more
+          </span>
         </div>
       )}
     </div>

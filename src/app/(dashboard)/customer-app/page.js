@@ -255,6 +255,175 @@ const CustomerAppSettings = () => {
           </p>
         </div>
 
+        {/* LOYALTY & REDEEM SECTION - FIRST AND PROMINENT */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          padding: isMobile ? '24px' : '32px',
+          marginBottom: '24px',
+          boxShadow: '0 8px 24px rgba(236, 72, 153, 0.15)',
+          border: '2px solid #fce7f3',
+          background: 'linear-gradient(135deg, #fff 0%, #fef7f0 100%)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
+            }}>
+              <FaGift size={24} color="white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
+                Loyalty & Rewards Program
+              </h2>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0', fontWeight: '500' }}>
+                Enable points system for customers to earn and redeem rewards
+              </p>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '24px',
+            padding: '20px',
+            backgroundColor: '#fef3c7',
+            borderRadius: '12px',
+            border: '1px solid #fde68a',
+            marginBottom: '24px'
+          }}>
+            <div style={{ fontSize: '13px', color: '#92400e', lineHeight: '1.6' }}>
+              <strong>💡 How it works:</strong> Customers order through your online order page, earn loyalty points for every order, 
+              and can redeem those points for discounts on future orders. Perfect for small outlets where customers order online and pick up food.
+            </div>
+          </div>
+
+          <Toggle
+            value={settings.loyaltySettings.enabled}
+            onChange={(v) => setSettings(prev => ({
+              ...prev,
+              loyaltySettings: { ...prev.loyaltySettings, enabled: v }
+            }))}
+            label="Enable Loyalty Points System"
+          />
+
+          {settings.loyaltySettings.enabled && (
+            <div style={{ marginTop: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Points per ₹1 spent
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.loyaltySettings.pointsPerRupee}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      loyaltySettings: { ...prev.loyaltySettings, pointsPerRupee: parseInt(e.target.value) || 1 }
+                    }))}
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '10px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      boxSizing: 'border-box',
+                      backgroundColor: '#f9fafb'
+                    }}
+                    min={1}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
+                    Points earned per rupee spent
+                  </p>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Points needed for ₹1 redemption
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.loyaltySettings.redemptionRate}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      loyaltySettings: { ...prev.loyaltySettings, redemptionRate: parseInt(e.target.value) || 100 }
+                    }))}
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '10px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      boxSizing: 'border-box',
+                      backgroundColor: '#f9fafb'
+                    }}
+                    min={1}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
+                    How many points = ₹1 discount
+                  </p>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Max redemption % per order
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.loyaltySettings.maxRedemptionPercent}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      loyaltySettings: { ...prev.loyaltySettings, maxRedemptionPercent: parseInt(e.target.value) || 20 }
+                    }))}
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '10px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      boxSizing: 'border-box',
+                      backgroundColor: '#f9fafb'
+                    }}
+                    min={1}
+                    max={100}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
+                    Maximum % of order that can be redeemed
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#f0fdf4',
+                borderRadius: '12px',
+                border: '1px solid #bbf7d0',
+                marginTop: '20px'
+              }}>
+                <div style={{ fontSize: '14px', color: '#166534', lineHeight: '1.7', fontWeight: '500' }}>
+                  <div style={{ marginBottom: '12px', fontWeight: '700', fontSize: '15px' }}>📊 Example Calculation:</div>
+                  <div style={{ marginBottom: '8px' }}>
+                    • Customer spends <strong>₹1,000</strong> → Earns <strong>{1000 * settings.loyaltySettings.pointsPerRupee} points</strong>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    • With <strong>{settings.loyaltySettings.redemptionRate * 100} points</strong>, they can redeem <strong>₹100</strong>
+                  </div>
+                  <div>
+                    • Maximum redemption per order: <strong>{settings.loyaltySettings.maxRedemptionPercent}%</strong> of order value
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
           {/* Main Settings */}
           <div style={{
@@ -393,192 +562,80 @@ const CustomerAppSettings = () => {
             </div>
           </div>
 
-          {/* QR Code & Loyalty */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* QR Code */}
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              border: '1px solid #fce7f3',
-              textAlign: 'center'
-            }}>
-              <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <FaQrcode color="#ec4899" />
-                QR Code
-              </h2>
+          {/* QR Code */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            border: '1px solid #fce7f3',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <FaQrcode color="#ec4899" />
+              QR Code
+            </h2>
 
-              {qrCodeUrl ? (
-                <div>
-                  <img src={qrCodeUrl} alt="Restaurant QR Code" style={{ width: '200px', height: '200px', margin: '0 auto 16px' }} />
-                  <button
-                    onClick={downloadQR}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      backgroundColor: '#ec4899',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <FaDownload />
-                    Download QR Code
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <div style={{
-                    width: '200px',
-                    height: '200px',
-                    backgroundColor: '#f3f4f6',
-                    borderRadius: '12px',
-                    margin: '0 auto 16px',
+            {qrCodeUrl ? (
+              <div>
+                <img src={qrCodeUrl} alt="Restaurant QR Code" style={{ width: '200px', height: '200px', margin: '0 auto 16px' }} />
+                <button
+                  onClick={downloadQR}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: '#ec4899',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <FaQrcode size={60} color="#9ca3af" />
-                  </div>
-                  <button
-                    onClick={handleGenerateQR}
-                    disabled={!!qrCodeUrl || !settings.restaurantCode}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      backgroundColor: qrCodeUrl || !settings.restaurantCode ? '#d1d5db' : '#ec4899',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      cursor: qrCodeUrl || !settings.restaurantCode ? 'not-allowed' : 'pointer',
-                      opacity: qrCodeUrl || !settings.restaurantCode ? 0.6 : 1
-                    }}
-                  >
-                    {qrCodeUrl ? 'QR Code Generated' : !settings.restaurantCode ? 'Generate Code First' : 'Generate QR Code'}
-                  </button>
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <FaDownload />
+                  Download QR Code
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{
+                  width: '200px',
+                  height: '200px',
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: '12px',
+                  margin: '0 auto 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FaQrcode size={60} color="#9ca3af" />
                 </div>
-              )}
-              <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#6b7280' }}>
-                Print this QR code and place it at tables or entrance
-              </p>
-            </div>
-
-            {/* Loyalty Settings */}
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              border: '1px solid #fce7f3'
-            }}>
-              <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FaGift color="#ec4899" />
-                Loyalty Program
-              </h2>
-
-              <Toggle
-                value={settings.loyaltySettings.enabled}
-                onChange={(v) => setSettings(prev => ({
-                  ...prev,
-                  loyaltySettings: { ...prev.loyaltySettings, enabled: v }
-                }))}
-                label="Enable Loyalty Points"
-              />
-
-              {settings.loyaltySettings.enabled && (
-                <>
-                  <div style={{ marginTop: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                      Points per Rs. 1 spent
-                    </label>
-                    <input
-                      type="number"
-                      value={settings.loyaltySettings.pointsPerRupee}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        loyaltySettings: { ...prev.loyaltySettings, pointsPerRupee: parseInt(e.target.value) || 1 }
-                      }))}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                      min={1}
-                    />
-                  </div>
-
-                  <div style={{ marginTop: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                      Points needed for Rs. 1 redemption
-                    </label>
-                    <input
-                      type="number"
-                      value={settings.loyaltySettings.redemptionRate}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        loyaltySettings: { ...prev.loyaltySettings, redemptionRate: parseInt(e.target.value) || 100 }
-                      }))}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                      min={1}
-                    />
-                  </div>
-
-                  <div style={{ marginTop: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                      Max redemption % per order
-                    </label>
-                    <input
-                      type="number"
-                      value={settings.loyaltySettings.maxRedemptionPercent}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        loyaltySettings: { ...prev.loyaltySettings, maxRedemptionPercent: parseInt(e.target.value) || 20 }
-                      }))}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                      min={1}
-                      max={100}
-                    />
-                  </div>
-
-                  <div style={{
-                    marginTop: '16px',
+                <button
+                  onClick={handleGenerateQR}
+                  disabled={!!qrCodeUrl || !settings.restaurantCode}
+                  style={{
+                    width: '100%',
                     padding: '12px',
-                    backgroundColor: '#fef3c7',
+                    backgroundColor: qrCodeUrl || !settings.restaurantCode ? '#d1d5db' : '#ec4899',
+                    color: 'white',
+                    border: 'none',
                     borderRadius: '8px',
-                    fontSize: '13px',
-                    color: '#92400e'
-                  }}>
-                    <strong>Example:</strong> Customer spends Rs. 1000, earns {1000 * settings.loyaltySettings.pointsPerRupee} points.
-                    With {settings.loyaltySettings.redemptionRate * 100} points, they can redeem Rs. 100 (max {settings.loyaltySettings.maxRedemptionPercent}% of order).
-                  </div>
-                </>
-              )}
-            </div>
+                    fontWeight: '600',
+                    cursor: qrCodeUrl || !settings.restaurantCode ? 'not-allowed' : 'pointer',
+                    opacity: qrCodeUrl || !settings.restaurantCode ? 0.6 : 1
+                  }}
+                >
+                  {qrCodeUrl ? 'QR Code Generated' : !settings.restaurantCode ? 'Generate Code First' : 'Generate QR Code'}
+                </button>
+              </div>
+            )}
+            <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#6b7280' }}>
+              Print this QR code and place it at tables or entrance for customers to scan
+            </p>
           </div>
         </div>
 
