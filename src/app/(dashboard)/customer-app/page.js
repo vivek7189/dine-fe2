@@ -14,6 +14,9 @@ import {
   FaToggleOn,
   FaToggleOff,
   FaSync,
+  FaCloudUploadAlt,
+  FaTimes,
+  FaSpinner,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 
@@ -26,6 +29,9 @@ const CustomerAppSettings = () => {
   const [copied, setCopied] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
 
   const [settings, setSettings] = useState({
     enabled: false,
@@ -68,6 +74,12 @@ const CustomerAppSettings = () => {
 
   const loadSettings = async (id) => {
     try {
+      // Load restaurant info to get name
+      const restaurantResponse = await apiClient.get(`/api/restaurants/${id}`);
+      if (restaurantResponse.restaurant) {
+        setRestaurantName(restaurantResponse.restaurant.name || '');
+      }
+
       const response = await apiClient.get(`/api/restaurants/${id}/customer-app-settings`);
       if (response.settings) {
         // Extract restaurant code from settings
@@ -77,6 +89,11 @@ const CustomerAppSettings = () => {
           ...response.settings,
           restaurantCode: restaurantCode || prev.restaurantCode
         }));
+        
+        // Set logo preview if logoUrl exists
+        if (response.settings.branding?.logoUrl) {
+          setLogoPreview(response.settings.branding.logoUrl);
+        }
         
         // If restaurant code exists, try to load QR code
         if (restaurantCode) {
@@ -97,9 +114,70 @@ const CustomerAppSettings = () => {
     }
   };
 
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert('File too large. Maximum file size is 5MB.');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await apiClient.uploadImage(formData);
+      if (response.imageUrl) {
+        const newLogoUrl = response.imageUrl;
+        setSettings(prev => ({
+          ...prev,
+          branding: {
+            ...prev.branding,
+            logoUrl: newLogoUrl
+          }
+        }));
+        setLogoPreview(newLogoUrl);
+        alert('Logo uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('Failed to upload logo. Please try again.');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setSettings(prev => ({
+      ...prev,
+      branding: {
+        ...prev.branding,
+        logoUrl: ''
+      }
+    }));
+    setLogoPreview(null);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Update restaurant name if changed
+      if (restaurantName) {
+        await apiClient.patch(`/api/restaurants/${restaurantId}`, {
+          name: restaurantName
+        });
+      }
+
       // Ensure restaurant code is linked to restaurant ID
       if (settings.restaurantCode) {
         await apiClient.patch(`/api/restaurants/${restaurantId}`, {
@@ -517,6 +595,12 @@ const CustomerAppSettings = () => {
                   to { transform: rotate(360deg); }
                 }
               `}</style>
+              <style>{`
+                @keyframes spin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
             </div>
 
             <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 12px' }}>Order Types</h3>
@@ -659,18 +743,15 @@ const CustomerAppSettings = () => {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
             {/* Left Column - Basic Settings */}
             <div>
-              {/* Logo URL */}
+              {/* Restaurant Display Name */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Restaurant Logo URL
+                  Restaurant Display Name
                 </label>
                 <input
-                  type="url"
-                  value={settings.branding.logoUrl}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    branding: { ...prev.branding, logoUrl: e.target.value }
-                  }))}
+                  type="text"
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -679,11 +760,176 @@ const CustomerAppSettings = () => {
                     fontSize: '14px',
                     boxSizing: 'border-box'
                   }}
-                  placeholder="https://example.com/logo.png"
+                  placeholder="Enter restaurant name"
+                  maxLength={100}
                 />
                 <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#9ca3af' }}>
-                  Recommended: Square image, 200x200px or larger
+                  This name will appear on the online ordering page header
                 </p>
+              </div>
+
+              {/* Logo Upload */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Restaurant Logo
+                </label>
+                
+                {/* Logo Preview */}
+                {(logoPreview || settings.branding.logoUrl) && (
+                  <div style={{ 
+                    marginBottom: '12px',
+                    position: 'relative',
+                    display: 'inline-block'
+                  }}>
+                    <img
+                      src={logoPreview || settings.branding.logoUrl}
+                      alt="Restaurant Logo"
+                      style={{
+                        width: '120px',
+                        height: '120px',
+                        objectFit: 'cover',
+                        borderRadius: '12px',
+                        border: '2px solid #e5e7eb',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                    <button
+                      onClick={handleRemoveLogo}
+                      style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '-8px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '28px',
+                        height: '28px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      <FaTimes size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload Area */}
+                <div
+                  style={{
+                    border: '2px dashed #d1d5db',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    textAlign: 'center',
+                    backgroundColor: uploadingLogo ? '#f9fafb' : '#fafafa',
+                    cursor: uploadingLogo ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!uploadingLogo) {
+                      e.currentTarget.style.borderColor = '#ec4899';
+                      e.currentTarget.style.backgroundColor = '#fef7f0';
+                    }
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.backgroundColor = '#fafafa';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.backgroundColor = '#fafafa';
+                    if (!uploadingLogo && e.dataTransfer.files.length > 0) {
+                      handleLogoUpload(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  onClick={() => {
+                    if (!uploadingLogo) {
+                      document.getElementById('logo-upload-input')?.click();
+                    }
+                  }}
+                >
+                  <input
+                    id="logo-upload-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/webp"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleLogoUpload(e.target.files[0]);
+                      }
+                      e.target.value = '';
+                    }}
+                    style={{ display: 'none' }}
+                    disabled={uploadingLogo}
+                  />
+                  
+                  {uploadingLogo ? (
+                    <>
+                      <div style={{ 
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 12px',
+                        display: 'inline-block'
+                      }}>
+                        <FaSpinner size={32} style={{ color: '#ec4899' }} />
+                      </div>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                        Uploading logo...
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <FaCloudUploadAlt size={32} style={{ color: '#9ca3af', margin: '0 auto 12px' }} />
+                      <p style={{ fontSize: '14px', color: '#374151', margin: '0 0 4px', fontWeight: '500' }}>
+                        {logoPreview || settings.branding.logoUrl ? 'Change Logo' : 'Upload Logo'}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                        Click or drag & drop
+                      </p>
+                      <p style={{ fontSize: '11px', color: '#9ca3af', margin: '8px 0 0' }}>
+                        Recommended: Square image, 200x200px or larger (Max 5MB)
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {/* Manual URL Input (Optional) */}
+                <details style={{ marginTop: '12px' }}>
+                  <summary style={{ fontSize: '12px', color: '#6b7280', cursor: 'pointer', fontWeight: '500' }}>
+                    Or enter logo URL manually
+                  </summary>
+                  <input
+                    type="url"
+                    value={settings.branding.logoUrl}
+                    onChange={(e) => {
+                      setSettings(prev => ({
+                        ...prev,
+                        branding: { ...prev.branding, logoUrl: e.target.value }
+                      }));
+                      if (e.target.value) {
+                        setLogoPreview(e.target.value);
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      boxSizing: 'border-box',
+                      marginTop: '8px'
+                    }}
+                    placeholder="https://example.com/logo.png"
+                  />
+                </details>
               </div>
 
               {/* Tagline */}
@@ -845,18 +1091,18 @@ const CustomerAppSettings = () => {
                       height: '44px',
                       borderRadius: '10px',
                       overflow: 'hidden',
-                      background: settings.branding.logoUrl
+                      background: (logoPreview || settings.branding.logoUrl)
                         ? 'white'
                         : `linear-gradient(135deg, ${settings.branding.primaryColor}, ${settings.branding.primaryColor}dd)`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: settings.branding.logoUrl ? '2px solid #f3f4f6' : 'none',
+                      border: (logoPreview || settings.branding.logoUrl) ? '2px solid #f3f4f6' : 'none',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                     }}>
-                      {settings.branding.logoUrl ? (
+                      {(logoPreview || settings.branding.logoUrl) ? (
                         <img
-                          src={settings.branding.logoUrl}
+                          src={logoPreview || settings.branding.logoUrl}
                           alt="Logo"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           onError={(e) => { e.target.src = ''; e.target.parentElement.innerHTML = '🍽️'; }}
@@ -872,7 +1118,7 @@ const CustomerAppSettings = () => {
                         fontWeight: '700',
                         color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'white' : '#1f2937'
                       }}>
-                        Your Restaurant
+                        {restaurantName || 'Your Restaurant'}
                       </div>
                       {settings.branding.tagline && (
                         <div style={{
