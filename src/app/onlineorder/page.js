@@ -1660,6 +1660,10 @@ const OffersBanner = ({ offers }) => {
 const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor }) => {
   const isVeg = item.isVeg !== false;
 
+  // Use getDisplayImage to get proper image URL (user uploaded or placeholder)
+  const imageUrl = getDisplayImage(item);
+  const hasUserImages = item.images && item.images.length > 0;
+
   return (
     <div style={{
       backgroundColor: 'white',
@@ -1680,7 +1684,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         overflow: 'hidden',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
       }}>
-        {item.images && item.images.length > 0 ? (
+        {hasUserImages ? (
           <ImageCarousel
             images={item.images}
             itemName={item.name}
@@ -1689,6 +1693,16 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
             showDots={false}
             autoPlay={true}
             autoPlayInterval={4000}
+          />
+        ) : imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={item.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
           />
         ) : (
           <div style={{
