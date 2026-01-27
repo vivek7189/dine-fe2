@@ -50,11 +50,49 @@ function NavigationContent({ isHidden = false }) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [user, setUser] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [pageAccess, setPageAccess] = useState(null);
-  const [notAllowedPages, setNotAllowedPages] = useState([]);
-  const [isNavigationReady, setIsNavigationReady] = useState(false);
+
+  // Initialize state from localStorage immediately (synchronous) to prevent loading flicker
+  const [user, setUser] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem('user');
+      return userData ? JSON.parse(userData) : null;
+    }
+    return null;
+  });
+
+  const [pageAccess, setPageAccess] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('navPageAccess');
+      return cached ? JSON.parse(cached) : null;
+    }
+    return null;
+  });
+
+  const [notAllowedPages, setNotAllowedPages] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('navNotAllowedPages');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+
+  // Navigation is ready immediately if we have cached data
+  const [isNavigationReady, setIsNavigationReady] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        // For staff users, check if we have cached pageAccess
+        if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
+          return localStorage.getItem('navPageAccess') !== null;
+        }
+        // For owners/waiters, just need user data
+        return true;
+      }
+    }
+    return false;
+  });
   const [dashboardBackgroundLoading, setDashboardBackgroundLoading] = useState(false);
   const [tablesBackgroundLoading, setTablesBackgroundLoading] = useState(false);
   const [orderhistoryBackgroundLoading, setOrderhistoryBackgroundLoading] = useState(false);
@@ -165,29 +203,30 @@ function NavigationContent({ isHidden = false }) {
     };
   }, [showRestaurantDropdown, showUserDropdown, showMobileMenu]);
   
-  // Load restaurant and user data
+  // Fetch fresh page access data in background (only once on mount)
   useEffect(() => {
-    const loadData = async () => {
+    const loadPageAccess = async () => {
       try {
-        // Load user data from localStorage
         const userData = localStorage.getItem('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
-          
-          // Fetch page access and notAllowedPages for all users
+
+          // Fetch page access and notAllowedPages in background
           try {
             const accessData = await apiClient.getUserPageAccess();
             if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
               setPageAccess(accessData.pageAccess);
+              localStorage.setItem('navPageAccess', JSON.stringify(accessData.pageAccess));
             }
-            // Set notAllowedPages for all users (used to hide specific pages)
-            setNotAllowedPages(accessData.notAllowedPages || []);
+            // Set and cache notAllowedPages for all users
+            const notAllowed = accessData.notAllowedPages || [];
+            setNotAllowedPages(notAllowed);
+            localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
           } catch (error) {
             console.error('Error fetching page access:', error);
             if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
-              // Set default access for staff
-              setPageAccess({
+              const defaultAccess = {
                 dashboard: true,
                 history: true,
                 tables: true,
@@ -196,40 +235,56 @@ function NavigationContent({ isHidden = false }) {
                 inventory: false,
                 kot: false,
                 admin: false
-              });
+              };
+              setPageAccess(defaultAccess);
+              localStorage.setItem('navPageAccess', JSON.stringify(defaultAccess));
             }
           }
-          // Mark navigation as ready
           setIsNavigationReady(true);
-          
-          // Skip restaurants API call if we're on dashboard page (dashboard will load it)
-          const isDashboardPage = pathname === '/dashboard';
-          if (isDashboardPage) {
-            console.log('⏭️ Navigation: Skipping restaurants API call (dashboard will load it)');
-            // Try to use restaurant data from localStorage if available
-            const savedRestaurant = localStorage.getItem('selectedRestaurant');
-            if (savedRestaurant) {
-              try {
-                const restaurant = JSON.parse(savedRestaurant);
-                if (parsedUser.restaurantId && restaurant.id === parsedUser.restaurantId) {
-                  setSelectedRestaurant(restaurant);
-                } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
-                  setSelectedRestaurant(restaurant);
-                }
-              } catch (error) {
-                console.error('Error parsing saved restaurant:', error);
+        }
+      } catch (error) {
+        console.error('Error loading page access:', error);
+      }
+    };
+    loadPageAccess();
+  }, []); // Only run once on mount
+
+  // Load restaurant data separately (can depend on pathname for dashboard optimization)
+  useEffect(() => {
+    const loadRestaurantData = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) return;
+
+        const parsedUser = JSON.parse(userData);
+
+        // Skip restaurants API call if we're on dashboard page (dashboard will load it)
+        const isDashboardPage = pathname === '/dashboard';
+        if (isDashboardPage) {
+          // Try to use restaurant data from localStorage if available
+          const savedRestaurant = localStorage.getItem('selectedRestaurant');
+          if (savedRestaurant) {
+            try {
+              const restaurant = JSON.parse(savedRestaurant);
+              if (parsedUser.restaurantId && restaurant.id === parsedUser.restaurantId) {
+                setSelectedRestaurant(restaurant);
+              } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
+                setSelectedRestaurant(restaurant);
               }
+            } catch (error) {
+              console.error('Error parsing saved restaurant:', error);
             }
-            return; // Skip API call on dashboard page
           }
-          
-          // Set restaurant data for staff and owners
-          if (parsedUser.restaurantId) {
-            // First try to use restaurant data from login response
-            if (parsedUser.restaurant) {
-              setSelectedRestaurant(parsedUser.restaurant);
-            } else {
-              // Fallback: fetch restaurant data from API
+          return; // Skip API call on dashboard page
+        }
+
+        // Set restaurant data for staff and owners
+        if (parsedUser.restaurantId) {
+          // First try to use restaurant data from login response
+          if (parsedUser.restaurant) {
+            setSelectedRestaurant(parsedUser.restaurant);
+          } else {
+            // Fallback: fetch restaurant data from API
             try {
               const token = localStorage.getItem('authToken');
               const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
@@ -248,45 +303,44 @@ function NavigationContent({ isHidden = false }) {
               }
             } catch (error) {
               console.error('Error fetching restaurant data:', error);
+            }
+          }
+        } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
+          // For owners, get all their restaurants
+          try {
+            const token = localStorage.getItem('authToken');
+            const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+            const response = await fetch(`${backendUrl}/api/restaurants`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.restaurants && data.restaurants.length > 0) {
+                setAllRestaurants(data.restaurants);
+
+                // Check if there's a previously selected restaurant in localStorage
+                const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
+                const savedRestaurant = data.restaurants.find(r => r.id === savedRestaurantId);
+
+                // Use saved restaurant or default to first one
+                setSelectedRestaurant(savedRestaurant || data.restaurants[0]);
+                if (!savedRestaurant) {
+                  localStorage.setItem('selectedRestaurantId', data.restaurants[0].id);
+                }
               }
             }
-          } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
-            // For owners, get all their restaurants
-            try {
-              const token = localStorage.getItem('authToken');
-              const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-              const response = await fetch(`${backendUrl}/api/restaurants`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              });
-              if (response.ok) {
-                const data = await response.json();
-                if (data.restaurants && data.restaurants.length > 0) {
-                  setAllRestaurants(data.restaurants);
-                  
-                  // Check if there's a previously selected restaurant in localStorage
-                  const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-                  const savedRestaurant = data.restaurants.find(r => r.id === savedRestaurantId);
-                  
-                  // Use saved restaurant or default to first one
-                  setSelectedRestaurant(savedRestaurant || data.restaurants[0]);
-                  if (!savedRestaurant) {
-                    localStorage.setItem('selectedRestaurantId', data.restaurants[0].id);
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching restaurant data:', error);
-            }
+          } catch (error) {
+            console.error('Error fetching restaurant data:', error);
           }
         }
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading restaurant data:', error);
       }
     };
-    loadData();
+    loadRestaurantData();
   }, [pathname]);
 
   // Smooth navigation handler
