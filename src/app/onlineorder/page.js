@@ -404,8 +404,16 @@ const OnlineOrderContent = () => {
 
   const getLoyaltyPointsToEarn = () => {
     if (!customerAppSettings?.loyaltySettings?.enabled) return 0;
-    const pointsPerRupee = customerAppSettings.loyaltySettings.pointsPerRupee || 1;
-    return Math.floor(getFinalTotal() * pointsPerRupee);
+    const loyaltySettings = customerAppSettings.loyaltySettings;
+    // Support new format (earnPerAmount/pointsEarned) and legacy format (pointsPerRupee)
+    if (loyaltySettings.earnPerAmount && loyaltySettings.pointsEarned) {
+      const earnPerAmount = loyaltySettings.earnPerAmount || 100;
+      const pointsEarned = loyaltySettings.pointsEarned || 4;
+      return Math.floor(getFinalTotal() / earnPerAmount) * pointsEarned;
+    } else {
+      const pointsPerRupee = loyaltySettings.pointsPerRupee || 1;
+      return Math.floor(getFinalTotal() * pointsPerRupee);
+    }
   };
 
   // Filter menu

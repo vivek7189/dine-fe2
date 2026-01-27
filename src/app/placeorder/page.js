@@ -417,8 +417,16 @@ const PlaceOrderContent = () => {
   // Calculate loyalty points that will be earned
   const getLoyaltyPointsToEarn = () => {
     if (!customerAppSettings?.loyaltySettings?.enabled) return 0;
-    const pointsPerRupee = customerAppSettings.loyaltySettings.pointsPerRupee || 1;
-    return Math.floor(getFinalTotal() * pointsPerRupee);
+    const loyaltySettings = customerAppSettings.loyaltySettings;
+    // Support new format (earnPerAmount/pointsEarned) and legacy format (pointsPerRupee)
+    if (loyaltySettings.earnPerAmount && loyaltySettings.pointsEarned) {
+      const earnPerAmount = loyaltySettings.earnPerAmount || 100;
+      const pointsEarned = loyaltySettings.pointsEarned || 4;
+      return Math.floor(getFinalTotal() / earnPerAmount) * pointsEarned;
+    } else {
+      const pointsPerRupee = loyaltySettings.pointsPerRupee || 1;
+      return Math.floor(getFinalTotal() * pointsPerRupee);
+    }
   };
 
   // Filter menu - only by search term, not by category (we'll scroll instead)
@@ -1935,7 +1943,7 @@ const PlaceOrderContent = () => {
                           {customerVerified ? 'No points yet - earn on this order!' : 'Verify phone to check your points'}
                         </p>
                         <p style={{ fontSize: '11px', color: '#a16207', margin: 0 }}>
-                          Earn {customerAppSettings.loyaltySettings.pointsPerRupee} point per ₹1 spent
+                          Earn {customerAppSettings.loyaltySettings.pointsEarned || 4} points per ₹{customerAppSettings.loyaltySettings.earnPerAmount || 100} spent
                         </p>
                       </div>
                     )}

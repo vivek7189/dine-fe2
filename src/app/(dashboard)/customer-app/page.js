@@ -43,7 +43,8 @@ const CustomerAppSettings = () => {
     minimumOrder: 0,
     loyaltySettings: {
       enabled: false,
-      pointsPerRupee: 1,
+      earnPerAmount: 100,
+      pointsEarned: 4,
       redemptionRate: 100,
       maxRedemptionPercent: 20,
     },
@@ -391,35 +392,69 @@ const CustomerAppSettings = () => {
 
           {settings.loyaltySettings.enabled && (
             <div style={{ marginTop: '24px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Points per ₹1 spent
-                  </label>
+              {/* Points Earning Rule */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                  Points Earning Rule
+                </label>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  padding: '16px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '10px',
+                  border: '2px solid #e5e7eb'
+                }}>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>For every ₹</span>
                   <input
                     type="number"
-                    value={settings.loyaltySettings.pointsPerRupee}
+                    value={settings.loyaltySettings.earnPerAmount}
                     onChange={(e) => setSettings(prev => ({
                       ...prev,
-                      loyaltySettings: { ...prev.loyaltySettings, pointsPerRupee: parseInt(e.target.value) || 1 }
+                      loyaltySettings: { ...prev.loyaltySettings, earnPerAmount: parseInt(e.target.value) || 100 }
                     }))}
                     style={{
-                      width: '100%',
-                      padding: '14px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '10px',
+                      width: '80px',
+                      padding: '10px 12px',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '8px',
                       fontSize: '16px',
                       fontWeight: '600',
-                      boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
+                      textAlign: 'center',
+                      backgroundColor: 'white'
                     }}
                     min={1}
                   />
-                  <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
-                    Points earned per rupee spent
-                  </p>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>spent, earn</span>
+                  <input
+                    type="number"
+                    value={settings.loyaltySettings.pointsEarned}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      loyaltySettings: { ...prev.loyaltySettings, pointsEarned: parseInt(e.target.value) || 1 }
+                    }))}
+                    style={{
+                      width: '80px',
+                      padding: '10px 12px',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      textAlign: 'center',
+                      backgroundColor: 'white'
+                    }}
+                    min={1}
+                  />
+                  <span style={{ fontSize: '14px', color: '#374151' }}>points</span>
                 </div>
+                <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#6b7280' }}>
+                  Configure how customers earn loyalty points on their orders
+                </p>
+              </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                     Points needed for ₹1 redemption
@@ -488,7 +523,7 @@ const CustomerAppSettings = () => {
                 <div style={{ fontSize: '14px', color: '#166534', lineHeight: '1.7', fontWeight: '500' }}>
                   <div style={{ marginBottom: '12px', fontWeight: '700', fontSize: '15px' }}>📊 Example Calculation:</div>
                   <div style={{ marginBottom: '8px' }}>
-                    • Customer spends <strong>₹1,000</strong> → Earns <strong>{1000 * settings.loyaltySettings.pointsPerRupee} points</strong>
+                    • Customer spends <strong>₹1,000</strong> → Earns <strong>{Math.floor(1000 / settings.loyaltySettings.earnPerAmount) * settings.loyaltySettings.pointsEarned} points</strong>
                   </div>
                   <div style={{ marginBottom: '8px' }}>
                     • With <strong>{settings.loyaltySettings.redemptionRate * 100} points</strong>, they can redeem <strong>₹100</strong>
