@@ -17,6 +17,10 @@ import {
   FaCloudUploadAlt,
   FaTimes,
   FaSpinner,
+  FaPrint,
+  FaShare,
+  FaFilePdf,
+  FaLink,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 
@@ -29,6 +33,8 @@ const CustomerAppSettings = () => {
   const [copied, setCopied] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [onlineOrderUrl, setOnlineOrderUrl] = useState(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [restaurantName, setRestaurantName] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -103,9 +109,17 @@ const CustomerAppSettings = () => {
             if (qrResponse.qrCode) {
               setQrCodeUrl(qrResponse.qrCode);
             }
+            if (qrResponse.onlineOrderUrl) {
+              setOnlineOrderUrl(qrResponse.onlineOrderUrl);
+            }
           } catch (qrErr) {
             console.log('No QR code yet, but restaurant code exists');
+            // Set online order URL even if QR doesn't exist yet
+            setOnlineOrderUrl(`https://www.dineopen.com/onlineorder?restaurant=${id}`);
           }
+        } else {
+          // Set online order URL based on restaurant ID
+          setOnlineOrderUrl(`https://www.dineopen.com/onlineorder?restaurant=${id}`);
         }
       }
     } catch (error) {
@@ -215,6 +229,9 @@ const CustomerAppSettings = () => {
       const response = await apiClient.get(`/api/restaurants/${restaurantId}/qr-code`);
       if (response.qrCode) {
         setQrCodeUrl(response.qrCode);
+        if (response.onlineOrderUrl) {
+          setOnlineOrderUrl(response.onlineOrderUrl);
+        }
         alert('QR code generated successfully!');
       } else {
         alert('Failed to generate QR code. Please ensure restaurant code is saved.');
@@ -692,16 +709,219 @@ const CustomerAppSettings = () => {
           }}>
             <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <FaQrcode color="#ec4899" />
-              QR Code
+              QR Code for Online Ordering
             </h2>
 
             {qrCodeUrl ? (
               <div>
-                <img src={qrCodeUrl} alt="Restaurant QR Code" style={{ width: '200px', height: '200px', margin: '0 auto 16px' }} />
+                <div id="qr-print-area" style={{ display: 'inline-block', padding: '16px', backgroundColor: 'white' }}>
+                  <img src={qrCodeUrl} alt="Restaurant QR Code" style={{ width: '200px', height: '200px', margin: '0 auto' }} />
+                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#374151', fontWeight: '500' }}>
+                    Scan to order online
+                  </p>
+                </div>
+
+                {/* Online Order URL Display */}
+                {onlineOrderUrl && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '10px 12px',
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    color: '#374151',
+                    wordBreak: 'break-all',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <FaLink size={10} color="#6b7280" />
+                      <span style={{ fontWeight: '600', color: '#6b7280' }}>Online Order Link:</span>
+                    </div>
+                    {onlineOrderUrl}
+                  </div>
+                )}
+
+                {/* Action Buttons Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' }}>
+                  {/* Print Button */}
+                  <button
+                    onClick={() => {
+                      const printContent = document.getElementById('qr-print-area');
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>QR Code - ${restaurantName || 'Restaurant'}</title>
+                            <style>
+                              body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+                              .container { text-align: center; padding: 40px; }
+                              img { width: 300px; height: 300px; }
+                              h2 { margin: 0 0 20px; color: #1f2937; }
+                              p { margin: 16px 0 0; font-size: 16px; color: #374151; }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="container">
+                              <h2>${restaurantName || 'Restaurant'}</h2>
+                              <img src="${qrCodeUrl}" alt="QR Code" />
+                              <p>Scan to order online</p>
+                            </div>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.onload = () => {
+                        printWindow.print();
+                      };
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '500',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <FaPrint size={14} />
+                    Print
+                  </button>
+
+                  {/* Copy URL Button */}
+                  <button
+                    onClick={() => {
+                      if (onlineOrderUrl) {
+                        navigator.clipboard.writeText(onlineOrderUrl);
+                        setCopiedUrl(true);
+                        setTimeout(() => setCopiedUrl(false), 2000);
+                      }
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      backgroundColor: copiedUrl ? '#dcfce7' : '#f3f4f6',
+                      color: copiedUrl ? '#16a34a' : '#374151',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '500',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    {copiedUrl ? <FaCheck size={14} /> : <FaCopy size={14} />}
+                    {copiedUrl ? 'Copied!' : 'Copy URL'}
+                  </button>
+
+                  {/* Share Button */}
+                  <button
+                    onClick={async () => {
+                      if (navigator.share && onlineOrderUrl) {
+                        try {
+                          await navigator.share({
+                            title: `${restaurantName || 'Restaurant'} - Online Ordering`,
+                            text: `Order online from ${restaurantName || 'our restaurant'}!`,
+                            url: onlineOrderUrl
+                          });
+                        } catch (err) {
+                          if (err.name !== 'AbortError') {
+                            // Fallback: copy to clipboard
+                            navigator.clipboard.writeText(onlineOrderUrl);
+                            alert('Link copied to clipboard!');
+                          }
+                        }
+                      } else if (onlineOrderUrl) {
+                        // Fallback for browsers without Web Share API
+                        navigator.clipboard.writeText(onlineOrderUrl);
+                        alert('Link copied to clipboard!');
+                      }
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '500',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <FaShare size={14} />
+                    Share
+                  </button>
+
+                  {/* Download as PDF Button */}
+                  <button
+                    onClick={() => {
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>QR Code - ${restaurantName || 'Restaurant'}</title>
+                            <style>
+                              @page { size: A4; margin: 0; }
+                              body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+                              .container { text-align: center; padding: 60px; }
+                              img { width: 400px; height: 400px; }
+                              h1 { margin: 0 0 30px; color: #1f2937; font-size: 32px; }
+                              p { margin: 24px 0 0; font-size: 20px; color: #374151; }
+                              .url { margin-top: 20px; font-size: 14px; color: #6b7280; word-break: break-all; }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="container">
+                              <h1>${restaurantName || 'Restaurant'}</h1>
+                              <img src="${qrCodeUrl}" alt="QR Code" />
+                              <p>Scan to order online</p>
+                              <p class="url">${onlineOrderUrl || ''}</p>
+                            </div>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.onload = () => {
+                        printWindow.print();
+                      };
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '500',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <FaFilePdf size={14} />
+                    Save as PDF
+                  </button>
+                </div>
+
+                {/* Download QR Image */}
                 <button
                   onClick={downloadQR}
                   style={{
                     width: '100%',
+                    marginTop: '12px',
                     padding: '12px',
                     backgroundColor: '#ec4899',
                     color: 'white',
@@ -716,7 +936,7 @@ const CustomerAppSettings = () => {
                   }}
                 >
                   <FaDownload />
-                  Download QR Code
+                  Download QR Image
                 </button>
               </div>
             ) : (
@@ -753,7 +973,7 @@ const CustomerAppSettings = () => {
               </div>
             )}
             <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#6b7280' }}>
-              Print this QR code and place it at tables or entrance for customers to scan
+              Print this QR code and place it at tables or entrance for customers to scan and order online
             </p>
           </div>
         </div>
