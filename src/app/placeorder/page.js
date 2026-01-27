@@ -859,6 +859,10 @@ const PlaceOrderContent = () => {
       {(() => {
         // Get branding settings
         const brandColor = customerAppSettings?.branding?.primaryColor || '#ef4444';
+        const textColor = customerAppSettings?.branding?.textColor || '#ffffff';
+        const pageBackgroundColor = customerAppSettings?.branding?.pageBackgroundColor || '#f8fafc';
+        const offerGradientStart = customerAppSettings?.branding?.offerGradientStart || '#fef3c7';
+        const offerGradientEnd = customerAppSettings?.branding?.offerGradientEnd || '#fde68a';
         const logoUrl = customerAppSettings?.branding?.logoUrl || restaurant?.logo;
         const tagline = customerAppSettings?.branding?.tagline || restaurant?.description;
         const headerStyle = customerAppSettings?.branding?.headerStyle || 'modern';
@@ -946,7 +950,7 @@ const PlaceOrderContent = () => {
                   <h1 style={{
                     fontSize: isScrolled ? '15px' : '20px',
                     fontWeight: '700',
-                    color: ['gradient', 'solid'].includes(headerStyle) ? 'white' : '#1f2937',
+                    color: ['gradient', 'solid'].includes(headerStyle) ? textColor : '#1f2937',
                     margin: 0,
                     lineHeight: '1.2',
                     transition: 'font-size 0.2s ease-out',
@@ -962,13 +966,14 @@ const PlaceOrderContent = () => {
                   {!isScrolled && tagline && (
                     <p style={{
                       fontSize: '12px',
-                      color: ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.85)' : '#6b7280',
+                      color: ['gradient', 'solid'].includes(headerStyle) ? textColor : '#6b7280',
                       margin: '3px 0 0 0',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                       fontWeight: '500',
-                      letterSpacing: '0.2px'
+                      letterSpacing: '0.2px',
+                      opacity: ['gradient', 'solid'].includes(headerStyle) ? 0.85 : 1
                     }}>
                       {tagline}
                     </p>

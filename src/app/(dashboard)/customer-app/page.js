@@ -24,6 +24,28 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 
+// Helper function to determine if text should be light or dark based on background color
+const getContrastTextColor = (hexColor) => {
+  if (!hexColor) return '#ffffff';
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  // Calculate luminance using relative luminance formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? '#1f2937' : '#ffffff';
+};
+
+// Helper to get a slightly darker shade for gradients
+const getDarkerShade = (hexColor, percent = 20) => {
+  if (!hexColor) return hexColor;
+  const hex = hexColor.replace('#', '');
+  const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - Math.round(255 * percent / 100));
+  const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - Math.round(255 * percent / 100));
+  const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - Math.round(255 * percent / 100));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
+
 const CustomerAppSettings = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -56,6 +78,10 @@ const CustomerAppSettings = () => {
     },
     branding: {
       primaryColor: '#ef4444',
+      textColor: '#ffffff',
+      pageBackgroundColor: '#f8fafc',
+      offerGradientStart: '#fef3c7',
+      offerGradientEnd: '#fde68a',
       logoUrl: '',
       tagline: '',
       headerStyle: 'modern', // 'modern', 'gradient', 'solid'
@@ -1215,68 +1241,372 @@ const CustomerAppSettings = () => {
                 </p>
               </div>
 
-              {/* Primary Color */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Brand Color
-                </label>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <input
-                    type="color"
-                    value={settings.branding.primaryColor}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      branding: { ...prev.branding, primaryColor: e.target.value }
-                    }))}
-                    style={{
-                      width: '60px',
-                      height: '44px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      padding: '2px'
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={settings.branding.primaryColor}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      branding: { ...prev.branding, primaryColor: e.target.value }
-                    }))}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontFamily: 'monospace',
-                      textTransform: 'uppercase'
-                    }}
-                    placeholder="#ef4444"
-                    maxLength={7}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
-                  {['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#1f2937'].map(color => (
+              {/* Color Customization Section */}
+              <div style={{
+                padding: '16px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '12px',
+                marginBottom: '16px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '0 0 16px 0' }}>
+                  🎨 Color Customization
+                </h4>
+
+                {/* Header Background Color */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                    Header Background Color
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={settings.branding.primaryColor}
+                      onChange={(e) => {
+                        const newColor = e.target.value;
+                        const autoTextColor = getContrastTextColor(newColor);
+                        setSettings(prev => ({
+                          ...prev,
+                          branding: {
+                            ...prev.branding,
+                            primaryColor: newColor,
+                            textColor: autoTextColor
+                          }
+                        }));
+                      }}
+                      style={{
+                        width: '50px',
+                        height: '38px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        padding: '2px'
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={settings.branding.primaryColor}
+                      onChange={(e) => {
+                        const newColor = e.target.value;
+                        setSettings(prev => ({
+                          ...prev,
+                          branding: { ...prev.branding, primaryColor: newColor }
+                        }));
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontFamily: 'monospace',
+                        textTransform: 'uppercase'
+                      }}
+                      placeholder="#ef4444"
+                      maxLength={7}
+                    />
                     <button
-                      key={color}
-                      onClick={() => setSettings(prev => ({
+                      onClick={() => {
+                        const autoColor = getContrastTextColor(settings.branding.primaryColor);
+                        setSettings(prev => ({
+                          ...prev,
+                          branding: { ...prev.branding, textColor: autoColor }
+                        }));
+                      }}
+                      style={{
+                        padding: '10px 12px',
+                        backgroundColor: '#e5e7eb',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                      title="Auto-detect best text color"
+                    >
+                      Auto Text
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    {['#ef4444', '#f97316', '#FFFF00', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#1f2937', '#ffffff'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          const autoTextColor = getContrastTextColor(color);
+                          setSettings(prev => ({
+                            ...prev,
+                            branding: { ...prev.branding, primaryColor: color, textColor: autoTextColor }
+                          }));
+                        }}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          backgroundColor: color,
+                          border: settings.branding.primaryColor === color ? '2px solid #1f2937' : '1px solid #d1d5db',
+                          cursor: 'pointer'
+                        }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Header Text Color */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                    Header Text Color
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={settings.branding.textColor || '#ffffff'}
+                      onChange={(e) => setSettings(prev => ({
                         ...prev,
-                        branding: { ...prev.branding, primaryColor: color }
+                        branding: { ...prev.branding, textColor: e.target.value }
                       }))}
                       style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '50px',
+                        height: '38px',
+                        border: '2px solid #e5e7eb',
                         borderRadius: '6px',
-                        backgroundColor: color,
-                        border: settings.branding.primaryColor === color ? '3px solid #1f2937' : '2px solid #e5e7eb',
                         cursor: 'pointer',
-                        transition: 'transform 0.1s ease'
+                        padding: '2px'
                       }}
-                      title={color}
                     />
-                  ))}
+                    <input
+                      type="text"
+                      value={settings.branding.textColor || '#ffffff'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        branding: { ...prev.branding, textColor: e.target.value }
+                      }))}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontFamily: 'monospace',
+                        textTransform: 'uppercase'
+                      }}
+                      placeholder="#ffffff"
+                      maxLength={7}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+                    {['#ffffff', '#1f2937', '#000000', '#ef4444', '#f97316'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          branding: { ...prev.branding, textColor: color }
+                        }))}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          backgroundColor: color,
+                          border: (settings.branding.textColor || '#ffffff') === color ? '2px solid #ec4899' : '1px solid #d1d5db',
+                          cursor: 'pointer'
+                        }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Page Background Color */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                    Page Background Color
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={settings.branding.pageBackgroundColor || '#f8fafc'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        branding: { ...prev.branding, pageBackgroundColor: e.target.value }
+                      }))}
+                      style={{
+                        width: '50px',
+                        height: '38px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        padding: '2px'
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={settings.branding.pageBackgroundColor || '#f8fafc'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        branding: { ...prev.branding, pageBackgroundColor: e.target.value }
+                      }))}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontFamily: 'monospace',
+                        textTransform: 'uppercase'
+                      }}
+                      placeholder="#f8fafc"
+                      maxLength={7}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+                    {['#f8fafc', '#ffffff', '#fef7f0', '#f0fdf4', '#fefce8', '#fef2f2', '#f5f3ff'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          branding: { ...prev.branding, pageBackgroundColor: color }
+                        }))}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          backgroundColor: color,
+                          border: (settings.branding.pageBackgroundColor || '#f8fafc') === color ? '2px solid #ec4899' : '1px solid #d1d5db',
+                          cursor: 'pointer'
+                        }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Offer Card Gradient */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                    Offer Card Gradient
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '10px', color: '#6b7280' }}>Start</span>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={settings.branding.offerGradientStart || '#fef3c7'}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            branding: { ...prev.branding, offerGradientStart: e.target.value }
+                          }))}
+                          style={{
+                            width: '40px',
+                            height: '32px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            padding: '2px'
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={settings.branding.offerGradientStart || '#fef3c7'}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            branding: { ...prev.branding, offerGradientStart: e.target.value }
+                          }))}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                            textTransform: 'uppercase'
+                          }}
+                          maxLength={7}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '10px', color: '#6b7280' }}>End</span>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={settings.branding.offerGradientEnd || '#fde68a'}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            branding: { ...prev.branding, offerGradientEnd: e.target.value }
+                          }))}
+                          style={{
+                            width: '40px',
+                            height: '32px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            padding: '2px'
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={settings.branding.offerGradientEnd || '#fde68a'}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            branding: { ...prev.branding, offerGradientEnd: e.target.value }
+                          }))}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                            textTransform: 'uppercase'
+                          }}
+                          maxLength={7}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Gradient Preview */}
+                  <div style={{
+                    height: '32px',
+                    borderRadius: '6px',
+                    background: `linear-gradient(135deg, ${settings.branding.offerGradientStart || '#fef3c7'} 0%, ${settings.branding.offerGradientEnd || '#fde68a'} 100%)`,
+                    border: '1px solid #e5e7eb'
+                  }} />
+                  {/* Preset Gradients */}
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { start: '#fef3c7', end: '#fde68a', name: 'Yellow' },
+                      { start: '#fee2e2', end: '#fecaca', name: 'Red' },
+                      { start: '#dbeafe', end: '#bfdbfe', name: 'Blue' },
+                      { start: '#dcfce7', end: '#bbf7d0', name: 'Green' },
+                      { start: '#f3e8ff', end: '#e9d5ff', name: 'Purple' },
+                      { start: '#fce7f3', end: '#fbcfe8', name: 'Pink' },
+                    ].map(preset => (
+                      <button
+                        key={preset.name}
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          branding: {
+                            ...prev.branding,
+                            offerGradientStart: preset.start,
+                            offerGradientEnd: preset.end
+                          }
+                        }))}
+                        style={{
+                          padding: '4px 10px',
+                          background: `linear-gradient(135deg, ${preset.start} 0%, ${preset.end} 100%)`,
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          fontWeight: '500'
+                        }}
+                        title={preset.name}
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1302,7 +1632,7 @@ const CustomerAppSettings = () => {
                         minWidth: '100px',
                         padding: '12px 8px',
                         backgroundColor: settings.branding.headerStyle === style.value ? settings.branding.primaryColor : '#f9fafb',
-                        color: settings.branding.headerStyle === style.value ? 'white' : '#374151',
+                        color: settings.branding.headerStyle === style.value ? (settings.branding.textColor || '#ffffff') : '#374151',
                         border: settings.branding.headerStyle === style.value ? 'none' : '2px solid #e5e7eb',
                         borderRadius: '10px',
                         cursor: 'pointer',
@@ -1371,15 +1701,16 @@ const CustomerAppSettings = () => {
                       <div style={{
                         fontSize: '16px',
                         fontWeight: '700',
-                        color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'white' : '#1f2937'
+                        color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : '#1f2937'
                       }}>
                         {restaurantName || 'Your Restaurant'}
                       </div>
                       {settings.branding.tagline && (
                         <div style={{
                           fontSize: '11px',
-                          color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'rgba(255,255,255,0.85)' : '#6b7280',
-                          marginTop: '2px'
+                          color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : '#6b7280',
+                          marginTop: '2px',
+                          opacity: 0.85
                         }}>
                           {settings.branding.tagline}
                         </div>
@@ -1420,7 +1751,7 @@ const CustomerAppSettings = () => {
                       background: ['gradient', 'solid'].includes(settings.branding.headerStyle)
                         ? 'rgba(255,255,255,0.9)'
                         : `linear-gradient(135deg, ${settings.branding.primaryColor}, ${settings.branding.primaryColor}dd)`,
-                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? settings.branding.primaryColor : 'white'
+                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? settings.branding.primaryColor : (settings.branding.textColor || '#ffffff')
                     }}>
                       All
                     </div>
@@ -1429,8 +1760,9 @@ const CustomerAppSettings = () => {
                       borderRadius: '14px',
                       fontSize: '11px',
                       background: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'rgba(255,255,255,0.2)' : 'white',
-                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'rgba(255,255,255,0.9)' : '#6b7280',
-                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e5e7eb'
+                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : '#6b7280',
+                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `1px solid ${settings.branding.textColor || '#ffffff'}40` : '1px solid #e5e7eb',
+                      opacity: 0.9
                     }}>
                       Starters
                     </div>
@@ -1439,15 +1771,43 @@ const CustomerAppSettings = () => {
                       borderRadius: '14px',
                       fontSize: '11px',
                       background: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'rgba(255,255,255,0.2)' : 'white',
-                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'rgba(255,255,255,0.9)' : '#6b7280',
-                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e5e7eb'
+                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : '#6b7280',
+                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `1px solid ${settings.branding.textColor || '#ffffff'}40` : '1px solid #e5e7eb',
+                      opacity: 0.9
                     }}>
                       Main
                     </div>
                   </div>
                 </div>
                 {/* Preview Body */}
-                <div style={{ backgroundColor: '#f8fafc', padding: '16px' }}>
+                <div style={{ backgroundColor: settings.branding.pageBackgroundColor || '#f8fafc', padding: '16px' }}>
+                  {/* Offer Card Preview */}
+                  <div style={{
+                    background: `linear-gradient(135deg, ${settings.branding.offerGradientStart || '#fef3c7'} 0%, ${settings.branding.offerGradientEnd || '#fde68a'} 100%)`,
+                    borderRadius: '12px',
+                    padding: '12px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <div style={{ width: '36px', height: '36px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      🎁
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#1f2937' }}>10% OFF</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280' }}>First Order Discount</div>
+                    </div>
+                    <div style={{
+                      padding: '4px 10px',
+                      backgroundColor: 'white',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#1f2937'
+                    }}>10%</div>
+                  </div>
+                  {/* Menu Item Preview */}
                   <div style={{
                     backgroundColor: 'white',
                     borderRadius: '10px',
@@ -1469,7 +1829,7 @@ const CustomerAppSettings = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'white',
+                      color: settings.branding.textColor || '#ffffff',
                       fontSize: '14px'
                     }}>+</div>
                   </div>
