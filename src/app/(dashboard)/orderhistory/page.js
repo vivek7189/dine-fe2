@@ -341,6 +341,26 @@ const OrderHistory = () => {
       alert(t('common.error') + ': ' + (error.message || 'Unknown error'));
     }
   };
+
+  const handleMarkCompleted = async (orderId) => {
+    if (!confirm(t('orderHistory.confirmComplete') || 'Are you sure you want to mark this order as completed?')) return;
+    
+    try {
+      await apiClient.updateOrderStatus(orderId, 'completed');
+      // Optimistically update local state or re-fetch
+      setOrders(prevOrders => prevOrders.map(o => 
+        o.id === orderId ? { ...o, status: 'completed' } : o
+      ));
+      // Trigger a fetch to ensure data consistency
+      setTimeout(() => fetchOrders(false), 500);
+      
+      // Show success feedback if needed, although the UI update should be enough
+    } catch (error) {
+      console.error('Error marking as completed:', error);
+      alert(t('common.error') + ': ' + (error.message || 'Failed to complete order'));
+    }
+  };
+
   const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit`);
 
   const calculateOrderTotal = (order) => {
@@ -836,6 +856,15 @@ const OrderHistory = () => {
                         <div className="col-span-6 sm:col-span-2 flex flex-col items-end gap-2">
                           <span className="font-bold text-xl text-gray-900">₹{orderTotal}</span>
                           <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            {order.status !== 'completed' && order.status !== 'cancelled' && (
+                                <button 
+                                onClick={() => handleMarkCompleted(order.id)} 
+                                className="p-2 text-green-600 bg-green-100 hover:bg-green-200 rounded-lg transition-colors" 
+                                title={t('orderHistory.complete') || 'Complete'}
+                                >
+                                <FaCheckCircle size={12} />
+                                </button>
+                            )}
                             <button 
                               onClick={() => handleViewInvoice(order)} 
                               className="p-2 text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors" 
@@ -947,6 +976,14 @@ const OrderHistory = () => {
                           </div>
                         </div>
                         <div className="flex flex-wrap justify-end gap-2">
+                          {order.status !== 'completed' && order.status !== 'cancelled' && (
+                            <button 
+                              onClick={() => handleMarkCompleted(order.id)} 
+                              className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 transition-all flex items-center gap-2"
+                            >
+                              <FaCheckCircle /> {t('orderHistory.complete') || 'Complete'}
+                            </button>
+                          )}
                           <button 
                             onClick={() => handleViewOrder(order)} 
                             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center gap-2 shadow-sm"
