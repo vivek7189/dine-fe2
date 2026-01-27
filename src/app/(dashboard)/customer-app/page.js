@@ -60,6 +60,8 @@ const CustomerAppSettings = () => {
   const [restaurantName, setRestaurantName] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const [settings, setSettings] = useState({
     enabled: false,
@@ -209,6 +211,13 @@ const CustomerAppSettings = () => {
     setLogoPreview(null);
   };
 
+  // Toast notification helper
+  const showNotification = (message, isError = false) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -225,14 +234,14 @@ const CustomerAppSettings = () => {
           restaurantCode: settings.restaurantCode.toUpperCase()
         });
       }
-      
+
       // Save customer app settings
       await apiClient.put(`/api/restaurants/${restaurantId}/customer-app-settings`, settings);
-      
-      alert('Settings saved successfully!');
+
+      showNotification('Theme settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Failed to save settings');
+      showNotification('Failed to save settings', true);
     } finally {
       setSaving(false);
     }
@@ -358,6 +367,34 @@ const CustomerAppSettings = () => {
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '16px' : '24px' }}>
+      {/* Toast Notification */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          backgroundColor: '#10b981',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          animation: 'slideIn 0.3s ease-out',
+          fontWeight: '500'
+        }}>
+          <FaCheck size={16} />
+          {toastMessage}
+        </div>
+      )}
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{
@@ -1722,13 +1759,13 @@ const CustomerAppSettings = () => {
                       height: '36px',
                       borderRadius: '8px',
                       background: ['gradient', 'solid'].includes(settings.branding.headerStyle)
-                        ? 'rgba(255,255,255,0.9)'
+                        ? `${settings.branding.textColor || '#ffffff'}20`
                         : `linear-gradient(135deg, ${settings.branding.primaryColor}, ${settings.branding.primaryColor}dd)`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <FaCog size={14} color={['gradient', 'solid'].includes(settings.branding.headerStyle) ? settings.branding.primaryColor : 'white'} />
+                      <FaCog size={14} color={['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : 'white'} />
                     </div>
                   </div>
                   {/* Search Bar Preview */}
@@ -1749,9 +1786,10 @@ const CustomerAppSettings = () => {
                       fontSize: '11px',
                       fontWeight: '600',
                       background: ['gradient', 'solid'].includes(settings.branding.headerStyle)
-                        ? 'rgba(255,255,255,0.9)'
+                        ? `${settings.branding.textColor || '#ffffff'}20`
                         : `linear-gradient(135deg, ${settings.branding.primaryColor}, ${settings.branding.primaryColor}dd)`,
-                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? settings.branding.primaryColor : (settings.branding.textColor || '#ffffff')
+                      color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : 'white',
+                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `1px solid ${settings.branding.textColor || '#ffffff'}40` : 'none'
                     }}>
                       All
                     </div>
@@ -1759,10 +1797,9 @@ const CustomerAppSettings = () => {
                       padding: '6px 12px',
                       borderRadius: '14px',
                       fontSize: '11px',
-                      background: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'rgba(255,255,255,0.2)' : 'white',
+                      background: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `${settings.branding.textColor || '#ffffff'}15` : 'white',
                       color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : '#6b7280',
-                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `1px solid ${settings.branding.textColor || '#ffffff'}40` : '1px solid #e5e7eb',
-                      opacity: 0.9
+                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `1px solid ${settings.branding.textColor || '#ffffff'}30` : '1px solid #e5e7eb'
                     }}>
                       Starters
                     </div>
@@ -1770,10 +1807,9 @@ const CustomerAppSettings = () => {
                       padding: '6px 12px',
                       borderRadius: '14px',
                       fontSize: '11px',
-                      background: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? 'rgba(255,255,255,0.2)' : 'white',
+                      background: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `${settings.branding.textColor || '#ffffff'}15` : 'white',
                       color: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? (settings.branding.textColor || '#ffffff') : '#6b7280',
-                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `1px solid ${settings.branding.textColor || '#ffffff'}40` : '1px solid #e5e7eb',
-                      opacity: 0.9
+                      border: ['gradient', 'solid'].includes(settings.branding.headerStyle) ? `1px solid ${settings.branding.textColor || '#ffffff'}30` : '1px solid #e5e7eb'
                     }}>
                       Main
                     </div>

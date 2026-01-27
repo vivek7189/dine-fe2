@@ -802,10 +802,15 @@ const OnlineOrderContent = () => {
   }
 
   // Menu view (default)
+  // Get branding colors for use outside IIFE
+  const offerGradientStart = customerAppSettings?.branding?.offerGradientStart || '#fef3c7';
+  const offerGradientEnd = customerAppSettings?.branding?.offerGradientEnd || '#fde68a';
+  const pageBackgroundColor = customerAppSettings?.branding?.pageBackgroundColor || '#f8fafc';
+
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: pageBackgroundColor,
       paddingBottom: '100px'
     }}>
       <style jsx>{`
@@ -973,13 +978,13 @@ const OnlineOrderContent = () => {
                     position: 'relative',
                     background: customerVerified
                       ? ['gradient', 'solid'].includes(headerStyle)
-                        ? 'rgba(255,255,255,0.95)'
+                        ? `${textColor}20`
                         : `linear-gradient(135deg, ${brandColor}, ${brandColorDark})`
                       : ['gradient', 'solid'].includes(headerStyle)
-                        ? 'rgba(255,255,255,0.3)'
+                        ? `${textColor}15`
                         : 'linear-gradient(135deg, #6b7280, #4b5563)',
-                    color: customerVerified && ['gradient', 'solid'].includes(headerStyle) ? brandColor : 'white',
-                    border: 'none',
+                    color: ['gradient', 'solid'].includes(headerStyle) ? textColor : 'white',
+                    border: ['gradient', 'solid'].includes(headerStyle) ? `1px solid ${textColor}30` : 'none',
                     padding: '10px',
                     borderRadius: '10px',
                     cursor: 'pointer',
@@ -1002,8 +1007,8 @@ const OnlineOrderContent = () => {
                       position: 'absolute',
                       top: '-6px',
                       right: '-6px',
-                      backgroundColor: ['gradient', 'solid'].includes(headerStyle) ? '#f59e0b' : brandColor,
-                      color: 'white',
+                      backgroundColor: brandColor,
+                      color: textColor,
                       borderRadius: '50%',
                       width: '20px',
                       height: '20px',
@@ -1012,7 +1017,7 @@ const OnlineOrderContent = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: '2px solid white'
+                      border: `2px solid ${brandColor}`
                     }}>
                       {getCartItemCount()}
                     </span>
@@ -1088,17 +1093,17 @@ const OnlineOrderContent = () => {
                   style={{
                     background: selectedCategory === category
                       ? ['gradient', 'solid'].includes(headerStyle)
-                        ? 'rgba(255,255,255,0.95)'
+                        ? `${textColor}20`
                         : `linear-gradient(135deg, ${brandColor}, ${brandColorDark})`
                       : ['gradient', 'solid'].includes(headerStyle)
-                        ? 'rgba(255,255,255,0.2)'
+                        ? `${textColor}15`
                         : '#ffffff',
                     color: selectedCategory === category
-                      ? ['gradient', 'solid'].includes(headerStyle) ? brandColor : 'white'
-                      : ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.9)' : '#64748b',
+                      ? ['gradient', 'solid'].includes(headerStyle) ? textColor : 'white'
+                      : ['gradient', 'solid'].includes(headerStyle) ? textColor : '#64748b',
                     border: selectedCategory === category
-                      ? 'none'
-                      : ['gradient', 'solid'].includes(headerStyle) ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e5e7eb',
+                      ? ['gradient', 'solid'].includes(headerStyle) ? `1px solid ${textColor}40` : 'none'
+                      : ['gradient', 'solid'].includes(headerStyle) ? `1px solid ${textColor}30` : '1px solid #e5e7eb',
                     padding: '8px 16px',
                     borderRadius: '20px',
                     fontSize: '12px',
@@ -1124,7 +1129,11 @@ const OnlineOrderContent = () => {
       {/* Offers Banner - Carousel for multiple offers - Right after header */}
       {offers.length > 0 && (
         <div style={{ marginTop: '0', marginBottom: '0' }}>
-          <OffersBanner offers={offers} />
+          <OffersBanner
+            offers={offers}
+            gradientStart={offerGradientStart}
+            gradientEnd={offerGradientEnd}
+          />
         </div>
       )}
 
@@ -1318,7 +1327,7 @@ const OnlineOrderContent = () => {
 };
 
 // Offers Banner Component - Shows carousel of active offers
-const OffersBanner = ({ offers }) => {
+const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -1333,19 +1342,13 @@ const OffersBanner = ({ offers }) => {
 
   if (offers.length === 0) return null;
 
-  const getOfferGradient = (index) => {
-    // Darker gradients with better contrast for white text
-    const gradients = [
-      'linear-gradient(135deg, #e63946 0%, #d62839 100%)', // Deep Red
-      'linear-gradient(135deg, #f77f00 0%, #fcbf49 100%)', // Orange-Yellow
-      'linear-gradient(135deg, #d62828 0%, #f77f00 100%)', // Red-Orange
-      'linear-gradient(135deg, #e85d04 0%, #dc2f02 100%)', // Deep Orange
-      'linear-gradient(135deg, #c1121f 0%, #780000 100%)', // Dark Red
-      'linear-gradient(135deg, #f72585 0%, #b5179e 100%)', // Pink-Purple
-      'linear-gradient(135deg, #fb8500 0%, #ffb703 100%)', // Orange-Yellow
-      'linear-gradient(135deg, #d00000 0%, #ff6b6b 100%)', // Red-Pink
-    ];
-    return gradients[index % gradients.length];
+  const getOfferGradient = () => {
+    // Use custom gradient from branding settings if provided
+    if (gradientStart && gradientEnd) {
+      return `linear-gradient(135deg, ${gradientStart} 0%, ${gradientEnd} 100%)`;
+    }
+    // Default gradient
+    return 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
   };
 
   return (
@@ -1407,7 +1410,7 @@ const OffersBanner = ({ offers }) => {
               key={offer.id}
               style={{
                 minWidth: '100%',
-                background: getOfferGradient(index),
+                background: getOfferGradient(),
                 padding: '16px 18px',
                 boxSizing: 'border-box',
                 position: 'relative',
