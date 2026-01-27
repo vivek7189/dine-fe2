@@ -53,6 +53,7 @@ function NavigationContent({ isHidden = false }) {
   const [user, setUser] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [pageAccess, setPageAccess] = useState(null);
+  const [notAllowedPages, setNotAllowedPages] = useState([]);
   const [isNavigationReady, setIsNavigationReady] = useState(false);
   const [dashboardBackgroundLoading, setDashboardBackgroundLoading] = useState(false);
   const [tablesBackgroundLoading, setTablesBackgroundLoading] = useState(false);
@@ -174,13 +175,17 @@ function NavigationContent({ isHidden = false }) {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           
-          // Fetch page access for staff users
-          if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
-            try {
-              const accessData = await apiClient.getUserPageAccess();
+          // Fetch page access and notAllowedPages for all users
+          try {
+            const accessData = await apiClient.getUserPageAccess();
+            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
               setPageAccess(accessData.pageAccess);
-            } catch (error) {
-              console.error('Error fetching page access:', error);
+            }
+            // Set notAllowedPages for all users (used to hide specific pages)
+            setNotAllowedPages(accessData.notAllowedPages || []);
+          } catch (error) {
+            console.error('Error fetching page access:', error);
+            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
               // Set default access for staff
               setPageAccess({
                 dashboard: true,
@@ -193,12 +198,9 @@ function NavigationContent({ isHidden = false }) {
                 admin: false
               });
             }
-            // Mark navigation as ready for staff users
-            setIsNavigationReady(true);
-          } else {
-            // For owners, mark navigation as ready immediately
-            setIsNavigationReady(true);
           }
+          // Mark navigation as ready
+          setIsNavigationReady(true);
           
           // Skip restaurants API call if we're on dashboard page (dashboard will load it)
           const isDashboardPage = pathname === '/dashboard';
@@ -343,12 +345,17 @@ function NavigationContent({ isHidden = false }) {
     if (!user || !user.role) {
       return false; // Don't show any items until user is loaded
     }
-    
+
+    // Check if page is in notAllowedPages array (hide for this user)
+    if (notAllowedPages && notAllowedPages.includes(item.id)) {
+      return false;
+    }
+
     // For staff users, check page access
     if (user.role === 'employee' || user.role === 'manager') {
       // Don't show items until pageAccess is loaded
       if (!pageAccess) return false;
-      
+
       // Map navigation IDs to page access keys
       const accessMap = {
         'pos': 'dashboard',
@@ -362,16 +369,16 @@ function NavigationContent({ isHidden = false }) {
         'admin': 'admin',
         'hotel': 'hotel' // Added hotel access
       };
-      
+
       const accessKey = accessMap[item.id];
       return accessKey ? pageAccess[accessKey] : false;
     }
-    
+
     // For owners, use role-based filtering
     if (['owner', 'manager', 'waiter'].includes(user.role)) {
       return item.roles.includes(user.role);
     }
-    
+
     return false; // Default to not showing items
   });
 

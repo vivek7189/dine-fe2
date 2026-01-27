@@ -40,6 +40,7 @@ export default function Sidebar() {
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [user, setUser] = useState(null);
   const [pageAccess, setPageAccess] = useState(null);
+  const [notAllowedPages, setNotAllowedPages] = useState([]);
   const [isNavigationReady, setIsNavigationReady] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -52,13 +53,17 @@ export default function Sidebar() {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
 
-          // Fetch page access for staff users
-          if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
-            try {
-              const accessData = await apiClient.getUserPageAccess();
+          // Fetch page access and notAllowedPages for all users
+          try {
+            const accessData = await apiClient.getUserPageAccess();
+            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
               setPageAccess(accessData.pageAccess);
-            } catch (error) {
-              console.error('Error fetching page access:', error);
+            }
+            // Set notAllowedPages for all users (used to hide specific pages)
+            setNotAllowedPages(accessData.notAllowedPages || []);
+          } catch (error) {
+            console.error('Error fetching page access:', error);
+            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
               setPageAccess({
                 dashboard: true,
                 history: true,
@@ -70,10 +75,8 @@ export default function Sidebar() {
                 admin: false
               });
             }
-            setIsNavigationReady(true);
-          } else {
-            setIsNavigationReady(true);
           }
+          setIsNavigationReady(true);
 
           // Load restaurant data
           const isDashboardPage = pathname === '/dashboard';
@@ -158,6 +161,11 @@ export default function Sidebar() {
 
   const navItems = getAllNavItems().filter(item => {
     if (!user || !user.role) return false;
+
+    // Check if page is in notAllowedPages array (hide for this user)
+    if (notAllowedPages && notAllowedPages.includes(item.id)) {
+      return false;
+    }
 
     // Profile is always accessible to all users
     if (item.id === 'profile') {
