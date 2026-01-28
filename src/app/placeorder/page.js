@@ -370,7 +370,7 @@ const PlaceOrderContent = () => {
     if (currentIds !== newIds) {
       setSelectedOffers(offersToSelect);
     }
-  }, [cart, applicableOffers.length, customerAppSettings?.offerSettings?.autoApplyBestOffer, customerAppSettings?.offerSettings?.allowMultipleOffers, customerAppSettings?.offerSettings?.maxOffersAllowed]);
+  }, [cart, applicableOffers, selectedOffers, customerAppSettings?.offerSettings?.autoApplyBestOffer, customerAppSettings?.offerSettings?.allowMultipleOffers, customerAppSettings?.offerSettings?.maxOffersAllowed]);
 
   // Cart functions
   const addToCart = (item) => {
