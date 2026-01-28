@@ -2599,7 +2599,15 @@ function RestaurantPOSContent() {
               Try Again
             </button>
             <button
-              onClick={() => router.push('/login')}
+              onClick={() => {
+                try {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                } catch (e) {
+                  console.warn('Clear storage failed:', e);
+                }
+                router.push('/login');
+              }}
               style={{
                 padding: '16px 32px',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
