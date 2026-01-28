@@ -1726,14 +1726,23 @@ const Customers = () => {
                         </p>
                         <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>{t('customers.stats.spent')}</p>
                       </div>
-                      {customer.lastOrderDate && !isMobile && (
-                        <div style={{ textAlign: 'center' }}>
-                          <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                            {new Date(customer.lastOrderDate).toLocaleDateString()}
-                          </p>
-                          <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{t('customers.stats.lastOrder')}</p>
-                        </div>
-                      )}
+                      {(() => {
+                        const raw = customer.lastOrderDate;
+                        if (raw == null || raw === '' || isMobile) return null;
+                        let d;
+                        if (typeof raw?.toDate === 'function') d = raw.toDate();
+                        else if (raw && typeof raw._seconds === 'number') d = new Date(raw._seconds * 1000);
+                        else d = new Date(raw);
+                        if (!d || isNaN(d.getTime())) return null;
+                        return (
+                          <div style={{ textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                              {d.toLocaleDateString()}
+                            </p>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{t('customers.stats.lastOrder')}</p>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Actions - More Compact */}

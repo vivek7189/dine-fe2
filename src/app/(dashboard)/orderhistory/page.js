@@ -888,6 +888,15 @@ const OrderHistory = () => {
                             </button>
                           </div>
                         </div>
+                        <div 
+                          onClick={() => copyToClipboard(order.id)}
+                          className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1.5 -mx-1 transition-colors"
+                          title="Click to copy Order ID"
+                        >
+                          <span className="text-xs text-gray-500">Order ID</span>
+                          <span className="text-xs font-mono text-gray-700 truncate max-w-[140px] sm:max-w-[220px]" title={order.id}>{order.id}</span>
+                          <FaCopy className="text-gray-400 text-xs flex-shrink-0" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1010,6 +1019,15 @@ const OrderHistory = () => {
                           >
                             <FaEdit /> {t('orderHistory.edit')}
                           </button>
+                        </div>
+                        <div 
+                          onClick={() => copyToClipboard(order.id)}
+                          className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 -mx-1 transition-colors"
+                          title="Click to copy Order ID"
+                        >
+                          <span className="text-xs text-gray-500">Order ID</span>
+                          <span className="text-xs font-mono text-gray-700 truncate max-w-[200px] sm:max-w-none hover:text-red-600" title={order.id}>{order.id}</span>
+                          <FaCopy className="text-gray-400 text-xs flex-shrink-0" />
                         </div>
                       </div>
                     </div>

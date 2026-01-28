@@ -962,6 +962,8 @@ const OnlineOrderContent = () => {
         orderHistory={orderHistory}
         orderHistoryLoading={orderHistoryLoading}
         loadOrderHistory={loadOrderHistory}
+        expandedOrderId={expandedOrderId}
+        setExpandedOrderId={setExpandedOrderId}
       />
     );
   }
@@ -2547,7 +2549,9 @@ const CheckoutView = ({
   setCart,
   orderHistory,
   orderHistoryLoading,
-  loadOrderHistory
+  loadOrderHistory,
+  expandedOrderId,
+  setExpandedOrderId
 }) => {
   const tier = customerData?.loyaltyTier || loyaltyHistory?.summary?.currentTier || 'bronze';
   const tierData = tierInfo[tier] || tierInfo.bronze;
