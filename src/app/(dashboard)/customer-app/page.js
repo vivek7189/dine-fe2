@@ -46,7 +46,7 @@ const getDarkerShade = (hexColor, percent = 20) => {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
-const CustomerAppSettings = () => {
+const CustomerAppSettings = ({ embedded = false }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -98,14 +98,21 @@ const CustomerAppSettings = () => {
   }, []);
 
   useEffect(() => {
+    // Only access localStorage on the client
+    if (typeof window === 'undefined') return;
+
     const id = localStorage.getItem('selectedRestaurantId');
     if (id) {
       setRestaurantId(id);
       loadSettings(id);
-    } else {
+    } else if (!embedded) {
+      // Only redirect if not embedded as a tab
       router.push('/admin');
+    } else {
+      // When embedded, just set loading to false and wait
+      setLoading(false);
     }
-  }, [router]);
+  }, [router, embedded]);
 
   const loadSettings = async (id) => {
     try {

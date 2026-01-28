@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 
-const OffersManagement = () => {
+const OffersManagement = ({ embedded = false }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,14 +59,21 @@ const OffersManagement = () => {
   }, []);
 
   useEffect(() => {
+    // Only access localStorage on the client
+    if (typeof window === 'undefined') return;
+
     const id = localStorage.getItem('selectedRestaurantId');
     if (id) {
       setRestaurantId(id);
       loadOffers(id);
-    } else {
+    } else if (!embedded) {
+      // Only redirect if not embedded as a tab
       router.push('/admin');
+    } else {
+      // When embedded, just set loading to false and wait
+      setLoading(false);
     }
-  }, [router]);
+  }, [router, embedded]);
 
   const loadOffers = async (id) => {
     try {
