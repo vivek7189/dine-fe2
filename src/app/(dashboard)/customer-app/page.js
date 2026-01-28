@@ -524,27 +524,53 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           border: '2px solid #fce7f3',
           background: 'linear-gradient(135deg, #fff 0%, #fef7f0 100%)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
-            }}>
-              <FaGift size={24} color="white" />
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
+                flexShrink: 0
+              }}>
+                <FaGift size={24} color="white" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
+                  Loyalty & Rewards Program
+                </h2>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0', fontWeight: '500' }}>
+                  Enable points system for customers to earn and redeem rewards
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
-                Loyalty & Rewards Program
-              </h2>
-              <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0', fontWeight: '500' }}>
-                Enable points system for customers to earn and redeem rewards
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: saving ? '#9ca3af' : '#ec4899',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: '600',
+                fontSize: '15px',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
+                flexShrink: 0
+              }}
+            >
+              <FaSave />
+              {saving ? 'Saving...' : 'Save Loyalty'}
+            </button>
           </div>
 
           <div style={{
