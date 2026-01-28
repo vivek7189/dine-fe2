@@ -849,6 +849,20 @@ const OnlineOrderContent = () => {
     return { progress: Math.min(progress, 100), nextTier, pointsNeeded: pointsToNextTier };
   };
 
+  // Load order history for the History tab (used inside CheckoutView)
+  const loadOrderHistory = useCallback(async () => {
+    if (!customerData?.id) return;
+    setOrderHistoryLoading(true);
+    try {
+      const response = await apiClient.getCustomerOrderHistory(customerData.id);
+      if (response) setOrderHistory(response);
+    } catch (err) {
+      console.warn('Failed to load order history:', err);
+    } finally {
+      setOrderHistoryLoading(false);
+    }
+  }, [customerData?.id]);
+
   if (loading) {
     return (
       <div style={{
@@ -945,6 +959,9 @@ const OnlineOrderContent = () => {
         getTierProgress={getTierProgress}
         tierInfo={tierInfo}
         setCart={setCart}
+        orderHistory={orderHistory}
+        orderHistoryLoading={orderHistoryLoading}
+        loadOrderHistory={loadOrderHistory}
       />
     );
   }
@@ -2527,7 +2544,10 @@ const CheckoutView = ({
   handleLogout,
   getTierProgress,
   tierInfo,
-  setCart
+  setCart,
+  orderHistory,
+  orderHistoryLoading,
+  loadOrderHistory
 }) => {
   const tier = customerData?.loyaltyTier || loyaltyHistory?.summary?.currentTier || 'bronze';
   const tierData = tierInfo[tier] || tierInfo.bronze;
@@ -2754,21 +2774,11 @@ const CheckoutView = ({
               <FaUser size={12} /> Profile
             </button>
             <button
-              onClick={async () => {
+              onClick={() => {
                 setCurrentView('history');
-                // Fetch order history when clicking history tab
+                // Fetch order history when clicking history tab (loadOrderHistory checks customerData?.id and loading state)
                 if (customerData?.id && !orderHistory) {
-                  setOrderHistoryLoading(true);
-                  try {
-                    const response = await apiClient.getCustomerOrderHistory(customerData.id);
-                    if (response?.orders) {
-                      setOrderHistory(response);
-                    }
-                  } catch (err) {
-                    console.warn('Failed to load order history:', err);
-                  } finally {
-                    setOrderHistoryLoading(false);
-                  }
+                  loadOrderHistory();
                 }
               }}
               style={{
