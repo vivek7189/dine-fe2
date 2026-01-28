@@ -2915,7 +2915,7 @@ const CheckoutView = ({
             )}
 
             {/* Offers Section */}
-            {applicableOffers.length > 0 && (
+            {offers.length > 0 && (
               <div style={{
                 backgroundColor: 'white',
                 borderRadius: '16px',
@@ -2925,7 +2925,7 @@ const CheckoutView = ({
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FaGift size={16} color="#f59e0b" /> Available Offers
                 </h3>
-                {applicableOffers.map(offer => {
+                {offers.map(offer => {
                   const isSelected = selectedOffer?.id === offer.id;
                   const meetsMinOrder = getCartSubtotal() >= (offer.minOrderValue || 0);
                   const isApplicable = meetsMinOrder;
