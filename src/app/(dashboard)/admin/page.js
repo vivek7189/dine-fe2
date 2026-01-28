@@ -411,6 +411,13 @@ const Admin = () => {
     }
   }, [activeTab, selectedRestaurant]);
 
+  // Hide staff detail when leaving Staff tab so it doesn’t show on Order Management / other tabs
+  useEffect(() => {
+    if (activeTab !== 'staff' && selectedStaff) {
+      setSelectedStaff(null);
+    }
+  }, [activeTab]);
+
   // Client-side hydration and mobile detection
   useEffect(() => {
     setIsClient(true);
@@ -3087,8 +3094,8 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Staff Detail Modal */}
-      {selectedStaff && (
+      {/* Staff Detail Modal — only when Staff tab is active */}
+      {selectedStaff && activeTab === 'staff' && (
         <div style={{
           position: 'fixed',
           inset: 0,
