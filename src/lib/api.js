@@ -1833,6 +1833,11 @@ class ApiClient {
   async getCustomerLoyaltyHistory(customerId, page = 1, limit = 20, type = 'all') {
     return this.request(`/api/public/customer/${customerId}/loyalty-history?page=${page}&limit=${limit}&type=${type}`);
   }
+
+  // Get customer order history (public) - for showing order details
+  async getCustomerOrderHistory(customerId, page = 1, limit = 20, status = 'all') {
+    return this.request(`/api/public/customer/${customerId}/orders?page=${page}&limit=${limit}&status=${status}`);
+  }
 }
 
 const apiClient = new ApiClient();

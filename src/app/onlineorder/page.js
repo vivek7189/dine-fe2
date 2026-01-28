@@ -193,6 +193,9 @@ const OnlineOrderContent = () => {
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
   const [customerVerified, setCustomerVerified] = useState(false);
   const [loyaltyHistory, setLoyaltyHistory] = useState(null);
+  const [orderHistory, setOrderHistory] = useState(null);
+  const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   // UI State for post-OTP experience
   const [currentView, setCurrentView] = useState('menu'); // 'menu', 'checkout', 'profile', 'history'
@@ -2751,7 +2754,23 @@ const CheckoutView = ({
               <FaUser size={12} /> Profile
             </button>
             <button
-              onClick={() => setCurrentView('history')}
+              onClick={async () => {
+                setCurrentView('history');
+                // Fetch order history when clicking history tab
+                if (customerData?.id && !orderHistory) {
+                  setOrderHistoryLoading(true);
+                  try {
+                    const response = await apiClient.getCustomerOrderHistory(customerData.id);
+                    if (response?.orders) {
+                      setOrderHistory(response);
+                    }
+                  } catch (err) {
+                    console.warn('Failed to load order history:', err);
+                  } finally {
+                    setOrderHistoryLoading(false);
+                  }
+                }
+              }}
               style={{
                 flex: 1,
                 backgroundColor: currentView === 'history' ? tierData.color : 'white',
@@ -2869,61 +2888,292 @@ const CheckoutView = ({
 
         {/* History View */}
         {currentView === 'history' && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '20px'
-          }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 16px' }}>
-              Points History
-            </h3>
-            {loyaltyHistory?.history && loyaltyHistory.history.length > 0 ? (
-              loyaltyHistory.history.map((item, index) => (
-                <div key={item.id || index} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px',
-                  backgroundColor: item.type === 'earned' ? '#f0fdf4' : '#fef2f2',
-                  borderRadius: '10px',
-                  marginBottom: '8px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      backgroundColor: item.type === 'earned' ? '#22c55e' : '#ef4444',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      {item.type === 'earned' ? <FaPlus size={14} color="white" /> : <FaMinus size={14} color="white" />}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                        {item.description || (item.type === 'earned' ? 'Points Earned' : 'Points Redeemed')}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                        {item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '700',
-                    color: item.type === 'earned' ? '#166534' : '#dc2626'
-                  }}>
-                    {item.type === 'earned' ? '+' : '-'}{item.points}
-                  </div>
+          <div>
+            {/* Order History Section */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '20px',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaShoppingCart size={16} /> Order History
+              </h3>
+
+              {orderHistoryLoading ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <FaSpinner size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '12px' }} />
+                  <p>Loading orders...</p>
                 </div>
-              ))
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                <FaHistory size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
-                <p>No points history yet</p>
-              </div>
-            )}
+              ) : orderHistory?.orders && orderHistory.orders.length > 0 ? (
+                <>
+                  {/* Summary */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '10px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      flex: 1,
+                      padding: '10px',
+                      backgroundColor: '#fef3c7',
+                      borderRadius: '10px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '18px', fontWeight: '700', color: '#92400e' }}>{orderHistory.summary?.pendingOrders || 0}</div>
+                      <div style={{ fontSize: '11px', color: '#a16207' }}>Pending</div>
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      padding: '10px',
+                      backgroundColor: '#f0fdf4',
+                      borderRadius: '10px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '18px', fontWeight: '700', color: '#166534' }}>{orderHistory.summary?.completedOrders || 0}</div>
+                      <div style={{ fontSize: '11px', color: '#15803d' }}>Completed</div>
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      padding: '10px',
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '10px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '18px', fontWeight: '700', color: '#374151' }}>{orderHistory.summary?.totalOrders || 0}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>Total</div>
+                    </div>
+                  </div>
+
+                  {/* Order List */}
+                  {orderHistory.orders.map((order) => {
+                    const isExpanded = expandedOrderId === order.id;
+                    const statusColors = {
+                      pending: { bg: '#fef3c7', text: '#92400e', label: 'Pending' },
+                      preparing: { bg: '#dbeafe', text: '#1e40af', label: 'Preparing' },
+                      ready: { bg: '#d1fae5', text: '#065f46', label: 'Ready' },
+                      completed: { bg: '#f0fdf4', text: '#166534', label: 'Completed' },
+                      cancelled: { bg: '#fef2f2', text: '#dc2626', label: 'Cancelled' }
+                    };
+                    const statusStyle = statusColors[order.status] || statusColors.pending;
+
+                    return (
+                      <div
+                        key={order.id}
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          borderRadius: '12px',
+                          marginBottom: '10px',
+                          overflow: 'hidden',
+                          border: '1px solid #e2e8f0'
+                        }}
+                      >
+                        {/* Order Header - Always visible */}
+                        <div
+                          onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                          style={{
+                            padding: '14px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
+                                #{order.orderNumber?.slice(-6) || order.id.slice(-6)}
+                              </span>
+                              <span style={{
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                backgroundColor: statusStyle.bg,
+                                color: statusStyle.text
+                              }}>
+                                {statusStyle.label}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                              {order.createdAt ? new Date(order.createdAt).toLocaleString('en-IN', {
+                                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                              }) : 'N/A'}
+                              {order.orderTypeLabel && ` • ${order.orderTypeLabel}`}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>₹{order.totalAmount}</div>
+                              {order.loyaltyPointsEarned > 0 && (
+                                <div style={{ fontSize: '10px', color: '#22c55e', fontWeight: '600' }}>
+                                  +{order.loyaltyPointsEarned} pts
+                                </div>
+                              )}
+                            </div>
+                            <FaChevronRight
+                              size={12}
+                              color="#9ca3af"
+                              style={{
+                                transition: 'transform 0.2s',
+                                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Expanded Details */}
+                        {isExpanded && (
+                          <div style={{
+                            padding: '0 14px 14px',
+                            borderTop: '1px solid #e2e8f0'
+                          }}>
+                            {/* Order Items */}
+                            <div style={{ marginTop: '12px' }}>
+                              <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '8px' }}>
+                                Items ({order.items?.length || 0})
+                              </div>
+                              {order.items?.map((item, idx) => (
+                                <div key={idx} style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  padding: '6px 0',
+                                  borderBottom: idx < order.items.length - 1 ? '1px dashed #e2e8f0' : 'none'
+                                }}>
+                                  <div style={{ fontSize: '13px', color: '#374151' }}>
+                                    {item.name} <span style={{ color: '#9ca3af' }}>x{item.quantity}</span>
+                                  </div>
+                                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
+                                    ₹{item.total || (item.price * item.quantity)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Order Summary */}
+                            <div style={{
+                              marginTop: '12px',
+                              paddingTop: '10px',
+                              borderTop: '1px solid #e2e8f0'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                                <span>Subtotal</span>
+                                <span>₹{order.subtotal}</span>
+                              </div>
+                              {order.discountAmount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#22c55e', marginBottom: '4px' }}>
+                                  <span>Offer Discount {order.appliedOffer?.name && `(${order.appliedOffer.name})`}</span>
+                                  <span>-₹{order.discountAmount}</span>
+                                </div>
+                              )}
+                              {order.loyaltyDiscount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#7c3aed', marginBottom: '4px' }}>
+                                  <span>Points Redeemed</span>
+                                  <span>-₹{order.loyaltyDiscount}</span>
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '700', color: '#1f2937', marginTop: '6px' }}>
+                                <span>Total</span>
+                                <span>₹{order.totalAmount}</span>
+                              </div>
+                            </div>
+
+                            {/* Points Info */}
+                            {(order.loyaltyPointsEarned > 0 || order.loyaltyPointsRedeemed > 0) && (
+                              <div style={{
+                                marginTop: '10px',
+                                padding: '8px 10px',
+                                backgroundColor: '#f5f3ff',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                gap: '12px'
+                              }}>
+                                {order.loyaltyPointsEarned > 0 && (
+                                  <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600' }}>
+                                    <FaCoins size={10} style={{ marginRight: '4px' }} />
+                                    +{order.loyaltyPointsEarned} earned
+                                  </div>
+                                )}
+                                {order.loyaltyPointsRedeemed > 0 && (
+                                  <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: '600' }}>
+                                    <FaCoins size={10} style={{ marginRight: '4px' }} />
+                                    -{order.loyaltyPointsRedeemed} redeemed
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <FaShoppingCart size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
+                  <p style={{ margin: 0 }}>No orders yet</p>
+                  <p style={{ fontSize: '12px', margin: '6px 0 0' }}>Your order history will appear here</p>
+                </div>
+              )}
+            </div>
+
+            {/* Points History Section */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '20px'
+            }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaCoins size={16} color="#7c3aed" /> Points History
+              </h3>
+              {loyaltyHistory?.history && loyaltyHistory.history.length > 0 ? (
+                loyaltyHistory.history.slice(0, 5).map((item, index) => (
+                  <div key={item.id || index} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px',
+                    backgroundColor: item.type === 'earned' ? '#f0fdf4' : '#fef2f2',
+                    borderRadius: '8px',
+                    marginBottom: '6px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: item.type === 'earned' ? '#22c55e' : '#ef4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {item.type === 'earned' ? <FaPlus size={10} color="white" /> : <FaMinus size={10} color="white" />}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#1f2937' }}>
+                          {item.description || (item.type === 'earned' ? 'Points Earned' : 'Points Redeemed')}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                          {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      color: item.type === 'earned' ? '#166534' : '#dc2626'
+                    }}>
+                      {item.type === 'earned' ? '+' : '-'}{item.points}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                  <FaCoins size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+                  <p style={{ margin: 0, fontSize: '13px' }}>No points history yet</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
