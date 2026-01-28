@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Pusher from 'pusher-js';
 import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
@@ -333,6 +334,42 @@ const OrderHistory = () => {
   }, [restaurantId]);
 
   useEffect(() => { if (restaurantId) fetchOrders(true); }, [fetchOrders, restaurantId]);
+
+  // Pusher subscription for real-time order updates
+  useEffect(() => {
+    if (!restaurantId) return;
+
+    // Initialize Pusher
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
+    });
+
+    // Subscribe to restaurant-specific channel
+    const channelName = `restaurant-${restaurantId}`;
+    const channel = pusher.subscribe(channelName);
+
+    console.log(`📡 Pusher: Subscribed to channel '${channelName}'`);
+
+    // Handle order events
+    const handleOrderEvent = (eventName, data) => {
+      console.log(`📡 Pusher: Received '${eventName}' event:`, data);
+      // Refresh orders list (without cache to get latest data)
+      fetchOrders(false);
+    };
+
+    channel.bind('order-created', (data) => handleOrderEvent('order-created', data));
+    channel.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
+    channel.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
+    channel.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
+
+    // Cleanup on unmount
+    return () => {
+      console.log(`📡 Pusher: Unsubscribing from channel '${channelName}'`);
+      channel.unbind_all();
+      pusher.unsubscribe(channelName);
+      pusher.disconnect();
+    };
+  }, [restaurantId, fetchOrders]);
 
   useEffect(() => { if (currentPage !== 1) setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, todayOrdersOnly, currentPage]);
 
