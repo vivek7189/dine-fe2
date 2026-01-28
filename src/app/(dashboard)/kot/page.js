@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  FaPrint, 
-  FaClock, 
-  FaCheck, 
+import Pusher from 'pusher-js';
+import {
+  FaPrint,
+  FaClock,
+  FaCheck,
   FaFire,
   FaExclamationTriangle,
   FaBell,
@@ -190,7 +191,8 @@ const KitchenOrderTicket = () => {
 
   // Track if initial data has been loaded to prevent multiple calls
   const initialDataLoadedRef = useRef(false);
-  const pollingIntervalRef = useRef(null);
+  const pusherRef = useRef(null);
+  const channelRef = useRef(null);
   const loadKotDataRef = useRef(loadKotData);
 
   // Keep loadKotData ref updated
@@ -198,81 +200,71 @@ const KitchenOrderTicket = () => {
     loadKotDataRef.current = loadKotData;
   }, [loadKotData]);
 
-  // Initial load and auto-refresh setup with page visibility detection
+  // Initial load and Pusher subscription for real-time updates
   useEffect(() => {
     // Prevent multiple initial loads
     if (initialDataLoadedRef.current) {
       console.log('⏭️ Initial KOT data already loaded, skipping...');
       return;
     }
-    
-    console.log('🚀 KOT page useEffect - setting up polling');
+
+    console.log('🚀 KOT page useEffect - setting up Pusher');
     initialDataLoadedRef.current = true;
     loadKotData(true, true); // Use cache for instant load
-    
-    // Function to start polling
-    const startPolling = () => {
-      console.log('🔄 Starting KOT polling...');
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-      setIsPollingActive(true);
-      
-      pollingIntervalRef.current = setInterval(() => {
-        console.log('⏰ Polling interval triggered at', new Date().toLocaleTimeString());
-        console.log('📊 Page visibility check:', {
-          documentHidden: document.hidden,
-          documentHasFocus: document.hasFocus(),
-          windowFocused: document.hasFocus()
-        });
-        
-        // Simplified visibility check - just check if document is not hidden
-        if (!document.hidden) {
-          console.log('🔄 Polling KOT data...');
-          setPollCount(prev => prev + 1);
-          // Use ref to access latest loadKotData function
-          loadKotDataRef.current(false, false); // Refresh without showing loader, don't use cache for polling
-        } else {
-          console.log('⏸️ Page hidden, skipping poll');
-        }
-      }, 10000); // 10 seconds
-      console.log('✅ Polling started with interval ID:', pollingIntervalRef.current);
+
+    // Get restaurant ID for Pusher channel subscription
+    const userData = localStorage.getItem('user');
+    if (!userData) return;
+
+    const user = JSON.parse(userData);
+    let restaurantId = user.restaurantId || user.restaurant?.id;
+
+    if (!restaurantId) {
+      // Try to get from localStorage for owners
+      restaurantId = localStorage.getItem('selectedRestaurantId');
+    }
+
+    if (!restaurantId) {
+      console.log('⚠️ No restaurant ID available for Pusher subscription');
+      return;
+    }
+
+    // Initialize Pusher
+    pusherRef.current = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
+    });
+
+    // Subscribe to restaurant-specific channel
+    const channelName = `restaurant-${restaurantId}`;
+    channelRef.current = pusherRef.current.subscribe(channelName);
+
+    console.log(`📡 Pusher: KOT subscribed to channel '${channelName}'`);
+    setIsPollingActive(true);
+
+    // Handle order events
+    const handleOrderEvent = (eventName, data) => {
+      console.log(`📡 Pusher KOT: Received '${eventName}' event:`, data);
+      setPollCount(prev => prev + 1);
+      // Refresh KOT data (without cache to get latest data)
+      loadKotDataRef.current(false, false);
     };
 
-    // Function to stop polling
-    const stopPolling = () => {
-      console.log('⏹️ Stopping KOT polling...');
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
+    channelRef.current.bind('order-created', (data) => handleOrderEvent('order-created', data));
+    channelRef.current.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
+    channelRef.current.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
+    channelRef.current.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
+
+    // Cleanup on unmount
+    return () => {
+      console.log(`📡 Pusher: KOT unsubscribing from channel '${channelName}'`);
+      if (channelRef.current) {
+        channelRef.current.unbind_all();
+      }
+      if (pusherRef.current) {
+        pusherRef.current.unsubscribe(channelName);
+        pusherRef.current.disconnect();
       }
       setIsPollingActive(false);
-    };
-
-    // Start polling initially
-    startPolling();
-
-    // Handle page visibility changes
-    const handleVisibilityChange = () => {
-      console.log('👁️ Visibility changed:', document.hidden ? 'hidden' : 'visible');
-      if (document.hidden) {
-        console.log('🔍 KOT page hidden - stopping polling');
-        stopPolling();
-      } else {
-        console.log('🔍 KOT page visible - starting polling');
-        startPolling();
-      }
-    };
-
-    // Add event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      console.log('🧹 Cleaning up KOT polling...');
-      stopPolling();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
@@ -297,8 +289,8 @@ const KitchenOrderTicket = () => {
   // Cleanup on route changes to prevent memory leaks
   useEffect(() => {
     const handleRouteChange = () => {
-      console.log('🔍 KOT page route change detected - cleaning up polling');
-      // Clear any ongoing timers/intervals
+      console.log('🔍 KOT page route change detected - cleaning up');
+      // Clear any ongoing timers/state
       setKotOrders([]);
       setSelectedKot(null);
       setError('');
@@ -306,7 +298,7 @@ const KitchenOrderTicket = () => {
 
     // Listen for route changes (Next.js router events)
     const handleBeforeUnload = () => {
-      console.log('🔍 KOT page unloading - cleaning up polling');
+      console.log('🔍 KOT page unloading - cleaning up');
       handleRouteChange();
     };
 
