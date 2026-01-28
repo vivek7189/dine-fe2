@@ -1482,7 +1482,8 @@ const Admin = () => {
           )}
         </div>
 
-        {/* Action Bar */}
+        {/* Action Bar — only on Restaurants / Staff / Menu tabs */}
+        {(activeTab === 'restaurants' || activeTab === 'staff' || activeTab === 'menu') && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -1532,7 +1533,7 @@ const Admin = () => {
             />
           </div>
           
-          {/* Add Button */}
+          {/* Add Button — Restaurants or Staff only */}
           {activeTab !== 'menu' && (
             <button
               onClick={() => activeTab === 'restaurants' ? setShowAddRestaurantModal(true) : setShowAddStaffModal(true)}
@@ -1586,6 +1587,7 @@ const Admin = () => {
             </button>
           )}
         </div>
+        )}
 
         {/* Restaurant Selection for Staff Tab */}
         {activeTab === 'staff' && (
@@ -3396,107 +3398,188 @@ const Admin = () => {
       {/* Order Management Section */}
       {activeTab === 'order-management' && (
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          padding: '24px',
-          border: '1px solid #fce7f3'
+          maxWidth: '560px',
+          margin: '0 auto'
         }}>
-          <div style={{ marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaReceipt size={20} />
-              Order Management
-            </h2>
-            <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-              Configure how order numbers (#1, #2, …) are assigned for this restaurant
-            </p>
-          </div>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '20px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(236,72,153,0.06)',
+            padding: '32px',
+            border: '1px solid #fce7f3'
+          }}>
+            <div style={{
+              marginBottom: '28px',
+              paddingBottom: '20px',
+              borderBottom: '1px solid #f3e8f0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
+                }}>
+                  <FaReceipt size={22} color="white" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1f2937', margin: 0, letterSpacing: '-0.02em' }}>
+                    Order numbering
+                  </h2>
+                  <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
+                    How order #1, #2, … are assigned
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>Select Restaurant</h3>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {restaurants.map((restaurant) => (
-                <button
-                  key={restaurant.id}
-                  onClick={() => setSelectedRestaurant(restaurant)}
-                  style={{
-                    backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ec4899' : '#f8fafc',
-                    color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontWeight: '500',
-                    fontSize: '14px',
-                    border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #e2e8f0',
+            <div style={{ marginBottom: '24px' }}>
+              <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Restaurant
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {restaurants.map((restaurant) => (
+                  <button
+                    key={restaurant.id}
+                    onClick={() => setSelectedRestaurant(restaurant)}
+                    style={{
+                      background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#faf5f7',
+                      color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
+                      padding: '10px 18px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fce7f3',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <FaStore size={14} />
+                    {restaurant.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedRestaurant && (
+              <div style={{
+                backgroundColor: '#fef7f0',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '1px solid #fce7f3',
+                marginBottom: '24px'
+              }}>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Numbering mode
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    padding: '16px 18px',
+                    backgroundColor: orderManagementSeqEnabled ? 'transparent' : 'white',
+                    borderRadius: '12px',
+                    border: `2px solid ${orderManagementSeqEnabled ? '#e5e7eb' : '#ec4899'}`,
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    boxShadow: orderManagementSeqEnabled ? 'none' : '0 2px 8px rgba(236,72,153,0.12)'
+                  }}>
+                    <input
+                      type="radio"
+                      name="orderMode"
+                      checked={!orderManagementSeqEnabled}
+                      onChange={() => setOrderManagementSeqEnabled(false)}
+                      style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                    />
+                    <div>
+                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>Daily reset</span>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280', lineHeight: 1.4 }}>#1, #2 today → #1, #2 again tomorrow (default)</p>
+                    </div>
+                  </label>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    padding: '16px 18px',
+                    backgroundColor: orderManagementSeqEnabled ? 'white' : 'transparent',
+                    borderRadius: '12px',
+                    border: `2px solid ${orderManagementSeqEnabled ? '#ec4899' : '#e5e7eb'}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: orderManagementSeqEnabled ? '0 2px 8px rgba(236,72,153,0.12)' : 'none'
+                  }}>
+                    <input
+                      type="radio"
+                      name="orderMode"
+                      checked={orderManagementSeqEnabled}
+                      onChange={() => setOrderManagementSeqEnabled(true)}
+                      style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                    />
+                    <div>
+                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>Sequential (never reset)</span>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280', lineHeight: 1.4 }}>#1, #2, #3… forever</p>
+                    </div>
+                  </label>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!selectedRestaurant?.id) return;
+                    setOrderManagementSaving(true);
+                    try {
+                      await apiClient.updateRestaurant(selectedRestaurant.id, {
+                        orderSettings: { sequentialOrderIdEnabled: orderManagementSeqEnabled }
+                      });
+                      setRestaurants(prev => prev.map(r => r.id === selectedRestaurant.id ? { ...r, orderSettings: { ...(r.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : r));
+                      setSelectedRestaurant(prev => prev && prev.id === selectedRestaurant.id ? { ...prev, orderSettings: { ...(prev.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : prev);
+                      alert('Saved.');
+                    } catch (err) {
+                      console.error(err);
+                      alert('Failed to save. Please try again.');
+                    } finally {
+                      setOrderManagementSaving(false);
+                    }
+                  }}
+                  disabled={orderManagementSaving}
+                  style={{
+                    marginTop: '20px',
+                    width: '100%',
+                    padding: '14px 20px',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    fontSize: '15px',
+                    border: 'none',
+                    cursor: orderManagementSaving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    background: orderManagementSaving ? '#9ca3af' : 'linear-gradient(135deg, #ec4899, #db2777)',
+                    color: 'white',
+                    boxShadow: orderManagementSaving ? 'none' : '0 4px 14px rgba(236,72,153,0.35)'
                   }}
                 >
-                  <FaStore size={12} style={{ marginRight: '6px' }} />
-                  {restaurant.name}
+                  {orderManagementSaving ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={16} /> : <FaSave size={16} />}
+                  {orderManagementSaving ? 'Saving…' : 'Save'}
                 </button>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {!selectedRestaurant && restaurants.length > 0 && (
+              <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>Choose a restaurant above to set order numbering.</p>
+            )}
+            {!selectedRestaurant && restaurants.length === 0 && (
+              <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>Add a restaurant first, then configure order numbering here.</p>
+            )}
           </div>
-
-          {selectedRestaurant && (
-            <div>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={orderManagementSeqEnabled}
-                  onChange={(e) => setOrderManagementSeqEnabled(e.target.checked)}
-                  style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }}
-                />
-                <span>Use sequential order IDs (never reset)</span>
-              </label>
-              <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 20px 32px', lineHeight: 1.5 }}>
-                When enabled, order #1, #2, #3… increase forever and never reset by day. When disabled (default), order numbers reset to 1 each calendar day (e.g. #1, #2 today, then #1, #2 again tomorrow).
-              </p>
-              <button
-                onClick={async () => {
-                  if (!selectedRestaurant?.id) return;
-                  setOrderManagementSaving(true);
-                  try {
-                    await apiClient.updateRestaurant(selectedRestaurant.id, {
-                      orderSettings: { sequentialOrderIdEnabled: orderManagementSeqEnabled }
-                    });
-                    setRestaurants(prev => prev.map(r => r.id === selectedRestaurant.id ? { ...r, orderSettings: { ...(r.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : r));
-                    setSelectedRestaurant(prev => prev && prev.id === selectedRestaurant.id ? { ...prev, orderSettings: { ...(prev.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : prev);
-                    alert('Order management settings saved.');
-                  } catch (err) {
-                    console.error(err);
-                    alert('Failed to save. Please try again.');
-                  } finally {
-                    setOrderManagementSaving(false);
-                  }
-                }}
-                disabled={orderManagementSaving}
-                style={{
-                  backgroundColor: orderManagementSaving ? '#9ca3af' : '#ec4899',
-                  color: 'white',
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: 'none',
-                  cursor: orderManagementSaving ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                {orderManagementSaving ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={14} /> : <FaSave size={14} />}
-                {orderManagementSaving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          )}
-
-          {!selectedRestaurant && restaurants.length > 0 && (
-            <p style={{ color: '#6b7280', fontSize: '14px' }}>Select a restaurant above to change order ID behaviour.</p>
-          )}
-          {!selectedRestaurant && restaurants.length === 0 && (
-            <p style={{ color: '#6b7280', fontSize: '14px' }}>Add a restaurant first, then you can configure order IDs.</p>
-          )}
         </div>
       )}
 

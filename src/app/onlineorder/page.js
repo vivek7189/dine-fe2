@@ -2996,8 +2996,11 @@ const CheckoutView = ({
                         >
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>
+                                Order Number
+                              </span>
                               <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                                #{order.orderNumber?.slice(-6) || order.id.slice(-6)}
+                                #{order.dailyOrderId ?? order.orderNumber ?? (order.id && order.id.slice(-6)) ?? '—'}
                               </span>
                               <span style={{
                                 fontSize: '10px',
@@ -3090,6 +3093,24 @@ const CheckoutView = ({
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '700', color: '#1f2937', marginTop: '6px' }}>
                                 <span>Total</span>
                                 <span>₹{order.totalAmount}</span>
+                              </div>
+                            </div>
+
+                            {/* Order Number & Order ID (same as orderhistory) */}
+                            <div style={{
+                              marginTop: '12px',
+                              paddingTop: '10px',
+                              borderTop: '1px solid #e2e8f0',
+                              fontSize: '12px',
+                              color: '#374151'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <span style={{ fontWeight: '600', color: '#6b7280' }}>Order Number</span>
+                                <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>#{order.dailyOrderId ?? order.orderNumber ?? (order.id && order.id.slice(-6)) ?? '—'}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', wordBreak: 'break-all' }}>
+                                <span style={{ fontWeight: '600', color: '#6b7280', flexShrink: 0, marginRight: '8px' }}>Order ID</span>
+                                <span style={{ fontFamily: 'monospace', fontSize: '11px', textAlign: 'right' }} title={order.id}>{order.id}</span>
                               </div>
                             </div>
 
