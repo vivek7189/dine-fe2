@@ -46,7 +46,7 @@ const getDarkerShade = (hexColor, percent = 20) => {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
-const CustomerAppSettings = ({ embedded = false }) => {
+const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId = null }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -107,18 +107,52 @@ const CustomerAppSettings = ({ embedded = false }) => {
     // Only access localStorage on the client
     if (typeof window === 'undefined') return;
 
-    const id = localStorage.getItem('selectedRestaurantId');
-    if (id) {
-      setRestaurantId(id);
-      loadSettings(id);
-    } else if (!embedded) {
-      // Only redirect if not embedded as a tab
-      router.push('/admin');
-    } else {
-      // When embedded, just set loading to false and wait
-      setLoading(false);
-    }
-  }, [router, embedded]);
+    const loadRestaurantId = async () => {
+      // Use prop restaurantId first (when embedded)
+      let id = propRestaurantId;
+
+      if (!id) {
+        // Try to get from user object in localStorage (same pattern as orderhistory page)
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+
+        // 1. For staff members - use assigned restaurant from user data
+        if (userData.restaurantId) {
+          id = userData.restaurantId;
+        }
+        // 2. For owners - check user.restaurant.id
+        else if (userData.restaurant?.id) {
+          id = userData.restaurant.id;
+        }
+        // 3. Try selectedRestaurantId from localStorage
+        else {
+          id = localStorage.getItem('selectedRestaurantId');
+        }
+
+        // 4. If still no id, try to fetch from API
+        if (!id && !embedded) {
+          try {
+            const restaurantsResponse = await apiClient.getRestaurants();
+            if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
+              id = restaurantsResponse.restaurants[0].id;
+            }
+          } catch (error) {
+            console.error('Error fetching restaurants:', error);
+          }
+        }
+      }
+
+      if (id) {
+        setRestaurantId(id);
+        loadSettings(id);
+      } else if (!embedded) {
+        router.push('/admin');
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadRestaurantId();
+  }, [router, embedded, propRestaurantId]);
 
   const loadSettings = async (id) => {
     try {
@@ -249,18 +283,14 @@ const CustomerAppSettings = ({ embedded = false }) => {
   };
 
   const handleSave = async () => {
-    // Get restaurantId - use state or fallback to localStorage
-    let currentRestaurantId = restaurantId;
-    if ((!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') && typeof window !== 'undefined') {
-      currentRestaurantId = localStorage.getItem('selectedRestaurantId');
-      if (currentRestaurantId && currentRestaurantId !== 'null' && currentRestaurantId !== 'undefined') {
-        setRestaurantId(currentRestaurantId);
-      } else {
-        currentRestaurantId = null;
-      }
+    // Get restaurantId - use state, prop, or fallback to user object in localStorage
+    let currentRestaurantId = restaurantId || propRestaurantId;
+    if (!currentRestaurantId) {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      currentRestaurantId = userData.restaurant?.id || userData.restaurantId;
     }
 
-    if (!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') {
+    if (!currentRestaurantId) {
       showNotification('No restaurant selected. Please select a restaurant first.', true);
       return;
     }
@@ -305,13 +335,11 @@ const CustomerAppSettings = ({ embedded = false }) => {
       return;
     }
 
-    // Get restaurantId - use state or fallback to localStorage
-    let currentRestaurantId = restaurantId;
-    if ((!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') && typeof window !== 'undefined') {
-      currentRestaurantId = localStorage.getItem('selectedRestaurantId');
-      if (!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') {
-        currentRestaurantId = null;
-      }
+    // Get restaurantId - use state, prop, or fallback to user object in localStorage
+    let currentRestaurantId = restaurantId || propRestaurantId;
+    if (!currentRestaurantId) {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      currentRestaurantId = userData.restaurant?.id || userData.restaurantId;
     }
 
     if (!currentRestaurantId) {
@@ -348,13 +376,11 @@ const CustomerAppSettings = ({ embedded = false }) => {
       return;
     }
 
-    // Get restaurantId - use state or fallback to localStorage
-    let currentRestaurantId = restaurantId;
-    if ((!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') && typeof window !== 'undefined') {
-      currentRestaurantId = localStorage.getItem('selectedRestaurantId');
-      if (!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') {
-        currentRestaurantId = null;
-      }
+    // Get restaurantId - use state, prop, or fallback to user object in localStorage
+    let currentRestaurantId = restaurantId || propRestaurantId;
+    if (!currentRestaurantId) {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      currentRestaurantId = userData.restaurant?.id || userData.restaurantId;
     }
 
     if (!currentRestaurantId) {

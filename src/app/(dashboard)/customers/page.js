@@ -1772,12 +1772,12 @@ const Customers = () => {
         </> )}
           {engagementTab === 'offers' && (
             <div style={{ marginTop: 0 }}>
-              <OffersManagement embedded={true} />
+              <OffersManagement embedded={true} restaurantId={restaurantId} />
             </div>
           )}
           {(engagementTab === 'loyalty' || engagementTab === 'crave-app') && (
             <div style={{ marginTop: 0 }}>
-              <CustomerAppSettings embedded={true} />
+              <CustomerAppSettings embedded={true} restaurantId={restaurantId} />
             </div>
           )}
         </div>

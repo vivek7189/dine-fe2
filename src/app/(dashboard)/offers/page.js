@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 
-const OffersManagement = ({ embedded = false }) => {
+const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = null }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,7 +80,13 @@ const OffersManagement = ({ embedded = false }) => {
     // Only access localStorage on the client
     if (typeof window === 'undefined') return;
 
-    const id = localStorage.getItem('selectedRestaurantId');
+    // Use prop restaurantId first (when embedded), then try to get from user object in localStorage
+    let id = propRestaurantId;
+    if (!id) {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      id = userData.restaurant?.id || userData.restaurantId;
+    }
+
     if (id) {
       setRestaurantId(id);
       loadOffers(id);
@@ -91,7 +97,7 @@ const OffersManagement = ({ embedded = false }) => {
       // When embedded, just set loading to false and wait
       setLoading(false);
     }
-  }, [router, embedded]);
+  }, [router, embedded, propRestaurantId]);
 
   const loadOffers = async (id) => {
     try {
@@ -114,17 +120,16 @@ const OffersManagement = ({ embedded = false }) => {
     }
   };
 
-  // Helper to get restaurantId from state or localStorage
+  // Helper to get restaurantId from state, prop, or user object in localStorage
   const getRestaurantId = () => {
-    if (restaurantId && restaurantId !== 'null' && restaurantId !== 'undefined') {
-      return restaurantId;
-    }
-    if (typeof window !== 'undefined') {
-      const id = localStorage.getItem('selectedRestaurantId');
-      if (id && id !== 'null' && id !== 'undefined') {
-        setRestaurantId(id);
-        return id;
-      }
+    if (restaurantId) return restaurantId;
+    if (propRestaurantId) return propRestaurantId;
+    // Try to get from user object in localStorage
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const id = userData.restaurant?.id || userData.restaurantId;
+    if (id) {
+      setRestaurantId(id);
+      return id;
     }
     return null;
   };
