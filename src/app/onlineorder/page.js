@@ -327,6 +327,58 @@ const OnlineOrderContent = () => {
     loadData();
   }, [restaurantId]);
 
+  // Compute applicable offers - filter out first-order-only offers for returning customers
+  const applicableOffers = offers.filter(offer => {
+    // If offer is first-order-only and customer is NOT a first-time customer, hide it
+    if (offer.isFirstOrderOnly && customerData && customerData.isFirstOrder === false) {
+      return false;
+    }
+    return true;
+  });
+
+  // Auto-apply best offer when cart changes or settings indicate to do so
+  useEffect(() => {
+    if (!customerAppSettings?.offerSettings?.autoApplyBestOffer) return;
+    if (!applicableOffers.length || cart.length === 0) {
+      if (selectedOffer) setSelectedOffer(null);
+      return;
+    }
+
+    const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+    // Find the best applicable offer (highest discount)
+    let bestOffer = null;
+    let bestDiscount = 0;
+
+    applicableOffers.forEach(offer => {
+      // Check if offer meets minimum order value
+      if (subtotal < (offer.minOrderValue || 0)) return;
+
+      // Calculate discount for this offer
+      let discount = 0;
+      if (offer.discountType === 'percentage') {
+        discount = (subtotal * offer.discountValue) / 100;
+        if (offer.maxDiscount && discount > offer.maxDiscount) {
+          discount = offer.maxDiscount;
+        }
+      } else {
+        discount = offer.discountValue;
+      }
+      discount = Math.min(discount, subtotal);
+
+      // Check if this is the best offer so far
+      if (discount > bestDiscount) {
+        bestDiscount = discount;
+        bestOffer = offer;
+      }
+    });
+
+    // Only update if different (to prevent infinite loops)
+    if (bestOffer?.id !== selectedOffer?.id) {
+      setSelectedOffer(bestOffer);
+    }
+  }, [cart, applicableOffers.length, customerAppSettings?.offerSettings?.autoApplyBestOffer]);
+
   // Cart functions
   const addToCart = (item) => {
     setCart(prev => {
@@ -780,7 +832,7 @@ const OnlineOrderContent = () => {
         getLoyaltyDiscount={getLoyaltyDiscount}
         getFinalTotal={getFinalTotal}
         getLoyaltyPointsToEarn={getLoyaltyPointsToEarn}
-        offers={offers}
+        offers={applicableOffers}
         selectedOffer={selectedOffer}
         setSelectedOffer={setSelectedOffer}
         redeemLoyaltyPoints={redeemLoyaltyPoints}
@@ -1127,10 +1179,10 @@ const OnlineOrderContent = () => {
       })()}
 
       {/* Offers Banner - Carousel for multiple offers - Right after header */}
-      {offers.length > 0 && (
+      {applicableOffers.length > 0 && (
         <div style={{ marginTop: '0', marginBottom: '0' }}>
           <OffersBanner
-            offers={offers}
+            offers={applicableOffers}
             gradientStart={offerGradientStart}
             gradientEnd={offerGradientEnd}
           />
@@ -2863,7 +2915,7 @@ const CheckoutView = ({
             )}
 
             {/* Offers Section */}
-            {offers.length > 0 && (
+            {applicableOffers.length > 0 && (
               <div style={{
                 backgroundColor: 'white',
                 borderRadius: '16px',
@@ -2873,7 +2925,7 @@ const CheckoutView = ({
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FaGift size={16} color="#f59e0b" /> Available Offers
                 </h3>
-                {offers.map(offer => {
+                {applicableOffers.map(offer => {
                   const isSelected = selectedOffer?.id === offer.id;
                   const meetsMinOrder = getCartSubtotal() >= (offer.minOrderValue || 0);
                   const isApplicable = meetsMinOrder;

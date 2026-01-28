@@ -13,6 +13,8 @@ import {
   FaPercent,
   FaRupeeSign,
   FaGift,
+  FaCog,
+  FaSave,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 
@@ -20,11 +22,17 @@ const OffersManagement = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [offers, setOffers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
+  const [offerSettings, setOfferSettings] = useState({
+    autoApplyBestOffer: false,
+    allowMultipleOffers: false,
+    maxOffersAllowed: 1
+  });
 
   const emptyOffer = {
     name: '',
@@ -62,12 +70,43 @@ const OffersManagement = () => {
 
   const loadOffers = async (id) => {
     try {
-      const response = await apiClient.get(`/api/offers/${id}`);
-      setOffers(response.offers || []);
+      // Load offers and settings in parallel
+      const [offersResponse, settingsResponse] = await Promise.all([
+        apiClient.get(`/api/offers/${id}`),
+        apiClient.get(`/api/restaurants/${id}/customer-app-settings`)
+      ]);
+
+      setOffers(offersResponse.offers || []);
+
+      // Load offer settings
+      if (settingsResponse?.settings?.offerSettings) {
+        setOfferSettings(settingsResponse.settings.offerSettings);
+      }
     } catch (error) {
       console.error('Error loading offers:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveOfferSettings = async () => {
+    setSavingSettings(true);
+    try {
+      // Get current settings first
+      const currentSettings = await apiClient.get(`/api/restaurants/${restaurantId}/customer-app-settings`);
+
+      // Update with new offer settings
+      await apiClient.put(`/api/restaurants/${restaurantId}/customer-app-settings`, {
+        ...currentSettings.settings,
+        offerSettings
+      });
+
+      alert('Offer settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving offer settings:', error);
+      alert('Failed to save offer settings');
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -193,6 +232,125 @@ const OffersManagement = () => {
             <FaPlus />
             Create Offer
           </button>
+        </div>
+
+        {/* Offer Settings */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          border: '1px solid #e5e7eb'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaCog color="#6b7280" />
+              Offer Settings
+            </h2>
+            <button
+              onClick={saveOfferSettings}
+              disabled={savingSettings}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: savingSettings ? '#9ca3af' : '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '500',
+                cursor: savingSettings ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px'
+              }}
+            >
+              <FaSave size={12} />
+              {savingSettings ? 'Saving...' : 'Save Settings'}
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px' }}>
+            {/* Auto-apply Best Offer */}
+            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Auto-apply Best Offer</span>
+                <button
+                  onClick={() => setOfferSettings(prev => ({ ...prev, autoApplyBestOffer: !prev.autoApplyBestOffer }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  {offerSettings.autoApplyBestOffer ? (
+                    <FaToggleOn size={24} color="#10b981" />
+                  ) : (
+                    <FaToggleOff size={24} color="#9ca3af" />
+                  )}
+                </button>
+              </div>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                Automatically apply the best available offer to customer orders
+              </p>
+            </div>
+
+            {/* Allow Multiple Offers */}
+            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Allow Multiple Offers</span>
+                <button
+                  onClick={() => setOfferSettings(prev => ({ ...prev, allowMultipleOffers: !prev.allowMultipleOffers }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  {offerSettings.allowMultipleOffers ? (
+                    <FaToggleOn size={24} color="#10b981" />
+                  ) : (
+                    <FaToggleOff size={24} color="#9ca3af" />
+                  )}
+                </button>
+              </div>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                Allow customers to combine multiple offers on a single order
+              </p>
+            </div>
+
+            {/* Max Offers Allowed */}
+            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Max Offers per Order</span>
+              </div>
+              <input
+                type="number"
+                value={offerSettings.maxOffersAllowed}
+                onChange={(e) => setOfferSettings(prev => ({ ...prev, maxOffersAllowed: Math.max(1, parseInt(e.target.value) || 1) }))}
+                disabled={!offerSettings.allowMultipleOffers}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  backgroundColor: offerSettings.allowMultipleOffers ? 'white' : '#f3f4f6',
+                  color: offerSettings.allowMultipleOffers ? '#1f2937' : '#9ca3af'
+                }}
+                min={1}
+                max={5}
+              />
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '6px 0 0' }}>
+                {offerSettings.allowMultipleOffers ? 'Maximum number of offers that can be combined' : 'Enable multiple offers first'}
+              </p>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#fef3c7',
+            borderRadius: '8px',
+            border: '1px solid #fde68a'
+          }}>
+            <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
+              <strong>Note:</strong> First-order-only offers are automatically hidden from returning customers on the online ordering page.
+            </p>
+          </div>
         </div>
 
         {/* Offers List */}

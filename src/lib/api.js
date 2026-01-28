@@ -1810,8 +1810,10 @@ class ApiClient {
   }
 
   // Get active offers (public)
-  async getActiveOffers(restaurantId) {
-    return this.request(`/api/public/offers/${restaurantId}`);
+  // isFirstOrder: true/false - Filter first-order-only offers based on customer status
+  async getActiveOffers(restaurantId, isFirstOrder = undefined) {
+    const params = isFirstOrder !== undefined ? `?isFirstOrder=${isFirstOrder}` : '';
+    return this.request(`/api/public/offers/${restaurantId}${params}`);
   }
 
   // Get customer app settings (public)
