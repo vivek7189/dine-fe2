@@ -151,10 +151,12 @@ const OrderHistory = () => {
     return { bg: '#f3f4f6', text: '#374151', border: '#d1d5db', label: capitalizeStatus };
   };
 
-  /** Returns a small chip config for order source: Staff, Online, or Dine App. Place near status chip. */
+  /** Returns a small chip config for order source: Staff, Online order (public page), or Dine App. Place near status chip. */
   const getOrderSourceChip = (order) => {
     const src = order.orderSource;
     const staff = order.staffInfo;
+    const notes = [order.notes, staff?.kitchenNotes].filter(Boolean).join(' ').toLowerCase();
+    const looksLikePublicOnline = staff?.waiterName === 'Customer Self-Order' && (notes.includes('public online') || notes.includes('online order'));
     const isStaff = staff && (
       staff.waiterId ||
       staff.id ||
@@ -162,7 +164,8 @@ const OrderHistory = () => {
       (staff.name && staff.name !== 'Customer Self-Order')
     );
     if (isStaff) return { label: 'Staff', className: 'bg-slate-100 text-slate-700 border-slate-300' };
-    if (src === 'online_order') return { label: 'Online', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+    // Explicit source or inferred from notes (legacy orders from public online page)
+    if (src === 'online_order' || looksLikePublicOnline) return { label: 'Online order', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
     if (src === 'crave_app' || src === 'customer_app') return { label: 'Dine App', className: 'bg-pink-50 text-pink-700 border-pink-200' };
     return null;
   };
@@ -847,7 +850,7 @@ const OrderHistory = () => {
                               <FaUser className="text-gray-400 flex-shrink-0" />
                               <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || 'Walk-in'}</span>
                             </div>
-                            {(sourceChip?.label === 'Online' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
+                            {(sourceChip?.label === 'Online order' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
                               <div className="flex items-center gap-1.5 text-xs text-gray-500 pl-5">
                                 <FaPhone className="text-[10px]" />
                                 <span>{order.customerDisplay?.phone || order.customerInfo?.phone}</span>
@@ -975,7 +978,7 @@ const OrderHistory = () => {
                             <div className="min-w-0">
                               <div className="text-xs text-gray-500">Customer</div>
                               <div className="text-sm font-medium text-gray-900">{order.customerDisplay?.name || 'Walk-in'}</div>
-                              {(sourceChip?.label === 'Online' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
+                              {(sourceChip?.label === 'Online order' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
                                 <div className="flex items-center gap-1 text-xs text-gray-600 mt-0.5">
                                   <FaPhone className="text-[10px] flex-shrink-0" />
                                   <span>{order.customerDisplay?.phone || order.customerInfo?.phone}</span>
