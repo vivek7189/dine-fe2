@@ -50,6 +50,24 @@ const OffersManagement = ({ embedded = false }) => {
   };
 
   const [formData, setFormData] = useState(emptyOffer);
+  const [offerErrors, setOfferErrors] = useState({
+    maxOffersAllowed: '',
+    discountValue: '',
+    minOrderValue: '',
+    maxDiscount: '',
+    usageLimit: ''
+  });
+
+  // Handle number input with validation (only numbers allowed)
+  const handleOfferNumberInput = (field, value, setter, allowDecimal = false) => {
+    const pattern = allowDecimal ? /^\d*\.?\d*$/ : /^\d*$/;
+    if (value === '' || pattern.test(value)) {
+      setOfferErrors(prev => ({ ...prev, [field]: '' }));
+      setter(value);
+    } else {
+      setOfferErrors(prev => ({ ...prev, [field]: 'Only numbers allowed' }));
+    }
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -96,14 +114,35 @@ const OffersManagement = ({ embedded = false }) => {
     }
   };
 
+  // Helper to get restaurantId from state or localStorage
+  const getRestaurantId = () => {
+    if (restaurantId && restaurantId !== 'null' && restaurantId !== 'undefined') {
+      return restaurantId;
+    }
+    if (typeof window !== 'undefined') {
+      const id = localStorage.getItem('selectedRestaurantId');
+      if (id && id !== 'null' && id !== 'undefined') {
+        setRestaurantId(id);
+        return id;
+      }
+    }
+    return null;
+  };
+
   const saveOfferSettings = async () => {
+    const currentRestaurantId = getRestaurantId();
+    if (!currentRestaurantId) {
+      alert('No restaurant selected. Please select a restaurant first.');
+      return;
+    }
+
     setSavingSettings(true);
     try {
       // Get current settings first
-      const currentSettings = await apiClient.get(`/api/restaurants/${restaurantId}/customer-app-settings`);
+      const currentSettings = await apiClient.get(`/api/restaurants/${currentRestaurantId}/customer-app-settings`);
 
       // Update with new offer settings
-      await apiClient.put(`/api/restaurants/${restaurantId}/customer-app-settings`, {
+      await apiClient.put(`/api/restaurants/${currentRestaurantId}/customer-app-settings`, {
         ...currentSettings.settings,
         offerSettings
       });
@@ -138,14 +177,20 @@ const OffersManagement = ({ embedded = false }) => {
       return;
     }
 
+    const currentRestaurantId = getRestaurantId();
+    if (!currentRestaurantId) {
+      alert('No restaurant selected. Please select a restaurant first.');
+      return;
+    }
+
     setSaving(true);
     try {
       if (editingOffer) {
-        await apiClient.put(`/api/offers/${restaurantId}/${editingOffer.id}`, formData);
+        await apiClient.put(`/api/offers/${currentRestaurantId}/${editingOffer.id}`, formData);
       } else {
-        await apiClient.post(`/api/offers/${restaurantId}`, formData);
+        await apiClient.post(`/api/offers/${currentRestaurantId}`, formData);
       }
-      await loadOffers(restaurantId);
+      await loadOffers(currentRestaurantId);
       setShowModal(false);
     } catch (error) {
       console.error('Error saving offer:', error);
@@ -158,9 +203,15 @@ const OffersManagement = ({ embedded = false }) => {
   const handleDelete = async (offerId) => {
     if (!confirm('Are you sure you want to delete this offer?')) return;
 
+    const currentRestaurantId = getRestaurantId();
+    if (!currentRestaurantId) {
+      alert('No restaurant selected. Please select a restaurant first.');
+      return;
+    }
+
     try {
-      await apiClient.delete(`/api/offers/${restaurantId}/${offerId}`);
-      await loadOffers(restaurantId);
+      await apiClient.delete(`/api/offers/${currentRestaurantId}/${offerId}`);
+      await loadOffers(currentRestaurantId);
     } catch (error) {
       console.error('Error deleting offer:', error);
       alert('Failed to delete offer');
@@ -168,12 +219,18 @@ const OffersManagement = ({ embedded = false }) => {
   };
 
   const handleToggleActive = async (offer) => {
+    const currentRestaurantId = getRestaurantId();
+    if (!currentRestaurantId) {
+      alert('No restaurant selected. Please select a restaurant first.');
+      return;
+    }
+
     try {
-      await apiClient.put(`/api/offers/${restaurantId}/${offer.id}`, {
+      await apiClient.put(`/api/offers/${currentRestaurantId}/${offer.id}`, {
         ...offer,
         isActive: !offer.isActive
       });
-      await loadOffers(restaurantId);
+      await loadOffers(currentRestaurantId);
     } catch (error) {
       console.error('Error toggling offer:', error);
     }
@@ -324,23 +381,27 @@ const OffersManagement = ({ embedded = false }) => {
                 <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Max Offers per Order</span>
               </div>
               <input
-                type="number"
+                type="text"
                 value={offerSettings.maxOffersAllowed}
-                onChange={(e) => setOfferSettings(prev => ({ ...prev, maxOffersAllowed: Math.max(1, parseInt(e.target.value) || 1) }))}
+                onChange={(e) => handleOfferNumberInput('maxOffersAllowed', e.target.value, (val) => {
+                  const numVal = val === '' ? '' : parseInt(val, 10);
+                  setOfferSettings(prev => ({ ...prev, maxOffersAllowed: numVal }));
+                })}
                 disabled={!offerSettings.allowMultipleOffers}
                 style={{
                   width: '100%',
                   padding: '10px',
-                  border: '2px solid #e5e7eb',
+                  border: offerErrors.maxOffersAllowed ? '2px solid #dc2626' : '2px solid #e5e7eb',
                   borderRadius: '8px',
                   fontSize: '14px',
                   boxSizing: 'border-box',
                   backgroundColor: offerSettings.allowMultipleOffers ? 'white' : '#f3f4f6',
                   color: offerSettings.allowMultipleOffers ? '#1f2937' : '#9ca3af'
                 }}
-                min={1}
-                max={5}
               />
+              {offerErrors.maxOffersAllowed && (
+                <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{offerErrors.maxOffersAllowed}</p>
+              )}
               <p style={{ fontSize: '12px', color: '#6b7280', margin: '6px 0 0' }}>
                 {offerSettings.allowMultipleOffers ? 'Maximum number of offers that can be combined' : 'Enable multiple offers first'}
               </p>
@@ -619,24 +680,29 @@ const OffersManagement = ({ embedded = false }) => {
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
-                      type="number"
+                      type="text"
                       value={formData.discountValue}
-                      onChange={(e) => setFormData(prev => ({ ...prev, discountValue: parseFloat(e.target.value) || 0 }))}
+                      onChange={(e) => handleOfferNumberInput('discountValue', e.target.value, (val) => {
+                        const numVal = val === '' ? '' : parseFloat(val);
+                        setFormData(prev => ({ ...prev, discountValue: numVal }));
+                      }, true)}
                       style={{
                         width: '100%',
                         padding: '12px',
                         paddingLeft: '36px',
-                        border: '2px solid #e5e7eb',
+                        border: offerErrors.discountValue ? '2px solid #dc2626' : '2px solid #e5e7eb',
                         borderRadius: '8px',
                         fontSize: '14px',
                         boxSizing: 'border-box'
                       }}
-                      min={0}
                     />
                     <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }}>
                       {formData.discountType === 'percentage' ? <FaPercent /> : <FaRupeeSign />}
                     </span>
                   </div>
+                  {offerErrors.discountValue && (
+                    <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{offerErrors.discountValue}</p>
+                  )}
                 </div>
               </div>
 
@@ -646,19 +712,24 @@ const OffersManagement = ({ embedded = false }) => {
                     Min Order Value (Rs.)
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.minOrderValue}
-                    onChange={(e) => setFormData(prev => ({ ...prev, minOrderValue: parseInt(e.target.value) || 0 }))}
+                    onChange={(e) => handleOfferNumberInput('minOrderValue', e.target.value, (val) => {
+                      const numVal = val === '' ? '' : parseInt(val, 10);
+                      setFormData(prev => ({ ...prev, minOrderValue: numVal }));
+                    })}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #e5e7eb',
+                      border: offerErrors.minOrderValue ? '2px solid #dc2626' : '2px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '14px',
                       boxSizing: 'border-box'
                     }}
-                    min={0}
                   />
+                  {offerErrors.minOrderValue && (
+                    <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{offerErrors.minOrderValue}</p>
+                  )}
                 </div>
 
                 <div>
@@ -666,20 +737,24 @@ const OffersManagement = ({ embedded = false }) => {
                     Max Discount (Rs.)
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.maxDiscount || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxDiscount: e.target.value ? parseInt(e.target.value) : null }))}
+                    onChange={(e) => handleOfferNumberInput('maxDiscount', e.target.value, (val) => {
+                      setFormData(prev => ({ ...prev, maxDiscount: val === '' ? null : parseInt(val, 10) }));
+                    })}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #e5e7eb',
+                      border: offerErrors.maxDiscount ? '2px solid #dc2626' : '2px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '14px',
                       boxSizing: 'border-box'
                     }}
-                    min={0}
                     placeholder="No limit"
                   />
+                  {offerErrors.maxDiscount && (
+                    <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{offerErrors.maxDiscount}</p>
+                  )}
                 </div>
               </div>
 
@@ -728,20 +803,24 @@ const OffersManagement = ({ embedded = false }) => {
                   Usage Limit (total uses)
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   value={formData.usageLimit || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, usageLimit: e.target.value ? parseInt(e.target.value) : null }))}
+                  onChange={(e) => handleOfferNumberInput('usageLimit', e.target.value, (val) => {
+                    setFormData(prev => ({ ...prev, usageLimit: val === '' ? null : parseInt(val, 10) }));
+                  })}
                   style={{
                     width: '100%',
                     padding: '12px',
-                    border: '2px solid #e5e7eb',
+                    border: offerErrors.usageLimit ? '2px solid #dc2626' : '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '14px',
                     boxSizing: 'border-box'
                   }}
-                  min={0}
                   placeholder="Unlimited"
                 />
+                {offerErrors.usageLimit && (
+                  <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{offerErrors.usageLimit}</p>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>

@@ -62,6 +62,12 @@ const CustomerAppSettings = ({ embedded = false }) => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [loyaltyErrors, setLoyaltyErrors] = useState({
+    earnPerAmount: '',
+    pointsEarned: '',
+    redemptionRate: '',
+    maxRedemptionPercent: ''
+  });
 
   const [settings, setSettings] = useState({
     enabled: false,
@@ -225,25 +231,58 @@ const CustomerAppSettings = ({ embedded = false }) => {
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  // Handle loyalty input change with validation (only numbers allowed)
+  const handleLoyaltyInputChange = (field, value) => {
+    // Check if value contains only digits (or is empty)
+    if (value === '' || /^\d+$/.test(value)) {
+      // Clear error
+      setLoyaltyErrors(prev => ({ ...prev, [field]: '' }));
+      // Update settings - allow empty string temporarily while typing
+      setSettings(prev => ({
+        ...prev,
+        loyaltySettings: { ...prev.loyaltySettings, [field]: value === '' ? '' : parseInt(value, 10) }
+      }));
+    } else {
+      // Show error - non-numeric characters detected
+      setLoyaltyErrors(prev => ({ ...prev, [field]: 'Only numbers are allowed' }));
+    }
+  };
+
   const handleSave = async () => {
+    // Get restaurantId - use state or fallback to localStorage
+    let currentRestaurantId = restaurantId;
+    if ((!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') && typeof window !== 'undefined') {
+      currentRestaurantId = localStorage.getItem('selectedRestaurantId');
+      if (currentRestaurantId && currentRestaurantId !== 'null' && currentRestaurantId !== 'undefined') {
+        setRestaurantId(currentRestaurantId);
+      } else {
+        currentRestaurantId = null;
+      }
+    }
+
+    if (!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') {
+      showNotification('No restaurant selected. Please select a restaurant first.', true);
+      return;
+    }
+
     setSaving(true);
     try {
       // Update restaurant name if changed
       if (restaurantName) {
-        await apiClient.patch(`/api/restaurants/${restaurantId}`, {
+        await apiClient.patch(`/api/restaurants/${currentRestaurantId}`, {
           name: restaurantName
         });
       }
 
       // Ensure restaurant code is linked to restaurant ID
       if (settings.restaurantCode) {
-        await apiClient.patch(`/api/restaurants/${restaurantId}`, {
+        await apiClient.patch(`/api/restaurants/${currentRestaurantId}`, {
           restaurantCode: settings.restaurantCode.toUpperCase()
         });
       }
 
       // Save customer app settings
-      await apiClient.put(`/api/restaurants/${restaurantId}/customer-app-settings`, settings);
+      await apiClient.put(`/api/restaurants/${currentRestaurantId}/customer-app-settings`, settings);
 
       showNotification('Theme settings saved successfully!');
     } catch (error) {
@@ -266,9 +305,23 @@ const CustomerAppSettings = ({ embedded = false }) => {
       return;
     }
 
+    // Get restaurantId - use state or fallback to localStorage
+    let currentRestaurantId = restaurantId;
+    if ((!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') && typeof window !== 'undefined') {
+      currentRestaurantId = localStorage.getItem('selectedRestaurantId');
+      if (!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') {
+        currentRestaurantId = null;
+      }
+    }
+
+    if (!currentRestaurantId) {
+      alert('No restaurant selected. Please select a restaurant first.');
+      return;
+    }
+
     try {
       // GET endpoint auto-generates QR if code exists
-      const response = await apiClient.get(`/api/restaurants/${restaurantId}/qr-code`);
+      const response = await apiClient.get(`/api/restaurants/${currentRestaurantId}/qr-code`);
       if (response.qrCode) {
         setQrCodeUrl(response.qrCode);
         if (response.onlineOrderUrl) {
@@ -295,22 +348,36 @@ const CustomerAppSettings = ({ embedded = false }) => {
       return;
     }
 
+    // Get restaurantId - use state or fallback to localStorage
+    let currentRestaurantId = restaurantId;
+    if ((!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') && typeof window !== 'undefined') {
+      currentRestaurantId = localStorage.getItem('selectedRestaurantId');
+      if (!currentRestaurantId || currentRestaurantId === 'null' || currentRestaurantId === 'undefined') {
+        currentRestaurantId = null;
+      }
+    }
+
+    if (!currentRestaurantId) {
+      alert('No restaurant selected. Please select a restaurant first.');
+      return;
+    }
+
     try {
       setGeneratingCode(true);
-      const response = await apiClient.generateRestaurantCode(restaurantId);
+      const response = await apiClient.generateRestaurantCode(currentRestaurantId);
       if (response.restaurantCode) {
         const newCode = response.restaurantCode;
         setSettings(prev => ({ ...prev, restaurantCode: newCode }));
-        
+
         // Immediately save the code to restaurant
         try {
-          await apiClient.patch(`/api/restaurants/${restaurantId}`, {
+          await apiClient.patch(`/api/restaurants/${currentRestaurantId}`, {
             restaurantCode: newCode.toUpperCase()
           });
-          
+
           // Auto-generate QR code after code is saved
           try {
-            const qrResponse = await apiClient.get(`/api/restaurants/${restaurantId}/qr-code`);
+            const qrResponse = await apiClient.get(`/api/restaurants/${currentRestaurantId}/qr-code`);
             if (qrResponse.qrCode) {
               setQrCodeUrl(qrResponse.qrCode);
             }
@@ -495,45 +562,47 @@ const CustomerAppSettings = ({ embedded = false }) => {
                   border: '2px solid #e5e7eb'
                 }}>
                   <span style={{ fontSize: '14px', color: '#374151' }}>For every ₹</span>
-                  <input
-                    type="number"
-                    value={settings.loyaltySettings.earnPerAmount}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      loyaltySettings: { ...prev.loyaltySettings, earnPerAmount: parseInt(e.target.value) || 100 }
-                    }))}
-                    style={{
-                      width: '80px',
-                      padding: '10px 12px',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      textAlign: 'center',
-                      backgroundColor: 'white'
-                    }}
-                    min={1}
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={settings.loyaltySettings.earnPerAmount}
+                      onChange={(e) => handleLoyaltyInputChange('earnPerAmount', e.target.value)}
+                      style={{
+                        width: '80px',
+                        padding: '10px 12px',
+                        border: loyaltyErrors.earnPerAmount ? '2px solid #dc2626' : '2px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        textAlign: 'center',
+                        backgroundColor: 'white'
+                      }}
+                    />
+                    {loyaltyErrors.earnPerAmount && (
+                      <span style={{ fontSize: '10px', color: '#dc2626', marginTop: '4px' }}>{loyaltyErrors.earnPerAmount}</span>
+                    )}
+                  </div>
                   <span style={{ fontSize: '14px', color: '#374151' }}>spent, earn</span>
-                  <input
-                    type="number"
-                    value={settings.loyaltySettings.pointsEarned}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      loyaltySettings: { ...prev.loyaltySettings, pointsEarned: parseInt(e.target.value) || 1 }
-                    }))}
-                    style={{
-                      width: '80px',
-                      padding: '10px 12px',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      textAlign: 'center',
-                      backgroundColor: 'white'
-                    }}
-                    min={1}
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={settings.loyaltySettings.pointsEarned}
+                      onChange={(e) => handleLoyaltyInputChange('pointsEarned', e.target.value)}
+                      style={{
+                        width: '80px',
+                        padding: '10px 12px',
+                        border: loyaltyErrors.pointsEarned ? '2px solid #dc2626' : '2px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        textAlign: 'center',
+                        backgroundColor: 'white'
+                      }}
+                    />
+                    {loyaltyErrors.pointsEarned && (
+                      <span style={{ fontSize: '10px', color: '#dc2626', marginTop: '4px' }}>{loyaltyErrors.pointsEarned}</span>
+                    )}
+                  </div>
                   <span style={{ fontSize: '14px', color: '#374151' }}>points</span>
                 </div>
                 <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#6b7280' }}>
@@ -547,24 +616,23 @@ const CustomerAppSettings = ({ embedded = false }) => {
                     Points needed for ₹1 redemption
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={settings.loyaltySettings.redemptionRate}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      loyaltySettings: { ...prev.loyaltySettings, redemptionRate: parseInt(e.target.value) || 100 }
-                    }))}
+                    onChange={(e) => handleLoyaltyInputChange('redemptionRate', e.target.value)}
                     style={{
                       width: '100%',
                       padding: '14px',
-                      border: '2px solid #e5e7eb',
+                      border: loyaltyErrors.redemptionRate ? '2px solid #dc2626' : '2px solid #e5e7eb',
                       borderRadius: '10px',
                       fontSize: '16px',
                       fontWeight: '600',
                       boxSizing: 'border-box',
                       backgroundColor: '#f9fafb'
                     }}
-                    min={1}
                   />
+                  {loyaltyErrors.redemptionRate && (
+                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#dc2626' }}>{loyaltyErrors.redemptionRate}</p>
+                  )}
                   <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
                     How many points = ₹1 discount
                   </p>
@@ -575,25 +643,23 @@ const CustomerAppSettings = ({ embedded = false }) => {
                     Max redemption % per order
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={settings.loyaltySettings.maxRedemptionPercent}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      loyaltySettings: { ...prev.loyaltySettings, maxRedemptionPercent: parseInt(e.target.value) || 20 }
-                    }))}
+                    onChange={(e) => handleLoyaltyInputChange('maxRedemptionPercent', e.target.value)}
                     style={{
                       width: '100%',
                       padding: '14px',
-                      border: '2px solid #e5e7eb',
+                      border: loyaltyErrors.maxRedemptionPercent ? '2px solid #dc2626' : '2px solid #e5e7eb',
                       borderRadius: '10px',
                       fontSize: '16px',
                       fontWeight: '600',
                       boxSizing: 'border-box',
                       backgroundColor: '#f9fafb'
                     }}
-                    min={1}
-                    max={100}
                   />
+                  {loyaltyErrors.maxRedemptionPercent && (
+                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#dc2626' }}>{loyaltyErrors.maxRedemptionPercent}</p>
+                  )}
                   <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
                     Maximum % of order that can be redeemed
                   </p>
@@ -752,9 +818,14 @@ const CustomerAppSettings = ({ embedded = false }) => {
                 Minimum Order Amount (Rs.)
               </label>
               <input
-                type="number"
+                type="text"
                 value={settings.minimumOrder}
-                onChange={(e) => setSettings(prev => ({ ...prev, minimumOrder: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d+$/.test(value)) {
+                    setSettings(prev => ({ ...prev, minimumOrder: value === '' ? '' : parseInt(value, 10) }));
+                  }
+                }}
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -763,7 +834,6 @@ const CustomerAppSettings = ({ embedded = false }) => {
                   fontSize: '14px',
                   boxSizing: 'border-box'
                 }}
-                min={0}
               />
             </div>
           </div>
