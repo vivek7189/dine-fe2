@@ -145,6 +145,7 @@ const OnlineOrderContent = () => {
   // Customer & Loyalty state
   const [offers, setOffers] = useState([]);
   const [selectedOffers, setSelectedOffers] = useState([]);
+  const [hasAutoApplied, setHasAutoApplied] = useState(false); // Track if auto-apply has been done
   const [customerData, setCustomerData] = useState(null);
   const [customerAppSettings, setCustomerAppSettings] = useState(null);
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
@@ -336,13 +337,20 @@ const OnlineOrderContent = () => {
     return true;
   });
 
-  // Auto-apply best offer(s) when cart changes or settings indicate to do so
+  // Auto-apply best offer(s) ONLY ONCE on initial load when cart has items
+  // After auto-apply, user has full control to select/deselect offers
   useEffect(() => {
-    if (!customerAppSettings?.offerSettings?.autoApplyBestOffer) return;
-    if (!applicableOffers.length || cart.length === 0) {
-      if (selectedOffers.length > 0) setSelectedOffers([]);
+    // Clear selections when cart is empty
+    if (cart.length === 0) {
+      setSelectedOffers(prev => prev.length > 0 ? [] : prev); // Only update if not already empty
+      setHasAutoApplied(false); // Reset so auto-apply works again when cart has items
       return;
     }
+
+    // Skip if auto-apply is disabled or already done
+    if (!customerAppSettings?.offerSettings?.autoApplyBestOffer) return;
+    if (hasAutoApplied) return; // Don't override user's manual selection
+    if (!applicableOffers.length) return;
 
     const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
     const allowMultiple = customerAppSettings?.offerSettings?.allowMultipleOffers ?? false;
@@ -371,13 +379,11 @@ const OnlineOrderContent = () => {
       ? offersWithDiscount.slice(0, maxOffers)
       : offersWithDiscount.slice(0, 1);
 
-    // Only update if different (to prevent infinite loops)
-    const currentIds = selectedOffers.map(o => o.id).sort().join(',');
-    const newIds = offersToSelect.map(o => o.id).sort().join(',');
-    if (currentIds !== newIds) {
+    if (offersToSelect.length > 0) {
       setSelectedOffers(offersToSelect);
+      setHasAutoApplied(true); // Mark as done so user can now modify freely
     }
-  }, [cart, applicableOffers, selectedOffers, customerAppSettings?.offerSettings?.autoApplyBestOffer, customerAppSettings?.offerSettings?.allowMultipleOffers, customerAppSettings?.offerSettings?.maxOffersAllowed]);
+  }, [cart, applicableOffers, hasAutoApplied, customerAppSettings?.offerSettings?.autoApplyBestOffer, customerAppSettings?.offerSettings?.allowMultipleOffers, customerAppSettings?.offerSettings?.maxOffersAllowed]);
 
   // Cart functions
   const addToCart = (item) => {
