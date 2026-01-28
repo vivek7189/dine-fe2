@@ -144,7 +144,7 @@ const OnlineOrderContent = () => {
 
   // Customer & Loyalty state
   const [offers, setOffers] = useState([]);
-  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [selectedOffers, setSelectedOffers] = useState([]);
   const [customerData, setCustomerData] = useState(null);
   const [customerAppSettings, setCustomerAppSettings] = useState(null);
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
@@ -336,48 +336,48 @@ const OnlineOrderContent = () => {
     return true;
   });
 
-  // Auto-apply best offer when cart changes or settings indicate to do so
+  // Auto-apply best offer(s) when cart changes or settings indicate to do so
   useEffect(() => {
     if (!customerAppSettings?.offerSettings?.autoApplyBestOffer) return;
     if (!applicableOffers.length || cart.length === 0) {
-      if (selectedOffer) setSelectedOffer(null);
+      if (selectedOffers.length > 0) setSelectedOffers([]);
       return;
     }
 
     const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const allowMultiple = customerAppSettings?.offerSettings?.allowMultipleOffers ?? false;
+    const maxOffers = customerAppSettings?.offerSettings?.maxOffersAllowed ?? 1;
 
-    // Find the best applicable offer (highest discount)
-    let bestOffer = null;
-    let bestDiscount = 0;
-
-    applicableOffers.forEach(offer => {
-      // Check if offer meets minimum order value
-      if (subtotal < (offer.minOrderValue || 0)) return;
-
-      // Calculate discount for this offer
-      let discount = 0;
-      if (offer.discountType === 'percentage') {
-        discount = (subtotal * offer.discountValue) / 100;
-        if (offer.maxDiscount && discount > offer.maxDiscount) {
-          discount = offer.maxDiscount;
+    // Calculate discount for each applicable offer and sort by best discount
+    const offersWithDiscount = applicableOffers
+      .filter(offer => subtotal >= (offer.minOrderValue || 0))
+      .map(offer => {
+        let discount = 0;
+        if (offer.discountType === 'percentage') {
+          discount = (subtotal * offer.discountValue) / 100;
+          if (offer.maxDiscount && discount > offer.maxDiscount) {
+            discount = offer.maxDiscount;
+          }
+        } else {
+          discount = offer.discountValue;
         }
-      } else {
-        discount = offer.discountValue;
-      }
-      discount = Math.min(discount, subtotal);
+        discount = Math.min(discount, subtotal);
+        return { ...offer, calculatedDiscount: discount };
+      })
+      .sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
 
-      // Check if this is the best offer so far
-      if (discount > bestDiscount) {
-        bestDiscount = discount;
-        bestOffer = offer;
-      }
-    });
+    // Select best offer(s) based on settings
+    const offersToSelect = allowMultiple
+      ? offersWithDiscount.slice(0, maxOffers)
+      : offersWithDiscount.slice(0, 1);
 
     // Only update if different (to prevent infinite loops)
-    if (bestOffer?.id !== selectedOffer?.id) {
-      setSelectedOffer(bestOffer);
+    const currentIds = selectedOffers.map(o => o.id).sort().join(',');
+    const newIds = offersToSelect.map(o => o.id).sort().join(',');
+    if (currentIds !== newIds) {
+      setSelectedOffers(offersToSelect);
     }
-  }, [cart, applicableOffers.length, customerAppSettings?.offerSettings?.autoApplyBestOffer]);
+  }, [cart, applicableOffers.length, customerAppSettings?.offerSettings?.autoApplyBestOffer, customerAppSettings?.offerSettings?.allowMultipleOffers, customerAppSettings?.offerSettings?.maxOffersAllowed]);
 
   // Cart functions
   const addToCart = (item) => {
@@ -410,23 +410,29 @@ const OnlineOrderContent = () => {
   const getCartTotal = () => getCartSubtotal();
   const getCartItemCount = () => cart.reduce((total, item) => total + item.quantity, 0);
 
-  // Calculate offer discount
+  // Calculate offer discount (supports multiple offers)
   const getOfferDiscount = () => {
-    if (!selectedOffer) return 0;
+    if (!selectedOffers || selectedOffers.length === 0) return 0;
     const subtotal = getCartSubtotal();
-    if (subtotal < (selectedOffer.minOrderValue || 0)) return 0;
-    if (selectedOffer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) return 0;
+    let totalDiscount = 0;
 
-    let discount = 0;
-    if (selectedOffer.discountType === 'percentage') {
-      discount = (subtotal * selectedOffer.discountValue) / 100;
-      if (selectedOffer.maxDiscount && discount > selectedOffer.maxDiscount) {
-        discount = selectedOffer.maxDiscount;
+    for (const offer of selectedOffers) {
+      if (subtotal < (offer.minOrderValue || 0)) continue;
+      if (offer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) continue;
+
+      let discount = 0;
+      if (offer.discountType === 'percentage') {
+        discount = (subtotal * offer.discountValue) / 100;
+        if (offer.maxDiscount && discount > offer.maxDiscount) {
+          discount = offer.maxDiscount;
+        }
+      } else {
+        discount = offer.discountValue;
       }
-    } else {
-      discount = selectedOffer.discountValue;
+      totalDiscount += discount;
     }
-    return Math.min(discount, subtotal);
+
+    return Math.min(totalDiscount, subtotal);
   };
 
   // Calculate loyalty discount
@@ -680,7 +686,7 @@ const OnlineOrderContent = () => {
           : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}` : 'Takeaway'}`,
         otp: 'verified',
         verificationId: firebaseUid,
-        offerId: selectedOffer?.id || null,
+        offerIds: selectedOffers.map(o => o.id),
         redeemLoyaltyPoints: actualRedeemPoints
       };
 
@@ -693,7 +699,7 @@ const OnlineOrderContent = () => {
 
       setSuccess(successMsg);
       setCart([]);
-      setSelectedOffer(null);
+      setSelectedOffers([]);
       setRedeemLoyaltyPoints(0);
 
       // Refresh customer data
@@ -833,8 +839,9 @@ const OnlineOrderContent = () => {
         getFinalTotal={getFinalTotal}
         getLoyaltyPointsToEarn={getLoyaltyPointsToEarn}
         offers={applicableOffers}
-        selectedOffer={selectedOffer}
-        setSelectedOffer={setSelectedOffer}
+        selectedOffers={selectedOffers}
+        setSelectedOffers={setSelectedOffers}
+        customerAppSettings={customerAppSettings}
         redeemLoyaltyPoints={redeemLoyaltyPoints}
         setRedeemLoyaltyPoints={setRedeemLoyaltyPoints}
         orderType={orderType}
@@ -2437,8 +2444,8 @@ const CheckoutView = ({
   getFinalTotal,
   getLoyaltyPointsToEarn,
   offers,
-  selectedOffer,
-  setSelectedOffer,
+  selectedOffers,
+  setSelectedOffers,
   redeemLoyaltyPoints,
   setRedeemLoyaltyPoints,
   orderType,
@@ -2924,16 +2931,42 @@ const CheckoutView = ({
               }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FaGift size={16} color="#f59e0b" /> Available Offers
+                  {customerAppSettings?.offerSettings?.allowMultipleOffers && (
+                    <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 'normal', marginLeft: '8px' }}>
+                      (Select up to {customerAppSettings?.offerSettings?.maxOffersAllowed || 1})
+                    </span>
+                  )}
                 </h3>
                 {offers.map(offer => {
-                  const isSelected = selectedOffer?.id === offer.id;
+                  const isSelected = selectedOffers.some(o => o.id === offer.id);
                   const meetsMinOrder = getCartSubtotal() >= (offer.minOrderValue || 0);
-                  const isApplicable = meetsMinOrder;
+                  const allowMultiple = customerAppSettings?.offerSettings?.allowMultipleOffers ?? false;
+                  const maxOffers = customerAppSettings?.offerSettings?.maxOffersAllowed ?? 1;
+                  const canSelectMore = selectedOffers.length < maxOffers || isSelected;
+                  const isApplicable = meetsMinOrder && (allowMultiple ? canSelectMore : true);
+
+                  const handleOfferClick = () => {
+                    if (!isApplicable) return;
+                    if (isSelected) {
+                      // Remove from selection
+                      setSelectedOffers(prev => prev.filter(o => o.id !== offer.id));
+                    } else {
+                      if (allowMultiple) {
+                        // Add to selection (if under limit)
+                        if (selectedOffers.length < maxOffers) {
+                          setSelectedOffers(prev => [...prev, offer]);
+                        }
+                      } else {
+                        // Single selection mode - replace
+                        setSelectedOffers([offer]);
+                      }
+                    }
+                  };
 
                   return (
                     <button
                       key={offer.id}
-                      onClick={() => isApplicable && setSelectedOffer(isSelected ? null : offer)}
+                      onClick={handleOfferClick}
                       disabled={!isApplicable}
                       style={{
                         width: '100%',
@@ -2961,6 +2994,11 @@ const CheckoutView = ({
                         {!meetsMinOrder && (
                           <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>
                             Add ₹{(offer.minOrderValue - getCartSubtotal()).toFixed(0)} more
+                          </div>
+                        )}
+                        {meetsMinOrder && !canSelectMore && !isSelected && (
+                          <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>
+                            Max {maxOffers} offer{maxOffers > 1 ? 's' : ''} allowed
                           </div>
                         )}
                       </div>

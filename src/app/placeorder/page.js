@@ -189,7 +189,7 @@ const PlaceOrderContent = () => {
 
   // Loyalty & Offers state
   const [offers, setOffers] = useState([]);
-  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [selectedOffers, setSelectedOffers] = useState([]);
   const [customerData, setCustomerData] = useState(null);
   const [customerAppSettings, setCustomerAppSettings] = useState(null);
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
@@ -321,6 +321,57 @@ const PlaceOrderContent = () => {
     loadData();
   }, [restaurantId]);
 
+  // Compute applicable offers - filter out first-order-only offers for returning customers
+  const applicableOffers = offers.filter(offer => {
+    if (offer.isFirstOrderOnly && customerData && customerData.isFirstOrder === false) {
+      return false;
+    }
+    return true;
+  });
+
+  // Auto-apply best offer(s) when cart changes or settings indicate to do so
+  useEffect(() => {
+    if (!customerAppSettings?.offerSettings?.autoApplyBestOffer) return;
+    if (!applicableOffers.length || cart.length === 0) {
+      if (selectedOffers.length > 0) setSelectedOffers([]);
+      return;
+    }
+
+    const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const allowMultiple = customerAppSettings?.offerSettings?.allowMultipleOffers ?? false;
+    const maxOffers = customerAppSettings?.offerSettings?.maxOffersAllowed ?? 1;
+
+    // Calculate discount for each applicable offer and sort by best discount
+    const offersWithDiscount = applicableOffers
+      .filter(offer => subtotal >= (offer.minOrderValue || 0))
+      .map(offer => {
+        let discount = 0;
+        if (offer.discountType === 'percentage') {
+          discount = (subtotal * offer.discountValue) / 100;
+          if (offer.maxDiscount && discount > offer.maxDiscount) {
+            discount = offer.maxDiscount;
+          }
+        } else {
+          discount = offer.discountValue;
+        }
+        discount = Math.min(discount, subtotal);
+        return { ...offer, calculatedDiscount: discount };
+      })
+      .sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
+
+    // Select best offer(s) based on settings
+    const offersToSelect = allowMultiple
+      ? offersWithDiscount.slice(0, maxOffers)
+      : offersWithDiscount.slice(0, 1);
+
+    // Only update if different (to prevent infinite loops)
+    const currentIds = selectedOffers.map(o => o.id).sort().join(',');
+    const newIds = offersToSelect.map(o => o.id).sort().join(',');
+    if (currentIds !== newIds) {
+      setSelectedOffers(offersToSelect);
+    }
+  }, [cart, applicableOffers.length, customerAppSettings?.offerSettings?.autoApplyBestOffer, customerAppSettings?.offerSettings?.allowMultipleOffers, customerAppSettings?.offerSettings?.maxOffersAllowed]);
+
   // Cart functions
   const addToCart = (item) => {
     setCart(prev => {
@@ -363,28 +414,32 @@ const PlaceOrderContent = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // Calculate offer discount
+  // Calculate offer discount (supports multiple offers)
   const getOfferDiscount = () => {
-    if (!selectedOffer) return 0;
+    if (!selectedOffers || selectedOffers.length === 0) return 0;
     const subtotal = getCartSubtotal();
+    let totalDiscount = 0;
 
-    // Check minimum order
-    if (subtotal < (selectedOffer.minOrderValue || 0)) return 0;
+    for (const offer of selectedOffers) {
+      // Check minimum order
+      if (subtotal < (offer.minOrderValue || 0)) continue;
 
-    // Check first order only
-    if (selectedOffer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) return 0;
+      // Check first order only
+      if (offer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) continue;
 
-    let discount = 0;
-    if (selectedOffer.discountType === 'percentage') {
-      discount = (subtotal * selectedOffer.discountValue) / 100;
-      if (selectedOffer.maxDiscount && discount > selectedOffer.maxDiscount) {
-        discount = selectedOffer.maxDiscount;
+      let discount = 0;
+      if (offer.discountType === 'percentage') {
+        discount = (subtotal * offer.discountValue) / 100;
+        if (offer.maxDiscount && discount > offer.maxDiscount) {
+          discount = offer.maxDiscount;
+        }
+      } else {
+        discount = offer.discountValue;
       }
-    } else {
-      discount = selectedOffer.discountValue;
+      totalDiscount += discount;
     }
 
-    return Math.min(discount, subtotal);
+    return Math.min(totalDiscount, subtotal);
   };
 
   // Calculate loyalty discount
@@ -689,8 +744,8 @@ const PlaceOrderContent = () => {
           : `Customer self-order from seat ${customerInfo.seatNumber || 'Walk-in'}`,
         otp: 'verified',
         verificationId: firebaseUid,
-        // Include offer if selected
-        offerId: selectedOffer?.id || null,
+        // Include offers if selected
+        offerIds: selectedOffers.map(o => o.id),
         // Include loyalty points to redeem
         redeemLoyaltyPoints: actualRedeemPoints
       };
@@ -706,7 +761,7 @@ const PlaceOrderContent = () => {
       setSuccess(successMsg);
       setCart([]);
       setCustomerInfo({ phone: '', seatNumber: customerInfo.seatNumber, roomNumber: '', name: '' });
-      setSelectedOffer(null);
+      setSelectedOffers([]);
       setRedeemLoyaltyPoints(0);
       setCustomerData(null);
       setCustomerVerified(false);
@@ -1822,7 +1877,7 @@ const PlaceOrderContent = () => {
                 </div>
 
                 {/* Offers Section */}
-                {offers.length > 0 && (
+                {applicableOffers.length > 0 && (
                   <div style={{
                     backgroundColor: '#ffffff',
                     padding: '16px',
@@ -1834,18 +1889,41 @@ const PlaceOrderContent = () => {
                     <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '16px' }}>🎁</span>
                       Available Offers
+                      {customerAppSettings?.offerSettings?.allowMultipleOffers && (
+                        <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: 'normal', marginLeft: '4px' }}>
+                          (Select up to {customerAppSettings?.offerSettings?.maxOffersAllowed || 1})
+                        </span>
+                      )}
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {offers.map(offer => {
-                        const isSelected = selectedOffer?.id === offer.id;
+                      {applicableOffers.map(offer => {
+                        const isSelected = selectedOffers.some(o => o.id === offer.id);
                         const meetsMinOrder = getCartSubtotal() >= (offer.minOrderValue || 0);
                         const isFirstOrderValid = !offer.isFirstOrderOnly || (customerData?.isFirstOrder ?? true);
-                        const isApplicable = meetsMinOrder && isFirstOrderValid;
+                        const allowMultiple = customerAppSettings?.offerSettings?.allowMultipleOffers ?? false;
+                        const maxOffers = customerAppSettings?.offerSettings?.maxOffersAllowed ?? 1;
+                        const canSelectMore = selectedOffers.length < maxOffers || isSelected;
+                        const isApplicable = meetsMinOrder && isFirstOrderValid && (allowMultiple ? canSelectMore : true);
+
+                        const handleOfferClick = () => {
+                          if (!isApplicable) return;
+                          if (isSelected) {
+                            setSelectedOffers(prev => prev.filter(o => o.id !== offer.id));
+                          } else {
+                            if (allowMultiple) {
+                              if (selectedOffers.length < maxOffers) {
+                                setSelectedOffers(prev => [...prev, offer]);
+                              }
+                            } else {
+                              setSelectedOffers([offer]);
+                            }
+                          }
+                        };
 
                         return (
                           <button
                             key={offer.id}
-                            onClick={() => isApplicable && setSelectedOffer(isSelected ? null : offer)}
+                            onClick={handleOfferClick}
                             disabled={!isApplicable}
                             style={{
                               display: 'flex',
@@ -1874,6 +1952,11 @@ const PlaceOrderContent = () => {
                               {!meetsMinOrder && (
                                 <p style={{ fontSize: '10px', color: '#ef4444', margin: '4px 0 0 0' }}>
                                   Add ₹{(offer.minOrderValue - getCartSubtotal()).toFixed(0)} more to unlock
+                                </p>
+                              )}
+                              {meetsMinOrder && isFirstOrderValid && !canSelectMore && !isSelected && (
+                                <p style={{ fontSize: '10px', color: '#f59e0b', margin: '4px 0 0 0' }}>
+                                  Max {maxOffers} offer{maxOffers > 1 ? 's' : ''} allowed
                                 </p>
                               )}
                             </div>
