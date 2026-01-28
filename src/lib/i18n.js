@@ -198,7 +198,7 @@ const translations = {
       categoryInUse: 'Cannot delete category. Some dishes are using this category.',
       noCategories: 'No categories found',
       uploadMenu: 'Upload Menu',
-      freshOrder: 'Fresh Order',
+      freshOrder: 'NEW Order',
       uploadFromDevice: 'Upload from Device',
       takePhoto: 'Take Photo',
       menuUploaded: 'Menu uploaded successfully!',

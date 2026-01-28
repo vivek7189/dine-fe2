@@ -63,6 +63,8 @@ const OrderHistory = () => {
   const [expandedOrders, setExpandedOrders] = useState(new Set());
   const [selectedOrderForModal, setSelectedOrderForModal] = useState(null);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
+  const [markCompleteOrderId, setMarkCompleteOrderId] = useState(null);
+  const [markCompleteSubmitting, setMarkCompleteSubmitting] = useState(false);
 
   useEffect(() => {
     // Initialize language
@@ -147,6 +149,22 @@ const OrderHistory = () => {
     if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: 'Cancelled' };
     const capitalizeStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
     return { bg: '#f3f4f6', text: '#374151', border: '#d1d5db', label: capitalizeStatus };
+  };
+
+  /** Returns a small chip config for order source: Staff, Online, or Dine App. Place near status chip. */
+  const getOrderSourceChip = (order) => {
+    const src = order.orderSource;
+    const staff = order.staffInfo;
+    const isStaff = staff && (
+      staff.waiterId ||
+      staff.id ||
+      (staff.waiterName && staff.waiterName !== 'Customer Self-Order') ||
+      (staff.name && staff.name !== 'Customer Self-Order')
+    );
+    if (isStaff) return { label: 'Staff', className: 'bg-slate-100 text-slate-700 border-slate-300' };
+    if (src === 'online_order') return { label: 'Online', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+    if (src === 'crave_app' || src === 'customer_app') return { label: 'Dine App', className: 'bg-pink-50 text-pink-700 border-pink-200' };
+    return null;
   };
 
   const fetchOrders = useCallback(async (useCache = true) => {
@@ -342,22 +360,24 @@ const OrderHistory = () => {
     }
   };
 
-  const handleMarkCompleted = async (orderId) => {
-    if (!confirm(t('orderHistory.confirmComplete') || 'Are you sure you want to mark this order as completed?')) return;
-    
+  const handleMarkCompleted = (orderId) => {
+    setMarkCompleteOrderId(orderId);
+  };
+
+  const executeMarkComplete = async (orderId) => {
+    setMarkCompleteSubmitting(true);
     try {
       await apiClient.updateOrderStatus(orderId, 'completed');
-      // Optimistically update local state or re-fetch
-      setOrders(prevOrders => prevOrders.map(o => 
+      setOrders(prevOrders => prevOrders.map(o =>
         o.id === orderId ? { ...o, status: 'completed' } : o
       ));
-      // Trigger a fetch to ensure data consistency
+      setMarkCompleteOrderId(null);
       setTimeout(() => fetchOrders(false), 500);
-      
-      // Show success feedback if needed, although the UI update should be enough
     } catch (error) {
       console.error('Error marking as completed:', error);
       alert(t('common.error') + ': ' + (error.message || 'Failed to complete order'));
+    } finally {
+      setMarkCompleteSubmitting(false);
     }
   };
 
@@ -413,13 +433,14 @@ const OrderHistory = () => {
     const statusStyle = getStatusStyle(order.status, order.orderFlow);
     const orderTotal = calculateOrderTotal(order);
     const subtotal = order.items?.reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0) || 0;
+    const modalSourceChip = getOrderSourceChip(order);
 
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
         <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 border-gray-200">
           <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <h2 className="text-2xl font-bold text-gray-900">
                   #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
                 </h2>
@@ -429,6 +450,11 @@ const OrderHistory = () => {
                 >
                   {statusStyle.label}
                 </span>
+                {modalSourceChip && (
+                  <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${modalSourceChip.className}`}>
+                    {modalSourceChip.label}
+                  </span>
+                )}
               </div>
               <div className="text-sm text-gray-500 flex items-center gap-2">
                 <FaClock className="text-gray-400" /> {formatDate(order.createdAt)}
@@ -473,12 +499,6 @@ const OrderHistory = () => {
                 </div>
                 <div className="font-semibold text-base text-gray-900 mb-1 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
                 <div className="text-sm text-gray-600 capitalize">{order.paymentMethod || 'Unpaid'}</div>
-                {order.orderSource === 'customer_app' && (
-                  <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">
-                    <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
-                    Crave App
-                  </div>
-                )}
               </div>
             </div>
 
@@ -800,6 +820,7 @@ const OrderHistory = () => {
               const statusStyle = getStatusStyle(order.status, order.orderFlow);
               const orderTotal = calculateOrderTotal(order);
               const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+              const sourceChip = getOrderSourceChip(order);
               
               if (isCompactView) {
                 return (
@@ -821,9 +842,17 @@ const OrderHistory = () => {
                           </div>
                         </div>
                         <div className="col-span-12 sm:col-span-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
-                          <div className="flex items-center gap-2" title="Customer">
-                            <FaUser className="text-gray-400" />
-                            <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || 'Walk-in'}</span>
+                          <div className="flex flex-col gap-0.5" title="Customer">
+                            <div className="flex items-center gap-2">
+                              <FaUser className="text-gray-400 flex-shrink-0" />
+                              <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || 'Walk-in'}</span>
+                            </div>
+                            {(sourceChip?.label === 'Online' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
+                              <div className="flex items-center gap-1.5 text-xs text-gray-500 pl-5">
+                                <FaPhone className="text-[10px]" />
+                                <span>{order.customerDisplay?.phone || order.customerInfo?.phone}</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2" title={order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? "Room" : "Table"}>
                             {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
@@ -837,20 +866,21 @@ const OrderHistory = () => {
                             <FaUtensils className="text-gray-400" />
                             <span className="capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
                           </div>
-                          {order.orderSource === 'customer_app' && (
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">
-                              <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
-                              Crave
-                            </div>
-                          )}
                         </div>
                         <div className="col-span-6 sm:col-span-3 flex flex-col sm:items-start gap-2">
-                          <span
-                            className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
-                            style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
-                          >
-                            {statusStyle.label}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                              className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
+                              style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
+                            >
+                              {statusStyle.label}
+                            </span>
+                            {sourceChip && (
+                              <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
+                                {sourceChip.label}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-xs text-gray-500 font-medium">{order.paymentMethod || 'Cash'}</span>
                         </div>
                         <div className="col-span-6 sm:col-span-2 flex flex-col items-end gap-2">
@@ -913,7 +943,7 @@ const OrderHistory = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <div className="flex items-center gap-3 mb-1">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
                               <h3 className="text-lg font-bold text-gray-900">
                                 #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
                               </h3>
@@ -923,6 +953,11 @@ const OrderHistory = () => {
                               >
                                 {statusStyle.label}
                               </span>
+                              {sourceChip && (
+                                <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
+                                  {sourceChip.label}
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 text-xs text-gray-500">
                               <FaClock className="text-[10px]" />
@@ -936,10 +971,16 @@ const OrderHistory = () => {
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
                           <div className="flex items-center gap-2">
-                            <FaUser className="text-gray-400 text-sm" />
-                            <div>
+                            <FaUser className="text-gray-400 text-sm flex-shrink-0" />
+                            <div className="min-w-0">
                               <div className="text-xs text-gray-500">Customer</div>
                               <div className="text-sm font-medium text-gray-900">{order.customerDisplay?.name || 'Walk-in'}</div>
+                              {(sourceChip?.label === 'Online' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
+                                <div className="flex items-center gap-1 text-xs text-gray-600 mt-0.5">
+                                  <FaPhone className="text-[10px] flex-shrink-0" />
+                                  <span>{order.customerDisplay?.phone || order.customerInfo?.phone}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1086,6 +1127,73 @@ const OrderHistory = () => {
           calculateOrderTotal={calculateOrderTotal}
           formatDate={formatDate}
         />
+      )}
+
+      {/* Mark Bill Complete confirmation modal */}
+      {markCompleteOrderId && (
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes markCompleteBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes markCompleteDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+          ` }} />
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+            style={{ animation: 'markCompleteBackdropIn 0.2s ease-out' }}
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="mark-complete-title"
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => !markCompleteSubmitting && setMarkCompleteOrderId(null)}
+            />
+            <div
+              className="relative w-full max-w-[min(90vw,400px)] rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
+              style={{ animation: 'markCompleteDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 sm:p-6 text-center">
+                <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <FaCheckCircle className="text-green-600 text-2xl sm:text-3xl" />
+                </div>
+                <h2 id="mark-complete-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                  Mark bill complete?
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600 mb-6">
+                  This will mark the order as completed. You can’t undo this.
+                </p>
+                <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => !markCompleteSubmitting && setMarkCompleteOrderId(null)}
+                    disabled={markCompleteSubmitting}
+                    className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => executeMarkComplete(markCompleteOrderId)}
+                    disabled={markCompleteSubmitting}
+                    className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-green-700 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
+                  >
+                    {markCompleteSubmitting ? (
+                      <>
+                        <FaSpinner className="text-lg" style={{ animation: 'spin 1s linear infinite' }} />
+                        Completing…
+                      </>
+                    ) : (
+                      <>
+                        <FaCheckCircle />
+                        Mark Bill Complete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* KOT Printer Setup Note */}

@@ -777,7 +777,8 @@ const OnlineOrderContent = () => {
         otp: 'verified',
         verificationId: firebaseUid,
         offerIds: selectedOffers.map(o => o.id),
-        redeemLoyaltyPoints: actualRedeemPoints
+        redeemLoyaltyPoints: actualRedeemPoints,
+        orderSource: 'online_order'
       };
 
       const response = await apiClient.placePublicOrder(restaurantId, orderData);

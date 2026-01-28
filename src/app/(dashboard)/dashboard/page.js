@@ -3820,7 +3820,7 @@ function RestaurantPOSContent() {
                     alignSelf: 'flex-start'
                   }}
                 >
-                  FRESH ORDER
+                  NEW ORDER
                 </button>
 
                 {/* Right Side Group: Voice + Tables Button - Fixed Position */}
