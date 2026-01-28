@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import apiClient from '../../../lib/api';
@@ -32,6 +33,10 @@ import {
   FaGift,
   FaArrowRight
 } from 'react-icons/fa';
+
+// Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
+const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
+const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 
 // Memoized Customer Form Component to prevent focus loss
 const CustomerForm = React.memo(({ 
@@ -327,6 +332,7 @@ const Customers = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [engagementTab, setEngagementTab] = useState('customers'); // 'customers' | 'offers' | 'loyalty' | 'crave-app'
 
   // Language detection
   useEffect(() => {
@@ -1325,6 +1331,7 @@ const Customers = () => {
                 )}
               </div>
               
+              {engagementTab === 'customers' && (
               <button
                 onClick={() => setShowAddModal(true)}
                 style={{
@@ -1345,186 +1352,109 @@ const Customers = () => {
                 <FaPlus size={isMobile ? 12 : 14} />
                 {isMobile ? t('customers.add') : t('customers.addCustomer')}
               </button>
+              )}
             </div>
           </div>
 
-          {/* Customer Engagement Section - Compact */}
+          {/* Customer Engagement — tab bar (same content as /offers and /customer-app embedded) */}
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
-            padding: isMobile ? '12px' : '16px',
+            padding: isMobile ? '10px' : '12px 16px',
             marginBottom: isMobile ? '12px' : '16px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
             border: '1px solid #e2e8f0'
           }}>
             <div style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
+              flexWrap: 'wrap',
+              gap: '8px'
             }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: isMobile ? '14px' : '16px',
-                fontWeight: '600',
-                color: '#1f2937',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <FaGift size={14} style={{ color: '#ef4444' }} />
-                Customer Engagement
-              </h2>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-              gap: '10px'
-            }}>
-              {/* Offers Card - Compact */}
-              <div
-                onClick={() => router.push('/offers')}
+              <button
+                type="button"
+                onClick={() => setEngagementTab('customers')}
                 style={{
-                  padding: '12px',
+                  padding: isMobile ? '10px 12px' : '12px 16px',
                   borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                  border: '1px solid #fbbf24',
+                  border: engagementTab === 'customers' ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                  background: engagementTab === 'customers' ? '#fef2f2' : '#f9fafb',
+                  color: engagementTab === 'customers' ? '#b91c1c' : '#6b7280',
+                  fontWeight: '600',
+                  fontSize: isMobile ? '12px' : '13px',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.25)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
+                  gap: '8px'
                 }}
               >
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  backgroundColor: '#f59e0b',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  flexShrink: 0
-                }}>
-                  <FaTag size={14} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#92400e' }}>
-                    Offers & Discounts
-                  </h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#78350f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    Manage promotions
-                  </p>
-                </div>
-                <FaArrowRight size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
-              </div>
-
-              {/* Loyalty Card - Compact */}
-              <div
-                onClick={() => router.push('/customer-app')}
+                <FaUsers size={14} />
+                Customers
+              </button>
+              <button
+                type="button"
+                onClick={() => setEngagementTab('offers')}
                 style={{
-                  padding: '12px',
+                  padding: isMobile ? '10px 12px' : '12px 16px',
                   borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)',
-                  border: '1px solid #ec4899',
+                  border: engagementTab === 'offers' ? '2px solid #f59e0b' : '1px solid #fde68a',
+                  background: engagementTab === 'offers' ? '#fef3c7' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  color: engagementTab === 'offers' ? '#92400e' : '#78350f',
+                  fontWeight: '600',
+                  fontSize: isMobile ? '12px' : '13px',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(236, 72, 153, 0.25)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
+                  gap: '8px'
                 }}
               >
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  backgroundColor: '#ec4899',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  flexShrink: 0
-                }}>
-                  <FaGift size={14} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#9f1239' }}>
-                    Loyalty Program
-                  </h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#831843', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    Points & rewards
-                  </p>
-                </div>
-                <FaArrowRight size={12} style={{ color: '#ec4899', flexShrink: 0 }} />
-              </div>
-
-              {/* Customer App Card - Compact */}
-              <div
-                onClick={() => router.push('/customer-app')}
+                <FaTag size={14} />
+                Offers & Discounts
+              </button>
+              <button
+                type="button"
+                onClick={() => setEngagementTab('loyalty')}
                 style={{
-                  padding: '12px',
+                  padding: isMobile ? '10px 12px' : '12px 16px',
                   borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                  border: '1px solid #6366f1',
+                  border: engagementTab === 'loyalty' ? '2px solid #ec4899' : '1px solid #fbcfe8',
+                  background: engagementTab === 'loyalty' ? '#fce7f3' : 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)',
+                  color: engagementTab === 'loyalty' ? '#9f1239' : '#831843',
+                  fontWeight: '600',
+                  fontSize: isMobile ? '12px' : '13px',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.25)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
+                  gap: '8px'
                 }}
               >
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  backgroundColor: '#6366f1',
-                  borderRadius: '8px',
+                <FaGift size={14} />
+                Loyalty Program
+              </button>
+              <button
+                type="button"
+                onClick={() => setEngagementTab('crave-app')}
+                style={{
+                  padding: isMobile ? '10px 12px' : '12px 16px',
+                  borderRadius: '10px',
+                  border: engagementTab === 'crave-app' ? '2px solid #6366f1' : '1px solid #c7d2fe',
+                  background: engagementTab === 'crave-app' ? '#e0e7ff' : 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                  color: engagementTab === 'crave-app' ? '#312e81' : '#1e1b4b',
+                  fontWeight: '600',
+                  fontSize: isMobile ? '12px' : '13px',
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  flexShrink: 0
-                }}>
-                  <FaMobileAlt size={14} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#312e81' }}>
-                    Crave App
-                  </h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#1e1b4b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    QR codes & settings
-                  </p>
-                </div>
-                <FaArrowRight size={12} style={{ color: '#6366f1', flexShrink: 0 }} />
-              </div>
+                  gap: '8px'
+                }}
+              >
+                <FaMobileAlt size={14} />
+                Crave App
+              </button>
             </div>
           </div>
 
+          {engagementTab === 'customers' && (
+          <>
           {/* Search and Filters - More Compact */}
           <div style={{ 
             backgroundColor: 'white', 
@@ -1839,6 +1769,17 @@ const Customers = () => {
               </div>
             )}
           </div>
+        </> )}
+          {engagementTab === 'offers' && (
+            <div style={{ marginTop: 0 }}>
+              <OffersManagement />
+            </div>
+          )}
+          {(engagementTab === 'loyalty' || engagementTab === 'crave-app') && (
+            <div style={{ marginTop: 0 }}>
+              <CustomerAppSettings />
+            </div>
+          )}
         </div>
       </div>
 
