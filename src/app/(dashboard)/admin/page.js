@@ -1639,8 +1639,8 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Content Area */}
-        {activeTab === 'restaurants' ? (
+        {/* Content Area — only show restaurants/staff grids when on those tabs */}
+        {(activeTab === 'restaurants' || activeTab === 'staff') && (activeTab === 'restaurants' ? (
           // Restaurants Grid
           <div style={{
             display: 'grid',
@@ -2303,7 +2303,7 @@ const Admin = () => {
               );
             })}
           </div>
-        )}
+        ))}
 
         {/* Empty States */}
         {activeTab === 'restaurants' && filteredRestaurants.length === 0 && (
