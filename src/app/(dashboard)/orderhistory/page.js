@@ -139,7 +139,7 @@ const OrderHistory = () => {
   };
 
   const getStatusStyle = (status, orderFlow) => {
-    if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing' };
+    if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing Completed' };
     if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Kitchen' };
     if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Completed' };
     if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Confirmed' };
@@ -860,7 +860,7 @@ const OrderHistory = () => {
                                 <button 
                                 onClick={() => handleMarkCompleted(order.id)} 
                                 className="p-2 text-green-600 bg-green-100 hover:bg-green-200 rounded-lg transition-colors" 
-                                title={t('orderHistory.complete') || 'Complete'}
+                                title="Mark Bill Complete"
                                 >
                                 <FaCheckCircle size={12} />
                                 </button>
@@ -890,12 +890,12 @@ const OrderHistory = () => {
                         </div>
                         <div 
                           onClick={() => copyToClipboard(order.id)}
-                          className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1.5 -mx-1 transition-colors"
+                          className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-start gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1.5 -mx-1 transition-colors text-left"
                           title="Click to copy Order ID"
                         >
-                          <span className="text-xs text-gray-500">Order ID</span>
-                          <span className="text-xs font-mono text-gray-700 truncate max-w-[140px] sm:max-w-[220px]" title={order.id}>{order.id}</span>
-                          <FaCopy className="text-gray-400 text-xs flex-shrink-0" />
+                          <span className="text-xs font-semibold text-gray-700">Order ID</span>
+                          <span className="text-xs font-mono font-semibold text-gray-700 truncate max-w-[140px] sm:max-w-[220px]" title={order.id}>{order.id}</span>
+                          <FaCopy className="text-gray-400 text-xs flex-shrink-0 ml-auto" />
                         </div>
                       </div>
                     </div>
@@ -990,7 +990,7 @@ const OrderHistory = () => {
                               onClick={() => handleMarkCompleted(order.id)} 
                               className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 transition-all flex items-center gap-2"
                             >
-                              <FaCheckCircle /> {t('orderHistory.complete') || 'Complete'}
+                              <FaCheckCircle /> Mark Bill Complete
                             </button>
                           )}
                           <button 
@@ -1022,12 +1022,12 @@ const OrderHistory = () => {
                         </div>
                         <div 
                           onClick={() => copyToClipboard(order.id)}
-                          className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 -mx-1 transition-colors"
+                          className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-start gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 -mx-1 transition-colors text-left"
                           title="Click to copy Order ID"
                         >
-                          <span className="text-xs text-gray-500">Order ID</span>
-                          <span className="text-xs font-mono text-gray-700 truncate max-w-[200px] sm:max-w-none hover:text-red-600" title={order.id}>{order.id}</span>
-                          <FaCopy className="text-gray-400 text-xs flex-shrink-0" />
+                          <span className="text-xs font-semibold text-gray-700">Order ID</span>
+                          <span className="text-xs font-mono font-semibold text-gray-700 truncate max-w-[200px] sm:max-w-none hover:text-red-600" title={order.id}>{order.id}</span>
+                          <FaCopy className="text-gray-400 text-xs flex-shrink-0 ml-auto" />
                         </div>
                       </div>
                     </div>
