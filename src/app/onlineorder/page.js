@@ -850,7 +850,7 @@ const OnlineOrderContent = () => {
     return { progress: Math.min(progress, 100), nextTier, pointsNeeded: pointsToNextTier };
   };
 
-  // Load order history for the History tab (used inside CheckoutView)
+  // Load order history for the History tab (used inside CheckoutView). No cache: always fetches latest.
   const loadOrderHistory = useCallback(async () => {
     if (!customerData?.id) return;
     setOrderHistoryLoading(true);
@@ -861,6 +861,17 @@ const OnlineOrderContent = () => {
       console.warn('Failed to load order history:', err);
     } finally {
       setOrderHistoryLoading(false);
+    }
+  }, [customerData?.id]);
+
+  // Load loyalty/points history for the History tab. No cache: always fetches latest when opening History.
+  const loadLoyaltyHistory = useCallback(async () => {
+    if (!customerData?.id) return;
+    try {
+      const historyResponse = await apiClient.getCustomerLoyaltyHistory(customerData.id);
+      if (historyResponse) setLoyaltyHistory(historyResponse);
+    } catch (err) {
+      console.warn('Failed to load loyalty history:', err);
     }
   }, [customerData?.id]);
 
@@ -963,6 +974,7 @@ const OnlineOrderContent = () => {
         orderHistory={orderHistory}
         orderHistoryLoading={orderHistoryLoading}
         loadOrderHistory={loadOrderHistory}
+        loadLoyaltyHistory={loadLoyaltyHistory}
         expandedOrderId={expandedOrderId}
         setExpandedOrderId={setExpandedOrderId}
       />
@@ -2551,6 +2563,7 @@ const CheckoutView = ({
   orderHistory,
   orderHistoryLoading,
   loadOrderHistory,
+  loadLoyaltyHistory,
   expandedOrderId,
   setExpandedOrderId
 }) => {
@@ -2781,9 +2794,10 @@ const CheckoutView = ({
             <button
               onClick={() => {
                 setCurrentView('history');
-                // Fetch order history when clicking history tab (loadOrderHistory checks customerData?.id and loading state)
-                if (customerData?.id && !orderHistory) {
+                // Always fetch latest order & loyalty history when opening History tab (no cache)
+                if (customerData?.id) {
                   loadOrderHistory();
+                  loadLoyaltyHistory?.();
                 }
               }}
               style={{
