@@ -1011,12 +1011,12 @@ const Customers = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                     <span style={{ color: '#6b7280' }}>Total Spent</span>
-                    <span style={{ fontWeight: '600', color: '#ef4444' }}>₹{selectedCustomer.totalSpent || 0}</span>
+                    <span style={{ fontWeight: '600', color: '#ef4444' }}>₹{Number(selectedCustomer.totalSpent || 0).toFixed(2)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                     <span style={{ color: '#6b7280' }}>Avg. Order Value</span>
                     <span style={{ fontWeight: '600', color: '#1f2937' }}>
-                      ₹{(selectedCustomer.totalOrders > 0 ? (selectedCustomer.totalSpent / selectedCustomer.totalOrders).toFixed(0) : 0)}
+                      ₹{(selectedCustomer.totalOrders > 0 ? (Number(selectedCustomer.totalSpent || 0) / selectedCustomer.totalOrders).toFixed(2) : '0.00')}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
@@ -1652,7 +1652,7 @@ const Customers = () => {
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#ef4444' }}>
-                          ₹{customer.totalSpent || 0}
+                          ₹{Number(customer.totalSpent || 0).toFixed(2)}
                         </p>
                         <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>{t('customers.stats.spent')}</p>
                       </div>

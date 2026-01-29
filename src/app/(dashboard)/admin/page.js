@@ -380,6 +380,7 @@ const Admin = () => {
     phone: '',
     email: '',
     address: '',
+    username: '',
     role: 'employee',
     startDate: new Date().toISOString().split('T')[0],
     pageAccess: {
@@ -403,8 +404,9 @@ const Admin = () => {
   const [resetPasswordMode, setResetPasswordMode] = useState('generate'); // 'generate' | 'set'
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetUsername, setResetUsername] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
-  const [resetResult, setResetResult] = useState(null); // { temporaryPassword, loginId } after generate
+  const [resetResult, setResetResult] = useState(null); // { temporaryPassword, loginId, username } after generate
   const [showResetTempPassword, setShowResetTempPassword] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -787,6 +789,7 @@ const Admin = () => {
       const newStaffMember = {
         ...response.staff,
         loginId: response.credentials.loginId,
+        username: response.credentials.username || null,
         tempPassword: response.credentials.password // Store temporarily for display
       };
       setStaff([...staff, newStaffMember]);
@@ -796,6 +799,7 @@ const Admin = () => {
         phone: '',
         email: '',
         address: '',
+        username: '',
         role: 'employee',
         startDate: new Date().toISOString().split('T')[0],
         pageAccess: {
@@ -811,7 +815,10 @@ const Admin = () => {
       });
       setShowAddStaffModal(false);
       
-      alert(`Staff member added successfully!\n\nLogin Credentials:\nUser ID: ${response.credentials.loginId}\nPassword: ${response.credentials.password}\n\nPlease save these credentials securely.`);
+      const credLines = ['User ID: ' + response.credentials.loginId];
+      if (response.credentials.username) credLines.push('Username: ' + response.credentials.username);
+      credLines.push('Password: ' + response.credentials.password);
+      alert(`Staff member added successfully!\n\nLogin Credentials:\n${credLines.join('\n')}\n\nPlease save these credentials securely. Staff can log in with User ID or username.`);
     } catch (error) {
       console.error('Error adding staff:', error);
       alert(`Failed to add staff member: ${error.message}`);
@@ -955,6 +962,7 @@ const Admin = () => {
     setResetPasswordMode('generate');
     setResetNewPassword('');
     setResetConfirmPassword('');
+    setResetUsername(member?.username || '');
     setResetResult(null);
     setShowResetTempPassword(false);
     setShowResetPasswordModal(true);
@@ -966,6 +974,7 @@ const Admin = () => {
     setResetResult(null);
     setResetNewPassword('');
     setResetConfirmPassword('');
+    setResetUsername('');
     setShowResetTempPassword(false);
     setResetPasswordMode('generate');
   };
@@ -975,9 +984,10 @@ const Admin = () => {
     try {
       setResetLoading(true);
       setResetResult(null);
-      const res = await apiClient.resetStaffPassword(staffForReset.id);
-      setResetResult({ temporaryPassword: res.temporaryPassword, loginId: res.loginId });
-      setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: res.temporaryPassword, loginId: res.loginId, hasTemporaryPassword: true, credentialsMessage: res.message } : m));
+      const body = resetUsername.trim() ? { username: resetUsername.trim() } : {};
+      const res = await apiClient.resetStaffPassword(staffForReset.id, body);
+      setResetResult({ temporaryPassword: res.temporaryPassword, loginId: res.loginId, username: res.username });
+      setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: res.temporaryPassword, loginId: res.loginId, username: res.username, hasTemporaryPassword: true, credentialsMessage: res.message } : m));
     } catch (error) {
       alert(error.message || 'Failed to generate temporary password');
     } finally {
@@ -1001,8 +1011,10 @@ const Admin = () => {
     }
     try {
       setResetLoading(true);
-      await apiClient.resetStaffPassword(staffForReset.id, { newPassword: resetNewPassword, confirmPassword: resetConfirmPassword });
-      setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: undefined, hasTemporaryPassword: false, credentialsMessage: 'Password set by admin. Staff can log in with the new password.' } : m));
+      const body = { newPassword: resetNewPassword, confirmPassword: resetConfirmPassword };
+      if (resetUsername.trim()) body.username = resetUsername.trim();
+      const res = await apiClient.resetStaffPassword(staffForReset.id, body);
+      setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: undefined, username: res.username, hasTemporaryPassword: false, credentialsMessage: 'Password set by admin. Staff can log in with the new password.' } : m));
       alert('Password set successfully.');
       closeResetPasswordModal();
     } catch (error) {
@@ -2935,6 +2947,30 @@ const Admin = () => {
                 />
                   </div>
 
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Username (optional)
+                </label>
+                <input
+                  type="text"
+                  value={newStaff.username}
+                  onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: '#f8fafc',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="e.g. john_doe — staff can log in with this or User ID"
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>3–50 characters, letters, numbers and underscore. Must be unique.</p>
+              </div>
+
                   <div>
                     <label style={{ 
                       display: 'block', 
@@ -3312,6 +3348,28 @@ const Admin = () => {
                 </button>
               </div>
 
+              {/* Optional username (both modes) */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Username (optional)
+                </label>
+                <input
+                  type="text"
+                  value={resetUsername}
+                  onChange={(e) => setResetUsername(e.target.value)}
+                  placeholder="e.g. john_doe — staff can log in with this or User ID"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>3–50 characters, letters, numbers and underscore only. Must be unique.</p>
+              </div>
+
               {resetPasswordMode === 'generate' && (
                 <>
                   <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
@@ -3331,6 +3389,14 @@ const Admin = () => {
                           {resetResult.loginId}
                         </div>
                       </div>
+                      {resetResult.username && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Username</span>
+                          <div style={{ fontSize: '15px', fontFamily: 'monospace', color: '#0c4a6e', marginTop: '4px' }}>
+                            {resetResult.username}
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <span style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Temporary password</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
@@ -3597,6 +3663,48 @@ const Admin = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Username (if set) */}
+                    {(selectedStaff.username) && (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#0c4a6e' }}>Username</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ 
+                            fontSize: '16px', 
+                            fontWeight: '700', 
+                            color: '#0c4a6e',
+                            backgroundColor: '#e0f2fe',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            fontFamily: 'monospace',
+                            flex: 1
+                          }}>
+                            {selectedStaff.username}
+                          </span>
+                          <button
+                            onClick={() => copyToClipboard(selectedStaff.username, 'username', selectedStaff.id)}
+                            style={{
+                              backgroundColor: copiedCredentials[`${selectedStaff.id}_username`] ? '#10b981' : '#0ea5e9',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600'
+                            }}
+                          >
+                            <FaCopy size={12} />
+                            {copiedCredentials[`${selectedStaff.id}_username`] ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Password */}
                     {(selectedStaff.tempPassword || selectedStaff.password) && (

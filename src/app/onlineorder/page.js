@@ -1895,10 +1895,10 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
                     }}>
                       {offer.discountType === 'percentage'
                         ? `${offer.discountValue}% OFF`
-                        : `₹${offer.discountValue} OFF`}
+                        : `₹${Number(offer.discountValue || 0).toFixed(2)} OFF`}
                       {offer.minOrderValue > 0 && (
                         <span style={{ fontWeight: '500', color: '#4b5563' }}>
-                          {' '}on ₹{offer.minOrderValue}+
+                          {' '}on ₹{Number(offer.minOrderValue).toFixed(2)}+
                         </span>
                       )}
                     </div>
@@ -1931,7 +1931,7 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
                       color: '#1f2937',
                       lineHeight: 1
                     }}>
-                      {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `₹${offer.discountValue}`}
+                      {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `₹${Number(offer.discountValue || 0).toFixed(2)}`}
                     </div>
                     <div style={{
                       fontSize: '9px',
@@ -2144,7 +2144,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>
-            ₹{item.price}
+            ₹{Number(item.price || 0).toFixed(2)}
           </span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2290,7 +2290,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               }}>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}</h4>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>₹{item.price} each</p>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>₹{Number(item.price || 0).toFixed(2)} each</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button onClick={() => removeFromCart(item.id)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}>
@@ -3114,7 +3114,7 @@ const CheckoutView = ({
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>Total Orders</div>
                 </div>
                 <div style={{ backgroundColor: '#fef3c7', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '28px', fontWeight: '700', color: '#92400e' }}>₹{customerData?.totalSpent || 0}</div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: '#92400e' }}>₹{Number(customerData?.totalSpent || 0).toFixed(2)}</div>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>Total Spent</div>
                 </div>
               </div>
@@ -3243,7 +3243,7 @@ const CheckoutView = ({
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>₹{order.totalAmount}</div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>₹{Number(order.totalAmount || 0).toFixed(2)}</div>
                               {order.loyaltyPointsEarned > 0 && (
                                 <div style={{ fontSize: '10px', color: '#22c55e', fontWeight: '600' }}>
                                   +{order.loyaltyPointsEarned} pts
@@ -3283,7 +3283,7 @@ const CheckoutView = ({
                                     {item.name} <span style={{ color: '#9ca3af' }}>x{item.quantity}</span>
                                   </div>
                                   <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
-                                    ₹{item.total || (item.price * item.quantity)}
+                                    ₹{Number(item.total ?? (item.price * item.quantity)).toFixed(2)}
                                   </div>
                                 </div>
                               ))}
@@ -3297,23 +3297,23 @@ const CheckoutView = ({
                             }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
                                 <span>Subtotal</span>
-                                <span>₹{order.subtotal}</span>
+                                <span>₹{Number(order.subtotal || 0).toFixed(2)}</span>
                               </div>
                               {order.discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#22c55e', marginBottom: '4px' }}>
                                   <span>Offer Discount {order.appliedOffer?.name && `(${order.appliedOffer.name})`}</span>
-                                  <span>-₹{order.discountAmount}</span>
+                                  <span>-₹{Number(order.discountAmount).toFixed(2)}</span>
                                 </div>
                               )}
                               {order.loyaltyDiscount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#7c3aed', marginBottom: '4px' }}>
                                   <span>Points Redeemed</span>
-                                  <span>-₹{order.loyaltyDiscount}</span>
+                                  <span>-₹{Number(order.loyaltyDiscount).toFixed(2)}</span>
                                 </div>
                               )}
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '700', color: '#1f2937', marginTop: '6px' }}>
                                 <span>Total</span>
-                                <span>₹{order.totalAmount}</span>
+                                <span>₹{Number(order.totalAmount || 0).toFixed(2)}</span>
                               </div>
                             </div>
 
@@ -3460,7 +3460,7 @@ const CheckoutView = ({
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>₹{item.price} x {item.quantity}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>₹{Number(item.price || 0).toFixed(2)} x {item.quantity}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button onClick={() => removeFromCart(item.id)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
@@ -3559,13 +3559,13 @@ const CheckoutView = ({
                         <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{offer.name}</div>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>
                           {offer.discountType === 'percentage'
-                            ? `${offer.discountValue}% off${offer.maxDiscount ? ` (max ₹${offer.maxDiscount})` : ''}`
-                            : `₹${offer.discountValue} off`}
-                          {offer.minOrderValue > 0 && ` on ₹${offer.minOrderValue}+`}
+                            ? `${offer.discountValue}% off${offer.maxDiscount ? ` (max ₹${Number(offer.maxDiscount).toFixed(2)})` : ''}`
+                            : `₹${Number(offer.discountValue || 0).toFixed(2)} off`}
+                          {offer.minOrderValue > 0 && ` on ₹${Number(offer.minOrderValue).toFixed(2)}+`}
                         </div>
                         {!meetsMinOrder && (
                           <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>
-                            Add ₹{(offer.minOrderValue - getCartSubtotal()).toFixed(0)} more
+                            Add ₹{Math.max(0, Number(offer.minOrderValue) - getCartSubtotal()).toFixed(2)} more
                           </div>
                         )}
                         {meetsMinOrder && !canSelectMore && !isSelected && (
