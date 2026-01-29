@@ -1809,6 +1809,25 @@ class ApiClient {
     return this.request(`/api/public/restaurant/code/${code}`);
   }
 
+  // Get restaurant by URL slug (public)
+  async getRestaurantBySlug(slug) {
+    return this.request(`/api/public/restaurant-by-slug/${slug}`);
+  }
+
+  // Check if URL slug is available (public)
+  async checkSlugAvailability(slug, excludeRestaurantId = null) {
+    const params = excludeRestaurantId ? `?excludeRestaurantId=${excludeRestaurantId}` : '';
+    return this.request(`/api/public/check-slug/${slug}${params}`);
+  }
+
+  // Update restaurant URL slug (authenticated)
+  async updateRestaurantSlug(restaurantId, slug) {
+    return this.request(`/api/restaurants/${restaurantId}/slug`, {
+      method: 'PATCH',
+      body: { slug },
+    });
+  }
+
   // Get active offers (public)
   // isFirstOrder: true/false - Filter first-order-only offers based on customer status
   async getActiveOffers(restaurantId, isFirstOrder = undefined) {

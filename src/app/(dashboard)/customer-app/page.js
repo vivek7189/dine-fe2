@@ -69,6 +69,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
     maxRedemptionPercent: ''
   });
 
+  // Custom URL slug state
+  const [urlSlug, setUrlSlug] = useState('');
+  const [slugAvailable, setSlugAvailable] = useState(null); // null = not checked, true = available, false = not available
+  const [slugError, setSlugError] = useState('');
+  const [checkingSlug, setCheckingSlug] = useState(false);
+  const [savingSlug, setSavingSlug] = useState(false);
+
   const [settings, setSettings] = useState({
     enabled: false,
     restaurantCode: '',
@@ -158,10 +165,15 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
 
   const loadSettings = async (id) => {
     try {
-      // Load restaurant info to get name
+      // Load restaurant info to get name and urlSlug
       const restaurantResponse = await apiClient.get(`/api/restaurants/${id}`);
       if (restaurantResponse.restaurant) {
         setRestaurantName(restaurantResponse.restaurant.name || '');
+        // Load existing urlSlug if any
+        if (restaurantResponse.restaurant.urlSlug) {
+          setUrlSlug(restaurantResponse.restaurant.urlSlug);
+          setSlugAvailable(true); // It's already saved, so it's available
+        }
       }
 
       const response = await apiClient.get(`/api/restaurants/${id}/customer-app-settings`);
@@ -173,12 +185,20 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           ...response.settings,
           restaurantCode: restaurantCode || prev.restaurantCode
         }));
-        
+
         // Set logo preview if logoUrl exists
         if (response.settings.branding?.logoUrl) {
           setLogoPreview(response.settings.branding.logoUrl);
         }
-        
+
+        // Set online order URL - prefer custom slug, fallback to restaurant ID
+        const customSlug = restaurantResponse?.restaurant?.urlSlug;
+        if (customSlug) {
+          setOnlineOrderUrl(`https://www.dineopen.com/${customSlug}`);
+        } else {
+          setOnlineOrderUrl(`https://www.dineopen.com/onlineorder?restaurant=${id}`);
+        }
+
         // If restaurant code exists, try to load QR code
         if (restaurantCode) {
           try {
@@ -186,17 +206,9 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
             if (qrResponse.qrCode) {
               setQrCodeUrl(qrResponse.qrCode);
             }
-            if (qrResponse.onlineOrderUrl) {
-              setOnlineOrderUrl(qrResponse.onlineOrderUrl);
-            }
           } catch (qrErr) {
             console.log('No QR code yet, but restaurant code exists');
-            // Set online order URL even if QR doesn't exist yet
-            setOnlineOrderUrl(`https://www.dineopen.com/onlineorder?restaurant=${id}`);
           }
-        } else {
-          // Set online order URL based on restaurant ID
-          setOnlineOrderUrl(`https://www.dineopen.com/onlineorder?restaurant=${id}`);
         }
       }
     } catch (error) {
@@ -440,6 +452,78 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       link.href = qrCodeUrl;
       link.download = `crave-qr-${settings.restaurantCode}.png`;
       link.click();
+    }
+  };
+
+  // Check if URL slug is available (with debounce)
+  const checkSlugAvailability = async (slug) => {
+    if (!slug || slug.length < 3) {
+      setSlugAvailable(null);
+      setSlugError(slug && slug.length < 3 ? 'URL must be at least 3 characters' : '');
+      return;
+    }
+
+    setCheckingSlug(true);
+    setSlugError('');
+    try {
+      const response = await apiClient.checkSlugAvailability(slug, restaurantId);
+      setSlugAvailable(response.available);
+      setSlugError(response.reason || '');
+    } catch (error) {
+      console.error('Error checking slug:', error);
+      setSlugError('Failed to check availability');
+      setSlugAvailable(null);
+    } finally {
+      setCheckingSlug(false);
+    }
+  };
+
+  // Handle slug input change with debounce
+  const handleSlugChange = (value) => {
+    // Normalize: lowercase, only letters, numbers, hyphens
+    const normalized = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setUrlSlug(normalized);
+    setSlugAvailable(null);
+    setSlugError('');
+
+    // Debounce the availability check
+    if (window.slugCheckTimeout) {
+      clearTimeout(window.slugCheckTimeout);
+    }
+    window.slugCheckTimeout = setTimeout(() => {
+      checkSlugAvailability(normalized);
+    }, 500);
+  };
+
+  // Save the custom URL slug
+  const saveSlug = async () => {
+    if (!urlSlug || !slugAvailable) return;
+
+    let currentRestaurantId = restaurantId || propRestaurantId;
+    if (!currentRestaurantId) {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      currentRestaurantId = userData.restaurant?.id || userData.restaurantId;
+    }
+
+    if (!currentRestaurantId) {
+      alert('No restaurant selected');
+      return;
+    }
+
+    setSavingSlug(true);
+    try {
+      const response = await apiClient.updateRestaurantSlug(currentRestaurantId, urlSlug);
+      if (response.success) {
+        setOnlineOrderUrl(`https://www.dineopen.com/${urlSlug}`);
+        showNotification('Custom URL saved successfully!');
+      } else {
+        alert(response.error || 'Failed to save URL');
+      }
+    } catch (error) {
+      console.error('Error saving slug:', error);
+      alert('Failed to save custom URL');
+    } finally {
+      setSavingSlug(false);
     }
   };
 
@@ -902,6 +986,72 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   to { transform: rotate(360deg); }
                 }
               `}</style>
+            </div>
+
+            {/* Custom URL Section */}
+            <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0369a1', marginBottom: '8px' }}>
+                <FaLink style={{ marginRight: '6px' }} />
+                Custom URL (Short Link)
+              </label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>dineopen.com/</span>
+                <input
+                  type="text"
+                  value={urlSlug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    border: slugError ? '2px solid #dc2626' : slugAvailable === true ? '2px solid #10b981' : '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                  placeholder="your-restaurant"
+                  maxLength={30}
+                />
+                <button
+                  onClick={saveSlug}
+                  disabled={!urlSlug || !slugAvailable || savingSlug}
+                  style={{
+                    padding: '10px 16px',
+                    backgroundColor: !urlSlug || !slugAvailable ? '#d1d5db' : '#0ea5e9',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    cursor: !urlSlug || !slugAvailable ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {savingSlug ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSave size={12} />}
+                  {savingSlug ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+              <div style={{ marginTop: '8px', minHeight: '20px' }}>
+                {checkingSlug && (
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Checking availability...</span>
+                )}
+                {!checkingSlug && slugAvailable === true && urlSlug && (
+                  <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '500' }}>
+                    <FaCheck style={{ marginRight: '4px' }} />
+                    Available! Your URL will be: dineopen.com/{urlSlug}
+                  </span>
+                )}
+                {!checkingSlug && slugError && (
+                  <span style={{ fontSize: '12px', color: '#dc2626' }}>
+                    <FaTimes style={{ marginRight: '4px' }} />
+                    {slugError}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#64748b' }}>
+                Create a short, memorable URL for your restaurant. Use lowercase letters, numbers, and hyphens only.
+              </p>
             </div>
 
             <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 12px' }}>Order Types</h3>

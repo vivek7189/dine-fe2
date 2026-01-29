@@ -153,7 +153,7 @@ const tierInfo = {
   platinum: { color: '#E5E4E2', bgColor: '#f8f8ff', label: 'Platinum', icon: '💎', multiplier: 2 }
 };
 
-const OnlineOrderContent = () => {
+const OnlineOrderContent = ({ restaurantIdProp = null }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -203,7 +203,7 @@ const OnlineOrderContent = () => {
   const [showLoginPopup, setShowLoginPopup] = useState(false); // New: separate login popup
   const [sessionRestored, setSessionRestored] = useState(false); // Track if we've checked session
 
-  const restaurantId = searchParams.get('restaurant') || 'default';
+  const restaurantId = restaurantIdProp || searchParams.get('restaurant') || 'default';
   const seatNumber = searchParams.get('seat') || '';
 
   useEffect(() => {
@@ -3582,7 +3582,7 @@ const CheckoutView = ({
   );
 };
 
-const OnlineOrderPage = () => {
+const OnlineOrderPage = ({ restaurantId = null }) => {
   return (
     <Suspense fallback={
       <div style={{
@@ -3595,7 +3595,7 @@ const OnlineOrderPage = () => {
         <FaSpinner size={40} color="#ef4444" style={{ animation: 'spin 1s linear infinite' }} />
       </div>
     }>
-      <OnlineOrderContent />
+      <OnlineOrderContent restaurantIdProp={restaurantId} />
     </Suspense>
   );
 };
