@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
   FaPhone, 
   FaEnvelope,
@@ -249,12 +250,12 @@ const LocalLogin = () => {
 
         {/* Link to regular login */}
         <div className="mt-4 text-center">
-          <a
+          <Link
             href="/login"
             className="text-sm text-gray-600 hover:text-red-600"
           >
             Go to regular login →
-          </a>
+          </Link>
         </div>
       </div>
 
