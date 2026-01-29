@@ -1826,35 +1826,58 @@ const Admin = () => {
 
               return (
                 <div key={member.id} style={{
-                  backgroundColor: isInactive ? '#f3f4f6' : 'white',
+                  backgroundColor: isInactive ? '#e5e7eb' : 'white',
                   borderRadius: '20px',
-                  boxShadow: isInactive ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.08)',
+                  boxShadow: isInactive ? '0 1px 4px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.08)',
                   overflow: 'hidden',
                   transition: 'all 0.3s ease',
-                  border: isInactive ? '1px solid #e5e7eb' : '1px solid #fce7f3',
+                  border: isInactive ? '2px solid #9ca3af' : '1px solid #fce7f3',
                   cursor: 'pointer',
-                  opacity: isInactive ? 0.92 : 1
+                  opacity: isInactive ? 0.88 : 1,
+                  position: 'relative'
                 }}
                 onMouseEnter={(e) => {
-                  if (!isClient || !isMobile) {
+                  if (!isClient || !isMobile && !isInactive) {
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+                    e.currentTarget.style.boxShadow = isInactive ? '0 1px 4px rgba(0,0,0,0.1)' : '0 8px 24px rgba(0,0,0,0.12)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isClient || !isMobile) {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                    e.currentTarget.style.boxShadow = isInactive ? '0 1px 4px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.08)';
                   }
                 }}>
+                  {isInactive && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      padding: '6px 12px',
+                      background: 'linear-gradient(90deg, #6b7280 0%, #9ca3af 100%)',
+                      color: 'white',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      letterSpacing: '0.05em',
+                      textAlign: 'center',
+                      zIndex: 1
+                    }}>
+                      DEACTIVATED
+                    </div>
+                  )}
                   {/* Staff Header */}
-                  <div style={{ padding: isClient && isMobile ? '16px' : '20px', borderBottom: '1px solid #f3f4f6' }}>
+                  <div style={{
+                    padding: isClient && isMobile ? '16px' : '20px',
+                    borderBottom: '1px solid #f3f4f6',
+                    paddingTop: isInactive ? (isClient && isMobile ? '38px' : '42px') : (isClient && isMobile ? '16px' : '20px')
+                  }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
                           width: '48px',
                           height: '48px',
-                          background: `linear-gradient(135deg, ${roleInfo.color}, ${roleInfo.color}dd)`,
+                          background: isInactive ? 'linear-gradient(135deg, #9ca3af, #6b7280)' : `linear-gradient(135deg, ${roleInfo.color}, ${roleInfo.color}dd)`,
                           borderRadius: '12px',
                           display: 'flex',
                           alignItems: 'center',
@@ -1863,8 +1886,17 @@ const Admin = () => {
                           <RoleIcon color="white" size={20} />
                         </div>
                         <div>
-                          <h3 style={{ fontSize: isClient && isMobile ? '16px' : '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>{member.name || 'Unknown'}</h3>
-                          <p style={{ fontSize: isClient && isMobile ? '12px' : '13px', color: '#6b7280', margin: 0 }}>{member.phone || member.email || 'No contact'}</p>
+                          <h3 style={{
+                            fontSize: isClient && isMobile ? '16px' : '18px',
+                            fontWeight: 'bold',
+                            color: isInactive ? '#6b7280' : '#1f2937',
+                            margin: 0
+                          }}>{member.name || 'Unknown'}</h3>
+                          <p style={{
+                            fontSize: isClient && isMobile ? '12px' : '13px',
+                            color: isInactive ? '#9ca3af' : '#6b7280',
+                            margin: 0
+                          }}>{member.phone || member.email || 'No contact'}</p>
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: isClient && isMobile ? '4px' : '6px', flexWrap: 'wrap' }}>
@@ -1906,16 +1938,16 @@ const Admin = () => {
                   <div style={{ padding: isClient && isMobile ? '16px' : '20px' }}>
                     {/* Login Credentials Section */}
                     <div style={{ 
-                      backgroundColor: '#f0f9ff', 
+                      backgroundColor: isInactive ? '#f3f4f6' : '#f0f9ff', 
                       padding: isClient && isMobile ? '12px' : '16px', 
                       borderRadius: '12px',
                       marginBottom: isClient && isMobile ? '12px' : '16px',
-                      border: '1px solid #0ea5e9'
+                      border: isInactive ? '1px solid #d1d5db' : '1px solid #0ea5e9'
                     }}>
                       <h4 style={{ 
                         fontSize: '14px', 
                         fontWeight: '600', 
-                        color: '#0c4a6e', 
+                        color: isInactive ? '#6b7280' : '#0c4a6e', 
                         marginBottom: '12px',
                         display: 'flex',
                         alignItems: 'center',
