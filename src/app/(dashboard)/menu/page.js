@@ -1514,7 +1514,7 @@ const MenuManagement = () => {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start as true to show loading on first load
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [hasInitialData, setHasInitialData] = useState(false); // Track if we have any data (cached or fresh)
@@ -2915,8 +2915,65 @@ const MenuManagement = () => {
           </button>
         </div>
 
-        {filteredItems.length > 0 ? (
-          viewMode === 'grid' ? (
+        {/* Loading State */}
+        {(loading || !hasInitialData || operationLoading) && menuItems.length === 0 ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '80px 20px',
+            background: 'linear-gradient(135deg, rgb(255 246 241) 0%, rgb(254 245 242) 50%, rgb(255 244 243) 100%)',
+            borderRadius: '24px',
+            border: '1px solid rgba(239, 68, 68, 0.1)'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              backgroundColor: '#fef2f2',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '24px'
+            }}>
+              <FaSpinner size={32} style={{ color: '#ef4444', animation: 'spin 1s linear infinite' }} />
+            </div>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#374151',
+              marginBottom: '8px'
+            }}>
+              Loading Menu...
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '16px' }}>
+              Please wait while we fetch your menu items
+            </p>
+          </div>
+        ) : filteredItems.length > 0 ? (
+          <div style={{ position: 'relative' }}>
+            {/* Operation Loading Overlay */}
+            {operationLoading && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                borderRadius: '16px'
+              }}>
+                <FaSpinner size={40} style={{ color: '#ef4444', animation: 'spin 1s linear infinite', marginBottom: '16px' }} />
+                <p style={{ color: '#374151', fontWeight: '600', fontSize: '16px' }}>Processing...</p>
+              </div>
+            )}
+            {viewMode === 'grid' ? (
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -2986,11 +3043,12 @@ const MenuManagement = () => {
                     );
                   })}
             </div>
-          )
+          )}
+          </div>
         ) : (menuItems.length > 0 && filteredItems.length === 0) ? (
           // No items match the filter, but we have menu items - don't show empty state
           null
-        ) : (!loading && menuItems.length === 0) ? (
+        ) : (hasInitialData && !loading && !operationLoading && menuItems.length === 0) ? (
           <div style={{
             textAlign: 'center',
             padding: '80px 20px',
@@ -4209,6 +4267,14 @@ const MenuManagement = () => {
           }
           60% {
             transform: translateY(-5px);
+          }
+        }
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
           }
         }
       `}</style>
