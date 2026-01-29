@@ -83,6 +83,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       pointsEarned: 4,
       redemptionRate: 100,
       maxRedemptionPercent: 20,
+      earnPointsOnRedemption: false,
+      earnOnFullAmount: false,
     },
     branding: {
       primaryColor: '#ef4444',
@@ -716,6 +718,65 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     Maximum % of order that can be redeemed
                   </p>
                 </div>
+              </div>
+
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#fefce8',
+                borderRadius: '12px',
+                border: '1px solid #fde047',
+                marginTop: '20px'
+              }}>
+                <div style={{ marginBottom: '16px', fontWeight: '700', fontSize: '15px', color: '#854d0e' }}>
+                  Points Earning on Redemption
+                </div>
+                <Toggle
+                  value={settings.loyaltySettings.earnPointsOnRedemption}
+                  onChange={(v) => setSettings(prev => ({
+                    ...prev,
+                    loyaltySettings: { ...prev.loyaltySettings, earnPointsOnRedemption: v }
+                  }))}
+                  label="Allow earning points when redeeming"
+                />
+                <p style={{ margin: '4px 0 16px', fontSize: '11px', color: '#92400e' }}>
+                  If disabled, customers who redeem points will not earn any loyalty points on that order
+                </p>
+
+                {settings.loyaltySettings.earnPointsOnRedemption && (
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    padding: '12px',
+                    backgroundColor: '#fffbeb',
+                    borderRadius: '8px',
+                    border: '1px solid #fde68a'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={settings.loyaltySettings.earnOnFullAmount || false}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        loyaltySettings: { ...prev.loyaltySettings, earnOnFullAmount: e.target.checked }
+                      }))}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        marginTop: '2px',
+                        accentColor: '#d97706'
+                      }}
+                    />
+                    <div>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#78350f' }}>
+                        Earn points on full order amount
+                      </span>
+                      <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#92400e' }}>
+                        By default, points are earned only on remaining amount after redemption. Check this to earn on full amount before redemption discount.
+                      </p>
+                    </div>
+                  </label>
+                )}
               </div>
 
               <div style={{

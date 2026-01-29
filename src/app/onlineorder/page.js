@@ -553,6 +553,30 @@ const OnlineOrderContent = () => {
   const getLoyaltyPointsToEarn = () => {
     if (!customerAppSettings?.loyaltySettings?.enabled) return 0;
     const loyaltySettings = customerAppSettings.loyaltySettings;
+
+    // Check if user is redeeming points
+    if (redeemLoyaltyPoints > 0) {
+      // If earnPointsOnRedemption is false (default), no points earned when redeeming
+      if (!loyaltySettings.earnPointsOnRedemption) {
+        return 0;
+      }
+
+      const earnPerAmount = loyaltySettings.earnPerAmount || 100;
+      const pointsEarned = loyaltySettings.pointsEarned || 4;
+
+      // If earnOnFullAmount is true, calculate on full amount before redemption
+      if (loyaltySettings.earnOnFullAmount) {
+        const subtotal = getCartSubtotal();
+        const offerDiscount = getOfferDiscount();
+        const amountBeforeRedemption = subtotal - offerDiscount;
+        return Math.floor(amountBeforeRedemption / earnPerAmount) * pointsEarned;
+      } else {
+        // Default: Earn on remaining amount only (after redemption discount)
+        return Math.floor(getFinalTotal() / earnPerAmount) * pointsEarned;
+      }
+    }
+
+    // No redemption - calculate normally
     // Support new format (earnPerAmount/pointsEarned) and legacy format (pointsPerRupee)
     if (loyaltySettings.earnPerAmount && loyaltySettings.pointsEarned) {
       const earnPerAmount = loyaltySettings.earnPerAmount || 100;
