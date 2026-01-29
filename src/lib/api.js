@@ -63,6 +63,14 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        // Staff/employee deactivated: clear auth and redirect to login (web + app)
+        if (response.status === 401 && data && data.inactive === true) {
+          this.clearToken();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+          throw new Error(data.message || data.error || 'Your account has been deactivated.');
+        }
         // Provide more specific error message for 404
         if (response.status === 404) {
           throw new Error(data.message || data.error || `Endpoint ${endpoint} not found`);

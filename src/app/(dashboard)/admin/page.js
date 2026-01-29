@@ -1822,16 +1822,18 @@ const Admin = () => {
               const statusInfo = getStatusInfo(member.status);
               const RoleIcon = roleInfo.icon;
               const StatusIcon = statusInfo.icon;
+              const isInactive = member.status === 'inactive';
 
               return (
                 <div key={member.id} style={{
-                  backgroundColor: 'white',
+                  backgroundColor: isInactive ? '#f3f4f6' : 'white',
                   borderRadius: '20px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  boxShadow: isInactive ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.08)',
                   overflow: 'hidden',
                   transition: 'all 0.3s ease',
-                  border: '1px solid #fce7f3',
-                  cursor: 'pointer'
+                  border: isInactive ? '1px solid #e5e7eb' : '1px solid #fce7f3',
+                  cursor: 'pointer',
+                  opacity: isInactive ? 0.92 : 1
                 }}
                 onMouseEnter={(e) => {
                   if (!isClient || !isMobile) {
