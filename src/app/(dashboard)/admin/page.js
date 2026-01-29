@@ -398,6 +398,14 @@ const Admin = () => {
   const [newCustomRole, setNewCustomRole] = useState('');
   const [currentUserRole, setCurrentUserRole] = useState('owner');
   const [copiedCredentials, setCopiedCredentials] = useState({});
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [staffForReset, setStaffForReset] = useState(null);
+  const [resetPasswordMode, setResetPasswordMode] = useState('generate'); // 'generate' | 'set'
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetResult, setResetResult] = useState(null); // { temporaryPassword, loginId } after generate
+  const [showResetTempPassword, setShowResetTempPassword] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -940,6 +948,68 @@ const Admin = () => {
       ...prev,
       [memberId]: !prev[memberId]
     }));
+  };
+
+  const openResetPasswordModal = (member) => {
+    setStaffForReset(member);
+    setResetPasswordMode('generate');
+    setResetNewPassword('');
+    setResetConfirmPassword('');
+    setResetResult(null);
+    setShowResetTempPassword(false);
+    setShowResetPasswordModal(true);
+  };
+
+  const closeResetPasswordModal = () => {
+    setShowResetPasswordModal(false);
+    setStaffForReset(null);
+    setResetResult(null);
+    setResetNewPassword('');
+    setResetConfirmPassword('');
+    setShowResetTempPassword(false);
+    setResetPasswordMode('generate');
+  };
+
+  const handleGenerateTempPassword = async () => {
+    if (!staffForReset?.id) return;
+    try {
+      setResetLoading(true);
+      setResetResult(null);
+      const res = await apiClient.resetStaffPassword(staffForReset.id);
+      setResetResult({ temporaryPassword: res.temporaryPassword, loginId: res.loginId });
+      setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: res.temporaryPassword, loginId: res.loginId, hasTemporaryPassword: true, credentialsMessage: res.message } : m));
+    } catch (error) {
+      alert(error.message || 'Failed to generate temporary password');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleSetNewPassword = async () => {
+    if (!staffForReset?.id) return;
+    if (!resetNewPassword || !resetConfirmPassword) {
+      alert('Please enter password and confirmation');
+      return;
+    }
+    if (resetNewPassword !== resetConfirmPassword) {
+      alert('Password and confirmation do not match');
+      return;
+    }
+    if (resetNewPassword.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+    try {
+      setResetLoading(true);
+      await apiClient.resetStaffPassword(staffForReset.id, { newPassword: resetNewPassword, confirmPassword: resetConfirmPassword });
+      setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: undefined, hasTemporaryPassword: false, credentialsMessage: 'Password set by admin. Staff can log in with the new password.' } : m));
+      alert('Password set successfully.');
+      closeResetPasswordModal();
+    } catch (error) {
+      alert(error.message || 'Failed to set password');
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   // Menu management functions
@@ -2286,6 +2356,30 @@ const Admin = () => {
                       </button>
                     )}
 
+                    {/* Reset password - only for owner/admin and if can manage */}
+                    {(currentUserRole === 'owner' || currentUserRole === 'admin') && canManageStaff(member.role) && (
+                      <button
+                        onClick={() => openResetPasswordModal(member)}
+                        style={{
+                          backgroundColor: '#8b5cf6',
+                          color: 'white',
+                          padding: '6px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '32px',
+                          height: '32px'
+                        }}
+                        title="Reset password"
+                      >
+                        <FaKey size={14} />
+                      </button>
+                    )}
+
                     {/* Edit button - only for higher-level roles and if can manage */}
                     {(currentUserRole === 'owner' || currentUserRole === 'admin') && canManageStaff(member.role) && (
                       <button
@@ -3124,6 +3218,250 @@ const Admin = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && staffForReset && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            width: '100%',
+            maxWidth: '480px',
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #f3f4f6',
+              background: 'linear-gradient(135deg, #e0f2fe, #f0f9ff)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0c4a6e', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaKey size={20} />
+                  Reset Password
+                </h2>
+                <button
+                  onClick={closeResetPasswordModal}
+                  style={{
+                    color: '#6b7280',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#0369a1' }}>
+                {staffForReset.name}
+              </p>
+            </div>
+
+            <div style={{ padding: '24px' }}>
+              {/* Mode tabs */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setResetPasswordMode('generate'); setResetResult(null); }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    border: resetPasswordMode === 'generate' ? '2px solid #0ea5e9' : '1px solid #e5e7eb',
+                    backgroundColor: resetPasswordMode === 'generate' ? '#e0f2fe' : '#f9fafb',
+                    color: resetPasswordMode === 'generate' ? '#0c4a6e' : '#6b7280',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Generate temporary
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setResetPasswordMode('set'); setResetResult(null); }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    border: resetPasswordMode === 'set' ? '2px solid #0ea5e9' : '1px solid #e5e7eb',
+                    backgroundColor: resetPasswordMode === 'set' ? '#e0f2fe' : '#f9fafb',
+                    color: resetPasswordMode === 'set' ? '#0c4a6e' : '#6b7280',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Set new password
+                </button>
+              </div>
+
+              {resetPasswordMode === 'generate' && (
+                <>
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
+                    Generate a temporary password for this staff. They can log in with it and change it in the app.
+                  </p>
+                  {resetResult ? (
+                    <div style={{
+                      backgroundColor: '#f0fdf4',
+                      border: '1px solid #86efac',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      marginBottom: '16px'
+                    }}>
+                      <div style={{ marginBottom: '12px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>User ID</span>
+                        <div style={{ fontSize: '15px', fontFamily: 'monospace', color: '#0c4a6e', marginTop: '4px' }}>
+                          {resetResult.loginId}
+                        </div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Temporary password</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                          <span style={{
+                            fontSize: '15px',
+                            fontFamily: 'monospace',
+                            color: '#0c4a6e',
+                            backgroundColor: '#dcfce7',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            flex: 1
+                          }}>
+                            {showResetTempPassword ? resetResult.temporaryPassword : '••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowResetTempPassword(prev => !prev)}
+                            style={{
+                              backgroundColor: '#6b7280',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title={showResetTempPassword ? 'Hide' : 'Show'}
+                          >
+                            {showResetTempPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleGenerateTempPassword}
+                    disabled={resetLoading}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      backgroundColor: '#0ea5e9',
+                      color: 'white',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: resetLoading ? 'not-allowed' : 'pointer',
+                      opacity: resetLoading ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {resetLoading ? <><FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</> : <>Generate temporary password</>}
+                  </button>
+                </>
+              )}
+
+              {resetPasswordMode === 'set' && (
+                <>
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
+                    Set a new password for this staff. They will use it to log in.
+                  </p>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                      New password
+                    </label>
+                    <input
+                      type="password"
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                      Confirm password
+                    </label>
+                    <input
+                      type="password"
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSetNewPassword}
+                    disabled={resetLoading}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      backgroundColor: '#0ea5e9',
+                      color: 'white',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: resetLoading ? 'not-allowed' : 'pointer',
+                      opacity: resetLoading ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {resetLoading ? <><FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> Setting...</> : <>Set password</>}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

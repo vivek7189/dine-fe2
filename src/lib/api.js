@@ -807,6 +807,13 @@ class ApiClient {
     return this.request(`/api/staff/${staffId}/credentials`);
   }
 
+  async resetStaffPassword(staffId, body = {}) {
+    return this.request(`/api/staff/${staffId}/reset-password`, {
+      method: 'POST',
+      body,
+    });
+  }
+
   async deleteStaff(staffId) {
     return this.request(`/api/staff/${staffId}`, {
       method: 'DELETE',
