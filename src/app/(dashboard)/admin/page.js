@@ -557,24 +557,24 @@ const Admin = () => {
     }
   };
 
-  // Fetch credentials for a specific staff member
+  // Fetch credentials for a specific staff member (admin-set temp password only; if user changed from app, we don't get password)
   const fetchStaffCredentials = async (staffId) => {
     try {
       const response = await apiClient.getStaffCredentials(staffId);
-      
-      // Update the staff member with credentials
-      setStaff(prevStaff => prevStaff.map(member => 
-        member.id === staffId 
-          ? { 
-              ...member, 
-              loginId: response.loginId,
-              tempPassword: response.temporaryPassword,
-              hasTemporaryPassword: response.hasTemporaryPassword,
-              credentialsMessage: response.message
+      // Only show password when it's admin-set (temporary). When user changed from app, hasTemporaryPassword is false and we don't get temporaryPassword.
+      setStaff(prevStaff => prevStaff.map(member =>
+        member.id === staffId
+          ? {
+              ...member,
+              loginId: response.loginId ?? member.loginId,
+              tempPassword: response.temporaryPassword ?? null,
+              hasTemporaryPassword: response.hasTemporaryPassword ?? false,
+              credentialsMessage: response.message,
+              credentialsLoaded: true,
+              passwordChangedByUser: !response.hasTemporaryPassword && !response.temporaryPassword
             }
           : member
       ));
-      
       return response;
     } catch (error) {
       console.error('Error fetching staff credentials:', error);
@@ -2084,16 +2084,16 @@ const Admin = () => {
                             </div>
                           </div>
 
-                          {/* Password with show/hide */}
+                          {/* Password: show when admin-set (temp or reset); hide when user changed from app */}
                           {(member.tempPassword || member.password || member.hasTemporaryPassword) && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                               <FaKey style={{ color: '#0ea5e9', fontSize: '14px' }} />
                               <div style={{ flex: 1 }}>
                                 <span style={{ fontSize: '11px', color: '#6b7280', display: 'block' }}>Password</span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <span style={{ 
-                                    fontSize: '13px', 
-                                    fontWeight: '600', 
+                                  <span style={{
+                                    fontSize: '13px',
+                                    fontWeight: '600',
                                     color: '#0c4a6e',
                                     backgroundColor: '#e0f2fe',
                                     padding: '4px 8px',
@@ -2101,7 +2101,7 @@ const Admin = () => {
                                     fontFamily: 'monospace',
                                     minWidth: '60px'
                                   }}>
-                                    {showPassword[member.id] 
+                                    {showPassword[member.id]
                                       ? (member.tempPassword || member.password || 'N/A')
                                       : '••••••'
                                     }
@@ -2149,7 +2149,38 @@ const Admin = () => {
                               </div>
                             </div>
                           )}
-                          
+                          {/* When we have User ID but no password yet: offer to load (shows password only if admin-set; else "changed by staff") */}
+                          {member.loginId && !(member.tempPassword || member.password || member.hasTemporaryPassword) && (
+                            <div style={{ marginBottom: '8px' }}>
+                              {!member.credentialsLoaded ? (
+                                <button
+                                  type="button"
+                                  onClick={() => fetchStaffCredentials(member.id)}
+                                  style={{
+                                    backgroundColor: '#e0f2fe',
+                                    color: '#0c4a6e',
+                                    border: '1px solid #0ea5e9',
+                                    borderRadius: '6px',
+                                    padding: '6px 10px',
+                                    cursor: 'pointer',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  <FaEye size={10} />
+                                  Show password
+                                </button>
+                              ) : member.passwordChangedByUser ? (
+                                <span style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>
+                                  Password changed by staff — not displayed
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+
                           {/* Show message if available */}
                           {member.credentialsMessage && (
                             <div style={{ 
