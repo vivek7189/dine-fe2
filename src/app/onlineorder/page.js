@@ -3417,13 +3417,13 @@ const CheckoutView = ({
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '14px', color: '#5b21b6' }}>Available Points</span>
-                    <span style={{ fontSize: '20px', fontWeight: '700', color: '#7c3aed' }}>{customerData?.loyaltyPoints}</span>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: '#7c3aed' }}>{(customerData?.loyaltyPoints || 0) - redeemLoyaltyPoints}</span>
                   </div>
                 </div>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
                     <span>Points to Redeem</span>
-                    <span>{redeemLoyaltyPoints} pts = ₹{getLoyaltyDiscount().toFixed(2)} off</span>
+                    <span style={{ fontWeight: '600', color: '#5b21b6' }}>{redeemLoyaltyPoints} pts = ₹{getLoyaltyDiscount().toFixed(2)} off</span>
                   </div>
                   <input
                     type="range"
