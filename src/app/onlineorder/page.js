@@ -1017,7 +1017,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
       backgroundColor: pageBackgroundColor,
       paddingBottom: '100px'
     }}>
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -1037,6 +1037,84 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
         @keyframes pulse {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.1); }
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Desktop responsive styles */
+        @media (min-width: 768px) {
+          .desktop-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px !important;
+          }
+          .desktop-header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+          }
+          .desktop-two-column {
+            display: flex !important;
+            gap: 32px;
+          }
+          .desktop-sidebar {
+            display: block !important;
+            width: 240px !important;
+            flex-shrink: 0;
+            position: sticky;
+            top: 180px;
+            height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+          }
+          .desktop-main-content {
+            flex: 1;
+            min-width: 0;
+          }
+          .desktop-menu-grid {
+            display: grid !important;
+            grid-template-columns: repeat(1, 1fr) !important;
+            gap: 20px !important;
+          }
+          .desktop-category-btn {
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px !important;
+            border-radius: 10px !important;
+            margin-bottom: 4px;
+          }
+          .mobile-categories {
+            display: none !important;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .desktop-menu-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .desktop-sidebar {
+            width: 260px !important;
+          }
+        }
+
+        @media (min-width: 1280px) {
+          .desktop-menu-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 767px) {
+          .desktop-sidebar {
+            display: none !important;
+          }
+          .desktop-two-column {
+            display: block !important;
+          }
+          .mobile-categories {
+            display: flex !important;
+          }
         }
       `}</style>
 
@@ -1073,10 +1151,15 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
               ? brandColor
               : 'white',
             zIndex: 100,
-            padding: isScrolled ? '8px 12px' : '12px 16px',
+            padding: isScrolled ? '8px 16px' : '12px 16px',
             boxShadow: isScrolled ? '0 2px 12px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.05)',
             transition: 'all 0.2s ease-out'
           }}>
+            <div className="desktop-header-inner" style={{
+              maxWidth: '1400px',
+              margin: '0 auto',
+              padding: '0'
+            }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -1271,8 +1354,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
               />
             </div>
 
-            {/* Categories */}
-            <div style={{
+            {/* Categories - Mobile horizontal scroll */}
+            <div className="mobile-categories" style={{
               display: 'flex',
               gap: '8px',
               overflowX: 'auto',
@@ -1326,6 +1409,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
                 </button>
               ))}
             </div>
+            </div>
           </div>
         );
       })()}
@@ -1344,15 +1428,21 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
       {/* Error/Success Messages */}
       {error && (
         <div style={{
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
-          padding: '12px 16px',
-          margin: '16px',
-          borderRadius: '8px',
-          fontSize: '14px'
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: '0 16px'
         }}>
-          {error}
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            padding: '12px 16px',
+            margin: '16px 0',
+            borderRadius: '12px',
+            fontSize: '14px'
+          }}>
+            {error}
+          </div>
         </div>
       )}
 
@@ -1396,7 +1486,87 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
       )}
 
       {/* Menu */}
-      <div style={{ padding: '0 16px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="desktop-container" style={{ padding: '0 16px', maxWidth: '1400px', margin: '0 auto' }}>
+        <div className="desktop-two-column" style={{ display: 'flex', gap: '24px' }}>
+          {/* Desktop Sidebar - Categories */}
+          <div className="desktop-sidebar" style={{
+            width: '220px',
+            flexShrink: 0,
+            position: 'sticky',
+            top: '180px',
+            height: 'fit-content',
+            maxHeight: 'calc(100vh - 200px)',
+            overflowY: 'auto',
+            display: 'none'
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '16px',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.08)'
+            }}>
+              <h3 style={{
+                fontSize: '14px',
+                fontWeight: '700',
+                color: '#6b7280',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                margin: '0 0 12px 0',
+                padding: '0 8px'
+              }}>
+                Categories
+              </h3>
+              {categories.map(category => (
+                <button
+                  key={`sidebar-${category}`}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    if (category !== 'all') {
+                      setTimeout(() => {
+                        const element = document.getElementById(`category-${category}`);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 100);
+                    }
+                  }}
+                  className="desktop-category-btn"
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    background: selectedCategory === category
+                      ? `linear-gradient(135deg, ${customerAppSettings?.branding?.primaryColor || '#ef4444'}, ${customerAppSettings?.branding?.primaryColor || '#ef4444'}dd)`
+                      : 'transparent',
+                    color: selectedCategory === category ? 'white' : '#374151',
+                    border: 'none',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: selectedCategory === category ? '600' : '500',
+                    cursor: 'pointer',
+                    marginBottom: '4px',
+                    transition: 'all 0.2s ease',
+                    boxShadow: selectedCategory === category ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedCategory !== category) {
+                      e.target.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedCategory !== category) {
+                      e.target.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  {category === 'all' ? '🍽️ All Items' : category}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Menu Content */}
+          <div className="desktop-main-content" style={{ flex: 1, minWidth: 0 }}>
         {Object.keys(groupedMenu).length > 0 ? (
           Object.entries(groupedMenu).map(([category, items]) => (
             <div key={category} id={`category-${category}`} style={{ marginTop: '20px', scrollMarginTop: '180px' }}>
@@ -1412,7 +1582,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
               }}>
                 {category}
               </h2>
-              <div style={{
+              <div className="desktop-menu-grid" style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                 gap: '16px'
@@ -1461,6 +1631,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
             )}
           </div>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Cart Modal - Only shown to logged-in users */}
@@ -1608,7 +1780,7 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
       `}</style>
 
       {/* Main carousel container with nav buttons outside */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '1400px', margin: '0 auto' }}>
         {/* Left Navigation Button */}
         {offers.length > 1 && (
           <button
@@ -1858,36 +2030,44 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
 // Menu Item Card Component
 const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor }) => {
   const isVeg = item.isVeg !== false;
+  const [isHovered, setIsHovered] = useState(false);
 
   // Use getDisplayImage to get proper image URL (user uploaded or placeholder)
   const imageUrl = getDisplayImage(item);
   const hasUserImages = item.images && item.images.length > 0;
 
   return (
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'flex-start',
-      transition: 'all 0.2s ease'
-    }}>
+    <div
+      style={{
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        padding: '16px',
+        boxShadow: isHovered ? '0 8px 24px rgba(0,0,0,0.12)' : '0 2px 8px rgba(0,0,0,0.08)',
+        display: 'flex',
+        gap: '16px',
+        alignItems: 'flex-start',
+        transition: 'all 0.25s ease',
+        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+        cursor: 'pointer',
+        border: isHovered ? '1px solid #e5e7eb' : '1px solid transparent'
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Image */}
       <div style={{
-        width: '100px',
-        height: '100px',
-        borderRadius: '12px',
+        width: '110px',
+        height: '110px',
+        borderRadius: '14px',
         flexShrink: 0,
         overflow: 'hidden',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)'
       }}>
         {hasUserImages ? (
           <ImageCarousel
             images={item.images}
             itemName={item.name}
-            maxHeight="100px"
+            maxHeight="110px"
             showControls={false}
             showDots={false}
             autoPlay={true}
@@ -2015,6 +2195,8 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
 
 // Cart Modal Component
 const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified }) => {
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+
   return (
     <div style={{
       position: 'fixed',
@@ -2022,19 +2204,20 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
       backgroundColor: 'rgba(0,0,0,0.5)',
       zIndex: 200,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center'
+      alignItems: isDesktop ? 'center' : 'flex-end',
+      justifyContent: isDesktop ? 'center' : 'center'
     }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{
         backgroundColor: 'white',
-        width: '100%',
-        maxHeight: '90vh',
-        borderTopLeftRadius: '24px',
-        borderTopRightRadius: '24px',
-        boxShadow: '0 -10px 30px rgba(0,0,0,0.2)',
+        width: isDesktop ? '500px' : '100%',
+        maxWidth: '100%',
+        maxHeight: isDesktop ? '85vh' : '90vh',
+        borderRadius: isDesktop ? '20px' : '24px 24px 0 0',
+        boxShadow: isDesktop ? '0 20px 60px rgba(0,0,0,0.3)' : '0 -10px 30px rgba(0,0,0,0.2)',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        animation: 'slideUp 0.3s ease-out'
       }}>
         {/* Header */}
         <div style={{
@@ -2610,7 +2793,7 @@ const CheckoutView = ({
         padding: '12px 16px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '900px', margin: '0 auto' }}>
           <button
             onClick={() => setCurrentView(currentView === 'checkout' ? 'menu' : 'checkout')}
             style={{
@@ -2696,7 +2879,7 @@ const CheckoutView = ({
       )}
 
       {/* Content */}
-      <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
+      <div style={{ padding: '16px 24px', maxWidth: '900px', margin: '0 auto' }}>
         {/* Customer Profile Card */}
         <div style={{
           background: `linear-gradient(135deg, ${tierData.color}22 0%, ${tierData.color}11 100%)`,
