@@ -543,11 +543,41 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
     return Math.min(maxFromPercent, maxFromPoints, afterOffer);
   };
 
-  const getFinalTotal = () => {
+  // Calculate tax based on pre-tax total (after discounts)
+  const getTaxBreakdown = () => {
+    const taxSettings = customerAppSettings?.taxSettings;
+    if (!taxSettings?.enabled || !taxSettings?.taxes?.length) {
+      return { taxAmount: 0, taxLines: [] };
+    }
+
+    const subtotal = getCartSubtotal();
+    const offerDiscount = getOfferDiscount();
+    const loyaltyDiscount = getLoyaltyDiscount();
+    const preTaxTotal = Math.max(0, subtotal - offerDiscount - loyaltyDiscount);
+
+    let taxAmount = 0;
+    const taxLines = [];
+
+    taxSettings.taxes.forEach(tax => {
+      const amt = Math.round((preTaxTotal * (tax.rate || 0) / 100) * 100) / 100;
+      taxAmount += amt;
+      taxLines.push({ name: tax.name || 'Tax', rate: tax.rate, amount: amt });
+    });
+
+    return { taxAmount: Math.round(taxAmount * 100) / 100, taxLines };
+  };
+
+  const getPreTaxTotal = () => {
     const subtotal = getCartSubtotal();
     const offerDiscount = getOfferDiscount();
     const loyaltyDiscount = getLoyaltyDiscount();
     return Math.max(0, subtotal - offerDiscount - loyaltyDiscount);
+  };
+
+  const getFinalTotal = () => {
+    const preTaxTotal = getPreTaxTotal();
+    const { taxAmount } = getTaxBreakdown();
+    return Math.round((preTaxTotal + taxAmount) * 100) / 100;
   };
 
   const getLoyaltyPointsToEarn = () => {
@@ -976,6 +1006,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
         getCartItemCount={getCartItemCount}
         getOfferDiscount={getOfferDiscount}
         getLoyaltyDiscount={getLoyaltyDiscount}
+        getTaxBreakdown={getTaxBreakdown}
         getFinalTotal={getFinalTotal}
         getLoyaltyPointsToEarn={getLoyaltyPointsToEarn}
         offers={applicableOffers}
@@ -2748,6 +2779,7 @@ const CheckoutView = ({
   getCartItemCount,
   getOfferDiscount,
   getLoyaltyDiscount,
+  getTaxBreakdown,
   getFinalTotal,
   getLoyaltyPointsToEarn,
   offers,
@@ -3243,7 +3275,7 @@ const CheckoutView = ({
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>₹{Number(order.totalAmount || 0).toFixed(2)}</div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>₹{Number(order.finalAmount || order.totalAmount || 0).toFixed(2)}</div>
                               {order.loyaltyPointsEarned > 0 && (
                                 <div style={{ fontSize: '10px', color: '#22c55e', fontWeight: '600' }}>
                                   +{order.loyaltyPointsEarned} pts
@@ -3311,9 +3343,23 @@ const CheckoutView = ({
                                   <span>-₹{Number(order.loyaltyDiscount).toFixed(2)}</span>
                                 </div>
                               )}
+                              {/* Tax breakdown from saved order data */}
+                              {order.taxBreakdown && order.taxBreakdown.length > 0 ? (
+                                order.taxBreakdown.map((tax, idx) => (
+                                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                                    <span>{tax.name} ({tax.rate}%)</span>
+                                    <span>₹{Number(tax.amount || 0).toFixed(2)}</span>
+                                  </div>
+                                ))
+                              ) : order.taxAmount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                                  <span>Tax</span>
+                                  <span>₹{Number(order.taxAmount).toFixed(2)}</span>
+                                </div>
+                              )}
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '700', color: '#1f2937', marginTop: '6px' }}>
                                 <span>Total</span>
-                                <span>₹{Number(order.totalAmount || 0).toFixed(2)}</span>
+                                <span>₹{Number(order.finalAmount || order.totalAmount || 0).toFixed(2)}</span>
                               </div>
                             </div>
 
@@ -3650,6 +3696,13 @@ const CheckoutView = ({
                     <span style={{ color: '#7c3aed' }}>-₹{getLoyaltyDiscount().toFixed(2)}</span>
                   </div>
                 )}
+                {/* Tax breakdown - only show if tax is enabled */}
+                {getTaxBreakdown().taxLines.map((tax, index) => (
+                  <div key={index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>{tax.name} ({tax.rate}%)</span>
+                    <span style={{ color: '#374151' }}>₹{tax.amount.toFixed(2)}</span>
+                  </div>
+                ))}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',

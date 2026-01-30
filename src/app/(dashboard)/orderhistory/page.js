@@ -56,7 +56,6 @@ const OrderHistory = () => {
   const [restaurant, setRestaurant] = useState(null);
   const [user, setUser] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [taxSettings, setTaxSettings] = useState(null);
   const [isCompactView, setIsCompactView] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('en');
   
@@ -339,17 +338,6 @@ const OrderHistory = () => {
     loadUserAndRestaurant();
   }, [router]);
 
-  useEffect(() => {
-    const loadTaxSettings = async () => {
-      if (!restaurantId) return;
-      try {
-        const taxSettingsResponse = await apiClient.getTaxSettings(restaurantId);
-        if (taxSettingsResponse.success) setTaxSettings(taxSettingsResponse.taxSettings);
-      } catch (error) { console.error('Error loading tax settings:', error); }
-    };
-    loadTaxSettings();
-  }, [restaurantId]);
-
   useEffect(() => { if (restaurantId) fetchOrders(true); }, [fetchOrders, restaurantId]);
 
   // Pusher subscription for real-time order updates
@@ -481,22 +469,23 @@ const OrderHistory = () => {
     if (order.status === 'completed') {
       const subtotal = items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
       let totalTax = 0;
-      const taxBreakdown = [];
-      if (taxSettings?.enabled && taxSettings?.taxes?.length) {
-        taxSettings.taxes.forEach(t => {
-          if (t.enabled && t.rate != null) {
-            const amt = subtotal * (t.rate / 100);
-            totalTax += amt;
-            taxBreakdown.push({ name: t.name || 'Tax', rate: t.rate, amount: amt });
-          }
+      const taxBreakdownArr = [];
+
+      // Use saved tax data from order (tax at time of order placement)
+      if (order.taxBreakdown && Array.isArray(order.taxBreakdown) && order.taxBreakdown.length > 0) {
+        order.taxBreakdown.forEach(t => {
+          const amt = t.amount || 0;
+          totalTax += amt;
+          taxBreakdownArr.push({ name: t.name || 'Tax', rate: t.rate, amount: amt });
         });
-      } else if (taxSettings?.defaultTaxRate) {
-        const amt = subtotal * (taxSettings.defaultTaxRate / 100);
-        totalTax = amt;
-        taxBreakdown.push({ name: 'Tax', rate: taxSettings.defaultTaxRate, amount: amt });
+      } else if (order.taxAmount && order.taxAmount > 0) {
+        totalTax = order.taxAmount;
+        taxBreakdownArr.push({ name: 'Tax', rate: null, amount: totalTax });
       }
-      const total = subtotal + totalTax;
-      const taxRows = taxBreakdown.map(t => `<tr><td>${(t.name || 'Tax').replace(/</g, '&lt;')} (${t.rate}%)</td><td>₹${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
+
+      // Use saved finalAmount if available
+      const total = order.finalAmount && order.finalAmount > 0 ? order.finalAmount : (subtotal + totalTax);
+      const taxRows = taxBreakdownArr.map(t => `<tr><td>${(t.name || 'Tax').replace(/</g, '&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td>₹${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
       const invoiceContent = `<!DOCTYPE html><html><head><title>Invoice - ${orderNum}</title><style>body{font-family:Arial,sans-serif;margin:20px;} .invoice-header{text-align:center;margin-bottom:20px;} .invoice-details{margin-bottom:20px;} table{width:100%;border-collapse:collapse;} th,td{padding:8px;text-align:left;border-bottom:1px solid #ddd;} .total-row{font-weight:bold;border-top:2px solid #000;} .invoice-footer{text-align:center;margin-top:30px;font-size:12px;color:#666;}</style></head><body><div class="invoice-header"><h1>Invoice #${String(orderNum).replace(/</g, '&lt;')}</h1><h2>${restaurantName.replace(/</g, '&lt;')}</h2></div><div class="invoice-details"><p><strong>Order #:</strong> ${String(orderNum).replace(/</g, '&lt;')}</p><p><strong>ID:</strong> ${orderIdShort}</p><p><strong>Date:</strong> ${dateStr}</p>${tableNum ? `<p><strong>Table:</strong> ${String(tableNum).replace(/</g, '&lt;')}</p>` : ''}${roomNum ? `<p><strong>Room:</strong> ${String(roomNum).replace(/</g, '&lt;')}</p>` : ''}${customerName ? `<p><strong>Customer:</strong> ${String(customerName).replace(/</g, '&lt;')}</p>` : ''}</div><table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody><tr><td>Subtotal</td><td>₹${subtotal.toFixed(2)}</td></tr>${taxRows}<tr class="total-row"><td>Total</td><td>₹${total.toFixed(2)}</td></tr></tbody></table><div class="invoice-footer"><p>Thank you for your business!</p><p>DineOpen</p></div></body></html>`;
       const win = window.open('', '_blank', 'width=800,height=600');
       if (win) {
@@ -519,31 +508,38 @@ const OrderHistory = () => {
   };
 
   const getOrderBreakdown = (order) => {
+    // Calculate subtotal from items
     let subtotal = 0;
     if (order.items && Array.isArray(order.items)) {
       subtotal = order.items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
     } else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
     subtotal = parseFloat(subtotal.toFixed(2));
+
     let taxAmount = 0;
     const taxLines = [];
-    if (taxSettings?.enabled && subtotal > 0) {
-      if (taxSettings.taxes && taxSettings.taxes.length > 0) {
-        taxSettings.taxes.forEach(tax => {
-          if (tax.enabled && tax.rate != null) {
-            const amt = parseFloat((subtotal * (tax.rate / 100)).toFixed(2));
-            taxAmount += amt;
-            taxLines.push({ name: tax.name || 'Tax', rate: tax.rate, amount: amt });
-          }
-        });
-      } else if (taxSettings.defaultTaxRate) {
-        taxAmount = parseFloat((subtotal * (taxSettings.defaultTaxRate / 100)).toFixed(2));
-        taxLines.push({ name: 'GST', rate: taxSettings.defaultTaxRate, amount: taxAmount });
-      }
+
+    // PRIORITY: Use saved tax data from order (tax at time of order placement)
+    // This ensures historical accuracy - orders show the tax that was applied when placed
+    if (order.taxBreakdown && Array.isArray(order.taxBreakdown) && order.taxBreakdown.length > 0) {
+      // Use saved tax breakdown (individual tax lines)
+      order.taxBreakdown.forEach(tax => {
+        const amt = parseFloat((tax.amount || 0).toFixed(2));
+        taxAmount += amt;
+        taxLines.push({ name: tax.name || 'Tax', rate: tax.rate, amount: amt });
+      });
     } else if (order.taxAmount && order.taxAmount > 0) {
+      // Use saved total tax amount (for orders without detailed breakdown)
       taxAmount = parseFloat(order.taxAmount.toFixed(2));
       taxLines.push({ name: 'Tax', rate: null, amount: taxAmount });
     }
-    const total = parseFloat((subtotal + taxAmount).toFixed(2));
+    // Note: No fallback to current taxSettings - this prevents showing wrong tax on old orders
+    // Old orders without saved tax data will show no tax (which is accurate if tax wasn't applied)
+
+    // Use saved finalAmount if available, otherwise calculate
+    const total = order.finalAmount && order.finalAmount > 0
+      ? parseFloat(order.finalAmount.toFixed(2))
+      : parseFloat((subtotal + taxAmount).toFixed(2));
+
     return { subtotal, taxAmount, taxLines, total };
   };
 
@@ -714,16 +710,10 @@ const OrderHistory = () => {
                 <span className="font-medium">{t('orderHistory.subtotal')}</span>
                 <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
               </div>
-              {order.taxAmount > 0 && (
+              {(order.taxAmount > 0 || (parseFloat(orderTotal) - subtotal) > 0.01) && (
                 <div className="flex justify-between text-sm text-gray-600">
                   <span className="font-medium">{t('orderHistory.tax')}</span>
-                  <span className="font-semibold">₹{order.taxAmount.toFixed(2)}</span>
-                </div>
-              )}
-              {(!order.taxAmount && taxSettings?.enabled) && (
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span className="font-medium">{t('orderHistory.estimatedTax')}</span>
-                  <span className="font-semibold">₹{(parseFloat(orderTotal) - subtotal).toFixed(2)}</span>
+                  <span className="font-semibold">₹{(order.taxAmount || (parseFloat(orderTotal) - subtotal)).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t-2 border-gray-300 mt-2">
