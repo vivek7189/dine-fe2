@@ -86,8 +86,12 @@ export const performLogout = () => {
     }
   }
   
-  // Redirect to main domain login page
-  window.location.href = 'https://dineopen.com/login';
+  // Redirect to login page (handle both production and development)
+  if (typeof window !== 'undefined') {
+    const isProduction = window.location.hostname.includes('dineopen.com');
+    const loginUrl = isProduction ? 'https://dineopen.com/login' : '/login';
+    window.location.href = loginUrl;
+  }
 };
 
 export default performLogout;

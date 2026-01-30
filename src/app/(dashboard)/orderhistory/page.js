@@ -388,7 +388,8 @@ const OrderHistory = () => {
     };
   }, [restaurantId, fetchOrders]);
 
-  useEffect(() => { if (currentPage !== 1) setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, todayOrdersOnly, currentPage]);
+  // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
+  useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, todayOrdersOnly]);
 
   const handleSearch = (e) => { e.preventDefault(); fetchOrders(); };
   const handlePageChange = (newPage) => { if (newPage >= 1 && newPage <= totalPages) setCurrentPage(newPage); };
@@ -1421,28 +1422,64 @@ const OrderHistory = () => {
 
         </div>
 
-        {/* Pagination */}
+        {/* Pagination — page-wise: click any page number or Prev/Next */}
         {totalPages > 1 && (
           <div className="w-full px-4 sm:px-6 lg:px-8 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl shadow-md border border-gray-200 p-4">
             <div className="text-sm text-gray-600">
               <span className="font-medium text-gray-900">{t('orderHistory.showing')}</span>{' '}
               {((currentPage - 1) * limit) + 1}-{Math.min(currentPage * limit, totalOrders)} {t('orderHistory.of')} {totalOrders} {t('orderHistory.orders')}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
               <button 
                 onClick={() => handlePageChange(currentPage - 1)} 
                 disabled={currentPage === 1} 
                 className="p-2.5 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                aria-label="Previous page"
               >
                 <FaChevronLeft />
               </button>
-              <div className="px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="font-semibold text-gray-900">{t('orderHistory.page')} {currentPage} / {totalPages}</span>
-              </div>
+              {/* Page numbers: click any page to go there; show up to 7 numbers or 1 … window … last */}
+              {(() => {
+                const maxVisible = 7;
+                let pages = [];
+                if (totalPages <= maxVisible) {
+                  pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                } else {
+                  const w = 1;
+                  const from = Math.max(2, currentPage - w);
+                  const to = Math.min(totalPages - 1, currentPage + w);
+                  pages.push(1);
+                  if (from > 2) pages.push('…');
+                  for (let p = from; p <= to; p++) pages.push(p);
+                  if (to < totalPages - 1) pages.push('…');
+                  if (totalPages > 1) pages.push(totalPages);
+                }
+                return pages.map((p, i) =>
+                  p === '…' ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-gray-400">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handlePageChange(p)}
+                      className={`min-w-[2.25rem] sm:min-w-[2.5rem] h-9 sm:h-10 px-2 rounded-lg border-2 text-sm font-semibold transition-all ${
+                        p === currentPage
+                          ? 'bg-red-600 border-red-600 text-white shadow-sm'
+                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                      }`}
+                      aria-label={t('orderHistory.page') + ` ${p}`}
+                      aria-current={p === currentPage ? 'page' : undefined}
+                    >
+                      {p}
+                    </button>
+                  )
+                );
+              })()}
               <button 
                 onClick={() => handlePageChange(currentPage + 1)} 
                 disabled={currentPage === totalPages} 
                 className="p-2.5 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                aria-label="Next page"
               >
                 <FaChevronRight />
               </button>

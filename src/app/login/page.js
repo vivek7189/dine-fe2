@@ -203,7 +203,13 @@ const Login = () => {
   const [staffCredentials, setStaffCredentials] = useState({ loginId: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
+  // Auth check state - start with checking true to show loading first
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Track if we've already redirected to prevent loops
+  const [hasRedirected, setHasRedirected] = useState(false);
+
   // Email/password state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -212,43 +218,130 @@ const Login = () => {
   const [emailOtp, setEmailOtp] = useState('');
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  
+
   // Country selection state
   const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Default to India
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [countrySearchTerm, setCountrySearchTerm] = useState('');
-  
+
   // Firebase OTP state
   const [verificationId, setVerificationId] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
   const [isFirebaseOTP, setIsFirebaseOTP] = useState(false);
-  
+
   // Restaurant onboarding state
   const [showRestaurantOnboarding, setShowRestaurantOnboarding] = useState(false);
-  
+
   // Demo auto-login state
   const [demoAutoLoginTriggered, setDemoAutoLoginTriggered] = useState(false);
-  
+
   // Auto-submit state to prevent multiple submissions
   const [autoSubmitTriggered, setAutoSubmitTriggered] = useState(false);
 
   // Check if user is already logged in and redirect
   useEffect(() => {
-    const checkAuthStatus = () => {
-      if (apiClient.isAuthenticated()) {
-        const redirectPath = apiClient.getRedirectPath();
-        console.log('🔄 User already authenticated, redirecting to:', redirectPath);
-        router.replace(redirectPath);
+    let isMounted = true;
+    let redirectTimeout = null;
+
+    const checkAuthStatus = async () => {
+      // Prevent multiple redirects
+      if (hasRedirected) {
+        return;
+      }
+
+      try {
+        // First check if we have local auth data
+        const hasLocalAuth = apiClient.isAuthenticated();
+
+        if (!hasLocalAuth) {
+          // No local auth data - show login form
+          if (isMounted) {
+            setIsCheckingAuth(false);
+          }
+          return;
+        }
+
+        // We have local auth - validate token with backend
+        console.log('🔍 Validating token with backend...');
+        const isValidToken = await apiClient.validateToken();
+
+        if (!isMounted) return;
+
+        if (isValidToken) {
+          // Token is valid - redirect to dashboard
+          const redirectPath = apiClient.getRedirectPath();
+          console.log('✅ Token valid, redirecting to:', redirectPath);
+          setHasRedirected(true);
+          router.replace(redirectPath);
+        } else {
+          // Token is invalid/expired - force logout and show login
+          console.log('❌ Token invalid/expired, showing login form');
+          apiClient.forceLogout();
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        // On error, clear auth and show login form to be safe
+        if (isMounted) {
+          apiClient.forceLogout();
+          setIsCheckingAuth(false);
+        }
       }
     };
 
-    // Check immediately
-    checkAuthStatus();
+    // Small delay to prevent flash and allow hydration
+    redirectTimeout = setTimeout(checkAuthStatus, 50);
 
-    // Also check when component mounts (for hydration)
-    const timeoutId = setTimeout(checkAuthStatus, 100);
-    
-    return () => clearTimeout(timeoutId);
+    return () => {
+      isMounted = false;
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
+    };
+  }, [router, hasRedirected]);
+
+  // Handle browser back button - prevent going back to login if authenticated
+  useEffect(() => {
+    let isHandlingPopState = false;
+
+    const handlePopState = async () => {
+      // Prevent multiple simultaneous handling
+      if (isHandlingPopState) return;
+      isHandlingPopState = true;
+
+      try {
+        // Check if user is authenticated
+        if (apiClient.isAuthenticated()) {
+          // Validate token before redirecting
+          const isValid = await apiClient.validateToken();
+
+          if (isValid) {
+            const redirectPath = apiClient.getRedirectPath();
+            console.log('🔙 Back button pressed, user authenticated, redirecting to:', redirectPath);
+            // Use history.pushState to prevent back button loop
+            window.history.pushState(null, '', redirectPath);
+            router.replace(redirectPath);
+          } else {
+            // Token expired - stay on login page
+            console.log('🔙 Back button pressed, token expired, staying on login');
+            apiClient.forceLogout();
+          }
+        }
+      } catch (error) {
+        console.error('Popstate handler error:', error);
+      } finally {
+        isHandlingPopState = false;
+      }
+    };
+
+    // Push initial state to enable popstate detection
+    window.history.pushState(null, '', window.location.href);
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [router]);
 
   // Demo auto-login functionality
@@ -1000,6 +1093,40 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // Show loading screen while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div style={{
+        height: "100vh",
+        backgroundColor: "#fef7f0",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div style={{
+          width: "50px",
+          height: "50px",
+          background: "linear-gradient(135deg, #e53e3e, #dc2626)",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: "16px",
+          animation: "pulse 1.5s ease-in-out infinite"
+        }}>
+          <FaUtensils size={24} color="white" />
+        </div>
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{

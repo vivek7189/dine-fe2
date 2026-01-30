@@ -65,12 +65,29 @@ class ApiClient {
       if (!response.ok) {
         // Staff/employee deactivated: clear auth and redirect to login (web + app)
         if (response.status === 401 && data && data.inactive === true) {
-          this.clearToken();
+          this.forceLogout();
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
           }
           throw new Error(data.message || data.error || 'Your account has been deactivated.');
         }
+
+        // Token expired or unauthorized: force logout and redirect
+        if (response.status === 401) {
+          console.log('🔒 401 Unauthorized - Token may be expired');
+          this.forceLogout();
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          throw new Error(data.message || data.error || 'Session expired. Please login again.');
+        }
+
+        // Forbidden - might be role-based access issue
+        if (response.status === 403) {
+          console.log('🚫 403 Forbidden - Access denied');
+          throw new Error(data.message || data.error || 'Access denied.');
+        }
+
         // Provide more specific error message for 404
         if (response.status === 404) {
           throw new Error(data.message || data.error || `Endpoint ${endpoint} not found`);
@@ -202,6 +219,62 @@ class ApiClient {
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('user');
     return !!(token && user);
+  }
+
+  // Validate token with backend - returns true if valid, false if expired/invalid
+  async validateToken() {
+    if (typeof window === 'undefined') return false;
+    const token = this.getToken();
+    if (!token) return false;
+
+    try {
+      // Use getUserPageAccess as a lightweight endpoint to verify token
+      // This endpoint requires auth and will return 401 if token is invalid
+      const response = await fetch(`${this.baseURL}/api/user/page-access`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        return true;
+      }
+
+      // Token is invalid or expired - clean up
+      if (response.status === 401 || response.status === 403) {
+        console.log('🔒 Token expired or invalid, logging out...');
+        this.forceLogout();
+        return false;
+      }
+
+      // Other errors (5xx, network issues) - don't logout, might be server issue
+      // Return true to avoid logging out user on temporary server issues
+      return true;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      // On network error, assume token might still be valid (offline mode)
+      // Don't force logout on network issues
+      return this.isAuthenticated();
+    }
+  }
+
+  // Force logout - clears all auth data completely
+  forceLogout() {
+    if (typeof window === 'undefined') return;
+
+    // Clear cookies
+    this.deleteCookie('dine_auth_token');
+    this.deleteCookie('dine_user_data');
+
+    // Clear localStorage completely
+    localStorage.clear();
+
+    // Clear sessionStorage
+    sessionStorage.clear();
+
+    console.log('🚪 Force logout completed - all auth data cleared');
   }
 
   getUser() {
