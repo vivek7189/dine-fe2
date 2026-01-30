@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
-import { t } from '../../../lib/i18n';
+import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import { 
   FaStore, 
   FaUsers, 
@@ -35,7 +35,8 @@ import {
   FaSpinner,
   FaClock,
   FaGoogle,
-  FaReceipt
+  FaReceipt,
+  FaGlobe
 } from 'react-icons/fa';
 import ShiftScheduling from '../../../components/ShiftScheduling';
 import GoogleReviews from '../../../components/GoogleReviews';
@@ -413,6 +414,14 @@ const Admin = () => {
   const [isClient, setIsClient] = useState(false);
   const [orderManagementSeqEnabled, setOrderManagementSeqEnabled] = useState(false);
   const [orderManagementSaving, setOrderManagementSaving] = useState(false);
+  const [currentLang, setCurrentLang] = useState('en');
+
+  // Sync current language when opening Settings tab
+  useEffect(() => {
+    if (activeTab === 'settings' && typeof window !== 'undefined') {
+      setCurrentLang(getCurrentLanguage());
+    }
+  }, [activeTab]);
 
   // Sync order management setting from selected restaurant when tab or restaurant changes
   useEffect(() => {
@@ -3892,6 +3901,132 @@ const Admin = () => {
                 Edit Details
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings: Language + Selected Restaurant */}
+      {activeTab === 'settings' && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          padding: '24px',
+          border: '1px solid #fce7f3',
+          maxWidth: '560px'
+        }}>
+          {/* Choose Language */}
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
+              }}>
+                <FaGlobe size={22} color="white" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                  {t('common.settings')} – Choose language
+                </h2>
+                <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
+                  Choose your preferred language for the app
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {getAvailableLanguages().map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setLanguage(lang.code);
+                    setCurrentLang(lang.code);
+                  }}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    border: currentLang === lang.code ? 'none' : '1px solid #e5e7eb',
+                    background: currentLang === lang.code ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#f9fafb',
+                    color: currentLang === lang.code ? 'white' : '#374151',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: currentLang === lang.code ? '0 4px 12px rgba(236,72,153,0.25)' : 'none'
+                  }}
+                >
+                  {lang.nativeName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Selected Restaurant */}
+          <div style={{
+            paddingTop: '20px',
+            borderTop: '1px solid #f3e8f0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
+              }}>
+                <FaStore size={22} color="white" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                  Default restaurant
+                </h2>
+                <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
+                  Choose which restaurant is selected by default on dashboard and other pages
+                </p>
+              </div>
+            </div>
+            {restaurants.length === 0 ? (
+              <p style={{ color: '#6b7280', fontSize: '14px' }}>No restaurants yet. Add one from the Restaurants tab.</p>
+            ) : (
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {restaurants.map((restaurant) => (
+                  <button
+                    key={restaurant.id}
+                    onClick={() => {
+                      setSelectedRestaurant(restaurant);
+                      localStorage.setItem('selectedRestaurantId', restaurant.id);
+                      window.dispatchEvent(new CustomEvent('restaurantChanged', { detail: { restaurantId: restaurant.id } }));
+                    }}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fce7f3',
+                      background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#faf5f7',
+                      color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <FaStore size={14} />
+                    {restaurant.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
