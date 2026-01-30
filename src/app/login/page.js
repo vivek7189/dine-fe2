@@ -416,10 +416,17 @@ const Login = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otp, isFirebaseOTP, loading, demoAutoLoginTriggered, autoSubmitTriggered]);
 
-  // Setup Firebase reCAPTCHA
+  // Setup Firebase reCAPTCHA - only after auth check is complete and DOM is ready
   useEffect(() => {
+    // Don't setup reCAPTCHA while checking auth (DOM element not rendered yet)
+    if (isCheckingAuth) return;
+
     if (step === 'phone') {
-      setupRecaptcha();
+      // Small delay to ensure DOM is fully rendered
+      const timeout = setTimeout(() => {
+        setupRecaptcha();
+      }, 100);
+      return () => clearTimeout(timeout);
     }
     return () => {
       if (window.recaptchaVerifier) {
@@ -427,7 +434,7 @@ const Login = () => {
         window.recaptchaVerifier = null;
       }
     };
-  }, [step]);
+  }, [step, isCheckingAuth]);
 
   // Close country dropdown when clicking outside
   useEffect(() => {
@@ -446,6 +453,20 @@ const Login = () => {
 
   const setupRecaptcha = () => {
     try {
+      // Check if the recaptcha container exists in DOM
+      const container = document.getElementById('recaptcha-container');
+      if (!container) {
+        console.warn('reCAPTCHA container not found in DOM, skipping setup');
+        return;
+      }
+
+      // Check if auth is properly initialized
+      if (!auth) {
+        console.error('Firebase auth not initialized');
+        setError("Failed to setup verification. Please refresh the page.");
+        return;
+      }
+
       if (!window.recaptchaVerifier) {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
