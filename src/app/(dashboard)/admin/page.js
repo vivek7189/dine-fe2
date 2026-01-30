@@ -357,14 +357,100 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   );
 };
 
+// Setting Toggle Component
+const SettingToggle = ({ setting, printSettings, toggleSetting, disabled = false }) => (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '14px',
+      backgroundColor: disabled ? '#f9fafb' : '#faf5f7',
+      borderRadius: '12px',
+      border: '1px solid #fce7f3',
+      opacity: disabled ? 0.6 : 1
+    }}
+  >
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
+      <div style={{
+        width: '34px',
+        height: '34px',
+        borderRadius: '10px',
+        background: printSettings[setting.key] && !disabled ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#e5e7eb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: printSettings[setting.key] && !disabled ? 'white' : '#6b7280',
+        flexShrink: 0
+      }}>
+        {setting.icon}
+      </div>
+      <div style={{ flex: 1 }}>
+        <p style={{
+          fontWeight: '600',
+          color: disabled ? '#9ca3af' : '#1f2937',
+          margin: '0 0 2px 0',
+          fontSize: '13px'
+        }}>
+          {setting.title}
+        </p>
+        <p style={{
+          color: disabled ? '#9ca3af' : '#6b7280',
+          margin: 0,
+          fontSize: '12px',
+          lineHeight: '1.4'
+        }}>
+          {setting.description}
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={() => !disabled && toggleSetting(setting.key)}
+      disabled={disabled}
+      style={{
+        width: '44px',
+        height: '26px',
+        borderRadius: '13px',
+        border: 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        position: 'relative',
+        transition: 'all 0.2s',
+        backgroundColor: printSettings[setting.key] && !disabled ? '#ec4899' : '#d1d5db',
+        flexShrink: 0,
+        marginLeft: '12px'
+      }}
+    >
+      <div style={{
+        width: '20px',
+        height: '20px',
+        borderRadius: '50%',
+        backgroundColor: 'white',
+        position: 'absolute',
+        top: '3px',
+        left: printSettings[setting.key] ? '21px' : '3px',
+        transition: 'all 0.2s',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+      }} />
+    </button>
+  </div>
+);
+
 // Print Settings Component
 const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
   const [printSettings, setPrintSettings] = useState({
+    // Dashboard UI settings
     kotPrinterEnabled: true,
     manualPrintEnabled: true,
     showKOTSummaryAfterOrder: true,
     showBillSummaryAfterBilling: true,
-    usePusherForKOT: false
+    // Auto-print triggers
+    autoPrintOnKOT: true,
+    autoPrintOnBilling: false,
+    // Advanced
+    usePusherForKOT: false,
+    // Future reserved
+    autoPrintOnOnlineOrder: false,
+    autoPrintOnTableCall: false
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -417,35 +503,74 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   }, [selectedRestaurant?.id]);
 
   const settingsConfig = [
+    // Main settings
     {
       key: 'kotPrinterEnabled',
       title: 'KOT Printer App (Auto-Print)',
-      description: 'Enable automatic printing via dine-kot-printer app when orders are placed',
-      icon: <FaPrint size={18} />
+      description: 'Enable automatic printing via dine-kot-printer app',
+      icon: <FaPrint size={18} />,
+      section: 'main'
     },
     {
       key: 'manualPrintEnabled',
       title: 'Manual Print Button',
       description: 'Show manual print button on dashboard order summary',
-      icon: <FaReceipt size={18} />
+      icon: <FaReceipt size={18} />,
+      section: 'main'
     },
     {
       key: 'showKOTSummaryAfterOrder',
       title: 'Show KOT Summary After Order',
       description: 'Display order summary on dashboard after placing order to kitchen',
-      icon: <FaEye size={18} />
+      icon: <FaEye size={18} />,
+      section: 'main'
     },
     {
       key: 'showBillSummaryAfterBilling',
       title: 'Show Bill Summary After Billing',
       description: 'Display bill summary on dashboard after completing billing',
-      icon: <FaEye size={18} />
+      icon: <FaEye size={18} />,
+      section: 'main'
     },
+    // Auto-print triggers (for dine-kot-printer app)
+    {
+      key: 'autoPrintOnKOT',
+      title: 'Auto-Print on KOT',
+      description: 'Automatically print when order is sent to kitchen (for kot-printer app)',
+      icon: <FaPrint size={18} />,
+      section: 'autoprint'
+    },
+    {
+      key: 'autoPrintOnBilling',
+      title: 'Auto-Print on Billing',
+      description: 'Automatically print bill when billing is completed (for kot-printer app)',
+      icon: <FaReceipt size={18} />,
+      section: 'autoprint'
+    },
+    // Advanced settings
     {
       key: 'usePusherForKOT',
       title: 'Use Pusher for Real-time Print',
-      description: 'Use real-time Pusher events instead of polling (Advanced - for kot-printer app)',
-      icon: <FaClock size={18} />
+      description: 'Use real-time Pusher events instead of polling (Advanced)',
+      icon: <FaClock size={18} />,
+      section: 'advanced'
+    },
+    // Future reserved (disabled)
+    {
+      key: 'autoPrintOnOnlineOrder',
+      title: 'Auto-Print Online Orders',
+      description: 'Auto-print when online/delivery order is received (Coming soon)',
+      icon: <FaStore size={18} />,
+      section: 'future',
+      disabled: true
+    },
+    {
+      key: 'autoPrintOnTableCall',
+      title: 'Auto-Print Table Calls',
+      description: 'Auto-print when customer requests service (Coming soon)',
+      icon: <FaUsers size={18} />,
+      section: 'future',
+      disabled: true
     }
   ];
 
@@ -503,89 +628,52 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
         </div>
       ) : selectedRestaurant ? (
         <>
-          {/* Settings Toggles */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            marginBottom: '24px'
-          }}>
-            {settingsConfig.map((setting) => (
-              <div
-                key={setting.key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '16px',
-                  backgroundColor: '#faf5f7',
-                  borderRadius: '12px',
-                  border: '1px solid #fce7f3'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: printSettings[setting.key] ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#e5e7eb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: printSettings[setting.key] ? 'white' : '#6b7280',
-                    flexShrink: 0
-                  }}>
-                    {setting.icon}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      margin: '0 0 4px 0',
-                      fontSize: '14px'
-                    }}>
-                      {setting.title}
-                    </p>
-                    <p style={{
-                      color: '#6b7280',
-                      margin: 0,
-                      fontSize: '13px',
-                      lineHeight: '1.4'
-                    }}>
-                      {setting.description}
-                    </p>
-                  </div>
-                </div>
-                {/* Toggle Switch */}
-                <button
-                  onClick={() => toggleSetting(setting.key)}
-                  style={{
-                    width: '48px',
-                    height: '28px',
-                    borderRadius: '14px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'all 0.2s',
-                    backgroundColor: printSettings[setting.key] ? '#ec4899' : '#d1d5db',
-                    flexShrink: 0,
-                    marginLeft: '16px'
-                  }}
-                >
-                  <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    backgroundColor: 'white',
-                    position: 'absolute',
-                    top: '3px',
-                    left: printSettings[setting.key] ? '23px' : '3px',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
-                  }} />
-                </button>
-              </div>
-            ))}
+          {/* Dashboard Settings */}
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Dashboard Settings
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {settingsConfig.filter(s => s.section === 'main').map((setting) => (
+                <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+              ))}
+            </div>
+          </div>
+
+          {/* Auto-Print Settings */}
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Auto-Print Triggers (for KOT Printer App)
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {settingsConfig.filter(s => s.section === 'autoprint').map((setting) => (
+                <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+              ))}
+            </div>
+          </div>
+
+          {/* Advanced Settings */}
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Advanced Settings
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {settingsConfig.filter(s => s.section === 'advanced').map((setting) => (
+                <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+              ))}
+            </div>
+          </div>
+
+          {/* Future Settings */}
+          <div style={{ marginBottom: '24px' }}>
+            <p style={{ fontSize: '13px', fontWeight: '600', color: '#9ca3af', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Coming Soon
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', opacity: 0.6 }}>
+              {settingsConfig.filter(s => s.section === 'future').map((setting) => (
+                <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} disabled />
+              ))}
+            </div>
           </div>
 
           {/* Save Button */}
