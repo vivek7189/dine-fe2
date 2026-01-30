@@ -3601,6 +3601,11 @@ function RestaurantPOSContent() {
                 {/* Main Menu Search - Mobile Optimized */}
                 {viewMode === 'orders' && (
                 <div style={{ position: 'relative', flex: isMobile ? '1' : '0 0 250px', maxWidth: isMobile ? 'none' : '250px' }}>
+                  <style>{`
+.dashboard-search-input::placeholder { font-size: 14px; color: #6b7280; font-weight: 500; }
+.dashboard-order-id-input::placeholder,
+.dashboard-short-code-input::placeholder { font-size: 12px; color: #6b7280; font-weight: 600; }
+`}</style>
                   <FaSearch style={{ 
                     position: 'absolute', 
                     left: '12px', 
@@ -3609,6 +3614,7 @@ function RestaurantPOSContent() {
                     color: '#6b7280' 
                   }} size={isMobile ? 14 : 12} />
                 <input
+                  className="dashboard-search-input"
                   type="text"
                     placeholder={isMobile ? "Search..." : "Search menu..."}
                   value={searchTerm}
@@ -3622,7 +3628,7 @@ function RestaurantPOSContent() {
                       borderBottom: '2px solid #e5e7eb',
                       borderRadius: '0px',
                       backgroundColor: '#f8fafc',
-                      fontSize: isMobile ? '14px' : '12px',
+                      fontSize: isMobile ? '15px' : '14px',
                     fontWeight: '500',
                     outline: 'none',
                     transition: 'all 0.2s ease',
@@ -3735,6 +3741,7 @@ function RestaurantPOSContent() {
                 {viewMode === 'orders' && (
                 <div style={{ position: 'relative', flex: isMobile ? '1' : '0 0 110px', minWidth: isMobile ? '0' : '110px' }}>
                   <input
+                    className="dashboard-order-id-input"
                     type="text"
                     placeholder={isMobile ? "Order" : "Order ID"}
                     value={orderLookup}
@@ -3748,7 +3755,7 @@ function RestaurantPOSContent() {
                       border: 'none',
                       borderRadius: '8px',
                       backgroundColor: '#fef3c7',
-                      fontSize: isMobile ? '12px' : '11px',
+                      fontSize: isMobile ? '13px' : '12px',
                       fontWeight: '600',
                       outline: 'none',
                       textAlign: 'center',
@@ -3767,8 +3774,9 @@ function RestaurantPOSContent() {
 
                 {/* Short Code Search - Mobile Optimized */}
                 {viewMode === 'orders' && (
-                <div style={{ position: 'relative', flex: isMobile ? '1' : '0 0 70px', minWidth: isMobile ? '0' : '90px' }}>
+                <div style={{ position: 'relative', flex: isMobile ? '1' : '0 0 105px', minWidth: isMobile ? '0' : '105px' }}>
                   <input
+                    className="dashboard-short-code-input"
                     type="text"
                     placeholder={isMobile ? "SC" : "SHORT CODE"}
                     value={shortCodeSearch}
@@ -3782,7 +3790,7 @@ function RestaurantPOSContent() {
                       border: 'none',
                       borderRadius: '8px',
                       backgroundColor: '#d1fae5',
-                      fontSize: isMobile ? '12px' : '11px',
+                      fontSize: isMobile ? '13px' : '12px',
                       fontWeight: '600',
                       outline: 'none',
                       textAlign: 'center',
