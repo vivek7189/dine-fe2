@@ -158,6 +158,18 @@ export default function PrivacyPolicy() {
               <li style={{ marginBottom: '8px' }}>Pages visited and time spent</li>
               <li style={{ marginBottom: '8px' }}>Feature usage and interactions</li>
             </ul>
+
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              marginBottom: '12px'
+            }}>
+              Device permissions (mobile app)
+            </h3>
+            <p style={{ marginBottom: '12px' }}>
+              The DineOpen Staff mobile app may request access to your device camera. Camera access is used only when you choose to take a photo of a menu (e.g. in Menu Management) to extract menu items. Photos are processed to add items to your restaurant menu and are not used for any other purpose. You can deny camera permission; the app will still work, but the &quot;Take Photo&quot; menu feature will be unavailable.
+            </p>
           </section>
 
           <section style={{ marginBottom: '32px' }}>
