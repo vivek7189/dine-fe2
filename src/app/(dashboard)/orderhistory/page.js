@@ -37,7 +37,8 @@ import {
   FaArrowDown,
   FaFileInvoice,
   FaDownload,
-  FaPrint
+  FaPrint,
+  FaTrash
 } from 'react-icons/fa';
 
 const OrderHistory = () => {
@@ -67,6 +68,10 @@ const OrderHistory = () => {
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
   const [markCompleteOrderId, setMarkCompleteOrderId] = useState(null);
   const [markCompleteSubmitting, setMarkCompleteSubmitting] = useState(false);
+  const [deleteConfirmOrderId, setDeleteConfirmOrderId] = useState(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
 
   useEffect(() => {
     // Initialize language
@@ -142,13 +147,25 @@ const OrderHistory = () => {
     }
   };
 
-  const getStatusStyle = (status, orderFlow) => {
+  /** Maps status string to display label (for "Deleted (was: X)" and similar). */
+  const getStatusDisplayLabel = (s) => {
+    if (!s) return 'Unknown';
+    const map = { completed: 'Completed', confirmed: 'Confirmed', pending: 'Pending', cancelled: 'Cancelled', deleted: 'Deleted' };
+    return map[s] || (s.charAt(0).toUpperCase() + s.slice(1));
+  };
+
+  const getStatusStyle = (status, orderFlow, lastStatus) => {
     if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing Completed' };
     if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Kitchen' };
     if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Completed' };
     if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Confirmed' };
     if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: 'Pending' };
     if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: 'Cancelled' };
+    if (status === 'deleted') {
+      const wasLabel = lastStatus ? getStatusDisplayLabel(lastStatus) : null;
+      const label = wasLabel ? `Deleted (was: ${wasLabel})` : 'Deleted';
+      return { bg: '#f3f4f6', text: '#6b7280', border: '#d1d5db', label };
+    }
     const capitalizeStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
     return { bg: '#f3f4f6', text: '#374151', border: '#d1d5db', label: capitalizeStatus };
   };
@@ -424,6 +441,29 @@ const OrderHistory = () => {
 
   const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit`);
 
+  const handleDeleteOrder = (orderId) => {
+    setDeleteError(null);
+    setDeleteConfirmOrderId(orderId);
+  };
+
+  const executeDeleteOrder = async () => {
+    if (!deleteConfirmOrderId) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      await apiClient.deleteOrder(deleteConfirmOrderId);
+      setDeleteConfirmOrderId(null);
+      setDeleteSuccess(t('orderHistory.deleteSuccess') || 'Order deleted. View it under status "Deleted".');
+      setTimeout(() => setDeleteSuccess(null), 5000);
+      fetchOrders(false);
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      setDeleteError(error.message || t('common.error') || 'Failed to delete order');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
   const handleSmartPrint = (order) => {
     const restaurantName = restaurant?.name || 'Restaurant';
     const orderNum = order.dailyOrderId ?? order.orderNumber ?? order.id ?? '—';
@@ -525,7 +565,7 @@ const OrderHistory = () => {
     const todayOrders = orders.filter(order => {
       const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : 
                        (order.createdAt?._seconds ? new Date(order.createdAt._seconds * 1000) : new Date(order.createdAt));
-      return orderDate >= today && order.status !== 'cancelled';
+      return orderDate >= today && order.status !== 'cancelled' && order.status !== 'deleted';
     });
 
     const totalRevenue = todayOrders.reduce((sum, order) => sum + calculateOrderTotal(order), 0);
@@ -543,7 +583,7 @@ const OrderHistory = () => {
 
   const OrderDetailsModal = ({ order, onClose }) => {
     if (!order) return null;
-    const statusStyle = getStatusStyle(order.status, order.orderFlow);
+    const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus);
     const orderTotal = calculateOrderTotal(order);
     const subtotal = order.items?.reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0) || 0;
     const modalSourceChip = getOrderSourceChip(order);
@@ -760,7 +800,8 @@ const OrderHistory = () => {
     { value: 'pending', label: t('orderHistory.status.pending') },
     { value: 'confirmed', label: t('orderHistory.status.confirmed') },
     { value: 'completed', label: t('orderHistory.status.completed') },
-    { value: 'cancelled', label: t('orderHistory.status.cancelled') }
+    { value: 'cancelled', label: t('orderHistory.status.cancelled') },
+    { value: 'deleted', label: t('orderHistory.status.deleted') }
   ];
 
   const typeOptions = [
@@ -854,6 +895,21 @@ const OrderHistory = () => {
               <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Completed</div>
             </div>
           </div>
+
+          {/* Delete success banner */}
+          {deleteSuccess && (
+            <div className="mx-3 sm:mx-6 lg:mx-8 mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-800">
+              <span className="text-sm font-medium">{deleteSuccess}</span>
+              <button
+                type="button"
+                onClick={() => setDeleteSuccess(null)}
+                className="p-1 rounded hover:bg-green-100 text-green-600"
+                aria-label="Dismiss"
+              >
+                <FaTimes className="text-lg" />
+              </button>
+            </div>
+          )}
 
           {/* Filters Section — on mobile: search + collapse toggle; filters in expandable panel */}
           <div className="py-3 sm:py-4 border-t border-gray-200">
@@ -999,7 +1055,7 @@ const OrderHistory = () => {
           ) : (
             <div className="space-y-4">
             {orders.map((order) => {
-              const statusStyle = getStatusStyle(order.status, order.orderFlow);
+              const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus);
               const orderTotal = calculateOrderTotal(order);
               const breakdown = getOrderBreakdown(order);
               const itemCount = Array.isArray(order.items) ? order.items.length : 0;
@@ -1012,12 +1068,22 @@ const OrderHistory = () => {
                       <div className="w-1.5 h-16 rounded-full flex-shrink-0" style={{ backgroundColor: statusStyle.border }} />
                       <div className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
                         <div className="col-span-12 sm:col-span-3 flex sm:flex-col items-center sm:items-start justify-between sm:justify-center gap-2">
-                          <div 
-                            onClick={() => copyToClipboard(order.dailyOrderId?.toString() || order.id)} 
-                            className="font-bold text-lg text-gray-900 cursor-pointer hover:text-red-600 flex items-center gap-2 transition-colors"
-                          >
-                            <span>#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
-                            <FaCopy className="text-gray-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleOrderExpansion(order.id)}
+                              className="p-1 text-gray-500 hover:text-red-600 transition-colors"
+                              title={expandedOrders.has(order.id) ? t('common.close') : t('common.view')}
+                            >
+                              {expandedOrders.has(order.id) ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
+                            </button>
+                            <div 
+                              onClick={() => copyToClipboard(order.dailyOrderId?.toString() || order.id)} 
+                              className="font-bold text-lg text-gray-900 cursor-pointer hover:text-red-600 flex items-center gap-2 transition-colors"
+                            >
+                              <span>#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
+                              <FaCopy className="text-gray-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-gray-500">
                             <FaClock className="text-[10px]" />
@@ -1079,7 +1145,7 @@ const OrderHistory = () => {
                             <span className="font-bold text-xl text-gray-900">₹{orderTotal}</span>
                           </div>
                           <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            {order.status !== 'completed' && order.status !== 'cancelled' && (
+                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
                                 <button 
                                 onClick={() => handleMarkCompleted(order.id)} 
                                 className="p-2 text-green-600 bg-green-100 hover:bg-green-200 rounded-lg transition-colors" 
@@ -1109,6 +1175,7 @@ const OrderHistory = () => {
                             >
                               <FaEye size={12} />
                             </button>
+                            {order.status !== 'deleted' && (
                             <button 
                               onClick={() => handleEditOrder(order.id)} 
                               className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-sm" 
@@ -1116,6 +1183,16 @@ const OrderHistory = () => {
                             >
                               <FaEdit size={12} />
                             </button>
+                            )}
+                            {order.status !== 'deleted' && (
+                              <button 
+                                onClick={() => handleDeleteOrder(order.id)} 
+                                className="p-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" 
+                                title={t('common.delete') || 'Delete order'}
+                              >
+                                <FaTrash size={12} />
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
@@ -1138,6 +1215,20 @@ const OrderHistory = () => {
                             <FaCopy className="text-gray-400 text-xs flex-shrink-0 ml-auto" />
                           </div>
                         </div>
+                        {expandedOrders.has(order.id) && (
+                          <div className="col-span-12 mt-2 pl-6 pr-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
+                            <div className="text-xs font-semibold text-gray-600 mb-2">{itemCount} {t('orderHistory.items')}</div>
+                            <div className="space-y-1">
+                              {order.items?.slice(0, 6).map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-sm text-gray-700">
+                                  <span>{item.quantity}x {item.name}</span>
+                                  <span>₹{item.total || (item.price * item.quantity)}</span>
+                                </div>
+                              ))}
+                              {order.items?.length > 6 && <div className="text-xs text-gray-500 pt-1">+{order.items.length - 6} more</div>}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1227,9 +1318,10 @@ const OrderHistory = () => {
                             <button 
                               onClick={() => toggleOrderExpansion(order.id)} 
                               className="text-red-600 hover:text-red-700 flex items-center gap-1.5 text-sm font-medium transition-colors"
+                              title={expandedOrders.has(order.id) ? t('common.close') : t('common.view')}
                             >
-                              {expandedOrders.has(order.id) ? t('common.close') : t('common.view')} 
-                              {expandedOrders.has(order.id) ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                              {expandedOrders.has(order.id) ? <FaChevronUp size={12} className="flex-shrink-0" /> : <FaChevronDown size={12} className="flex-shrink-0" />}
+                              {expandedOrders.has(order.id) ? t('common.close') : t('common.view')}
                             </button>
                           </div>
                           <div className="space-y-1.5">
@@ -1245,7 +1337,7 @@ const OrderHistory = () => {
                           </div>
                         </div>
                         <div className="flex flex-wrap justify-end gap-2">
-                          {order.status !== 'completed' && order.status !== 'cancelled' && (
+                          {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
                             <button 
                               onClick={() => handleMarkCompleted(order.id)} 
                               className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 transition-all flex items-center gap-2"
@@ -1272,7 +1364,7 @@ const OrderHistory = () => {
                           >
                             <FaPrint /> Print
                           </button>
-                          {order.status !== 'completed' && order.status !== 'cancelled' && (
+                          {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
                             <button 
                               onClick={() => handleCancelOrder(order.id)} 
                               className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-2 border-red-200 rounded-lg hover:bg-red-100 transition-all flex items-center gap-2"
@@ -1280,12 +1372,23 @@ const OrderHistory = () => {
                               <FaTimesCircle /> {t('orderHistory.cancel')}
                             </button>
                           )}
+                          {order.status !== 'deleted' && (
                           <button 
                             onClick={() => handleEditOrder(order.id)} 
                             className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg hover:from-red-700 hover:to-red-800 transition-all flex items-center gap-2 shadow-lg"
                           >
                             <FaEdit /> {t('orderHistory.edit')}
                           </button>
+                          )}
+                          {order.status !== 'deleted' && (
+                            <button 
+                              onClick={() => handleDeleteOrder(order.id)} 
+                              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-300 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-2"
+                              title={t('common.delete') || 'Delete order'}
+                            >
+                              <FaTrash /> {t('common.delete') || 'Delete'}
+                            </button>
+                          )}
                         </div>
                         <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
                           <div 
@@ -1423,6 +1526,76 @@ const OrderHistory = () => {
                       <>
                         <FaCheckCircle />
                         Mark Bill Complete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete order confirmation modal */}
+      {deleteConfirmOrderId && (
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes deleteBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes deleteDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+          ` }} />
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+            style={{ animation: 'deleteBackdropIn 0.2s ease-out' }}
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="delete-order-title"
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => !deleteSubmitting && (setDeleteConfirmOrderId(null), setDeleteError(null))}
+            />
+            <div
+              className="relative w-full max-w-[min(90vw,400px)] rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
+              style={{ animation: 'deleteDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 sm:p-6 text-center">
+                <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <FaTrash className="text-gray-600 text-2xl sm:text-3xl" />
+                </div>
+                <h2 id="delete-order-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                  {t('orderHistory.deleteModalTitle') || 'Delete this order?'}
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600 mb-6">
+                  {t('orderHistory.deleteConfirm') || 'Are you sure you want to delete this order? It will move to Deleted and you can view it under status "Deleted".'}
+                </p>
+                {deleteError && (
+                  <p className="text-sm text-red-600 mb-4 px-2">{deleteError}</p>
+                )}
+                <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => !deleteSubmitting && (setDeleteConfirmOrderId(null), setDeleteError(null))}
+                    disabled={deleteSubmitting}
+                    className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
+                  >
+                    {t('common.cancel') || 'Cancel'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={executeDeleteOrder}
+                    disabled={deleteSubmitting}
+                    className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-white bg-red-600 border-2 border-red-600 rounded-xl hover:bg-red-700 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
+                  >
+                    {deleteSubmitting ? (
+                      <>
+                        <FaSpinner className="text-lg" style={{ animation: 'spin 1s linear infinite' }} />
+                        {t('common.deleting') || 'Deleting…'}
+                      </>
+                    ) : (
+                      <>
+                        <FaTrash />
+                        {t('common.delete') || 'Delete'}
                       </>
                     )}
                   </button>

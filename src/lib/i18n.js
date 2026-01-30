@@ -9,6 +9,7 @@ const translations = {
       cancel: 'Cancel',
       save: 'Save',
       delete: 'Delete',
+      deleting: 'Deleting…',
       edit: 'Edit',
       add: 'Add',
       close: 'Close',
@@ -276,7 +277,8 @@ const translations = {
         pending: 'Pending',
         confirmed: 'Confirmed',
         completed: 'Completed',
-        cancelled: 'Cancelled'
+        cancelled: 'Cancelled',
+        deleted: 'Deleted'
       },
       type: {
         all: 'All Types',
@@ -300,7 +302,10 @@ const translations = {
       showing: 'Showing',
       of: 'of',
       orders: 'orders',
-      page: 'Page'
+      page: 'Page',
+      deleteModalTitle: 'Delete this order?',
+      deleteConfirm: 'Are you sure you want to delete this order? It will move to Deleted and you can view it under status "Deleted".',
+      deleteSuccess: 'Order deleted. View it under status "Deleted".'
     },
 
     // Tables
@@ -460,6 +465,7 @@ const translations = {
       cancel: 'रद्द करें',
       save: 'सहेजें',
       delete: 'हटाएं',
+      deleting: 'हटा रहा है…',
       edit: 'संपादित करें',
       add: 'जोड़ें',
       close: 'बंद करें',
@@ -727,7 +733,8 @@ const translations = {
         pending: 'लंबित',
         confirmed: 'पुष्टि की गई',
         completed: 'पूर्ण',
-        cancelled: 'रद्द'
+        cancelled: 'रद्द',
+        deleted: 'हटाया गया'
       },
       type: {
         all: 'सभी प्रकार',
@@ -751,7 +758,10 @@ const translations = {
       showing: 'दिखा रहा है',
       of: 'का',
       orders: 'ऑर्डर',
-      page: 'पृष्ठ'
+      page: 'पृष्ठ',
+      deleteModalTitle: 'इस ऑर्डर को हटाएं?',
+      deleteConfirm: 'क्या आप वाकई इस ऑर्डर को हटाना चाहते हैं? यह "हटाया गया" स्थिति में दिखेगा।',
+      deleteSuccess: 'ऑर्डर हटा दिया गया। स्थिति "हटाया गया" के तहत देखें।'
     },
 
     // Tables
