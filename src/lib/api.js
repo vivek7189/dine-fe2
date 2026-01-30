@@ -1372,6 +1372,18 @@ class ApiClient {
     });
   }
 
+  // Print Settings endpoints
+  async getPrintSettings(restaurantId) {
+    return this.request(`/api/admin/print-settings/${restaurantId}`);
+  }
+
+  async updatePrintSettings(restaurantId, printSettings) {
+    return this.request(`/api/admin/print-settings/${restaurantId}`, {
+      method: 'PUT',
+      body: { printSettings },
+    });
+  }
+
   // Invoice Management endpoints
   async generateInvoice(orderId) {
     return this.request(`/api/invoice/generate/${orderId}`, {

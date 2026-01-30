@@ -36,7 +36,8 @@ import {
   FaClock,
   FaGoogle,
   FaReceipt,
-  FaGlobe
+  FaGlobe,
+  FaPrint
 } from 'react-icons/fa';
 import ShiftScheduling from '../../../components/ShiftScheduling';
 import GoogleReviews from '../../../components/GoogleReviews';
@@ -349,6 +350,284 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
           <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
           <p style={{ fontSize: '16px', margin: 0 }}>
             Please select a restaurant to manage tax settings
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Print Settings Component
+const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+  const [printSettings, setPrintSettings] = useState({
+    kotPrinterEnabled: true,
+    manualPrintEnabled: true,
+    showKOTSummaryAfterOrder: true,
+    showBillSummaryAfterBilling: true,
+    usePusherForKOT: false
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const loadPrintSettings = async (restaurantId) => {
+    if (!restaurantId) return;
+
+    setLoading(true);
+    try {
+      const response = await apiClient.getPrintSettings(restaurantId);
+      if (response.success) {
+        setPrintSettings(response.printSettings);
+      }
+    } catch (error) {
+      console.error('Error loading print settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const savePrintSettings = async () => {
+    if (!selectedRestaurant?.id) return;
+
+    setSaving(true);
+    try {
+      const response = await apiClient.updatePrintSettings(selectedRestaurant.id, printSettings);
+      if (response.success) {
+        alert('Print settings saved successfully!');
+      }
+    } catch (error) {
+      console.error('Error saving print settings:', error);
+      alert('Error saving print settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSetting = (key) => {
+    setPrintSettings(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Load print settings when restaurant changes
+  useEffect(() => {
+    if (selectedRestaurant?.id) {
+      loadPrintSettings(selectedRestaurant.id);
+    }
+  }, [selectedRestaurant?.id]);
+
+  const settingsConfig = [
+    {
+      key: 'kotPrinterEnabled',
+      title: 'KOT Printer App (Auto-Print)',
+      description: 'Enable automatic printing via dine-kot-printer app when orders are placed',
+      icon: <FaPrint size={18} />
+    },
+    {
+      key: 'manualPrintEnabled',
+      title: 'Manual Print Button',
+      description: 'Show manual print button on dashboard order summary',
+      icon: <FaReceipt size={18} />
+    },
+    {
+      key: 'showKOTSummaryAfterOrder',
+      title: 'Show KOT Summary After Order',
+      description: 'Display order summary on dashboard after placing order to kitchen',
+      icon: <FaEye size={18} />
+    },
+    {
+      key: 'showBillSummaryAfterBilling',
+      title: 'Show Bill Summary After Billing',
+      description: 'Display bill summary on dashboard after completing billing',
+      icon: <FaEye size={18} />
+    },
+    {
+      key: 'usePusherForKOT',
+      title: 'Use Pusher for Real-time Print',
+      description: 'Use real-time Pusher events instead of polling (Advanced - for kot-printer app)',
+      icon: <FaClock size={18} />
+    }
+  ];
+
+  return (
+    <div>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FaPrint size={20} />
+          Print Settings
+        </h2>
+        <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+          Configure printing behavior and order summary display settings
+        </p>
+      </div>
+
+      {/* Restaurant Selection */}
+      <div style={{ marginBottom: '24px' }}>
+        <p style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+          Select Restaurant
+        </p>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {restaurants.map((restaurant) => (
+            <button
+              key={restaurant.id}
+              onClick={() => {
+                setSelectedRestaurant(restaurant);
+              }}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fce7f3',
+                background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#faf5f7',
+                color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <FaStore size={14} />
+              {restaurant.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <FaSpinner className="spin" size={24} style={{ color: '#ec4899' }} />
+          <p style={{ color: '#6b7280', marginTop: '12px' }}>Loading settings...</p>
+        </div>
+      ) : selectedRestaurant ? (
+        <>
+          {/* Settings Toggles */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            marginBottom: '24px'
+          }}>
+            {settingsConfig.map((setting) => (
+              <div
+                key={setting.key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  backgroundColor: '#faf5f7',
+                  borderRadius: '12px',
+                  border: '1px solid #fce7f3'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: printSettings[setting.key] ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: printSettings[setting.key] ? 'white' : '#6b7280',
+                    flexShrink: 0
+                  }}>
+                    {setting.icon}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      margin: '0 0 4px 0',
+                      fontSize: '14px'
+                    }}>
+                      {setting.title}
+                    </p>
+                    <p style={{
+                      color: '#6b7280',
+                      margin: 0,
+                      fontSize: '13px',
+                      lineHeight: '1.4'
+                    }}>
+                      {setting.description}
+                    </p>
+                  </div>
+                </div>
+                {/* Toggle Switch */}
+                <button
+                  onClick={() => toggleSetting(setting.key)}
+                  style={{
+                    width: '48px',
+                    height: '28px',
+                    borderRadius: '14px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s',
+                    backgroundColor: printSettings[setting.key] ? '#ec4899' : '#d1d5db',
+                    flexShrink: 0,
+                    marginLeft: '16px'
+                  }}
+                >
+                  <div style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    position: 'absolute',
+                    top: '3px',
+                    left: printSettings[setting.key] ? '23px' : '3px',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                  }} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={savePrintSettings}
+            disabled={saving}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '14px 28px',
+              background: saving ? '#d1d5db' : 'linear-gradient(135deg, #ec4899, #db2777)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              boxShadow: saving ? 'none' : '0 4px 14px rgba(236,72,153,0.35)',
+              transition: 'all 0.2s',
+              width: '100%'
+            }}
+          >
+            {saving ? (
+              <>
+                <FaSpinner className="spin" size={16} />
+                Saving...
+              </>
+            ) : (
+              <>
+                <FaSave size={16} />
+                Save Print Settings
+              </>
+            )}
+          </button>
+        </>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
+          <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+          <p style={{ fontSize: '16px', margin: 0 }}>
+            Please select a restaurant to manage print settings
           </p>
         </div>
       )}
@@ -1306,6 +1585,28 @@ const Admin = () => {
                   Tax
                 </button>
                 <button
+                  onClick={() => setActiveTab('print')}
+                  style={{
+                    flex: 1,
+                    backgroundColor: activeTab === 'print' ? '#ec4899' : 'transparent',
+                    color: activeTab === 'print' ? 'white' : '#6b7280',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '12px',
+                    border: activeTab === 'print' ? 'none' : '1px solid #e5e7eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <FaPrint size={10} />
+                  Print
+                </button>
+                <button
                   onClick={() => setActiveTab('order-management')}
                   style={{
                     flex: 1,
@@ -1511,6 +1812,27 @@ const Admin = () => {
               >
                 <FaPercentage size={14} />
                 Tax Management
+              </button>
+              <button
+                onClick={() => setActiveTab('print')}
+                style={{
+                  backgroundColor: activeTab === 'print' ? '#ec4899' : 'transparent',
+                  color: activeTab === 'print' ? 'white' : '#6b7280',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  border: activeTab === 'print' ? 'none' : '2px solid #e5e7eb',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <FaPrint size={14} />
+                Print Settings
               </button>
               <button
                 onClick={() => setActiveTab('order-management')}
@@ -4040,7 +4362,25 @@ const Admin = () => {
           padding: '24px',
           border: '1px solid #fce7f3'
         }}>
-          <TaxManagement 
+          <TaxManagement
+            restaurants={restaurants}
+            selectedRestaurant={selectedRestaurant}
+            setSelectedRestaurant={setSelectedRestaurant}
+          />
+        </div>
+      )}
+
+      {/* Print Settings Section */}
+      {activeTab === 'print' && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          padding: '24px',
+          border: '1px solid #fce7f3',
+          maxWidth: '600px'
+        }}>
+          <PrintSettings
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}

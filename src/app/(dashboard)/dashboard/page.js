@@ -116,6 +116,7 @@ function RestaurantPOSContent() {
   const [currentOrder, setCurrentOrder] = useState(null); // Current order being viewed/updated
   const [orderSearchLoading, setOrderSearchLoading] = useState(false); // Loading state for order search
   const [taxSettings, setTaxSettings] = useState(null); // Tax settings for the restaurant
+  const [printSettings, setPrintSettings] = useState(null); // Print settings for the restaurant
   const [isLoadingOrder, setIsLoadingOrder] = useState(false); // Flag to prevent localStorage override during order loading
   
   // Mobile responsive state
@@ -491,6 +492,35 @@ function RestaurantPOSContent() {
       loadTaxSettings(selectedRestaurant.id);
     }
   }, [selectedRestaurant?.id, loadTaxSettings]);
+
+  // Load print settings for the restaurant
+  const loadPrintSettings = useCallback(async (restaurantId) => {
+    if (!restaurantId) return;
+
+    try {
+      console.log('🖨️ Loading print settings for restaurant:', restaurantId);
+      const printSettingsResponse = await apiClient.getPrintSettings(restaurantId);
+      console.log('🖨️ Print settings response:', printSettingsResponse);
+
+      if (printSettingsResponse.success) {
+        setPrintSettings(printSettingsResponse.printSettings);
+        console.log('🖨️ Print settings loaded:', printSettingsResponse.printSettings);
+      } else {
+        console.log('🖨️ No print settings found, using defaults');
+        setPrintSettings(null);
+      }
+    } catch (error) {
+      console.error('🖨️ Error loading print settings:', error);
+      setPrintSettings(null);
+    }
+  }, []);
+
+  // Load print settings when restaurant changes
+  useEffect(() => {
+    if (selectedRestaurant?.id) {
+      loadPrintSettings(selectedRestaurant.id);
+    }
+  }, [selectedRestaurant?.id, loadPrintSettings]);
 
   const loadInitialData = useCallback(async (skipRestaurantLoad = false, useCache = true) => {
     try {
@@ -4315,6 +4345,7 @@ function RestaurantPOSContent() {
                   restaurantId={selectedRestaurant?.id}
                   restaurantName={selectedRestaurant?.name}
             taxSettings={taxSettings}
+            printSettings={printSettings}
             menuItems={menuItems}
           />
         </div>
@@ -4367,6 +4398,7 @@ function RestaurantPOSContent() {
                     restaurantId={selectedRestaurant?.id}
                     restaurantName={selectedRestaurant?.name}
                     taxSettings={taxSettings}
+                    printSettings={printSettings}
                 menuItems={menuItems}
                 onClose={() => setShowMobileCart(false)}
                   />

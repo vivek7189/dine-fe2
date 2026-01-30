@@ -59,6 +59,7 @@ const OrderSummary = ({
   restaurantId,
   restaurantName,
   taxSettings,
+  printSettings,
   menuItems = [],
   onClose,
   inRoomDiningEnabled = false,
@@ -361,7 +362,30 @@ const OrderSummary = ({
   // Debug logging
   console.log('OrderSummary orderSuccess:', orderSuccess);
   console.log('Tax state - taxBreakdown:', taxBreakdown, 'totalTax:', totalTax, 'grandTotal:', grandTotal);
-  
+
+  // Helper function to check if order summary should be shown based on print settings
+  const shouldShowOrderSummary = () => {
+    if (!orderSuccess?.show) return false;
+
+    // Determine if this is a kitchen order or billing order
+    const isKitchenOrder = orderSuccess?.message?.includes('placed') ||
+                           orderSuccess?.message?.includes('Updated') ||
+                           orderSuccess?.message?.includes('Kitchen');
+
+    if (isKitchenOrder) {
+      // For kitchen orders, check showKOTSummaryAfterOrder setting (default: true)
+      return printSettings?.showKOTSummaryAfterOrder !== false;
+    } else {
+      // For billing orders, check showBillSummaryAfterBilling setting (default: true)
+      return printSettings?.showBillSummaryAfterBilling !== false;
+    }
+  };
+
+  // Helper function to check if manual print button should be shown
+  const shouldShowManualPrint = () => {
+    return printSettings?.manualPrintEnabled !== false;
+  };
+
   const generateInvoice = async (orderId) => {
     try {
       console.log('Generating invoice for order ID:', orderId);
@@ -699,7 +723,7 @@ const OrderSummary = ({
       }}
       className="hide-scrollbar"
       >
-        {orderSuccess?.show ? (
+        {shouldShowOrderSummary() ? (
           <div style={{ padding: '8px 0', paddingTop: '12px' }}>
             <div style={{ 
               padding: '16px', 
@@ -801,6 +825,7 @@ const OrderSummary = ({
                     </table>
                     <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you - DineOpen KOT</div>
                   </div>
+                  {shouldShowManualPrint() && (
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
                   <button
                     onClick={() => {
@@ -828,6 +853,7 @@ const OrderSummary = ({
                     Print Kitchen Order (KOT)
                   </button>
                 </div>
+                  )}
                 </>
               )}
               {/* Billing complete: Invoice summary (same style as KOT) + Print Invoice */}
@@ -869,6 +895,7 @@ const OrderSummary = ({
                     </table>
                     <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you - DineOpen</div>
                   </div>
+                  {shouldShowManualPrint() && (
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
                   <button
                     onClick={() => {
@@ -893,6 +920,7 @@ const OrderSummary = ({
                     Print Invoice
                   </button>
                 </div>
+                  )}
                 </>
               )}
               <button
@@ -1337,7 +1365,7 @@ const OrderSummary = ({
           </div>
 
           {/* Actions Section */}
-          {!orderSuccess?.show && (
+          {!shouldShowOrderSummary() && (
             <div style={{ padding: '2px 16px 12px 16px' }}>
               {/* Customer Information */}
               <div style={{ marginBottom: '8px' }}>
