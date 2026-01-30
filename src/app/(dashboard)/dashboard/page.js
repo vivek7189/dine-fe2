@@ -3245,13 +3245,13 @@ function RestaurantPOSContent() {
         transition: 'margin-top 0.3s ease-out',
         position: 'relative' // Required for absolute-positioned top header bar
       }}>
-        {/* Top Header Bar - Logo + Actions (stops before Order Summary) */}
-        {!isMobile && viewMode === 'orders' && (
+        {/* Top Header Bar - Logo + Actions */}
+        {!isMobile && (
           <div style={{
             position: 'absolute',
             top: '10px',
             left: 0,
-            right: '450px', // Stop before Order Summary (450px width)
+            right: viewMode === 'orders' ? '450px' : '20px', // Stop before Order Summary in orders view
             height: '52px',
             backgroundColor: '#ffffff',
             borderBottom: '1px solid #e5e7eb',
@@ -3315,89 +3315,99 @@ function RestaurantPOSContent() {
               }}>DineOpen</span>
             </div>
 
-            {/* Search */}
-            <div style={{ position: 'relative', flex: '1', maxWidth: '280px', display: 'flex', alignItems: 'center', height: '36px', backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
-              <FaSearch style={{
-                marginLeft: '10px',
-                color: '#6b7280',
-                flexShrink: 0
-              }} size={14} />
-              <input
-                type="text"
-                placeholder="Search menu..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  flex: 1,
-                  height: '100%',
-                  paddingLeft: '10px',
-                  paddingRight: '10px',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  outline: 'none',
-                  color: '#374151'
-                }}
-                onFocus={(e) => e.target.parentElement.style.borderBottomColor = '#9ca3af'}
-                onBlur={(e) => e.target.parentElement.style.borderBottomColor = '#d1d5db'}
-              />
-            </div>
+            {/* Orders View - Search, Order ID, Short Code */}
+            {viewMode === 'orders' && (
+              <>
+                {/* Search */}
+                <div style={{ position: 'relative', flex: '1', maxWidth: '280px', display: 'flex', alignItems: 'center', height: '36px', backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
+                  <FaSearch style={{
+                    marginLeft: '10px',
+                    color: '#6b7280',
+                    flexShrink: 0
+                  }} size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search menu..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      flex: 1,
+                      height: '100%',
+                      paddingLeft: '10px',
+                      paddingRight: '10px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      outline: 'none',
+                      color: '#374151'
+                    }}
+                    onFocus={(e) => e.target.parentElement.style.borderBottomColor = '#9ca3af'}
+                    onBlur={(e) => e.target.parentElement.style.borderBottomColor = '#d1d5db'}
+                  />
+                </div>
 
-            {/* Order ID */}
-            <input
-              type="text"
-              placeholder="Order ID"
-              value={orderLookup}
-              onChange={(e) => setOrderLookup(e.target.value)}
-              onKeyPress={handleOrderLookup}
-              className="header-order-id-input"
-              style={{
-                width: '100px',
-                height: '34px',
-                padding: '0 8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: '#fef3c7',
-                fontSize: '13px',
-                fontWeight: '500',
-                outline: 'none',
-                textAlign: 'center',
-                color: '#b45309'
-              }}
-            />
-            <style>{`
-              .header-order-id-input::placeholder { color: #9ca3af; }
-              .header-short-code-input::placeholder { color: #9ca3af; }
-            `}</style>
+                {/* Order ID */}
+                <input
+                  type="text"
+                  placeholder="Order ID"
+                  value={orderLookup}
+                  onChange={(e) => setOrderLookup(e.target.value)}
+                  onKeyPress={handleOrderLookup}
+                  className="header-order-id-input"
+                  style={{
+                    width: '100px',
+                    height: '34px',
+                    padding: '0 8px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#fef3c7',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    outline: 'none',
+                    textAlign: 'center',
+                    color: '#b45309'
+                  }}
+                />
+                <style>{`
+                  .header-order-id-input::placeholder { color: #9ca3af; }
+                  .header-short-code-input::placeholder { color: #9ca3af; }
+                `}</style>
 
-            {/* Short Code */}
-            <input
-              type="text"
-              placeholder="SHORT CODE"
-              value={shortCodeSearch}
-              onChange={(e) => setShortCodeSearch(e.target.value)}
-              onKeyPress={handleShortCodeSearch}
-              className="header-short-code-input"
-              style={{
-                width: '110px',
-                height: '34px',
-                padding: '0 8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: '#d1fae5',
-                fontSize: '12px',
-                fontWeight: '500',
-                outline: 'none',
-                textAlign: 'center',
-                color: '#059669',
-                textTransform: 'uppercase'
-              }}
-            />
+                {/* Short Code */}
+                <input
+                  type="text"
+                  placeholder="SHORT CODE"
+                  value={shortCodeSearch}
+                  onChange={(e) => setShortCodeSearch(e.target.value)}
+                  onKeyPress={handleShortCodeSearch}
+                  className="header-short-code-input"
+                  style={{
+                    width: '110px',
+                    height: '34px',
+                    padding: '0 8px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#d1fae5',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    outline: 'none',
+                    textAlign: 'center',
+                    color: '#059669',
+                    textTransform: 'uppercase'
+                  }}
+                />
+              </>
+            )}
 
             {/* New Order Button */}
             <button
-              onClick={handleFreshOrder}
+              onClick={() => {
+                handleFreshOrder();
+                if (viewMode === 'tables') {
+                  setViewMode('orders');
+                }
+              }}
               style={{
                 height: '34px',
                 padding: '0 14px',
@@ -3453,7 +3463,7 @@ function RestaurantPOSContent() {
               )}
             </button>
 
-            {/* Tables Button */}
+            {/* Tables/Orders Toggle Button */}
             <button
               onClick={() => setViewMode(viewMode === 'orders' ? 'tables' : 'orders')}
               style={{
@@ -3469,7 +3479,7 @@ function RestaurantPOSContent() {
                 flexShrink: 0
               }}
             >
-              TABLES
+              {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
             </button>
 
             {/* Card Toggle */}
@@ -3504,9 +3514,9 @@ function RestaurantPOSContent() {
         {/* Desktop Category Sidebar - Part of Menu Section */}
         {!isMobile && viewMode === 'orders' && (
           <div style={{
-            width: '150px',
+            width: '170px',
             height: '100%',
-            paddingTop: '72px', // Space for top header (52px) + top margin (10px) + extra padding (10px)
+            paddingTop: '80px', // Match menu section paddingTop
             backgroundColor: '#f8fafc',
             borderRight: '1px solid #e5e7eb',
             display: 'flex',
@@ -3517,7 +3527,7 @@ function RestaurantPOSContent() {
             <div style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '8px 6px'
+              padding: '12px 10px'
             }} className="hide-scrollbar">
               {categories.map((category) => {
                 const categoryItems = category.id === 'all-items'
@@ -3532,10 +3542,10 @@ function RestaurantPOSContent() {
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
                     style={{
-                      padding: '9px 10px',
-                      marginBottom: '2px',
+                      padding: '12px 14px',
+                      marginBottom: '4px',
                       backgroundColor: isSelected ? '#ef4444' : 'transparent',
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                       display: 'flex',
@@ -3554,7 +3564,7 @@ function RestaurantPOSContent() {
                     }}
                   >
                     <span style={{
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: isSelected ? '600' : '500',
                       color: isSelected ? 'white' : '#374151',
                       overflow: 'hidden',
@@ -3564,13 +3574,13 @@ function RestaurantPOSContent() {
                       {category.name}
                     </span>
                     <span style={{
-                      fontSize: '10px',
+                      fontSize: '11px',
                       fontWeight: '600',
                       color: isSelected ? 'rgba(255,255,255,0.9)' : '#6b7280',
                       backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#e5e7eb',
-                      padding: '2px 6px',
-                      borderRadius: '8px',
-                      minWidth: '22px',
+                      padding: '3px 8px',
+                      borderRadius: '10px',
+                      minWidth: '26px',
                       textAlign: 'center',
                       flexShrink: 0
                     }}>
@@ -3594,7 +3604,7 @@ function RestaurantPOSContent() {
           height: isMobile ? 'auto' : '100%',
           minHeight: isMobile ? '400px' : '100%',
           paddingBottom: isMobile ? '80px' : '0', // Add bottom padding for mobile cart button
-          paddingTop: !isMobile && viewMode === 'orders' ? '80px' : '0', // Space for top header (52px) + top margin (10px) + align with categories (8px) + extra (10px)
+          paddingTop: !isMobile ? '80px' : '0', // Space for top header (52px) + top margin (10px) + align with categories (8px) + extra (10px)
           maxHeight: isMobile ? 'none' : '100%',
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined,

@@ -289,6 +289,7 @@ export default function Sidebar({ isDashboardPage = false }) {
   useEffect(() => {
     const handleOpenNavSidebar = () => {
       setIsMobileMenuOpen(true);
+      setIsCollapsed(false); // Always open in expanded mode
     };
 
     window.addEventListener('openNavSidebar', handleOpenNavSidebar);
