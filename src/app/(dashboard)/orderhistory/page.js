@@ -424,24 +424,96 @@ const OrderHistory = () => {
 
   const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit`);
 
-  const calculateOrderTotal = (order) => {
+  const handleSmartPrint = (order) => {
+    const restaurantName = restaurant?.name || 'Restaurant';
+    const orderNum = order.dailyOrderId ?? order.orderNumber ?? order.id ?? '—';
+    const orderIdShort = order.id ? String(order.id).slice(-8).toUpperCase() : '';
+    const rawDate = order.createdAt;
+    const orderDate = !rawDate ? new Date() : (typeof rawDate?.toDate === 'function' ? rawDate.toDate() : (rawDate?._seconds ? new Date(rawDate._seconds * 1000) : new Date(rawDate)));
+    const dateStr = orderDate.toLocaleString();
+    const tableNum = order.tableNumber || order.customerDisplay?.tableNumber || order.customerInfo?.tableNumber || null;
+    const roomNum = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || null;
+    const customerName = order.customerDisplay?.name || order.customerInfo?.name || null;
+    const orderType = order.orderType || null;
+    const items = order.items || [];
+
+    if (order.status === 'completed') {
+      const subtotal = items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
+      let totalTax = 0;
+      const taxBreakdown = [];
+      if (taxSettings?.enabled && taxSettings?.taxes?.length) {
+        taxSettings.taxes.forEach(t => {
+          if (t.enabled && t.rate != null) {
+            const amt = subtotal * (t.rate / 100);
+            totalTax += amt;
+            taxBreakdown.push({ name: t.name || 'Tax', rate: t.rate, amount: amt });
+          }
+        });
+      } else if (taxSettings?.defaultTaxRate) {
+        const amt = subtotal * (taxSettings.defaultTaxRate / 100);
+        totalTax = amt;
+        taxBreakdown.push({ name: 'Tax', rate: taxSettings.defaultTaxRate, amount: amt });
+      }
+      const total = subtotal + totalTax;
+      const taxRows = taxBreakdown.map(t => `<tr><td>${(t.name || 'Tax').replace(/</g, '&lt;')} (${t.rate}%)</td><td>₹${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
+      const invoiceContent = `<!DOCTYPE html><html><head><title>Invoice - ${orderNum}</title><style>body{font-family:Arial,sans-serif;margin:20px;} .invoice-header{text-align:center;margin-bottom:20px;} .invoice-details{margin-bottom:20px;} table{width:100%;border-collapse:collapse;} th,td{padding:8px;text-align:left;border-bottom:1px solid #ddd;} .total-row{font-weight:bold;border-top:2px solid #000;} .invoice-footer{text-align:center;margin-top:30px;font-size:12px;color:#666;}</style></head><body><div class="invoice-header"><h1>Invoice #${String(orderNum).replace(/</g, '&lt;')}</h1><h2>${restaurantName.replace(/</g, '&lt;')}</h2></div><div class="invoice-details"><p><strong>Order #:</strong> ${String(orderNum).replace(/</g, '&lt;')}</p><p><strong>ID:</strong> ${orderIdShort}</p><p><strong>Date:</strong> ${dateStr}</p>${tableNum ? `<p><strong>Table:</strong> ${String(tableNum).replace(/</g, '&lt;')}</p>` : ''}${roomNum ? `<p><strong>Room:</strong> ${String(roomNum).replace(/</g, '&lt;')}</p>` : ''}${customerName ? `<p><strong>Customer:</strong> ${String(customerName).replace(/</g, '&lt;')}</p>` : ''}</div><table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody><tr><td>Subtotal</td><td>₹${subtotal.toFixed(2)}</td></tr>${taxRows}<tr class="total-row"><td>Total</td><td>₹${total.toFixed(2)}</td></tr></tbody></table><div class="invoice-footer"><p>Thank you for your business!</p><p>DineOpen</p></div></body></html>`;
+      const win = window.open('', '_blank', 'width=800,height=600');
+      if (win) {
+        win.document.write(invoiceContent);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); }, 500);
+      }
+    } else {
+      const tableOrRoom = roomNum ? `Room: ${roomNum}` : (tableNum ? `Table: ${tableNum}` : '');
+      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>body{font-family:monospace;margin:16px;font-size:14px;} .kot-header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:12px;} .kot-title{font-size:18px;font-weight:bold;} .kot-info{margin-bottom:12px;} table{width:100%;border-collapse:collapse;} th,td{padding:4px 8px;text-align:left;border-bottom:1px solid #ddd;} th{background:#f3f4f6;} .kot-footer{text-align:center;margin-top:16px;border-top:2px dashed #000;padding-top:8px;font-size:12px;}</style></head><body><div class="kot-header"><div class="kot-title">--- KITCHEN ORDER ---</div><div>${restaurantName.replace(/</g, '&lt;')}</div></div><div class="kot-info"><div><strong>Order #:</strong> ${String(orderNum).replace(/</g, '&lt;')}</div>${orderIdShort ? `<div><strong>ID:</strong> ${orderIdShort}</div>` : ''}<div><strong>Date:</strong> ${dateStr}</div>${tableOrRoom ? `<div><strong>${roomNum ? 'Room' : 'Table'}:</strong> ${roomNum || tableNum}</div>` : ''}${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g, '&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${String(orderType).replace(/</g, '&lt;')}</div>` : ''}</div><table><thead><tr><th>Item</th><th>Qty</th><th>Note</th></tr></thead><tbody>${items.map(i => `<tr><td>${(i.name || '').replace(/</g, '&lt;')}</td><td>${i.quantity || 1}</td><td>${(i.notes || '-').replace(/</g, '&lt;')}</td></tr>`).join('')}</tbody></table><div class="kot-footer">Thank you - DineOpen KOT</div></body></html>`;
+      const pw = window.open('', '_blank', 'width=400,height=600');
+      if (pw) {
+        pw.document.write(kotContent);
+        pw.document.close();
+        pw.focus();
+        setTimeout(() => { pw.print(); }, 400);
+      }
+    }
+  };
+
+  const getOrderBreakdown = (order) => {
     let subtotal = 0;
     if (order.items && Array.isArray(order.items)) {
       subtotal = order.items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
     } else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
-
-    if (order.finalAmount && order.finalAmount > 0) return parseFloat(order.finalAmount.toFixed(2));
-    if (order.taxAmount && order.taxAmount > 0) return parseFloat((subtotal + order.taxAmount).toFixed(2));
-
+    subtotal = parseFloat(subtotal.toFixed(2));
+    let taxAmount = 0;
+    const taxLines = [];
     if (taxSettings?.enabled && subtotal > 0) {
-      let totalTax = 0;
       if (taxSettings.taxes && taxSettings.taxes.length > 0) {
-        taxSettings.taxes.forEach(tax => { if (tax.enabled) totalTax += subtotal * (tax.rate / 100); });
+        taxSettings.taxes.forEach(tax => {
+          if (tax.enabled && tax.rate != null) {
+            const amt = parseFloat((subtotal * (tax.rate / 100)).toFixed(2));
+            taxAmount += amt;
+            taxLines.push({ name: tax.name || 'Tax', rate: tax.rate, amount: amt });
+          }
+        });
       } else if (taxSettings.defaultTaxRate) {
-        totalTax = subtotal * (taxSettings.defaultTaxRate / 100);
+        taxAmount = parseFloat((subtotal * (taxSettings.defaultTaxRate / 100)).toFixed(2));
+        taxLines.push({ name: 'GST', rate: taxSettings.defaultTaxRate, amount: taxAmount });
       }
-      return parseFloat((subtotal + totalTax).toFixed(2));
+    } else if (order.taxAmount && order.taxAmount > 0) {
+      taxAmount = parseFloat(order.taxAmount.toFixed(2));
+      taxLines.push({ name: 'Tax', rate: null, amount: taxAmount });
     }
+    const total = parseFloat((subtotal + taxAmount).toFixed(2));
+    return { subtotal, taxAmount, taxLines, total };
+  };
+
+  const calculateOrderTotal = (order) => {
+    const { total } = getOrderBreakdown(order);
+    if (total > 0) return total;
+    let subtotal = 0;
+    if (order.items && Array.isArray(order.items)) {
+      subtotal = order.items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
+    } else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
+    if (order.finalAmount && order.finalAmount > 0) return parseFloat(order.finalAmount.toFixed(2));
     return parseFloat(subtotal.toFixed(2));
   };
 
@@ -929,6 +1001,7 @@ const OrderHistory = () => {
             {orders.map((order) => {
               const statusStyle = getStatusStyle(order.status, order.orderFlow);
               const orderTotal = calculateOrderTotal(order);
+              const breakdown = getOrderBreakdown(order);
               const itemCount = Array.isArray(order.items) ? order.items.length : 0;
               const sourceChip = getOrderSourceChip(order);
               
@@ -994,7 +1067,17 @@ const OrderHistory = () => {
                           <span className="text-xs text-gray-500 font-medium">{order.paymentMethod || 'Cash'}</span>
                         </div>
                         <div className="col-span-6 sm:col-span-2 flex flex-col items-end gap-2">
-                          <span className="font-bold text-xl text-gray-900">₹{orderTotal}</span>
+                          <div className="text-right space-y-0.5">
+                            {breakdown.taxLines?.length > 0 && (
+                              <>
+                                <div className="text-xs text-gray-500">Subtotal ₹{breakdown.subtotal.toFixed(2)}</div>
+                                {breakdown.taxLines.map((line, i) => (
+                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} ₹{line.amount.toFixed(2)}</div>
+                                ))}
+                              </>
+                            )}
+                            <span className="font-bold text-xl text-gray-900">₹{orderTotal}</span>
+                          </div>
                           <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             {order.status !== 'completed' && order.status !== 'cancelled' && (
                                 <button 
@@ -1011,6 +1094,13 @@ const OrderHistory = () => {
                               title="Invoice"
                             >
                               <FaFileInvoice size={12} />
+                            </button>
+                            <button 
+                              onClick={() => handleSmartPrint(order)} 
+                              className="p-2 text-orange-600 bg-orange-100 hover:bg-orange-200 rounded-lg transition-colors" 
+                              title="Print"
+                            >
+                              <FaPrint size={12} />
                             </button>
                             <button 
                               onClick={() => handleViewOrder(order)} 
@@ -1086,6 +1176,14 @@ const OrderHistory = () => {
                             </div>
                           </div>
                           <div className="text-right">
+                            {breakdown.taxLines?.length > 0 ? (
+                              <div className="space-y-0.5 mb-1">
+                                <div className="text-xs text-gray-500">Subtotal ₹{breakdown.subtotal.toFixed(2)}</div>
+                                {breakdown.taxLines.map((line, i) => (
+                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} ₹{line.amount.toFixed(2)}</div>
+                                ))}
+                              </div>
+                            ) : null}
                             <div className="text-2xl font-bold text-gray-900 mb-1">₹{orderTotal}</div>
                             <div className="text-xs text-gray-500">{order.paymentMethod || 'Cash'}</div>
                           </div>
@@ -1166,6 +1264,13 @@ const OrderHistory = () => {
                             className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-2"
                           >
                             <FaFileInvoice /> Invoice
+                          </button>
+                          <button 
+                            onClick={() => handleSmartPrint(order)} 
+                            className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-50 border-2 border-orange-200 rounded-lg hover:bg-orange-100 transition-all flex items-center gap-2"
+                            title={order.status === 'completed' ? 'Print bill' : 'Print KOT'}
+                          >
+                            <FaPrint /> Print
                           </button>
                           {order.status !== 'completed' && order.status !== 'cancelled' && (
                             <button 

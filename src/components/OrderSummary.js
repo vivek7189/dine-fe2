@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
 import { 
@@ -82,6 +82,9 @@ const OrderSummary = ({
   const [voiceError, setVoiceError] = useState('');
   const [useFullChatGPT, setUseFullChatGPT] = useState(true); // Feature flag - Set to true for full ChatGPT processing
   const [isMobile, setIsMobile] = useState(false);
+
+  const kotPrintWindowRef = useRef(null);
+  const invoicePrintWindowRef = useRef(null);
   
   // Debug: Log cart prop received by OrderSummary
   console.log('📋 OrderSummary: Received cart prop:', cart);
@@ -696,7 +699,220 @@ const OrderSummary = ({
       }}
       className="hide-scrollbar"
       >
-        {cart.length === 0 ? (
+        {orderSuccess?.show ? (
+          <div style={{ padding: '8px 0', paddingTop: '12px' }}>
+            <div style={{ 
+              padding: '16px', 
+              backgroundColor: '#dcfce7', 
+              border: '2px solid #22c55e',
+              borderRadius: '12px',
+              textAlign: 'center',
+              boxShadow: '0 4px 12px rgba(34, 197, 94, 0.2)',
+              position: 'relative'
+            }}>
+              <button
+                onClick={() => {
+                  if (kotPrintWindowRef.current && !kotPrintWindowRef.current.closed) kotPrintWindowRef.current.close();
+                  if (invoicePrintWindowRef.current && !invoicePrintWindowRef.current.closed) invoicePrintWindowRef.current.close();
+                  kotPrintWindowRef.current = null;
+                  invoicePrintWindowRef.current = null;
+                  setOrderSuccess(null);
+                  onClearCart();
+                  if (isMobile && onClose) setTimeout(() => onClose(), 300);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: 'rgba(22, 101, 52, 0.2)',
+                  color: '#166534',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0
+                }}
+                aria-label="Close"
+              >
+                <FaTimes size={14} />
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '12px' }}>
+                <div style={{ width: '32px', height: '32px', backgroundColor: '#22c55e', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaCheckCircle size={16} style={{ color: 'white' }} />
+                </div>
+                <div style={{ fontWeight: '800', color: '#166534', fontSize: '16px' }}>
+                  {orderSuccess.message || 'Order Complete! ✅'}
+                </div>
+              </div>
+              {(() => {
+                const isKitchenOrder = orderSuccess?.message?.includes('placed') || orderSuccess?.message?.includes('Updated') || orderSuccess?.message?.includes('Kitchen');
+                return (
+                  <>
+                    <div style={{ fontSize: '14px', color: '#166534', marginBottom: '12px', fontWeight: '600' }}>
+                      Order #{orderSuccess.dailyOrderId ?? orderSuccess.orderId ?? '—'} {isKitchenOrder ? 'sent to kitchen' : 'billing completed'}
+                      {orderSuccess.orderId && (
+                        <div style={{ fontSize: '11px', color: '#15803d', marginTop: '4px', fontFamily: 'monospace' }}>
+                          ID: {String(orderSuccess.orderId).slice(-8).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#166534', marginBottom: '16px' }}>
+                      {isKitchenOrder ? 'Your order has been sent to the kitchen for preparation.' : 'Payment processed successfully. Thank you for your order!'}
+                    </div>
+                  </>
+                );
+              })()}
+              {orderSuccess?.kotData && (orderSuccess?.message?.includes('placed') || orderSuccess?.message?.includes('Updated') || orderSuccess?.message?.includes('Kitchen')) && (
+                <>
+                  <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- KITCHEN ORDER ---</div>
+                    <div style={{ marginBottom: '6px', fontSize: '14px' }}>{orderSuccess.kotData.restaurantName || 'Restaurant'}</div>
+                    <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
+                      <div><strong>Order #:</strong> {orderSuccess.kotData.dailyOrderId ?? orderSuccess.kotData.orderId ?? '—'}</div>
+                      {orderSuccess.kotData.orderId && <div><strong>ID:</strong> {String(orderSuccess.kotData.orderId).slice(-8).toUpperCase()}</div>}
+                      <div><strong>Date:</strong> {new Date().toLocaleString()}</div>
+                      {(orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber) && (
+                        <div><strong>{orderSuccess.kotData.roomNumber ? 'Room' : 'Table'}:</strong> {orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber}</div>
+                      )}
+                      {orderSuccess.kotData.customerName && <div><strong>Customer:</strong> {orderSuccess.kotData.customerName}</div>}
+                      {orderSuccess.kotData.orderType && <div><strong>Type:</strong> {orderSuccess.kotData.orderType}</div>}
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #86efac' }}>
+                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>Item</th>
+                          <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '36px' }}>Qty</th>
+                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(orderSuccess.kotData.items || []).map((i, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid #dcfce7' }}>
+                            <td style={{ padding: '4px 6px' }}>{i.name || '—'}</td>
+                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>{i.quantity || 1}</td>
+                            <td style={{ padding: '4px 6px', color: '#6b7280' }}>{i.notes || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you - DineOpen KOT</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
+                  <button
+                    onClick={() => {
+                      const pw = kotPrintWindowRef.current;
+                      if (pw && !pw.closed) {
+                        pw.focus();
+                        pw.print();
+                        return;
+                      }
+                      const k = orderSuccess.kotData;
+                      const tableOrRoom = k.roomNumber ? `Room: ${k.roomNumber}` : (k.tableNumber ? `Table: ${k.tableNumber}` : '');
+                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>body{font-family:monospace;margin:16px;font-size:14px;} .kot-header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:12px;} .kot-title{font-size:18px;font-weight:bold;} .kot-info{margin-bottom:12px;} table{width:100%;border-collapse:collapse;} th,td{padding:4px 8px;text-align:left;border-bottom:1px solid #ddd;} th{background:#f3f4f6;} .kot-footer{text-align:center;margin-top:16px;border-top:2px dashed #000;padding-top:8px;font-size:12px;}</style></head><body><div class="kot-header"><div class="kot-title">--- KITCHEN ORDER ---</div><div>${k.restaurantName || 'Restaurant'}</div></div><div class="kot-info"><div><strong>Order #:</strong> ${k.dailyOrderId || k.orderId}</div><div><strong>Date:</strong> ${new Date().toLocaleString()}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}${k.customerName ? `<div><strong>Customer:</strong> ${k.customerName}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}</div><table><thead><tr><th>Item</th><th>Qty</th><th>Note</th></tr></thead><tbody>${(k.items || []).map(i => `<tr><td>${(i.name || '').replace(/</g, '&lt;')}</td><td>${i.quantity || 1}</td><td>${(i.notes || '-').replace(/</g, '&lt;')}</td></tr>`).join('')}</tbody></table><div class="kot-footer">Thank you - DineOpen KOT</div></body></html>`;
+                      const newPw = window.open('', '_blank', 'width=400,height=600');
+                      if (newPw) {
+                        kotPrintWindowRef.current = newPw;
+                        newPw.document.write(kotContent);
+                        newPw.document.close();
+                        newPw.focus();
+                        setTimeout(() => newPw.print(), 400);
+                      }
+                    }}
+                    style={{ backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(249,115,22,0.3)' }}
+                  >
+                    <FaPrint size={14} />
+                    Print Kitchen Order (KOT)
+                  </button>
+                </div>
+                </>
+              )}
+              {/* Billing complete: Invoice summary (same style as KOT) + Print Invoice */}
+              {((orderSuccess?.message?.includes('Billing Complete') && invoice) || showInvoicePermanently) && invoice && (
+                <>
+                  <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- INVOICE ---</div>
+                    <div style={{ marginBottom: '6px', fontSize: '14px' }}>{invoice?.restaurantName || 'Restaurant'}</div>
+                    <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
+                      {invoice?.dailyOrderId != null && <div><strong>Order #:</strong> {invoice.dailyOrderId}</div>}
+                      {invoice?.orderId && <div><strong>ID:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
+                      <div><strong>Date:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
+                      {invoice?.tableNumber && <div><strong>Table:</strong> {invoice.tableNumber}</div>}
+                      {invoice?.customerName && <div><strong>Customer:</strong> {invoice.customerName}</div>}
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #86efac' }}>
+                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>Description</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '80px' }}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={{ borderBottom: '1px solid #dcfce7' }}>
+                          <td style={{ padding: '4px 6px' }}>Subtotal</td>
+                          <td style={{ padding: '4px 6px', textAlign: 'right' }}>₹{(invoice?.subtotal || 0).toFixed(2)}</td>
+                        </tr>
+                        {invoice?.taxBreakdown?.map((tax, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid #dcfce7' }}>
+                            <td style={{ padding: '4px 6px' }}>{tax.name} ({tax.rate}%)</td>
+                            <td style={{ padding: '4px 6px', textAlign: 'right' }}>₹{(tax.amount || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                        <tr style={{ borderTop: '2px solid #22c55e', fontWeight: 'bold' }}>
+                          <td style={{ padding: '6px 6px' }}>Total</td>
+                          <td style={{ padding: '6px 6px', textAlign: 'right' }}>₹{((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0)).toFixed(2)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you - DineOpen</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
+                  <button
+                    onClick={() => {
+                      const printWindow = invoicePrintWindowRef.current;
+                      if (printWindow && !printWindow.closed) {
+                        printWindow.focus();
+                        printWindow.print();
+                        return;
+                      }
+                      const win = window.open('', '_blank', 'width=800,height=600');
+                      if (!win) return;
+                      invoicePrintWindowRef.current = win;
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>Invoice #${invoice?.id || 'N/A'}</title><style>body{font-family:Arial,sans-serif;margin:20px;} .invoice-header{text-align:center;margin-bottom:20px;} .invoice-details{margin-bottom:20px;} table{width:100%;border-collapse:collapse;} th,td{padding:8px;text-align:left;border-bottom:1px solid #ddd;} .total-row{font-weight:bold;border-top:2px solid #000;} .invoice-footer{text-align:center;margin-top:30px;font-size:12px;color:#666;}</style></head><body><div class="invoice-header"><h1>Invoice #${invoice?.id || 'N/A'}</h1><h2>${invoice?.restaurantName || 'Restaurant'}</h2></div><div class="invoice-details"><p><strong>Order ID:</strong> ${invoice?.orderId || 'N/A'}</p><p><strong>Date:</strong> ${invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : 'N/A'}</p></div><table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody><tr><td>Subtotal</td><td>₹${(invoice?.subtotal || 0).toFixed(2)}</td></tr>${invoice?.taxBreakdown?.map(tax => `<tr><td>${tax.name} (${tax.rate}%)</td><td>₹${(tax.amount || 0).toFixed(2)}</td></tr>`).join('') || ''}<tr class="total-row"><td>Total</td><td>₹${((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0)).toFixed(2)}</td></tr></tbody></table><div class="invoice-footer"><p>Thank you for your business!</p><p>DineOpen</p></div></body></html>`;
+                      win.document.write(invoiceContent);
+                      win.document.close();
+                      win.focus();
+                      setTimeout(() => win.print(), 500);
+                    }}
+                    style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}
+                  >
+                    <FaPrint size={14} />
+                    Print Invoice
+                  </button>
+                </div>
+                </>
+              )}
+              <button
+                onClick={() => {
+                  if (kotPrintWindowRef.current && !kotPrintWindowRef.current.closed) kotPrintWindowRef.current.close();
+                  if (invoicePrintWindowRef.current && !invoicePrintWindowRef.current.closed) invoicePrintWindowRef.current.close();
+                  kotPrintWindowRef.current = null;
+                  invoicePrintWindowRef.current = null;
+                  setOrderSuccess(null);
+                  onClearCart();
+                  if (isMobile && onClose) setTimeout(() => onClose(), 300);
+                }}
+                style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '0 auto', boxShadow: '0 4px 12px rgba(34,197,94,0.4)' }}
+              >
+                <FaPlus size={10} />
+                Start New Order
+              </button>
+            </div>
+          </div>
+        ) : cart.length === 0 ? (
           <div style={{ 
             display: 'flex',
             flexDirection: 'column',
@@ -1077,292 +1293,6 @@ const OrderSummary = ({
           </div>
         )}
       </div>
-
-      {/* Success Message - Show regardless of cart state */}
-      {orderSuccess?.show && (
-        <div style={{ 
-          padding: '16px', 
-          backgroundColor: '#dcfce7', 
-          border: '2px solid #22c55e',
-          borderRadius: '12px',
-          margin: '12px',
-          textAlign: 'center',
-          boxShadow: '0 4px 12px rgba(34, 197, 94, 0.2)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '12px' }}>
-            <div style={{ 
-              width: '32px', 
-              height: '32px', 
-              backgroundColor: '#22c55e', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              animation: 'bounce 1s infinite'
-            }}>
-              <FaCheckCircle size={16} style={{ color: 'white' }} />
-            </div>
-            <div style={{ fontWeight: '800', color: '#166534', fontSize: '16px' }}>
-              {orderSuccess.message || 'Order Complete! ✅'}
-            </div>
-          </div>
-          <div style={{ fontSize: '14px', color: '#166534', marginBottom: '12px', fontWeight: '600' }}>
-            Order #{orderSuccess.dailyOrderId || orderSuccess.orderId} {orderSuccess.message?.includes('placed') ? 'sent to kitchen' : 'billing completed'}
-            {orderSuccess.dailyOrderId && (
-              <div style={{ fontSize: '11px', color: '#15803d', marginTop: '4px', fontFamily: 'monospace' }}>
-                ID: {orderSuccess.orderId?.slice(-8).toUpperCase()}
-              </div>
-            )}
-          </div>
-          <div style={{ fontSize: '12px', color: '#166534', marginBottom: '16px' }}>
-            {orderSuccess.message?.includes('placed') 
-              ? 'Your order has been sent to the kitchen for preparation' 
-              : 'Payment processed successfully. Thank you for your order!'
-            }
-          </div>
-          
-          {/* Show invoice content inline for billing completion */}
-          {((orderSuccess?.message?.includes('Billing Complete') && invoice) || showInvoicePermanently) && (
-            <div style={{ 
-              backgroundColor: '#f0fdf4', 
-              border: '2px solid #22c55e', 
-              borderRadius: '16px', 
-              padding: '20px', 
-              marginBottom: '16px',
-              marginTop: '16px',
-              boxShadow: '0 4px 12px rgba(34, 197, 94, 0.2)'
-            }}>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: '700', 
-                color: '#166534', 
-                marginBottom: '16px',
-                textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}>
-                <FaCheckCircle color="#22c55e" size={20} />
-                Invoice #{invoice?.id || 'N/A'}
-              </div>
-              
-              {invoice && (
-                <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>
-                  <div style={{ marginBottom: '10px', fontWeight: '600', color: '#1f2937' }}>
-                    🏪 Restaurant: {invoice.restaurantName || 'N/A'}
-                  </div>
-                  <div style={{ marginBottom: '10px' }}>
-                    📋 Order ID: {invoice.orderId || 'N/A'}
-                  </div>
-                  <div style={{ marginBottom: '10px' }}>
-                    📅 Date: {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A'}
-                  </div>
-                  {invoice.customerName && (
-                    <div style={{ marginBottom: '10px' }}>
-                      👤 Customer: {invoice.customerName}
-                    </div>
-                  )}
-                  {invoice.tableNumber && (
-                    <div style={{ marginBottom: '10px' }}>
-                      🪑 Table: {invoice.tableNumber}
-                    </div>
-                  )}
-                  
-                  <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '12px', marginTop: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontWeight: '600' }}>
-                      <span>💰 Subtotal:</span>
-                      <span>₹{invoice.subtotal?.toFixed(2) || '0.00'}</span>
-                    </div>
-                    {invoice.taxBreakdown && invoice.taxBreakdown.map((tax, index) => (
-                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '12px', color: '#6b7280' }}>
-                        <span>📊 {tax.name} ({tax.rate}%):</span>
-                        <span>₹{tax.amount?.toFixed(2) || '0.00'}</span>
-                      </div>
-                    ))}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', borderTop: '2px solid #22c55e', paddingTop: '8px', marginTop: '8px', fontSize: '16px', color: '#166534' }}>
-                      <span>💳 Total:</span>
-                      <span>₹{((invoice.subtotal || 0) + (invoice.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0)).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'center' }}>
-                <button
-                  onClick={() => {
-                    // Create a new window with just the invoice content
-                    const printWindow = window.open('', '_blank', 'width=800,height=600');
-                    const invoiceContent = `
-                      <!DOCTYPE html>
-                      <html>
-                        <head>
-                          <title>Invoice #${invoice?.id || 'N/A'}</title>
-                          <style>
-                            body { font-family: Arial, sans-serif; margin: 20px; }
-                            .invoice-header { text-align: center; margin-bottom: 20px; }
-                            .invoice-details { margin-bottom: 20px; }
-                            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                            .invoice-table th, .invoice-table td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-                            .invoice-table .total-row { font-weight: bold; border-top: 2px solid #000; }
-                            .invoice-footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="invoice-header">
-                            <h1>Invoice #${invoice?.id || 'N/A'}</h1>
-                            <h2>${invoice?.restaurantName || 'Restaurant'}</h2>
-                          </div>
-                          
-                          <div class="invoice-details">
-                            <p><strong>Order ID:</strong> ${invoice?.orderId || 'N/A'}</p>
-                            <p><strong>Date:</strong> ${invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : 'N/A'}</p>
-                          </div>
-                          
-                          <table class="invoice-table">
-                            <thead>
-                              <tr>
-                                <th>Description</th>
-                                <th>Amount</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr>
-                                <td>Subtotal</td>
-                                <td>₹${(invoice?.subtotal || 0).toFixed(2)}</td>
-                              </tr>
-                              ${invoice?.taxBreakdown?.map(tax => `
-                                <tr>
-                                  <td>${tax.name} (${tax.rate}%)</td>
-                                  <td>₹${(tax.amount || 0).toFixed(2)}</td>
-                                </tr>
-                              `).join('') || ''}
-                              <tr class="total-row">
-                                <td>Total</td>
-                                <td>₹${((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0)).toFixed(2)}</td>
-                              </tr>
-                            </tbody>
-                          </table>
-                          
-                          <div class="invoice-footer">
-                            <p>Thank you for your business!</p>
-                            <p>Generated by DineOpen Restaurant Management System</p>
-                          </div>
-                        </body>
-                      </html>
-                    `;
-                    printWindow.document.write(invoiceContent);
-                    printWindow.document.close();
-                    printWindow.focus();
-                    setTimeout(() => {
-                      printWindow.print();
-                      printWindow.close();
-                    }, 500);
-                  }}
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = '#2563eb';
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = '#3b82f6';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <FaPrint size={14} />
-                  Print Invoice
-                </button>
-                <button
-                  onClick={() => {
-                    setShowInvoicePermanently(false);
-                    setInvoice(null);
-                  }}
-                  style={{
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = '#dc2626';
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = '#ef4444';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <FaTimes size={14} />
-                  Clear Invoice
-                </button>
-              </div>
-            </div>
-          )}
-          
-          <button
-            onClick={() => {
-              setOrderSuccess(null);
-              onClearCart();
-              // Close modal on mobile after starting new order
-              if (isMobile && onClose) {
-                setTimeout(() => onClose(), 300);
-              }
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-              color: 'white',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              fontWeight: '700',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              margin: '0 auto',
-              boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 6px 16px rgba(34, 197, 94, 0.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.4)';
-            }}
-          >
-            <FaPlus size={10} />
-            Start New Order
-          </button>
-        </div>
-      )}
 
       {/* Footer */}
       {cart.length > 0 && (

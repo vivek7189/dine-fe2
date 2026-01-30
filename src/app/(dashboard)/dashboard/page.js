@@ -1207,7 +1207,7 @@ function RestaurantPOSContent() {
     setOrderSuccess(null);
     setOrderComplete(false);
     setPlacingOrder(false);
-    
+    if (typeof window !== 'undefined') router.replace('/dashboard');
     // Show success notification
     setNotification({
       type: 'success',
@@ -1834,11 +1834,10 @@ function RestaurantPOSContent() {
 
           setOrderSuccess({
             orderId: currentOrder.id,
+            dailyOrderId: currentOrder.dailyOrderId,
             show: true,
-            message: 'Order Completed! 💳'
+            message: 'Billing Complete! 💳'
           });
-          
-          // Clear current order and cart
           setCurrentOrder(null);
           clearCart();
         }
@@ -1955,6 +1954,7 @@ function RestaurantPOSContent() {
       localStorage.removeItem('dine_cart');
       const successData = { 
         orderId, 
+        dailyOrderId: orderResponse.order?.dailyOrderId,
         show: true, 
         message: 'Billing Complete! 💳' 
       };
@@ -2184,20 +2184,31 @@ function RestaurantPOSContent() {
             show: true
           });
 
+          const tableToUseForKot = tableToUse || currentOrder.tableNumber;
+          const roomForKot = inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (currentOrder.roomNumber || null);
           setOrderSuccess({
             orderId: currentOrder.id,
+            dailyOrderId: currentOrder.dailyOrderId,
             show: true,
-            message: 'Order Updated! ✏️'
+            message: 'Order Updated! ✏️',
+            kotData: {
+              orderId: currentOrder.id,
+              dailyOrderId: currentOrder.dailyOrderId,
+              items: cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' })),
+              tableNumber: roomForKot ? null : tableToUseForKot,
+              roomNumber: roomForKot || null,
+              customerName: customerName || null,
+              orderType,
+              restaurantName: selectedRestaurant?.name || 'Restaurant'
+            }
           });
           // Switch to tables view and refresh so status reflects
           if (tableNumber || selectedTable?.number) {
             setViewMode('tables');
             prefetchTables(selectedRestaurant?.id);
           }
-          
-          // Clear current order and cart
           setCurrentOrder(null);
-          clearCart();
+          clearCart({ keepOrderSuccess: true });
         }
       } else {
         // Create new order
@@ -2267,12 +2278,22 @@ function RestaurantPOSContent() {
             show: true
           });
 
-          // Show order success in the cart area
+          // Show order success in the cart area (with kotData for Print KOT)
           setOrderSuccess({
             orderId: response.order.id,
             dailyOrderId: response.order.dailyOrderId,
             show: true,
-            message: 'Order Placed to Kitchen! 👨‍🍳'
+            message: 'Order Placed to Kitchen! 👨‍🍳',
+            kotData: {
+              orderId: response.order.id,
+              dailyOrderId: response.order.dailyOrderId,
+              items: cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' })),
+              tableNumber: roomNumber ? null : (finalTableNumber || null),
+              roomNumber: roomNumber || null,
+              customerName: customerName || null,
+              orderType,
+              restaurantName: selectedRestaurant?.name || 'Restaurant'
+            }
           });
 
           // Switch to tables view instantly and refresh in background
@@ -2280,11 +2301,7 @@ function RestaurantPOSContent() {
             setViewMode('tables');
             prefetchTables(selectedRestaurant?.id);
           }
-          
-          // Clear cart after showing success
-          clearCart();
-          
-          // Hide notification after 4 seconds
+          clearCart({ keepOrderSuccess: true });
           setTimeout(() => setNotification(null), 4000);
         }
       }
@@ -2314,15 +2331,17 @@ function RestaurantPOSContent() {
     }
   };
 
-  const clearCart = () => {
+  const clearCart = (opts = {}) => {
+    const { keepOrderSuccess = false } = opts;
     setCart([]);
     setTableNumber('');
     setCurrentOrder(null);
     setOrderLookup('');
     localStorage.removeItem('dine_cart');
-    
-    // Clear order success and release table when starting new order
+    if (!keepOrderSuccess) {
       setOrderSuccess(null);
+      if (typeof window !== 'undefined') router.replace('/dashboard');
+    }
     if (selectedTable && selectedTable.id) {
       // Release table
       apiClient.updateTableStatus(selectedTable.id, 'available');
