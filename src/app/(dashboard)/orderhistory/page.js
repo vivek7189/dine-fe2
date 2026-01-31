@@ -1250,24 +1250,26 @@ const OrderHistory = () => {
                             )}
                           </div>
                         </div>
-                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                          <div 
-                            onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
-                            className="flex items-center justify-start gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1.5 -mx-1 transition-colors text-left"
-                            title="Click to copy Order Number"
-                          >
-                            <span className="text-xs font-semibold text-gray-700">Order Number</span>
-                            <span className="text-xs font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
-                            <FaCopy className="text-gray-400 text-xs flex-shrink-0 ml-auto" />
-                          </div>
-                          <div 
-                            onClick={() => copyToClipboard(order.id)}
-                            className="flex items-center justify-start gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1.5 -mx-1 transition-colors text-left"
-                            title="Click to copy Order ID"
-                          >
-                            <span className="text-xs font-semibold text-gray-700">Order ID</span>
-                            <span className="text-xs font-mono font-semibold text-gray-700 truncate max-w-[140px] sm:max-w-[220px]" title={order.id}>{order.id}</span>
-                            <FaCopy className="text-gray-400 text-xs flex-shrink-0 ml-auto" />
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <div
+                              onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
+                              className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
+                              title="Click to copy Order Number"
+                            >
+                              <span className="text-xs text-gray-500">Order#</span>
+                              <span className="text-xs font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
+                              <FaCopy className="text-gray-400 text-[10px]" />
+                            </div>
+                            <div
+                              onClick={() => copyToClipboard(order.id)}
+                              className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors flex-1 min-w-0"
+                              title="Click to copy Order ID"
+                            >
+                              <span className="text-xs text-gray-500">ID</span>
+                              <span className="text-xs font-mono font-semibold text-gray-700 truncate" title={order.id}>{order.id}</span>
+                              <FaCopy className="text-gray-400 text-[10px] flex-shrink-0" />
+                            </div>
                           </div>
                         </div>
                         {expandedOrders.has(order.id) && (
@@ -1442,24 +1444,26 @@ const OrderHistory = () => {
                             </button>
                           )}
                         </div>
-                        <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
-                          <div 
-                            onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
-                            className="flex items-center justify-start gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 -mx-1 transition-colors text-left"
-                            title="Click to copy Order Number"
-                          >
-                            <span className="text-xs font-semibold text-gray-700">Order Number</span>
-                            <span className="text-xs font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
-                            <FaCopy className="text-gray-400 text-xs flex-shrink-0 ml-auto" />
-                          </div>
-                          <div 
-                            onClick={() => copyToClipboard(order.id)}
-                            className="flex items-center justify-start gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 -mx-1 transition-colors text-left"
-                            title="Click to copy Order ID"
-                          >
-                            <span className="text-xs font-semibold text-gray-700">Order ID</span>
-                            <span className="text-xs font-mono font-semibold text-gray-700 truncate max-w-[200px] sm:max-w-none hover:text-red-600" title={order.id}>{order.id}</span>
-                            <FaCopy className="text-gray-400 text-xs flex-shrink-0 ml-auto" />
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <div
+                              onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
+                              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
+                              title="Click to copy Order Number"
+                            >
+                              <span className="text-xs text-gray-500">Order#</span>
+                              <span className="text-sm font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
+                              <FaCopy className="text-gray-400 text-xs" />
+                            </div>
+                            <div
+                              onClick={() => copyToClipboard(order.id)}
+                              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors flex-1 min-w-0"
+                              title="Click to copy Order ID"
+                            >
+                              <span className="text-xs text-gray-500">ID</span>
+                              <span className="text-sm font-mono font-semibold text-gray-700 truncate" title={order.id}>{order.id}</span>
+                              <FaCopy className="text-gray-400 text-xs flex-shrink-0" />
+                            </div>
                           </div>
                         </div>
                       </div>

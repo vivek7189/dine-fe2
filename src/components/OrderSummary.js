@@ -861,40 +861,53 @@ const OrderSummary = ({
               {((orderSuccess?.message?.includes('Billing Complete') && invoice) || showInvoicePermanently) && invoice && (
                 <>
                   <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- INVOICE ---</div>
-                    <div style={{ marginBottom: '6px', fontSize: '14px' }}>{invoice?.restaurantName || 'Restaurant'}</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- BILL / INVOICE ---</div>
+                    <div style={{ marginBottom: '6px', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>{invoice?.restaurantName || 'Restaurant'}</div>
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
-                      {invoice?.dailyOrderId != null && <div><strong>Order #:</strong> {invoice.dailyOrderId}</div>}
+                      {invoice?.dailyOrderId != null && <div><strong>Bill #:</strong> {invoice.dailyOrderId}</div>}
                       {invoice?.orderId && <div><strong>ID:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
                       <div><strong>Date:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
                       {invoice?.tableNumber && <div><strong>Table:</strong> {invoice.tableNumber}</div>}
                       {invoice?.customerName && <div><strong>Customer:</strong> {invoice.customerName}</div>}
+                      <div><strong>Payment:</strong> {(invoice?.paymentMethod || 'CASH').toUpperCase()}</div>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    {/* Items table */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '8px' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #86efac' }}>
-                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>Description</th>
-                          <th style={{ textAlign: 'right', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '80px' }}>Amount</th>
+                        <tr style={{ borderBottom: '1px dashed #22c55e' }}>
+                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>Item</th>
+                          <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '40px' }}>Qty</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '70px' }}>Amt</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr style={{ borderBottom: '1px solid #dcfce7' }}>
-                          <td style={{ padding: '4px 6px' }}>Subtotal</td>
-                          <td style={{ padding: '4px 6px', textAlign: 'right' }}>₹{(invoice?.subtotal || 0).toFixed(2)}</td>
-                        </tr>
-                        {invoice?.taxBreakdown?.map((tax, idx) => (
+                        {(invoice?.items || orderSuccess?.kotData?.items || []).map((item, idx) => (
                           <tr key={idx} style={{ borderBottom: '1px solid #dcfce7' }}>
-                            <td style={{ padding: '4px 6px' }}>{tax.name} ({tax.rate}%)</td>
-                            <td style={{ padding: '4px 6px', textAlign: 'right' }}>₹{(tax.amount || 0).toFixed(2)}</td>
+                            <td style={{ padding: '3px 6px' }}>{item.name}</td>
+                            <td style={{ padding: '3px 6px', textAlign: 'center' }}>{item.quantity || 1}</td>
+                            <td style={{ padding: '3px 6px', textAlign: 'right' }}>₹{((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1)).toFixed(2)}</td>
                           </tr>
                         ))}
-                        <tr style={{ borderTop: '2px solid #22c55e', fontWeight: 'bold' }}>
-                          <td style={{ padding: '6px 6px' }}>Total</td>
-                          <td style={{ padding: '6px 6px', textAlign: 'right' }}>₹{((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0)).toFixed(2)}</td>
-                        </tr>
                       </tbody>
                     </table>
-                    <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you - DineOpen</div>
+                    {/* Totals */}
+                    <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
+                        <span>Subtotal:</span>
+                        <span>₹{(invoice?.subtotal || 0).toFixed(2)}</span>
+                      </div>
+                      {invoice?.taxBreakdown?.map((tax, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
+                          <span>{tax.name} ({tax.rate}%)</span>
+                          <span>₹{(tax.amount || 0).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', borderTop: '2px solid #22c55e', paddingTop: '4px', marginTop: '4px' }}>
+                        <span>TOTAL:</span>
+                        <span>₹{((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0)).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '11px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you for dining with us!</div>
                   </div>
                   {shouldShowManualPrint() && (
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
