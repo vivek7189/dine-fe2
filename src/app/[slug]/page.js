@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { FaSpinner } from 'react-icons/fa';
 import OnlineOrderPage from '../onlineorder/page';
 
@@ -16,7 +16,13 @@ const RESERVED_PATHS = [
   'restaurant-pos-software-india', 'dineopenprintupload'
 ];
 
+// Reserved paths that have a sub-route we should redirect to (e.g. /dineopenprintupload -> /dineopenprintupload/upload)
+const RESERVED_REDIRECTS = {
+  dineopenprintupload: '/dineopenprintupload/upload'
+};
+
 export default function RestaurantSlugPage({ params }) {
+  const router = useRouter();
   const [restaurantId, setRestaurantId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFoundState, setNotFoundState] = useState(false);
@@ -25,8 +31,14 @@ export default function RestaurantSlugPage({ params }) {
 
   useEffect(() => {
     const fetchRestaurantBySlug = async () => {
-      // Check if this is a reserved path
-      if (RESERVED_PATHS.includes(slug?.toLowerCase())) {
+      const slugLower = slug?.toLowerCase();
+      // Redirect reserved paths that have a dedicated sub-URL (avoids 404 and restaurant-by-slug API call)
+      if (slugLower && RESERVED_REDIRECTS[slugLower]) {
+        router.replace(RESERVED_REDIRECTS[slugLower]);
+        return;
+      }
+      // Check if this is a reserved path (no redirect, show 404)
+      if (RESERVED_PATHS.includes(slugLower)) {
         setNotFoundState(true);
         setLoading(false);
         return;

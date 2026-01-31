@@ -867,7 +867,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 </div>
                 {isOwner && (
                   <Link
-                    href="/dineopenprintupload"
+                    href="/dineopenprintupload/upload"
                     style={{
                       fontSize: '13px',
                       color: '#ec4899',
