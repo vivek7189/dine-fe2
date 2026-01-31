@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import { 
@@ -865,7 +866,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   </div>
                 </div>
                 {isOwner && (
-                  <a
+                  <Link
                     href="/dineopenprintupload"
                     style={{
                       fontSize: '13px',
@@ -875,7 +876,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     }}
                   >
                     Upload new installers (owner only)
-                  </a>
+                  </Link>
                 )}
               </div>
             )}
@@ -1007,7 +1008,7 @@ const Admin = () => {
     if (activeTab !== 'staff' && selectedStaff) {
       setSelectedStaff(null);
     }
-  }, [activeTab]);
+  }, [activeTab, selectedStaff]);
 
   // Client-side hydration and mobile detection
   useEffect(() => {
