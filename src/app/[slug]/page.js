@@ -13,7 +13,7 @@ const RESERVED_PATHS = [
   'privacy', 'terms', 'blog', 'products', 'for', 'tools', 'restaurants', 'onlineorder',
   'placeorder', 'print-kot', 'setup', 'local-login', 'kot', 'orderhistory', 'customers',
   'offers', 'customer-app', 'tables', 'hotel', 'inventory', 'automation', 'analytics',
-  'restaurant-pos-software-india'
+  'restaurant-pos-software-india', 'dineopenprintupload'
 ];
 
 export default function RestaurantSlugPage({ params }) {

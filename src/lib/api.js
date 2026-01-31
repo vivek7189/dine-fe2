@@ -1384,6 +1384,21 @@ class ApiClient {
     });
   }
 
+  // Print installer (KOT Printer exe/dmg) – public URLs for download
+  async getPrintInstallerUrls() {
+    return this.request('/api/print-installer/urls');
+  }
+
+  // Upload installer (owner only). file: File object (.exe or .dmg)
+  async uploadPrintInstaller(file) {
+    const formData = new FormData();
+    formData.append('installer', file);
+    return this.request('/api/print-installer/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   // Invoice Management endpoints
   async generateInvoice(orderId) {
     return this.request(`/api/invoice/generate/${orderId}`, {

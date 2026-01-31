@@ -37,7 +37,10 @@ import {
   FaGoogle,
   FaReceipt,
   FaGlobe,
-  FaPrint
+  FaPrint,
+  FaDownload,
+  FaWindows,
+  FaApple
 } from 'react-icons/fa';
 import ShiftScheduling from '../../../components/ShiftScheduling';
 import GoogleReviews from '../../../components/GoogleReviews';
@@ -435,6 +438,16 @@ const SettingToggle = ({ setting, printSettings, toggleSetting, disabled = false
   </div>
 );
 
+// Detect platform for KOT Printer download (client-side)
+const getDownloadPlatform = () => {
+  if (typeof navigator === 'undefined') return { isWindows: false, isMac: false };
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  const isWindows = /Win/i.test(ua) || /Win/i.test(platform);
+  const isMac = /Mac/i.test(ua) || /Mac/i.test(platform);
+  return { isWindows, isMac };
+};
+
 // Print Settings Component
 const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
   const [printSettings, setPrintSettings] = useState({
@@ -454,6 +467,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [installerUrls, setInstallerUrls] = useState({ windowsUrl: null, macUrl: null });
+  const [installerUrlsLoading, setInstallerUrlsLoading] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [platform, setPlatform] = useState({ isWindows: false, isMac: false });
 
   const loadPrintSettings = async (restaurantId) => {
     if (!restaurantId) return;
@@ -501,6 +518,33 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       loadPrintSettings(selectedRestaurant.id);
     }
   }, [selectedRestaurant?.id]);
+
+  // Load KOT Printer installer URLs and detect platform / owner
+  useEffect(() => {
+    setPlatform(getDownloadPlatform());
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setIsOwner(user.role === 'owner');
+      }
+    } catch (_) {}
+    let cancelled = false;
+    (async () => {
+      setInstallerUrlsLoading(true);
+      try {
+        const res = await apiClient.getPrintInstallerUrls();
+        if (!cancelled && res.success) {
+          setInstallerUrls({ windowsUrl: res.windowsUrl || null, macUrl: res.macUrl || null });
+        }
+      } catch (_) {
+        if (!cancelled) setInstallerUrls({ windowsUrl: null, macUrl: null });
+      } finally {
+        if (!cancelled) setInstallerUrlsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const settingsConfig = [
     // Main settings
@@ -674,6 +718,167 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} disabled />
               ))}
             </div>
+          </div>
+
+          {/* Download KOT Printer App */}
+          <div style={{ marginBottom: '24px' }}>
+            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Download KOT Printer App
+            </p>
+            {installerUrlsLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px', color: '#6b7280', fontSize: '14px' }}>
+                <FaSpinner className="spin" size={18} style={{ color: '#ec4899' }} />
+                Loading...
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Auto-selected primary: recommended for user's device */}
+                {(platform.isWindows && installerUrls.windowsUrl) || (platform.isMac && installerUrls.macUrl) ? (
+                  <div style={{
+                    padding: '14px 18px',
+                    borderRadius: '12px',
+                    border: '2px solid #ec4899',
+                    background: 'linear-gradient(135deg, #fdf2f8, #fce7f3)',
+                    boxShadow: '0 4px 12px rgba(236,72,153,0.2)'
+                  }}>
+                    <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Recommended for your device
+                    </p>
+                    <a
+                      href={platform.isWindows ? installerUrls.windowsUrl : installerUrls.macUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '12px 20px',
+                        background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                        color: 'white',
+                        borderRadius: '10px',
+                        fontWeight: '600',
+                        fontSize: '15px',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
+                      }}
+                    >
+                      <FaDownload size={18} />
+                      {platform.isWindows ? 'Download for Windows (.exe)' : 'Download for Mac (.dmg)'}
+                    </a>
+                  </div>
+                ) : null}
+                {/* Or choose any platform */}
+                <p style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', margin: 0 }}>
+                  Or download for another platform
+                </p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {/* Windows card */}
+                  <div
+                    style={{
+                      flex: '1',
+                      minWidth: '200px',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      border: platform.isWindows ? '2px solid #ec4899' : '1px solid #e5e7eb',
+                      background: platform.isWindows ? 'linear-gradient(135deg, #fdf2f8, #fce7f3)' : '#fafafa',
+                      boxShadow: platform.isWindows ? '0 4px 12px rgba(236,72,153,0.2)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                      <FaWindows size={20} style={{ color: '#0078d4' }} />
+                      <span style={{ fontWeight: '600', color: '#1f2937' }}>Windows</span>
+                      {platform.isWindows && (
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#ec4899', textTransform: 'uppercase' }}>Your device</span>
+                      )}
+                    </div>
+                    {installerUrls.windowsUrl ? (
+                      <a
+                        href={installerUrls.windowsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '8px 14px',
+                          background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                          color: 'white',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <FaDownload size={12} />
+                        Download .exe
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: '13px', color: '#6b7280' }}>Not available</span>
+                    )}
+                  </div>
+                  {/* Mac card */}
+                  <div
+                    style={{
+                      flex: '1',
+                      minWidth: '200px',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      border: platform.isMac ? '2px solid #ec4899' : '1px solid #e5e7eb',
+                      background: platform.isMac ? 'linear-gradient(135deg, #fdf2f8, #fce7f3)' : '#fafafa',
+                      boxShadow: platform.isMac ? '0 4px 12px rgba(236,72,153,0.2)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                      <FaApple size={20} style={{ color: '#555' }} />
+                      <span style={{ fontWeight: '600', color: '#1f2937' }}>Mac</span>
+                      {platform.isMac && (
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#ec4899', textTransform: 'uppercase' }}>Your device</span>
+                      )}
+                    </div>
+                    {installerUrls.macUrl ? (
+                      <a
+                        href={installerUrls.macUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '8px 14px',
+                          background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                          color: 'white',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <FaDownload size={12} />
+                        Download .dmg
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: '13px', color: '#6b7280' }}>Not available</span>
+                    )}
+                  </div>
+                </div>
+                {isOwner && (
+                  <a
+                    href="/dineopenprintupload"
+                    style={{
+                      fontSize: '13px',
+                      color: '#ec4899',
+                      fontWeight: '600',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    Upload new installers (owner only)
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Save Button */}
