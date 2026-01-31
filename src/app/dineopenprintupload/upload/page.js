@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import apiClient from '../../../../lib/api';
+import apiClient from '@/lib/api';
 import { FaPrint, FaUpload, FaWindows, FaApple, FaSpinner, FaArrowLeft, FaCheck, FaExclamationCircle } from 'react-icons/fa';
 
 export default function DineOpenPrintUploadPage() {
