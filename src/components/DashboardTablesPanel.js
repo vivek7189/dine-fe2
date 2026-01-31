@@ -405,17 +405,47 @@ export default function DashboardTablesPanel({
                       )}
                     </div>
 
-                    {/* Content - Just Center Icon now, removed order details */}
+                    {/* Content - Show order total for occupied tables, icon for others */}
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div style={{ 
+                      {isOccupied && t.currentOrderTotal ? (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          height: '100%'
+                        }}>
+                          <div style={{
+                            fontSize: '10px',
+                            color: '#92400e',
+                            fontWeight: 500,
+                            marginBottom: '2px'
+                          }}>
+                            Order Total
+                          </div>
+                          <div style={{
+                            fontSize: '18px',
+                            fontWeight: 800,
+                            color: '#b45309',
+                            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                            padding: '4px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #fcd34d'
+                          }}>
+                            ₹{typeof t.currentOrderTotal === 'number' ? t.currentOrderTotal.toFixed(0) : t.currentOrderTotal}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          height: '100%', 
-                          opacity: 0.1 
+                          height: '100%',
+                          opacity: 0.1
                         }}>
                           <StatusIcon size={32} color={config.color} />
                         </div>
+                      )}
                     </div>
 
                     {/* Actions */}

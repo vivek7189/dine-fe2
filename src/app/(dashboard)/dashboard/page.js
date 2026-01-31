@@ -1045,14 +1045,13 @@ function RestaurantPOSContent() {
       }
 
       // Track where user came from for return navigation
-      // But for edit mode, don't auto-return to tables view
-      if (mode === 'edit') {
-        // In edit mode, don't set returnToView - user should stay on orders view
-        setReturnToView(null);
-      } else if (fromParam === 'tables') {
+      // Respect the 'from' parameter even in edit mode
+      if (fromParam === 'tables') {
+        // User came from tables view - should return to tables after action
         setReturnToView('tables');
       } else if (fromParam === 'orderhistory') {
-        setReturnToView('orderhistory');
+        // User came from order history - stay on orders view after action
+        setReturnToView(null);
       } else {
         setReturnToView(null);
       }
