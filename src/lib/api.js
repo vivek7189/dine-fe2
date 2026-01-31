@@ -1384,6 +1384,15 @@ class ApiClient {
     });
   }
 
+  // Manual print request - sends print to KOT Printer app via Pusher
+  // printType: 'kot' or 'bill' (optional - auto-detected based on order status)
+  async requestManualPrint(orderId, printType = null) {
+    return this.request(`/api/orders/${orderId}/manual-print`, {
+      method: 'POST',
+      body: printType ? { printType } : {},
+    });
+  }
+
   // Print installer (KOT Printer exe/dmg) – public URLs for download
   async getPrintInstallerUrls() {
     return this.request('/api/print-installer/urls');

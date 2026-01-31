@@ -71,6 +71,9 @@ const OrderHistory = () => {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  const [printSettings, setPrintSettings] = useState(null);
+  const [printingOrderId, setPrintingOrderId] = useState(null);
+  const [printSuccess, setPrintSuccess] = useState(null);
 
   useEffect(() => {
     // Initialize language
@@ -340,6 +343,24 @@ const OrderHistory = () => {
 
   useEffect(() => { if (restaurantId) fetchOrders(true); }, [fetchOrders, restaurantId]);
 
+  // Fetch print settings when restaurantId is available
+  useEffect(() => {
+    if (!restaurantId) return;
+    const fetchPrintSettings = async () => {
+      try {
+        const response = await apiClient.getPrintSettings(restaurantId);
+        if (response?.printSettings) {
+          setPrintSettings(response.printSettings);
+          console.log('📨 Print settings loaded:', response.printSettings);
+        }
+      } catch (error) {
+        console.log('Print settings not available, will use browser print:', error.message);
+        setPrintSettings(null);
+      }
+    };
+    fetchPrintSettings();
+  }, [restaurantId]);
+
   // Pusher subscription for real-time order updates
   useEffect(() => {
     if (!restaurantId) return;
@@ -453,7 +474,8 @@ const OrderHistory = () => {
     }
   };
 
-  const handleSmartPrint = (order) => {
+  // Browser print fallback function
+  const browserPrint = (order) => {
     const restaurantName = restaurant?.name || 'Restaurant';
     const orderNum = order.dailyOrderId ?? order.orderNumber ?? order.id ?? '—';
     const orderIdShort = order.id ? String(order.id).slice(-8).toUpperCase() : '';
@@ -471,7 +493,6 @@ const OrderHistory = () => {
       let totalTax = 0;
       const taxBreakdownArr = [];
 
-      // Use saved tax data from order (tax at time of order placement)
       if (order.taxBreakdown && Array.isArray(order.taxBreakdown) && order.taxBreakdown.length > 0) {
         order.taxBreakdown.forEach(t => {
           const amt = t.amount || 0;
@@ -483,7 +504,6 @@ const OrderHistory = () => {
         taxBreakdownArr.push({ name: 'Tax', rate: null, amount: totalTax });
       }
 
-      // Use saved finalAmount if available
       const total = order.finalAmount && order.finalAmount > 0 ? order.finalAmount : (subtotal + totalTax);
       const taxRows = taxBreakdownArr.map(t => `<tr><td>${(t.name || 'Tax').replace(/</g, '&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td>₹${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
       const invoiceContent = `<!DOCTYPE html><html><head><title>Invoice - ${orderNum}</title><style>body{font-family:Arial,sans-serif;margin:20px;} .invoice-header{text-align:center;margin-bottom:20px;} .invoice-details{margin-bottom:20px;} table{width:100%;border-collapse:collapse;} th,td{padding:8px;text-align:left;border-bottom:1px solid #ddd;} .total-row{font-weight:bold;border-top:2px solid #000;} .invoice-footer{text-align:center;margin-top:30px;font-size:12px;color:#666;}</style></head><body><div class="invoice-header"><h1>Invoice #${String(orderNum).replace(/</g, '&lt;')}</h1><h2>${restaurantName.replace(/</g, '&lt;')}</h2></div><div class="invoice-details"><p><strong>Order #:</strong> ${String(orderNum).replace(/</g, '&lt;')}</p><p><strong>ID:</strong> ${orderIdShort}</p><p><strong>Date:</strong> ${dateStr}</p>${tableNum ? `<p><strong>Table:</strong> ${String(tableNum).replace(/</g, '&lt;')}</p>` : ''}${roomNum ? `<p><strong>Room:</strong> ${String(roomNum).replace(/</g, '&lt;')}</p>` : ''}${customerName ? `<p><strong>Customer:</strong> ${String(customerName).replace(/</g, '&lt;')}</p>` : ''}</div><table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody><tr><td>Subtotal</td><td>₹${subtotal.toFixed(2)}</td></tr>${taxRows}<tr class="total-row"><td>Total</td><td>₹${total.toFixed(2)}</td></tr></tbody></table><div class="invoice-footer"><p>Thank you for your business!</p><p>DineOpen</p></div></body></html>`;
@@ -504,6 +524,36 @@ const OrderHistory = () => {
         pw.focus();
         setTimeout(() => { pw.print(); }, 400);
       }
+    }
+  };
+
+  // Smart print - tries KOT Printer app first, falls back to browser print
+  const handleSmartPrint = async (order) => {
+    // If KOT Printer is enabled, send to printer app via API
+    if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
+      try {
+        setPrintingOrderId(order.id);
+        const response = await apiClient.requestManualPrint(order.id);
+        if (response?.success) {
+          const printType = order.status === 'completed' ? 'Bill' : 'KOT';
+          setPrintSuccess(`${printType} sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
+          setTimeout(() => setPrintSuccess(null), 3000);
+        }
+      } catch (error) {
+        console.error('Manual print API error:', error);
+        // If API fails or returns fallbackToBrowser, use browser print
+        if (error.response?.data?.fallbackToBrowser || error.message?.includes('disabled')) {
+          browserPrint(order);
+        } else {
+          // Still try browser print as fallback
+          browserPrint(order);
+        }
+      } finally {
+        setPrintingOrderId(null);
+      }
+    } else {
+      // KOT Printer not enabled, use browser print
+      browserPrint(order);
     }
   };
 
@@ -902,6 +952,21 @@ const OrderHistory = () => {
             </div>
           )}
 
+          {/* Print success banner */}
+          {printSuccess && (
+            <div className="mx-3 sm:mx-6 lg:mx-8 mt-2 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-orange-50 border border-orange-200 text-orange-800">
+              <span className="text-sm font-medium"><FaPrint className="inline mr-2" />{printSuccess}</span>
+              <button
+                type="button"
+                onClick={() => setPrintSuccess(null)}
+                className="p-1 rounded hover:bg-orange-100 text-orange-600"
+                aria-label="Dismiss"
+              >
+                <FaTimes className="text-lg" />
+              </button>
+            </div>
+          )}
+
           {/* Filters Section — on mobile: search + collapse toggle; filters in expandable panel */}
           <div className="py-3 sm:py-4 border-t border-gray-200">
             {isMobile ? (
@@ -1145,19 +1210,14 @@ const OrderHistory = () => {
                                 <FaCheckCircle size={12} />
                                 </button>
                             )}
-                            <button 
-                              onClick={() => handleViewInvoice(order)} 
-                              className="p-2 text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors" 
-                              title="Invoice"
+                            {/* Invoice button hidden - using unified print flow */}
+                            <button
+                              onClick={() => handleSmartPrint(order)}
+                              className={`p-2 rounded-lg transition-colors ${printingOrderId === order.id ? 'bg-orange-200 cursor-wait' : 'text-orange-600 bg-orange-100 hover:bg-orange-200'}`}
+                              title={order.status === 'completed' ? 'Print Bill' : 'Print KOT'}
+                              disabled={printingOrderId === order.id}
                             >
-                              <FaFileInvoice size={12} />
-                            </button>
-                            <button 
-                              onClick={() => handleSmartPrint(order)} 
-                              className="p-2 text-orange-600 bg-orange-100 hover:bg-orange-200 rounded-lg transition-colors" 
-                              title="Print"
-                            >
-                              <FaPrint size={12} />
+                              {printingOrderId === order.id ? <FaSpinner size={12} className="animate-spin" /> : <FaPrint size={12} />}
                             </button>
                             <button 
                               onClick={() => handleViewOrder(order)} 
@@ -1342,18 +1402,15 @@ const OrderHistory = () => {
                           >
                             <FaEye /> {t('orderHistory.view')}
                           </button>
-                          <button 
-                            onClick={() => handleViewInvoice(order)} 
-                            className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-2"
+                          {/* Invoice button hidden - using unified print flow */}
+                          <button
+                            onClick={() => handleSmartPrint(order)}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${printingOrderId === order.id ? 'bg-orange-200 border-2 border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border-2 border-orange-200 hover:bg-orange-100'}`}
+                            title={order.status === 'completed' ? 'Print Bill' : 'Print KOT'}
+                            disabled={printingOrderId === order.id}
                           >
-                            <FaFileInvoice /> Invoice
-                          </button>
-                          <button 
-                            onClick={() => handleSmartPrint(order)} 
-                            className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-50 border-2 border-orange-200 rounded-lg hover:bg-orange-100 transition-all flex items-center gap-2"
-                            title={order.status === 'completed' ? 'Print bill' : 'Print KOT'}
-                          >
-                            <FaPrint /> Print
+                            {printingOrderId === order.id ? <FaSpinner className="animate-spin" /> : <FaPrint />}
+                            {printingOrderId === order.id ? 'Sending...' : (order.status === 'completed' ? 'Print Bill' : 'Print KOT')}
                           </button>
                           {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
                             <button 
