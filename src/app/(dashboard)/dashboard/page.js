@@ -68,6 +68,8 @@ function RestaurantPOSContent() {
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('orders'); // 'orders' | 'tables'
+  const [returnToView, setReturnToView] = useState(null); // Track where to return after order action (null | 'tables' | 'orderhistory')
+  const [orderLoadingPartial, setOrderLoadingPartial] = useState(false); // Partial loading for order details (no full page reload)
   const [tablesData, setTablesData] = useState({ floors: [], tables: [] });
   const [tablesRefreshing, setTablesRefreshing] = useState(false);
   
@@ -1019,25 +1021,57 @@ function RestaurantPOSContent() {
     }
   }, [searchParams]);
 
-  // Handle orderId parameter from URL (for edit mode from Order History)
+  // Handle view parameter from URL (for view state persistence)
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'tables' || viewParam === 'orders') {
+      setViewMode(viewParam);
+    }
+  }, []);
+
+  // Handle orderId parameter from URL (for edit mode from Order History or Tables)
   useEffect(() => {
     const orderId = searchParams.get('orderId');
     const mode = searchParams.get('mode');
-    
+    const fromParam = searchParams.get('from'); // 'tables' | 'orderhistory' | null
+
     if (orderId && selectedRestaurant?.id) {
-      console.log('🔄 Dashboard: Order ID from URL:', orderId, 'Mode:', mode);
-      
+      console.log('🔄 Dashboard: Order ID from URL:', orderId, 'Mode:', mode, 'From:', fromParam);
+
+      // IMPORTANT: Clear any stale billing/KOT summary when entering edit mode
+      // This prevents showing "Billing Complete" from previous actions
+      if (mode === 'edit') {
+        setOrderSuccess(null);
+      }
+
+      // Track where user came from for return navigation
+      // But for edit mode, don't auto-return to tables view
+      if (mode === 'edit') {
+        // In edit mode, don't set returnToView - user should stay on orders view
+        setReturnToView(null);
+      } else if (fromParam === 'tables') {
+        setReturnToView('tables');
+      } else if (fromParam === 'orderhistory') {
+        setReturnToView('orderhistory');
+      } else {
+        setReturnToView(null);
+      }
+
       // Switch to orders view (menu view) when loading an order
       setViewMode('orders');
-      
+
+      // Show partial loading state instead of full page reload
+      setOrderLoadingPartial(true);
+
       // Set the order lookup value in search box
       setOrderLookup(orderId);
-      
+
       // Add a small delay to ensure the search box is updated, then trigger search directly
       setTimeout(async () => {
         console.log('🔄 Auto-triggering order lookup for:', orderId);
         await triggerOrderLookup(orderId);
-      }, 500); // 500ms delay to handle any race conditions
+        setOrderLoadingPartial(false);
+      }, 300); // Reduced delay for faster UX
     }
   }, [searchParams, selectedRestaurant?.id]);
 
@@ -1869,7 +1903,11 @@ function RestaurantPOSContent() {
             message: 'Billing Complete! 💳'
           });
           setCurrentOrder(null);
-          clearCart();
+          // Handle return navigation after billing complete
+          handleOrderActionComplete({
+            keepOrderSuccess: true,
+            hasTable: !!(tableToUse || currentOrder.tableNumber)
+          });
         }
       } else {
         console.log('🆕 Creating new order for direct billing');
@@ -1979,20 +2017,23 @@ function RestaurantPOSContent() {
         show: true
       });
 
-      // Clear cart and show inline success
-      setCart([]);
-      localStorage.removeItem('dine_cart');
-      const successData = { 
-        orderId, 
+      // Show inline success/invoice
+      const successData = {
+        orderId,
         dailyOrderId: orderResponse.order?.dailyOrderId,
-        show: true, 
-        message: 'Billing Complete! 💳' 
+        show: true,
+        message: 'Billing Complete! 💳'
       };
       console.log('Setting order success:', successData);
       setOrderSuccess(successData);
-      
-      // Don't auto-hide - let user manually close invoice or start new order
-      // Table will be released when user starts a new order or manually closes
+
+      // Handle return navigation after billing complete
+      // Uses returnToView to go back to tables if user came from there
+      const hadTable = !!(tableToUse || selectedTable?.number);
+      handleOrderActionComplete({
+        keepOrderSuccess: true,
+        hasTable: hadTable
+      });
 
         // Return order ID for invoice generation
         return { orderId };
@@ -2232,13 +2273,12 @@ function RestaurantPOSContent() {
               restaurantName: selectedRestaurant?.name || 'Restaurant'
             }
           });
-          // Switch to tables view and refresh so status reflects
-          if (tableNumber || selectedTable?.number) {
-            setViewMode('tables');
-            prefetchTables(selectedRestaurant?.id);
-          }
+          // Handle navigation after order update
           setCurrentOrder(null);
-          clearCart({ keepOrderSuccess: true });
+          handleOrderActionComplete({
+            keepOrderSuccess: true,
+            hasTable: !!(tableNumber || selectedTable?.number)
+          });
         }
       } else {
         // Create new order
@@ -2326,12 +2366,11 @@ function RestaurantPOSContent() {
             }
           });
 
-          // Switch to tables view instantly and refresh in background
-          if (tableNumber || selectedTable?.number) {
-            setViewMode('tables');
-            prefetchTables(selectedRestaurant?.id);
-          }
-          clearCart({ keepOrderSuccess: true });
+          // Handle navigation after new order placed
+          handleOrderActionComplete({
+            keepOrderSuccess: true,
+            hasTable: !!(tableNumber || selectedTable?.number)
+          });
           setTimeout(() => setNotification(null), 4000);
         }
       }
@@ -2362,7 +2401,7 @@ function RestaurantPOSContent() {
   };
 
   const clearCart = (opts = {}) => {
-    const { keepOrderSuccess = false } = opts;
+    const { keepOrderSuccess = false, preserveUrl = false } = opts;
     setCart([]);
     setTableNumber('');
     setCurrentOrder(null);
@@ -2370,13 +2409,62 @@ function RestaurantPOSContent() {
     localStorage.removeItem('dine_cart');
     if (!keepOrderSuccess) {
       setOrderSuccess(null);
-      if (typeof window !== 'undefined') router.replace('/dashboard');
+      // Only redirect if not preserving URL (avoids losing view state)
+      if (!preserveUrl && typeof window !== 'undefined') router.replace('/dashboard');
     }
     if (selectedTable && selectedTable.id) {
       // Release table
       apiClient.updateTableStatus(selectedTable.id, 'available');
       setSelectedTable(null);
     }
+    // Reset return tracking
+    setReturnToView(null);
+  };
+
+  // Helper function to switch view and optionally update URL
+  const switchView = (newView, updateUrl = true) => {
+    setViewMode(newView);
+    // Clear any stale billing/KOT summary when switching views
+    // This prevents showing old "Billing Complete" messages
+    setOrderSuccess(null);
+    if (updateUrl && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', newView);
+      // Remove order-related params when just toggling view
+      url.searchParams.delete('orderId');
+      url.searchParams.delete('mode');
+      url.searchParams.delete('from');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  // Helper function to handle return navigation after order action
+  const handleOrderActionComplete = (opts = {}) => {
+    const { keepOrderSuccess = true, hasTable = false } = opts;
+
+    // Determine where to return
+    // Only switch to tables if explicitly set as returnToView
+    // When returnToView is null (edit mode), stay on orders view
+    if (returnToView === 'tables') {
+      // User explicitly came from tables view - return to tables
+      switchView('tables', true);
+      prefetchTables(selectedRestaurant?.id);
+      clearCart({ keepOrderSuccess, preserveUrl: true });
+    } else {
+      // User came from order history, edit mode, or no specific source - stay on orders view
+      clearCart({ keepOrderSuccess, preserveUrl: true });
+      // Clean up URL params
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('orderId');
+        url.searchParams.delete('mode');
+        url.searchParams.delete('from');
+        url.searchParams.set('view', 'orders');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+    // Reset return tracking
+    setReturnToView(null);
   };
 
   const navigateToPage = (page) => {
@@ -3959,7 +4047,7 @@ function RestaurantPOSContent() {
 
                   {/* Tables Toggle Button - Fixed width and position */}
                   <button
-                    onClick={() => setViewMode(viewMode === 'orders' ? 'tables' : 'orders')}
+                    onClick={() => switchView(viewMode === 'orders' ? 'tables' : 'orders')}
                     style={{
                       height: '36px',
                       width: isMobile ? '96px' : '112px', // Fixed width instead of minWidth
@@ -4164,8 +4252,29 @@ function RestaurantPOSContent() {
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             width: '100%',
-            margin: '0 auto'
+            margin: '0 auto',
+            position: 'relative'
           }} className="hide-scrollbar">
+            {/* Partial loading overlay when loading order from tables view */}
+            {orderLoadingPartial && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+                borderRadius: '12px'
+              }}>
+                <FaSpinner className="animate-spin text-orange-500" style={{ fontSize: '32px' }} />
+                <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>Loading order details...</p>
+              </div>
+            )}
             {viewMode === 'orders' ? (
             <div style={{
               display: 'grid',
@@ -4251,6 +4360,15 @@ function RestaurantPOSContent() {
                   setOrderSuccess(null);
                   setError('');
                   setTableNumber(tbl);
+                  // Track that user came from tables view
+                  setReturnToView('tables');
+                  // Update URL with from=tables for back navigation
+                  if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('view', 'orders');
+                    url.searchParams.set('from', 'tables');
+                    window.history.replaceState({}, '', url.toString());
+                  }
                   setViewMode('orders');
                 }}
                 onSliderClose={() => {
@@ -4259,18 +4377,32 @@ function RestaurantPOSContent() {
                   // by clearing the cart which will cause the slider to update
                 }}
                 onViewOrder={async (orderId, table) => {
+                  // Track that user came from tables view
+                  setReturnToView('tables');
+                  // Show partial loading state instead of full page reload
+                  setOrderLoadingPartial(true);
+                  // Update URL with from=tables for back navigation
+                  if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('view', 'orders');
+                    url.searchParams.set('from', 'tables');
+                    if (orderId) {
+                      url.searchParams.set('orderId', orderId);
+                    }
+                    window.history.replaceState({}, '', url.toString());
+                  }
                   // Switch to orders view
                   setViewMode('orders');
-                  
+
                   // Load the order
                   if (orderId) {
                     await triggerOrderLookup(orderId);
-                    
+
                     // Set the table number if available
                     if (table && (table.name || table.number)) {
                       setTableNumber(table.name || table.number);
                     }
-                    
+
                     // Show notification
                     setNotification({
                       type: 'info',
@@ -4279,6 +4411,7 @@ function RestaurantPOSContent() {
                       show: true
                     });
                   }
+                  setOrderLoadingPartial(false);
                 }}
               />
             )}

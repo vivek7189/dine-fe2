@@ -449,7 +449,7 @@ const OrderHistory = () => {
     }
   };
 
-  const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit`);
+  const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit&from=orderhistory`);
 
   const handleDeleteOrder = (orderId) => {
     setDeleteError(null);

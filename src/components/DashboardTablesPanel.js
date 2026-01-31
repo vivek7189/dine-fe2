@@ -537,7 +537,7 @@ export default function DashboardTablesPanel({
                               e.stopPropagation();
                               if (sliderOpen) handleSliderClose();
                               if (t.currentOrderId) {
-                                router.push(`/dashboard?orderId=${t.currentOrderId}&mode=edit`);
+                                router.push(`/dashboard?orderId=${t.currentOrderId}&mode=edit&from=tables`);
                               } else {
                                 handleTakeOrderGuarded(t);
                               }
