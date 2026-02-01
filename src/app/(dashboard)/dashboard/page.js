@@ -3429,7 +3429,7 @@ function RestaurantPOSContent() {
         transition: 'margin-top 0.3s ease-out',
         position: 'relative' // Required for absolute-positioned top header bar
       }}>
-        {/* Top Header Bar - Clean header with Logo + Navigation Icons */}
+        {/* Top Header Bar - All-in-one header with Logo + Controls + Navigation */}
         {!isMobile && (
           <div style={{
             position: 'absolute',
@@ -3443,89 +3443,66 @@ function RestaurantPOSContent() {
             alignItems: 'center',
             padding: '0 16px',
             zIndex: 100,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            gap: '12px'
           }}>
-            {/* Left Section - Hamburger + Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* Hamburger Menu Button */}
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('openNavSidebar'));
-                }}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '10px',
-                  backgroundColor: '#ffffff',
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('openNavSidebar'));
+              }}
+              style={{
+                width: '36px',
+                height: '36px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+            >
+              <FaBars size={14} color="#374151" />
+            </button>
+
+            {/* Logo - Links to dashboard */}
+            <Link href="/dashboard" style={{ textDecoration: 'none', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  borderRadius: '8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                }}
-              >
-                <FaBars size={16} color="#374151" />
-              </button>
-
-              {/* Logo - Links to dashboard */}
-              <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  cursor: 'pointer'
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)'
                 }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)'
-                  }}>
-                    <FaUtensils color="white" size={16} />
-                  </div>
-                  <span style={{
-                    fontSize: '18px',
-                    fontWeight: '700',
-                    color: '#1f2937'
-                  }}>DineOpen</span>
+                  <FaUtensils color="white" size={14} />
                 </div>
-              </Link>
-            </div>
+                <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>DineOpen</span>
+              </div>
+            </Link>
 
             {/* Search Box */}
             <div style={{
-              width: '350px',
-              marginLeft: '20px',
+              width: '280px',
               flexShrink: 0
             }}>
               <div style={{
-                position: 'relative',
-                width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                height: '40px',
+                height: '36px',
                 backgroundColor: '#f3f4f6',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 border: '1px solid #e5e7eb'
               }}>
-                <FaSearch style={{
-                  marginLeft: '14px',
-                  color: '#9ca3af',
-                  flexShrink: 0
-                }} size={16} />
+                <FaSearch style={{ marginLeft: '12px', color: '#9ca3af', flexShrink: 0 }} size={14} />
                 <input
                   type="text"
                   placeholder="Search menu items..."
@@ -3534,11 +3511,11 @@ function RestaurantPOSContent() {
                   style={{
                     flex: 1,
                     height: '100%',
-                    paddingLeft: '12px',
-                    paddingRight: '14px',
+                    paddingLeft: '10px',
+                    paddingRight: '12px',
                     border: 'none',
                     backgroundColor: 'transparent',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     fontWeight: '500',
                     outline: 'none',
                     color: '#374151'
@@ -3547,7 +3524,146 @@ function RestaurantPOSContent() {
               </div>
             </div>
 
-            {/* Spacer to push nav icons to right */}
+            {/* NEW ORDER Button */}
+            <button
+              onClick={() => {
+                handleFreshOrder();
+                if (viewMode === 'tables') {
+                  setViewMode('orders');
+                }
+              }}
+              style={{
+                height: '36px',
+                padding: '0 14px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)'
+              }}
+            >
+              <FaPlus size={10} />
+              NEW ORDER
+            </button>
+
+            {/* Order ID Input */}
+            <input
+              type="text"
+              placeholder="Order ID"
+              value={orderLookup}
+              onChange={(e) => setOrderLookup(e.target.value)}
+              onKeyPress={handleOrderLookup}
+              className="header-order-id-input"
+              style={{
+                width: '100px',
+                height: '36px',
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '8px',
+                backgroundColor: 'rgb(254, 243, 199)',
+                fontSize: '12px',
+                fontWeight: '500',
+                outline: 'none',
+                textAlign: 'center',
+                color: '#4b5563',
+                flexShrink: 0
+              }}
+            />
+
+            {/* SHORT CODE Input */}
+            <input
+              type="text"
+              placeholder="SHORT CODE"
+              value={shortCodeSearch}
+              onChange={(e) => setShortCodeSearch(e.target.value)}
+              onKeyPress={handleShortCodeSearch}
+              className="header-short-code-input"
+              style={{
+                width: '110px',
+                height: '36px',
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '8px',
+                backgroundColor: 'rgb(209, 250, 229)',
+                fontSize: '12px',
+                fontWeight: '500',
+                outline: 'none',
+                textAlign: 'center',
+                color: '#4b5563',
+                textTransform: 'uppercase',
+                flexShrink: 0
+              }}
+            />
+            <style>{`
+              .header-order-id-input::placeholder { color: #92400e; font-weight: 600; }
+              .header-short-code-input::placeholder { color: #065f46; font-weight: 600; }
+            `}</style>
+
+            {/* Voice Button */}
+            <button
+              onClick={isListeningVoice ? stopVoiceListening : startVoiceListening}
+              disabled={isProcessingVoice}
+              title="Voice Assistant"
+              style={{
+                width: '36px',
+                height: '36px',
+                background: isListeningVoice
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                  : isProcessingVoice
+                  ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: isProcessingVoice ? 'not-allowed' : 'pointer',
+                flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              {isProcessingVoice ? (
+                <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : isListeningVoice ? (
+                <FaMicrophoneSlash size={14} />
+              ) : (
+                <FaMicrophone size={14} />
+              )}
+            </button>
+
+            {/* TABLES Button */}
+            <button
+              onClick={() => setViewMode(viewMode === 'orders' ? 'tables' : 'orders')}
+              style={{
+                height: '36px',
+                padding: '0 14px',
+                background: viewMode === 'tables' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'transparent',
+                color: viewMode === 'tables' ? 'white' : '#ef4444',
+                border: viewMode === 'tables' ? 'none' : '2px solid #ef4444',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <FaChair size={12} />
+              {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
+            </button>
+
+            {/* Spacer */}
             <div style={{ flex: 1 }} />
 
             {/* Right Section - Navigation Icons (Bigger, Right Aligned) */}
@@ -3558,16 +3674,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaClipboardList size={24} color="#f59e0b" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Orders</span>
+                  <FaClipboardList size={18} color="#f59e0b" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Orders</span>
                 </div>
               </Link>
 
@@ -3577,16 +3693,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaChair size={24} color="#3b82f6" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Tables</span>
+                  <FaChair size={18} color="#3b82f6" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Tables</span>
                 </div>
               </Link>
 
@@ -3596,16 +3712,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUtensils size={24} color="#10b981" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Menu</span>
+                  <FaUtensils size={18} color="#10b981" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Menu</span>
                 </div>
               </Link>
 
@@ -3615,16 +3731,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaFire size={24} color="#f97316" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Kitchen</span>
+                  <FaFire size={18} color="#f97316" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Kitchen</span>
                 </div>
               </Link>
 
@@ -3634,16 +3750,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUsers size={24} color="#8b5cf6" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Customers</span>
+                  <FaUsers size={18} color="#8b5cf6" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Customers</span>
                 </div>
               </Link>
 
@@ -3653,36 +3769,115 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaCreditCard size={24} color="#06b6d4" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Billing</span>
+                  <FaCreditCard size={18} color="#06b6d4" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Billing</span>
                 </div>
               </Link>
 
               {/* Divider */}
-              <div style={{ width: '1px', height: '36px', backgroundColor: '#e5e7eb', margin: '0 6px' }} />
+              <div style={{ width: '1px', height: '28px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
+
+              {/* Category View Toggle - Side/Chips */}
+              <div
+                onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '4px 8px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  backgroundColor: categoryViewMode === 'chips' ? '#fef2f2' : 'transparent'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = categoryViewMode === 'chips' ? '#fef2f2' : 'transparent'}
+              >
+                <div style={{
+                  width: '26px',
+                  height: '14px',
+                  borderRadius: '7px',
+                  backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
+                  padding: '2px',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <div style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                  }} />
+                </div>
+                <span style={{ fontSize: '8px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Chips</span>
+              </div>
+
+              {/* Card Style Toggle - Modern */}
+              <div
+                onClick={() => setUseModernCards(!useModernCards)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '4px 8px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  backgroundColor: useModernCards ? '#fef2f2' : 'transparent'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = useModernCards ? '#fef2f2' : 'transparent'}
+              >
+                <div style={{
+                  width: '26px',
+                  height: '14px',
+                  borderRadius: '7px',
+                  backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: useModernCards ? 'flex-end' : 'flex-start',
+                  padding: '2px',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <div style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                  }} />
+                </div>
+                <span style={{ fontSize: '8px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Modern</span>
+              </div>
+
+              {/* Divider */}
+              <div style={{ width: '1px', height: '28px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
 
               {/* Profile */}
               <Link href="/profile" style={{ textDecoration: 'none' }}>
                 <div style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(236, 72, 153, 0.3)'
+                  boxShadow: '0 2px 6px rgba(236, 72, 153, 0.3)'
                 }}>
-                  <FaUsers size={18} color="white" />
+                  <FaUsers size={14} color="white" />
                 </div>
               </Link>
             </div>
@@ -3799,13 +3994,13 @@ function RestaurantPOSContent() {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '12px 16px',
+              flexWrap: 'wrap',
+              gap: '6px',
+              padding: '10px 16px',
+              paddingRight: '460px',
               backgroundColor: 'white',
-              borderBottom: '1px solid #e5e7eb',
-              overflowX: 'auto',
-              flexShrink: 0
-            }} className="hide-scrollbar">
+              borderBottom: '1px solid #f1f5f9'
+            }}>
               {categories.map((category) => {
                 const categoryItems = category.id === 'all-items'
                   ? (menuItems || [])
@@ -3817,46 +4012,34 @@ function RestaurantPOSContent() {
                 return (
                   <button
                     key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
+                    onClick={() => setSelectedCategory(isSelected ? 'all-items' : category.id)}
                     style={{
-                      padding: '8px 16px',
-                      backgroundColor: isSelected ? '#ef4444' : '#f3f4f6',
-                      color: isSelected ? 'white' : '#374151',
-                      border: 'none',
-                      borderRadius: '20px',
+                      padding: '6px 14px',
+                      backgroundColor: isSelected ? '#ef4444' : 'white',
+                      color: isSelected ? 'white' : '#4b5563',
+                      border: isSelected ? 'none' : '1px solid #e5e7eb',
+                      borderRadius: '16px',
                       cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '600',
+                      fontSize: '12px',
+                      fontWeight: '500',
                       whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none'
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = '#e5e7eb';
+                        e.currentTarget.style.borderColor = '#d1d5db';
+                        e.currentTarget.style.backgroundColor = '#f9fafb';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                        e.currentTarget.style.backgroundColor = 'white';
                       }
                     }}
                   >
                     {category.name}
-                    <span style={{
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#d1d5db',
-                      color: isSelected ? 'white' : '#6b7280',
-                      padding: '2px 8px',
-                      borderRadius: '10px',
-                      minWidth: '20px',
-                      textAlign: 'center'
-                    }}>
-                      {categoryItems.length}
-                    </span>
                   </button>
                 );
               })}
@@ -4424,240 +4607,6 @@ function RestaurantPOSContent() {
             )}
           </div>
 
-          {/* Desktop Toolbar - Inside Menu Section */}
-          {!isMobile && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 20px',
-              paddingRight: viewMode === 'orders' ? '470px' : '20px',
-              gap: '12px',
-              backgroundColor: '#f8fafc'
-            }}>
-              {/* New Order Button */}
-              <button
-                onClick={() => {
-                  handleFreshOrder();
-                  if (viewMode === 'tables') {
-                    setViewMode('orders');
-                  }
-                }}
-                style={{
-                  height: '36px',
-                  padding: '0 16px',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)'
-                }}
-              >
-                <FaPlus size={10} />
-                NEW ORDER
-              </button>
-
-              {/* Orders View Controls */}
-              {viewMode === 'orders' && (
-                <>
-                  {/* Order ID */}
-                  <input
-                    type="text"
-                    placeholder="Order ID"
-                    value={orderLookup}
-                    onChange={(e) => setOrderLookup(e.target.value)}
-                    onKeyPress={handleOrderLookup}
-                    className="toolbar-order-id-input"
-                    style={{
-                      width: '110px',
-                      height: '40px',
-                      padding: '0 16px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgb(254, 243, 199)',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      outline: 'none',
-                      textAlign: 'center',
-                      color: '#4b5563'
-                    }}
-                  />
-
-                  {/* Short Code */}
-                  <input
-                    type="text"
-                    placeholder="SHORT CODE"
-                    value={shortCodeSearch}
-                    onChange={(e) => setShortCodeSearch(e.target.value)}
-                    onKeyPress={handleShortCodeSearch}
-                    className="toolbar-short-code-input"
-                    style={{
-                      width: '120px',
-                      height: '40px',
-                      padding: '0 16px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgb(209, 250, 229)',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      outline: 'none',
-                      textAlign: 'center',
-                      color: '#4b5563',
-                      textTransform: 'uppercase'
-                    }}
-                  />
-                  <style>{`
-                    .toolbar-order-id-input::placeholder { color: #6b7280; font-weight: 500; }
-                    .toolbar-short-code-input::placeholder { color: #6b7280; font-weight: 500; }
-                  `}</style>
-                </>
-              )}
-
-              {/* Spacer */}
-              <div style={{ flex: '1' }} />
-
-              {/* Voice Button */}
-              <button
-                onClick={isListeningVoice ? stopVoiceListening : startVoiceListening}
-                disabled={isProcessingVoice}
-                title="Voice Assistant"
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  background: isListeningVoice
-                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                    : isProcessingVoice
-                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: isProcessingVoice ? 'not-allowed' : 'pointer',
-                  flexShrink: 0,
-                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
-                }}
-              >
-                {isProcessingVoice ? (
-                  <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : isListeningVoice ? (
-                  <FaMicrophoneSlash size={14} />
-                ) : (
-                  <FaMicrophone size={14} />
-                )}
-              </button>
-
-              {/* Tables/Orders Toggle Button */}
-              <button
-                onClick={() => setViewMode(viewMode === 'orders' ? 'tables' : 'orders')}
-                style={{
-                  height: '36px',
-                  padding: '0 16px',
-                  background: viewMode === 'tables' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'transparent',
-                  color: viewMode === 'tables' ? 'white' : '#ef4444',
-                  border: viewMode === 'tables' ? 'none' : '2px solid #ef4444',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <FaChair size={12} />
-                {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
-              </button>
-
-              {/* Category View Toggle */}
-              {viewMode === 'orders' && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 10px',
-                  backgroundColor: '#ffffff',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
-                }}>
-                  <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>
-                    {categoryViewMode === 'sidebar' ? 'Side' : 'Chips'}
-                  </span>
-                  <button
-                    onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
-                    style={{
-                      width: '32px',
-                      height: '18px',
-                      borderRadius: '9px',
-                      border: 'none',
-                      backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
-                      padding: '2px',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <div style={{
-                      width: '14px',
-                      height: '14px',
-                      borderRadius: '50%',
-                      backgroundColor: 'white',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                    }} />
-                  </button>
-                </div>
-              )}
-
-              {/* Card Toggle */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 10px',
-                backgroundColor: '#ffffff',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
-                <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>Modern</span>
-                <button
-                  onClick={() => setUseModernCards(!useModernCards)}
-                  style={{
-                    width: '32px',
-                    height: '18px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: useModernCards ? 'flex-end' : 'flex-start',
-                    padding: '2px',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    backgroundColor: 'white',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                  }} />
-                </button>
-              </div>
-            </div>
-          )}
 
           <div style={{
             flex: 1,
