@@ -440,26 +440,30 @@ const OrderSummary = ({
       boxShadow: isMobile ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
       overflow: 'hidden'
     }}>
-      {/* Header - More Compact */}
-      <div style={{ 
-        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)', 
-        padding: '14px 16px',
+      {/* Header - More Compact, even smaller in billing mode */}
+      <div style={{
+        background: billingMode
+          ? 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
+          : 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+        padding: billingMode ? '10px 16px' : '14px 16px',
         color: 'white',
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0
       }}>
-        {/* Background Pattern */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '80px',
-          height: '80px',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-          borderRadius: '50%',
-          transform: 'translate(25px, -25px)'
-        }} />
+        {/* Background Pattern - hidden in billing mode */}
+        {!billingMode && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '80px',
+            height: '80px',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+            borderRadius: '50%',
+            transform: 'translate(25px, -25px)'
+          }} />
+        )}
         
         <div style={{ 
           display: 'flex', 
@@ -511,14 +515,14 @@ const OrderSummary = ({
             </div>
           </div>
           
-          {/* Edit Mode Indicator */}
-          {currentOrder && (
+          {/* Edit Mode Indicator - hidden in billing mode */}
+          {currentOrder && !billingMode && (
             <div style={{
               position: 'absolute',
               top: '-8px',
               left: '50%',
               transform: 'translateX(-50%)',
-              background: currentOrder.status === 'completed' 
+              background: currentOrder.status === 'completed'
                 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                 : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
               color: 'white',

@@ -48,7 +48,8 @@ export default function DashboardTablesPanel({
   restaurantName,
   taxSettings,
   menuItems,
-  printSettings
+  printSettings,
+  onRefreshTables // Callback to refresh tables data after billing
 }) {
   const router = useRouter();
   const [sliderOpen, setSliderOpen] = useState(false);
@@ -281,16 +282,19 @@ export default function DashboardTablesPanel({
         openManualPrintWindow(order, actionsModal.table);
       }
 
-      // Close modal and refresh
+      // Close modal
       closeActionsModal();
-      alert('Billing completed successfully!');
 
-      // Trigger refresh
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('refreshTables'));
+      // Refresh tables in background (no alert)
+      if (onRefreshTables) {
+        // Call parent's refresh function
+        onRefreshTables();
       }
+
+      console.log('✅ Billing completed for order:', order.id);
     } catch (error) {
       console.error('Billing error:', error);
+      // Only show alert on error
       alert('Billing failed: ' + (error.message || 'Unknown error'));
     } finally {
       setModalProcessing(false);
@@ -458,83 +462,6 @@ export default function DashboardTablesPanel({
     setTimeout(() => win.print(), 500);
   };
 
-  // State for billing processing
-  const [billingInProgress, setBillingInProgress] = useState(false);
-
-  // Handle Pay/Billing from modal - process billing directly
-  const handlePayFromModal = async () => {
-    if (!actionsModal.order || !selectedRestaurant?.id || billingInProgress) return;
-
-    setBillingInProgress(true);
-    const order = actionsModal.order;
-
-    try {
-      // Get current user info
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-
-      // Update order to completed status with payment
-      const updateData = {
-        status: 'completed',
-        paymentStatus: 'paid',
-        paymentMethod: order.paymentMethod || 'cash',
-        completedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        lastUpdatedBy: {
-          name: currentUser.name || 'Staff',
-          id: currentUser.id,
-          role: currentUser.role || 'waiter'
-        }
-      };
-
-      await apiClient.updateOrder(order.id, updateData);
-
-      // Process payment
-      await apiClient.verifyPayment({
-        orderId: order.id,
-        paymentMethod: order.paymentMethod || 'cash',
-        amount: order.finalAmount || order.totalAmount || 0,
-        userId: currentUser.id,
-        restaurantId: selectedRestaurant.id,
-        paymentStatus: 'completed'
-      });
-
-      // Send print command if auto-print is enabled
-      if (!isManualPrintEnabled()) {
-        try {
-          await apiClient.requestManualPrint(order.id, 'bill');
-        } catch (printError) {
-          console.error('Auto-print failed:', printError);
-        }
-      } else {
-        // Manual print - open print window
-        openManualPrintWindow(order, actionsModal.table);
-      }
-
-      // Close modal and refresh tables
-      closeActionsModal();
-
-      // Show notification (if parent has setNotification)
-      alert('Billing completed successfully!');
-
-      // Refresh tables data by triggering a re-render
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('refreshTables'));
-      }
-
-    } catch (error) {
-      console.error('Billing error:', error);
-      alert('Billing failed: ' + (error.message || 'Unknown error'));
-    } finally {
-      setBillingInProgress(false);
-    }
-  };
-
-  // Handle Add Items from modal
-  const handleAddItemsFromModal = () => {
-    if (!actionsModal.order) return;
-    closeActionsModal();
-    router.push(`/dashboard?orderId=${actionsModal.order.id}&mode=edit&from=tables`);
-  };
 
   // Calculate time elapsed since order
   const getTimeElapsed = (createdAt) => {
@@ -669,15 +596,15 @@ export default function DashboardTablesPanel({
         .btn-action:active {
           transform: scale(0.98);
         }
-        @media (max-width: 560px) {
+        @media (max-width: 620px) {
           .table-actions-modal {
             max-width: 100% !important;
-            border-radius: 20px 20px 0 0 !important;
+            border-radius: 16px 16px 0 0 !important;
             position: fixed !important;
             bottom: 0 !important;
             left: 0 !important;
             right: 0 !important;
-            max-height: 90vh !important;
+            max-height: 92vh !important;
           }
         }
       `}</style>
@@ -1196,14 +1123,14 @@ export default function DashboardTablesPanel({
         </div>
       )}
 
-      {/* Table Actions Modal - Uses OrderSummary in billing mode */}
+      {/* Table Actions Modal - Clean billing modal using OrderSummary */}
       {actionsModal.open && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(3px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1216,106 +1143,44 @@ export default function DashboardTablesPanel({
             className="table-actions-modal"
             style={{
               background: '#fff',
-              borderRadius: '20px',
+              borderRadius: '16px',
               width: '100%',
-              maxWidth: '480px',
-              maxHeight: '90vh',
+              maxWidth: '580px',
+              maxHeight: '92vh',
               overflow: 'hidden',
-              boxShadow: '0 25px 80px rgba(0,0,0,0.35)',
-              animation: 'modalFadeIn 0.25s ease',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              animation: 'modalFadeIn 0.2s ease',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              position: 'relative'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Compact Header */}
-            <div style={{
-              padding: '16px 20px',
-              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              position: 'relative',
-              overflow: 'hidden',
-              flexShrink: 0
-            }}>
-              {/* Decorative circle */}
-              <div style={{
+            {/* Floating Close Button */}
+            <button
+              onClick={closeActionsModal}
+              style={{
                 position: 'absolute',
-                top: '10px',
-                left: '-20px',
-                width: '50px',
-                height: '50px',
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: '50%'
-              }} />
-
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>
-                  Bill Summary
-                </div>
-                <div style={{
-                  fontSize: '26px',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  letterSpacing: '-0.5px'
-                }}>
-                  Table {actionsModal.table?.name || actionsModal.table?.number}
-                </div>
-                {actionsModal.order && (
-                  <div style={{
-                    fontSize: '13px',
-                    color: 'rgba(255,255,255,0.85)',
-                    marginTop: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    flexWrap: 'wrap'
-                  }}>
-                    <span style={{
-                      background: 'rgba(255,255,255,0.2)',
-                      padding: '3px 10px',
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      fontSize: '12px'
-                    }}>
-                      Order #{actionsModal.order.dailyOrderId || actionsModal.order.id?.slice(-6)}
-                    </span>
-                    <span style={{ opacity: 0.6 }}>•</span>
-                    <span style={{ fontSize: '12px' }}>{getTimeElapsed(actionsModal.order.createdAt)}</span>
-                    {actionsModal.order.customerInfo?.name && (
-                      <>
-                        <span style={{ opacity: 0.6 }}>•</span>
-                        <span style={{ fontSize: '12px' }}>{actionsModal.order.customerInfo.name}</span>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={closeActionsModal}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: 'rgba(255,255,255,0.15)',
-                  color: '#ffffff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s',
-                  position: 'relative',
-                  zIndex: 1
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-              >
-                <FaTimes size={16} />
-              </button>
-            </div>
+                top: '12px',
+                right: '12px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                border: 'none',
+                background: 'rgba(0,0,0,0.08)',
+                color: '#6b7280',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.15)'; e.currentTarget.style.color = '#374151'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; e.currentTarget.style.color = '#6b7280'; }}
+            >
+              <FaTimes size={14} />
+            </button>
 
             {/* Modal Content */}
             {actionsModal.loading ? (
@@ -1324,405 +1189,58 @@ export default function DashboardTablesPanel({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '16px',
-                background: 'linear-gradient(180deg, #fafafa 0%, #ffffff 100%)'
+                gap: '16px'
               }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 15px rgba(220, 38, 38, 0.2)'
-                }}>
-                  <FaSpinner className="animate-spin" size={24} style={{ color: '#dc2626' }} />
-                </div>
-                <div style={{ fontSize: '15px', color: '#6b7280', fontWeight: 500 }}>Loading order details...</div>
+                <FaSpinner className="animate-spin" size={28} style={{ color: '#dc2626' }} />
+                <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>Loading order...</div>
               </div>
-            ) : actionsModal.order ? (
-              <>
-                {/* Scrollable content area */}
-                <div style={{ maxHeight: 'calc(92vh - 280px)', overflowY: 'auto' }}>
-                  {/* Order Items */}
-                  <div style={{ padding: '20px 28px 16px' }}>
-                    <div style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#dc2626',
-                      marginBottom: '14px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1.5px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{
-                          width: '8px',
-                          height: '8px',
-                          background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                          borderRadius: '50%'
-                        }} />
-                        Order Items
-                      </div>
-                      <span style={{ color: '#6b7280', fontWeight: 600 }}>{actionsModal.order.items?.length || 0} items</span>
-                    </div>
-
-                    {/* Items list */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {(actionsModal.order.items || []).map((item, idx) => (
-                        <div key={idx} style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '14px 16px',
-                          background: '#f9fafb',
-                          borderRadius: '12px',
-                          border: '1px solid #f3f4f6'
-                        }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-                              {item.name}
-                            </div>
-                            {item.selectedVariant && (
-                              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{item.selectedVariant.name}</div>
-                            )}
-                            {item.selectedCustomizations?.length > 0 && (
-                              <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>
-                                + {item.selectedCustomizations.map(c => c.name).join(', ')}
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{
-                              background: '#fff',
-                              color: '#374151',
-                              padding: '4px 12px',
-                              borderRadius: '6px',
-                              fontSize: '13px',
-                              fontWeight: 600,
-                              border: '1px solid #e5e7eb'
-                            }}>
-                              ×{item.quantity || 1}
-                            </div>
-                            <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827', minWidth: '70px', textAlign: 'right' }}>
-                              ₹{((item.price || 0) * (item.quantity || 1)).toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bill Summary Card */}
-                  <div style={{ padding: '0 28px 20px' }}>
-                    <div style={{
-                      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
-                      borderRadius: '16px',
-                      border: '1px solid #e2e8f0',
-                      overflow: 'hidden'
-                    }}>
-                      {/* Summary Header */}
-                      <div style={{
-                        padding: '14px 18px',
-                        background: '#ffffff',
-                        borderBottom: '1px dashed #e2e8f0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <FaReceipt size={14} style={{ color: '#64748b' }} />
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                          Bill Summary
-                        </span>
-                      </div>
-
-                      {/* Summary Details */}
-                      <div style={{ padding: '16px 18px' }}>
-                        {/* Subtotal */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                          <span style={{ fontSize: '14px', color: '#64748b' }}>Subtotal</span>
-                          <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>
-                            ₹{(actionsModal.order.totalAmount || 0).toFixed(2)}
-                          </span>
-                        </div>
-
-                        {/* Discount if any */}
-                        {actionsModal.order.discountAmount > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                            <span style={{ fontSize: '14px', color: '#16a34a' }}>Discount</span>
-                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a' }}>
-                              - ₹{(actionsModal.order.discountAmount || 0).toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Tax Breakdown */}
-                        {actionsModal.order.taxBreakdown && actionsModal.order.taxBreakdown.length > 0 && (
-                          <div style={{
-                            background: '#ffffff',
-                            borderRadius: '10px',
-                            padding: '12px 14px',
-                            marginBottom: '12px',
-                            border: '1px solid #e2e8f0'
-                          }}>
-                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Tax Details
-                            </div>
-                            {actionsModal.order.taxBreakdown.map((tax, idx) => (
-                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: idx < actionsModal.order.taxBreakdown.length - 1 ? '6px' : 0 }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>
-                                  {tax.name} <span style={{ color: '#94a3b8' }}>({tax.rate}%)</span>
-                                </span>
-                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                                  ₹{(tax.amount || 0).toFixed(2)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Total Tax if no breakdown */}
-                        {(!actionsModal.order.taxBreakdown || actionsModal.order.taxBreakdown.length === 0) && actionsModal.order.taxAmount > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                            <span style={{ fontSize: '14px', color: '#64748b' }}>Tax</span>
-                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>
-                              ₹{(actionsModal.order.taxAmount || 0).toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Divider */}
-                        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #e2e8f0, transparent)', margin: '14px 0' }} />
-
-                        {/* Grand Total */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Grand Total</span>
-                          <span style={{ fontSize: '24px', fontWeight: 800, color: '#16a34a' }}>
-                            ₹{(actionsModal.order.finalAmount || actionsModal.order.totalAmount || 0).toFixed(2)}
-                          </span>
-                        </div>
-
-                        {/* Payment Method */}
-                        <div style={{
-                          marginTop: '14px',
-                          padding: '10px 14px',
-                          background: '#f0fdf4',
-                          borderRadius: '8px',
-                          border: '1px solid #bbf7d0',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <span style={{ fontSize: '12px', color: '#15803d', fontWeight: 500 }}>Payment Method</span>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
-                            {actionsModal.order.paymentMethod || 'Cash'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons - Fixed at bottom */}
-                <div style={{
-                  padding: '20px 28px',
-                  background: '#ffffff',
-                  borderTop: '1px solid #f1f5f9',
-                  display: 'flex',
-                  gap: '12px'
-                }}>
-                  <button
-                    onClick={handleAddItemsFromModal}
-                    style={{
-                      flex: 1,
-                      padding: '16px 20px',
-                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '14px',
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      boxShadow: '0 4px 16px rgba(5, 150, 105, 0.35)',
-                      transition: 'all 0.2s',
-                      transform: 'translateY(0)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(5, 150, 105, 0.45)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(5, 150, 105, 0.35)';
-                    }}
-                  >
-                    <FaPlus size={14} />
-                    Add Items
-                  </button>
-                  <button
-                    onClick={handlePayFromModal}
-                    disabled={billingInProgress}
-                    style={{
-                      flex: 1,
-                      padding: '16px 20px',
-                      background: billingInProgress
-                        ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
-                        : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '14px',
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      cursor: billingInProgress ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      boxShadow: billingInProgress
-                        ? '0 4px 16px rgba(107, 114, 128, 0.35)'
-                        : '0 4px 16px rgba(220, 38, 38, 0.35)',
-                      transition: 'all 0.2s',
-                      transform: 'translateY(0)',
-                      opacity: billingInProgress ? 0.85 : 1
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!billingInProgress) {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.45)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!billingInProgress) {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(220, 38, 38, 0.35)';
-                      }
-                    }}
-                  >
-                    {billingInProgress ? (
-                      <>
-                        <FaSpinner className="animate-spin" size={14} />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <FaCreditCard size={14} />
-                        Complete Billing
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Secondary Actions */}
-                <div style={{
-                  padding: '12px 28px 20px',
-                  background: '#fafafa',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  gap: '24px'
-                }}>
-                  <button
-                    onClick={() => {
-                      if (actionsModal.order) handleSmartPrint(actionsModal.table);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#6b7280',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '10px 16px',
-                      borderRadius: '10px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#f3f4f6';
-                      e.currentTarget.style.color = '#374151';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#6b7280';
-                    }}
-                  >
-                    <FaPrint size={12} />
-                    Print Bill
-                  </button>
-                  <button
-                    onClick={() => {
-                      closeActionsModal();
-                      alert('Transfer table feature coming soon!');
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#6b7280',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '10px 16px',
-                      borderRadius: '10px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#f3f4f6';
-                      e.currentTarget.style.color = '#374151';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#6b7280';
-                    }}
-                  >
-                    <FaExchangeAlt size={12} />
-                    Transfer
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm('Are you sure you want to cancel this order?')) {
-                        closeActionsModal();
-                        alert('Cancel order feature - please use Order History page');
-                      }
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#9ca3af',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '10px 16px',
-                      borderRadius: '10px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#fef2f2';
-                      e.currentTarget.style.color = '#ef4444';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#9ca3af';
-                    }}
-                  >
-                    <FaTrash size={11} />
-                    Cancel
-                  </button>
-                </div>
-              </>
+            ) : actionsModal.order && modalCart.length > 0 ? (
+              /* OrderSummary in billing mode - no extra wrapper needed */
+              <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <OrderSummary
+                  cart={modalCart}
+                  setCart={setModalCart}
+                  orderType={actionsModal.order.orderType || 'dine-in'}
+                  setOrderType={() => {}}
+                  paymentMethod={modalPaymentMethod}
+                  setPaymentMethod={setModalPaymentMethod}
+                  onClearCart={() => {}}
+                  onProcessOrder={handleModalProcessOrder}
+                  onSaveOrder={() => {}}
+                  onPlaceOrder={() => {}}
+                  onRemoveFromCart={() => {}}
+                  onAddToCart={() => {}}
+                  onUpdateCartItemQuantity={(cartId, newQty) => {
+                    setModalCart(prev => prev.map(item =>
+                      item.cartId === cartId ? { ...item, quantity: newQty } : item
+                    ).filter(item => item.quantity > 0));
+                  }}
+                  onTableNumberChange={() => {}}
+                  onCustomerNameChange={() => {}}
+                  onCustomerMobileChange={() => {}}
+                  processing={modalProcessing}
+                  placingOrder={false}
+                  orderSuccess={false}
+                  setOrderSuccess={() => {}}
+                  error={null}
+                  getTotalAmount={getModalTotalAmount}
+                  tableNumber={actionsModal.order.tableNumber || actionsModal.table?.name || ''}
+                  customerName={actionsModal.order.customerInfo?.name || ''}
+                  customerMobile={actionsModal.order.customerInfo?.phone || ''}
+                  orderLookup=""
+                  setOrderLookup={() => {}}
+                  currentOrder={actionsModal.order}
+                  setCurrentOrder={() => {}}
+                  onShowQRCode={() => {}}
+                  restaurantId={selectedRestaurant?.id}
+                  restaurantName={restaurantName}
+                  taxSettings={taxSettings}
+                  printSettings={printSettings}
+                  menuItems={menuItems}
+                  onClose={closeActionsModal}
+                  billingMode={true}
+                />
+              </div>
             ) : (
               <div style={{
                 padding: '60px',

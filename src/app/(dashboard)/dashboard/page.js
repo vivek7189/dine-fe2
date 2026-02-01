@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Pusher from 'pusher-js';
 import Onboarding from '../../../components/Onboarding';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
 import MenuItemCard from '../../../components/MenuItemCard';
@@ -1254,6 +1255,53 @@ function RestaurantPOSContent() {
       prefetchTables(selectedRestaurant.id);
     }
   }, [viewMode, selectedRestaurant?.id, prefetchTables]);
+
+  // Pusher subscription for real-time table status updates
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+
+    const restaurantId = selectedRestaurant.id;
+
+    // Initialize Pusher
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
+    });
+
+    // Subscribe to restaurant-specific channel
+    const channelName = `restaurant-${restaurantId}`;
+    const channel = pusher.subscribe(channelName);
+
+    console.log(`📡 Dashboard: Subscribed to Pusher channel '${channelName}' for table updates`);
+
+    // Handle table status updates
+    const handleTableUpdate = (data) => {
+      console.log('📡 Dashboard: Received table-status-updated event:', data);
+      // Refresh tables data when table status changes
+      prefetchTables(restaurantId);
+    };
+
+    // Handle order completion (which affects table status)
+    const handleOrderStatusUpdate = (data) => {
+      console.log('📡 Dashboard: Received order-status-updated event:', data);
+      // If order is completed, refresh tables to update status
+      if (data?.status === 'completed' || data?.order?.status === 'completed') {
+        prefetchTables(restaurantId);
+      }
+    };
+
+    // Bind to events
+    channel.bind('table-status-updated', handleTableUpdate);
+    channel.bind('order-status-updated', handleOrderStatusUpdate);
+    channel.bind('order-completed', handleOrderStatusUpdate);
+
+    // Cleanup on unmount
+    return () => {
+      console.log(`📡 Dashboard: Unsubscribing from channel '${channelName}'`);
+      channel.unbind_all();
+      pusher.unsubscribe(channelName);
+      pusher.disconnect();
+    };
+  }, [selectedRestaurant?.id, prefetchTables]);
 
   // Reset UI state for fresh order
   const handleFreshOrder = () => {
@@ -4348,6 +4396,12 @@ function RestaurantPOSContent() {
                 taxSettings={taxSettings}
                 menuItems={menuItems}
                 printSettings={printSettings}
+                onRefreshTables={() => {
+                  // Refresh tables in background after billing completion
+                  if (selectedRestaurant?.id) {
+                    prefetchTables(selectedRestaurant.id);
+                  }
+                }}
                 onTakeOrder={(tbl) => {
                   // Clear previous order data when taking order from a new table
                   setCart([]);
