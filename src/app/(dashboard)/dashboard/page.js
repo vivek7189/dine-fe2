@@ -132,6 +132,7 @@ function RestaurantPOSContent() {
   
   // Card design toggle state
   const [useModernCards, setUseModernCards] = useState(true);
+  const [categoryViewMode, setCategoryViewMode] = useState('sidebar'); // 'sidebar' or 'chips'
   const [showMobileCart, setShowMobileCart] = useState(false);
   
   // Voice Assistant State
@@ -3054,14 +3055,12 @@ function RestaurantPOSContent() {
 
   return (
     <div
-      className={`page-transition ${isLoading ? 'loading' : ''}`}
+      className={`page-transition dashboard-full-height ${isLoading ? 'loading' : ''}`}
       style={{
-      height: '100%',
       backgroundColor: '#f9fafb',
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'visible',
-      minHeight: '100%'
+      overflow: 'hidden'
     }}>
       {/* Restaurant Change Loading Overlay */}
       {restaurantChangeLoading && (
@@ -3422,10 +3421,10 @@ function RestaurantPOSContent() {
       <div style={{
         display: 'flex',
         flex: 1,
-        overflow: 'visible', // Always allow scrolling
+        overflow: 'hidden',
         flexDirection: isMobile ? 'column' : 'row',
-        height: isMobile ? 'auto' : '100%', // Use 100% since parent has calc(100vh - 80px)
-        minHeight: isMobile ? 'calc(100vh - 80px)' : '100%', // Account for navigation height
+        height: isMobile ? '100%' : '100%',
+        minHeight: 0, // Important for flex children to shrink properly
         marginTop: isListeningVoice ? (isMobile ? '120px' : '100px') : '0',
         transition: 'margin-top 0.3s ease-out',
         position: 'relative' // Required for absolute-positioned top header bar
@@ -3506,27 +3505,69 @@ function RestaurantPOSContent() {
               </Link>
             </div>
 
-            {/* Spacer */}
+            {/* Search Box */}
+            <div style={{
+              width: '350px',
+              marginLeft: '20px',
+              flexShrink: 0
+            }}>
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                height: '40px',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '10px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <FaSearch style={{
+                  marginLeft: '14px',
+                  color: '#9ca3af',
+                  flexShrink: 0
+                }} size={16} />
+                <input
+                  type="text"
+                  placeholder="Search menu items..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    flex: 1,
+                    height: '100%',
+                    paddingLeft: '12px',
+                    paddingRight: '14px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    outline: 'none',
+                    color: '#374151'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Spacer to push nav icons to right */}
             <div style={{ flex: 1 }} />
 
-            {/* Right Section - Navigation Icons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {/* Right Section - Navigation Icons (Bigger, Right Aligned) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {/* Order History */}
               <Link href="/orderhistory" style={{ textDecoration: 'none' }}>
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaClipboardList size={18} color="#f59e0b" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Orders</span>
+                  <FaClipboardList size={24} color="#f59e0b" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Orders</span>
                 </div>
               </Link>
 
@@ -3536,16 +3577,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaChair size={18} color="#3b82f6" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Tables</span>
+                  <FaChair size={24} color="#3b82f6" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Tables</span>
                 </div>
               </Link>
 
@@ -3555,16 +3596,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUtensils size={18} color="#10b981" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Menu</span>
+                  <FaUtensils size={24} color="#10b981" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Menu</span>
                 </div>
               </Link>
 
@@ -3574,16 +3615,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaFire size={18} color="#f97316" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>KOT</span>
+                  <FaFire size={24} color="#f97316" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Kitchen</span>
                 </div>
               </Link>
 
@@ -3593,16 +3634,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUsers size={18} color="#8b5cf6" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Customers</span>
+                  <FaUsers size={24} color="#8b5cf6" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Customers</span>
                 </div>
               </Link>
 
@@ -3612,36 +3653,36 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaCreditCard size={18} color="#06b6d4" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Billing</span>
+                  <FaCreditCard size={24} color="#06b6d4" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Billing</span>
                 </div>
               </Link>
 
               {/* Divider */}
-              <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb', margin: '0 8px' }} />
+              <div style={{ width: '1px', height: '36px', backgroundColor: '#e5e7eb', margin: '0 6px' }} />
 
               {/* Profile */}
               <Link href="/profile" style={{ textDecoration: 'none' }}>
                 <div style={{
-                  width: '36px',
-                  height: '36px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(236, 72, 153, 0.25)'
+                  boxShadow: '0 2px 8px rgba(236, 72, 153, 0.3)'
                 }}>
-                  <FaUsers size={14} color="white" />
+                  <FaUsers size={18} color="white" />
                 </div>
               </Link>
             </div>
@@ -3649,7 +3690,7 @@ function RestaurantPOSContent() {
         )}
 
         {/* Desktop Category Sidebar - Part of Menu Section */}
-        {!isMobile && viewMode === 'orders' && (
+        {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && (
           <div style={{
             width: '170px',
             height: '100%',
@@ -3658,13 +3699,15 @@ function RestaurantPOSContent() {
             borderRight: '1px solid #e5e7eb',
             display: 'flex',
             flexDirection: 'column',
-            flexShrink: 0
+            flexShrink: 0,
+            overflow: 'hidden'
           }}>
             {/* Categories List */}
             <div style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '12px 10px'
+              padding: '12px 10px',
+              minHeight: 0
             }} className="hide-scrollbar">
               {categories.map((category) => {
                 const categoryItems = category.id === 'all-items'
@@ -3737,16 +3780,83 @@ function RestaurantPOSContent() {
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          overflow: 'visible', // Always allow scrolling
-          height: isMobile ? 'auto' : '100%',
-          minHeight: isMobile ? '400px' : '100%',
+          overflow: 'hidden',
+          height: '100%',
+          minHeight: 0, // Important for flex children to shrink
           paddingBottom: isMobile ? '80px' : '0', // Add bottom padding for mobile cart button
           paddingTop: !isMobile ? '66px' : '0', // Header (56px) + gap (10px)
-          maxHeight: isMobile ? 'none' : '100%',
           // Expand to full width when in tables view
-          width: viewMode === 'tables' ? '100%' : undefined,
-          flex: viewMode === 'tables' ? '1 1 100%' : 1
+          width: viewMode === 'tables' ? '100%' : undefined
         }}>
+          {/* Horizontal Category Chips - Desktop Only when chips mode */}
+          {!isMobile && viewMode === 'orders' && categoryViewMode === 'chips' && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 16px',
+              backgroundColor: 'white',
+              borderBottom: '1px solid #e5e7eb',
+              overflowX: 'auto',
+              flexShrink: 0
+            }} className="hide-scrollbar">
+              {categories.map((category) => {
+                const categoryItems = category.id === 'all-items'
+                  ? (menuItems || [])
+                  : category.id === 'favorites'
+                  ? (menuItems || []).filter(item => item.isFavorite === true)
+                  : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+                const isSelected = selectedCategory === category.id;
+
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: isSelected ? '#ef4444' : '#f3f4f6',
+                      color: isSelected ? 'white' : '#374151',
+                      border: 'none',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = '#e5e7eb';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                      }
+                    }}
+                  >
+                    {category.name}
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#d1d5db',
+                      color: isSelected ? 'white' : '#6b7280',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      minWidth: '20px',
+                      textAlign: 'center'
+                    }}>
+                      {categoryItems.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Show empty menu prompt if no menu items */}
           {filteredItems.length === 0 && (menuItems || []).length === 0 && !loading ? (
             <div style={{ 
@@ -4351,44 +4461,6 @@ function RestaurantPOSContent() {
               {/* Orders View Controls */}
               {viewMode === 'orders' && (
                 <>
-                  {/* Search Menu */}
-                  <div style={{
-                    position: 'relative',
-                    flex: 1,
-                    maxWidth: '400px',
-                    minWidth: '200px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    height: '36px',
-                    backgroundColor: '#ffffff',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb'
-                  }}>
-                    <FaSearch style={{
-                      marginLeft: '12px',
-                      color: '#9ca3af',
-                      flexShrink: 0
-                    }} size={14} />
-                    <input
-                      type="text"
-                      placeholder="Search menu..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      style={{
-                        flex: 1,
-                        height: '100%',
-                        paddingLeft: '10px',
-                        paddingRight: '12px',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        outline: 'none',
-                        color: '#374151'
-                      }}
-                    />
-                  </div>
-
                   {/* Order ID */}
                   <input
                     type="text"
@@ -4398,52 +4470,52 @@ function RestaurantPOSContent() {
                     onKeyPress={handleOrderLookup}
                     className="toolbar-order-id-input"
                     style={{
-                      width: '90px',
-                      height: '36px',
-                      padding: '0 10px',
-                      border: '1px solid #fcd34d',
+                      width: '110px',
+                      height: '40px',
+                      padding: '0 16px',
+                      border: 'none',
                       borderRadius: '8px',
-                      backgroundColor: '#fefce8',
-                      fontSize: '12px',
-                      fontWeight: '600',
+                      backgroundColor: 'rgb(254, 243, 199)',
+                      fontSize: '13px',
+                      fontWeight: '500',
                       outline: 'none',
                       textAlign: 'center',
-                      color: '#b45309'
+                      color: '#4b5563'
                     }}
                   />
 
                   {/* Short Code */}
                   <input
                     type="text"
-                    placeholder="Code"
+                    placeholder="SHORT CODE"
                     value={shortCodeSearch}
                     onChange={(e) => setShortCodeSearch(e.target.value)}
                     onKeyPress={handleShortCodeSearch}
                     className="toolbar-short-code-input"
                     style={{
-                      width: '70px',
-                      height: '36px',
-                      padding: '0 10px',
-                      border: '1px solid #6ee7b7',
+                      width: '120px',
+                      height: '40px',
+                      padding: '0 16px',
+                      border: 'none',
                       borderRadius: '8px',
-                      backgroundColor: '#ecfdf5',
-                      fontSize: '12px',
-                      fontWeight: '600',
+                      backgroundColor: 'rgb(209, 250, 229)',
+                      fontSize: '13px',
+                      fontWeight: '500',
                       outline: 'none',
                       textAlign: 'center',
-                      color: '#059669',
+                      color: '#4b5563',
                       textTransform: 'uppercase'
                     }}
                   />
                   <style>{`
-                    .toolbar-order-id-input::placeholder { color: #d97706; font-weight: 500; }
-                    .toolbar-short-code-input::placeholder { color: #059669; font-weight: 500; }
+                    .toolbar-order-id-input::placeholder { color: #6b7280; font-weight: 500; }
+                    .toolbar-short-code-input::placeholder { color: #6b7280; font-weight: 500; }
                   `}</style>
                 </>
               )}
 
               {/* Spacer */}
-              <div style={{ flex: viewMode === 'orders' ? '0' : '1' }} />
+              <div style={{ flex: '1' }} />
 
               {/* Voice Button */}
               <button
@@ -4501,6 +4573,47 @@ function RestaurantPOSContent() {
                 {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
               </button>
 
+              {/* Category View Toggle */}
+              {viewMode === 'orders' && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 10px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>
+                    {categoryViewMode === 'sidebar' ? 'Side' : 'Chips'}
+                  </span>
+                  <button
+                    onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
+                    style={{
+                      width: '32px',
+                      height: '18px',
+                      borderRadius: '9px',
+                      border: 'none',
+                      backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
+                      padding: '2px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
+              )}
+
               {/* Card Toggle */}
               <div style={{
                 display: 'flex',
@@ -4544,8 +4657,8 @@ function RestaurantPOSContent() {
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
             paddingRight: !isMobile && viewMode === 'orders' ? '460px' : '20px',
-            overflowY: isMobile ? 'visible' : 'auto',
-            height: isMobile ? 'auto' : '100%',
+            overflowY: 'auto',
+            minHeight: 0, // Important for flex scroll
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             width: '100%',
