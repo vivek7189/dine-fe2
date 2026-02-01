@@ -3887,7 +3887,7 @@ function RestaurantPOSContent() {
         {/* Desktop Category Sidebar - Part of Menu Section */}
         {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && (
           <div style={{
-            width: '160px',
+            width: '130px',
             height: '100%',
             paddingTop: '66px', // Header (56px) + gap (10px)
             backgroundColor: 'transparent',
@@ -3922,9 +3922,6 @@ function RestaurantPOSContent() {
                       borderRadius: isSelected ? '10px 0 0 10px' : '10px 0 0 10px',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
                       position: 'relative',
                       borderLeft: isSelected ? '3px solid #ef4444' : '3px solid transparent',
                       boxShadow: isSelected ? '2px 0 8px rgba(0,0,0,0.04)' : 'none'
@@ -3952,20 +3949,6 @@ function RestaurantPOSContent() {
                       transition: 'color 0.2s ease'
                     }}>
                       {category.name}
-                    </span>
-                    <span style={{
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      color: isSelected ? '#ef4444' : '#9ca3af',
-                      backgroundColor: isSelected ? '#fef2f2' : 'transparent',
-                      padding: isSelected ? '2px 6px' : '2px 4px',
-                      borderRadius: '6px',
-                      minWidth: '20px',
-                      textAlign: 'center',
-                      flexShrink: 0,
-                      transition: 'all 0.2s ease'
-                    }}>
-                      {categoryItems.length}
                     </span>
                   </div>
                 );
@@ -4641,33 +4624,110 @@ function RestaurantPOSContent() {
               </div>
             )}
             {viewMode === 'orders' ? (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: useModernCards
-                ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
-                : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
-              gap: useModernCards
-                ? (isMobile ? '12px' : '16px')
-                : (isMobile ? '10px' : '14px'),
-              justifyContent: 'start'
-            }}>
-              {filteredItems.map((item) => {
-                const quantityInCart = getItemQuantityInCart(item.id);
-                
-                return (
-                  <MenuItemCard
-                    key={item.id}
-                    item={item}
-                    quantityInCart={quantityInCart}
-                    onAddToCart={addToCart}
-                    onToggleFavorite={handleToggleFavorite}
-                    onRemoveFromCart={removeFromCart}
-                    onItemClick={handleItemCustomization}
-                    isMobile={isMobile}
-                    useModernDesign={useModernCards}
-                  />
-                );
-              })}
+            <div>
+              {/* Group items by category when showing all items */}
+              {selectedCategory === 'all-items' ? (
+                // Get unique categories from filtered items and render grouped
+                (() => {
+                  const categoryGroups = {};
+                  filteredItems.forEach(item => {
+                    const cat = item.category || 'Other';
+                    if (!categoryGroups[cat]) {
+                      categoryGroups[cat] = [];
+                    }
+                    categoryGroups[cat].push(item);
+                  });
+
+                  return Object.entries(categoryGroups).map(([categoryName, items]) => (
+                    <div key={categoryName} style={{ marginBottom: '24px' }}>
+                      {/* Category Header */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        marginBottom: '12px'
+                      }}>
+                        <span style={{
+                          fontSize: '15px',
+                          fontWeight: '700',
+                          color: '#1f2937',
+                          textTransform: 'capitalize'
+                        }}>
+                          {categoryName}
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#6b7280',
+                          backgroundColor: '#f3f4f6',
+                          padding: '2px 8px',
+                          borderRadius: '10px'
+                        }}>
+                          {items.length}
+                        </span>
+                      </div>
+                      {/* Category Items Grid */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: useModernCards
+                          ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
+                          : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
+                        gap: useModernCards
+                          ? (isMobile ? '14px' : '20px')
+                          : (isMobile ? '12px' : '18px'),
+                        justifyContent: 'start'
+                      }}>
+                        {items.map((item) => {
+                          const quantityInCart = getItemQuantityInCart(item.id);
+                          return (
+                            <MenuItemCard
+                              key={item.id}
+                              item={item}
+                              quantityInCart={quantityInCart}
+                              onAddToCart={addToCart}
+                              onToggleFavorite={handleToggleFavorite}
+                              onRemoveFromCart={removeFromCart}
+                              onItemClick={handleItemCustomization}
+                              isMobile={isMobile}
+                              useModernDesign={useModernCards}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()
+              ) : (
+                // Single category selected - show flat grid
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: useModernCards
+                    ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
+                    : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
+                  gap: useModernCards
+                    ? (isMobile ? '14px' : '20px')
+                    : (isMobile ? '12px' : '18px'),
+                  justifyContent: 'start'
+                }}>
+                  {filteredItems.map((item) => {
+                    const quantityInCart = getItemQuantityInCart(item.id);
+
+                    return (
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        quantityInCart={quantityInCart}
+                        onAddToCart={addToCart}
+                        onToggleFavorite={handleToggleFavorite}
+                        onRemoveFromCart={removeFromCart}
+                        onItemClick={handleItemCustomization}
+                        isMobile={isMobile}
+                        useModernDesign={useModernCards}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
             ) : (
               <DashboardTablesPanel
