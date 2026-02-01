@@ -66,7 +66,9 @@ const OrderSummary = ({
   locationType = 'table',
   setLocationType,
   manualRoomNumber = '',
-  setManualRoomNumber
+  setManualRoomNumber,
+  billingMode = false, // When true, hides Save/Place Order buttons, only shows Complete Billing
+  onBillingComplete // Callback when billing is completed in billingMode
 }) => {
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
@@ -1682,118 +1684,120 @@ const OrderSummary = ({
 
               {/* Workflow Actions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-                {/* First Row - Save and Place Order */}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button 
-                    onClick={() => {
-                      if (typeof onSaveOrder === 'function') {
-                        onSaveOrder();
-                      }
-                      // Close modal on mobile after saving order
-                      if (isMobile && onClose) {
-                        setTimeout(() => onClose(), 500); // Small delay to show success
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      background: 'linear-gradient(135deg, #f97316, #ea580c)',
-                      color: 'white',
-                      padding: '10px 12px',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      fontSize: '11px',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
-                    }}
-                  >
-                        <FaSave size={10} />
-                    {t('dashboard.saveOrder')}
-                  </button>
-                  
-                  <button 
-                    onClick={() => {
-                      if (typeof onPlaceOrder === 'function') {
-                        onPlaceOrder();
-                      }
-                      // Close modal on mobile after placing order
-                      if (isMobile && onClose) {
-                        setTimeout(() => onClose(), 500); // Small delay to show success
-                      }
-                    }}
-                    disabled={placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
-                    style={{
-                      flex: 1,
-                      background: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
-                        ? 'linear-gradient(135deg, #d1d5db, #9ca3af)' 
-                        : 'linear-gradient(135deg, #ef4444, #dc2626)',
-                      color: 'white',
-                      padding: '10px 12px',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      border: 'none',
-                      cursor: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      fontSize: '11px',
-                      transition: 'all 0.2s',
-                      boxShadow: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)'
-                    }}
-                  >
-                    {placingOrder ? (
-                      <>
-                        <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} />
-                        {t('dashboard.orderProcessing')}
-                      </>
-                    ) : (
-                      <>
-                        <FaUtensils size={10} />
-                        {currentOrder ? 'Update Order' : t('dashboard.placeOrder')}
-                      </>
-                    )}
-                  </button>
-                </div>
+                {/* First Row - Save and Place Order (hidden in billing mode) */}
+                {!billingMode && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => {
+                        if (typeof onSaveOrder === 'function') {
+                          onSaveOrder();
+                        }
+                        // Close modal on mobile after saving order
+                        if (isMobile && onClose) {
+                          setTimeout(() => onClose(), 500); // Small delay to show success
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                        color: 'white',
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        fontWeight: '600',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
+                      }}
+                    >
+                          <FaSave size={10} />
+                      {t('dashboard.saveOrder')}
+                    </button>
 
-                {/* Second Row - Complete Billing Only */}
+                    <button
+                      onClick={() => {
+                        if (typeof onPlaceOrder === 'function') {
+                          onPlaceOrder();
+                        }
+                        // Close modal on mobile after placing order
+                        if (isMobile && onClose) {
+                          setTimeout(() => onClose(), 500); // Small delay to show success
+                        }
+                      }}
+                      disabled={placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                      style={{
+                        flex: 1,
+                        background: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                          ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                          : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        color: 'white',
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        fontWeight: '600',
+                        border: 'none',
+                        cursor: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        transition: 'all 0.2s',
+                        boxShadow: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)'
+                      }}
+                    >
+                      {placingOrder ? (
+                        <>
+                          <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                          {t('dashboard.orderProcessing')}
+                        </>
+                      ) : (
+                        <>
+                          <FaUtensils size={10} />
+                          {currentOrder ? 'Update Order' : t('dashboard.placeOrder')}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* Complete Billing Button - Larger in billing mode */}
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <button 
+                  <button
                     onClick={handleProcessOrder}
                     disabled={processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
                     style={{
                       flex: 1,
                       background: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
-                        ? 'linear-gradient(135deg, #d1d5db, #9ca3af)' 
+                        ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                         : 'linear-gradient(135deg, #10b981, #059669)',
                       color: 'white',
-                      padding: '10px 12px',
-                      borderRadius: '6px',
-                      fontWeight: '600',
+                      padding: billingMode ? '14px 16px' : '10px 12px',
+                      borderRadius: billingMode ? '10px' : '6px',
+                      fontWeight: '700',
                       border: 'none',
                       cursor: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '4px',
-                      fontSize: '11px',
+                      gap: '6px',
+                      fontSize: billingMode ? '14px' : '11px',
                       transition: 'all 0.2s',
-                      boxShadow: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(34, 197, 94, 0.3)'
+                      boxShadow: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
                     }}
                   >
                     {processing ? (
                       <>
-                        <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                        <FaSpinner size={billingMode ? 14 : 10} style={{ animation: 'spin 1s linear infinite' }} />
                         {t('dashboard.paymentProcessing')}
                       </>
                     ) : (
                       <>
-                        <FaCheckCircle size={10} />
+                        <FaCheckCircle size={billingMode ? 14 : 10} />
                         {t('dashboard.completeBilling')}
                       </>
                     )}

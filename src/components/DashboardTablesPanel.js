@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan } from 'react-icons/fa';
+import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 
@@ -47,7 +47,8 @@ export default function DashboardTablesPanel({
   onShowQRCode,
   restaurantName,
   taxSettings,
-  menuItems
+  menuItems,
+  printSettings
 }) {
   const router = useRouter();
   const [sliderOpen, setSliderOpen] = useState(false);
@@ -56,6 +57,17 @@ export default function DashboardTablesPanel({
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderError, setOrderError] = useState(null);
   const [outOfServiceModal, setOutOfServiceModal] = useState({ open: false, table: null });
+
+  // Table Actions Modal state
+  const [actionsModal, setActionsModal] = useState({ open: false, table: null, order: null, loading: false });
+
+  // Modal cart state (separate from main cart)
+  const [modalCart, setModalCart] = useState([]);
+  const [modalPaymentMethod, setModalPaymentMethod] = useState('cash');
+  const [modalProcessing, setModalProcessing] = useState(false);
+
+  // Track which tables are currently printing
+  const [printingTables, setPrintingTables] = useState({});
 
   // Prefer floor.tables if present; fall back to flat tables prop
   const grouped = useMemo(() => {
@@ -168,6 +180,403 @@ export default function DashboardTablesPanel({
     setSliderMinimized(false);
   };
 
+  // Open table actions modal and fetch order details
+  const openActionsModal = async (table) => {
+    if (!table.currentOrderId || !selectedRestaurant?.id) return;
+
+    setActionsModal({ open: true, table, order: null, loading: true });
+    setModalCart([]);
+    setModalPaymentMethod('cash');
+
+    try {
+      const response = await apiClient.getOrders(selectedRestaurant.id, {
+        search: table.currentOrderId,
+        limit: 1
+      });
+
+      if (response.orders && response.orders.length > 0) {
+        const order = response.orders[0];
+        setActionsModal(prev => ({ ...prev, order, loading: false }));
+
+        // Populate modal cart with order items
+        const cartItems = (order.items || []).map(item => ({
+          id: item.menuItemId || item.id,
+          name: item.name,
+          price: item.price || 0,
+          quantity: item.quantity || 1,
+          selectedVariant: item.selectedVariant,
+          selectedCustomizations: item.selectedCustomizations,
+          basePrice: item.basePrice || item.price || 0,
+          cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
+        }));
+        setModalCart(cartItems);
+        setModalPaymentMethod(order.paymentMethod || 'cash');
+      } else {
+        setActionsModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Error fetching order for modal:', error);
+      setActionsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const closeActionsModal = () => {
+    setActionsModal({ open: false, table: null, order: null, loading: false });
+    setModalCart([]);
+    setModalProcessing(false);
+  };
+
+  // Get total amount for modal cart
+  const getModalTotalAmount = () => {
+    return modalCart.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+  };
+
+  // Handle billing process from modal OrderSummary
+  const handleModalProcessOrder = async () => {
+    if (!actionsModal.order || !selectedRestaurant?.id || modalProcessing) return;
+
+    setModalProcessing(true);
+    const order = actionsModal.order;
+
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+      // Update order to completed status with payment
+      const updateData = {
+        status: 'completed',
+        paymentStatus: 'paid',
+        paymentMethod: modalPaymentMethod,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastUpdatedBy: {
+          name: currentUser.name || 'Staff',
+          id: currentUser.id,
+          role: currentUser.role || 'waiter'
+        }
+      };
+
+      await apiClient.updateOrder(order.id, updateData);
+
+      // Process payment
+      await apiClient.verifyPayment({
+        orderId: order.id,
+        paymentMethod: modalPaymentMethod,
+        amount: order.finalAmount || order.totalAmount || 0,
+        userId: currentUser.id,
+        restaurantId: selectedRestaurant.id,
+        paymentStatus: 'completed'
+      });
+
+      // Send print command if auto-print is enabled
+      if (!isManualPrintEnabled()) {
+        try {
+          await apiClient.requestManualPrint(order.id, 'bill');
+        } catch (printError) {
+          console.error('Auto-print failed:', printError);
+        }
+      } else {
+        // Manual print - open print window
+        openManualPrintWindow(order, actionsModal.table);
+      }
+
+      // Close modal and refresh
+      closeActionsModal();
+      alert('Billing completed successfully!');
+
+      // Trigger refresh
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refreshTables'));
+      }
+    } catch (error) {
+      console.error('Billing error:', error);
+      alert('Billing failed: ' + (error.message || 'Unknown error'));
+    } finally {
+      setModalProcessing(false);
+    }
+  };
+
+  // Check if manual print is enabled
+  const isManualPrintEnabled = () => {
+    return printSettings?.manualPrintEnabled !== false;
+  };
+
+  // Smart print function - checks settings and order status
+  // If auto-print enabled: send to dine-kot-printer via API
+  // If manual print: open browser print window
+  const handleSmartPrint = async (table) => {
+    if (!table.currentOrderId || !selectedRestaurant?.id) return;
+
+    const tableId = table.id || table.currentOrderId;
+
+    // Set printing state for this table
+    setPrintingTables(prev => ({ ...prev, [tableId]: true }));
+
+    // First fetch the order details
+    try {
+      const response = await apiClient.getOrders(selectedRestaurant.id, {
+        search: table.currentOrderId,
+        limit: 1
+      });
+
+      if (!response.orders || response.orders.length === 0) {
+        alert('Order not found');
+        setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+        return;
+      }
+
+      const order = response.orders[0];
+
+      // Check if manual print is enabled
+      if (isManualPrintEnabled()) {
+        // Manual print - open browser print window with bill format
+        openManualPrintWindow(order, table);
+        // Brief delay to show feedback
+        setTimeout(() => {
+          setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+        }, 1000);
+      } else {
+        // Auto print - send to dine-kot-printer via API
+        try {
+          await apiClient.requestManualPrint(order.id, 'bill');
+          console.log('Print command sent to printer');
+          // Keep printing state for a moment to show feedback
+          setTimeout(() => {
+            setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+          }, 2000);
+        } catch (error) {
+          console.error('Error sending print command:', error);
+          // Fallback to manual print if auto fails
+          openManualPrintWindow(order, table);
+          setTimeout(() => {
+            setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching order for print:', error);
+      setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+    }
+  };
+
+  // Open manual print window with bill in standard format
+  const openManualPrintWindow = (order, table) => {
+    const win = window.open('', '_blank', 'width=800,height=600');
+    if (!win) {
+      alert('Please allow popups to print');
+      return;
+    }
+
+    const items = order.items || [];
+    const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+    const taxBreakdown = order.taxBreakdown || [];
+    const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
+    const total = order.finalAmount || (subtotal + taxTotal);
+
+    const itemsHtml = items.map(item =>
+      `<tr>
+        <td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g, '&lt;')}</td>
+        <td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td>
+        <td style="text-align:right;padding:2px 4px;">₹${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
+      </tr>`
+    ).join('');
+
+    const taxHtml = taxBreakdown.map(tax =>
+      `<tr>
+        <td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td>
+        <td style="text-align:right;padding:2px 4px;">₹${(tax.amount || 0).toFixed(2)}</td>
+      </tr>`
+    ).join('');
+
+    const billContent = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</title>
+  <style>
+    @page { size: 80mm auto; margin: 0; }
+    body { font-family: 'Courier New', Courier, monospace; margin: 16px; font-size: 12px; line-height: 1.4; max-width: 80mm; }
+    .bill-header { text-align: center; margin-bottom: 8px; }
+    .restaurant-name { font-size: 16px; font-weight: bold; text-transform: uppercase; }
+    .bill-title { font-size: 14px; font-weight: bold; margin-top: 4px; }
+    .divider { text-align: center; margin: 6px 0; }
+    .bill-info { margin: 8px 0; font-size: 11px; }
+    .bill-info div { display: flex; justify-content: space-between; margin: 2px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    th { text-align: left; border-bottom: 1px dashed #000; padding: 4px; font-size: 11px; }
+    td { font-size: 11px; }
+    .total-section { border-top: 1px dashed #000; margin-top: 8px; padding-top: 4px; }
+    .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 4px; }
+    .bill-footer { margin-top: 12px; text-align: center; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="bill-header">
+    <div class="restaurant-name">${(restaurantName || 'Restaurant').replace(/</g, '&lt;')}</div>
+    <div class="bill-title">--- BILL / INVOICE ---</div>
+  </div>
+  <div class="divider">--------------------------------</div>
+  <div class="bill-info">
+    <div><span>Bill#:</span><span><strong>${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</strong></span></div>
+    <div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div>
+    ${order.tableNumber || table?.name ? `<div><span>Table:</span><span>${order.tableNumber || table?.name || table?.number}</span></div>` : ''}
+    ${order.customerInfo?.name ? `<div><span>Customer:</span><span>${(order.customerInfo.name || '').replace(/</g, '&lt;')}</span></div>` : ''}
+    <div><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div>
+  </div>
+  <div class="divider">--------------------------------</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left;">Item</th>
+        <th style="text-align:center;">Qty</th>
+        <th style="text-align:right;">Amt</th>
+      </tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+  <div class="total-section">
+    <div class="bill-info">
+      <div><span>Subtotal:</span><span>₹${subtotal.toFixed(2)}</span></div>
+    </div>
+    ${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}
+    <div class="total-row">
+      <span>TOTAL:</span>
+      <span>₹${total.toFixed(2)}</span>
+    </div>
+  </div>
+  <div class="divider">================================</div>
+  <div class="bill-footer">
+    <p>Thank you for dining with us!</p>
+    <p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p>
+  </div>
+</body>
+</html>`;
+
+    win.document.write(billContent);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 500);
+  };
+
+  // State for billing processing
+  const [billingInProgress, setBillingInProgress] = useState(false);
+
+  // Handle Pay/Billing from modal - process billing directly
+  const handlePayFromModal = async () => {
+    if (!actionsModal.order || !selectedRestaurant?.id || billingInProgress) return;
+
+    setBillingInProgress(true);
+    const order = actionsModal.order;
+
+    try {
+      // Get current user info
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+      // Update order to completed status with payment
+      const updateData = {
+        status: 'completed',
+        paymentStatus: 'paid',
+        paymentMethod: order.paymentMethod || 'cash',
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastUpdatedBy: {
+          name: currentUser.name || 'Staff',
+          id: currentUser.id,
+          role: currentUser.role || 'waiter'
+        }
+      };
+
+      await apiClient.updateOrder(order.id, updateData);
+
+      // Process payment
+      await apiClient.verifyPayment({
+        orderId: order.id,
+        paymentMethod: order.paymentMethod || 'cash',
+        amount: order.finalAmount || order.totalAmount || 0,
+        userId: currentUser.id,
+        restaurantId: selectedRestaurant.id,
+        paymentStatus: 'completed'
+      });
+
+      // Send print command if auto-print is enabled
+      if (!isManualPrintEnabled()) {
+        try {
+          await apiClient.requestManualPrint(order.id, 'bill');
+        } catch (printError) {
+          console.error('Auto-print failed:', printError);
+        }
+      } else {
+        // Manual print - open print window
+        openManualPrintWindow(order, actionsModal.table);
+      }
+
+      // Close modal and refresh tables
+      closeActionsModal();
+
+      // Show notification (if parent has setNotification)
+      alert('Billing completed successfully!');
+
+      // Refresh tables data by triggering a re-render
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refreshTables'));
+      }
+
+    } catch (error) {
+      console.error('Billing error:', error);
+      alert('Billing failed: ' + (error.message || 'Unknown error'));
+    } finally {
+      setBillingInProgress(false);
+    }
+  };
+
+  // Handle Add Items from modal
+  const handleAddItemsFromModal = () => {
+    if (!actionsModal.order) return;
+    closeActionsModal();
+    router.push(`/dashboard?orderId=${actionsModal.order.id}&mode=edit&from=tables`);
+  };
+
+  // Calculate time elapsed since order
+  const getTimeElapsed = (createdAt) => {
+    if (!createdAt) return '';
+    try {
+      const now = new Date();
+      let created;
+
+      // Handle Firestore timestamp
+      if (createdAt._seconds) {
+        created = new Date(createdAt._seconds * 1000);
+      } else if (createdAt.toDate) {
+        created = createdAt.toDate();
+      } else if (typeof createdAt === 'string') {
+        created = new Date(createdAt);
+      } else {
+        created = new Date(createdAt);
+      }
+
+      if (isNaN(created.getTime())) return '';
+
+      const diffMs = now - created;
+      const diffMins = Math.floor(diffMs / 60000);
+
+      if (diffMins < 0) return 'just now';
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+
+      const diffHrs = Math.floor(diffMins / 60);
+      const remainingMins = diffMins % 60;
+
+      if (diffHrs < 24) {
+        return remainingMins > 0 ? `${diffHrs}h ${remainingMins}m ago` : `${diffHrs}h ago`;
+      }
+
+      const diffDays = Math.floor(diffHrs / 24);
+      return `${diffDays}d ago`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   // Helper to get status configuration
   const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
@@ -239,6 +648,14 @@ export default function DashboardTablesPanel({
             stroke-dashoffset: 0;
           }
         }
+        @keyframes modalFadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.1); }
+        }
         .table-card {
           transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -251,6 +668,17 @@ export default function DashboardTablesPanel({
         }
         .btn-action:active {
           transform: scale(0.98);
+        }
+        @media (max-width: 560px) {
+          .table-actions-modal {
+            max-width: 100% !important;
+            border-radius: 20px 20px 0 0 !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            max-height: 90vh !important;
+          }
         }
       `}</style>
 
@@ -533,34 +961,88 @@ export default function DashboardTablesPanel({
                           </button>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            className="btn-action"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (t.currentOrderId) handleViewOrderClick(t.currentOrderId, t);
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: '6px 8px',
-                              background: '#ffffff',
-                              color: '#4b5563',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              fontSize: '10px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px'
-                            }}
-                            onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
-                            onMouseLeave={(e) => e.target.style.background = '#ffffff'}
-                          >
-                            <FaEye size={10} />
-                            View
-                          </button>
+                        /* Occupied/Reserved/Cleaning tables - Show Print, Add, More buttons */
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {/* Print Button - Smart print (auto or manual based on settings) */}
+                          {(() => {
+                            const tableId = t.id || t.currentOrderId;
+                            const isPrinting = printingTables[tableId];
+                            return (
+                              <button
+                                className="btn-action"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (t.currentOrderId && !isPrinting) handleSmartPrint(t);
+                                }}
+                                disabled={isPrinting}
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  padding: 0,
+                                  background: isPrinting
+                                    ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
+                                    : '#ffffff',
+                                  color: isPrinting ? '#3b82f6' : '#6b7280',
+                                  border: isPrinting ? '1px solid #93c5fd' : '1px solid #d1d5db',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  cursor: isPrinting ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  position: 'relative',
+                                  overflow: 'visible',
+                                  opacity: isPrinting ? 0.85 : 1,
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isPrinting) {
+                                    e.currentTarget.style.background = '#f3f4f6';
+                                    e.currentTarget.style.color = '#374151';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isPrinting) {
+                                    e.currentTarget.style.background = '#ffffff';
+                                    e.currentTarget.style.color = '#6b7280';
+                                  }
+                                }}
+                                title={isPrinting ? 'Printing...' : 'Print Bill'}
+                              >
+                                {isPrinting ? (
+                                  <FaSpinner size={11} className="animate-spin" />
+                                ) : (
+                                  <FaPrint size={11} />
+                                )}
+                                {/* Small loading indicator badge on top-right */}
+                                {isPrinting && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '-4px',
+                                    right: '-4px',
+                                    width: '12px',
+                                    height: '12px',
+                                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.4)',
+                                    animation: 'pulse 1s infinite'
+                                  }}>
+                                    <div style={{
+                                      width: '4px',
+                                      height: '4px',
+                                      background: '#ffffff',
+                                      borderRadius: '50%'
+                                    }} />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })()}
+                          {/* Add Items Button - Gray style */}
                           <button
                             className="btn-action"
                             onClick={(e) => {
@@ -574,10 +1056,10 @@ export default function DashboardTablesPanel({
                             }}
                             style={{
                               flex: 1,
-                              padding: '6px 8px',
-                              background: '#eff6ff',
-                              color: '#2563eb',
-                              border: '1px solid #bfdbfe',
+                              padding: '6px 10px',
+                              background: '#ffffff',
+                              color: '#4b5563',
+                              border: '1px solid #d1d5db',
                               borderRadius: '6px',
                               fontSize: '10px',
                               fontWeight: 600,
@@ -587,11 +1069,37 @@ export default function DashboardTablesPanel({
                               justifyContent: 'center',
                               gap: '4px'
                             }}
-                            onMouseEnter={(e) => e.target.style.background = '#dbeafe'}
-                            onMouseLeave={(e) => e.target.style.background = '#eff6ff'}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
                           >
-                            <FaReceipt size={10} />
-                            {t.currentOrderId ? 'Add' : 'Take Order'}
+                            <FaPlus size={9} />
+                            Add
+                          </button>
+                          {/* More Actions Button */}
+                          <button
+                            className="btn-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (t.currentOrderId) openActionsModal(t);
+                            }}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              padding: 0,
+                              background: '#ffffff',
+                              color: '#6b7280',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#9ca3af'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#d1d5db'; }}
+                            title="More Actions"
+                          >
+                            <FaEllipsisH size={10} />
                           </button>
                         </div>
                       )}
@@ -684,6 +1192,559 @@ export default function DashboardTablesPanel({
                 Proceed
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Table Actions Modal - Uses OrderSummary in billing mode */}
+      {actionsModal.open && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '16px'
+          }}
+          onClick={closeActionsModal}
+        >
+          <div
+            className="table-actions-modal"
+            style={{
+              background: '#fff',
+              borderRadius: '20px',
+              width: '100%',
+              maxWidth: '480px',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              boxShadow: '0 25px 80px rgba(0,0,0,0.35)',
+              animation: 'modalFadeIn 0.25s ease',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Compact Header */}
+            <div style={{
+              padding: '16px 20px',
+              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'relative',
+              overflow: 'hidden',
+              flexShrink: 0
+            }}>
+              {/* Decorative circle */}
+              <div style={{
+                position: 'absolute',
+                top: '10px',
+                left: '-20px',
+                width: '50px',
+                height: '50px',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: '50%'
+              }} />
+
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>
+                  Bill Summary
+                </div>
+                <div style={{
+                  fontSize: '26px',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  letterSpacing: '-0.5px'
+                }}>
+                  Table {actionsModal.table?.name || actionsModal.table?.number}
+                </div>
+                {actionsModal.order && (
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'rgba(255,255,255,0.85)',
+                    marginTop: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <span style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                      fontSize: '12px'
+                    }}>
+                      Order #{actionsModal.order.dailyOrderId || actionsModal.order.id?.slice(-6)}
+                    </span>
+                    <span style={{ opacity: 0.6 }}>•</span>
+                    <span style={{ fontSize: '12px' }}>{getTimeElapsed(actionsModal.order.createdAt)}</span>
+                    {actionsModal.order.customerInfo?.name && (
+                      <>
+                        <span style={{ opacity: 0.6 }}>•</span>
+                        <span style={{ fontSize: '12px' }}>{actionsModal.order.customerInfo.name}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={closeActionsModal}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                  position: 'relative',
+                  zIndex: 1
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              >
+                <FaTimes size={16} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            {actionsModal.loading ? (
+              <div style={{
+                padding: '60px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '16px',
+                background: 'linear-gradient(180deg, #fafafa 0%, #ffffff 100%)'
+              }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 15px rgba(220, 38, 38, 0.2)'
+                }}>
+                  <FaSpinner className="animate-spin" size={24} style={{ color: '#dc2626' }} />
+                </div>
+                <div style={{ fontSize: '15px', color: '#6b7280', fontWeight: 500 }}>Loading order details...</div>
+              </div>
+            ) : actionsModal.order ? (
+              <>
+                {/* Scrollable content area */}
+                <div style={{ maxHeight: 'calc(92vh - 280px)', overflowY: 'auto' }}>
+                  {/* Order Items */}
+                  <div style={{ padding: '20px 28px 16px' }}>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#dc2626',
+                      marginBottom: '14px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1.5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                          borderRadius: '50%'
+                        }} />
+                        Order Items
+                      </div>
+                      <span style={{ color: '#6b7280', fontWeight: 600 }}>{actionsModal.order.items?.length || 0} items</span>
+                    </div>
+
+                    {/* Items list */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {(actionsModal.order.items || []).map((item, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '14px 16px',
+                          background: '#f9fafb',
+                          borderRadius: '12px',
+                          border: '1px solid #f3f4f6'
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+                              {item.name}
+                            </div>
+                            {item.selectedVariant && (
+                              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{item.selectedVariant.name}</div>
+                            )}
+                            {item.selectedCustomizations?.length > 0 && (
+                              <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>
+                                + {item.selectedCustomizations.map(c => c.name).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{
+                              background: '#fff',
+                              color: '#374151',
+                              padding: '4px 12px',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              border: '1px solid #e5e7eb'
+                            }}>
+                              ×{item.quantity || 1}
+                            </div>
+                            <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827', minWidth: '70px', textAlign: 'right' }}>
+                              ₹{((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bill Summary Card */}
+                  <div style={{ padding: '0 28px 20px' }}>
+                    <div style={{
+                      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+                      borderRadius: '16px',
+                      border: '1px solid #e2e8f0',
+                      overflow: 'hidden'
+                    }}>
+                      {/* Summary Header */}
+                      <div style={{
+                        padding: '14px 18px',
+                        background: '#ffffff',
+                        borderBottom: '1px dashed #e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <FaReceipt size={14} style={{ color: '#64748b' }} />
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                          Bill Summary
+                        </span>
+                      </div>
+
+                      {/* Summary Details */}
+                      <div style={{ padding: '16px 18px' }}>
+                        {/* Subtotal */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '14px', color: '#64748b' }}>Subtotal</span>
+                          <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>
+                            ₹{(actionsModal.order.totalAmount || 0).toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Discount if any */}
+                        {actionsModal.order.discountAmount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '14px', color: '#16a34a' }}>Discount</span>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a' }}>
+                              - ₹{(actionsModal.order.discountAmount || 0).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Tax Breakdown */}
+                        {actionsModal.order.taxBreakdown && actionsModal.order.taxBreakdown.length > 0 && (
+                          <div style={{
+                            background: '#ffffff',
+                            borderRadius: '10px',
+                            padding: '12px 14px',
+                            marginBottom: '12px',
+                            border: '1px solid #e2e8f0'
+                          }}>
+                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Tax Details
+                            </div>
+                            {actionsModal.order.taxBreakdown.map((tax, idx) => (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: idx < actionsModal.order.taxBreakdown.length - 1 ? '6px' : 0 }}>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>
+                                  {tax.name} <span style={{ color: '#94a3b8' }}>({tax.rate}%)</span>
+                                </span>
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                                  ₹{(tax.amount || 0).toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Total Tax if no breakdown */}
+                        {(!actionsModal.order.taxBreakdown || actionsModal.order.taxBreakdown.length === 0) && actionsModal.order.taxAmount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '14px', color: '#64748b' }}>Tax</span>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>
+                              ₹{(actionsModal.order.taxAmount || 0).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Divider */}
+                        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #e2e8f0, transparent)', margin: '14px 0' }} />
+
+                        {/* Grand Total */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Grand Total</span>
+                          <span style={{ fontSize: '24px', fontWeight: 800, color: '#16a34a' }}>
+                            ₹{(actionsModal.order.finalAmount || actionsModal.order.totalAmount || 0).toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Payment Method */}
+                        <div style={{
+                          marginTop: '14px',
+                          padding: '10px 14px',
+                          background: '#f0fdf4',
+                          borderRadius: '8px',
+                          border: '1px solid #bbf7d0',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <span style={{ fontSize: '12px', color: '#15803d', fontWeight: 500 }}>Payment Method</span>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                            {actionsModal.order.paymentMethod || 'Cash'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons - Fixed at bottom */}
+                <div style={{
+                  padding: '20px 28px',
+                  background: '#ffffff',
+                  borderTop: '1px solid #f1f5f9',
+                  display: 'flex',
+                  gap: '12px'
+                }}>
+                  <button
+                    onClick={handleAddItemsFromModal}
+                    style={{
+                      flex: 1,
+                      padding: '16px 20px',
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '14px',
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '10px',
+                      boxShadow: '0 4px 16px rgba(5, 150, 105, 0.35)',
+                      transition: 'all 0.2s',
+                      transform: 'translateY(0)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(5, 150, 105, 0.45)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(5, 150, 105, 0.35)';
+                    }}
+                  >
+                    <FaPlus size={14} />
+                    Add Items
+                  </button>
+                  <button
+                    onClick={handlePayFromModal}
+                    disabled={billingInProgress}
+                    style={{
+                      flex: 1,
+                      padding: '16px 20px',
+                      background: billingInProgress
+                        ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                        : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '14px',
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      cursor: billingInProgress ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '10px',
+                      boxShadow: billingInProgress
+                        ? '0 4px 16px rgba(107, 114, 128, 0.35)'
+                        : '0 4px 16px rgba(220, 38, 38, 0.35)',
+                      transition: 'all 0.2s',
+                      transform: 'translateY(0)',
+                      opacity: billingInProgress ? 0.85 : 1
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!billingInProgress) {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.45)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!billingInProgress) {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(220, 38, 38, 0.35)';
+                      }
+                    }}
+                  >
+                    {billingInProgress ? (
+                      <>
+                        <FaSpinner className="animate-spin" size={14} />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <FaCreditCard size={14} />
+                        Complete Billing
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Secondary Actions */}
+                <div style={{
+                  padding: '12px 28px 20px',
+                  background: '#fafafa',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '24px'
+                }}>
+                  <button
+                    onClick={() => {
+                      if (actionsModal.order) handleSmartPrint(actionsModal.table);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#6b7280',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 16px',
+                      borderRadius: '10px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#f3f4f6';
+                      e.currentTarget.style.color = '#374151';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#6b7280';
+                    }}
+                  >
+                    <FaPrint size={12} />
+                    Print Bill
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeActionsModal();
+                      alert('Transfer table feature coming soon!');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#6b7280',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 16px',
+                      borderRadius: '10px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#f3f4f6';
+                      e.currentTarget.style.color = '#374151';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#6b7280';
+                    }}
+                  >
+                    <FaExchangeAlt size={12} />
+                    Transfer
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to cancel this order?')) {
+                        closeActionsModal();
+                        alert('Cancel order feature - please use Order History page');
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#9ca3af',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 16px',
+                      borderRadius: '10px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#fef2f2';
+                      e.currentTarget.style.color = '#ef4444';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#9ca3af';
+                    }}
+                  >
+                    <FaTrash size={11} />
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{
+                padding: '60px',
+                textAlign: 'center',
+                background: 'linear-gradient(180deg, #fafafa 0%, #ffffff 100%)'
+              }}>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  margin: '0 auto 20px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                }}>
+                  <FaReceipt size={28} style={{ color: '#9ca3af' }} />
+                </div>
+                <div style={{ fontSize: '16px', color: '#6b7280', fontWeight: 500 }}>No order found for this table</div>
+              </div>
+            )}
           </div>
         </div>
       )}

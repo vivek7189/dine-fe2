@@ -4347,6 +4347,7 @@ function RestaurantPOSContent() {
                 restaurantName={selectedRestaurant?.name}
                 taxSettings={taxSettings}
                 menuItems={menuItems}
+                printSettings={printSettings}
                 onTakeOrder={(tbl) => {
                   // Clear previous order data when taking order from a new table
                   setCart([]);
