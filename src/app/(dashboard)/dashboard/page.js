@@ -3430,271 +3430,220 @@ function RestaurantPOSContent() {
         transition: 'margin-top 0.3s ease-out',
         position: 'relative' // Required for absolute-positioned top header bar
       }}>
-        {/* Top Header Bar - Logo + Actions */}
+        {/* Top Header Bar - Clean header with Logo + Navigation Icons */}
         {!isMobile && (
           <div style={{
             position: 'absolute',
-            top: '10px',
+            top: 0,
             left: 0,
-            right: viewMode === 'orders' ? '450px' : '20px', // Stop before Order Summary in orders view
-            height: '52px',
+            right: 0,
+            height: '56px',
             backgroundColor: '#ffffff',
             borderBottom: '1px solid #e5e7eb',
             display: 'flex',
             alignItems: 'center',
-            padding: '0 12px',
-            gap: '12px',
-            zIndex: 20
+            padding: '0 16px',
+            zIndex: 100,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
-            {/* Hamburger Menu Button */}
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openNavSidebar'));
-              }}
-              style={{
-                width: '36px',
-                height: '36px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                backgroundColor: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ffffff';
-              }}
-            >
-              <FaBars size={14} color="#374151" />
-            </button>
-
-            {/* Logo - Links to dashboard */}
-            <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginRight: '8px',
-                cursor: 'pointer'
-              }}>
-                <div style={{
-                  width: '30px',
-                  height: '30px',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  borderRadius: '6px',
+            {/* Left Section - Hamburger + Logo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Hamburger Menu Button */}
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('openNavSidebar'));
+                }}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '10px',
+                  backgroundColor: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <FaUtensils color="white" size={13} />
-                </div>
-                <span style={{
-                  fontSize: '15px',
-                  fontWeight: '700',
-                  color: '#1f2937'
-                }}>DineOpen</span>
-              </div>
-            </Link>
-
-            {/* Orders View - Search, Order ID, Short Code */}
-            {viewMode === 'orders' && (
-              <>
-                {/* Search */}
-                <div style={{ position: 'relative', flex: '1', maxWidth: '280px', display: 'flex', alignItems: 'center', height: '36px', backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
-                  <FaSearch style={{
-                    marginLeft: '10px',
-                    color: '#6b7280',
-                    flexShrink: 0
-                  }} size={14} />
-                  <input
-                    type="text"
-                    placeholder="Search menu..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                      flex: 1,
-                      height: '100%',
-                      paddingLeft: '10px',
-                      paddingRight: '10px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      outline: 'none',
-                      color: '#374151'
-                    }}
-                    onFocus={(e) => e.target.parentElement.style.borderBottomColor = '#9ca3af'}
-                    onBlur={(e) => e.target.parentElement.style.borderBottomColor = '#d1d5db'}
-                  />
-                </div>
-
-                {/* Order ID */}
-                <input
-                  type="text"
-                  placeholder="Order ID"
-                  value={orderLookup}
-                  onChange={(e) => setOrderLookup(e.target.value)}
-                  onKeyPress={handleOrderLookup}
-                  className="header-order-id-input"
-                  style={{
-                    width: '100px',
-                    height: '34px',
-                    padding: '0 8px',
-                    border: 'none',
-                    borderRadius: '6px',
-                    backgroundColor: '#fef3c7',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    outline: 'none',
-                    textAlign: 'center',
-                    color: '#b45309'
-                  }}
-                />
-                <style>{`
-                  .header-order-id-input::placeholder { color: #9ca3af; }
-                  .header-short-code-input::placeholder { color: #9ca3af; }
-                `}</style>
-
-                {/* Short Code */}
-                <input
-                  type="text"
-                  placeholder="SHORT CODE"
-                  value={shortCodeSearch}
-                  onChange={(e) => setShortCodeSearch(e.target.value)}
-                  onKeyPress={handleShortCodeSearch}
-                  className="header-short-code-input"
-                  style={{
-                    width: '110px',
-                    height: '34px',
-                    padding: '0 8px',
-                    border: 'none',
-                    borderRadius: '6px',
-                    backgroundColor: '#d1fae5',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    outline: 'none',
-                    textAlign: 'center',
-                    color: '#059669',
-                    textTransform: 'uppercase'
-                  }}
-                />
-              </>
-            )}
-
-            {/* New Order Button */}
-            <button
-              onClick={() => {
-                handleFreshOrder();
-                if (viewMode === 'tables') {
-                  setViewMode('orders');
-                }
-              }}
-              style={{
-                height: '34px',
-                padding: '0 14px',
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}
-            >
-              <FaPlus size={10} />
-              NEW ORDER
-            </button>
-
-            {/* Spacer */}
-            <div style={{ flex: '1' }} />
-
-            {/* Voice Button */}
-            <button
-              onClick={isListeningVoice ? stopVoiceListening : startVoiceListening}
-              disabled={isProcessingVoice}
-              style={{
-                width: '34px',
-                height: '34px',
-                background: isListeningVoice
-                  ? '#ef4444'
-                  : isProcessingVoice
-                  ? '#3b82f6'
-                  : '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: isProcessingVoice ? 'not-allowed' : 'pointer',
-                flexShrink: 0
-              }}
-            >
-              {isProcessingVoice ? (
-                <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
-              ) : isListeningVoice ? (
-                <FaMicrophoneSlash size={12} />
-              ) : (
-                <FaMicrophone size={12} />
-              )}
-            </button>
-
-            {/* Tables/Orders Toggle Button */}
-            <button
-              onClick={() => setViewMode(viewMode === 'orders' ? 'tables' : 'orders')}
-              style={{
-                height: '34px',
-                padding: '0 16px',
-                background: 'transparent',
-                color: '#ef4444',
-                border: '1.5px solid #ef4444',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                flexShrink: 0
-              }}
-            >
-              {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
-            </button>
-
-            {/* Card Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '9px', color: '#9ca3af' }}>M</span>
-              <button
-                onClick={() => setUseModernCards(!useModernCards)}
-                style={{
-                  width: '24px',
-                  height: '14px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: useModernCards ? 'flex-end' : 'flex-start',
-                  padding: '2px'
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
                 }}
               >
-                <div style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: 'white'
-                }} />
+                <FaBars size={16} color="#374151" />
               </button>
+
+              {/* Logo - Links to dashboard */}
+              <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer'
+                }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)'
+                  }}>
+                    <FaUtensils color="white" size={16} />
+                  </div>
+                  <span style={{
+                    fontSize: '18px',
+                    fontWeight: '700',
+                    color: '#1f2937'
+                  }}>DineOpen</span>
+                </div>
+              </Link>
+            </div>
+
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Right Section - Navigation Icons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {/* Order History */}
+              <Link href="/orderhistory" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaClipboardList size={18} color="#f59e0b" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Orders</span>
+                </div>
+              </Link>
+
+              {/* Tables */}
+              <Link href="/tables" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaChair size={18} color="#3b82f6" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Tables</span>
+                </div>
+              </Link>
+
+              {/* Menu */}
+              <Link href="/menu" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaUtensils size={18} color="#10b981" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Menu</span>
+                </div>
+              </Link>
+
+              {/* KOT */}
+              <Link href="/kot" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaFire size={18} color="#f97316" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>KOT</span>
+                </div>
+              </Link>
+
+              {/* Customers */}
+              <Link href="/customers" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaUsers size={18} color="#8b5cf6" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Customers</span>
+                </div>
+              </Link>
+
+              {/* Billing */}
+              <Link href="/billing" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FaCreditCard size={18} color="#06b6d4" />
+                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Billing</span>
+                </div>
+              </Link>
+
+              {/* Divider */}
+              <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb', margin: '0 8px' }} />
+
+              {/* Profile */}
+              <Link href="/profile" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(236, 72, 153, 0.25)'
+                }}>
+                  <FaUsers size={14} color="white" />
+                </div>
+              </Link>
             </div>
           </div>
         )}
@@ -3704,7 +3653,7 @@ function RestaurantPOSContent() {
           <div style={{
             width: '170px',
             height: '100%',
-            paddingTop: '80px', // Match menu section paddingTop
+            paddingTop: '66px', // Header (56px) + gap (10px)
             backgroundColor: '#f8fafc',
             borderRight: '1px solid #e5e7eb',
             display: 'flex',
@@ -3792,7 +3741,7 @@ function RestaurantPOSContent() {
           height: isMobile ? 'auto' : '100%',
           minHeight: isMobile ? '400px' : '100%',
           paddingBottom: isMobile ? '80px' : '0', // Add bottom padding for mobile cart button
-          paddingTop: !isMobile ? '80px' : '0', // Space for top header (52px) + top margin (10px) + align with categories (8px) + extra (10px)
+          paddingTop: !isMobile ? '66px' : '0', // Header (56px) + gap (10px)
           maxHeight: isMobile ? 'none' : '100%',
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined,
@@ -4359,6 +4308,238 @@ function RestaurantPOSContent() {
             )}
           </div>
 
+          {/* Desktop Toolbar - Inside Menu Section */}
+          {!isMobile && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '12px 20px',
+              paddingRight: viewMode === 'orders' ? '470px' : '20px',
+              gap: '12px',
+              backgroundColor: '#f8fafc'
+            }}>
+              {/* New Order Button */}
+              <button
+                onClick={() => {
+                  handleFreshOrder();
+                  if (viewMode === 'tables') {
+                    setViewMode('orders');
+                  }
+                }}
+                style={{
+                  height: '36px',
+                  padding: '0 16px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)'
+                }}
+              >
+                <FaPlus size={10} />
+                NEW ORDER
+              </button>
+
+              {/* Orders View Controls */}
+              {viewMode === 'orders' && (
+                <>
+                  {/* Search Menu */}
+                  <div style={{
+                    position: 'relative',
+                    flex: 1,
+                    maxWidth: '400px',
+                    minWidth: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: '36px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <FaSearch style={{
+                      marginLeft: '12px',
+                      color: '#9ca3af',
+                      flexShrink: 0
+                    }} size={14} />
+                    <input
+                      type="text"
+                      placeholder="Search menu..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{
+                        flex: 1,
+                        height: '100%',
+                        paddingLeft: '10px',
+                        paddingRight: '12px',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        outline: 'none',
+                        color: '#374151'
+                      }}
+                    />
+                  </div>
+
+                  {/* Order ID */}
+                  <input
+                    type="text"
+                    placeholder="Order ID"
+                    value={orderLookup}
+                    onChange={(e) => setOrderLookup(e.target.value)}
+                    onKeyPress={handleOrderLookup}
+                    className="toolbar-order-id-input"
+                    style={{
+                      width: '90px',
+                      height: '36px',
+                      padding: '0 10px',
+                      border: '1px solid #fcd34d',
+                      borderRadius: '8px',
+                      backgroundColor: '#fefce8',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      outline: 'none',
+                      textAlign: 'center',
+                      color: '#b45309'
+                    }}
+                  />
+
+                  {/* Short Code */}
+                  <input
+                    type="text"
+                    placeholder="Code"
+                    value={shortCodeSearch}
+                    onChange={(e) => setShortCodeSearch(e.target.value)}
+                    onKeyPress={handleShortCodeSearch}
+                    className="toolbar-short-code-input"
+                    style={{
+                      width: '70px',
+                      height: '36px',
+                      padding: '0 10px',
+                      border: '1px solid #6ee7b7',
+                      borderRadius: '8px',
+                      backgroundColor: '#ecfdf5',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      outline: 'none',
+                      textAlign: 'center',
+                      color: '#059669',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                  <style>{`
+                    .toolbar-order-id-input::placeholder { color: #d97706; font-weight: 500; }
+                    .toolbar-short-code-input::placeholder { color: #059669; font-weight: 500; }
+                  `}</style>
+                </>
+              )}
+
+              {/* Spacer */}
+              <div style={{ flex: viewMode === 'orders' ? '0' : '1' }} />
+
+              {/* Voice Button */}
+              <button
+                onClick={isListeningVoice ? stopVoiceListening : startVoiceListening}
+                disabled={isProcessingVoice}
+                title="Voice Assistant"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  background: isListeningVoice
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                    : isProcessingVoice
+                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: isProcessingVoice ? 'not-allowed' : 'pointer',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                {isProcessingVoice ? (
+                  <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : isListeningVoice ? (
+                  <FaMicrophoneSlash size={14} />
+                ) : (
+                  <FaMicrophone size={14} />
+                )}
+              </button>
+
+              {/* Tables/Orders Toggle Button */}
+              <button
+                onClick={() => setViewMode(viewMode === 'orders' ? 'tables' : 'orders')}
+                style={{
+                  height: '36px',
+                  padding: '0 16px',
+                  background: viewMode === 'tables' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'transparent',
+                  color: viewMode === 'tables' ? 'white' : '#ef4444',
+                  border: viewMode === 'tables' ? 'none' : '2px solid #ef4444',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <FaChair size={12} />
+                {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
+              </button>
+
+              {/* Card Toggle */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>Modern</span>
+                <button
+                  onClick={() => setUseModernCards(!useModernCards)}
+                  style={{
+                    width: '32px',
+                    height: '18px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: useModernCards ? 'flex-end' : 'flex-start',
+                    padding: '2px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                  }} />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div style={{
             flex: 1,
             padding: isMobile ? '16px' : '16px 20px',
@@ -4554,12 +4735,14 @@ function RestaurantPOSContent() {
           <div style={{
             position: 'fixed',
             right: 0,
-            top: 0,
+            top: '56px', // Below the header
             width: '450px',
-            height: '100vh',
+            height: 'calc(100vh - 56px)', // Full height minus header
             display: 'flex',
             flexDirection: 'column',
-            zIndex: 90
+            zIndex: 90,
+            backgroundColor: '#ffffff',
+            borderLeft: '1px solid #e5e7eb'
           }}>
           {console.log('🖥️ Dashboard: Rendering OrderSummary with cart:', cart)}
           <OrderSummary

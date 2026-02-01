@@ -188,6 +188,13 @@ export default function Sidebar({ isDashboardPage = false }) {
 
   const handleNavigation = (href, e) => {
     e.preventDefault();
+
+    // If already on the same page, just close the menu without loading
+    if (pathname === href) {
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
     startLoading('Loading...', 'content');
     setTimeout(() => {
       router.push(href);

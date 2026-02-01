@@ -41,6 +41,11 @@ export const LoadingProvider = ({ children }) => {
     setLoadingMessage(message);
     setLoadingType(type);
     setIsLoading(true);
+
+    // Safety timeout: auto-clear loading after 5 seconds to prevent stuck states
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
   };
 
   const stopLoading = () => {
