@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Pusher from 'pusher-js';
 import Onboarding from '../../../components/Onboarding';
 import EmptyMenuPrompt from '../../../components/EmptyMenuPrompt';
@@ -3473,31 +3474,34 @@ function RestaurantPOSContent() {
               <FaBars size={14} color="#374151" />
             </button>
 
-            {/* Logo */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginRight: '8px'
-            }}>
+            {/* Logo - Links to dashboard */}
+            <Link href="/dashboard" style={{ textDecoration: 'none' }}>
               <div style={{
-                width: '30px',
-                height: '30px',
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
+                gap: '8px',
+                marginRight: '8px',
+                cursor: 'pointer'
               }}>
-                <FaUtensils color="white" size={13} />
+                <div style={{
+                  width: '30px',
+                  height: '30px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <FaUtensils color="white" size={13} />
+                </div>
+                <span style={{
+                  fontSize: '15px',
+                  fontWeight: '700',
+                  color: '#1f2937'
+                }}>DineOpen</span>
               </div>
-              <span style={{
-                fontSize: '15px',
-                fontWeight: '700',
-                color: '#1f2937'
-              }}>DineOpen</span>
-            </div>
+            </Link>
 
             {/* Orders View - Search, Order ID, Short Code */}
             {viewMode === 'orders' && (
