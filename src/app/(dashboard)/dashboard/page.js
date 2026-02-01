@@ -3692,24 +3692,23 @@ function RestaurantPOSContent() {
         {/* Desktop Category Sidebar - Part of Menu Section */}
         {!isMobile && viewMode === 'orders' && categoryViewMode === 'sidebar' && (
           <div style={{
-            width: '170px',
+            width: '160px',
             height: '100%',
             paddingTop: '66px', // Header (56px) + gap (10px)
-            backgroundColor: '#f8fafc',
-            borderRight: '1px solid #e5e7eb',
+            backgroundColor: 'transparent',
             display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
             overflow: 'hidden'
           }}>
-            {/* Categories List */}
+            {/* Categories List - Modern Tab Style */}
             <div style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '12px 10px',
+              padding: '8px 0 8px 8px',
               minHeight: 0
             }} className="hide-scrollbar">
-              {categories.map((category) => {
+              {categories.map((category, index) => {
                 const categoryItems = category.id === 'all-items'
                   ? (menuItems || [])
                   : category.id === 'favorites'
@@ -3722,47 +3721,54 @@ function RestaurantPOSContent() {
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
                     style={{
-                      padding: '12px 14px',
-                      marginBottom: '4px',
-                      backgroundColor: isSelected ? '#ef4444' : 'transparent',
-                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      marginBottom: '2px',
+                      backgroundColor: isSelected ? 'white' : 'transparent',
+                      borderRadius: isSelected ? '10px 0 0 10px' : '10px 0 0 10px',
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      transition: 'all 0.2s ease',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
+                      position: 'relative',
+                      borderLeft: isSelected ? '3px solid #ef4444' : '3px solid transparent',
+                      boxShadow: isSelected ? '2px 0 8px rgba(0,0,0,0.04)' : 'none'
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.6)';
+                        e.currentTarget.style.borderLeftColor = '#fca5a5';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isSelected) {
                         e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.borderLeftColor = 'transparent';
                       }
                     }}
                   >
                     <span style={{
                       fontSize: '13px',
                       fontWeight: isSelected ? '600' : '500',
-                      color: isSelected ? 'white' : '#374151',
+                      color: isSelected ? '#1f2937' : '#6b7280',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      transition: 'color 0.2s ease'
                     }}>
                       {category.name}
                     </span>
                     <span style={{
-                      fontSize: '11px',
+                      fontSize: '10px',
                       fontWeight: '600',
-                      color: isSelected ? 'rgba(255,255,255,0.9)' : '#6b7280',
-                      backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#e5e7eb',
-                      padding: '3px 8px',
-                      borderRadius: '10px',
-                      minWidth: '26px',
+                      color: isSelected ? '#ef4444' : '#9ca3af',
+                      backgroundColor: isSelected ? '#fef2f2' : 'transparent',
+                      padding: isSelected ? '2px 6px' : '2px 4px',
+                      borderRadius: '6px',
+                      minWidth: '20px',
                       textAlign: 'center',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      transition: 'all 0.2s ease'
                     }}>
                       {categoryItems.length}
                     </span>
