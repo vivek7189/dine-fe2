@@ -31,7 +31,7 @@ import { t } from '../lib/i18n';
 import { performLogout } from '../lib/logout';
 import { useLoading } from '../contexts/LoadingContext';
 
-export default function Sidebar() {
+export default function Sidebar({ isDashboardPage = false }) {
   const pathname = usePathname();
   const router = useRouter();
   const { startLoading } = useLoading();
@@ -285,6 +285,19 @@ export default function Sidebar() {
     }
   }, []);
 
+  // Listen for openNavSidebar event from dashboard
+  useEffect(() => {
+    const handleOpenNavSidebar = () => {
+      setIsMobileMenuOpen(true);
+      setIsCollapsed(false); // Always open in expanded mode
+    };
+
+    window.addEventListener('openNavSidebar', handleOpenNavSidebar);
+    return () => {
+      window.removeEventListener('openNavSidebar', handleOpenNavSidebar);
+    };
+  }, []);
+
   const toggleCollapse = () => {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
@@ -295,7 +308,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - Only show on mobile (dashboard has its own hamburger) */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         className="md:hidden fixed top-4 left-4 z-[10001] p-3 bg-white rounded-xl shadow-lg"
@@ -304,21 +317,21 @@ export default function Sidebar() {
         <FaBars size={20} color="#374151" />
       </button>
 
-      {/* Mobile Overlay */}
+      {/* Overlay - Shows on mobile always, and on desktop only for dashboard */}
       {isMobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-[9999]"
+          className={`fixed inset-0 bg-black bg-opacity-50 z-[9999] ${isDashboardPage ? '' : 'md:hidden'}`}
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Hidden on dashboard (has its own category sidebar), visible on other pages */}
       <aside
         className={`fixed left-0 top-0 h-screen bg-white transition-all duration-300 z-[10000] ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0`}
+        } ${isDashboardPage ? '' : 'md:translate-x-0'}`}
         style={{
-          width: isCollapsed ? '70px' : '240px',
+          width: isDashboardPage ? '240px' : (isCollapsed ? '70px' : '240px'),
           borderRight: '1px solid #f1f5f9'
         }}
         data-sidebar-collapsed={isCollapsed}

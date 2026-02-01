@@ -126,31 +126,8 @@ function RestaurantPOSContent() {
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   
-  // Sidebar collapse state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-
-  // Listen for sidebar collapse state changes
-  useEffect(() => {
-    const checkSidebarState = () => {
-      const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-      setSidebarCollapsed(collapsed);
-    };
-
-    // Check initial state
-    checkSidebarState();
-
-    // Listen for storage changes
-    window.addEventListener('storage', checkSidebarState);
-    
-    // Listen for custom sidebar toggle event
-    const handleSidebarToggle = () => checkSidebarState();
-    window.addEventListener('sidebarToggle', handleSidebarToggle);
-
-    return () => {
-      window.removeEventListener('storage', checkSidebarState);
-      window.removeEventListener('sidebarToggle', handleSidebarToggle);
-    };
-  }, []);
+  // Category sidebar width constant (compact, part of menu section)
+  const categorySidebarWidth = 150;
   
   // Card design toggle state
   const [useModernCards, setUseModernCards] = useState(true);
@@ -3441,285 +3418,377 @@ function RestaurantPOSContent() {
       )}
       
       {/* Main Content */}
-      <div style={{ 
-        display: 'flex', 
-        flex: 1, 
+      <div style={{
+        display: 'flex',
+        flex: 1,
         overflow: 'visible', // Always allow scrolling
         flexDirection: isMobile ? 'column' : 'row',
         height: isMobile ? 'auto' : '100%', // Use 100% since parent has calc(100vh - 80px)
         minHeight: isMobile ? 'calc(100vh - 80px)' : '100%', // Account for navigation height
         marginTop: isListeningVoice ? (isMobile ? '120px' : '100px') : '0',
-        transition: 'margin-top 0.3s ease-out'
+        transition: 'margin-top 0.3s ease-out',
+        position: 'relative' // Required for absolute-positioned top header bar
       }}>
-        {/* Desktop Menu Sections Sidebar - Hidden (categories moved to chips) */}
-        {false && !isMobile && viewMode === 'orders' && (
+        {/* Top Header Bar - Logo + Actions */}
+        {!isMobile && (
           <div style={{
-            width: sidebarCollapsed ? '60px' : '280px',
-            height: '100%',
-            backgroundColor: '#ffffff',
-            borderRight: '1px solid #f3f4f6',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-            position: 'relative',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            zIndex: 10
-          }}>
-          {/* Collapse Toggle Button */}
-          <div style={{ 
             position: 'absolute',
-            top: '20px',
-            right: sidebarCollapsed ? '15px' : '4px',
-            zIndex: 20,
-            transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            top: '10px',
+            left: 0,
+            right: viewMode === 'orders' ? '450px' : '20px', // Stop before Order Summary in orders view
+            height: '52px',
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 12px',
+            gap: '12px',
+            zIndex: 20
           }}>
+            {/* Hamburger Menu Button */}
             <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('openNavSidebar'));
+              }}
               style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                border: 'none',
-                backgroundColor: '#ef4444',
+                width: '36px',
+                height: '36px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ffffff';
+              }}
+            >
+              <FaBars size={14} color="#374151" />
+            </button>
+
+            {/* Logo */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginRight: '8px'
+            }}>
+              <div style={{
+                width: '30px',
+                height: '30px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <FaUtensils color="white" size={13} />
+              </div>
+              <span style={{
+                fontSize: '15px',
+                fontWeight: '700',
+                color: '#1f2937'
+              }}>DineOpen</span>
+            </div>
+
+            {/* Orders View - Search, Order ID, Short Code */}
+            {viewMode === 'orders' && (
+              <>
+                {/* Search */}
+                <div style={{ position: 'relative', flex: '1', maxWidth: '280px', display: 'flex', alignItems: 'center', height: '36px', backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
+                  <FaSearch style={{
+                    marginLeft: '10px',
+                    color: '#6b7280',
+                    flexShrink: 0
+                  }} size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search menu..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      flex: 1,
+                      height: '100%',
+                      paddingLeft: '10px',
+                      paddingRight: '10px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      outline: 'none',
+                      color: '#374151'
+                    }}
+                    onFocus={(e) => e.target.parentElement.style.borderBottomColor = '#9ca3af'}
+                    onBlur={(e) => e.target.parentElement.style.borderBottomColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* Order ID */}
+                <input
+                  type="text"
+                  placeholder="Order ID"
+                  value={orderLookup}
+                  onChange={(e) => setOrderLookup(e.target.value)}
+                  onKeyPress={handleOrderLookup}
+                  className="header-order-id-input"
+                  style={{
+                    width: '100px',
+                    height: '34px',
+                    padding: '0 8px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#fef3c7',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    outline: 'none',
+                    textAlign: 'center',
+                    color: '#b45309'
+                  }}
+                />
+                <style>{`
+                  .header-order-id-input::placeholder { color: #9ca3af; }
+                  .header-short-code-input::placeholder { color: #9ca3af; }
+                `}</style>
+
+                {/* Short Code */}
+                <input
+                  type="text"
+                  placeholder="SHORT CODE"
+                  value={shortCodeSearch}
+                  onChange={(e) => setShortCodeSearch(e.target.value)}
+                  onKeyPress={handleShortCodeSearch}
+                  className="header-short-code-input"
+                  style={{
+                    width: '110px',
+                    height: '34px',
+                    padding: '0 8px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#d1fae5',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    outline: 'none',
+                    textAlign: 'center',
+                    color: '#059669',
+                    textTransform: 'uppercase'
+                  }}
+                />
+              </>
+            )}
+
+            {/* New Order Button */}
+            <button
+              onClick={() => {
+                handleFreshOrder();
+                if (viewMode === 'tables') {
+                  setViewMode('orders');
+                }
+              }}
+              style={{
+                height: '34px',
+                padding: '0 14px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                 color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
-                transition: 'all 0.2s ease',
-                fontSize: '10px'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#dc2626';
-                e.target.style.transform = 'scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#ef4444';
-                e.target.style.transform = 'scale(1)';
+                gap: '5px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
             >
-              {sidebarCollapsed ? <FaChevronRight size={10} /> : <FaChevronLeft size={10} />}
+              <FaPlus size={10} />
+              NEW ORDER
             </button>
-          </div>
 
-          <div style={{ 
-            padding: sidebarCollapsed ? '16px 8px' : '20px 16px', 
-            borderBottom: '1px solid #f3f4f6',
-            background: 'linear-gradient(135deg, #fef7f0 0%, #fed7aa 100%)',
-            borderRadius: '5px',
-            transition: 'padding 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            minHeight: sidebarCollapsed ? '60px' : 'auto'
-          }}>
-            {!sidebarCollapsed && (
-              <>
-            <h2 style={{ 
-              fontSize: '18px', 
-              fontWeight: '700', 
-              color: '#1f2937', 
-              marginBottom: '6px',
-              display: 'flex', 
-              alignItems: 'center', 
-                  gap: '8px',
-                  transition: 'opacity 0.3s ease'
-            }}>
-                  {t('dashboard.menuCategories')}
-            </h2>
-              </>
-            )}
-            {sidebarCollapsed && (
-              <div style={{
+            {/* Spacer */}
+            <div style={{ flex: '1' }} />
+
+            {/* Voice Button */}
+            <button
+              onClick={isListeningVoice ? stopVoiceListening : startVoiceListening}
+              disabled={isProcessingVoice}
+              style={{
+                width: '34px',
+                height: '34px',
+                background: isListeningVoice
+                  ? '#ef4444'
+                  : isProcessingVoice
+                  ? '#3b82f6'
+                  : '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '28px'
-              }}>
-                <FaUtensils size={16} color="#ef4444" />
+                cursor: isProcessingVoice ? 'not-allowed' : 'pointer',
+                flexShrink: 0
+              }}
+            >
+              {isProcessingVoice ? (
+                <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : isListeningVoice ? (
+                <FaMicrophoneSlash size={12} />
+              ) : (
+                <FaMicrophone size={12} />
+              )}
+            </button>
+
+            {/* Tables/Orders Toggle Button */}
+            <button
+              onClick={() => setViewMode(viewMode === 'orders' ? 'tables' : 'orders')}
+              style={{
+                height: '34px',
+                padding: '0 16px',
+                background: 'transparent',
+                color: '#ef4444',
+                border: '1.5px solid #ef4444',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+            >
+              {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
+            </button>
+
+            {/* Card Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '9px', color: '#9ca3af' }}>M</span>
+              <button
+                onClick={() => setUseModernCards(!useModernCards)}
+                style={{
+                  width: '24px',
+                  height: '14px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: useModernCards ? 'flex-end' : 'flex-start',
+                  padding: '2px'
+                }}
+              >
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: 'white'
+                }} />
+              </button>
             </div>
-            )}
           </div>
-          
-          <div style={{ 
-            padding: sidebarCollapsed ? '12px 4px' : '12px 8px', 
-            overflowY: 'auto', 
-            flex: 1, // Fill remaining space
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            transition: 'padding 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-          }} className="hide-scrollbar">
-            
-            {categories.map((category, index) => {
-              const categoryItems = category.id === 'all-items' 
-                ? (menuItems || [])
-                : category.id === 'favorites'
-                ? (menuItems || []).filter(item => item.isFavorite === true)
-                : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
-              const isSelected = selectedCategory === category.id;
-              
-              // Color variations for different categories
-              const colors = [
-                { bg: '#ef4444', light: '#fef2f2', text: '#dc2626' }, // Red
-                { bg: '#f97316', light: '#fff7ed', text: '#ea580c' }, // Orange
-                { bg: '#10b981', light: '#ecfdf5', text: '#059669' }, // Emerald
-                { bg: '#3b82f6', light: '#eff6ff', text: '#2563eb' }, // Blue
-                { bg: '#8b5cf6', light: '#f3e8ff', text: '#7c3aed' }, // Purple
-                { bg: '#f59e0b', light: '#fffbeb', text: '#d97706' }, // Amber
-                { bg: '#06b6d4', light: '#ecfeff', text: '#0891b2' }, // Cyan
-                { bg: '#ec4899', light: '#fdf2f8', text: '#db2777' }, // Pink
-              ];
-              
-              const colorScheme = colors[index % colors.length];
-              
-              return (
-                <div
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  style={{
-                    padding: sidebarCollapsed ? '8px' : '12px 16px',
-                    margin: sidebarCollapsed ? '4px 0' : '2px 0',
-                    backgroundColor: isSelected ? colorScheme.bg : 'transparent',
-                    borderRadius: sidebarCollapsed ? '8px' : '0px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    border: 'none',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-                    minHeight: sidebarCollapsed ? '40px' : 'auto'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = colorScheme.light;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
-                >
-                  {isSelected && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: 'linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent)',
-                      animation: 'shimmer 2s infinite'
-                    }} />
-                  )}
-                  
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    position: 'relative',
-                    zIndex: 1,
-                    width: '100%'
-                  }}>
-                    {sidebarCollapsed ? (
-                      // Collapsed view - only icon
-                      <div style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colorScheme.bg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        boxShadow: isSelected ? '0 2px 8px rgba(0,0,0,0.2)' : `0 2px 6px ${colorScheme.bg}40`,
-                        transition: 'all 0.3s ease'
-                      }}>
-                        <span style={{ 
-                          fontSize: '12px',
-                          lineHeight: '1',
-                          filter: isSelected ? 'brightness(1.2)' : 'none'
-                        }}>
-                          {category.emoji}
-                        </span>
-                      </div>
-                    ) : (
-                      // Expanded view - full category button
-                      <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {/* Category Icon */}
-                      <div style={{
-                        width: '28px',
-                        height: '28px',
-                        backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colorScheme.bg,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        boxShadow: isSelected ? '0 2px 8px rgba(0,0,0,0.2)' : `0 2px 6px ${colorScheme.bg}40`,
-                        transition: 'all 0.3s ease'
-                      }}>
-                        <span style={{ 
-                          fontSize: '14px',
-                          lineHeight: '1',
-                          filter: isSelected ? 'brightness(1.2)' : 'none'
-                      }}>
-                        {category.emoji}
-                        </span>
-                      </div>
-                      
-                      <div>
-                        <div style={{
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: isSelected ? 'white' : colorScheme.text,
-                          marginBottom: '2px',
-                          lineHeight: '1.3'
-                        }}>
-                          {category.name}
-                        </div>
-                        <div style={{
-                          fontSize: '11px',
-                          color: isSelected ? 'rgba(255,255,255,0.8)' : '#6b7280',
-                          fontWeight: '500'
-                        }}>
-                          {categoryItems.length} items
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {isSelected && (
-                      <div style={{
-                        width: '6px',
-                        height: '6px',
-                        backgroundColor: 'white',
-                        borderRadius: '0px'
-                      }} />
-                        )}
-                      </>
-                    )}
+        )}
+
+        {/* Desktop Category Sidebar - Part of Menu Section */}
+        {!isMobile && viewMode === 'orders' && (
+          <div style={{
+            width: '170px',
+            height: '100%',
+            paddingTop: '80px', // Match menu section paddingTop
+            backgroundColor: '#f8fafc',
+            borderRight: '1px solid #e5e7eb',
+            display: 'flex',
+            flexDirection: 'column',
+            flexShrink: 0
+          }}>
+            {/* Categories List */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '12px 10px'
+            }} className="hide-scrollbar">
+              {categories.map((category) => {
+                const categoryItems = category.id === 'all-items'
+                  ? (menuItems || [])
+                  : category.id === 'favorites'
+                  ? (menuItems || []).filter(item => item.isFavorite === true)
+                  : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+                const isSelected = selectedCategory === category.id;
+
+                return (
+                  <div
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    style={{
+                      padding: '12px 14px',
+                      marginBottom: '4px',
+                      backgroundColor: isSelected ? '#ef4444' : 'transparent',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: isSelected ? '600' : '500',
+                      color: isSelected ? 'white' : '#374151',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {category.name}
+                    </span>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      color: isSelected ? 'rgba(255,255,255,0.9)' : '#6b7280',
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#e5e7eb',
+                      padding: '3px 8px',
+                      borderRadius: '10px',
+                      minWidth: '26px',
+                      textAlign: 'center',
+                      flexShrink: 0
+                    }}>
+                      {categoryItems.length}
+                    </span>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {/* Menu Items */}
-        <div style={{ 
-          flex: 1, 
-          backgroundColor: '#f8fafc', 
-          display: 'flex', 
+        <div style={{
+          flex: 1,
+          backgroundColor: '#f8fafc',
+          display: 'flex',
           flexDirection: 'column',
           position: 'relative',
           overflow: 'visible', // Always allow scrolling
           height: isMobile ? 'auto' : '100%',
           minHeight: isMobile ? '400px' : '100%',
           paddingBottom: isMobile ? '80px' : '0', // Add bottom padding for mobile cart button
+          paddingTop: !isMobile ? '80px' : '0', // Space for top header (52px) + top margin (10px) + align with categories (8px) + extra (10px)
           maxHeight: isMobile ? 'none' : '100%',
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined,
@@ -3743,22 +3812,16 @@ function RestaurantPOSContent() {
             </div>
           ) : (
           <>
-            {/* Compact Header - Mobile Optimized */}
+            {/* Compact Header - Mobile Only (Desktop uses top header bar) */}
           <div style={{
-            padding: isMobile ? '8px' : '12px 16px',
+            padding: '8px',
             backgroundColor: 'white',
             borderBottom: '1px solid #f1f5f9',
             position: 'sticky',
             top: 0,
             zIndex: 100,
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            marginRight: !isMobile && viewMode === 'orders' ? '450px' : '0',
-            width: !isMobile && viewMode === 'orders' 
-              ? `calc(100vw - ${sidebarCollapsed ? '520px' : '690px'})` 
-              : '100%',
-            maxWidth: !isMobile && viewMode === 'orders' 
-              ? `calc(100vw - ${sidebarCollapsed ? '520px' : '690px'})` 
-              : '100%',
+            display: isMobile ? 'block' : 'none', // Hide on desktop
             boxSizing: 'border-box',
             overflow: 'hidden'
           }}>
@@ -4017,9 +4080,11 @@ function RestaurantPOSContent() {
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
                     flex: isMobile ? '1.2' : '0 0 auto',
-                    alignSelf: 'flex-start'
+                    alignSelf: 'flex-start',
+                    gap: '6px'
                   }}
                 >
+                  <FaPlus size={isMobile ? 10 : 12} />
                   NEW ORDER
                 </button>
 
@@ -4173,8 +4238,8 @@ function RestaurantPOSContent() {
                     </div>
             </div>
 
-            {/* Category Chips - Below Search */}
-            {viewMode === 'orders' && (
+            {/* Category Chips - Below Search (Mobile Only - Desktop uses left sidebar) */}
+            {viewMode === 'orders' && isMobile && (
               <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',

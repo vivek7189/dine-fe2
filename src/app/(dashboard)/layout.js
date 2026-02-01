@@ -82,15 +82,15 @@ function DashboardLayoutContent({ children }) {
         position: 'relative'
       }}>
         {/* Sidebar Navigation */}
-        <Sidebar />
+        <Sidebar isDashboardPage={isDashboardPage} />
 
         {/* Main Content with dynamic width based on sidebar */}
         <main
           className="overflow-auto transition-all duration-300"
           style={{
             backgroundColor: '#f9fafb',
-            width: isMobile ? '100%' : `calc(100% - ${sidebarCollapsed ? '70px' : '240px'})`,
-            marginLeft: isMobile ? '0' : (sidebarCollapsed ? '70px' : '240px'),
+            width: (isMobile || isDashboardPage) ? '100%' : `calc(100% - ${sidebarCollapsed ? '70px' : '240px'})`,
+            marginLeft: (isMobile || isDashboardPage) ? '0' : (sidebarCollapsed ? '70px' : '240px'),
             height: '100vh'
           }}
         >

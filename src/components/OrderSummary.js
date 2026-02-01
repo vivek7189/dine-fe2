@@ -969,134 +969,147 @@ const OrderSummary = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '60px 30px',
+            padding: '40px 30px',
             height: '100%',
-            minHeight: '500px'
+            minHeight: '400px'
           }}>
-            {/* Main Plate Icon */}
-            <div style={{ 
-              width: '120px', 
-              height: '120px', 
-              background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              boxShadow: '0 8px 32px rgba(239, 68, 68, 0.15)',
-              marginBottom: '32px',
-              border: '3px solid #fecaca'
-            }}>
-              <div style={{ fontSize: '56px' }}>
-                🍽️
-              </div>
-            </div>
-            
-            {/* Title */}
-            <h2 style={{ 
-              fontSize: '24px', 
-              fontWeight: '800', 
-              color: '#1f2937',
-              margin: '0 0 12px 0',
-              letterSpacing: '-0.5px'
-            }}>
-              Start Taking Orders
-            </h2>
-            
-            {/* Description */}
-            <p style={{ 
-              color: '#64748b', 
-              fontSize: '14px', 
-              margin: '0 0 32px 0',
-              fontWeight: '500',
-              lineHeight: '1.6',
-              textAlign: 'center',
-              maxWidth: '300px'
-            }}>
-              Start by adding delicious items from the menu to begin taking orders
-            </p>
-            
-            {/* Visual Elements Grid */}
+            <style>{`
+              @keyframes floatCart {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-8px); }
+              }
+              @keyframes pulse {
+                0%, 100% { opacity: 0.4; }
+                50% { opacity: 0.8; }
+              }
+              @keyframes slideIn {
+                0% { opacity: 0; transform: translateX(-10px); }
+                100% { opacity: 1; transform: translateX(0); }
+              }
+            `}</style>
+
+            {/* Animated Cart Icon */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              width: '100%',
-              maxWidth: '320px',
-              marginTop: '20px'
+              position: 'relative',
+              marginBottom: '32px',
+              animation: 'floatCart 3s ease-in-out infinite'
             }}>
-              {/* Food Icons */}
+              {/* Background circle */}
               <div style={{
-                background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-                borderRadius: '12px',
-                padding: '16px',
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #fef2f2 0%, #fff 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '32px',
-                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.1)'
+                border: '2px dashed #fecaca'
               }}>
-                🍕
+                {/* Cart SVG */}
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1"/>
+                  <circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
               </div>
+
+              {/* Decorative dots */}
               <div style={{
-                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                borderRadius: '12px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
-              }}>
-                🍔
-              </div>
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                backgroundColor: '#fecaca',
+                animation: 'pulse 2s ease-in-out infinite'
+              }} />
               <div style={{
-                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                borderRadius: '12px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                boxShadow: '0 2px 8px rgba(251, 191, 36, 0.1)'
-              }}>
-                🍜
-              </div>
-              <div style={{
-                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-                borderRadius: '12px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.1)'
-              }}>
-                🍛
-              </div>
-              <div style={{
-                background: 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)',
-                borderRadius: '12px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                boxShadow: '0 2px 8px rgba(244, 114, 182, 0.1)'
-              }}>
-                🍱
-              </div>
-              <div style={{
-                background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-                borderRadius: '12px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.1)'
-              }}>
-                🥗
-              </div>
+                position: 'absolute',
+                bottom: '5px',
+                left: '-8px',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#fee2e2',
+                animation: 'pulse 2s ease-in-out infinite 0.5s'
+              }} />
+            </div>
+
+            {/* Title */}
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#374151',
+              margin: '0 0 8px 0',
+              letterSpacing: '-0.3px'
+            }}>
+              Your cart is empty
+            </h2>
+
+            {/* Description */}
+            <p style={{
+              color: '#9ca3af',
+              fontSize: '13px',
+              margin: '0 0 24px 0',
+              fontWeight: '400',
+              lineHeight: '1.5',
+              textAlign: 'center',
+              maxWidth: '220px'
+            }}>
+              Add items from the menu to start building your order
+            </p>
+
+            {/* Steps indicator */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              width: '100%',
+              maxWidth: '240px'
+            }}>
+              {[
+                { num: '1', text: 'Browse menu items' },
+                { num: '2', text: 'Click + ADD to add items' },
+                { num: '3', text: 'Review & place order' }
+              ].map((step, index) => (
+                <div
+                  key={step.num}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 14px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #f3f4f6',
+                    animation: `slideIn 0.4s ease-out ${index * 0.1}s both`
+                  }}
+                >
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: index === 0 ? '#ef4444' : '#e5e7eb',
+                    color: index === 0 ? 'white' : '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    flexShrink: 0
+                  }}>
+                    {step.num}
+                  </div>
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    fontWeight: '500'
+                  }}>
+                    {step.text}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         ) : (
