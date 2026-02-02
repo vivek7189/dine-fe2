@@ -1821,8 +1821,11 @@ function RestaurantPOSContent() {
     }
   };
 
-  const processOrder = async () => {
+  const processOrder = async (taxData = {}) => {
     if (cart.length === 0 || !selectedRestaurant?.id) return;
+
+    // Extract tax information from taxData passed by OrderSummary
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
 
     // Check if order is completed and disable action
     if (currentOrder && currentOrder.status === 'completed') {
@@ -1886,6 +1889,11 @@ function RestaurantPOSContent() {
           paymentStatus: 'paid', // Mark payment as completed
           completedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          // Tax information from OrderSummary
+          totalAmount: subtotal || getTotalAmount(),
+          taxBreakdown: taxBreakdown,
+          taxAmount: totalTax,
+          finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
           lastUpdatedBy: {
             name: currentUser.name || 'Staff',
             id: currentUser.id,
@@ -1908,7 +1916,7 @@ function RestaurantPOSContent() {
           await apiClient.verifyPayment({
             orderId: currentOrder.id,
             paymentMethod: paymentMethod,
-            amount: getTotalAmount(),
+            amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
             paymentStatus: 'completed'
@@ -1975,6 +1983,11 @@ function RestaurantPOSContent() {
             tableNumber: finalTableNumber || null,
             roomNumber: roomNumber || null // NEW: Include room number in customer info
         },
+        // Tax information from OrderSummary
+        totalAmount: subtotal || getTotalAmount(),
+        taxBreakdown: taxBreakdown,
+        taxAmount: totalTax,
+        finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : ''
       };
 
@@ -1997,13 +2010,14 @@ function RestaurantPOSContent() {
         await apiClient.updateTableStatus(selectedTable.id, 'occupied', orderId);
       }
 
-      // Process payment based on method
-        console.log('💳 Processing payment for order:', orderId, 'Method:', paymentMethod);
+      // Process payment based on method (use finalAmount which includes tax)
+        const paymentAmount = finalAmount || (subtotal || getTotalAmount()) + totalTax;
+        console.log('💳 Processing payment for order:', orderId, 'Method:', paymentMethod, 'Amount:', paymentAmount);
       if (paymentMethod === 'cash') {
           const paymentResult = await apiClient.verifyPayment({
           orderId,
             paymentMethod: 'cash',
-            amount: getTotalAmount(),
+            amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
             paymentStatus: 'completed' // Mark payment as completed
@@ -2013,7 +2027,7 @@ function RestaurantPOSContent() {
           const paymentResult = await apiClient.verifyPayment({
           orderId,
             paymentMethod: 'upi',
-            amount: getTotalAmount(),
+            amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
             paymentStatus: 'completed' // Mark payment as completed
@@ -2023,7 +2037,7 @@ function RestaurantPOSContent() {
           const paymentResult = await apiClient.verifyPayment({
           orderId,
             paymentMethod: 'card',
-            amount: getTotalAmount(),
+            amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
             paymentStatus: 'completed' // Mark payment as completed
@@ -2098,7 +2112,7 @@ function RestaurantPOSContent() {
     }
   };
 
-  const saveOrder = async () => {
+  const saveOrder = async (taxData = {}) => {
     if (cart.length === 0) {
       setNotification({
         type: 'error',
@@ -2122,13 +2136,16 @@ function RestaurantPOSContent() {
       return;
     }
 
+    // Extract tax information from taxData passed by OrderSummary
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
+
     try {
       setProcessing(true);
       setError(null);
 
       // Determine if this is a room order
       const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
-      const roomNumber = isRoomOrder 
+      const roomNumber = isRoomOrder
         ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
         : null;
       const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
@@ -2151,6 +2168,11 @@ function RestaurantPOSContent() {
           name: 'Staff Member',
           id: 'staff-001'
         },
+        // Tax information from OrderSummary
+        totalAmount: subtotal || getTotalAmount(),
+        taxBreakdown: taxBreakdown,
+        taxAmount: totalTax,
+        finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
         status: 'pending' // Save as draft
       };
@@ -2191,7 +2213,7 @@ function RestaurantPOSContent() {
     }
   };
 
-  const placeOrder = async () => {
+  const placeOrder = async (taxData = {}) => {
     if (cart.length === 0) {
       setNotification({
         type: 'error',
@@ -2226,6 +2248,9 @@ function RestaurantPOSContent() {
       setTimeout(() => setNotification(null), 3000);
       return;
     }
+
+    // Extract tax information from taxData passed by OrderSummary
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
 
     try {
       setPlacingOrder(true);
@@ -2263,6 +2288,11 @@ function RestaurantPOSContent() {
           tableNumber: tableToUse || currentOrder.tableNumber,
           orderType,
           paymentMethod,
+          // Tax information from OrderSummary
+          totalAmount: subtotal || getTotalAmount(),
+          taxBreakdown: taxBreakdown,
+          taxAmount: totalTax,
+          finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
           updatedAt: new Date().toISOString(),
           lastUpdatedBy: {
             name: 'Staff Member',
@@ -2339,6 +2369,11 @@ function RestaurantPOSContent() {
             name: 'Staff Member',
             id: 'staff-001'
           },
+          // Tax information from OrderSummary
+          totalAmount: subtotal || getTotalAmount(),
+          taxBreakdown: taxBreakdown,
+          taxAmount: totalTax,
+          finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
           notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
           status: 'confirmed' // Place order to kitchen
         };

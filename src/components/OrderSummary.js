@@ -412,7 +412,14 @@ const OrderSummary = ({
   const handleProcessOrder = async () => {
     if (typeof onProcessOrder === 'function') {
       try {
-        const result = await onProcessOrder();
+        // Pass tax data to the handler
+        const taxData = {
+          taxBreakdown,
+          totalTax,
+          finalAmount: grandTotal,
+          subtotal: getTotalAmount()
+        };
+        const result = await onProcessOrder(taxData);
         console.log('Process order result:', result);
         // If order was successful and we have an order ID, generate invoice
         if (result && result.orderId) {
@@ -1737,7 +1744,14 @@ const OrderSummary = ({
               <button
                 onClick={() => {
                   if (typeof onSaveOrder === 'function') {
-                    onSaveOrder();
+                    // Pass tax data to save order
+                    const taxData = {
+                      taxBreakdown,
+                      totalTax,
+                      finalAmount: grandTotal,
+                      subtotal: getTotalAmount()
+                    };
+                    onSaveOrder(taxData);
                   }
                   if (isMobile && onClose) {
                     setTimeout(() => onClose(), 500);
@@ -1768,7 +1782,14 @@ const OrderSummary = ({
               <button
                 onClick={() => {
                   if (typeof onPlaceOrder === 'function') {
-                    onPlaceOrder();
+                    // Pass tax data to place order
+                    const taxData = {
+                      taxBreakdown,
+                      totalTax,
+                      finalAmount: grandTotal,
+                      subtotal: getTotalAmount()
+                    };
+                    onPlaceOrder(taxData);
                   }
                   if (isMobile && onClose) {
                     setTimeout(() => onClose(), 500);
