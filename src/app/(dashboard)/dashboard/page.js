@@ -1009,6 +1009,45 @@ function RestaurantPOSContent() {
     }
   }, []);
 
+  // Handle logo click to switch from tables to orders view
+  useEffect(() => {
+    const handleLogoClick = () => {
+      // Switch to orders view and update URL (remove view param)
+      setViewMode('orders');
+      setOrderSuccess(null);
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('view');
+        url.searchParams.delete('orderId');
+        url.searchParams.delete('mode');
+        url.searchParams.delete('from');
+        window.history.pushState({ view: 'orders' }, '', url.toString());
+      }
+    };
+
+    window.addEventListener('logoClickSwitchToOrders', handleLogoClick);
+    return () => window.removeEventListener('logoClickSwitchToOrders', handleLogoClick);
+  }, []);
+
+  // Handle browser back/forward button for view switching
+  useEffect(() => {
+    const handlePopState = (event) => {
+      // Check URL for view parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const viewParam = urlParams.get('view');
+      if (viewParam === 'tables') {
+        setViewMode('tables');
+      } else {
+        setViewMode('orders');
+      }
+      // Clear any stale messages on navigation
+      setOrderSuccess(null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Handle orderId parameter from URL (for edit mode from Order History or Tables)
   useEffect(() => {
     const orderId = searchParams.get('orderId');
@@ -2500,12 +2539,19 @@ function RestaurantPOSContent() {
     setOrderSuccess(null);
     if (updateUrl && typeof window !== 'undefined') {
       const url = new URL(window.location.href);
-      url.searchParams.set('view', newView);
+      // For orders view (default), remove the view param for cleaner URLs
+      // For tables view, set the view param
+      if (newView === 'orders') {
+        url.searchParams.delete('view');
+      } else {
+        url.searchParams.set('view', newView);
+      }
       // Remove order-related params when just toggling view
       url.searchParams.delete('orderId');
       url.searchParams.delete('mode');
       url.searchParams.delete('from');
-      window.history.replaceState({}, '', url.toString());
+      // Use pushState instead of replaceState to allow browser back button
+      window.history.pushState({ view: newView }, '', url.toString());
     }
   };
 
@@ -2524,13 +2570,13 @@ function RestaurantPOSContent() {
     } else {
       // User came from order history, edit mode, or no specific source - stay on orders view
       clearCart({ keepOrderSuccess, preserveUrl: true });
-      // Clean up URL params
+      // Clean up URL params - remove view param for clean URL (orders is default)
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
         url.searchParams.delete('orderId');
         url.searchParams.delete('mode');
         url.searchParams.delete('from');
-        url.searchParams.set('view', 'orders');
+        url.searchParams.delete('view'); // Remove view param for clean URL
         window.history.replaceState({}, '', url.toString());
       }
     }
@@ -3574,7 +3620,7 @@ function RestaurantPOSContent() {
               onClick={() => {
                 handleFreshOrder();
                 if (viewMode === 'tables') {
-                  setViewMode('orders');
+                  switchView('orders');
                 }
               }}
               style={{
@@ -4839,12 +4885,12 @@ function RestaurantPOSContent() {
                   setTableNumber(tbl);
                   // Track that user came from tables view
                   setReturnToView('tables');
-                  // Update URL with from=tables for back navigation
+                  // Update URL with from=tables for back navigation (use pushState for back button support)
                   if (typeof window !== 'undefined') {
                     const url = new URL(window.location.href);
-                    url.searchParams.set('view', 'orders');
+                    url.searchParams.delete('view'); // orders is default, remove for clean URL
                     url.searchParams.set('from', 'tables');
-                    window.history.replaceState({}, '', url.toString());
+                    window.history.pushState({ view: 'orders', from: 'tables' }, '', url.toString());
                   }
                   setViewMode('orders');
                 }}
@@ -4858,15 +4904,15 @@ function RestaurantPOSContent() {
                   setReturnToView('tables');
                   // Show partial loading state instead of full page reload
                   setOrderLoadingPartial(true);
-                  // Update URL with from=tables for back navigation
+                  // Update URL with from=tables for back navigation (use pushState for back button support)
                   if (typeof window !== 'undefined') {
                     const url = new URL(window.location.href);
-                    url.searchParams.set('view', 'orders');
+                    url.searchParams.delete('view'); // orders is default, remove for clean URL
                     url.searchParams.set('from', 'tables');
                     if (orderId) {
                       url.searchParams.set('orderId', orderId);
                     }
-                    window.history.replaceState({}, '', url.toString());
+                    window.history.pushState({ view: 'orders', from: 'tables' }, '', url.toString());
                   }
                   // Switch to orders view
                   setViewMode('orders');
