@@ -717,12 +717,13 @@ const OrderSummary = ({
         </div>
       )}
 
-      {/* Cart Items */}
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
+      {/* Scrollable Content - Cart Items, Totals, Customer Info, Payment */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
         overflowX: 'hidden',
         padding: '12px',
+        paddingBottom: '8px',
         scrollbarWidth: 'thin',
         scrollbarColor: '#cbd5e1 transparent',
         minHeight: 0
@@ -1356,13 +1357,12 @@ const OrderSummary = ({
             ))}
           </div>
         )}
-      </div>
 
-      {/* Footer */}
-      {cart.length > 0 && (
-        <div style={{ borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
+        {/* Totals & Customer Info Section - Inside scroll area */}
+        {cart.length > 0 && !shouldShowOrderSummary() && (
+          <div style={{ backgroundColor: '#f9fafb', marginTop: '8px', borderRadius: '8px' }}>
           {/* Total */}
-          <div style={{ padding: '2px 12px' }}>
+          <div style={{ padding: '8px 12px' }}>
             {/* Tax Breakdown - Compact */}
             {(taxBreakdown.length > 0 || totalTax > 0) && (
               <div style={{ 
@@ -1699,148 +1699,153 @@ const OrderSummary = ({
                 </div>
               </div>
 
-              {/* Workflow Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-                {/* First Row - Save and Place Order (hidden in billing mode) */}
-                {!billingMode && (
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => {
-                        if (typeof onSaveOrder === 'function') {
-                          onSaveOrder();
-                        }
-                        // Close modal on mobile after saving order
-                        if (isMobile && onClose) {
-                          setTimeout(() => onClose(), 500); // Small delay to show success
-                        }
-                      }}
-                      style={{
-                        flex: 1,
-                        background: 'linear-gradient(135deg, #f97316, #ea580c)',
-                        color: 'white',
-                        padding: '10px 12px',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px',
-                        fontSize: '11px',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
-                      }}
-                    >
-                          <FaSave size={10} />
-                      {t('dashboard.saveOrder')}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        if (typeof onPlaceOrder === 'function') {
-                          onPlaceOrder();
-                        }
-                        // Close modal on mobile after placing order
-                        if (isMobile && onClose) {
-                          setTimeout(() => onClose(), 500); // Small delay to show success
-                        }
-                      }}
-                      disabled={placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
-                      style={{
-                        flex: 1,
-                        background: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
-                          ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                          : 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        color: 'white',
-                        padding: '10px 12px',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        border: 'none',
-                        cursor: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px',
-                        fontSize: '11px',
-                        transition: 'all 0.2s',
-                        boxShadow: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)'
-                      }}
-                    >
-                      {placingOrder ? (
-                        <>
-                          <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} />
-                          {t('dashboard.orderProcessing')}
-                        </>
-                      ) : (
-                        <>
-                          <FaUtensils size={10} />
-                          {currentOrder ? 'Update Order' : t('dashboard.placeOrder')}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {/* Complete Billing Button - Larger in billing mode */}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    onClick={handleProcessOrder}
-                    disabled={processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
-                    style={{
-                      flex: 1,
-                      background: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
-                        ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                        : 'linear-gradient(135deg, #10b981, #059669)',
-                      color: 'white',
-                      padding: billingMode ? '14px 16px' : '10px 12px',
-                      borderRadius: billingMode ? '10px' : '6px',
-                      fontWeight: '700',
-                      border: 'none',
-                      cursor: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      fontSize: billingMode ? '14px' : '11px',
-                      transition: 'all 0.2s',
-                      boxShadow: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
-                    }}
-                  >
-                    {processing ? (
-                      <>
-                        <FaSpinner size={billingMode ? 14 : 10} style={{ animation: 'spin 1s linear infinite' }} />
-                        {t('dashboard.paymentProcessing')}
-                      </>
-                    ) : (
-                      <>
-                        <FaCheckCircle size={billingMode ? 14 : 10} />
-                        {t('dashboard.completeBilling')}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-
-              {/* Error Message */}
-              {error && (
-                <div style={{
-                  backgroundColor: '#fee2e2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '12px',
-                  color: '#dc2626',
-                  fontWeight: '600',
-                  marginTop: '12px',
-                  textAlign: 'center'
-                }}>
-                  {error}
-                </div>
-              )}
             </div>
           )}
+        </div>
+        )}
+      </div>
+
+      {/* Fixed Bottom Action Buttons */}
+      {cart.length > 0 && !shouldShowOrderSummary() && (
+        <div style={{
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'white',
+          padding: '12px 16px',
+          flexShrink: 0,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
+        }}>
+          {/* Error Message */}
+          {error && (
+            <div style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '10px',
+              fontSize: '11px',
+              color: '#dc2626',
+              fontWeight: '600',
+              marginBottom: '10px',
+              textAlign: 'center'
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* First Row - Save and Place Order (hidden in billing mode) */}
+          {!billingMode && (
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <button
+                onClick={() => {
+                  if (typeof onSaveOrder === 'function') {
+                    onSaveOrder();
+                  }
+                  if (isMobile && onClose) {
+                    setTimeout(() => onClose(), 500);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                  color: 'white',
+                  padding: '12px 14px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontSize: '12px',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
+                }}
+              >
+                <FaSave size={12} />
+                {t('dashboard.saveOrder')}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (typeof onPlaceOrder === 'function') {
+                    onPlaceOrder();
+                  }
+                  if (isMobile && onClose) {
+                    setTimeout(() => onClose(), 500);
+                  }
+                }}
+                disabled={placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                style={{
+                  flex: 1,
+                  background: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                    ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  color: 'white',
+                  padding: '12px 14px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontSize: '12px',
+                  transition: 'all 0.2s',
+                  boxShadow: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                {placingOrder ? (
+                  <>
+                    <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    {t('dashboard.orderProcessing')}
+                  </>
+                ) : (
+                  <>
+                    <FaUtensils size={12} />
+                    {currentOrder ? 'Update Order' : t('dashboard.placeOrder')}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Complete Billing Button */}
+          <button
+            onClick={handleProcessOrder}
+            disabled={processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+            style={{
+              width: '100%',
+              background: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                : 'linear-gradient(135deg, #10b981, #059669)',
+              color: 'white',
+              padding: billingMode ? '14px 16px' : '12px 14px',
+              borderRadius: '8px',
+              fontWeight: '700',
+              border: 'none',
+              cursor: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontSize: billingMode ? '14px' : '12px',
+              transition: 'all 0.2s',
+              boxShadow: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
+            }}
+          >
+            {processing ? (
+              <>
+                <FaSpinner size={billingMode ? 14 : 12} style={{ animation: 'spin 1s linear infinite' }} />
+                {t('dashboard.paymentProcessing')}
+              </>
+            ) : (
+              <>
+                <FaCheckCircle size={billingMode ? 14 : 12} />
+                {t('dashboard.completeBilling')}
+              </>
+            )}
+          </button>
         </div>
       )}
 

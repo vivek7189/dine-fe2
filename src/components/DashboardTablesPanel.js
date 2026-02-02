@@ -760,9 +760,9 @@ export default function DashboardTablesPanel({
                       )}
                     </div>
 
-                    {/* Content - Show order total for occupied tables, icon for others */}
+                    {/* Content - Show order total (with tax) for occupied tables, icon for others */}
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      {isOccupied && t.currentOrderTotal ? (
+                      {isOccupied && (t.currentOrderFinalAmount || t.currentOrderTotal) ? (
                         <div style={{
                           display: 'flex',
                           flexDirection: 'column',
@@ -771,12 +771,14 @@ export default function DashboardTablesPanel({
                           height: '100%'
                         }}>
                           <div style={{
-                            fontSize: '10px',
+                            fontSize: '9px',
                             color: '#92400e',
                             fontWeight: 500,
-                            marginBottom: '2px'
+                            marginBottom: '2px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
                           }}>
-                            Order Total
+                            Total {t.currentOrderTax ? '(incl. tax)' : ''}
                           </div>
                           <div style={{
                             fontSize: '18px',
@@ -787,8 +789,20 @@ export default function DashboardTablesPanel({
                             borderRadius: '8px',
                             border: '1px solid #fcd34d'
                           }}>
-                            ₹{typeof t.currentOrderTotal === 'number' ? t.currentOrderTotal.toFixed(0) : t.currentOrderTotal}
+                            ₹{(() => {
+                              const total = t.currentOrderFinalAmount || t.currentOrderTotal || 0;
+                              return typeof total === 'number' ? total.toFixed(0) : total;
+                            })()}
                           </div>
+                          {t.currentOrderTax > 0 && (
+                            <div style={{
+                              fontSize: '9px',
+                              color: '#6b7280',
+                              marginTop: '3px'
+                            }}>
+                              Tax: ₹{typeof t.currentOrderTax === 'number' ? t.currentOrderTax.toFixed(0) : t.currentOrderTax}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div style={{
@@ -1002,7 +1016,7 @@ export default function DashboardTablesPanel({
                             <FaPlus size={9} />
                             Add
                           </button>
-                          {/* More Actions Button */}
+                          {/* Bill/Actions Button */}
                           <button
                             className="btn-action"
                             onClick={(e) => {
@@ -1013,20 +1027,20 @@ export default function DashboardTablesPanel({
                               width: '32px',
                               height: '32px',
                               padding: 0,
-                              background: '#ffffff',
-                              color: '#6b7280',
-                              border: '1px solid #d1d5db',
+                              background: '#fef2f2',
+                              color: '#ef4444',
+                              border: '1px solid #fecaca',
                               borderRadius: '6px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#9ca3af'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#d1d5db'; }}
-                            title="More Actions"
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#f87171'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fecaca'; }}
+                            title="Bill & Actions"
                           >
-                            <FaEllipsisH size={10} />
+                            <FaReceipt size={10} />
                           </button>
                         </div>
                       )}
@@ -1156,31 +1170,59 @@ export default function DashboardTablesPanel({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Floating Close Button */}
-            <button
-              onClick={closeActionsModal}
-              style={{
-                position: 'absolute',
-                top: '12px',
-                right: '12px',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                border: 'none',
-                background: 'rgba(0,0,0,0.08)',
-                color: '#6b7280',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                zIndex: 10
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.15)'; e.currentTarget.style.color = '#374151'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; e.currentTarget.style.color = '#6b7280'; }}
-            >
-              <FaTimes size={14} />
-            </button>
+            {/* Red Header with Close Button */}
+            <div style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: '16px 16px 0 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'rgba(255,255,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FaReceipt size={16} style={{ color: '#ffffff' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                    {actionsModal.table?.name || actionsModal.table?.number || 'Table'} - Bill
+                  </div>
+                  {actionsModal.order && (
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+                      Order #{actionsModal.order.dailyOrderId || actionsModal.order.id?.slice(-6) || 'N/A'}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={closeActionsModal}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'rgba(255,255,255,0.2)',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+              >
+                <FaTimes size={14} />
+              </button>
+            </div>
 
             {/* Modal Content */}
             {actionsModal.loading ? (
