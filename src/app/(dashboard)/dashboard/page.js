@@ -50,7 +50,8 @@ import {
   FaCloudUploadAlt,
   FaMicrophone,
   FaMicrophoneSlash,
-  FaBed
+  FaBed,
+  FaThList
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
@@ -130,9 +131,39 @@ function RestaurantPOSContent() {
   // Category sidebar width constant (compact, part of menu section)
   const categorySidebarWidth = 150;
   
-  // Card design toggle state
-  const [useModernCards, setUseModernCards] = useState(true);
-  const [categoryViewMode, setCategoryViewMode] = useState('sidebar'); // 'sidebar' or 'chips'
+  // Card design toggle state - Initialize from localStorage based on user ID
+  const [useModernCards, setUseModernCards] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userData = localStorage.getItem('user');
+        const userId = userData ? JSON.parse(userData)?.id : 'guest';
+        const saved = localStorage.getItem(`viewSettings_${userId}`);
+        if (saved) {
+          const settings = JSON.parse(saved);
+          return settings.useModernCards !== undefined ? settings.useModernCards : true;
+        }
+      } catch (e) {
+        console.error('Error loading useModernCards from localStorage:', e);
+      }
+    }
+    return true;
+  });
+  const [categoryViewMode, setCategoryViewMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userData = localStorage.getItem('user');
+        const userId = userData ? JSON.parse(userData)?.id : 'guest';
+        const saved = localStorage.getItem(`viewSettings_${userId}`);
+        if (saved) {
+          const settings = JSON.parse(saved);
+          return settings.categoryViewMode || 'sidebar';
+        }
+      } catch (e) {
+        console.error('Error loading categoryViewMode from localStorage:', e);
+      }
+    }
+    return 'sidebar';
+  }); // 'sidebar' or 'chips'
   const [showMobileCart, setShowMobileCart] = useState(false);
   
   // Voice Assistant State
@@ -150,6 +181,23 @@ function RestaurantPOSContent() {
   // Fullscreen mode states
   const [isNavigationHidden, setIsNavigationHidden] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Save view settings to localStorage when they change (tied to user ID)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userData = localStorage.getItem('user');
+        const userId = userData ? JSON.parse(userData)?.id : 'guest';
+        const settings = {
+          useModernCards,
+          categoryViewMode
+        };
+        localStorage.setItem(`viewSettings_${userId}`, JSON.stringify(settings));
+      } catch (e) {
+        console.error('Error saving view settings to localStorage:', e);
+      }
+    }
+  }, [useModernCards, categoryViewMode]);
 
   // Prefetch tables/floors once restaurant is known
   const prefetchTables = useCallback(async (rid) => {
@@ -2373,7 +2421,8 @@ function RestaurantPOSContent() {
               roomNumber: roomForKot || null,
               customerName: customerName || null,
               orderType,
-              restaurantName: selectedRestaurant?.name || 'Restaurant'
+              restaurantName: selectedRestaurant?.name || 'Restaurant',
+              specialInstructions: specialInstructions || null
             }
           });
           // Handle navigation after order update
@@ -2472,7 +2521,8 @@ function RestaurantPOSContent() {
               roomNumber: roomNumber || null,
               customerName: customerName || null,
               orderType,
-              restaurantName: selectedRestaurant?.name || 'Restaurant'
+              restaurantName: selectedRestaurant?.name || 'Restaurant',
+              specialInstructions: specialInstructions || null
             }
           });
 
@@ -3765,16 +3815,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaClipboardList size={18} color="#f59e0b" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Orders</span>
+                  <FaClipboardList size={22} color="#f59e0b" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Orders</span>
                 </div>
               </Link>
 
@@ -3784,16 +3834,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaChair size={18} color="#3b82f6" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Tables</span>
+                  <FaChair size={22} color="#3b82f6" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Tables</span>
                 </div>
               </Link>
 
@@ -3803,16 +3853,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUtensils size={18} color="#10b981" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Menu</span>
+                  <FaUtensils size={22} color="#10b981" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Menu</span>
                 </div>
               </Link>
 
@@ -3822,16 +3872,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaFire size={18} color="#f97316" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Kitchen</span>
+                  <FaFire size={22} color="#f97316" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Kitchen</span>
                 </div>
               </Link>
 
@@ -3841,134 +3891,16 @@ function RestaurantPOSContent() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUsers size={18} color="#8b5cf6" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Customers</span>
-                </div>
-              </Link>
-
-              {/* Billing */}
-              <Link href="/billing" style={{ textDecoration: 'none' }}>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <FaCreditCard size={18} color="#06b6d4" />
-                  <span style={{ fontSize: '9px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Billing</span>
-                </div>
-              </Link>
-
-              {/* Divider */}
-              <div style={{ width: '1px', height: '28px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
-
-              {/* Category View Toggle - Side/Chips */}
-              <div
-                onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  backgroundColor: categoryViewMode === 'chips' ? '#fef2f2' : 'transparent'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = categoryViewMode === 'chips' ? '#fef2f2' : 'transparent'}
-              >
-                <div style={{
-                  width: '26px',
-                  height: '14px',
-                  borderRadius: '7px',
-                  backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
-                  padding: '2px',
-                  transition: 'all 0.2s ease'
-                }}>
-                  <div style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: 'white',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                  }} />
-                </div>
-                <span style={{ fontSize: '8px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Chips</span>
-              </div>
-
-              {/* Card Style Toggle - Modern */}
-              <div
-                onClick={() => setUseModernCards(!useModernCards)}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  backgroundColor: useModernCards ? '#fef2f2' : 'transparent'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = useModernCards ? '#fef2f2' : 'transparent'}
-              >
-                <div style={{
-                  width: '26px',
-                  height: '14px',
-                  borderRadius: '7px',
-                  backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: useModernCards ? 'flex-end' : 'flex-start',
-                  padding: '2px',
-                  transition: 'all 0.2s ease'
-                }}>
-                  <div style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: 'white',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                  }} />
-                </div>
-                <span style={{ fontSize: '8px', fontWeight: '600', color: '#6b7280', marginTop: '2px' }}>Modern</span>
-              </div>
-
-              {/* Divider */}
-              <div style={{ width: '1px', height: '28px', backgroundColor: '#e5e7eb', margin: '0 4px' }} />
-
-              {/* Profile */}
-              <Link href="/profile" style={{ textDecoration: 'none' }}>
-                <div style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(236, 72, 153, 0.3)'
-                }}>
-                  <FaUsers size={14} color="white" />
+                  <FaUsers size={22} color="#8b5cf6" />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Customers</span>
                 </div>
               </Link>
             </div>
@@ -4045,6 +3977,7 @@ function RestaurantPOSContent() {
                 );
               })}
             </div>
+
           </div>
         )}
 
@@ -4068,55 +4001,58 @@ function RestaurantPOSContent() {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              flexWrap: 'wrap',
               gap: '6px',
               padding: '10px 16px',
               paddingRight: '460px',
               backgroundColor: 'white',
               borderBottom: '1px solid #f1f5f9'
             }}>
-              {categories.map((category) => {
-                const categoryItems = category.id === 'all-items'
-                  ? (menuItems || [])
-                  : category.id === 'favorites'
-                  ? (menuItems || []).filter(item => item.isFavorite === true)
-                  : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
-                const isSelected = selectedCategory === category.id;
+              {/* Category Chips */}
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
+                {categories.map((category) => {
+                  const categoryItems = category.id === 'all-items'
+                    ? (menuItems || [])
+                    : category.id === 'favorites'
+                    ? (menuItems || []).filter(item => item.isFavorite === true)
+                    : (menuItems || []).filter(item => item.category?.toLowerCase() === category.id);
+                  const isSelected = selectedCategory === category.id;
 
-                return (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(isSelected ? 'all-items' : category.id)}
-                    style={{
-                      padding: '6px 14px',
-                      backgroundColor: isSelected ? '#ef4444' : 'white',
-                      color: isSelected ? 'white' : '#4b5563',
-                      border: isSelected ? 'none' : '1px solid #e5e7eb',
-                      borderRadius: '16px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.15s ease',
-                      boxShadow: isSelected ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = '#d1d5db';
-                        e.currentTarget.style.backgroundColor = '#f9fafb';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = '#e5e7eb';
-                        e.currentTarget.style.backgroundColor = 'white';
-                      }
-                    }}
-                  >
-                    {category.name}
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(isSelected ? 'all-items' : category.id)}
+                      style={{
+                        padding: '6px 14px',
+                        backgroundColor: isSelected ? '#ef4444' : 'white',
+                        color: isSelected ? 'white' : '#4b5563',
+                        border: isSelected ? 'none' : '1px solid #e5e7eb',
+                        borderRadius: '16px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isSelected ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = '#d1d5db';
+                          e.currentTarget.style.backgroundColor = '#f9fafb';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.backgroundColor = 'white';
+                        }
+                      }}
+                    >
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
+
             </div>
           )}
 
@@ -4729,33 +4665,131 @@ function RestaurantPOSContent() {
                     categoryGroups[cat].push(item);
                   });
 
-                  return Object.entries(categoryGroups).map(([categoryName, items]) => (
+                  return Object.entries(categoryGroups).map(([categoryName, items], index) => (
                     <div key={categoryName} style={{ marginBottom: '24px' }}>
-                      {/* Category Header */}
+                      {/* Category Header with View Toggles on first category */}
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        marginBottom: '12px'
+                        justifyContent: 'space-between',
+                        marginBottom: '12px',
+                        paddingRight: !isMobile ? '0' : '0'
                       }}>
-                        <span style={{
-                          fontSize: '15px',
-                          fontWeight: '700',
-                          color: '#1f2937',
-                          textTransform: 'capitalize'
-                        }}>
-                          {categoryName}
-                        </span>
-                        <span style={{
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          color: '#6b7280',
-                          backgroundColor: '#f3f4f6',
-                          padding: '2px 8px',
-                          borderRadius: '10px'
-                        }}>
-                          {items.length}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{
+                            fontSize: '15px',
+                            fontWeight: '700',
+                            color: '#1f2937',
+                            textTransform: 'capitalize'
+                          }}>
+                            {categoryName}
+                          </span>
+                          <span style={{
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#6b7280',
+                            backgroundColor: '#f3f4f6',
+                            padding: '2px 8px',
+                            borderRadius: '10px'
+                          }}>
+                            {items.length}
+                          </span>
+                        </div>
+
+                        {/* View Toggles - Only show on first category row */}
+                        {index === 0 && !isMobile && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Category View Toggle */}
+                            <div
+                              onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                backgroundColor: categoryViewMode === 'chips' ? '#fef2f2' : '#f9fafb',
+                                border: categoryViewMode === 'chips' ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = categoryViewMode === 'chips' ? '#fecaca' : '#e5e7eb';
+                              }}
+                            >
+                              <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#6b7280'} />
+                              <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#4b5563' }}>
+                                {categoryViewMode === 'sidebar' ? 'Top Bar' : 'Sidebar'}
+                              </span>
+                              <div style={{
+                                width: '26px',
+                                height: '14px',
+                                borderRadius: '7px',
+                                backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
+                                padding: '2px',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                <div style={{
+                                  width: '10px',
+                                  height: '10px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'white',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                }} />
+                              </div>
+                            </div>
+
+                            {/* Modern Cards Toggle */}
+                            <div
+                              onClick={() => setUseModernCards(!useModernCards)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                backgroundColor: useModernCards ? '#fef2f2' : '#f9fafb',
+                                border: useModernCards ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = useModernCards ? '#fecaca' : '#e5e7eb';
+                              }}
+                            >
+                              <FaExpand size={11} color={useModernCards ? '#ef4444' : '#6b7280'} />
+                              <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>Modern</span>
+                              <div style={{
+                                width: '26px',
+                                height: '14px',
+                                borderRadius: '7px',
+                                backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: useModernCards ? 'flex-end' : 'flex-start',
+                                padding: '2px',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                <div style={{
+                                  width: '10px',
+                                  height: '10px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'white',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                }} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {/* Category Items Grid */}
                       <div style={{
@@ -4789,19 +4823,145 @@ function RestaurantPOSContent() {
                   ));
                 })()
               ) : (
-                // Single category selected - show flat grid
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: useModernCards
-                    ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
-                    : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
-                  gap: useModernCards
-                    ? (isMobile ? '14px' : '20px')
-                    : (isMobile ? '12px' : '18px'),
-                  justifyContent: 'start'
-                }}>
-                  {filteredItems.map((item) => {
-                    const quantityInCart = getItemQuantityInCart(item.id);
+                // Single category selected - show header with toggles + flat grid
+                <div>
+                  {/* Category Header with View Toggles */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{
+                        fontSize: '15px',
+                        fontWeight: '700',
+                        color: '#1f2937',
+                        textTransform: 'capitalize'
+                      }}>
+                        {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        backgroundColor: '#f3f4f6',
+                        padding: '2px 8px',
+                        borderRadius: '10px'
+                      }}>
+                        {filteredItems.length}
+                      </span>
+                    </div>
+
+                    {/* View Toggles */}
+                    {!isMobile && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* Category View Toggle */}
+                        <div
+                          onClick={() => setCategoryViewMode(categoryViewMode === 'sidebar' ? 'chips' : 'sidebar')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            backgroundColor: categoryViewMode === 'chips' ? '#fef2f2' : '#f9fafb',
+                            border: categoryViewMode === 'chips' ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = categoryViewMode === 'chips' ? '#fecaca' : '#e5e7eb';
+                          }}
+                        >
+                          <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#6b7280'} />
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#4b5563' }}>
+                            {categoryViewMode === 'sidebar' ? 'Top Bar' : 'Sidebar'}
+                          </span>
+                          <div style={{
+                            width: '26px',
+                            height: '14px',
+                            borderRadius: '7px',
+                            backgroundColor: categoryViewMode === 'chips' ? '#ef4444' : '#d1d5db',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: categoryViewMode === 'chips' ? 'flex-end' : 'flex-start',
+                            padding: '2px',
+                            transition: 'all 0.2s ease'
+                          }}>
+                            <div style={{
+                              width: '10px',
+                              height: '10px',
+                              borderRadius: '50%',
+                              backgroundColor: 'white',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                            }} />
+                          </div>
+                        </div>
+
+                        {/* Modern Cards Toggle */}
+                        <div
+                          onClick={() => setUseModernCards(!useModernCards)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            backgroundColor: useModernCards ? '#fef2f2' : '#f9fafb',
+                            border: useModernCards ? '1px solid #fecaca' : '1px solid #e5e7eb'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = useModernCards ? '#fecaca' : '#e5e7eb';
+                          }}
+                        >
+                          <FaExpand size={11} color={useModernCards ? '#ef4444' : '#6b7280'} />
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>Modern</span>
+                          <div style={{
+                            width: '26px',
+                            height: '14px',
+                            borderRadius: '7px',
+                            backgroundColor: useModernCards ? '#ef4444' : '#d1d5db',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: useModernCards ? 'flex-end' : 'flex-start',
+                            padding: '2px',
+                            transition: 'all 0.2s ease'
+                          }}>
+                            <div style={{
+                              width: '10px',
+                              height: '10px',
+                              borderRadius: '50%',
+                              backgroundColor: 'white',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                            }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Items Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: useModernCards
+                      ? (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))')
+                      : (isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))'),
+                    gap: useModernCards
+                      ? (isMobile ? '14px' : '20px')
+                      : (isMobile ? '12px' : '18px'),
+                    justifyContent: 'start'
+                  }}>
+                    {filteredItems.map((item) => {
+                      const quantityInCart = getItemQuantityInCart(item.id);
 
                     return (
                       <MenuItemCard
@@ -4817,6 +4977,7 @@ function RestaurantPOSContent() {
                       />
                     );
                   })}
+                  </div>
                 </div>
               )}
             </div>

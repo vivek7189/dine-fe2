@@ -1401,7 +1401,7 @@ const OrderHistory = () => {
                               <div className="text-xs text-gray-500 pt-1">+{itemCount - 2} {t('common.more')}...</div>
                             )}
                           </div>
-                          {expandedOrders.has(order.id) && order.specialInstructions && (
+                          {order.specialInstructions && (
                             <div className="mt-3 pt-2 border-t border-gray-200">
                               <div className="flex items-start gap-2 text-sm">
                                 <span className="text-amber-600 font-semibold flex-shrink-0">📝 Instructions:</span>
