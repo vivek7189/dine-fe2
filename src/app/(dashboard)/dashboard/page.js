@@ -1824,8 +1824,8 @@ function RestaurantPOSContent() {
   const processOrder = async (taxData = {}) => {
     if (cart.length === 0 || !selectedRestaurant?.id) return;
 
-    // Extract tax information from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
+    // Extract tax information and special instructions from taxData passed by OrderSummary
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null } = taxData;
 
     // Check if order is completed and disable action
     if (currentOrder && currentOrder.status === 'completed') {
@@ -1894,6 +1894,8 @@ function RestaurantPOSContent() {
           taxBreakdown: taxBreakdown,
           taxAmount: totalTax,
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+          // Special instructions for kitchen
+          specialInstructions: specialInstructions || null,
           lastUpdatedBy: {
             name: currentUser.name || 'Staff',
             id: currentUser.id,
@@ -1988,6 +1990,8 @@ function RestaurantPOSContent() {
         taxBreakdown: taxBreakdown,
         taxAmount: totalTax,
         finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+        // Special instructions for kitchen
+        specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : ''
       };
 
@@ -2136,8 +2140,8 @@ function RestaurantPOSContent() {
       return;
     }
 
-    // Extract tax information from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
+    // Extract tax information and special instructions from taxData passed by OrderSummary
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null } = taxData;
 
     try {
       setProcessing(true);
@@ -2173,6 +2177,8 @@ function RestaurantPOSContent() {
         taxBreakdown: taxBreakdown,
         taxAmount: totalTax,
         finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+        // Special instructions for kitchen
+        specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
         status: 'pending' // Save as draft
       };
@@ -2249,8 +2255,8 @@ function RestaurantPOSContent() {
       return;
     }
 
-    // Extract tax information from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
+    // Extract tax information and special instructions from taxData passed by OrderSummary
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null } = taxData;
 
     try {
       setPlacingOrder(true);
@@ -2293,6 +2299,8 @@ function RestaurantPOSContent() {
           taxBreakdown: taxBreakdown,
           taxAmount: totalTax,
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+          // Special instructions for kitchen
+          specialInstructions: specialInstructions || null,
           updatedAt: new Date().toISOString(),
           lastUpdatedBy: {
             name: 'Staff Member',
@@ -2374,6 +2382,8 @@ function RestaurantPOSContent() {
           taxBreakdown: taxBreakdown,
           taxAmount: totalTax,
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+          // Special instructions for kitchen
+          specialInstructions: specialInstructions || null,
           notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
           status: 'confirmed' // Place order to kitchen
         };

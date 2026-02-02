@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
-import { 
-  FaShoppingCart, 
-  FaTimes, 
-  FaUtensils, 
-  FaMinus, 
-  FaPlus, 
-  FaCreditCard, 
-  FaMoneyBillWave, 
-  FaSave, 
-  FaCheckCircle, 
+import {
+  FaShoppingCart,
+  FaTimes,
+  FaUtensils,
+  FaMinus,
+  FaPlus,
+  FaCreditCard,
+  FaMoneyBillWave,
+  FaSave,
+  FaCheckCircle,
   FaSpinner,
   FaQrcode,
   FaTrash,
@@ -22,7 +22,8 @@ import {
   FaChair,
   FaExchangeAlt,
   FaTable,
-  FaBed
+  FaBed,
+  FaStickyNote
 } from 'react-icons/fa';
 
 const OrderSummary = ({ 
@@ -75,7 +76,11 @@ const OrderSummary = ({
   const [taxBreakdown, setTaxBreakdown] = useState([]);
   const [totalTax, setTotalTax] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
-  
+
+  // Special Instructions State
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+
   // Voice Assistant State
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -189,6 +194,13 @@ const OrderSummary = ({
       setGrandTotal(getTotalAmount());
     }
   }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings]);
+
+  // Pre-populate special instructions when editing an existing order
+  useEffect(() => {
+    if (currentOrder?.specialInstructions) {
+      setSpecialInstructions(currentOrder.specialInstructions);
+    }
+  }, [currentOrder]);
 
   // Voice Assistant Functions
   const fuzzyMatchMenuItems = (transcript, menuItems) => {
@@ -412,12 +424,13 @@ const OrderSummary = ({
   const handleProcessOrder = async () => {
     if (typeof onProcessOrder === 'function') {
       try {
-        // Pass tax data to the handler
+        // Pass tax data and special instructions to the handler
         const taxData = {
           taxBreakdown,
           totalTax,
           finalAmount: grandTotal,
-          subtotal: getTotalAmount()
+          subtotal: getTotalAmount(),
+          specialInstructions: specialInstructions.trim() || null
         };
         const result = await onProcessOrder(taxData);
         console.log('Process order result:', result);
@@ -724,7 +737,7 @@ const OrderSummary = ({
         </div>
       )}
 
-      {/* Scrollable Content - Cart Items, Totals, Customer Info, Payment */}
+      {/* Scrollable Content - Cart Items Only */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
@@ -756,6 +769,7 @@ const OrderSummary = ({
                   invoicePrintWindowRef.current = null;
                   setOrderSuccess(null);
                   onClearCart();
+                  setSpecialInstructions(''); // Clear special instructions for new order
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
                 }}
                 style={{
@@ -962,6 +976,7 @@ const OrderSummary = ({
                   invoicePrintWindowRef.current = null;
                   setOrderSuccess(null);
                   onClearCart();
+                  setSpecialInstructions(''); // Clear special instructions for new order
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
                 }}
                 style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '0 auto', boxShadow: '0 4px 12px rgba(34,197,94,0.4)' }}
@@ -1365,63 +1380,176 @@ const OrderSummary = ({
           </div>
         )}
 
-        {/* Totals & Customer Info Section - Inside scroll area */}
-        {cart.length > 0 && !shouldShowOrderSummary() && (
-          <div style={{ backgroundColor: '#f9fafb', marginTop: '8px', borderRadius: '8px' }}>
-          {/* Total */}
-          <div style={{ padding: '8px 12px' }}>
-            {/* Tax Breakdown - Compact */}
-            {(taxBreakdown.length > 0 || totalTax > 0) && (
-              <div style={{ 
-                backgroundColor: '#f3f4f6', 
-                padding: '8px 12px', 
-                borderRadius: '6px', 
-                marginBottom: '8px',
-                fontSize: '11px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                  <span style={{ color: '#6b7280' }}>Subtotal:</span>
-                  <span style={{ color: '#374151', fontWeight: '600' }}>₹{getTotalAmount().toFixed(2)}</span>
-                </div>
-                {taxBreakdown.map((tax, index) => (
-                  <div key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                    <span style={{ color: '#6b7280' }}>{tax.name} ({tax.rate}%):</span>
-                    <span style={{ color: '#374151', fontWeight: '600' }}>₹{tax.amount?.toFixed(2) || '0.00'}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div style={{ 
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)', 
-              color: 'white', 
-              padding: '10px 12px', 
+      </div>
+
+      {/* Fixed Bottom Section - Total, Customer Info, Payment, Buttons */}
+      {cart.length > 0 && !shouldShowOrderSummary() && (
+        <div style={{
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'white',
+          flexShrink: 0,
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.08)'
+        }}>
+          {/* Total - Red bar */}
+          <div style={{ padding: '10px 12px 6px 12px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+              color: 'white',
+              padding: '12px 14px',
               borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              marginBottom: '8px'
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
             }}>
+              {/* Total with Subtotal & Tax on left, Amount on right */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('common.total')}</span>
-                <span style={{ fontSize: '20px', fontWeight: 'bold' }}>₹{grandTotal > 0 ? grandTotal.toFixed(2) : getTotalAmount().toFixed(2)}</span>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>{t('common.total')}</div>
+                  {(taxBreakdown.length > 0 || totalTax > 0) && (
+                    <div style={{ fontSize: '11px', opacity: 0.9, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <span>Subtotal: ₹{getTotalAmount().toFixed(2)}</span>
+                      {taxBreakdown.map((tax, index) => (
+                        <span key={index}>{tax.name} ({tax.rate}%): ₹{tax.amount?.toFixed(2) || '0.00'}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontSize: '22px', fontWeight: 'bold' }}>₹{grandTotal > 0 ? grandTotal.toFixed(2) : getTotalAmount().toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
-            <div style={{ padding: '2px 16px 12px 16px' }}>
-              {/* Customer Information */}
+            <div style={{ padding: '6px 12px 12px 12px' }}>
+              {/* Customer Information Header with Special Instructions Icon */}
               <div style={{ marginBottom: '8px' }}>
-                <div style={{ 
-                  fontSize: '12px', 
-                  fontWeight: '700', 
-                  color: '#1f2937', 
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#1f2937',
                   marginBottom: '8px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  justifyContent: 'space-between'
                 }}>
-                  {t('dashboard.customerName')}
+                  <span>{t('dashboard.customerName')}</span>
+                  {/* Special Instructions Icon Button with Floating Box */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      onClick={() => setShowInstructionsModal(!showInstructionsModal)}
+                      title={specialInstructions ? 'Edit kitchen instructions' : 'Add kitchen instructions'}
+                      style={{
+                        padding: '5px 8px',
+                        background: specialInstructions ? '#fef3c7' : 'transparent',
+                        border: specialInstructions ? '1px solid #fbbf24' : '1px solid #d1d5db',
+                        borderRadius: specialInstructions ? '5px 0 0 5px' : '5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <FaStickyNote size={11} style={{ color: specialInstructions ? '#d97706' : '#9ca3af' }} />
+                      {specialInstructions && <span style={{ fontSize: '9px', color: '#d97706' }}>✓</span>}
+                    </button>
+                    {/* Clear button - only show when instructions exist */}
+                    {specialInstructions && (
+                      <button
+                        onClick={() => setSpecialInstructions('')}
+                        title="Clear instructions"
+                        style={{
+                          padding: '5px 6px',
+                          background: '#fee2e2',
+                          border: '1px solid #fecaca',
+                          borderLeft: 'none',
+                          borderRadius: '0 5px 5px 0',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <FaTimes size={9} style={{ color: '#dc2626' }} />
+                      </button>
+                    )}
+
+                    {/* Floating Instructions Box */}
+                    {showInstructionsModal && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '6px',
+                        width: '260px',
+                        background: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                        border: '1px solid #e5e7eb',
+                        zIndex: 100,
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{ padding: '8px 10px', background: '#fef3c7', borderBottom: '1px solid #fde68a' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Kitchen Instructions</span>
+                        </div>
+                        <div style={{ padding: '8px' }}>
+                          <textarea
+                            value={specialInstructions}
+                            onChange={(e) => setSpecialInstructions(e.target.value)}
+                            placeholder="E.g., No onions, extra spicy..."
+                            autoFocus
+                            style={{
+                              width: '100%',
+                              height: '60px',
+                              padding: '8px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              resize: 'none',
+                              outline: 'none',
+                              fontFamily: 'inherit',
+                              boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '6px' }}>
+                            {specialInstructions && (
+                              <button
+                                onClick={() => setSpecialInstructions('')}
+                                style={{
+                                  padding: '5px 10px',
+                                  fontSize: '10px',
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                Clear
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowInstructionsModal(false)}
+                              style={{
+                                padding: '5px 12px',
+                                fontSize: '10px',
+                                background: '#f59e0b',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: '600'
+                              }}
+                            >
+                              Done
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Validation states */}
@@ -1708,19 +1836,9 @@ const OrderSummary = ({
 
             </div>
           )}
-        </div>
-        )}
-      </div>
 
-      {/* Fixed Bottom Action Buttons */}
-      {cart.length > 0 && !shouldShowOrderSummary() && (
-        <div style={{
-          borderTop: '1px solid #e5e7eb',
-          backgroundColor: 'white',
-          padding: '12px 16px',
-          flexShrink: 0,
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
-        }}>
+          {/* Action Buttons */}
+          <div style={{ padding: '6px 12px 12px 12px' }}>
           {/* Error Message */}
           {error && (
             <div style={{
@@ -1744,12 +1862,13 @@ const OrderSummary = ({
               <button
                 onClick={() => {
                   if (typeof onSaveOrder === 'function') {
-                    // Pass tax data to save order
+                    // Pass tax data and special instructions to save order
                     const taxData = {
                       taxBreakdown,
                       totalTax,
                       finalAmount: grandTotal,
-                      subtotal: getTotalAmount()
+                      subtotal: getTotalAmount(),
+                      specialInstructions: specialInstructions.trim() || null
                     };
                     onSaveOrder(taxData);
                   }
@@ -1782,12 +1901,13 @@ const OrderSummary = ({
               <button
                 onClick={() => {
                   if (typeof onPlaceOrder === 'function') {
-                    // Pass tax data to place order
+                    // Pass tax data and special instructions to place order
                     const taxData = {
                       taxBreakdown,
                       totalTax,
                       finalAmount: grandTotal,
-                      subtotal: getTotalAmount()
+                      subtotal: getTotalAmount(),
+                      specialInstructions: specialInstructions.trim() || null
                     };
                     onPlaceOrder(taxData);
                   }
@@ -1867,6 +1987,7 @@ const OrderSummary = ({
               </>
             )}
           </button>
+          </div>
         </div>
       )}
 
