@@ -50,6 +50,7 @@ import {
   FaCloudUploadAlt,
   FaMicrophone,
   FaMicrophoneSlash,
+  FaStop,
   FaBed,
   FaThList
 } from 'react-icons/fa';
@@ -177,10 +178,21 @@ function RestaurantPOSContent() {
   const analyserRef = useRef(null);
   const microphoneRef = useRef(null);
   const animationFrameRef = useRef(null);
-  
+
+  // Smart Voice State
+  const [voiceSessionId, setVoiceSessionId] = useState(null);
+  const [processedVoiceItems, setProcessedVoiceItems] = useState([]); // Items already added
+  const [voiceCompiledText, setVoiceCompiledText] = useState(''); // Compiled recognized items text
+  const [voiceItemsAdded, setVoiceItemsAdded] = useState(0); // Count of items added in this session
+  const lastChunkRef = useRef(''); // Track last processed chunk to avoid duplicates
+  const voiceProcessingRef = useRef(false); // Prevent overlapping API calls
+
   // Fullscreen mode states
   const [isNavigationHidden, setIsNavigationHidden] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Floating Command Bar ref
+  const commandBarInputRef = useRef(null);
 
   // Save view settings to localStorage when they change (tied to user ID)
   useEffect(() => {
@@ -198,6 +210,29 @@ function RestaurantPOSContent() {
       }
     }
   }, [useModernCards, categoryViewMode]);
+
+  // Keyboard shortcut for voice ordering (F2 or Ctrl+Space)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // F2 or Ctrl+Space to toggle voice
+      if (e.key === 'F2' || (e.ctrlKey && e.code === 'Space')) {
+        e.preventDefault();
+        if (isListeningVoice) {
+          stopVoiceListening(false);
+        } else {
+          startVoiceListening();
+        }
+      }
+      // Escape to stop voice
+      if (e.key === 'Escape' && isListeningVoice) {
+        e.preventDefault();
+        stopVoiceListening(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListeningVoice]);
 
   // Prefetch tables/floors once restaurant is known
   const prefetchTables = useCallback(async (rid) => {
@@ -787,6 +822,7 @@ function RestaurantPOSContent() {
     console.log('🚀 Loading initial data (first time)');
     initialDataLoadedRef.current = true;
     loadInitialData(false, true); // Use cache for instant load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run on mount
 
   // Listen for restaurant changes from navigation
@@ -1055,6 +1091,7 @@ function RestaurantPOSContent() {
     if (viewParam === 'tables' || viewParam === 'orders') {
       setViewMode(viewParam);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle logo click to switch from tables to orders view
@@ -1139,6 +1176,7 @@ function RestaurantPOSContent() {
         setOrderLoadingPartial(false);
       }, 300); // Reduced delay for faster UX
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, selectedRestaurant?.id]);
 
   const filteredItems = (menuItems || []).filter(item => {
@@ -1735,104 +1773,196 @@ function RestaurantPOSContent() {
     setAudioLevels([]);
   };
 
+  // Smart Voice Processing - sends to API with cart context
+  const processSmartVoice = async (transcript) => {
+    if (!selectedRestaurant?.id || !transcript || voiceProcessingRef.current) return;
+
+    // Skip if same as last processed
+    if (transcript === lastChunkRef.current) return;
+    lastChunkRef.current = transcript;
+    voiceProcessingRef.current = true;
+
+    try {
+      const response = await apiClient.smartVoiceProcess({
+        transcript,
+        restaurantId: selectedRestaurant.id,
+        existingCart: cart.map(item => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        processedItemIds: processedVoiceItems.map(i => i.id),
+        isStreaming: true
+      });
+
+      // Update compiled text
+      if (response.compiledText) {
+        setVoiceCompiledText(response.compiledText);
+      }
+
+      // Process items
+      if (response.items?.length > 0) {
+        let addedCount = 0;
+        for (const item of response.items) {
+          if (item.action === 'add') {
+            const existingItem = cart.find(c => c.id === item.id);
+            if (existingItem) {
+              updateCartItemQuantity(item.id, existingItem.quantity + (item.quantity || 1));
+            } else {
+              addToCart({ ...item, quantity: item.quantity || 1 });
+            }
+            setProcessedVoiceItems(prev => [...prev, item]);
+            addedCount++;
+          } else if (item.action === 'remove') {
+            removeFromCart(item.id);
+          } else if (item.action === 'update' && item.quantity) {
+            updateCartItemQuantity(item.id, item.quantity);
+          }
+        }
+        setVoiceItemsAdded(prev => prev + addedCount);
+      }
+
+      // Auto-stop if AI detected completion intent
+      if (response.shouldStop) {
+        console.log('🛑 Auto-stopping: AI detected completion intent');
+        setTimeout(() => stopVoiceListening(true), 500);
+      }
+
+    } catch (error) {
+      console.error('Smart voice processing error:', error);
+    } finally {
+      voiceProcessingRef.current = false;
+    }
+  };
+
   // Voice Assistant Functions
   const startVoiceListening = async () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
       return;
     }
-    
+
+    // Initialize session
+    const sessionId = `voice_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setVoiceSessionId(sessionId);
+    setProcessedVoiceItems([]);
+    setVoiceCompiledText('');
+    setVoiceItemsAdded(0);
+    lastChunkRef.current = '';
+    voiceProcessingRef.current = false;
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    
-    recognition.continuous = true; // Changed to true for manual stop
-    recognition.interimResults = true; // Show interim results
-    recognition.lang = 'en-US';
-    
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'hi-IN'; // Hindi for better Indian accent recognition
+
     recognition.onstart = () => {
       setIsListeningVoice(true);
       setVoiceTranscript('');
-      finalTranscriptRef.current = ''; // Reset accumulated transcript
-      startAudioVisualizer(); // Start audio visualizer
+      finalTranscriptRef.current = '';
     };
-    
+
     recognition.onresult = async (event) => {
       let interimTranscript = '';
       let newFinalTranscript = '';
-      
-      // Process all results from the last resultIndex
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          // Accumulate final transcripts
           newFinalTranscript += transcript + ' ';
         } else {
-          // Show interim results for real-time feedback
           interimTranscript += transcript;
         }
       }
-      
-      // Accumulate final transcripts
+
       if (newFinalTranscript) {
         finalTranscriptRef.current += newFinalTranscript;
+        // Process with smart API
+        processSmartVoice(finalTranscriptRef.current.trim());
       }
-      
-      // Display: accumulated final + current interim
+
       const displayText = finalTranscriptRef.current + (interimTranscript ? interimTranscript : '');
       setVoiceTranscript(displayText.trim());
     };
-    
+
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      if (event.error !== 'no-speech') {
-      setIsListeningVoice(false);
-        stopAudioVisualizer();
-      recognition.stop();
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        stopVoiceListening(false);
       }
     };
-    
+
     recognition.onend = () => {
       if (isListeningVoice) {
-        // Restart if still listening (unless manually stopped)
-        recognition.start();
-      } else {
-        stopAudioVisualizer();
+        try {
+          recognition.start();
+        } catch (e) {
+          console.log('Recognition restart failed');
+        }
       }
     };
-    
+
     setRecognitionInstance(recognition);
     recognition.start();
   };
-  
-  const stopVoiceListening = async () => {
+
+  const stopVoiceListening = async (isAutoStop = false) => {
     setIsListeningVoice(false);
     stopAudioVisualizer();
-    
+
     if (recognitionInstance) {
       recognitionInstance.stop();
       setRecognitionInstance(null);
     }
-    
-    // Get the complete accumulated transcript
-    const completeTranscript = finalTranscriptRef.current.trim() || voiceTranscript.trim();
-    
-    // Process the final transcript
-    if (completeTranscript) {
-      await processVoiceCommand(completeTranscript);
-      setVoiceTranscript('');
-      finalTranscriptRef.current = '';
-    } else {
-      // No transcript captured
+
+    // Show final notification
+    const totalItems = voiceItemsAdded;
+    if (totalItems > 0) {
+      setNotification({
+        type: 'success',
+        title: isAutoStop ? 'Order Recorded' : 'Voice Order Complete',
+        message: `${totalItems} item${totalItems > 1 ? 's' : ''} added to cart`,
+        show: true
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } else if (!isAutoStop && finalTranscriptRef.current.trim()) {
       setNotification({
         type: 'warning',
-        title: 'No Speech Detected',
-        message: 'Please speak your order and try again.',
+        title: 'No Items Found',
+        message: 'Could not match any menu items.',
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
     }
+
+    // Cleanup
+    setVoiceTranscript('');
+    finalTranscriptRef.current = '';
+    setVoiceSessionId(null);
+    setProcessedVoiceItems([]);
+    setVoiceCompiledText('');
+    setVoiceItemsAdded(0);
+    lastChunkRef.current = '';
+    voiceProcessingRef.current = false;
   };
-  
+
+  // Keyboard shortcut for command bar (Cmd/Ctrl + K)
+  useEffect(() => {
+    const handleCommandBarShortcut = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (commandBarInputRef.current) {
+          commandBarInputRef.current.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleCommandBarShortcut);
+    return () => window.removeEventListener('keydown', handleCommandBarShortcut);
+  }, []);
+
   const processVoiceCommand = async (transcript) => {
     try {
       setIsProcessingVoice(true);
@@ -3235,208 +3365,238 @@ function RestaurantPOSContent() {
         </div>
       )}
 
-      {/* Voice Listening Panel - Top Header Overlay */}
-      {isListeningVoice && (
-        <div style={{
-          position: 'fixed',
-          top: '80px', // Below navigation header
-          left: 0,
-          right: 0,
-          backgroundColor: 'white',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-          zIndex: 9998,
-          padding: isMobile ? '16px' : '20px 24px',
-          animation: 'slideDown 0.3s ease-out',
-          borderBottom: '3px solid #ef4444'
-        }}>
-          <style>{`
-            @keyframes slideDown {
-              from {
-                transform: translateY(-100%);
-                opacity: 0;
-              }
-              to {
-                transform: translateY(0);
-                opacity: 1;
-              }
-            }
-            @keyframes pulse {
-              0%, 100% { opacity: 1; transform: scale(1); }
-              50% { opacity: 0.8; transform: scale(1.05); }
-            }
-            @keyframes barAnimation {
-              0%, 100% {
-                transform: scaleY(0.3);
-              }
-              50% {
-                transform: scaleY(1);
-              }
-            }
-          `}</style>
+      {/* Floating Command Bar - Search & Voice */}
+      {!isMobile && viewMode === 'orders' && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: isListeningVoice ? '540px' : '480px',
+            zIndex: 1000,
+            transition: 'width 0.3s ease'
+          }}
+        >
+          {/* Compiled Text - Shows recognized items when listening */}
+          {isListeningVoice && voiceCompiledText && (
+            <div style={{
+              marginBottom: '8px',
+              padding: '10px 16px',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderRadius: '12px',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              animation: 'fadeIn 0.2s ease'
+            }}>
+              <style>{`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+              `}</style>
+              <div style={{ fontSize: '11px', color: '#059669', fontWeight: '600', marginBottom: '4px' }}>
+                Recognized Items:
+              </div>
+              <div style={{ fontSize: '14px', color: '#065f46', fontWeight: '600' }}>
+                {voiceCompiledText}
+              </div>
+            </div>
+          )}
 
+          {/* Main Bar */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: isMobile ? '12px' : '20px',
-            width: '100%',
-            flexWrap: isMobile ? 'wrap' : 'nowrap'
+            gap: '14px',
+            padding: '14px 20px',
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '50px',
+            boxShadow: isListeningVoice
+              ? '0 8px 32px rgba(239, 68, 68, 0.2), 0 0 0 2px #ef4444'
+              : '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+            transition: 'box-shadow 0.3s ease'
           }}>
-            {/* Left: Microphone Icon & Status */}
+            {/* Icon - Changes based on mode */}
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: isMobile ? '8px' : '12px',
-              flexShrink: 0
-            }}>
-              <div style={{
-                width: isMobile ? '40px' : '48px',
-                height: isMobile ? '40px' : '48px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}>
-                <FaMicrophone size={isMobile ? 18 : 20} color="white" />
-              </div>
-              <div>
-                <div style={{
-                  fontSize: isMobile ? '14px' : '16px',
-                  fontWeight: '700',
-                  color: '#1f2937',
-                  marginBottom: '2px'
-                }}>
-                  Listening...
-                </div>
-                <div style={{
-                  fontSize: isMobile ? '11px' : '12px',
-                  color: '#6b7280'
-                }}>
-                  Speak your order
-                </div>
-              </div>
-            </div>
-
-            {/* Center: Audio Visualizer */}
-            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: isListeningVoice
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '4px',
-              height: isMobile ? '40px' : '50px',
-              flex: 1,
-              minWidth: 0,
-              padding: isMobile ? '0 8px' : '0 16px'
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
+              animation: isListeningVoice ? 'pulse 1.5s ease-in-out infinite' : 'none'
             }}>
-              {audioLevels.length > 0 ? (
-                audioLevels.map((level, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      width: isMobile ? '4px' : '6px',
-                      height: `${Math.max(level * (isMobile ? 0.3 : 0.4), 8)}px`,
-                      backgroundColor: `hsl(${220 + (level * 0.5)}, 70%, 60%)`,
-                      borderRadius: '3px',
-                      transition: 'height 0.1s ease-out',
-                      animation: `barAnimation ${0.5 + (index * 0.1)}s ease-in-out infinite`,
-                      boxShadow: `0 1px 4px rgba(239, 68, 68, ${0.2 + (level / 100) * 0.3})`
-                    }}
-                  />
-                ))
+              {isListeningVoice ? (
+                <FaMicrophone size={15} color="white" />
               ) : (
-                Array.from({ length: 12 }).map((_, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      width: isMobile ? '4px' : '6px',
-                      height: isMobile ? '20px' : '25px',
-                      backgroundColor: '#e5e7eb',
-                      borderRadius: '3px',
-                      animation: `barAnimation ${0.5 + (index * 0.1)}s ease-in-out infinite`
-                    }}
-                  />
-                ))
+                <FaSearch size={15} color="white" />
               )}
             </div>
 
-            {/* Right: Transcript & Stop Button */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: isMobile ? '8px' : '12px',
-              flexShrink: 0,
-              flexDirection: isMobile ? 'column' : 'row',
-              width: isMobile ? '100%' : 'auto'
-            }}>
-              {/* Transcript Display */}
-              {voiceTranscript && (
-                <div style={{
-                  flex: isMobile ? '1' : '0 0 auto',
-                  maxWidth: isMobile ? '100%' : '300px',
-                  padding: isMobile ? '8px 12px' : '10px 16px',
-                  backgroundColor: '#f8fafc',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  minHeight: isMobile ? '36px' : '40px',
-                  maxHeight: isMobile ? '60px' : '80px',
-                  overflowY: 'auto',
-                  width: isMobile ? '100%' : 'auto'
-                }}>
-                  <p style={{
-                    margin: 0,
-                    color: '#374151',
-                    fontSize: isMobile ? '12px' : '13px',
-                    fontWeight: '500',
-                    lineHeight: '1.5',
-                    wordBreak: 'break-word'
-                  }}>
-                    {voiceTranscript}
-                  </p>
-                </div>
-              )}
-
-              {/* Stop Button */}
-              <button
-                onClick={stopVoiceListening}
+            {/* Input / Transcript */}
+            {isListeningVoice ? (
+              <div style={{
+                flex: 1,
+                fontSize: '15px',
+                fontWeight: '500',
+                color: '#374151',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {voiceTranscript || (
+                  <span style={{ color: '#9ca3af' }}>Listening... speak your order</span>
+                )}
+              </div>
+            ) : (
+              <input
+                ref={commandBarInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setSearchTerm('');
+                    commandBarInputRef.current?.blur();
+                  }
+                }}
+                placeholder="Search menu items, codes, or categories..."
                 style={{
-                  padding: isMobile ? '8px 16px' : '10px 20px',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
+                  flex: 1,
                   border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '700',
-                  fontSize: isMobile ? '12px' : '14px',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  backgroundColor: 'transparent',
+                  fontSize: '15px',
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  padding: 0,
+                  width: '100%',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none'
+                }}
+              />
+            )}
+
+            {/* Items Counter - When listening */}
+            {isListeningVoice && voiceItemsAdded > 0 && (
+              <div style={{
+                padding: '6px 12px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: '700',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                flexShrink: 0
+              }}>
+                +{voiceItemsAdded} added
+              </div>
+            )}
+
+            {/* Keyboard Shortcut Hint - Search mode only */}
+            {!isListeningVoice && !searchTerm && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 10px',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: '600',
+                color: '#9ca3af',
+                flexShrink: 0
+              }}>
+                <span style={{ fontSize: '10px' }}>⌘</span> K
+              </div>
+            )}
+
+            {/* Clear Button - Search mode only */}
+            {!isListeningVoice && searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f3f4f6',
+                  border: 'none',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  whiteSpace: 'nowrap',
-                  width: isMobile ? '100%' : 'auto'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#dc2626';
-                  e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#ef4444';
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
+                  cursor: 'pointer',
+                  flexShrink: 0
                 }}
               >
-                <FaMicrophoneSlash size={isMobile ? 12 : 14} />
-                {isMobile ? 'Stop' : 'Stop & Process'}
+                <FaTimes size={10} color="#6b7280" />
               </button>
-            </div>
+            )}
+
+            {/* Divider */}
+            <div style={{
+              width: '1px',
+              height: '28px',
+              backgroundColor: '#e5e7eb',
+              flexShrink: 0
+            }} />
+
+            {/* Voice/Stop Button */}
+            <button
+              onClick={() => isListeningVoice ? stopVoiceListening(false) : startVoiceListening()}
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '14px',
+                background: isListeningVoice
+                  ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.2s ease',
+                boxShadow: isListeningVoice
+                  ? '0 4px 12px rgba(31, 41, 55, 0.3)'
+                  : '0 4px 12px rgba(16, 185, 129, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              title={isListeningVoice ? 'Stop (Esc)' : 'Voice Order (F2)'}
+            >
+              {isListeningVoice ? (
+                <FaStop size={16} color="white" />
+              ) : (
+                <FaMicrophone size={18} color="white" />
+              )}
+            </button>
           </div>
+
+          {/* Hint text when listening */}
+          {isListeningVoice && (
+            <div style={{
+              marginTop: '8px',
+              textAlign: 'center',
+              fontSize: '11px',
+              color: '#6b7280'
+            }}>
+              Say items like &quot;2 paneer tikka, 1 dosa&quot; • Say &quot;that&apos;s all&quot; to finish
+            </div>
+          )}
         </div>
       )}
-      
+
       {/* Header */}
       
       {/* Mobile Top Bar */}
@@ -3566,8 +3726,6 @@ function RestaurantPOSContent() {
         flexDirection: isMobile ? 'column' : 'row',
         height: isMobile ? '100%' : '100%',
         minHeight: 0, // Important for flex children to shrink properly
-        marginTop: isListeningVoice ? (isMobile ? '120px' : '100px') : '0',
-        transition: 'margin-top 0.3s ease-out',
         position: 'relative' // Required for absolute-positioned top header bar
       }}>
         {/* Top Header Bar - All-in-one header with Logo + Controls + Navigation */}
@@ -3750,7 +3908,7 @@ function RestaurantPOSContent() {
 
             {/* Voice Button */}
             <button
-              onClick={isListeningVoice ? stopVoiceListening : startVoiceListening}
+              onClick={() => isListeningVoice ? stopVoiceListening(false) : startVoiceListening()}
               disabled={isProcessingVoice}
               title="Voice Assistant"
               style={{
@@ -3991,7 +4149,7 @@ function RestaurantPOSContent() {
           overflow: 'hidden',
           height: '100%',
           minHeight: 0, // Important for flex children to shrink
-          paddingBottom: isMobile ? '80px' : '0', // Add bottom padding for mobile cart button
+          paddingBottom: isMobile ? '90px' : '0', // Add bottom padding for mobile command bar
           paddingTop: !isMobile ? '66px' : '0', // Header (56px) + gap (10px)
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined
@@ -4195,7 +4353,7 @@ function RestaurantPOSContent() {
                         {isMobile ? 'Listening' : 'Listening...'}
                       </span>
                       <button
-                        onClick={stopVoiceListening}
+                        onClick={() => stopVoiceListening(false)}
                         style={{
                           marginLeft: isMobile ? '4px' : '8px',
                           padding: isMobile ? '3px 6px' : '4px 8px',
@@ -4361,7 +4519,7 @@ function RestaurantPOSContent() {
                   {/* Simple Voice Button */}
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <button
-                      onClick={isListeningVoice ? stopVoiceListening : startVoiceListening}
+                      onClick={() => isListeningVoice ? stopVoiceListening(false) : startVoiceListening()}
                       title={isListeningVoice ? "Stop Voice Order" : isProcessingVoice ? "Processing..." : "Start Voice Order"}
                       disabled={isProcessingVoice}
                     style={{
@@ -5166,6 +5324,7 @@ function RestaurantPOSContent() {
             taxSettings={taxSettings}
             printSettings={printSettings}
             menuItems={menuItems}
+            onStartVoiceOrder={startVoiceListening}
           />
         </div>
                 ) : (
@@ -5220,6 +5379,7 @@ function RestaurantPOSContent() {
                     printSettings={printSettings}
                 menuItems={menuItems}
                 onClose={() => setShowMobileCart(false)}
+                onStartVoiceOrder={startVoiceListening}
                   />
             )}
           </>
@@ -6005,6 +6165,213 @@ function RestaurantPOSContent() {
           cart={cart}
           menuItems={menuItems}
         />
+      )}
+
+      {/* Mobile Command Bar - Bottom Fixed */}
+      {isMobile && viewMode === 'orders' && !showMobileCart && (
+        <div style={{
+          position: 'fixed',
+          bottom: '16px',
+          left: '16px',
+          right: '16px',
+          zIndex: 900
+        }}>
+          {/* Compiled Text - Mobile */}
+          {isListeningVoice && voiceCompiledText && (
+            <div style={{
+              marginBottom: '8px',
+              padding: '8px 14px',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderRadius: '10px',
+              border: '1px solid rgba(16, 185, 129, 0.2)'
+            }}>
+              <div style={{ fontSize: '10px', color: '#059669', fontWeight: '600', marginBottom: '2px' }}>
+                Recognized:
+              </div>
+              <div style={{ fontSize: '13px', color: '#065f46', fontWeight: '600' }}>
+                {voiceCompiledText}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '12px 16px',
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '50px',
+            boxShadow: isListeningVoice
+              ? '0 8px 32px rgba(239, 68, 68, 0.2), 0 0 0 2px #ef4444'
+              : '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)'
+          }}>
+            {/* Icon */}
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)'
+            }}>
+              {isListeningVoice ? (
+                <FaMicrophone size={13} color="white" />
+              ) : (
+                <FaSearch size={13} color="white" />
+              )}
+            </div>
+
+            {/* Input / Transcript */}
+            {isListeningVoice ? (
+              <div style={{
+                flex: 1,
+                fontSize: '13px',
+                fontWeight: '500',
+                color: '#374151',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {voiceTranscript || <span style={{ color: '#9ca3af' }}>Listening...</span>}
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search menu..."
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  backgroundColor: 'transparent',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  padding: 0,
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none'
+                }}
+              />
+            )}
+
+            {/* Items Counter - Mobile */}
+            {isListeningVoice && voiceItemsAdded > 0 && (
+              <div style={{
+                padding: '4px 10px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: '700',
+                flexShrink: 0
+              }}>
+                +{voiceItemsAdded}
+              </div>
+            )}
+
+            {/* Clear - Search only */}
+            {!isListeningVoice && searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f3f4f6',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                <FaTimes size={8} color="#6b7280" />
+              </button>
+            )}
+
+            {/* Divider */}
+            <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', flexShrink: 0 }} />
+
+            {/* Voice/Stop Button */}
+            <button
+              onClick={() => isListeningVoice ? stopVoiceListening(false) : startVoiceListening()}
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '12px',
+                background: isListeningVoice
+                  ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              {isListeningVoice ? (
+                <FaStop size={13} color="white" />
+              ) : (
+                <FaMicrophone size={15} color="white" />
+              )}
+            </button>
+
+            {/* Cart Button - Only when not listening */}
+            {!isListeningVoice && (
+              <button
+                onClick={() => setShowMobileCart(true)}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: cart.length > 0
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                    : '#f3f4f6',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  position: 'relative',
+                  boxShadow: cart.length > 0 ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
+                }}
+              >
+                <FaShoppingCart size={15} color={cart.length > 0 ? 'white' : '#6b7280'} />
+                {cart.length > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    backgroundColor: '#1f2937',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '16px',
+                    height: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '9px',
+                    fontWeight: '700'
+                  }}>
+                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

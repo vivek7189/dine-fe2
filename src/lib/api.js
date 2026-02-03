@@ -1568,6 +1568,22 @@ class ApiClient {
     });
   }
 
+  // Voice chunk processing for real-time streaming
+  async processVoiceChunk(data) {
+    return this.request('/api/voice/process-chunk', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  // Smart Voice Processing - with intent detection and cart context
+  async smartVoiceProcess(data) {
+    return this.request('/api/voice/smart-process', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
   // Voice Purchase Order processing
   async processVoicePurchaseOrder(transcript, restaurantId) {
     return this.request(`/api/voice/process-purchase-order`, {

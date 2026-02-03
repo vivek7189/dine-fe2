@@ -69,7 +69,8 @@ const OrderSummary = ({
   manualRoomNumber = '',
   setManualRoomNumber,
   billingMode = false, // When true, hides Save/Place Order buttons, only shows Complete Billing
-  onBillingComplete // Callback when billing is completed in billingMode
+  onBillingComplete, // Callback when billing is completed in billingMode
+  onStartVoiceOrder // Callback to start voice ordering from dashboard
 }) => {
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
@@ -1141,6 +1142,43 @@ const OrderSummary = ({
                 </div>
               ))}
             </div>
+
+            {/* Voice Order Button */}
+            {onStartVoiceOrder && (
+              <button
+                onClick={onStartVoiceOrder}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  maxWidth: '240px',
+                  padding: '14px 20px',
+                  marginTop: '24px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                }}
+              >
+                <FaMicrophone size={16} />
+                Start Voice Order
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
