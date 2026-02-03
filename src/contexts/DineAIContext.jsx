@@ -5,10 +5,45 @@ import apiClient from '../lib/api';
 
 const DineAIContext = createContext();
 
+// Default values for SSR/build time when provider isn't mounted
+const defaultContext = {
+  isOpen: false,
+  isListening: false,
+  isProcessing: false,
+  isSpeaking: false,
+  sessionId: null,
+  sessionConfig: null,
+  messages: [],
+  transcript: '',
+  interimTranscript: '',
+  settings: { responseMode: 'voice', voiceMode: 'push-to-talk', voice: 'alloy', enabled: true },
+  usage: null,
+  error: null,
+  setIsListening: () => {},
+  setIsSpeaking: () => {},
+  setTranscript: () => {},
+  setInterimTranscript: () => {},
+  setMessages: () => {},
+  setError: () => {},
+  open: () => {},
+  close: () => {},
+  toggle: () => {},
+  startSession: async () => ({ success: false }),
+  endSession: async () => {},
+  sendMessage: async () => ({ success: false }),
+  clearMessages: () => {},
+  updateSettings: async () => {},
+  getCapabilities: async () => null,
+  getSuggestions: async () => [],
+  getUsage: async () => null,
+  getContext: () => ({ userId: null, restaurantId: null, userRole: 'employee', userName: 'User' })
+};
+
 export const useDineAI = () => {
   const context = useContext(DineAIContext);
+  // Return default context during SSR/build - provider will be available at runtime
   if (!context) {
-    throw new Error('useDineAI must be used within a DineAIProvider');
+    return defaultContext;
   }
   return context;
 };

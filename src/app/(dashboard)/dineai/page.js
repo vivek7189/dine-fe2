@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering - this page uses DineAIContext which requires client-side provider
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
