@@ -615,11 +615,22 @@ function NavigationContent({ isHidden = false }) {
           contain: 'layout' // Prevent layout shifts
         }}>
           {/* Logo - Modern Design - Always visible */}
-          <div 
-            onClick={() => router.push('/dashboard')}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <div
+            onClick={() => {
+              // If already on dashboard page with tables view, switch to orders view
+              if (pathname === '/dashboard' && typeof window !== 'undefined') {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('view') === 'tables') {
+                  // Dispatch event to switch to orders view
+                  window.dispatchEvent(new CustomEvent('logoClickSwitchToOrders'));
+                  return;
+                }
+              }
+              router.push('/dashboard');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
               gap: isMobile ? '8px' : '12px',
               cursor: 'pointer',
               padding: isMobile ? '4px 8px' : '6px 12px',
@@ -1333,14 +1344,24 @@ function NavigationContent({ isHidden = false }) {
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div 
+              <div
                 onClick={() => {
+                  // If already on dashboard page with tables view, switch to orders view
+                  if (pathname === '/dashboard' && typeof window !== 'undefined') {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('view') === 'tables') {
+                      // Dispatch event to switch to orders view
+                      window.dispatchEvent(new CustomEvent('logoClickSwitchToOrders'));
+                      setShowMobileMenu(false);
+                      return;
+                    }
+                  }
                   router.push('/dashboard');
                   setShowMobileMenu(false);
                 }}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: '12px',
                   cursor: 'pointer',
                   padding: '6px',

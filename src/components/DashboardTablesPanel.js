@@ -235,22 +235,35 @@ export default function DashboardTablesPanel({
   };
 
   // Handle billing process from modal OrderSummary
-  const handleModalProcessOrder = async () => {
+  const handleModalProcessOrder = async (taxData = {}) => {
     if (!actionsModal.order || !selectedRestaurant?.id || modalProcessing) return;
 
     setModalProcessing(true);
     const order = actionsModal.order;
 
+    // Extract tax information from taxData passed by OrderSummary
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
+
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
-      // Update order to completed status with payment
+      // Calculate the payment amount (use taxData if provided, else use order's stored values)
+      const paymentAmount = finalAmount || order.finalAmount || order.totalAmount || getModalTotalAmount();
+
+      // Update order to completed status with payment and tax info
       const updateData = {
         status: 'completed',
         paymentStatus: 'paid',
         paymentMethod: modalPaymentMethod,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        // Include tax data if provided (in case tax settings changed or for consistency)
+        ...(taxBreakdown.length > 0 && {
+          totalAmount: subtotal || getModalTotalAmount(),
+          taxBreakdown: taxBreakdown,
+          taxAmount: totalTax,
+          finalAmount: finalAmount
+        }),
         lastUpdatedBy: {
           name: currentUser.name || 'Staff',
           id: currentUser.id,
@@ -264,23 +277,23 @@ export default function DashboardTablesPanel({
       await apiClient.verifyPayment({
         orderId: order.id,
         paymentMethod: modalPaymentMethod,
-        amount: order.finalAmount || order.totalAmount || 0,
+        amount: paymentAmount,
         userId: currentUser.id,
         restaurantId: selectedRestaurant.id,
         paymentStatus: 'completed'
       });
 
-      // Send print command if auto-print is enabled
+      // Only send to auto-print if auto-print is enabled (manualPrint disabled)
+      // Don't trigger browser print popup from billing modal - user can print separately if needed
       if (!isManualPrintEnabled()) {
         try {
+          console.log('🖨️ Sending bill to auto-printer for order:', order.id);
           await apiClient.requestManualPrint(order.id, 'bill');
         } catch (printError) {
           console.error('Auto-print failed:', printError);
         }
-      } else {
-        // Manual print - open print window
-        openManualPrintWindow(order, actionsModal.table);
       }
+      // Note: If manual print is enabled, user can print using the Print button on table card
 
       // Close modal
       closeActionsModal();

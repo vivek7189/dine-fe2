@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
-import { 
-  FaShoppingCart, 
-  FaTimes, 
-  FaUtensils, 
-  FaMinus, 
-  FaPlus, 
-  FaCreditCard, 
-  FaMoneyBillWave, 
-  FaSave, 
-  FaCheckCircle, 
+import {
+  FaShoppingCart,
+  FaTimes,
+  FaUtensils,
+  FaMinus,
+  FaPlus,
+  FaCreditCard,
+  FaMoneyBillWave,
+  FaSave,
+  FaCheckCircle,
   FaSpinner,
   FaQrcode,
   FaTrash,
@@ -22,31 +22,33 @@ import {
   FaChair,
   FaExchangeAlt,
   FaTable,
-  FaBed
+  FaBed,
+  FaStickyNote
 } from 'react-icons/fa';
 
-const OrderSummary = ({ 
-  cart, 
+const OrderSummary = ({
+  cart,
   setCart,
-  orderType, 
-  setOrderType, 
-  paymentMethod, 
-  setPaymentMethod, 
-  onClearCart, 
-  onProcessOrder, 
-  onSaveOrder, 
+  orderType,
+  setOrderType,
+  paymentMethod,
+  setPaymentMethod,
+  onClearCart,
+  onProcessOrder,
+  onSaveOrder,
   onPlaceOrder,
-  onRemoveFromCart, 
-  onAddToCart, 
+  onRemoveFromCart,
+  onAddToCart,
   onUpdateCartItemQuantity,
   onTableNumberChange,
   onCustomerNameChange,
   onCustomerMobileChange,
-  processing, 
+  processing,
   placingOrder,
-  orderSuccess, 
-  setOrderSuccess, 
-  error, 
+  savingOrder = false, // Separate loading state for save order button
+  orderSuccess,
+  setOrderSuccess,
+  error,
   getTotalAmount,
   tableNumber,
   customerName,
@@ -68,14 +70,26 @@ const OrderSummary = ({
   manualRoomNumber = '',
   setManualRoomNumber,
   billingMode = false, // When true, hides Save/Place Order buttons, only shows Complete Billing
-  onBillingComplete // Callback when billing is completed in billingMode
+  onBillingComplete, // Callback when billing is completed in billingMode
+  onStartVoiceOrder, // Callback to start voice ordering from dashboard
+  // Saved orders props
+  savedOrders = [],
+  activeSavedOrderId = null,
+  loadingSavedOrderId = null,
+  deletingSavedOrderId = null,
+  onLoadSavedOrder,
+  onDeleteSavedOrder
 }) => {
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
   const [taxBreakdown, setTaxBreakdown] = useState([]);
   const [totalTax, setTotalTax] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
-  
+
+  // Special Instructions State
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+
   // Voice Assistant State
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -189,6 +203,13 @@ const OrderSummary = ({
       setGrandTotal(getTotalAmount());
     }
   }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings]);
+
+  // Pre-populate special instructions when editing an existing order
+  useEffect(() => {
+    if (currentOrder?.specialInstructions) {
+      setSpecialInstructions(currentOrder.specialInstructions);
+    }
+  }, [currentOrder]);
 
   // Voice Assistant Functions
   const fuzzyMatchMenuItems = (transcript, menuItems) => {
@@ -412,7 +433,15 @@ const OrderSummary = ({
   const handleProcessOrder = async () => {
     if (typeof onProcessOrder === 'function') {
       try {
-        const result = await onProcessOrder();
+        // Pass tax data and special instructions to the handler
+        const taxData = {
+          taxBreakdown,
+          totalTax,
+          finalAmount: grandTotal,
+          subtotal: getTotalAmount(),
+          specialInstructions: specialInstructions.trim() || null
+        };
+        const result = await onProcessOrder(taxData);
         console.log('Process order result:', result);
         // If order was successful and we have an order ID, generate invoice
         if (result && result.orderId) {
@@ -717,7 +746,7 @@ const OrderSummary = ({
         </div>
       )}
 
-      {/* Scrollable Content - Cart Items, Totals, Customer Info, Payment */}
+      {/* Scrollable Content - Cart Items Only */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
@@ -730,6 +759,95 @@ const OrderSummary = ({
       }}
       className="hide-scrollbar"
       >
+        {/* Saved Orders Chips - Always visible at top */}
+        {savedOrders && savedOrders.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 0',
+            marginBottom: '8px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            borderBottom: '1px solid #f3f4f6'
+          }} className="hide-scrollbar">
+            <span style={{
+              fontSize: '10px',
+              fontWeight: '600',
+              color: '#6b7280',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}>
+              <FaSave size={9} style={{ marginRight: '3px', display: 'inline' }} />
+              Saved:
+            </span>
+            {savedOrders.map((order) => (
+              <div
+                key={order.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  backgroundColor: activeSavedOrderId === order.id ? '#ea580c' : '#fff7ed',
+                  border: activeSavedOrderId === order.id ? '1px solid #ea580c' : '1px solid #fdba74',
+                  borderRadius: '12px',
+                  cursor: loadingSavedOrderId === order.id ? 'wait' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0,
+                  boxShadow: activeSavedOrderId === order.id ? '0 2px 6px rgba(234, 88, 12, 0.25)' : 'none'
+                }}
+                onClick={() => {
+                  if (onLoadSavedOrder && !loadingSavedOrderId && activeSavedOrderId !== order.id) {
+                    onLoadSavedOrder(order.id);
+                  }
+                }}
+                title={`Load saved order #${order.dailyOrderId || order.id.slice(-4).toUpperCase()}${order.tableNumber ? ` - Table ${order.tableNumber}` : ''}`}
+              >
+                {loadingSavedOrderId === order.id ? (
+                  <FaSpinner size={8} style={{ animation: 'spin 1s linear infinite', color: '#ea580c' }} />
+                ) : (
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    color: activeSavedOrderId === order.id ? '#ffffff' : '#9a3412'
+                  }}>
+                    #{order.dailyOrderId || order.id.slice(-4).toUpperCase()}
+                  </span>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDeleteSavedOrder && !deletingSavedOrderId) onDeleteSavedOrder(order.id);
+                  }}
+                  disabled={deletingSavedOrderId === order.id}
+                  style={{
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: activeSavedOrderId === order.id ? 'rgba(255,255,255,0.25)' : '#fee2e2',
+                    color: activeSavedOrderId === order.id ? '#ffffff' : '#dc2626',
+                    cursor: deletingSavedOrderId === order.id ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                  }}
+                  title="Delete saved order"
+                >
+                  {deletingSavedOrderId === order.id ? (
+                    <FaSpinner size={6} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <FaTimes size={6} />
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {shouldShowOrderSummary() ? (
           <div style={{ padding: '8px 0', paddingTop: '12px' }}>
             <div style={{ 
@@ -749,6 +867,7 @@ const OrderSummary = ({
                   invoicePrintWindowRef.current = null;
                   setOrderSuccess(null);
                   onClearCart();
+                  setSpecialInstructions(''); // Clear special instructions for new order
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
                 }}
                 style={{
@@ -830,6 +949,12 @@ const OrderSummary = ({
                         ))}
                       </tbody>
                     </table>
+                    {orderSuccess.kotData.specialInstructions && (
+                      <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fef3c7', border: '1px dashed #f59e0b', borderRadius: '4px', textAlign: 'left' }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#92400e', marginBottom: '4px' }}>*** SPECIAL INSTRUCTIONS ***</div>
+                        <div style={{ fontSize: '12px', color: '#78350f' }}>{orderSuccess.kotData.specialInstructions}</div>
+                      </div>
+                    )}
                     <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you - DineOpen KOT</div>
                   </div>
                   {shouldShowManualPrint() && (
@@ -845,7 +970,8 @@ const OrderSummary = ({
                       const k = orderSuccess.kotData;
                       const tableOrRoom = k.roomNumber ? `Room: ${k.roomNumber}` : (k.tableNumber ? `Table: ${k.tableNumber}` : '');
                       const totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
-                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .kot-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .kot-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .kot-info{margin:8px 0;} .kot-info div{margin:2px 0;} .item{margin:6px 0;} .item-main{display:flex;} .item-qty{width:30px;font-weight:bold;} .item-name{font-weight:bold;} .item-detail{margin-left:30px;font-size:11px;} .item-note{margin-left:30px;font-size:11px;font-style:italic;} .kot-footer{text-align:center;margin-top:8px;font-weight:bold;}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>Time:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>Customer:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>Waiter:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+                      const specialInstructionsHtml = k.specialInstructions ? `<div class="divider">--------------------------------</div><div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${(k.specialInstructions || '').replace(/</g,'&lt;')}</div></div>` : '';
+                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .kot-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .kot-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .kot-info{margin:8px 0;} .kot-info div{margin:2px 0;} .item{margin:6px 0;} .item-main{display:flex;} .item-qty{width:30px;font-weight:bold;} .item-name{font-weight:bold;} .item-detail{margin-left:30px;font-size:11px;} .item-note{margin-left:30px;font-size:11px;font-style:italic;} .kot-footer{text-align:center;margin-top:8px;font-weight:bold;} .special-instructions{margin:8px 0;padding:6px;border:1px dashed #000;text-align:center;} .special-instructions strong{display:block;margin-bottom:4px;} .special-instructions div{text-align:left;}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>Time:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>Customer:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>Waiter:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
                       const newPw = window.open('', '_blank', 'width=400,height=600');
                       if (newPw) {
                         kotPrintWindowRef.current = newPw;
@@ -955,6 +1081,7 @@ const OrderSummary = ({
                   invoicePrintWindowRef.current = null;
                   setOrderSuccess(null);
                   onClearCart();
+                  setSpecialInstructions(''); // Clear special instructions for new order
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
                 }}
                 style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '0 auto', boxShadow: '0 4px 12px rgba(34,197,94,0.4)' }}
@@ -1112,6 +1239,43 @@ const OrderSummary = ({
                 </div>
               ))}
             </div>
+
+            {/* Voice Order Button */}
+            {onStartVoiceOrder && (
+              <button
+                onClick={onStartVoiceOrder}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  maxWidth: '240px',
+                  padding: '14px 20px',
+                  marginTop: '24px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                }}
+              >
+                <FaMicrophone size={16} />
+                Start Voice Order
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1358,63 +1522,176 @@ const OrderSummary = ({
           </div>
         )}
 
-        {/* Totals & Customer Info Section - Inside scroll area */}
-        {cart.length > 0 && !shouldShowOrderSummary() && (
-          <div style={{ backgroundColor: '#f9fafb', marginTop: '8px', borderRadius: '8px' }}>
-          {/* Total */}
-          <div style={{ padding: '8px 12px' }}>
-            {/* Tax Breakdown - Compact */}
-            {(taxBreakdown.length > 0 || totalTax > 0) && (
-              <div style={{ 
-                backgroundColor: '#f3f4f6', 
-                padding: '8px 12px', 
-                borderRadius: '6px', 
-                marginBottom: '8px',
-                fontSize: '11px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                  <span style={{ color: '#6b7280' }}>Subtotal:</span>
-                  <span style={{ color: '#374151', fontWeight: '600' }}>₹{getTotalAmount().toFixed(2)}</span>
-                </div>
-                {taxBreakdown.map((tax, index) => (
-                  <div key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                    <span style={{ color: '#6b7280' }}>{tax.name} ({tax.rate}%):</span>
-                    <span style={{ color: '#374151', fontWeight: '600' }}>₹{tax.amount?.toFixed(2) || '0.00'}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div style={{ 
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)', 
-              color: 'white', 
-              padding: '10px 12px', 
+      </div>
+
+      {/* Fixed Bottom Section - Total, Customer Info, Payment, Buttons */}
+      {cart.length > 0 && !shouldShowOrderSummary() && (
+        <div style={{
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'white',
+          flexShrink: 0,
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.08)'
+        }}>
+          {/* Total - Red bar */}
+          <div style={{ padding: '10px 12px 6px 12px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+              color: 'white',
+              padding: '12px 14px',
               borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              marginBottom: '8px'
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
             }}>
+              {/* Total with Subtotal & Tax on left, Amount on right */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('common.total')}</span>
-                <span style={{ fontSize: '20px', fontWeight: 'bold' }}>₹{grandTotal > 0 ? grandTotal.toFixed(2) : getTotalAmount().toFixed(2)}</span>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>{t('common.total')}</div>
+                  {(taxBreakdown.length > 0 || totalTax > 0) && (
+                    <div style={{ fontSize: '11px', opacity: 0.9, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <span>Subtotal: ₹{getTotalAmount().toFixed(2)}</span>
+                      {taxBreakdown.map((tax, index) => (
+                        <span key={index}>{tax.name} ({tax.rate}%): ₹{tax.amount?.toFixed(2) || '0.00'}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontSize: '22px', fontWeight: 'bold' }}>₹{grandTotal > 0 ? grandTotal.toFixed(2) : getTotalAmount().toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
-            <div style={{ padding: '2px 16px 12px 16px' }}>
-              {/* Customer Information */}
+            <div style={{ padding: '6px 12px 12px 12px' }}>
+              {/* Customer Information Header with Special Instructions Icon */}
               <div style={{ marginBottom: '8px' }}>
-                <div style={{ 
-                  fontSize: '12px', 
-                  fontWeight: '700', 
-                  color: '#1f2937', 
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#1f2937',
                   marginBottom: '8px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  justifyContent: 'space-between'
                 }}>
-                  {t('dashboard.customerName')}
+                  <span>{t('dashboard.customerName')}</span>
+                  {/* Special Instructions Icon Button with Floating Box */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      onClick={() => setShowInstructionsModal(!showInstructionsModal)}
+                      title={specialInstructions ? 'Edit kitchen instructions' : 'Add kitchen instructions'}
+                      style={{
+                        padding: '5px 8px',
+                        background: specialInstructions ? '#fef3c7' : 'transparent',
+                        border: specialInstructions ? '1px solid #fbbf24' : '1px solid #d1d5db',
+                        borderRadius: specialInstructions ? '5px 0 0 5px' : '5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <FaStickyNote size={11} style={{ color: specialInstructions ? '#d97706' : '#9ca3af' }} />
+                      {specialInstructions && <span style={{ fontSize: '9px', color: '#d97706' }}>✓</span>}
+                    </button>
+                    {/* Clear button - only show when instructions exist */}
+                    {specialInstructions && (
+                      <button
+                        onClick={() => setSpecialInstructions('')}
+                        title="Clear instructions"
+                        style={{
+                          padding: '5px 6px',
+                          background: '#fee2e2',
+                          border: '1px solid #fecaca',
+                          borderLeft: 'none',
+                          borderRadius: '0 5px 5px 0',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <FaTimes size={9} style={{ color: '#dc2626' }} />
+                      </button>
+                    )}
+
+                    {/* Floating Instructions Box */}
+                    {showInstructionsModal && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '6px',
+                        width: '260px',
+                        background: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                        border: '1px solid #e5e7eb',
+                        zIndex: 100,
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{ padding: '8px 10px', background: '#fef3c7', borderBottom: '1px solid #fde68a' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Kitchen Instructions</span>
+                        </div>
+                        <div style={{ padding: '8px' }}>
+                          <textarea
+                            value={specialInstructions}
+                            onChange={(e) => setSpecialInstructions(e.target.value)}
+                            placeholder="E.g., No onions, extra spicy..."
+                            autoFocus
+                            style={{
+                              width: '100%',
+                              height: '60px',
+                              padding: '8px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              resize: 'none',
+                              outline: 'none',
+                              fontFamily: 'inherit',
+                              boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '6px' }}>
+                            {specialInstructions && (
+                              <button
+                                onClick={() => setSpecialInstructions('')}
+                                style={{
+                                  padding: '5px 10px',
+                                  fontSize: '10px',
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                Clear
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowInstructionsModal(false)}
+                              style={{
+                                padding: '5px 12px',
+                                fontSize: '10px',
+                                background: '#f59e0b',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: '600'
+                              }}
+                            >
+                              Done
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Validation states */}
@@ -1701,19 +1978,9 @@ const OrderSummary = ({
 
             </div>
           )}
-        </div>
-        )}
-      </div>
 
-      {/* Fixed Bottom Action Buttons */}
-      {cart.length > 0 && !shouldShowOrderSummary() && (
-        <div style={{
-          borderTop: '1px solid #e5e7eb',
-          backgroundColor: 'white',
-          padding: '12px 16px',
-          flexShrink: 0,
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
-        }}>
+          {/* Action Buttons */}
+          <div style={{ padding: '6px 12px 12px 12px' }}>
           {/* Error Message */}
           {error && (
             <div style={{
@@ -1736,39 +2003,67 @@ const OrderSummary = ({
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <button
                 onClick={() => {
-                  if (typeof onSaveOrder === 'function') {
-                    onSaveOrder();
+                  if (typeof onSaveOrder === 'function' && !savingOrder) {
+                    // Pass tax data and special instructions to save order
+                    const taxData = {
+                      taxBreakdown,
+                      totalTax,
+                      finalAmount: grandTotal,
+                      subtotal: getTotalAmount(),
+                      specialInstructions: specialInstructions.trim() || null
+                    };
+                    onSaveOrder(taxData);
                   }
-                  if (isMobile && onClose) {
+                  if (isMobile && onClose && !savingOrder) {
                     setTimeout(() => onClose(), 500);
                   }
                 }}
+                disabled={savingOrder || cart.length === 0}
                 style={{
                   flex: 1,
-                  background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                  background: savingOrder || cart.length === 0
+                    ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                    : 'linear-gradient(135deg, #f97316, #ea580c)',
                   color: 'white',
                   padding: '12px 14px',
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: savingOrder || cart.length === 0 ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
                   fontSize: '12px',
                   transition: 'all 0.2s',
-                  boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
+                  boxShadow: savingOrder || cart.length === 0 ? 'none' : '0 2px 8px rgba(249, 115, 22, 0.3)'
                 }}
               >
-                <FaSave size={12} />
-                {t('dashboard.saveOrder')}
+                {savingOrder ? (
+                  <>
+                    <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <FaSave size={12} />
+                    {t('dashboard.saveOrder')}
+                  </>
+                )}
               </button>
 
               <button
                 onClick={() => {
                   if (typeof onPlaceOrder === 'function') {
-                    onPlaceOrder();
+                    // Pass tax data and special instructions to place order
+                    const taxData = {
+                      taxBreakdown,
+                      totalTax,
+                      finalAmount: grandTotal,
+                      subtotal: getTotalAmount(),
+                      specialInstructions: specialInstructions.trim() || null
+                    };
+                    onPlaceOrder(taxData);
                   }
                   if (isMobile && onClose) {
                     setTimeout(() => onClose(), 500);
@@ -1846,6 +2141,7 @@ const OrderSummary = ({
               </>
             )}
           </button>
+          </div>
         </div>
       )}
 

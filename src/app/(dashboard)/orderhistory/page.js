@@ -519,7 +519,8 @@ const OrderHistory = () => {
     } else {
       // KOT format - matches KOT Printer app's generateKOTHtml
       const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
-      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .kot-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .kot-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .kot-info{margin:8px 0;} .kot-info div{margin:2px 0;} .item{margin:6px 0;} .item-main{display:flex;} .item-qty{width:30px;font-weight:bold;} .item-name{font-weight:bold;} .item-detail{margin-left:30px;font-size:11px;} .item-note{margin-left:30px;font-size:11px;font-style:italic;} .kot-footer{text-align:center;margin-top:8px;font-weight:bold;}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+      const specialInstructions = order.specialInstructions || '';
+      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .kot-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .kot-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .kot-info{margin:8px 0;} .kot-info div{margin:2px 0;} .item{margin:6px 0;} .item-main{display:flex;} .item-qty{width:30px;font-weight:bold;} .item-name{font-weight:bold;} .item-detail{margin-left:30px;font-size:11px;} .item-note{margin-left:30px;font-size:11px;font-style:italic;} .kot-footer{text-align:center;margin-top:8px;font-weight:bold;} .special-instructions{margin:8px 0;padding:6px;border:1px dashed #000;text-align:center;} .special-instructions strong{display:block;margin-bottom:4px;} .special-instructions div{text-align:left;}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
 
       const pw = window.open('', '_blank', 'width=400,height=600');
       if (pw) {
@@ -1284,6 +1285,14 @@ const OrderHistory = () => {
                               ))}
                               {order.items?.length > 6 && <div className="text-xs text-gray-500 pt-1">+{order.items.length - 6} more</div>}
                             </div>
+                            {order.specialInstructions && (
+                              <div className="mt-3 pt-2 border-t border-gray-200">
+                                <div className="flex items-start gap-2 text-xs">
+                                  <span className="text-amber-600 font-semibold">📝 Instructions:</span>
+                                  <span className="text-gray-700">{order.specialInstructions}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1392,6 +1401,14 @@ const OrderHistory = () => {
                               <div className="text-xs text-gray-500 pt-1">+{itemCount - 2} {t('common.more')}...</div>
                             )}
                           </div>
+                          {order.specialInstructions && (
+                            <div className="mt-3 pt-2 border-t border-gray-200">
+                              <div className="flex items-start gap-2 text-sm">
+                                <span className="text-amber-600 font-semibold flex-shrink-0">📝 Instructions:</span>
+                                <span className="text-gray-700">{order.specialInstructions}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-wrap justify-end gap-2">
                           {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (

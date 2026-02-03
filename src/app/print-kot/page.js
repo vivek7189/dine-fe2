@@ -103,6 +103,12 @@ const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting }) => {
           <div className="total-items">
             Total Items: {order.items.reduce((sum, item) => sum + (item.quantity || 1), 0)}
           </div>
+          {order.specialInstructions && (
+            <div className="special-instructions">
+              <strong>*** SPECIAL INSTRUCTIONS ***</strong>
+              <div>{order.specialInstructions}</div>
+            </div>
+          )}
           {order.notes && (
             <div className="order-notes">
               <strong>Notes:</strong> {order.notes}
@@ -305,6 +311,18 @@ const PrintKOTContent = () => {
               font-style: italic;
               text-align: left;
             }
+            .special-instructions {
+              margin-top: 8px;
+              padding: 6px;
+              border: 1px dashed #000;
+              text-align: center;
+              font-weight: bold;
+            }
+            .special-instructions div {
+              margin-top: 4px;
+              font-weight: normal;
+              text-align: left;
+            }
           </style>
         </head>
         <body>
@@ -379,6 +397,7 @@ const PrintKOTContent = () => {
             <div class="total-items">
               Total Items: ${order.items.reduce((sum, item) => sum + (item.quantity || 1), 0)}
             </div>
+            ${order.specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${order.specialInstructions}</div></div>` : ''}
             ${order.notes ? `<div class="order-notes"><strong>Notes:</strong> ${order.notes}</div>` : ''}
           </div>
 
@@ -997,6 +1016,21 @@ const globalStyles = `
     margin-top: 8px;
     text-align: left;
     font-style: italic;
+  }
+
+  .special-instructions {
+    margin-top: 8px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px dashed #000;
+    padding: 8px;
+    background: #fff8dc;
+  }
+
+  .special-instructions div {
+    margin-top: 4px;
+    font-weight: normal;
+    text-align: left;
   }
 
   .print-button {
