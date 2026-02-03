@@ -217,6 +217,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner'] },
     { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', roles: ['owner'] },
+    { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'manager'] },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'manager'] },
     // { id: 'customer-app', name: 'Crave App', icon: FaMobileAlt, href: '/customer-app', color: '#ec4899', roles: ['owner'] },
