@@ -301,6 +301,21 @@ export default function DineAIPage() {
     }
   };
 
+  // Toggle enabled and save immediately
+  const handleToggleEnabled = async () => {
+    const newEnabled = !localSettings.enabled;
+    setLocalSettings(prev => ({ ...prev, enabled: newEnabled }));
+
+    try {
+      // updateSettings from context handles API call and updates context state
+      await updateSettings({ enabled: newEnabled });
+    } catch (error) {
+      console.error('Failed to toggle DineAI:', error);
+      // Revert on error
+      setLocalSettings(prev => ({ ...prev, enabled: !newEnabled }));
+    }
+  };
+
   // Re-index knowledge
   const handleReindex = async () => {
     if (!confirm('Re-index all knowledge? This may take a while.')) return;
@@ -323,7 +338,7 @@ export default function DineAIPage() {
       case 'pdf': return <FaFilePdf className="text-red-500" />;
       case 'word': return <FaFileWord className="text-blue-500" />;
       case 'excel': return <FaFileExcel className="text-green-500" />;
-      case 'url': return <FaLink className="text-purple-500" />;
+      case 'url': return <FaLink className="text-red-500" />;
       case 'faq': return <FaQuestionCircle className="text-yellow-500" />;
       default: return <FaFileAlt className="text-gray-500" />;
     }
@@ -332,7 +347,7 @@ export default function DineAIPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <FaSpinner className="animate-spin text-4xl text-indigo-600" />
+        <FaSpinner className="animate-spin text-4xl text-red-500" />
       </div>
     );
   }
@@ -340,7 +355,7 @@ export default function DineAIPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+      <div className="bg-gradient-to-r from-red-500 to-red-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -349,12 +364,12 @@ export default function DineAIPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold">DineAI Studio</h1>
-                <p className="text-indigo-200">Train and configure your AI assistant</p>
+                <p className="text-red-100">Train and configure your AI assistant</p>
               </div>
             </div>
             <button
               onClick={openDineAI}
-              className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl font-semibold hover:bg-indigo-50 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-white text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors"
             >
               <FaMicrophone />
               Test Voice Assistant
@@ -366,37 +381,37 @@ export default function DineAIPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
               <div className="bg-white/10 backdrop-blur rounded-xl p-4">
                 <div className="flex items-center gap-3">
-                  <FaDatabase className="text-2xl text-indigo-200" />
+                  <FaDatabase className="text-2xl text-red-100" />
                   <div>
                     <p className="text-2xl font-bold">{stats.totalDocuments || 0}</p>
-                    <p className="text-indigo-200 text-sm">Documents</p>
+                    <p className="text-red-100 text-sm">Documents</p>
                   </div>
                 </div>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-4">
                 <div className="flex items-center gap-3">
-                  <FaBrain className="text-2xl text-indigo-200" />
+                  <FaBrain className="text-2xl text-red-100" />
                   <div>
                     <p className="text-2xl font-bold">{stats.totalChunks || 0}</p>
-                    <p className="text-indigo-200 text-sm">Embeddings</p>
+                    <p className="text-red-100 text-sm">Embeddings</p>
                   </div>
                 </div>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-4">
                 <div className="flex items-center gap-3">
-                  <FaQuestionCircle className="text-2xl text-indigo-200" />
+                  <FaQuestionCircle className="text-2xl text-red-100" />
                   <div>
                     <p className="text-2xl font-bold">{stats.faqCount || 0}</p>
-                    <p className="text-indigo-200 text-sm">FAQs</p>
+                    <p className="text-red-100 text-sm">FAQs</p>
                   </div>
                 </div>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-xl p-4">
                 <div className="flex items-center gap-3">
-                  <FaChartBar className="text-2xl text-indigo-200" />
+                  <FaChartBar className="text-2xl text-red-100" />
                   <div>
                     <p className="text-2xl font-bold">{stats.queriesThisWeek || 0}</p>
-                    <p className="text-indigo-200 text-sm">Queries/Week</p>
+                    <p className="text-red-100 text-sm">Queries/Week</p>
                   </div>
                 </div>
               </div>
@@ -420,7 +435,7 @@ export default function DineAIPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50'
+                    ? 'text-red-600 border-b-2 border-red-500 bg-red-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -444,13 +459,13 @@ export default function DineAIPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                       placeholder="Test your knowledge base - ask a question..."
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     />
                   </div>
                   <button
                     onClick={handleSearch}
                     disabled={searching}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:opacity-50 flex items-center gap-2"
                   >
                     {searching ? <FaSpinner className="animate-spin" /> : <FaSearch />}
                     Search
@@ -459,8 +474,8 @@ export default function DineAIPage() {
 
                 {/* Search Results */}
                 {searchResults && (
-                  <div className="bg-indigo-50 rounded-xl p-4">
-                    <h3 className="font-semibold text-indigo-800 mb-3">Search Results</h3>
+                  <div className="bg-red-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-red-800 mb-3">Search Results</h3>
                     {searchResults.length > 0 ? (
                       <div className="space-y-3">
                         {searchResults.map((result, idx) => (
@@ -489,7 +504,7 @@ export default function DineAIPage() {
                     <h3 className="text-lg font-semibold text-gray-800">All Knowledge Items</h3>
                     <button
                       onClick={handleReindex}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
                     >
                       <FaSync />
                       Re-index All
@@ -510,7 +525,7 @@ export default function DineAIPage() {
                             <h4 className="font-medium text-gray-800 truncate">{item.title}</h4>
                             <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                               <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">{item.type}</span>
-                              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs">{item.category}</span>
+                              <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">{item.category}</span>
                               {item.chunks && <span>{item.chunks} chunks</span>}
                               <span>{new Date(item.createdAt).toLocaleDateString()}</span>
                             </div>
@@ -544,7 +559,7 @@ export default function DineAIPage() {
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                      uploading ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'
+                      uploading ? 'border-red-400 bg-red-50' : 'border-gray-300 hover:border-red-400 hover:bg-red-50'
                     }`}
                   >
                     <input
@@ -557,11 +572,11 @@ export default function DineAIPage() {
                     />
                     {uploading ? (
                       <>
-                        <FaSpinner className="text-4xl text-indigo-500 mx-auto mb-4 animate-spin" />
-                        <p className="text-indigo-600 font-medium">Uploading... {uploadProgress}%</p>
-                        <div className="w-64 h-2 bg-indigo-100 rounded-full mx-auto mt-4 overflow-hidden">
+                        <FaSpinner className="text-4xl text-red-500 mx-auto mb-4 animate-spin" />
+                        <p className="text-red-600 font-medium">Uploading... {uploadProgress}%</p>
+                        <div className="w-64 h-2 bg-red-100 rounded-full mx-auto mt-4 overflow-hidden">
                           <div
-                            className="h-full bg-indigo-500 transition-all"
+                            className="h-full bg-red-500 transition-all"
                             style={{ width: `${uploadProgress}%` }}
                           />
                         </div>
@@ -587,13 +602,13 @@ export default function DineAIPage() {
                         value={urlInput}
                         onChange={(e) => setUrlInput(e.target.value)}
                         placeholder="https://example.com/your-content"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       />
                     </div>
                     <button
                       onClick={handleUrlSubmit}
                       disabled={processingUrl || !urlInput.trim()}
-                      className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                      className="px-6 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:opacity-50 flex items-center gap-2"
                     >
                       {processingUrl ? <FaSpinner className="animate-spin" /> : <FaLink />}
                       Import
@@ -636,7 +651,7 @@ export default function DineAIPage() {
                         value={newFaq.question}
                         onChange={(e) => setNewFaq(prev => ({ ...prev, question: e.target.value }))}
                         placeholder="What are your opening hours?"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -646,7 +661,7 @@ export default function DineAIPage() {
                         onChange={(e) => setNewFaq(prev => ({ ...prev, answer: e.target.value }))}
                         placeholder="We are open Monday to Sunday, 11 AM to 10 PM..."
                         rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -664,7 +679,7 @@ export default function DineAIPage() {
                       <button
                         onClick={handleAddFaq}
                         disabled={addingFaq}
-                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                        className="px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 flex items-center gap-2"
                       >
                         {addingFaq ? <FaSpinner className="animate-spin" /> : <FaPlus />}
                         Add FAQ
@@ -683,7 +698,7 @@ export default function DineAIPage() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <h4 className="font-medium text-gray-800 flex items-center gap-2">
-                                <FaQuestionCircle className="text-indigo-500" />
+                                <FaQuestionCircle className="text-red-500" />
                                 {faq.question || faq.title}
                               </h4>
                               <p className="text-gray-600 mt-2">{faq.answer || faq.content}</p>
@@ -715,22 +730,61 @@ export default function DineAIPage() {
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="space-y-6 max-w-2xl">
-                {/* Enable/Disable */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                  <div>
-                    <h4 className="font-medium text-gray-800">Enable DineAI</h4>
-                    <p className="text-sm text-gray-500">Allow staff to use the voice assistant</p>
+                {/* Voice Assistant Button Control - Prominent Section */}
+                <div className={`p-6 rounded-2xl border-2 transition-all ${
+                  localSettings.enabled
+                    ? 'bg-gradient-to-r from-red-50 to-orange-50 border-red-200'
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          localSettings.enabled
+                            ? 'bg-gradient-to-br from-red-500 to-red-600'
+                            : 'bg-gray-300'
+                        }`}>
+                          <FaMicrophone className="text-xl text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800">Voice Assistant Button</h3>
+                          <p className={`text-sm font-medium ${localSettings.enabled ? 'text-green-600' : 'text-gray-500'}`}>
+                            {localSettings.enabled ? '● Active - Visible on all pages' : '○ Disabled - Hidden from view'}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">
+                        {localSettings.enabled
+                          ? 'The floating microphone button appears in the bottom-right corner of every dashboard page. Staff can click it to start voice conversations with DineAI.'
+                          : 'Enable to show the floating voice assistant button. Your staff can use it to place orders, check tables, and get help using voice commands.'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleToggleEnabled}
+                      className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                        localSettings.enabled
+                          ? 'bg-white text-red-600 border-2 border-red-200 hover:bg-red-50'
+                          : 'bg-red-500 text-white hover:bg-red-600'
+                      }`}
+                    >
+                      {localSettings.enabled ? 'Disable' : 'Enable'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setLocalSettings(prev => ({ ...prev, enabled: !prev.enabled }))}
-                    className={`w-14 h-7 rounded-full transition-colors ${
-                      localSettings.enabled ? 'bg-indigo-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform ${
-                      localSettings.enabled ? 'translate-x-7' : 'translate-x-0.5'
-                    }`} />
-                  </button>
+
+                  {/* Visual Preview */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-xs text-gray-500 mb-2">Preview: Button location</p>
+                    <div className="relative bg-white rounded-lg border border-gray-200 h-24 overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-50 flex items-center justify-center text-xs text-gray-400">
+                        Dashboard Page
+                      </div>
+                      {localSettings.enabled && (
+                        <div className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg animate-pulse">
+                          <FaMicrophone className="text-white text-sm" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Voice Mode */}
@@ -741,12 +795,12 @@ export default function DineAIPage() {
                       onClick={() => setLocalSettings(prev => ({ ...prev, voiceMode: 'push-to-talk' }))}
                       className={`p-4 rounded-xl border-2 text-left transition-colors ${
                         localSettings.voiceMode === 'push-to-talk'
-                          ? 'border-indigo-600 bg-indigo-50'
+                          ? 'border-red-500 bg-red-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <FaMicrophone className={`text-xl mb-2 ${
-                        localSettings.voiceMode === 'push-to-talk' ? 'text-indigo-600' : 'text-gray-400'
+                        localSettings.voiceMode === 'push-to-talk' ? 'text-red-600' : 'text-gray-400'
                       }`} />
                       <h5 className="font-medium">Push-to-Talk</h5>
                       <p className="text-sm text-gray-500">Tap to speak, release to send</p>
@@ -755,12 +809,12 @@ export default function DineAIPage() {
                       onClick={() => setLocalSettings(prev => ({ ...prev, voiceMode: 'realtime' }))}
                       className={`p-4 rounded-xl border-2 text-left transition-colors ${
                         localSettings.voiceMode === 'realtime'
-                          ? 'border-indigo-600 bg-indigo-50'
+                          ? 'border-red-500 bg-red-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <FaVolumeUp className={`text-xl mb-2 ${
-                        localSettings.voiceMode === 'realtime' ? 'text-indigo-600' : 'text-gray-400'
+                        localSettings.voiceMode === 'realtime' ? 'text-red-600' : 'text-gray-400'
                       }`} />
                       <h5 className="font-medium">Realtime</h5>
                       <p className="text-sm text-gray-500">Natural conversation (Beta)</p>
@@ -774,7 +828,7 @@ export default function DineAIPage() {
                   <select
                     value={localSettings.defaultVoice}
                     onChange={(e) => setLocalSettings(prev => ({ ...prev, defaultVoice: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500"
                   >
                     <option value="alloy">Alloy (Neutral)</option>
                     <option value="echo">Echo (Male)</option>
@@ -791,7 +845,7 @@ export default function DineAIPage() {
                   <select
                     value={localSettings.greetingStyle}
                     onChange={(e) => setLocalSettings(prev => ({ ...prev, greetingStyle: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500"
                   >
                     <option value="professional">Professional</option>
                     <option value="friendly">Friendly</option>
@@ -808,7 +862,7 @@ export default function DineAIPage() {
                   <button
                     onClick={() => setLocalSettings(prev => ({ ...prev, enableKnowledgeBase: !prev.enableKnowledgeBase }))}
                     className={`w-14 h-7 rounded-full transition-colors ${
-                      localSettings.enableKnowledgeBase ? 'bg-indigo-600' : 'bg-gray-300'
+                      localSettings.enableKnowledgeBase ? 'bg-red-500' : 'bg-gray-300'
                     }`}
                   >
                     <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform ${
@@ -826,7 +880,7 @@ export default function DineAIPage() {
                   <button
                     onClick={() => setLocalSettings(prev => ({ ...prev, enableGreetings: !prev.enableGreetings }))}
                     className={`w-14 h-7 rounded-full transition-colors ${
-                      localSettings.enableGreetings ? 'bg-indigo-600' : 'bg-gray-300'
+                      localSettings.enableGreetings ? 'bg-red-500' : 'bg-gray-300'
                     }`}
                   >
                     <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform ${
@@ -839,7 +893,7 @@ export default function DineAIPage() {
                 <button
                   onClick={handleSaveSettings}
                   disabled={savingSettings}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {savingSettings ? <FaSpinner className="animate-spin" /> : <FaSave />}
                   Save Settings

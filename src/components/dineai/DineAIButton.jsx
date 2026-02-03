@@ -57,14 +57,14 @@ const DineAIButton = () => {
             height: '60px',
             borderRadius: '50%',
             background: isListening
-              ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-              : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+              ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
+              : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
             border: 'none',
             cursor: isProcessing ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(79, 70, 229, 0.4)',
+            boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)',
             transition: 'all 0.3s ease',
             transform: isOpen ? 'scale(0.9)' : 'scale(1)',
             opacity: isProcessing ? 0.7 : 1,
