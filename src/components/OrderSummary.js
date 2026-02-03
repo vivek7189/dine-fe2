@@ -26,28 +26,29 @@ import {
   FaStickyNote
 } from 'react-icons/fa';
 
-const OrderSummary = ({ 
-  cart, 
+const OrderSummary = ({
+  cart,
   setCart,
-  orderType, 
-  setOrderType, 
-  paymentMethod, 
-  setPaymentMethod, 
-  onClearCart, 
-  onProcessOrder, 
-  onSaveOrder, 
+  orderType,
+  setOrderType,
+  paymentMethod,
+  setPaymentMethod,
+  onClearCart,
+  onProcessOrder,
+  onSaveOrder,
   onPlaceOrder,
-  onRemoveFromCart, 
-  onAddToCart, 
+  onRemoveFromCart,
+  onAddToCart,
   onUpdateCartItemQuantity,
   onTableNumberChange,
   onCustomerNameChange,
   onCustomerMobileChange,
-  processing, 
+  processing,
   placingOrder,
-  orderSuccess, 
-  setOrderSuccess, 
-  error, 
+  savingOrder = false, // Separate loading state for save order button
+  orderSuccess,
+  setOrderSuccess,
+  error,
   getTotalAmount,
   tableNumber,
   customerName,
@@ -70,7 +71,14 @@ const OrderSummary = ({
   setManualRoomNumber,
   billingMode = false, // When true, hides Save/Place Order buttons, only shows Complete Billing
   onBillingComplete, // Callback when billing is completed in billingMode
-  onStartVoiceOrder // Callback to start voice ordering from dashboard
+  onStartVoiceOrder, // Callback to start voice ordering from dashboard
+  // Saved orders props
+  savedOrders = [],
+  activeSavedOrderId = null,
+  loadingSavedOrderId = null,
+  deletingSavedOrderId = null,
+  onLoadSavedOrder,
+  onDeleteSavedOrder
 }) => {
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
@@ -751,6 +759,95 @@ const OrderSummary = ({
       }}
       className="hide-scrollbar"
       >
+        {/* Saved Orders Chips - Always visible at top */}
+        {savedOrders && savedOrders.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 0',
+            marginBottom: '8px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            borderBottom: '1px solid #f3f4f6'
+          }} className="hide-scrollbar">
+            <span style={{
+              fontSize: '10px',
+              fontWeight: '600',
+              color: '#6b7280',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}>
+              <FaSave size={9} style={{ marginRight: '3px', display: 'inline' }} />
+              Saved:
+            </span>
+            {savedOrders.map((order) => (
+              <div
+                key={order.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  backgroundColor: activeSavedOrderId === order.id ? '#ea580c' : '#fff7ed',
+                  border: activeSavedOrderId === order.id ? '1px solid #ea580c' : '1px solid #fdba74',
+                  borderRadius: '12px',
+                  cursor: loadingSavedOrderId === order.id ? 'wait' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0,
+                  boxShadow: activeSavedOrderId === order.id ? '0 2px 6px rgba(234, 88, 12, 0.25)' : 'none'
+                }}
+                onClick={() => {
+                  if (onLoadSavedOrder && !loadingSavedOrderId && activeSavedOrderId !== order.id) {
+                    onLoadSavedOrder(order.id);
+                  }
+                }}
+                title={`Load saved order #${order.dailyOrderId || order.id.slice(-4).toUpperCase()}${order.tableNumber ? ` - Table ${order.tableNumber}` : ''}`}
+              >
+                {loadingSavedOrderId === order.id ? (
+                  <FaSpinner size={8} style={{ animation: 'spin 1s linear infinite', color: '#ea580c' }} />
+                ) : (
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    color: activeSavedOrderId === order.id ? '#ffffff' : '#9a3412'
+                  }}>
+                    #{order.dailyOrderId || order.id.slice(-4).toUpperCase()}
+                  </span>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDeleteSavedOrder && !deletingSavedOrderId) onDeleteSavedOrder(order.id);
+                  }}
+                  disabled={deletingSavedOrderId === order.id}
+                  style={{
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: activeSavedOrderId === order.id ? 'rgba(255,255,255,0.25)' : '#fee2e2',
+                    color: activeSavedOrderId === order.id ? '#ffffff' : '#dc2626',
+                    cursor: deletingSavedOrderId === order.id ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                  }}
+                  title="Delete saved order"
+                >
+                  {deletingSavedOrderId === order.id ? (
+                    <FaSpinner size={6} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <FaTimes size={6} />
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {shouldShowOrderSummary() ? (
           <div style={{ padding: '8px 0', paddingTop: '12px' }}>
             <div style={{ 
@@ -1906,7 +2003,7 @@ const OrderSummary = ({
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <button
                 onClick={() => {
-                  if (typeof onSaveOrder === 'function') {
+                  if (typeof onSaveOrder === 'function' && !savingOrder) {
                     // Pass tax data and special instructions to save order
                     const taxData = {
                       taxBreakdown,
@@ -1917,30 +2014,42 @@ const OrderSummary = ({
                     };
                     onSaveOrder(taxData);
                   }
-                  if (isMobile && onClose) {
+                  if (isMobile && onClose && !savingOrder) {
                     setTimeout(() => onClose(), 500);
                   }
                 }}
+                disabled={savingOrder || cart.length === 0}
                 style={{
                   flex: 1,
-                  background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                  background: savingOrder || cart.length === 0
+                    ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                    : 'linear-gradient(135deg, #f97316, #ea580c)',
                   color: 'white',
                   padding: '12px 14px',
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: savingOrder || cart.length === 0 ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
                   fontSize: '12px',
                   transition: 'all 0.2s',
-                  boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
+                  boxShadow: savingOrder || cart.length === 0 ? 'none' : '0 2px 8px rgba(249, 115, 22, 0.3)'
                 }}
               >
-                <FaSave size={12} />
-                {t('dashboard.saveOrder')}
+                {savingOrder ? (
+                  <>
+                    <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <FaSave size={12} />
+                    {t('dashboard.saveOrder')}
+                  </>
+                )}
               </button>
 
               <button

@@ -122,6 +122,14 @@ function RestaurantPOSContent() {
   const [currentOrder, setCurrentOrder] = useState(null); // Current order being viewed/updated
   const [orderSearchLoading, setOrderSearchLoading] = useState(false); // Loading state for order search
   const [taxSettings, setTaxSettings] = useState(null); // Tax settings for the restaurant
+
+  // Saved Orders Queue State
+  const [savedOrders, setSavedOrders] = useState([]); // List of saved orders for quick access
+  const [loadingSavedOrders, setLoadingSavedOrders] = useState(false);
+  const [loadingSavedOrderId, setLoadingSavedOrderId] = useState(null); // Currently loading order ID
+  const [activeSavedOrderId, setActiveSavedOrderId] = useState(null); // Currently loaded saved order
+  const [savingOrder, setSavingOrder] = useState(false); // Separate loading state for save order button
+  const [deletingSavedOrderId, setDeletingSavedOrderId] = useState(null); // Currently deleting order ID
   const [printSettings, setPrintSettings] = useState(null); // Print settings for the restaurant
   const [isLoadingOrder, setIsLoadingOrder] = useState(false); // Flag to prevent localStorage override during order loading
   
@@ -1422,6 +1430,7 @@ function RestaurantPOSContent() {
     setOrderSuccess(null);
     setOrderComplete(false);
     setPlacingOrder(false);
+    setActiveSavedOrderId(null); // Clear active saved order
     if (typeof window !== 'undefined') router.replace('/dashboard');
     // Show success notification
     setNotification({
@@ -2333,6 +2342,166 @@ function RestaurantPOSContent() {
     }
   };
 
+  // Fetch saved orders (saved status) for quick access chips
+  const fetchSavedOrders = useCallback(async () => {
+    if (!selectedRestaurant?.id) return;
+
+    try {
+      setLoadingSavedOrders(true);
+      const response = await apiClient.getOrders(selectedRestaurant.id, { status: 'saved', limit: 20 });
+      console.log('📋 Fetched saved orders:', response);
+      if (response.orders && Array.isArray(response.orders)) {
+        // Sort by creation date, newest first
+        const sorted = response.orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setSavedOrders(sorted.slice(0, 10)); // Keep only the 10 most recent
+        console.log('📋 Saved orders set:', sorted.slice(0, 10));
+      } else {
+        setSavedOrders([]);
+      }
+    } catch (error) {
+      console.error('Error fetching saved orders:', error);
+      setSavedOrders([]);
+    } finally {
+      setLoadingSavedOrders(false);
+    }
+  }, [selectedRestaurant?.id]);
+
+  // Fetch saved orders when restaurant changes
+  useEffect(() => {
+    if (selectedRestaurant?.id) {
+      fetchSavedOrders();
+    }
+  }, [selectedRestaurant?.id, fetchSavedOrders]);
+
+  // Load a saved order into the cart and form fields
+  const loadSavedOrder = (orderId) => {
+    if (!orderId) return;
+
+    try {
+      setLoadingSavedOrderId(orderId);
+      setIsLoadingOrder(true);
+
+      // Find order from savedOrders array (already fetched)
+      const order = savedOrders.find(o => o.id === orderId);
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Clear current cart first
+      setCart([]);
+
+      // Map order items to cart items
+      const cartItems = order.items?.map(item => ({
+        id: item.menuItemId || item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity || 1,
+        image: item.image || null,
+        shortCode: item.shortCode || '',
+        notes: item.notes || ''
+      })) || [];
+
+      setCart(cartItems);
+
+      // Fill customer info
+      if (order.tableNumber) {
+        setTableNumber(order.tableNumber);
+        setManualTableNumber(order.tableNumber);
+        setLocationType('table');
+      } else {
+        setTableNumber('');
+        setManualTableNumber('');
+      }
+      if (order.roomNumber) {
+        setManualRoomNumber(order.roomNumber);
+        setLocationType('room');
+      } else {
+        setManualRoomNumber('');
+      }
+      setCustomerName(order.customerInfo?.name || order.customerName || '');
+      setCustomerMobile(order.customerInfo?.phone || order.customerMobile || '');
+      if (order.orderType) {
+        setOrderType(order.orderType);
+      }
+      if (order.paymentMethod) {
+        setPaymentMethod(order.paymentMethod);
+      }
+
+      // Set current order for editing
+      setCurrentOrder(order);
+      setActiveSavedOrderId(orderId);
+
+      setNotification({
+        type: 'success',
+        title: 'Order Loaded! 📋',
+        message: `Order #${order.dailyOrderId || order.id.slice(-6).toUpperCase()} loaded into cart`,
+        show: true
+      });
+      setTimeout(() => setNotification(null), 3000);
+
+    } catch (error) {
+      console.error('Error loading saved order:', error);
+      setNotification({
+        type: 'error',
+        title: 'Load Failed! ❌',
+        message: error.message || 'Failed to load order',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setLoadingSavedOrderId(null);
+      setIsLoadingOrder(false);
+    }
+  };
+
+  // Delete a saved order
+  const deleteSavedOrder = async (orderId) => {
+    if (!orderId) return;
+
+    try {
+      setDeletingSavedOrderId(orderId);
+
+      // Update order status to 'deleted' to remove it from saved orders
+      await apiClient.updateOrderStatus(orderId, 'deleted', selectedRestaurant?.id);
+
+      // Remove from local state
+      setSavedOrders(prev => prev.filter(o => o.id !== orderId));
+
+      // Clear active order if it was the deleted one
+      if (activeSavedOrderId === orderId) {
+        setActiveSavedOrderId(null);
+        setCurrentOrder(null);
+        setCart([]);
+        setTableNumber('');
+        setManualTableNumber('');
+        setManualRoomNumber('');
+        setCustomerName('');
+        setCustomerMobile('');
+      }
+
+      setNotification({
+        type: 'success',
+        title: 'Order Deleted! 🗑️',
+        message: 'Saved order removed',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 2000);
+
+    } catch (error) {
+      console.error('Error deleting saved order:', error);
+      setNotification({
+        type: 'error',
+        title: 'Delete Failed! ❌',
+        message: error.message || 'Failed to delete order',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setDeletingSavedOrderId(null);
+    }
+  };
+
   const saveOrder = async (taxData = {}) => {
     if (cart.length === 0) {
       setNotification({
@@ -2361,7 +2530,7 @@ function RestaurantPOSContent() {
     const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null } = taxData;
 
     try {
-      setProcessing(true);
+      setSavingOrder(true);
       setError(null);
 
       // Determine if this is a room order
@@ -2383,7 +2552,7 @@ function RestaurantPOSContent() {
         customerInfo: {
           roomNumber: roomNumber || null // NEW: Include room number in customer info
         },
-      orderType,
+        orderType,
         paymentMethod,
         staffInfo: {
           name: 'Staff Member',
@@ -2397,28 +2566,45 @@ function RestaurantPOSContent() {
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
-        status: 'pending' // Save as draft
+        status: 'saved' // Save as draft (not sent to KOT yet)
       };
 
       const response = await apiClient.createOrder(orderData);
-      
-      if (response.data) {
-        setOrderSuccess({
-          orderId: response.data.order.id,
-          show: true,
-          message: 'Order Saved Successfully! 💾'
+      console.log('📋 Save order response:', response);
+
+      if (response.order) {
+        // Show success notification
+        setNotification({
+          type: 'success',
+          title: 'Order Saved! 💾',
+          message: `Order #${response.order.dailyOrderId || response.order.id.slice(-6).toUpperCase()} saved successfully`,
+          show: true
         });
-        // Don't clear cart for saved orders
+        setTimeout(() => setNotification(null), 3000);
+
+        // Clear cart after saving
+        setCart([]);
+        setTableNumber('');
+        setManualTableNumber('');
+        setManualRoomNumber('');
+        setCustomerName('');
+        setCustomerMobile('');
+        setCurrentOrder(null);
+        setActiveSavedOrderId(null);
+        localStorage.removeItem('dine_cart');
+
+        // Refresh saved orders list
+        fetchSavedOrders();
       }
     } catch (error) {
       console.error('Save order error:', error);
-      
+
       // Extract error message from the API response
       let errorMessage = 'Failed to save order. Please try again.';
       if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // Show notification instead of full-page error
       setNotification({
         type: 'error',
@@ -2426,13 +2612,13 @@ function RestaurantPOSContent() {
         message: errorMessage,
         show: true
       });
-      
+
       // Auto-hide notification after 5 seconds
       setTimeout(() => {
         setNotification(null);
       }, 5000);
     } finally {
-      setProcessing(false);
+      setSavingOrder(false);
     }
   };
 
@@ -2557,6 +2743,8 @@ function RestaurantPOSContent() {
           });
           // Handle navigation after order update
           setCurrentOrder(null);
+          setActiveSavedOrderId(null); // Clear active saved order since it was placed
+          fetchSavedOrders(); // Refresh saved orders list
           handleOrderActionComplete({
             keepOrderSuccess: true,
             hasTable: !!(tableNumber || selectedTable?.number)
@@ -2657,6 +2845,8 @@ function RestaurantPOSContent() {
           });
 
           // Handle navigation after new order placed
+          setActiveSavedOrderId(null); // Clear active saved order since it was placed
+          fetchSavedOrders(); // Refresh saved orders list
           handleOrderActionComplete({
             keepOrderSuccess: true,
             hasTable: !!(tableNumber || selectedTable?.number)
@@ -4946,6 +5136,7 @@ function RestaurantPOSContent() {
                                 }} />
                               </div>
                             </div>
+
                           </div>
                         )}
                       </div>
@@ -5103,6 +5294,7 @@ function RestaurantPOSContent() {
                             }} />
                           </div>
                         </div>
+
                       </div>
                     )}
                   </div>
@@ -5307,6 +5499,7 @@ function RestaurantPOSContent() {
             setManualRoomNumber={setManualRoomNumber}
             processing={processing}
             placingOrder={placingOrder}
+            savingOrder={savingOrder}
             orderSuccess={orderSuccess}
             setOrderSuccess={setOrderSuccess}
             error={error}
@@ -5318,13 +5511,19 @@ function RestaurantPOSContent() {
             setOrderLookup={setOrderLookup}
             currentOrder={currentOrder}
             setCurrentOrder={setCurrentOrder}
-                  onShowQRCode={handleShowQRCode}
-                  restaurantId={selectedRestaurant?.id}
-                  restaurantName={selectedRestaurant?.name}
+            onShowQRCode={handleShowQRCode}
+            restaurantId={selectedRestaurant?.id}
+            restaurantName={selectedRestaurant?.name}
             taxSettings={taxSettings}
             printSettings={printSettings}
             menuItems={menuItems}
             onStartVoiceOrder={startVoiceListening}
+            savedOrders={savedOrders}
+            activeSavedOrderId={activeSavedOrderId}
+            loadingSavedOrderId={loadingSavedOrderId}
+            deletingSavedOrderId={deletingSavedOrderId}
+            onLoadSavedOrder={loadSavedOrder}
+            onDeleteSavedOrder={deleteSavedOrder}
           />
         </div>
                 ) : (
@@ -5361,6 +5560,7 @@ function RestaurantPOSContent() {
                     setManualRoomNumber={setManualRoomNumber}
                     processing={processing}
                     placingOrder={placingOrder}
+                    savingOrder={savingOrder}
                     orderSuccess={orderSuccess}
                     setOrderSuccess={setOrderSuccess}
                     error={error}
@@ -5377,9 +5577,15 @@ function RestaurantPOSContent() {
                     restaurantName={selectedRestaurant?.name}
                     taxSettings={taxSettings}
                     printSettings={printSettings}
-                menuItems={menuItems}
-                onClose={() => setShowMobileCart(false)}
-                onStartVoiceOrder={startVoiceListening}
+                    menuItems={menuItems}
+                    onClose={() => setShowMobileCart(false)}
+                    onStartVoiceOrder={startVoiceListening}
+                    savedOrders={savedOrders}
+                    activeSavedOrderId={activeSavedOrderId}
+                    loadingSavedOrderId={loadingSavedOrderId}
+                    deletingSavedOrderId={deletingSavedOrderId}
+                    onLoadSavedOrder={loadSavedOrder}
+                    onDeleteSavedOrder={deleteSavedOrder}
                   />
             )}
           </>
