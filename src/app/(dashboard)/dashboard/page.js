@@ -2712,8 +2712,15 @@ function RestaurantPOSContent() {
         };
 
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
-        
+
         if (response.data) {
+          // If the order was in 'saved' status, update it to 'confirmed' to send to KOT
+          // This happens when user loads a saved order and clicks "Update Order"
+          if (currentOrder.status === 'saved') {
+            console.log('📋 Saved order being placed - updating status to confirmed');
+            await apiClient.updateOrderStatus(currentOrder.id, 'confirmed', selectedRestaurant?.id);
+          }
+
           // Show notification for order update
           setNotification({
             type: 'success',
