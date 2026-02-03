@@ -126,6 +126,49 @@ class ApiClient {
     return this.request(endpoint, { ...options, method: 'DELETE' });
   }
 
+  // File upload with FormData (supports progress tracking)
+  async upload(endpoint, formData, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    const token = this.getToken();
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      if (options.onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            options.onProgress(progress);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(response);
+          } else {
+            reject(new Error(response.error || 'Upload failed'));
+          }
+        } catch (e) {
+          reject(new Error('Invalid response from server'));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error during upload'));
+      };
+
+      xhr.open('POST', url);
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+      xhr.send(formData);
+    });
+  }
+
   getToken() {
     // Use cookie-based storage for cross-subdomain SSO
     if (typeof document !== 'undefined') {
