@@ -16,7 +16,7 @@ const defaultContext = {
   messages: [],
   transcript: '',
   interimTranscript: '',
-  settings: { responseMode: 'voice', voiceMode: 'push-to-talk', voice: 'alloy', enabled: true },
+  settings: { responseMode: 'voice', voiceMode: 'push-to-talk', voice: 'alloy', enabled: false },
   usage: null,
   error: null,
   setIsListening: () => {},
@@ -69,7 +69,7 @@ export const DineAIProvider = ({ children }) => {
     responseMode: 'voice', // 'voice', 'text', or 'both'
     voiceMode: 'push-to-talk', // 'push-to-talk' or 'realtime' (realtime requires special OpenAI access)
     voice: 'alloy',
-    enabled: true
+    enabled: false
   });
 
   // Usage state

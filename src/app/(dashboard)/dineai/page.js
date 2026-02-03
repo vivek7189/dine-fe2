@@ -64,7 +64,7 @@ export default function DineAIPage() {
 
   // Settings state
   const [localSettings, setLocalSettings] = useState({
-    enabled: true,
+    enabled: false,
     defaultVoice: 'alloy',
     voiceMode: 'push-to-talk',
     responseMode: 'voice',
@@ -73,6 +73,14 @@ export default function DineAIPage() {
     greetingStyle: 'friendly'
   });
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Toast notification state
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+  };
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,15 +183,15 @@ export default function DineAIPage() {
       });
 
       if (response.success) {
-        alert(`Successfully uploaded ${response.processed} file(s)`);
+        showNotification(`Successfully uploaded ${response.processed} file(s)`);
         loadKnowledgeItems();
         loadStats();
       } else {
-        alert(response.error || 'Upload failed');
+        showNotification(response.error || 'Upload failed', 'error');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload files');
+      showNotification('Failed to upload files', 'error');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -204,16 +212,16 @@ export default function DineAIPage() {
       });
 
       if (response.success) {
-        alert('URL content added to knowledge base');
+        showNotification('URL content added to knowledge base');
         setUrlInput('');
         loadKnowledgeItems();
         loadStats();
       } else {
-        alert(response.error || 'Failed to process URL');
+        showNotification(response.error || 'Failed to process URL', 'error');
       }
     } catch (error) {
       console.error('URL processing error:', error);
-      alert('Failed to process URL');
+      showNotification('Failed to process URL', 'error');
     } finally {
       setProcessingUrl(false);
     }
@@ -222,7 +230,7 @@ export default function DineAIPage() {
   // FAQ handlers
   const handleAddFaq = async () => {
     if (!newFaq.question.trim() || !newFaq.answer.trim()) {
-      alert('Please enter both question and answer');
+      showNotification('Please enter both question and answer', 'error');
       return;
     }
 
@@ -235,11 +243,11 @@ export default function DineAIPage() {
         loadKnowledgeItems();
         loadStats();
       } else {
-        alert(response.error || 'Failed to add FAQ');
+        showNotification(response.error || 'Failed to add FAQ', 'error');
       }
     } catch (error) {
       console.error('FAQ add error:', error);
-      alert('Failed to add FAQ');
+      showNotification('Failed to add FAQ', 'error');
     } finally {
       setAddingFaq(false);
     }
@@ -255,11 +263,11 @@ export default function DineAIPage() {
         loadKnowledgeItems();
         loadStats();
       } else {
-        alert(response.error || 'Failed to delete');
+        showNotification(response.error || 'Failed to delete', 'error');
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Failed to delete item');
+      showNotification('Failed to delete item', 'error');
     }
   };
 
@@ -291,11 +299,11 @@ export default function DineAIPage() {
       const response = await apiClient.put(`/api/dineai/settings/${restaurantId}`, localSettings);
       if (response.success) {
         updateSettings(localSettings);
-        alert('Settings saved successfully');
+        showNotification('Settings saved successfully');
       }
     } catch (error) {
       console.error('Settings save error:', error);
-      alert('Failed to save settings');
+      showNotification('Failed to save settings', 'error');
     } finally {
       setSavingSettings(false);
     }
@@ -323,12 +331,12 @@ export default function DineAIPage() {
     try {
       const response = await apiClient.post('/api/dineai/knowledge/reindex');
       if (response.success) {
-        alert('Re-indexing complete');
+        showNotification('Re-indexing complete');
         loadStats();
       }
     } catch (error) {
       console.error('Reindex error:', error);
-      alert('Failed to re-index');
+      showNotification('Failed to re-index', 'error');
     }
   };
 
@@ -354,6 +362,24 @@ export default function DineAIPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
+      {/* Toast Notification */}
+      {notification.show && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg ${
+            notification.type === 'error'
+              ? 'bg-red-500 text-white'
+              : 'bg-green-500 text-white'
+          }`}>
+            {notification.type === 'error' ? (
+              <FaTimes className="text-lg" />
+            ) : (
+              <FaCheck className="text-lg" />
+            )}
+            <span className="font-medium">{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-red-500 to-red-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
