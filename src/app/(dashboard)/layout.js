@@ -3,6 +3,8 @@
 import { Suspense, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
+import { DineAIProvider } from '../../contexts/DineAIContext';
+import DineAIButton from '../../components/dineai/DineAIButton';
 
 function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -74,31 +76,36 @@ function DashboardLayoutContent({ children }) {
   }, []);
 
   return (
-    <div style={{
-        display: 'flex',
-        height: '100vh',
-        backgroundColor: '#f9fafb',
-        overflow: 'hidden',
-        position: 'relative'
-      }}>
-        {/* Sidebar Navigation */}
-        <Sidebar isDashboardPage={isDashboardPage} />
+    <DineAIProvider>
+      <div style={{
+          display: 'flex',
+          height: '100vh',
+          backgroundColor: '#f9fafb',
+          overflow: 'hidden',
+          position: 'relative'
+        }}>
+          {/* Sidebar Navigation */}
+          <Sidebar isDashboardPage={isDashboardPage} />
 
-        {/* Main Content with dynamic width based on sidebar */}
-        <main
-          className="overflow-auto transition-all duration-300"
-          style={{
-            backgroundColor: '#f9fafb',
-            width: (isMobile || isDashboardPage) ? '100%' : `calc(100% - ${sidebarCollapsed ? '70px' : '240px'})`,
-            marginLeft: (isMobile || isDashboardPage) ? '0' : (sidebarCollapsed ? '70px' : '240px'),
-            height: '100vh'
-          }}
-        >
-          <div style={{ width: '100%', minHeight: '100%' }}>
-            {children}
-          </div>
-        </main>
-      </div>
+          {/* Main Content with dynamic width based on sidebar */}
+          <main
+            className="overflow-auto transition-all duration-300"
+            style={{
+              backgroundColor: '#f9fafb',
+              width: (isMobile || isDashboardPage) ? '100%' : `calc(100% - ${sidebarCollapsed ? '70px' : '240px'})`,
+              marginLeft: (isMobile || isDashboardPage) ? '0' : (sidebarCollapsed ? '70px' : '240px'),
+              height: '100vh'
+            }}
+          >
+            <div style={{ width: '100%', minHeight: '100%' }}>
+              {children}
+            </div>
+          </main>
+
+          {/* DineAI Floating Button */}
+          <DineAIButton />
+        </div>
+    </DineAIProvider>
   );
 }
 
