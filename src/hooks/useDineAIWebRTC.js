@@ -314,16 +314,42 @@ export const useDineAIWebRTC = () => {
    */
   const executeFunctionCall = useCallback(async (name, args, callId) => {
     try {
-      const { restaurantId } = getContext();
+      const { restaurantId, userId, userRole } = getContext();
 
-      console.log('🔧 Executing function:', name, 'for restaurant:', restaurantId);
+      // Parse args if string
+      let parsedArgs = args;
+      if (typeof args === 'string') {
+        try {
+          parsedArgs = JSON.parse(args);
+        } catch (e) {
+          console.error('Failed to parse function arguments:', e);
+          parsedArgs = {};
+        }
+      }
+
+      console.log('🔧 ==================== Function Call ====================');
+      console.log('🔧 Function:', name);
+      console.log('🔧 Session ID:', sessionId);
+      console.log('🔧 Restaurant ID:', restaurantId);
+      console.log('🔧 User ID:', userId);
+      console.log('🔧 User Role:', userRole);
+      console.log('🔧 Arguments:', JSON.stringify(parsedArgs, null, 2));
+      console.log('🔧 Call ID:', callId);
+
+      if (!restaurantId) {
+        console.error('❌ No restaurant ID available for function call!');
+        throw new Error('Restaurant ID not found. Please refresh the page.');
+      }
 
       const result = await apiClient.post('/api/dineai/realtime/function', {
         sessionId,
         restaurantId,
         functionName: name,
-        arguments: typeof args === 'string' ? JSON.parse(args) : args
+        arguments: parsedArgs
       });
+
+      console.log('🔧 Function Result:', JSON.stringify(result, null, 2).substring(0, 500));
+      console.log('🔧 ==================== End Function Call ====================');
 
       // Send result back via data channel
       if (dcRef.current?.readyState === 'open') {
@@ -341,7 +367,8 @@ export const useDineAIWebRTC = () => {
         }));
       }
     } catch (error) {
-      console.error('Function execution error:', error);
+      console.error('❌ Function execution error:', error);
+      console.error('❌ Stack:', error.stack);
 
       if (dcRef.current?.readyState === 'open') {
         dcRef.current.send(JSON.stringify({
