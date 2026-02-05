@@ -22,10 +22,9 @@ export default function Footer() {
   const productLinks = [
     { name: 'Restaurant POS Software', href: '/restaurant-pos-software-india' },
     { name: 'AI Agent for Restaurant', href: '/products/ai-agent' },
+    { name: 'Loyalty & Rewards', href: '/products/loyalty-rewards' },
     { name: 'Restaurant Management', href: '/products/restaurant-management' },
-    { name: 'Hotel Management', href: '/products/hotel-management' },
     { name: 'Inventory Management', href: '/products/inventory-management' },
-    { name: 'Supply Management', href: '/products/supply-management' },
     { name: 'Billing Software', href: '/products/billing-software' },
   ];
 
@@ -53,8 +52,8 @@ export default function Footer() {
     { name: 'Square Alternative', href: '/alternatives/square' },
     { name: 'Toast Alternative', href: '/alternatives/toast' },
     { name: 'Petpooja Alternative', href: '/alternatives/petpooja' },
+    { name: 'Reelo Alternative', href: '/alternatives/reelo' },
     { name: 'Clover Alternative', href: '/alternatives/clover' },
-    { name: 'Zomato Base Alternative', href: '/alternatives/zomato-base' },
   ];
 
   const companyLinks = [

@@ -83,6 +83,7 @@ export default function sitemap() {
     'inventory-management',
     'supply-management',
     'billing-software',
+    'loyalty-rewards',
   ].map((slug) => ({
     url: `${baseUrl}/products/${slug}`,
     lastModified: currentDate,
@@ -107,6 +108,7 @@ export default function sitemap() {
     'petpooja',
     'zomato-base',
     'clover',
+    'reelo',
   ].map((slug) => ({
     url: `${baseUrl}/alternatives/${slug}`,
     lastModified: currentDate,
