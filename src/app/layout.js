@@ -13,7 +13,7 @@ export const metadata = {
   openGraph: {
     title: 'DineOpen - AI-Powered Restaurant Management System',
     description: 'Complete AI-powered restaurant management solution with multi-restaurant support, POS system, inventory management, and order tracking.',
-    url: 'https://dineopen.com',
+    url: 'https://www.dineopen.com',
     siteName: 'DineOpen',
     images: [
       {

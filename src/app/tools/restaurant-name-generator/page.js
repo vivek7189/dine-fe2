@@ -1,0 +1,52 @@
+import RestaurantNameGeneratorClient from './RestaurantNameGeneratorClient';
+
+export const dynamic = 'force-static';
+export const revalidate = false;
+
+export const metadata = {
+  title: 'Free Restaurant Name Generator | 500+ Creative Names | DineOpen',
+  description: 'Generate unique restaurant names instantly. Get creative name ideas for cafes, bars, Indian restaurants, Italian bistros, food trucks & more. Free AI-powered generator.',
+  keywords: 'restaurant name generator, cafe name ideas, bar name generator, restaurant name ideas, creative restaurant names, unique cafe names, food truck names, bistro names, Indian restaurant names, Italian restaurant names, Chinese restaurant names',
+  openGraph: {
+    title: 'Free Restaurant Name Generator | 500+ Creative Names | DineOpen',
+    description: 'Generate unique restaurant names instantly. Creative ideas for cafes, bars, food trucks & more.',
+    url: 'https://www.dineopen.com/tools/restaurant-name-generator',
+    siteName: 'DineOpen',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free Restaurant Name Generator | DineOpen',
+    description: 'Generate unique restaurant names instantly. Free AI-powered generator.',
+  },
+  alternates: {
+    canonical: 'https://www.dineopen.com/tools/restaurant-name-generator',
+  },
+};
+
+export default function RestaurantNameGeneratorPage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Restaurant Name Generator",
+    "description": "Free AI-powered restaurant name generator. Get creative name ideas for any type of restaurant.",
+    "url": "https://www.dineopen.com/tools/restaurant-name-generator",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <RestaurantNameGeneratorClient />
+    </>
+  );
+}

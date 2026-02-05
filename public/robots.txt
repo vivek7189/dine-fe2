@@ -59,6 +59,44 @@ Allow: /tools/restaurant-invoice-generator
 Allow: /tools/kot-system
 Allow: /tools/table-management
 Allow: /tools/loyalty-program
+Allow: /tools/tip-calculator
+Allow: /tools/break-even-calculator
+Allow: /tools/profit-margin-calculator
+Allow: /tools/labor-cost-calculator
+Allow: /tools/restaurant-name-generator
+
+# Comparison & Alternative Pages (High-Value SEO)
+Allow: /compare
+Allow: /alternatives/square
+Allow: /alternatives/toast
+Allow: /alternatives/petpooja
+Allow: /alternatives/zomato-base
+Allow: /alternatives/clover
+Allow: /alternatives/lightspeed
+
+# City/Location Pages
+Allow: /pos/mumbai
+Allow: /pos/delhi
+Allow: /pos/bangalore
+Allow: /pos/chennai
+Allow: /pos/hyderabad
+Allow: /pos/pune
+Allow: /pos/usa
+Allow: /pos/uk
+Allow: /pos/dubai
+
+# Integration Pages
+Allow: /integrations/
+Allow: /integrations/zomato
+Allow: /integrations/swiggy
+Allow: /integrations/razorpay
+Allow: /integrations/tally
+
+# Core Pages
+Allow: /pricing
+Allow: /features
+Allow: /how-it-works
+Allow: /customers
 
 # Product Pages
 Allow: /products/ai-agent

@@ -9,7 +9,7 @@ export default function SEOStructuredData() {
     "name": "DineOpen",
     "url": baseUrl,
     "logo": `${baseUrl}/favicon.png`,
-    "description": "AI-powered restaurant management system with voice & chat AI agent, POS system, inventory management, supply chain management, table management, and hotel PMS",
+    "description": "AI-powered restaurant POS and billing software with voice ordering, QR menus, GST billing. Affordable Square, Toast & Petpooja alternative for restaurants in USA, UK & India.",
     "foundingDate": "2024",
     "contactPoint": {
       "@type": "ContactPoint",
@@ -22,10 +22,15 @@ export default function SEOStructuredData() {
       "https://www.linkedin.com/company/dineopen",
       "https://www.facebook.com/dineopen"
     ],
+    "areaServed": [
+      { "@type": "Country", "name": "United States" },
+      { "@type": "Country", "name": "United Kingdom" },
+      { "@type": "Country", "name": "India" }
+    ],
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "127"
+      "reviewCount": "500"
     }
   };
 
@@ -33,38 +38,52 @@ export default function SEOStructuredData() {
   const softwareApplicationSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "DineOpen",
+    "name": "DineOpen - Restaurant POS & Billing Software",
     "applicationCategory": "BusinessApplication",
+    "applicationSubCategory": "Restaurant POS System",
     "operatingSystem": "Web, iOS, Android",
-    "offers": {
-      "@type": "Offer",
-      "price": "999",
-      "priceCurrency": "INR",
-      "priceValidUntil": "2025-12-31",
-      "availability": "https://schema.org/InStock"
-    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "price": "10",
+        "priceCurrency": "USD",
+        "priceValidUntil": "2026-12-31",
+        "availability": "https://schema.org/InStock",
+        "eligibleRegion": ["US", "GB"]
+      },
+      {
+        "@type": "Offer",
+        "price": "999",
+        "priceCurrency": "INR",
+        "priceValidUntil": "2026-12-31",
+        "availability": "https://schema.org/InStock",
+        "eligibleRegion": "IN"
+      }
+    ],
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "127"
+      "reviewCount": "500"
     },
-    "description": "AI-powered restaurant management system with voice & chat AI agent for order taking, complete POS system, inventory management, supply chain management, table management, and hotel PMS. Start 1 month free trial.",
+    "description": "Best restaurant POS and billing software with AI voice ordering, QR code menus, zero transaction fees. Affordable Square, Toast & Petpooja alternative. GST billing for India. Free 30-day trial.",
     "featureList": [
-      "AI Agent (Voice & Chat)",
-      "Voice Order Taking",
-      "Smart Table Management",
-      "Restaurant Management System",
-      "POS System",
+      "AI Voice Ordering",
+      "QR Code Menu & Ordering",
+      "Restaurant POS System",
+      "Zero Transaction Fees",
+      "GST Billing (India)",
       "Inventory Management",
-      "Supply Chain Management",
+      "Kitchen Display System (KDS)",
       "Table Management",
-      "Hotel Management (PMS)",
-      "Kitchen Order Tickets (KOT)",
-      "Staff Management",
+      "Multi-location Support",
+      "Online Ordering",
       "Real-time Analytics",
-      "QR Code Menus",
-      "Multi-restaurant Support"
-    ]
+      "Zomato & Swiggy Integration",
+      "UPI & Card Payments"
+    ],
+    "screenshot": `${baseUrl}/screenshots/pos-dashboard.jpg`,
+    "softwareVersion": "2.0",
+    "releaseNotes": "AI Voice Ordering, QR Menus, Zero Transaction Fees"
   };
 
   // LocalBusiness Schema (for GEO SEO)
@@ -296,10 +315,11 @@ export default function SEOStructuredData() {
       "@type": "Organization",
       "name": "DineOpen"
     },
-    "areaServed": {
-      "@type": "Country",
-      "name": "India"
-    },
+    "areaServed": [
+      { "@type": "Country", "name": "United States" },
+      { "@type": "Country", "name": "United Kingdom" },
+      { "@type": "Country", "name": "India" }
+    ],
     "offers": {
       "@type": "Offer",
       "price": "999",
@@ -372,7 +392,7 @@ export default function SEOStructuredData() {
       "@type": "Offer",
       "price": "999",
       "priceCurrency": "INR",
-      "priceValidUntil": "2025-12-31",
+      "priceValidUntil": "2026-12-31",
       "availability": "https://schema.org/InStock",
       "url": "https://www.dineopen.com"
     },
@@ -395,8 +415,50 @@ export default function SEOStructuredData() {
     ]
   };
 
+  // ItemList Schema for Competitor Comparison (helps with "vs" queries)
+  const comparisonListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Restaurant POS System Comparison",
+    "description": "Compare DineOpen with Square, Toast, and Petpooja restaurant POS systems",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "DineOpen",
+        "url": `${baseUrl}`,
+        "description": "AI-powered restaurant POS with voice ordering, zero transaction fees. Starting at $10/month."
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Square for Restaurants",
+        "url": `${baseUrl}/alternatives/square`,
+        "description": "Compare DineOpen vs Square POS. Save on transaction fees."
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Toast POS",
+        "url": `${baseUrl}/alternatives/toast`,
+        "description": "Compare DineOpen vs Toast. No hardware lock-in, month-to-month billing."
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": "Petpooja",
+        "url": `${baseUrl}/alternatives/petpooja`,
+        "description": "Compare DineOpen vs Petpooja. Best POS for Indian restaurants."
+      }
+    ]
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(comparisonListSchema) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}

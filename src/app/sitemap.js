@@ -52,13 +52,21 @@ export default function sitemap() {
     priority: 0.85,
   }));
 
-  // Tool pages (/tools/*)
+  // Tool pages (/tools/*) - Free tools for SEO traffic
   const toolPages = [
     'qr-menu-generator',
     'restaurant-invoice-generator',
     'kot-system',
     'table-management',
     'loyalty-program',
+    'tip-calculator',
+    'restaurant-name-generator',
+    'profit-margin-calculator',
+    'break-even-calculator',
+    'labor-cost-calculator',
+    'gst-calculator',
+    'food-cost-calculator',
+    'menu-price-calculator',
   ].map((slug) => ({
     url: `${baseUrl}/tools/${slug}`,
     lastModified: currentDate,
@@ -82,6 +90,66 @@ export default function sitemap() {
     priority: 0.85,
   }));
 
+  // Comparison & Alternative pages (high-value for SEO)
+  const comparisonPages = [
+    'compare',
+  ].map((slug) => ({
+    url: `${baseUrl}/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.9,
+  }));
+
+  // Alternative pages (competitor comparison - high value)
+  const alternativePages = [
+    'square',
+    'toast',
+    'petpooja',
+    'zomato-base',
+    'clover',
+  ].map((slug) => ({
+    url: `${baseUrl}/alternatives/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.9,
+  }));
+
+  // City/Location pages (programmatic SEO)
+  const cityPages = [
+    'mumbai',
+    'delhi',
+    'bangalore',
+    'usa',
+    'uk',
+  ].map((slug) => ({
+    url: `${baseUrl}/pos/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
+
+  // Integration pages
+  const integrationPages = [
+    'zomato',
+    'swiggy',
+    'razorpay',
+  ].map((slug) => ({
+    url: `${baseUrl}/integrations/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }));
+
+  // Core pages
+  const corePages = [
+    {
+      url: `${baseUrl}/pricing`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+  ];
+
   // Blog posts
   const blogPosts = [
     'why-dineopen-future-restaurant-management',
@@ -102,6 +170,11 @@ export default function sitemap() {
 
   return [
     ...staticPages,
+    ...corePages,
+    ...comparisonPages,
+    ...alternativePages,
+    ...cityPages,
+    ...integrationPages,
     ...industryPages,
     ...toolPages,
     ...productPages,

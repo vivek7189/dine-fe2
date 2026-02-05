@@ -41,17 +41,27 @@ export default function Footer() {
 
   const toolLinks = [
     { name: 'QR Menu Generator', href: '/tools/qr-menu-generator' },
-    { name: 'Restaurant Invoice Generator', href: '/tools/restaurant-invoice-generator' },
-    { name: 'KOT System', href: '/tools/kot-system' },
-    { name: 'Table Management', href: '/tools/table-management' },
-    { name: 'Loyalty Program', href: '/tools/loyalty-program' },
+    { name: 'Tip Calculator', href: '/tools/tip-calculator' },
+    { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
+    { name: 'Profit Margin Calculator', href: '/tools/profit-margin-calculator' },
+    { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
+    { name: 'Labor Cost Calculator', href: '/tools/labor-cost-calculator' },
+  ];
+
+  const compareLinks = [
+    { name: 'Compare POS Systems', href: '/compare' },
+    { name: 'Square Alternative', href: '/alternatives/square' },
+    { name: 'Toast Alternative', href: '/alternatives/toast' },
+    { name: 'Petpooja Alternative', href: '/alternatives/petpooja' },
+    { name: 'Clover Alternative', href: '/alternatives/clover' },
+    { name: 'Zomato Base Alternative', href: '/alternatives/zomato-base' },
   ];
 
   const companyLinks = [
+    { name: 'Pricing', href: '/pricing' },
     { name: 'About Us', href: '/about' },
     { name: 'Blog', href: '/blog' },
     { name: 'Contact Us', href: '/contact' },
-    { name: 'Careers', href: '/careers' },
   ];
 
   const legalLinks = [
@@ -116,14 +126,14 @@ export default function Footer() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr) repeat(4, 1fr)',
-          gap: isMobile ? '0' : '40px'
+          gridTemplateColumns: isMobile ? '1fr' : '2fr repeat(5, 1fr)',
+          gap: isMobile ? '0' : '32px'
         }}>
           {/* Brand Section */}
           <div style={{
-            gridColumn: isMobile ? '1' : '1 / 3',
+            gridColumn: isMobile ? '1' : '1',
             marginBottom: isMobile ? '40px' : '0',
-            paddingRight: isMobile ? '0' : '40px'
+            paddingRight: isMobile ? '0' : '24px'
           }}>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', marginBottom: '20px' }}>
               <div style={{
@@ -220,6 +230,7 @@ export default function Footer() {
           {/* Link Sections */}
           <LinkSection title="Products" links={productLinks} />
           <LinkSection title="Solutions" links={useCaseLinks} />
+          <LinkSection title="Compare" links={compareLinks} />
           <LinkSection title="Tools" links={toolLinks} />
 
           <div>
