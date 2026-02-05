@@ -22,29 +22,29 @@ export default function Footer() {
   const productLinks = [
     { name: 'Restaurant POS Software', href: '/restaurant-pos-software-india' },
     { name: 'AI Agent for Restaurant', href: '/products/ai-agent' },
+    { name: 'Waiter & Captain App', href: '/products/waiter-app' },
+    { name: 'Multi-Restaurant Management', href: '/products/multi-restaurant' },
     { name: 'Loyalty & Rewards', href: '/products/loyalty-rewards' },
-    { name: 'Restaurant Management', href: '/products/restaurant-management' },
     { name: 'Inventory Management', href: '/products/inventory-management' },
-    { name: 'Billing Software', href: '/products/billing-software' },
   ];
 
   const useCaseLinks = [
     { name: 'For Restaurants', href: '/for/restaurants' },
-    { name: 'For Cafes', href: '/for/cafes' },
+    { name: 'For Indian Restaurants', href: '/for/indian-restaurants' },
+    { name: 'For QSR & Fast Food', href: '/for/qsr' },
+    { name: 'For Fine Dining', href: '/for/fine-dining' },
+    { name: 'For Pizza Shops', href: '/for/pizza-shops' },
     { name: 'For Cloud Kitchens', href: '/for/cloud-kitchens' },
-    { name: 'For Bars & Pubs', href: '/for/bars-pubs' },
-    { name: 'For Bakeries', href: '/for/bakeries' },
-    { name: 'For Food Trucks', href: '/for/food-trucks' },
-    { name: 'For Hotels', href: '/for/hotels' },
+    { name: 'For Cafes', href: '/for/cafes' },
   ];
 
   const toolLinks = [
-    { name: 'QR Menu Generator', href: '/tools/qr-menu-generator' },
-    { name: 'Tip Calculator', href: '/tools/tip-calculator' },
-    { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
-    { name: 'Profit Margin Calculator', href: '/tools/profit-margin-calculator' },
+    { name: 'Business Plan Template', href: '/resources/business-plan' },
+    { name: 'Restaurant Startup Guide', href: '/resources/startup-guide' },
+    { name: 'Restaurant Glossary', href: '/glossary' },
     { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
-    { name: 'Labor Cost Calculator', href: '/tools/labor-cost-calculator' },
+    { name: 'Profit Margin Calculator', href: '/tools/profit-margin-calculator' },
+    { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
   ];
 
   const compareLinks = [

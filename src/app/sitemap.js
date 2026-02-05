@@ -45,6 +45,11 @@ export default function sitemap() {
     'bakeries',
     'food-trucks',
     'hotels',
+    'indian-restaurants',
+    'chinese-restaurants',
+    'fine-dining',
+    'pizza-shops',
+    'qsr',
   ].map((slug) => ({
     url: `${baseUrl}/for/${slug}`,
     lastModified: currentDate,
@@ -84,6 +89,8 @@ export default function sitemap() {
     'supply-management',
     'billing-software',
     'loyalty-rewards',
+    'waiter-app',
+    'multi-restaurant',
   ].map((slug) => ({
     url: `${baseUrl}/products/${slug}`,
     lastModified: currentDate,
@@ -121,6 +128,11 @@ export default function sitemap() {
     'mumbai',
     'delhi',
     'bangalore',
+    'chennai',
+    'hyderabad',
+    'pune',
+    'kolkata',
+    'ahmedabad',
     'usa',
     'uk',
   ].map((slug) => ({
@@ -150,7 +162,24 @@ export default function sitemap() {
       changeFrequency: 'weekly',
       priority: 0.95,
     },
+    {
+      url: `${baseUrl}/glossary`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.75,
+    },
   ];
+
+  // Resource pages (high traffic potential)
+  const resourcePages = [
+    'business-plan',
+    'startup-guide',
+  ].map((slug) => ({
+    url: `${baseUrl}/resources/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'monthly',
+    priority: 0.85,
+  }));
 
   // Blog posts
   const blogPosts = [
@@ -173,6 +202,7 @@ export default function sitemap() {
   return [
     ...staticPages,
     ...corePages,
+    ...resourcePages,
     ...comparisonPages,
     ...alternativePages,
     ...cityPages,
