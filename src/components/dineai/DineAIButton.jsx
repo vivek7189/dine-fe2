@@ -4,10 +4,15 @@ import { useState, useEffect } from 'react';
 import { FaMicrophone } from 'react-icons/fa';
 import { useDineAI } from '../../contexts/DineAIContext';
 import DineAIVoiceModal from './DineAIVoiceModal';
+import DineAICheapVoiceModal from './DineAICheapVoiceModal';
 
 /**
  * DineAI Floating Button
  * Appears on all dashboard pages for quick voice assistant access
+ * Supports multiple voice modes:
+ * - push-to-talk: Original push to talk mode
+ * - cheap-realtime: Full voice at 95% lower cost (recommended)
+ * - realtime: OpenAI Realtime API (expensive)
  */
 const DineAIButton = () => {
   const {
@@ -15,11 +20,14 @@ const DineAIButton = () => {
     isListening,
     isProcessing,
     toggle,
+    open,
+    close,
     settings
   } = useDineAI();
 
   const [isPulsing, setIsPulsing] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [cheapVoiceOpen, setCheapVoiceOpen] = useState(false);
 
   // Pulse animation when listening
   useEffect(() => {
@@ -30,10 +38,31 @@ const DineAIButton = () => {
     }
   }, [isListening]);
 
+  // Handle button click based on voice mode
+  const handleClick = () => {
+    const voiceMode = settings?.voiceMode || 'push-to-talk';
+
+    if (voiceMode === 'cheap-realtime') {
+      // Use cheap realtime modal
+      setCheapVoiceOpen(true);
+    } else {
+      // Use original toggle (push-to-talk or realtime)
+      toggle();
+    }
+  };
+
+  // Handle closing cheap voice modal
+  const handleCloseCheapVoice = () => {
+    setCheapVoiceOpen(false);
+  };
+
   // Don't render if DineAI is disabled
   if (!settings?.enabled) {
     return null;
   }
+
+  // Check if any modal is open
+  const isAnyModalOpen = isOpen || cheapVoiceOpen;
 
   return (
     <>
@@ -47,7 +76,7 @@ const DineAIButton = () => {
         }}
       >
         <button
-          onClick={toggle}
+          onClick={handleClick}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
           disabled={isProcessing}
@@ -66,7 +95,7 @@ const DineAIButton = () => {
             justifyContent: 'center',
             boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)',
             transition: 'all 0.3s ease',
-            transform: isOpen ? 'scale(0.9)' : 'scale(1)',
+            transform: isAnyModalOpen ? 'scale(0.9)' : 'scale(1)',
             opacity: isProcessing ? 0.7 : 1,
             position: 'relative',
             overflow: 'visible'
@@ -131,7 +160,7 @@ const DineAIButton = () => {
         </button>
 
         {/* Tooltip */}
-        {showTooltip && !isOpen && (
+        {showTooltip && !isAnyModalOpen && (
           <div
             style={{
               position: 'absolute',
@@ -164,8 +193,14 @@ const DineAIButton = () => {
         )}
       </div>
 
-      {/* Voice Modal */}
+      {/* Voice Modal - Original (push-to-talk and realtime modes) */}
       {isOpen && <DineAIVoiceModal />}
+
+      {/* Cheap Voice Modal - Cost-effective mode */}
+      <DineAICheapVoiceModal
+        isOpen={cheapVoiceOpen}
+        onClose={handleCloseCheapVoice}
+      />
 
       {/* CSS Animations */}
       <style jsx global>{`

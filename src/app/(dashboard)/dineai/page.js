@@ -66,7 +66,7 @@ export default function DineAIPage() {
   const [localSettings, setLocalSettings] = useState({
     enabled: false,
     defaultVoice: 'alloy',
-    voiceMode: 'push-to-talk',
+    voiceMode: 'cheap-realtime', // Default to cost-effective mode
     responseMode: 'voice',
     enableKnowledgeBase: true,
     enableGreetings: true,
@@ -816,7 +816,7 @@ export default function DineAIPage() {
                 {/* Voice Mode */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Default Voice Mode</label>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <button
                       onClick={() => setLocalSettings(prev => ({ ...prev, voiceMode: 'push-to-talk' }))}
                       className={`p-4 rounded-xl border-2 text-left transition-colors ${
@@ -829,23 +829,46 @@ export default function DineAIPage() {
                         localSettings.voiceMode === 'push-to-talk' ? 'text-red-600' : 'text-gray-400'
                       }`} />
                       <h5 className="font-medium">Push-to-Talk</h5>
-                      <p className="text-sm text-gray-500">Tap to speak, release to send</p>
+                      <p className="text-xs text-gray-500">Tap to speak</p>
+                    </button>
+                    <button
+                      onClick={() => setLocalSettings(prev => ({ ...prev, voiceMode: 'cheap-realtime' }))}
+                      className={`p-4 rounded-xl border-2 text-left transition-colors relative ${
+                        localSettings.voiceMode === 'cheap-realtime'
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-green-500 text-white text-xs rounded-full">
+                        95% Cheaper
+                      </span>
+                      <FaVolumeUp className={`text-xl mb-2 ${
+                        localSettings.voiceMode === 'cheap-realtime' ? 'text-red-600' : 'text-gray-400'
+                      }`} />
+                      <h5 className="font-medium">Smart Voice</h5>
+                      <p className="text-xs text-gray-500">Full voice, low cost</p>
                     </button>
                     <button
                       onClick={() => setLocalSettings(prev => ({ ...prev, voiceMode: 'realtime' }))}
-                      className={`p-4 rounded-xl border-2 text-left transition-colors ${
+                      className={`p-4 rounded-xl border-2 text-left transition-colors relative ${
                         localSettings.voiceMode === 'realtime'
                           ? 'border-red-500 bg-red-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <FaVolumeUp className={`text-xl mb-2 ${
+                      <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-yellow-500 text-white text-xs rounded-full">
+                        Premium
+                      </span>
+                      <FaBrain className={`text-xl mb-2 ${
                         localSettings.voiceMode === 'realtime' ? 'text-red-600' : 'text-gray-400'
                       }`} />
                       <h5 className="font-medium">Realtime</h5>
-                      <p className="text-sm text-gray-500">Natural conversation (Beta)</p>
+                      <p className="text-xs text-gray-500">Ultra low latency</p>
                     </button>
                   </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    <strong>Smart Voice (Recommended):</strong> Full voice-to-voice conversation at 95% lower cost. ~1s response time.
+                  </p>
                 </div>
 
                 {/* Voice Selection */}
