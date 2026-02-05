@@ -36,6 +36,7 @@ export const useDineAIWebRTC = () => {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const audioElementRef = useRef(null);
+  const sessionIdRef = useRef(null); // Ref to avoid stale closure issues
 
   /**
    * Connect using WebRTC (SDP proxied through backend)
@@ -142,6 +143,7 @@ export const useDineAIWebRTC = () => {
       }
 
       setSessionId(response.sessionId);
+      sessionIdRef.current = response.sessionId; // Set ref immediately
 
       // 7. Set remote description from OpenAI (via backend)
       const answer = {
@@ -309,12 +311,20 @@ export const useDineAIWebRTC = () => {
     }
   }, [setIsListening, setIsSpeaking, setTranscript, setMessages, setError]);
 
+  // Keep sessionId ref in sync with state to avoid stale closures
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+
   /**
    * Execute function call and send result back
+   * Uses sessionIdRef to avoid stale closure issues with data channel callbacks
    */
   const executeFunctionCall = useCallback(async (name, args, callId) => {
     try {
       const { restaurantId, userId, userRole } = getContext();
+      // Use ref to get current sessionId (avoids stale closure)
+      const currentSessionId = sessionIdRef.current;
 
       // Parse args if string
       let parsedArgs = args;
@@ -329,7 +339,7 @@ export const useDineAIWebRTC = () => {
 
       console.log('🔧 ==================== Function Call ====================');
       console.log('🔧 Function:', name);
-      console.log('🔧 Session ID:', sessionId);
+      console.log('🔧 Session ID (ref):', currentSessionId);
       console.log('🔧 Restaurant ID:', restaurantId);
       console.log('🔧 User ID:', userId);
       console.log('🔧 User Role:', userRole);
@@ -341,8 +351,13 @@ export const useDineAIWebRTC = () => {
         throw new Error('Restaurant ID not found. Please refresh the page.');
       }
 
+      if (!currentSessionId) {
+        console.error('❌ No session ID available for function call!');
+        throw new Error('Session not found. Please reconnect.');
+      }
+
       const result = await apiClient.post('/api/dineai/realtime/function', {
-        sessionId,
+        sessionId: currentSessionId,
         restaurantId,
         functionName: name,
         arguments: parsedArgs
@@ -385,7 +400,7 @@ export const useDineAIWebRTC = () => {
         }));
       }
     }
-  }, [sessionId, getContext]);
+  }, [getContext]); // Removed sessionId dependency - using ref instead
 
   /**
    * Cleanup resources
@@ -440,6 +455,7 @@ export const useDineAIWebRTC = () => {
 
     setIsConnected(false);
     setSessionId(null);
+    sessionIdRef.current = null; // Clear ref
     setLocalIsListening(false);
     setLocalIsSpeaking(false);
     setIsListening(false);
