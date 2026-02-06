@@ -41,15 +41,15 @@ export default function Footer() {
   ];
 
   const toolLinks = [
+    { name: 'Opening Checklist', href: '/tools/opening-checklist' },
+    { name: 'Restaurant Name AI', href: '/tools/restaurant-name-generator' },
+    { name: 'Swiggy/Zomato Calculator', href: '/tools/swiggy-zomato-calculator' },
+    { name: 'Menu Engineering', href: '/tools/menu-engineering' },
     { name: 'Recipe Cost Calculator', href: '/tools/recipe-cost-calculator' },
+    { name: 'Table Turnover Calculator', href: '/tools/table-turnover-calculator' },
     { name: 'FSSAI Fee Calculator', href: '/tools/fssai-fee-calculator' },
-    { name: 'Kitchen Converter', href: '/tools/kitchen-conversion-calculator' },
-    { name: 'Bill Splitter', href: '/tools/bill-splitter' },
-    { name: 'Staff Calculator', href: '/tools/staff-calculator' },
-    { name: 'Menu Description AI', href: '/tools/menu-description-generator' },
-    { name: 'Review Response AI', href: '/tools/review-response-generator' },
-    { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator' },
-    { name: 'Restaurant Glossary', href: '/glossary' },
+    { name: 'EMI Calculator', href: '/tools/emi-calculator' },
+    { name: 'More Free Tools...', href: '/glossary' },
   ];
 
   const resourceLinks = [

@@ -1,4 +1,4 @@
-import RestaurantNameGeneratorClient from './RestaurantNameGeneratorClient';
+import RestaurantNameClient from './RestaurantNameClient';
 
 export const dynamic = 'force-static';
 export const revalidate = false;
@@ -46,7 +46,7 @@ export default function RestaurantNameGeneratorPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <RestaurantNameGeneratorClient />
+      <RestaurantNameClient />
     </>
   );
 }
