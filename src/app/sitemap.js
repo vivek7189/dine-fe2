@@ -82,6 +82,15 @@ export default function sitemap() {
     'food-cost-calculator',
     'menu-price-calculator',
     'roi-calculator',
+    // New free tools
+    'recipe-cost-calculator',
+    'kitchen-conversion-calculator',
+    'bill-splitter',
+    'staff-calculator',
+    'fssai-fee-calculator',
+    // AI-powered tools
+    'menu-description-generator',
+    'review-response-generator',
   ].map((slug) => ({
     url: `${baseUrl}/tools/${slug}`,
     lastModified: currentDate,

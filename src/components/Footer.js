@@ -41,11 +41,14 @@ export default function Footer() {
   ];
 
   const toolLinks = [
-    { name: 'ROI Calculator', href: '/tools/roi-calculator' },
-    { name: 'GST Calculator', href: '/tools/gst-calculator' },
+    { name: 'Recipe Cost Calculator', href: '/tools/recipe-cost-calculator' },
+    { name: 'FSSAI Fee Calculator', href: '/tools/fssai-fee-calculator' },
+    { name: 'Kitchen Converter', href: '/tools/kitchen-conversion-calculator' },
+    { name: 'Bill Splitter', href: '/tools/bill-splitter' },
+    { name: 'Staff Calculator', href: '/tools/staff-calculator' },
+    { name: 'Menu Description AI', href: '/tools/menu-description-generator' },
+    { name: 'Review Response AI', href: '/tools/review-response-generator' },
     { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator' },
-    { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
-    { name: 'Profit Margin Calculator', href: '/tools/profit-margin-calculator' },
     { name: 'Restaurant Glossary', href: '/glossary' },
   ];
 
