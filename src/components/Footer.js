@@ -39,12 +39,12 @@ export default function Footer() {
   ];
 
   const toolLinks = [
+    { name: 'ROI Calculator', href: '/tools/roi-calculator' },
     { name: 'Business Plan Template', href: '/resources/business-plan' },
     { name: 'Restaurant Startup Guide', href: '/resources/startup-guide' },
     { name: 'Restaurant Glossary', href: '/glossary' },
     { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
     { name: 'Profit Margin Calculator', href: '/tools/profit-margin-calculator' },
-    { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
   ];
 
   const compareLinks = [
@@ -52,8 +52,9 @@ export default function Footer() {
     { name: 'Square Alternative', href: '/alternatives/square' },
     { name: 'Toast Alternative', href: '/alternatives/toast' },
     { name: 'Petpooja Alternative', href: '/alternatives/petpooja' },
-    { name: 'Reelo Alternative', href: '/alternatives/reelo' },
-    { name: 'Clover Alternative', href: '/alternatives/clover' },
+    { name: 'POSist Alternative', href: '/alternatives/posist' },
+    { name: 'Lightspeed Alternative', href: '/alternatives/lightspeed' },
+    { name: 'TouchBistro Alternative', href: '/alternatives/touchbistro' },
   ];
 
   const companyLinks = [

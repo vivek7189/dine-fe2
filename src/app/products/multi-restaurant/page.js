@@ -64,9 +64,57 @@ export default function MultiRestaurantPage() {
     ]
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How much does multi-restaurant POS cost?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen charges just ₹999/outlet/month in India ($10/outlet in US/UK). No setup fees, no hidden charges. Manage unlimited outlets from one dashboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I manage menu centrally for all outlets?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! Update your menu once and push changes to all outlets instantly. Or customize menus per location if needed - both options are available."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does role-based access work for chains?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Configure access levels - outlet managers see only their location, area managers see their region, and owners see everything. Control what franchisees can and cannot change."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is there a limit on number of outlets?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No limits! DineOpen supports unlimited outlets. Whether you have 2 locations or 200+, the per-outlet pricing stays the same. Scale freely."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I see consolidated reports across all outlets?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! View consolidated sales, inventory, and performance across all locations in one dashboard. Also drill down to per-outlet analytics for detailed insights."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <MultiRestaurantClient />
     </>
   );

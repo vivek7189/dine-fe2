@@ -50,6 +50,15 @@ export default function sitemap() {
     'fine-dining',
     'pizza-shops',
     'qsr',
+    // New industry pages
+    'sweet-shops',
+    'food-courts',
+    'catering',
+    'canteens',
+    'dhabas',
+    'ice-cream-parlors',
+    'juice-bars',
+    'pubs-breweries',
   ].map((slug) => ({
     url: `${baseUrl}/for/${slug}`,
     lastModified: currentDate,
@@ -72,6 +81,7 @@ export default function sitemap() {
     'gst-calculator',
     'food-cost-calculator',
     'menu-price-calculator',
+    'roi-calculator',
   ].map((slug) => ({
     url: `${baseUrl}/tools/${slug}`,
     lastModified: currentDate,
@@ -116,6 +126,9 @@ export default function sitemap() {
     'zomato-base',
     'clover',
     'reelo',
+    'lightspeed',
+    'touchbistro',
+    'posist',
   ].map((slug) => ({
     url: `${baseUrl}/alternatives/${slug}`,
     lastModified: currentDate,
@@ -125,6 +138,7 @@ export default function sitemap() {
 
   // City/Location pages (programmatic SEO)
   const cityPages = [
+    // Metro cities India
     'mumbai',
     'delhi',
     'bangalore',
@@ -133,8 +147,34 @@ export default function sitemap() {
     'pune',
     'kolkata',
     'ahmedabad',
+    // Tier 2 cities India
+    'jaipur',
+    'lucknow',
+    'chandigarh',
+    'kochi',
+    'goa',
+    // North India - Uttarakhand & UP
+    'haridwar',
+    'rishikesh',
+    'dehradun',
+    'mussoorie',
+    'varanasi',
+    'agra',
+    'prayagraj',
+    // North India - NCR & Western UP
+    'noida',
+    'meerut',
+    'saharanpur',
+    // North India - Punjab & Himachal
+    'amritsar',
+    'shimla',
+    // International
     'usa',
     'uk',
+    'uae',
+    'singapore',
+    'canada',
+    'australia',
   ].map((slug) => ({
     url: `${baseUrl}/pos/${slug}`,
     lastModified: currentDate,
@@ -174,12 +214,29 @@ export default function sitemap() {
   const resourcePages = [
     'business-plan',
     'startup-guide',
+    // Compliance guides
+    'fssai-guide',
+    'gst-restaurants',
+    'restaurant-licenses-india',
+    // Lead magnet hubs
+    'guides',
+    'templates',
   ].map((slug) => ({
     url: `${baseUrl}/resources/${slug}`,
     lastModified: currentDate,
     changeFrequency: 'monthly',
     priority: 0.85,
   }));
+
+  // Trust & Security pages
+  const trustPages = [
+    {
+      url: `${baseUrl}/security`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+  ];
 
   // Blog posts
   const blogPosts = [
@@ -203,6 +260,7 @@ export default function sitemap() {
     ...staticPages,
     ...corePages,
     ...resourcePages,
+    ...trustPages,
     ...comparisonPages,
     ...alternativePages,
     ...cityPages,

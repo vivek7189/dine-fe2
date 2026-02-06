@@ -58,9 +58,57 @@ export default function WaiterAppPage() {
     }
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is a waiter app for restaurants?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A waiter app allows restaurant staff to take orders directly at the table using a phone or tablet, eliminating the need to walk back to the POS terminal. Orders sync instantly to the kitchen display or printer."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does the waiter app work offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! DineOpen's waiter app works offline. Orders are stored locally and automatically sync when internet connection returns. Perfect for outdoor events, beach restaurants, and areas with poor connectivity."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How many devices can use the waiter app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Unlimited! DineOpen allows unlimited staff devices at no extra cost. Your entire team - waiters, captains, managers - can use the app simultaneously on their own phones."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is the waiter app free with DineOpen?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, the Waiter & Captain app is included free with all DineOpen subscriptions. No per-device fees, no extra charges. Download from Play Store or App Store."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can waiters split bills using the app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! The app supports split billing by item, by person, or by custom amounts. Waiters can process payments right at the table for faster turnover."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <WaiterAppClient />
     </>
   );

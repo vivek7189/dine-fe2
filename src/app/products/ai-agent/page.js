@@ -82,12 +82,65 @@ export default function AIAgentProductPage() {
     ]
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How does AI voice ordering work in restaurants?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen AI Voice Ordering allows staff to speak orders naturally instead of typing. Simply say 'One butter chicken and two garlic naan' and the AI transcribes it into a proper order with correct items, quantities, and modifiers. It works in Hindi, Tamil, Telugu, and 10+ Indian languages."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does AI voice ordering work with Indian accents?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! DineOpen's AI is specifically trained on Indian accents and regional pronunciations. It understands Hindi-English mix, regional food names, and local terminology used in Indian restaurants."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can AI take orders in multiple languages?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen AI supports 10+ languages including Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Kannada, Malayalam, and English. Staff can speak in their preferred language."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How accurate is AI voice ordering?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen AI achieves 95%+ accuracy for voice orders. It learns your menu items and common modifiers, improving over time. Staff can quickly review and confirm before sending to kitchen."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is AI voice ordering included in DineOpen pricing?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! AI Voice Ordering is included in all DineOpen plans at no extra cost. You get unlimited voice orders starting at just ₹999/month."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(structuredData)
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqSchema)
         }}
       />
       <AIAgentProductClient />

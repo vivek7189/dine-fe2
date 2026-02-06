@@ -128,6 +128,50 @@ export default function CityPOSClient({ cityData }) {
           </div>
         </div>
 
+        {/* Other Cities */}
+        <div style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>
+              DineOpen Restaurant POS Available In
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginBottom: '24px' }}>
+              {[
+                { name: 'Mumbai', href: '/pos/mumbai' },
+                { name: 'Delhi', href: '/pos/delhi' },
+                { name: 'Bangalore', href: '/pos/bangalore' },
+                { name: 'Chennai', href: '/pos/chennai' },
+                { name: 'Hyderabad', href: '/pos/hyderabad' },
+                { name: 'Pune', href: '/pos/pune' },
+                { name: 'Kolkata', href: '/pos/kolkata' },
+                { name: 'Ahmedabad', href: '/pos/ahmedabad' },
+                { name: 'Jaipur', href: '/pos/jaipur' },
+                { name: 'Lucknow', href: '/pos/lucknow' },
+                { name: 'Chandigarh', href: '/pos/chandigarh' },
+                { name: 'Kochi', href: '/pos/kochi' },
+                { name: 'Goa', href: '/pos/goa' },
+              ].map((c) => (
+                <Link key={c.href} href={c.href} style={{ padding: '8px 16px', backgroundColor: 'white', borderRadius: '20px', color: '#ef4444', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                  {c.name}
+                </Link>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center' }}>
+              {[
+                { name: 'USA', href: '/pos/usa' },
+                { name: 'UK', href: '/pos/uk' },
+                { name: 'UAE', href: '/pos/uae' },
+                { name: 'Singapore', href: '/pos/singapore' },
+                { name: 'Canada', href: '/pos/canada' },
+                { name: 'Australia', href: '/pos/australia' },
+              ].map((c) => (
+                <Link key={c.href} href={c.href} style={{ padding: '8px 16px', backgroundColor: '#ef4444', borderRadius: '20px', color: 'white', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                  {c.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* CTA */}
         <div style={{ padding: '60px 20px', textAlign: 'center', background: 'linear-gradient(135deg, #111827 0%, #374151 100%)', color: 'white' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
