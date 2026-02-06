@@ -30,21 +30,33 @@ export default function Footer() {
 
   const useCaseLinks = [
     { name: 'For Restaurants', href: '/for/restaurants' },
-    { name: 'For Indian Restaurants', href: '/for/indian-restaurants' },
-    { name: 'For QSR & Fast Food', href: '/for/qsr' },
-    { name: 'For Fine Dining', href: '/for/fine-dining' },
-    { name: 'For Pizza Shops', href: '/for/pizza-shops' },
     { name: 'For Cloud Kitchens', href: '/for/cloud-kitchens' },
     { name: 'For Cafes', href: '/for/cafes' },
+    { name: 'For QSR & Fast Food', href: '/for/qsr' },
+    { name: 'For Sweet Shops', href: '/for/sweet-shops' },
+    { name: 'For Food Courts', href: '/for/food-courts' },
+    { name: 'For Dhabas', href: '/for/dhabas' },
+    { name: 'For Canteens', href: '/for/canteens' },
+    { name: 'For Catering', href: '/for/catering' },
   ];
 
   const toolLinks = [
     { name: 'ROI Calculator', href: '/tools/roi-calculator' },
-    { name: 'Business Plan Template', href: '/resources/business-plan' },
-    { name: 'Restaurant Startup Guide', href: '/resources/startup-guide' },
-    { name: 'Restaurant Glossary', href: '/glossary' },
+    { name: 'GST Calculator', href: '/tools/gst-calculator' },
+    { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator' },
     { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
     { name: 'Profit Margin Calculator', href: '/tools/profit-margin-calculator' },
+    { name: 'Restaurant Glossary', href: '/glossary' },
+  ];
+
+  const resourceLinks = [
+    { name: 'Startup Guide', href: '/resources/startup-guide' },
+    { name: 'Business Plan Template', href: '/resources/business-plan' },
+    { name: 'FSSAI License Guide', href: '/resources/fssai-guide' },
+    { name: 'GST for Restaurants', href: '/resources/gst-restaurants' },
+    { name: 'All Licenses Checklist', href: '/resources/restaurant-licenses-india' },
+    { name: 'Free Guides & eBooks', href: '/resources/guides' },
+    { name: 'Free Templates', href: '/resources/templates' },
   ];
 
   const compareLinks = [
@@ -61,6 +73,7 @@ export default function Footer() {
     { name: 'Pricing', href: '/pricing' },
     { name: 'About Us', href: '/about' },
     { name: 'Blog', href: '/blog' },
+    { name: 'Security', href: '/security' },
     { name: 'Contact Us', href: '/contact' },
   ];
 
@@ -126,8 +139,8 @@ export default function Footer() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '2fr repeat(5, 1fr)',
-          gap: isMobile ? '0' : '32px'
+          gridTemplateColumns: isMobile ? '1fr' : '2fr repeat(6, 1fr)',
+          gap: isMobile ? '0' : '24px'
         }}>
           {/* Brand Section */}
           <div style={{
@@ -167,7 +180,7 @@ export default function Footer() {
               marginBottom: '24px',
               maxWidth: '360px'
             }}>
-              India&apos;s all-in-one restaurant management platform. POS, QR ordering, digital menus,
+              All-in-one restaurant management platform. POS, QR ordering, digital menus,
               inventory, analytics, WhatsApp automation, and more - everything you need to run
               your restaurant efficiently.
             </p>
@@ -231,6 +244,7 @@ export default function Footer() {
           <LinkSection title="Products" links={productLinks} />
           <LinkSection title="Solutions" links={useCaseLinks} />
           <LinkSection title="Compare" links={compareLinks} />
+          <LinkSection title="Resources" links={resourceLinks} />
           <LinkSection title="Tools" links={toolLinks} />
 
           <div>
@@ -263,7 +277,7 @@ export default function Footer() {
             margin: 0,
             textAlign: isMobile ? 'center' : 'left'
           }}>
-            &copy; {currentYear} DineOpen. All rights reserved. Made with love in India.
+            &copy; {currentYear} DineOpen. All rights reserved. Made with love on Planet Earth.
           </p>
           <div style={{
             display: 'flex',
@@ -271,7 +285,7 @@ export default function Footer() {
             alignItems: 'center'
           }}>
             <span style={{ fontSize: '13px', color: '#9ca3af' }}>
-              Trusted by 500+ restaurants across India
+              Trusted by 500+ restaurants across Planet Earth
             </span>
           </div>
         </div>
