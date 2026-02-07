@@ -9,7 +9,7 @@ export default function SEOStructuredData() {
     "name": "DineOpen",
     "url": baseUrl,
     "logo": `${baseUrl}/favicon.png`,
-    "description": "AI-powered restaurant POS and billing software with voice ordering, QR menus, GST billing. Affordable Square, Toast & Petpooja alternative for restaurants in USA, UK & India.",
+    "description": "The Global Restaurant Operating System. All-in-one platform for Cloud POS, waiter apps, table reservations, inventory management, AI analytics, and loyalty programs. Trusted by 1000+ restaurants across 20+ countries.",
     "foundingDate": "2024",
     "contactPoint": {
       "@type": "ContactPoint",
@@ -18,19 +18,24 @@ export default function SEOStructuredData() {
       "availableLanguage": ["en", "hi"]
     },
     "sameAs": [
-      "https://twitter.com/dineopen",
+      "https://twitter.com/dineopenoffice",
       "https://www.linkedin.com/company/dineopen",
-      "https://www.facebook.com/dineopen"
+      "https://www.instagram.com/dineopenofficial",
+      "https://www.youtube.com/@dineopen"
     ],
     "areaServed": [
       { "@type": "Country", "name": "United States" },
       { "@type": "Country", "name": "United Kingdom" },
-      { "@type": "Country", "name": "India" }
+      { "@type": "Country", "name": "India" },
+      { "@type": "Country", "name": "United Arab Emirates" },
+      { "@type": "Country", "name": "Singapore" },
+      { "@type": "Country", "name": "Canada" },
+      { "@type": "Country", "name": "Australia" }
     ],
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "500"
+      "reviewCount": "1000"
     }
   };
 
@@ -38,24 +43,24 @@ export default function SEOStructuredData() {
   const softwareApplicationSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "DineOpen - Restaurant POS & Billing Software",
+    "name": "DineOpen - The Global Restaurant Operating System",
     "applicationCategory": "BusinessApplication",
-    "applicationSubCategory": "Restaurant POS System",
+    "applicationSubCategory": "Restaurant Management Platform",
     "operatingSystem": "Web, iOS, Android",
     "offers": [
       {
         "@type": "Offer",
         "price": "10",
         "priceCurrency": "USD",
-        "priceValidUntil": "2026-12-31",
+        "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
-        "eligibleRegion": ["US", "GB"]
+        "eligibleRegion": ["US", "GB", "AE", "SG", "CA", "AU"]
       },
       {
         "@type": "Offer",
         "price": "999",
         "priceCurrency": "INR",
-        "priceValidUntil": "2026-12-31",
+        "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
         "eligibleRegion": "IN"
       }
@@ -63,30 +68,29 @@ export default function SEOStructuredData() {
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "500"
+      "reviewCount": "1000"
     },
-    "description": "Best restaurant POS and billing software with AI voice ordering, QR code menus, zero transaction fees. Affordable Square, Toast & Petpooja alternative. GST billing for India. Free 30-day trial.",
+    "description": "The all-in-one restaurant operating system powering 1000+ restaurants worldwide. Cloud POS, waiter apps, table reservations, inventory management, AI analytics, and loyalty programs. Free trial available.",
     "featureList": [
-      "AI Voice Ordering",
-      "QR Code Menu & Ordering",
-      "Restaurant POS System",
+      "Lightning-Fast Cloud POS",
+      "Waiter & Captain App",
+      "Online Table Reservations",
+      "Smart Inventory Management",
+      "AI-Powered Analytics",
       "Loyalty & Rewards Program",
-      "Points Redemption System",
-      "WhatsApp Marketing",
-      "Zero Transaction Fees",
-      "GST Billing (India)",
-      "Inventory Management",
       "Kitchen Display System (KDS)",
-      "Table Management",
       "Multi-location Support",
-      "Online Ordering",
-      "Real-time Analytics",
+      "Menu Management",
+      "Real-time Reporting",
       "Zomato & Swiggy Integration",
-      "UPI & Card Payments"
+      "UPI & Card Payments",
+      "GST Billing (India)",
+      "Zero Transaction Fees",
+      "WhatsApp Marketing"
     ],
     "screenshot": `${baseUrl}/screenshots/pos-dashboard.jpg`,
-    "softwareVersion": "2.0",
-    "releaseNotes": "AI Voice Ordering, QR Menus, Zero Transaction Fees"
+    "softwareVersion": "3.0",
+    "releaseNotes": "Global Restaurant Operating System - POS, Orders, Inventory, Analytics, Growth"
   };
 
   // LocalBusiness Schema (for GEO SEO)
@@ -149,23 +153,23 @@ export default function SEOStructuredData() {
         "name": "What is DineOpen?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen is an AI-powered restaurant management system with voice & chat AI agent for order taking, complete POS system, inventory management, supply chain management, table management, and hotel PMS. It's designed to help restaurants streamline operations and increase efficiency with AI technology."
+          "text": "DineOpen is the global restaurant operating system - an all-in-one platform that powers restaurants worldwide. It includes cloud POS, waiter & captain apps, online table reservations, inventory management, AI-powered analytics, and loyalty programs. Trusted by 1000+ restaurants across 20+ countries."
         }
       },
       {
         "@type": "Question",
-        "name": "What is AI Agent for Restaurant?",
+        "name": "What features does DineOpen include?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen's AI Agent is an intelligent voice and chat assistant that takes orders via voice commands, answers customer questions, manages tables, and handles restaurant operations through natural conversation. It supports voice order taking, smart table management, and instant answers to restaurant queries."
+          "text": "DineOpen includes 6 core modules: Lightning-Fast Cloud POS (bill in 3 seconds), Waiter & Captain App for tableside ordering, Online Table Reservations (24/7 booking), Smart Inventory with auto low-stock alerts, AI Analytics for business insights, and Loyalty & Rewards to keep customers coming back."
         }
       },
       {
         "@type": "Question",
-        "name": "How does voice order taking work in DineOpen?",
+        "name": "Which countries does DineOpen serve?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen's AI Agent uses advanced speech recognition and AI to understand voice commands for order taking. Simply speak your order, and the AI agent processes it, matches items to your menu, and adds them to the cart automatically. It supports Indian accents and works in real-time."
+          "text": "DineOpen is a global platform serving restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. Our cloud-based system works anywhere with internet access, with localized billing and tax support for each region."
         }
       },
       {
@@ -283,12 +287,12 @@ export default function SEOStructuredData() {
     }
   };
 
-  // Product Schema for AI Agent
-  const aiAgentProductSchema = {
+  // Product Schema for Cloud POS
+  const cloudPOSProductSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": "AI Agent for Restaurant",
-    "description": "Intelligent voice and chat assistant for restaurants that takes orders via voice commands, answers questions, manages tables, and handles operations through natural conversation.",
+    "name": "Lightning-Fast Cloud POS",
+    "description": "Bill in 3 seconds flat with DineOpen's cloud-based POS system. Works on any device, syncs in real-time, supports multiple payment methods including UPI, cards, and cash. Part of the Global Restaurant Operating System.",
     "brand": {
       "@type": "Brand",
       "name": "DineOpen"
@@ -298,12 +302,12 @@ export default function SEOStructuredData() {
       "price": "999",
       "priceCurrency": "INR",
       "availability": "https://schema.org/InStock",
-      "url": `${baseUrl}/products/ai-agent`
+      "url": `${baseUrl}/restaurant-pos-software-india`
     },
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "127"
+      "reviewCount": "500"
     }
   };
 
@@ -311,9 +315,9 @@ export default function SEOStructuredData() {
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
-    "serviceType": "Restaurant Management Software",
-    "name": "Restaurant Management System",
-    "description": "Complete restaurant management software with POS system, AI agent, inventory management, supply chain, table management, and hotel PMS. Starts at ₹999/month.",
+    "serviceType": "Restaurant Operating System",
+    "name": "DineOpen - The Global Restaurant Operating System",
+    "description": "All-in-one restaurant operating system with Cloud POS, Waiter Apps, Table Reservations, Inventory Management, AI Analytics, and Loyalty Programs. Powering 1000+ restaurants across 20+ countries.",
     "provider": {
       "@type": "Organization",
       "name": "DineOpen"
@@ -321,7 +325,11 @@ export default function SEOStructuredData() {
     "areaServed": [
       { "@type": "Country", "name": "United States" },
       { "@type": "Country", "name": "United Kingdom" },
-      { "@type": "Country", "name": "India" }
+      { "@type": "Country", "name": "India" },
+      { "@type": "Country", "name": "United Arab Emirates" },
+      { "@type": "Country", "name": "Singapore" },
+      { "@type": "Country", "name": "Canada" },
+      { "@type": "Country", "name": "Australia" }
     ],
     "offers": {
       "@type": "Offer",
@@ -332,48 +340,48 @@ export default function SEOStructuredData() {
     },
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
-      "name": "DineOpen Products",
+      "name": "DineOpen Restaurant Operating System",
       "itemListElement": [
         {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Service",
-            "name": "AI Agent for Restaurant"
+            "name": "Lightning-Fast Cloud POS"
           }
         },
         {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Service",
-            "name": "Restaurant Management System"
+            "name": "Waiter & Captain App"
           }
         },
         {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Service",
-            "name": "Restaurant POS System"
+            "name": "Online Table Reservations"
           }
         },
         {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Service",
-            "name": "Inventory Management"
+            "name": "Smart Inventory Management"
           }
         },
         {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Service",
-            "name": "Supply Chain Management"
+            "name": "AI-Powered Analytics"
           }
         },
         {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Service",
-            "name": "Hotel Management (PMS)"
+            "name": "Loyalty & Rewards Program"
           }
         }
       ]
@@ -384,37 +392,37 @@ export default function SEOStructuredData() {
   const restaurantManagementSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": "Restaurant Management Software",
-    "description": "Complete restaurant management software with POS system, AI agent, fast billing, KOT system, menu management, table orders, inventory management, and supply chain management. Everything your restaurant needs in one platform.",
+    "name": "DineOpen Restaurant Operating System",
+    "description": "The all-in-one restaurant operating system powering restaurants worldwide. Cloud POS (bill in 3 seconds), waiter apps, online table reservations, smart inventory, AI analytics, and loyalty programs. Trusted by 1000+ restaurants globally.",
     "brand": {
       "@type": "Brand",
       "name": "DineOpen"
     },
-    "category": "Restaurant Management Software",
+    "category": "Restaurant Operating System",
     "offers": {
       "@type": "Offer",
       "price": "999",
       "priceCurrency": "INR",
-      "priceValidUntil": "2026-12-31",
+      "priceValidUntil": "2027-12-31",
       "availability": "https://schema.org/InStock",
       "url": "https://www.dineopen.com"
     },
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "200"
+      "reviewCount": "1000"
     },
     "featureList": [
-      "Restaurant POS System",
-      "Fast Billing",
-      "KOT System",
+      "Lightning-Fast Cloud POS",
+      "Waiter & Captain App",
+      "Online Table Reservations",
+      "Smart Inventory Management",
+      "AI-Powered Analytics",
+      "Loyalty & Rewards Program",
+      "Kitchen Display System",
       "Menu Management",
-      "Table Management",
-      "Voice-AI Assistant",
-      "Inventory Management",
-      "Supply Chain Management",
-      "QR Code Menu",
-      "Multi-restaurant Support"
+      "Multi-location Support",
+      "Real-time Reporting"
     ]
   };
 
@@ -422,36 +430,43 @@ export default function SEOStructuredData() {
   const comparisonListSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    "name": "Restaurant POS System Comparison",
-    "description": "Compare DineOpen with Square, Toast, and Petpooja restaurant POS systems",
+    "name": "Restaurant Operating System Comparison",
+    "description": "Compare DineOpen - The Global Restaurant Operating System with Square, Toast, Petpooja, and POSist",
     "itemListElement": [
       {
         "@type": "ListItem",
         "position": 1,
         "name": "DineOpen",
         "url": `${baseUrl}`,
-        "description": "AI-powered restaurant POS with voice ordering, zero transaction fees. Starting at $10/month."
+        "description": "The Global Restaurant Operating System. Cloud POS, waiter apps, reservations, inventory, analytics & loyalty. Trusted by 1000+ restaurants worldwide."
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Square for Restaurants",
         "url": `${baseUrl}/alternatives/square`,
-        "description": "Compare DineOpen vs Square POS. Save on transaction fees."
+        "description": "Compare DineOpen vs Square. All-in-one platform with zero transaction fees."
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": "Toast POS",
         "url": `${baseUrl}/alternatives/toast`,
-        "description": "Compare DineOpen vs Toast. No hardware lock-in, month-to-month billing."
+        "description": "Compare DineOpen vs Toast. No hardware lock-in, more features included."
       },
       {
         "@type": "ListItem",
         "position": 4,
         "name": "Petpooja",
         "url": `${baseUrl}/alternatives/petpooja`,
-        "description": "Compare DineOpen vs Petpooja. Best POS for Indian restaurants."
+        "description": "Compare DineOpen vs Petpooja. Global platform with local support."
+      },
+      {
+        "@type": "ListItem",
+        "position": 5,
+        "name": "POSist",
+        "url": `${baseUrl}/alternatives/posist`,
+        "description": "Compare DineOpen vs POSist. Complete operating system at better value."
       }
     ]
   };
@@ -488,7 +503,7 @@ export default function SEOStructuredData() {
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(aiAgentProductSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(cloudPOSProductSchema) }}
       />
       <script
         type="application/ld+json"

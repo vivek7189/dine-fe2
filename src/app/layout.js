@@ -3,16 +3,16 @@ import TokenExtractor from '../components/TokenExtractor'
 import { Analytics } from "@vercel/analytics/next"
 import { LoadingProvider } from '../contexts/LoadingContext'
 export const metadata = {
-  title: 'DineOpen - AI-Powered Restaurant Billing Software & Management System',
-  description: 'Complete AI-powered restaurant billing software and management solution with multi-restaurant support, POS system, inventory management, order tracking, QR menus, and real-time analytics. Streamline your restaurant operations with DineOpen.',
-  keywords: 'restaurant billing software, restaurant management, POS system, inventory management, order tracking, QR menu, restaurant analytics, multi-restaurant management, AI restaurant, food service management, restaurant software, table management, kitchen display system, restaurant POS, order management system',
+  title: 'DineOpen | The Global Restaurant Operating System',
+  description: 'DineOpen powers restaurants worldwide with an all-in-one operating system. Cloud POS, waiter apps, table reservations, inventory management, AI analytics & loyalty programs. Trusted by 1000+ restaurants across 20+ countries.',
+  keywords: 'restaurant operating system, restaurant POS software, cloud POS system, restaurant management platform, waiter ordering app, captain app restaurant, table reservation system, restaurant inventory management, restaurant analytics software, loyalty program restaurant, multi-location restaurant POS, restaurant billing software, kitchen display system',
   authors: [{ name: 'DineOpen Team' }],
   creator: 'DineOpen',
   publisher: 'DineOpen',
   robots: 'index, follow',
   openGraph: {
-    title: 'DineOpen - AI-Powered Restaurant Management System',
-    description: 'Complete AI-powered restaurant management solution with multi-restaurant support, POS system, inventory management, and order tracking.',
+    title: 'DineOpen | Powering Restaurants Worldwide',
+    description: 'The all-in-one restaurant operating system. POS, orders, inventory, analytics & growth tools trusted by 1000+ restaurants globally.',
     url: 'https://www.dineopen.com',
     siteName: 'DineOpen',
     images: [
@@ -20,7 +20,7 @@ export const metadata = {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'DineOpen Restaurant Management System',
+        alt: 'DineOpen - The Global Restaurant Operating System',
       },
     ],
     locale: 'en_US',
@@ -28,9 +28,10 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DineOpen - AI-Powered Restaurant Management System',
-    description: 'Complete AI-powered restaurant management solution with multi-restaurant support, POS system, inventory management, and order tracking.',
+    title: 'DineOpen | Powering Restaurants Worldwide',
+    description: 'The all-in-one restaurant operating system. POS, orders, inventory, analytics & growth. Trusted by 1000+ restaurants globally.',
     images: ['/og-image.jpg'],
+    creator: '@dineopen',
   },
 }
 
