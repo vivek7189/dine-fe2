@@ -582,7 +582,7 @@ export default function LandingPage() {
             animation: 'fade-in-up 0.6s ease-out 0.1s backwards',
             minHeight: isMobile ? '140px' : '180px'
           }}>
-            Powering{' '}
+            Next-Gen AI-Powered Restaurant Platform for {' '}
             <span
               className={fadeState}
               style={{
@@ -595,7 +595,7 @@ export default function LandingPage() {
             >
               {rotatingWords[rotatingTextIndex]}
             </span>
-            <br/>Worldwide
+            
           </h1>
 
           <div style={{
