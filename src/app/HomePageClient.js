@@ -582,7 +582,7 @@ export default function LandingPage() {
             animation: 'fade-in-up 0.6s ease-out 0.1s backwards',
             minHeight: isMobile ? '140px' : '180px'
           }}>
-            Next-Gen AI-Powered Restaurant Platform for {' '}
+            Next-Gen AI Platform built for modern {' '}
             <span
               className={fadeState}
               style={{
