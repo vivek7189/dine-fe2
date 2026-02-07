@@ -569,7 +569,7 @@ export default function LandingPage() {
             boxShadow: '0 2px 8px rgba(124, 58, 237, 0.15)',
             animation: 'scale-in 0.5s ease-out'
           }}>
-            <FaRobot style={{ animation: 'pulse-glow 2s ease-in-out infinite' }} /> Next-Gen AI-Powered Restaurant Platform
+            <FaRocket style={{ animation: 'pulse-glow 2s ease-in-out infinite' }} /> The Global Restaurant Operating System
           </div>
           
           <h1 style={{
@@ -582,8 +582,7 @@ export default function LandingPage() {
             animation: 'fade-in-up 0.6s ease-out 0.1s backwards',
             minHeight: isMobile ? '140px' : '180px'
           }}>
-            Next-Gen AI Platform<br/>
-            for{' '}
+            Powering{' '}
             <span
               className={fadeState}
               style={{
@@ -596,8 +595,9 @@ export default function LandingPage() {
             >
               {rotatingWords[rotatingTextIndex]}
             </span>
+            <br/>Worldwide
           </h1>
-          
+
           <div style={{
             maxWidth: '900px',
             margin: '0 auto 48px',
@@ -610,108 +610,20 @@ export default function LandingPage() {
               marginBottom: '32px',
               fontWeight: '400'
             }}>
-              The world&apos;s first <strong>AI Agent that runs your restaurant 24/7.</strong> Takes orders via voice & chat, manages reservations, handles customer inquiries, and optimizes operations—<strong>all autonomously.</strong>
+             The all-in-one operating system for modern restaurants.<br/>
+             <span style={{ fontWeight: '600', color: '#111827' }}>POS • Orders • Inventory • Analytics • Growth</span>
             </p>
 
-            {/* Feature Highlights Grid */}
+            {/* Feature Highlights Grid - 6 Core Features */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
               gap: '16px',
               marginBottom: '24px'
             }}>
-              {/* Feature 1: AI Voice Agent */}
+              {/* Feature 1: Cloud POS */}
+              <Link href="/products/pos-software" style={{ textDecoration: 'none' }}>
               <div style={{
-                background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-                border: '2px solid #ddd6fe',
-                borderRadius: '16px',
-                padding: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(124, 58, 237, 0.15)';
-                e.currentTarget.style.borderColor = '#111827';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = '#ddd6fe';
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
-                }}>
-                  <FaMicrophone size={22} color="white" />
-                </div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
-                    AI Voice Ordering
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
-                    24/7 phone order agent
-                  </div>
-                </div>
-          </div>
-
-              {/* Feature 2: Smart Chat Agent */}
-            <div style={{
-                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                border: '2px solid #bbf7d0',
-                borderRadius: '16px',
-                padding: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(16, 185, 129, 0.15)';
-                e.currentTarget.style.borderColor = '#10b981';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = '#bbf7d0';
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                }}>
-                  <FaRobot size={22} color="white" />
-                </div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
-                    AI Chat Assistant
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
-                    WhatsApp & web ordering
-                  </div>
-                </div>
-            </div>
-
-              {/* Feature 3: Cloud POS */}
-            <div style={{
                 background: 'linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%)',
                 border: '2px solid #fecdd3',
                 borderRadius: '16px',
@@ -720,7 +632,8 @@ export default function LandingPage() {
                 alignItems: 'center',
                 gap: '16px',
                 transition: 'all 0.3s ease',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                height: '100%'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
@@ -743,88 +656,258 @@ export default function LandingPage() {
                   flexShrink: 0,
                   boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
                 }}>
-                  <FaCloud size={22} color="white" />
-                      </div>
+                  <FaReceipt size={22} color="white" />
+                </div>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
-                    Cloud-Based POS
-                    </div>
+                    Lightning-Fast POS
+                  </div>
                   <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
-                    Works on any device
-                      </div>
-                    </div>
+                    Bill in 3 seconds flat
                   </div>
                 </div>
+              </div>
+              </Link>
 
-            {/* AI Agent Highlight */}
-            <div style={{
-              background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
-              border: '2px solid #e9d5ff',
-              borderRadius: '20px',
-              padding: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '20px',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.02)';
-              e.currentTarget.style.boxShadow = '0 16px 32px rgba(239, 68, 68, 0.15)';
-              e.currentTarget.style.borderColor = '#a78bfa';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = 'none';
-              e.currentTarget.style.borderColor = '#e9d5ff';
-            }}>
+              {/* Feature 2: Waiter & Captain App */}
+              <Link href="/products/waiter-app" style={{ textDecoration: 'none' }}>
               <div style={{
-                position: 'absolute',
-                top: '-50%',
-                right: '-10%',
-                width: '200px',
-                height: '200px',
-                background: 'radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, transparent 70%)',
-                borderRadius: '50%',
-                pointerEvents: 'none'
-              }}></div>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '2px solid #bbf7d0',
                 borderRadius: '16px',
+                padding: '20px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 8px 20px rgba(17, 24, 39, 0.4)',
-                position: 'relative',
-                zIndex: 1
+                gap: '16px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                height: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(16, 185, 129, 0.15)';
+                e.currentTarget.style.borderColor = '#10b981';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#bbf7d0';
               }}>
-                <FaRobot size={28} color="white" />
-                </div>
-              <div style={{ flex: 1, position: 'relative', zIndex: 1, textAlign: 'left' }}>
                 <div style={{
-                  display: 'inline-flex',
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  color: '#111827',
-                  marginBottom: '8px'
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                 }}>
-                  <FaBolt size={10} /> AI-POWERED
-              </div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#111827', marginBottom: '6px' }}>
-                  Your 24/7 Digital Employee
+                  <FaMobile size={22} color="white" />
                 </div>
-                <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
-                  Takes orders via voice & chat, manages reservations, upsells automatically, and sends tickets to kitchen—<strong>all without human intervention.</strong>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+                    Waiter & Captain App
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Tableside ordering made easy
+                  </div>
                 </div>
               </div>
+              </Link>
+
+              {/* Feature 3: Table Reservations */}
+              <Link href="/products/table-management" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                border: '2px solid #bfdbfe',
+                borderRadius: '16px',
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                height: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(59, 130, 246, 0.15)';
+                e.currentTarget.style.borderColor = '#3b82f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#bfdbfe';
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                }}>
+                  <FaTable size={22} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+                    Table Reservations
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Online booking 24/7
+                  </div>
+                </div>
+              </div>
+              </Link>
+
+              {/* Feature 4: Inventory Management */}
+              <Link href="/products/inventory-management" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
+                border: '2px solid #fde047',
+                borderRadius: '16px',
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                height: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(234, 179, 8, 0.15)';
+                e.currentTarget.style.borderColor = '#eab308';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#fde047';
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(234, 179, 8, 0.3)'
+                }}>
+                  <FaBoxes size={22} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+                    Smart Inventory
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Auto low-stock alerts
+                  </div>
+                </div>
+              </div>
+              </Link>
+
+              {/* Feature 5: AI Analytics */}
+              <Link href="/products/ai-agent" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                border: '2px solid #ddd6fe',
+                borderRadius: '16px',
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                height: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(139, 92, 246, 0.15)';
+                e.currentTarget.style.borderColor = '#8b5cf6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#ddd6fe';
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
+                }}>
+                  <FaChartBar size={22} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+                    AI Analytics
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Insights at a glance
+                  </div>
+                </div>
+              </div>
+              </Link>
+
+              {/* Feature 6: Loyalty & Rewards */}
+              <Link href="/products/loyalty-rewards" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%)',
+                border: '2px solid #f5d0fe',
+                borderRadius: '16px',
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                height: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(217, 70, 239, 0.15)';
+                e.currentTarget.style.borderColor = '#d946ef';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#f5d0fe';
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #d946ef 0%, #c026d3 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(217, 70, 239, 0.3)'
+                }}>
+                  <FaStar size={22} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+                    Loyalty & Rewards
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Keep customers coming back
+                  </div>
+                </div>
+              </div>
+              </Link>
             </div>
           </div>
           
