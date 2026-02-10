@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { 
-  FaUpload, 
-  FaTimes, 
-  FaSpinner, 
-  FaCheckCircle, 
+import {
+  FaUpload,
+  FaTimes,
+  FaSpinner,
+  FaCheckCircle,
   FaExclamationTriangle,
   FaEye,
   FaEdit,
@@ -16,14 +16,16 @@ import {
   FaFilePdf
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
+import { useCurrency } from '../contexts/CurrencyContext';
 
-const BulkMenuUpload = ({ 
-  isOpen, 
-  onClose, 
-  restaurantId, 
+const BulkMenuUpload = ({
+  isOpen,
+  onClose,
+  restaurantId,
   onMenuItemsAdded,
   currentMenuItems = []
 }) => {
+  const { formatCurrency } = useCurrency();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [extractedMenus, setExtractedMenus] = useState([]);
   const [extractedCategories, setExtractedCategories] = useState([]);
@@ -725,7 +727,7 @@ const BulkMenuUpload = ({
 
                               <div style={{ textAlign: 'right', marginRight: '12px' }}>
                                 <div style={{ fontSize: '16px', fontWeight: '700', color: '#ef4444' }}>
-                                  ₹{item.price}
+                                  {formatCurrency(item.price)}
                                 </div>
                                 <div style={{ fontSize: '10px', color: '#6b7280' }}>
                                   {item.shortCode}

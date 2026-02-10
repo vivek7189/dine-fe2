@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import { 
   FaStore, 
@@ -41,10 +42,13 @@ import {
   FaPrint,
   FaDownload,
   FaWindows,
-  FaApple
+  FaApple,
+  FaMoneyBillWave,
+  FaChevronDown
 } from 'react-icons/fa';
 import ShiftScheduling from '../../../components/ShiftScheduling';
 import GoogleReviews from '../../../components/GoogleReviews';
+import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 
 // Tax Management Component
 const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
@@ -354,6 +358,401 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
           <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
           <p style={{ fontSize: '16px', margin: 0 }}>
             Please select a restaurant to manage tax settings
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Currency Management Component
+const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+  const [currencySettings, setCurrencySettings] = useState({
+    countryCode: 'IN',
+    currencyCode: 'INR',
+    currencySymbol: '₹',
+    symbolPosition: 'before',
+    decimalPlaces: 2,
+    thousandSeparator: ',',
+    decimalSeparator: '.',
+    locale: 'en-IN',
+    taxLabel: 'GST'
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const countries = getAllCountriesWithCurrency();
+  const filteredCountries = countries.filter(c =>
+    c.countryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.countryCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.currencyCode.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const loadCurrencySettings = async (restaurantId) => {
+    if (!restaurantId) return;
+
+    setLoading(true);
+    try {
+      const response = await apiClient.getCurrencySettings(restaurantId);
+      if (response.success && response.currencySettings) {
+        setCurrencySettings(response.currencySettings);
+      }
+    } catch (error) {
+      console.error('Error loading currency settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveCurrencySettings = async () => {
+    if (!selectedRestaurant?.id) return;
+
+    setSaving(true);
+    try {
+      const response = await apiClient.updateCurrencySettings(selectedRestaurant.id, currencySettings);
+      if (response.success) {
+        const msg = response.taxSettingsUpdated
+          ? 'Currency settings saved! Tax labels were automatically updated.'
+          : 'Currency settings saved successfully!';
+        alert(msg);
+      }
+    } catch (error) {
+      console.error('Error saving currency settings:', error);
+      alert('Error saving currency settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectCountry = (countryCode) => {
+    const countryData = getCurrencyByCountryCode(countryCode);
+    setCurrencySettings({
+      ...countryData,
+      countryCode: countryData.countryCode,
+      currencyCode: countryData.currencyCode,
+      currencySymbol: countryData.currencySymbol,
+      symbolPosition: countryData.symbolPosition,
+      decimalPlaces: countryData.decimalPlaces,
+      thousandSeparator: countryData.thousandSeparator,
+      decimalSeparator: countryData.decimalSeparator,
+      locale: countryData.locale,
+      taxLabel: countryData.taxLabel
+    });
+    setShowDropdown(false);
+    setSearchTerm('');
+  };
+
+  // Format preview amount
+  const formatPreview = (amount) => {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return '0';
+
+    const fixed = num.toFixed(currencySettings.decimalPlaces || 2);
+    const [intPart, decPart] = fixed.split('.');
+    const sep = currencySettings.thousandSeparator || ',';
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+    const decSep = currencySettings.decimalSeparator || '.';
+    const formattedNum = (currencySettings.decimalPlaces || 2) > 0
+      ? `${formattedInt}${decSep}${decPart}`
+      : formattedInt;
+
+    const symbol = currencySettings.currencySymbol || '₹';
+    return currencySettings.symbolPosition === 'after'
+      ? `${formattedNum}${symbol}`
+      : `${symbol}${formattedNum}`;
+  };
+
+  // Load settings when restaurant changes
+  useEffect(() => {
+    if (selectedRestaurant?.id) {
+      loadCurrencySettings(selectedRestaurant.id);
+    }
+  }, [selectedRestaurant?.id]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.currency-dropdown')) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedCountryData = countries.find(c => c.countryCode === currencySettings.countryCode);
+
+  return (
+    <div>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FaMoneyBillWave size={20} />
+          Currency Settings
+        </h2>
+        <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+          Configure your restaurant&apos;s currency and number formatting
+        </p>
+      </div>
+
+      {/* Restaurant Selection */}
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
+          Select Restaurant
+        </h3>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {restaurants.map((restaurant) => (
+            <button
+              key={restaurant.id}
+              onClick={() => setSelectedRestaurant(restaurant)}
+              style={{
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ec4899' : '#f8fafc',
+                color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontWeight: '500',
+                fontSize: '14px',
+                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #e2e8f0',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <FaStore size={12} style={{ marginRight: '6px' }} />
+              {restaurant.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
+          <FaSpinner size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '12px' }} />
+          <p>Loading currency settings...</p>
+        </div>
+      ) : selectedRestaurant ? (
+        <div>
+          {/* Country Selection */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
+              Country / Region
+            </label>
+            <div className="currency-dropdown" style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <span>
+                  {selectedCountryData ? (
+                    <>
+                      {selectedCountryData.countryName} ({selectedCountryData.currencyCode} - {selectedCountryData.currencySymbol})
+                    </>
+                  ) : (
+                    'Select a country'
+                  )}
+                </span>
+                <FaChevronDown size={12} style={{ color: '#6b7280' }} />
+              </button>
+
+              {showDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  zIndex: 1000,
+                  maxHeight: '300px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>
+                    <input
+                      type="text"
+                      placeholder="Search countries..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        outline: 'none'
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                    {filteredCountries.map((country) => (
+                      <button
+                        key={country.countryCode}
+                        onClick={() => selectCountry(country.countryCode)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 16px',
+                          backgroundColor: country.countryCode === currencySettings.countryCode ? '#fdf2f8' : 'transparent',
+                          border: 'none',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: '1px solid #f3f4f6'
+                        }}
+                      >
+                        <span style={{ color: '#1f2937' }}>{country.countryName}</span>
+                        <span style={{ color: '#6b7280', fontSize: '12px' }}>
+                          {country.currencyCode} ({country.currencySymbol})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Currency Preview */}
+          <div style={{
+            marginBottom: '24px',
+            padding: '20px',
+            backgroundColor: '#fdf2f8',
+            borderRadius: '12px',
+            border: '1px solid #fce7f3'
+          }}>
+            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+              Preview
+            </h4>
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Small amount</p>
+                <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {formatPreview(99.99)}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Medium amount</p>
+                <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {formatPreview(1234.50)}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Large amount</p>
+                <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {formatPreview(12345678.00)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Advanced Settings */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+              Currency Details
+            </h4>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              gap: '16px'
+            }}>
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Currency Code</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {currencySettings.currencyCode}
+                </p>
+              </div>
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Symbol</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {currencySettings.currencySymbol}
+                </p>
+              </div>
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Symbol Position</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {currencySettings.symbolPosition === 'before' ? 'Before amount' : 'After amount'}
+                </p>
+              </div>
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Decimal Places</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {currencySettings.decimalPlaces}
+                </p>
+              </div>
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Tax Label</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {currencySettings.taxLabel}
+                </p>
+              </div>
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Locale</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                  {currencySettings.locale}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={saveCurrencySettings}
+              disabled={saving}
+              style={{
+                backgroundColor: saving ? '#9ca3af' : '#ec4899',
+                color: 'white',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: 'none',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s'
+              }}
+            >
+              {saving ? (
+                <>
+                  <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <FaSave size={14} />
+                  Save Currency Settings
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          color: '#6b7280'
+        }}>
+          <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+          <p style={{ fontSize: '16px', margin: 0 }}>
+            Please select a restaurant to manage currency settings
           </p>
         </div>
       )}
@@ -931,6 +1330,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 const Admin = () => {
   const router = useRouter();
+  const { formatCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState('restaurants');
   const [settings, setSettings] = useState(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
@@ -1668,14 +2068,14 @@ const Admin = () => {
           todayLabel: 'Staff Managed',
           todayValue: member.staffCount || 0,
           totalLabel: 'Total Revenue',
-          totalValue: `₹${(member.totalRevenue || 0).toLocaleString()}`
+          totalValue: formatCurrency(member.totalRevenue || 0)
         };
       case 'cashier':
         return {
           todayLabel: 'Transactions',
           todayValue: member.transactionsToday || 0,
           totalLabel: 'Total Sales',
-          totalValue: `₹${(member.totalSales || 0).toLocaleString()}`
+          totalValue: formatCurrency(member.totalSales || 0)
         };
       case 'chef':
       case 'cook':
@@ -1877,6 +2277,28 @@ const Admin = () => {
                 >
                   <FaPercentage size={10} />
                   Tax
+                </button>
+                <button
+                  onClick={() => setActiveTab('currency')}
+                  style={{
+                    flex: 1,
+                    backgroundColor: activeTab === 'currency' ? '#ec4899' : 'transparent',
+                    color: activeTab === 'currency' ? 'white' : '#6b7280',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '12px',
+                    border: activeTab === 'currency' ? 'none' : '1px solid #e5e7eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <FaMoneyBillWave size={10} />
+                  Currency
                 </button>
                 <button
                   onClick={() => setActiveTab('print')}
@@ -2106,6 +2528,27 @@ const Admin = () => {
               >
                 <FaPercentage size={14} />
                 Tax Management
+              </button>
+              <button
+                onClick={() => setActiveTab('currency')}
+                style={{
+                  backgroundColor: activeTab === 'currency' ? '#ec4899' : 'transparent',
+                  color: activeTab === 'currency' ? 'white' : '#6b7280',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  border: activeTab === 'currency' ? 'none' : '2px solid #e5e7eb',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <FaMoneyBillWave size={14} />
+                Currency
               </button>
               <button
                 onClick={() => setActiveTab('print')}
@@ -4657,6 +5100,23 @@ const Admin = () => {
           border: '1px solid #fce7f3'
         }}>
           <TaxManagement
+            restaurants={restaurants}
+            selectedRestaurant={selectedRestaurant}
+            setSelectedRestaurant={setSelectedRestaurant}
+          />
+        </div>
+      )}
+
+      {/* Currency Settings Section */}
+      {activeTab === 'currency' && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          padding: '24px',
+          border: '1px solid #fce7f3'
+        }}>
+          <CurrencyManagement
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}

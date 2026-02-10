@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   FaHotel,
   FaPlus,
@@ -34,6 +35,7 @@ import {
 
 const Hotel = () => {
   const router = useRouter();
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -1874,7 +1876,7 @@ const Hotel = () => {
                                 {(booking.estimatedTariff || booking.roomTariff || booking.totalAmount) && (
                                   <div className="flex items-center gap-2 text-xs font-semibold text-gray-900">
                                     <FaMoneyBillWave className="text-green-500" />
-                                    <span>₹{booking.totalAmount || booking.estimatedTariff || booking.roomTariff || 0}</span>
+                                    <span>{formatCurrency(booking.totalAmount || booking.estimatedTariff || booking.roomTariff || 0)}</span>
                                   </div>
                                 )}
                               </div>
@@ -2016,18 +2018,18 @@ const Hotel = () => {
                       {/* Billing Info */}
                       <div className="text-right">
                         <div className="text-sm text-gray-600 mb-1">
-                          Room: ₹{checkIn.totalRoomCharges?.toFixed(2) || '0.00'}
+                          Room: {formatCurrency(checkIn.totalRoomCharges || 0)}
                           {checkIn.totalFoodCharges > 0 && (
                             <span className="ml-2 text-yellow-600">
-                              | Food: ₹{checkIn.totalFoodCharges.toFixed(2)}
+                              | Food: {formatCurrency(checkIn.totalFoodCharges)}
                             </span>
                           )}
                         </div>
                         <p className={`text-2xl font-bold ${checkIn.status === 'checked-in' ? 'text-yellow-600' : 'text-green-600'}`}>
-                          {checkIn.status === 'checked-in' ? `₹${checkIn.balanceAmount?.toFixed(2) || '0.00'}` : 'Paid'}
+                          {checkIn.status === 'checked-in' ? formatCurrency(checkIn.balanceAmount || 0) : 'Paid'}
                         </p>
                         <span className="text-xs text-gray-500">
-                          {checkIn.status === 'checked-in' ? 'Balance Due' : `Total: ₹${checkIn.totalPaid?.toFixed(2) || '0.00'}`}
+                          {checkIn.status === 'checked-in' ? 'Balance Due' : `Total: ${formatCurrency(checkIn.totalPaid || 0)}`}
                         </span>
                       </div>
 
@@ -2063,7 +2065,7 @@ const Hotel = () => {
                         <div className="flex gap-2 flex-wrap text-xs text-yellow-800">
                           {checkIn.foodOrders.map((order, i) => (
                             <span key={i} className="bg-yellow-100 px-2 py-1 rounded">
-                              Order #{order.orderNumber || i+1}: ₹{(order.amount || order.finalAmount || 0).toFixed(2)}
+                              Order #{order.orderNumber || i+1}: {formatCurrency(order.amount || order.finalAmount || 0)}
                             </span>
                           ))}
                         </div>
@@ -2222,7 +2224,7 @@ const Hotel = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            ₹{record.totalCharges || record.totalAmount || 0}
+                            {formatCurrency(record.totalCharges || record.totalAmount || 0)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <button
@@ -2897,7 +2899,7 @@ const Hotel = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-semibold text-sm text-gray-900">₹{(order.amount || order.finalAmount || 0).toFixed(2)}</div>
+                            <div className="font-semibold text-sm text-gray-900">{formatCurrency(order.amount || order.finalAmount || 0)}</div>
                             {isPaid && <span className="text-[10px] text-green-600 font-medium">Paid</span>}
                           </div>
                         </div>
@@ -2915,19 +2917,19 @@ const Hotel = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Room Charges:</span>
-                    <span className="font-semibold">₹{selectedCheckIn.totalRoomCharges?.toFixed(2)}</span>
+                    <span className="font-semibold">{formatCurrency(selectedCheckIn.totalRoomCharges || 0)}</span>
                   </div>
                   {selectedCheckIn.foodOrders && selectedCheckIn.foodOrders.length > 0 && (
                     <>
                     <div className="flex justify-between">
                         <span className="text-gray-600">Food Charges (Unpaid):</span>
                         <span className="font-semibold">
-                          ₹{selectedCheckIn.foodOrders
+                          {formatCurrency(selectedCheckIn.foodOrders
                             .filter(o => {
                               const fullId = o.id || o.orderId;
                               return o.status !== 'cancelled' && !foodOrdersPaidStatus[fullId];
                             })
-                            .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0).toFixed(2)}
+                            .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0))}
                         </span>
                       </div>
                       {selectedCheckIn.foodOrders.some(o => {
@@ -2937,12 +2939,12 @@ const Hotel = () => {
                         <div className="flex justify-between text-green-600">
                           <span>Food Charges (Already Paid):</span>
                           <span className="font-semibold line-through">
-                            ₹{selectedCheckIn.foodOrders
+                            {formatCurrency(selectedCheckIn.foodOrders
                               .filter(o => {
                                 const fullId = o.id || o.orderId;
                                 return foodOrdersPaidStatus[fullId];
                               })
-                              .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0).toFixed(2)}
+                              .reduce((sum, o) => sum + (o.amount || o.finalAmount || 0), 0))}
                           </span>
                     </div>
                       )}
@@ -2950,12 +2952,12 @@ const Hotel = () => {
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Advance Paid:</span>
-                    <span className="font-semibold text-green-600">- ₹{selectedCheckIn.advancePayment?.toFixed(2) || '0.00'}</span>
+                    <span className="font-semibold text-green-600">- {formatCurrency(selectedCheckIn.advancePayment || 0)}</span>
                   </div>
                   <div className="h-px bg-green-200 my-2" />
                   <div className="flex justify-between text-lg">
                     <span className="font-bold text-green-900">Balance Due:</span>
-                    <span className="font-bold text-green-900">₹{checkOutForm.finalPayment}</span>
+                    <span className="font-bold text-green-900">{formatCurrency(parseFloat(checkOutForm.finalPayment) || 0)}</span>
                   </div>
                 </div>
               </div>
@@ -2995,7 +2997,7 @@ const Hotel = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {selectedCheckIn.stayDuration || 1} night(s) × ₹{checkOutForm.roomTariff || 0} = ₹{((parseFloat(checkOutForm.roomTariff) || 0) * (selectedCheckIn.stayDuration || 1)).toFixed(2)}
+                    {selectedCheckIn.stayDuration || 1} night(s) × {formatCurrency(checkOutForm.roomTariff || 0)} = {formatCurrency((parseFloat(checkOutForm.roomTariff) || 0) * (selectedCheckIn.stayDuration || 1))}
                   </p>
                 </div>
                 <div>
@@ -3227,7 +3229,7 @@ const Hotel = () => {
                             </div>
                             <div className="text-right">
                               <div className={`font-bold text-lg ${order.isPaid ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                                ₹{(order.amount || order.finalAmount || 0).toFixed(2)}
+                                {formatCurrency(order.amount || order.finalAmount || 0)}
                               </div>
                               {order.isPaid && <p className="text-xs text-green-600 font-medium">Excluded from bill</p>}
                             </div>
@@ -3239,18 +3241,18 @@ const Hotel = () => {
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Total Food Orders:</span>
-                      <span className="font-semibold">₹{invoice.foodOrders.reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}</span>
+                      <span className="font-semibold">{formatCurrency(invoice.foodOrders.reduce((sum, o) => sum + (o.amount || 0), 0))}</span>
                     </div>
                     <div className="flex justify-between text-sm mt-1">
                       <span className="text-green-700">Already Paid (Excluded):</span>
                       <span className="font-semibold text-green-700 line-through">
-                        ₹{invoice.foodOrders.filter(o => o.isPaid).reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                        {formatCurrency(invoice.foodOrders.filter(o => o.isPaid).reduce((sum, o) => sum + (o.amount || 0), 0))}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm font-bold mt-2 pt-2 border-t border-blue-300">
                       <span className="text-gray-900">Included in Bill:</span>
                       <span className="text-gray-900">
-                        ₹{invoice.foodOrders.filter(o => !o.isPaid).reduce((sum, o) => sum + (o.amount || 0), 0).toFixed(2)}
+                        {formatCurrency(invoice.foodOrders.filter(o => !o.isPaid).reduce((sum, o) => sum + (o.amount || 0), 0))}
                       </span>
                     </div>
                   </div>
@@ -3265,8 +3267,8 @@ const Hotel = () => {
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Room Charges ({invoice.stayDuration} × ₹{invoice.roomTariff})</span>
-                    <span className="font-semibold text-gray-900">₹{invoice.roomCharges?.toFixed(2)}</span>
+                    <span className="text-gray-700">Room Charges ({invoice.stayDuration} × {formatCurrency(invoice.roomTariff)})</span>
+                    <span className="font-semibold text-gray-900">{formatCurrency(invoice.roomCharges || 0)}</span>
                   </div>
                   {invoice.foodCharges > 0 && (
                     <div className="flex justify-between items-center">
@@ -3274,27 +3276,27 @@ const Hotel = () => {
                         <FaUtensils className="text-yellow-600" size={12} />
                         Food & Beverage Charges (Unpaid Only)
                       </span>
-                      <span className="font-semibold text-gray-900">₹{invoice.foodCharges.toFixed(2)}</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(invoice.foodCharges)}</span>
                     </div>
                   )}
                   {invoice.additionalCharges && invoice.additionalCharges.length > 0 && (
                     invoice.additionalCharges.map((charge, i) => (
                       <div key={i} className="flex justify-between items-center">
                         <span className="text-gray-700">{charge.description}</span>
-                        <span className="font-semibold text-gray-900">₹{charge.amount.toFixed(2)}</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(charge.amount)}</span>
                       </div>
                     ))
                   )}
                   {invoice.discountAmount > 0 && (
                     <div className="flex justify-between items-center text-green-600">
                       <span>Discount</span>
-                      <span className="font-semibold">- ₹{invoice.discountAmount.toFixed(2)}</span>
+                      <span className="font-semibold">- {formatCurrency(invoice.discountAmount)}</span>
                     </div>
                   )}
                   <div className="h-px bg-gray-300 my-2" />
                   <div className="flex justify-between items-center text-lg">
                     <span className="font-bold text-gray-900">Grand Total</span>
-                    <span className="font-bold text-gray-900">₹{invoice.totalAmount?.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(invoice.totalAmount || 0)}</span>
                   </div>
                 </div>
               </div>
@@ -3308,23 +3310,23 @@ const Hotel = () => {
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700">Advance Payment</span>
-                    <span className="font-semibold text-green-700">₹{invoice.advancePayment?.toFixed(2) || '0.00'}</span>
+                    <span className="font-semibold text-green-700">{formatCurrency(invoice.advancePayment || 0)}</span>
                   </div>
                   {invoice.finalPayment > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">Final Payment</span>
-                      <span className="font-semibold text-green-700">₹{invoice.finalPayment.toFixed(2)}</span>
+                      <span className="font-semibold text-green-700">{formatCurrency(invoice.finalPayment)}</span>
                     </div>
                   )}
                   <div className="h-px bg-green-300 my-2" />
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-gray-900">Total Paid</span>
-                    <span className="font-bold text-green-700">₹{invoice.totalPaid?.toFixed(2)}</span>
+                    <span className="font-bold text-green-700">{formatCurrency(invoice.totalPaid || 0)}</span>
                   </div>
                   {invoice.balanceAmount > 0 ? (
                     <div className="flex justify-between items-center text-red-600">
                       <span className="font-bold">Balance Due</span>
-                      <span className="font-bold">₹{invoice.balanceAmount.toFixed(2)}</span>
+                      <span className="font-bold">{formatCurrency(invoice.balanceAmount)}</span>
                     </div>
                   ) : (
                     <div className="mt-3 p-3 bg-green-100 rounded-lg text-center">

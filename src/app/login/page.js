@@ -2593,6 +2593,7 @@ const Login = () => {
         <RestaurantNameOnboarding
           onComplete={handleRestaurantOnboardingComplete}
           onSkip={handleRestaurantOnboardingSkip}
+          selectedCountryCode={selectedCountry?.code || 'IN'}
         />
       )}
     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getCachedAutomationData, setCachedAutomationData } from '../../../utils/dashboardCache';
 import {
   FaRobot,
@@ -36,6 +37,7 @@ import {
 
 const Automation = () => {
   const router = useRouter();
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
@@ -525,7 +527,7 @@ const CustomersTab = ({ customers, restaurantId }) => {
                 <td className="px-4 py-3 text-sm">{customer.name || 'Walk-in'}</td>
                 <td className="px-4 py-3 text-sm">{customer.phone || 'N/A'}</td>
                 <td className="px-4 py-3 text-sm">{customer.visitCount || 0}</td>
-                <td className="px-4 py-3 text-sm">₹{customer.totalSpend || 0}</td>
+                <td className="px-4 py-3 text-sm">{formatCurrency(customer.totalSpend || 0)}</td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`px-2 py-1 rounded text-xs ${
                     customer.segment === 'highValue' ? 'bg-purple-100 text-purple-700' :
@@ -566,7 +568,7 @@ const CouponsTab = ({ coupons, restaurantId }) => {
                 <div className="mt-4 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Discount:</span>
-                    <span className="font-semibold">{coupon.discountType === 'percentage' ? `${coupon.value}%` : `₹${coupon.value}`}</span>
+                    <span className="font-semibold">{coupon.discountType === 'percentage' ? `${coupon.value}%` : formatCurrency(coupon.value)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Used:</span>
@@ -631,7 +633,7 @@ const AnalyticsTab = ({ analytics }) => {
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Revenue Generated</span>
-              <span className="font-semibold">₹{analytics?.revenueGenerated || 0}</span>
+              <span className="font-semibold">{formatCurrency(analytics?.revenueGenerated || 0)}</span>
             </div>
           </div>
         </div>

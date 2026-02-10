@@ -23,6 +23,7 @@ import {
   FaLink,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // Helper function to determine if text should be light or dark based on background color
 const getContrastTextColor = (hexColor) => {
@@ -48,6 +49,7 @@ const getDarkerShade = (hexColor, percent = 20) => {
 
 const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId = null }) => {
   const router = useRouter();
+  const { getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
@@ -699,7 +701,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   borderRadius: '10px',
                   border: '2px solid #e5e7eb'
                 }}>
-                  <span style={{ fontSize: '14px', color: '#374151' }}>For every ₹</span>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>For every {getCurrencySymbol()}</span>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <input
                       type="text"
@@ -751,7 +753,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Points needed for ₹1 redemption
+                    Points needed for {getCurrencySymbol()}1 redemption
                   </label>
                   <input
                     type="text"
@@ -772,7 +774,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#dc2626' }}>{loyaltyErrors.redemptionRate}</p>
                   )}
                   <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
-                    How many points = ₹1 discount
+                    How many points = {getCurrencySymbol()}1 discount
                   </p>
                 </div>
 
@@ -873,10 +875,10 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 <div style={{ fontSize: '14px', color: '#166534', lineHeight: '1.7', fontWeight: '500' }}>
                   <div style={{ marginBottom: '12px', fontWeight: '700', fontSize: '15px' }}>📊 Example Calculation:</div>
                   <div style={{ marginBottom: '8px' }}>
-                    • Customer spends <strong>₹1,000</strong> → Earns <strong>{Math.floor(1000 / settings.loyaltySettings.earnPerAmount) * settings.loyaltySettings.pointsEarned} points</strong>
+                    • Customer spends <strong>{getCurrencySymbol()}1,000</strong> → Earns <strong>{Math.floor(1000 / settings.loyaltySettings.earnPerAmount) * settings.loyaltySettings.pointsEarned} points</strong>
                   </div>
                   <div style={{ marginBottom: '8px' }}>
-                    • With <strong>{settings.loyaltySettings.redemptionRate * 100} points</strong>, they can redeem <strong>₹100</strong>
+                    • With <strong>{settings.loyaltySettings.redemptionRate * 100} points</strong>, they can redeem <strong>{getCurrencySymbol()}100</strong>
                   </div>
                   <div>
                     • Maximum redemption per order: <strong>{settings.loyaltySettings.maxRedemptionPercent}%</strong> of order value
@@ -2195,7 +2197,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     <div style={{ width: '50px', height: '50px', backgroundColor: '#f3f4f6', borderRadius: '8px' }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>Menu Item</div>
-                      <div style={{ fontSize: '11px', color: '#6b7280' }}>₹299</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>{getCurrencySymbol()}299</div>
                     </div>
                     <div style={{
                       width: '28px',

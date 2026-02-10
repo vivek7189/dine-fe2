@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
+import { useCurrency } from '../contexts/CurrencyContext';
 import {
   FaShoppingCart,
   FaTimes,
@@ -80,6 +81,7 @@ const OrderSummary = ({
   onLoadSavedOrder,
   onDeleteSavedOrder
 }) => {
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
   const [taxBreakdown, setTaxBreakdown] = useState([]);
@@ -1018,7 +1020,7 @@ const OrderSummary = ({
                           <tr key={idx} style={{ borderBottom: '1px solid #dcfce7' }}>
                             <td style={{ padding: '3px 6px' }}>{item.name}</td>
                             <td style={{ padding: '3px 6px', textAlign: 'center' }}>{item.quantity || 1}</td>
-                            <td style={{ padding: '3px 6px', textAlign: 'right' }}>₹{((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1)).toFixed(2)}</td>
+                            <td style={{ padding: '3px 6px', textAlign: 'right' }}>{formatCurrency((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1))}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1027,17 +1029,17 @@ const OrderSummary = ({
                     <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '6px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
                         <span>Subtotal:</span>
-                        <span>₹{(invoice?.subtotal || 0).toFixed(2)}</span>
+                        <span>{formatCurrency(invoice?.subtotal || 0)}</span>
                       </div>
                       {invoice?.taxBreakdown?.map((tax, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
                           <span>{tax.name} ({tax.rate}%)</span>
-                          <span>₹{(tax.amount || 0).toFixed(2)}</span>
+                          <span>{formatCurrency(tax.amount || 0)}</span>
                         </div>
                       ))}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', borderTop: '2px solid #22c55e', paddingTop: '4px', marginTop: '4px' }}>
                         <span>TOTAL:</span>
-                        <span>₹{((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0)).toFixed(2)}</span>
+                        <span>{formatCurrency((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0))}</span>
                       </div>
                     </div>
                     <div style={{ marginTop: '8px', fontSize: '11px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you for dining with us!</div>
@@ -1056,9 +1058,10 @@ const OrderSummary = ({
                       if (!win) return;
                       invoicePrintWindowRef.current = win;
                       const billItems = invoice?.items || orderSuccess?.kotData?.items || [];
-                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">₹${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
-                      const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">₹${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>Bill #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- BILL / INVOICE ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>Bill#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>Customer:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>₹${(invoice?.subtotal || 0).toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>₹${((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0)).toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+                      const currencySymbol = getCurrencySymbol();
+                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
+                      const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>Bill #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- BILL / INVOICE ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>Bill#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>Customer:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0)).toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
@@ -1339,7 +1342,7 @@ const OrderSummary = ({
                           <div style={{ fontSize: '10px' }}>
                             Variant: <span style={{ fontWeight: 600, color: '#374151' }}>{item.selectedVariant.name}</span>
                             {typeof item.selectedVariant.price === 'number' && (
-                              <span> (₹{item.selectedVariant.price})</span>
+                              <span> ({formatCurrency(item.selectedVariant.price)})</span>
                             )}
                           </div>
                         )}
@@ -1348,7 +1351,7 @@ const OrderSummary = ({
                             Toppings: {item.selectedCustomizations.map((c, idx) => (
                               <span key={idx}>
                                 {idx > 0 ? ', ' : ''}
-                                {c.name}{typeof c.price === 'number' && c.price > 0 ? ` (+₹${c.price})` : ''}
+                                {c.name}{typeof c.price === 'number' && c.price > 0 ? ` (+${formatCurrency(c.price)})` : ''}
                               </span>
                             ))}
                           </div>
@@ -1363,14 +1366,14 @@ const OrderSummary = ({
                           fontWeight: '600', 
                           color: '#6b7280' 
                         }}>
-                          Subtotal: ₹{(getItemUnitPrice(item) * item.quantity)}
+                          Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
                         </span>
                         <span style={{ 
                           fontSize: '12px', 
                           fontWeight: 'bold', 
                           color: '#ef4444' 
                         }}>
-                          ₹{getItemUnitPrice(item)}
+                          {formatCurrency(getItemUnitPrice(item))}
                         </span>
                         <div style={{
                           padding: '1px 4px',
@@ -1547,14 +1550,14 @@ const OrderSummary = ({
                   <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>{t('common.total')}</div>
                   {(taxBreakdown.length > 0 || totalTax > 0) && (
                     <div style={{ fontSize: '11px', opacity: 0.9, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      <span>Subtotal: ₹{getTotalAmount().toFixed(2)}</span>
+                      <span>Subtotal: {formatCurrency(getTotalAmount())}</span>
                       {taxBreakdown.map((tax, index) => (
-                        <span key={index}>{tax.name} ({tax.rate}%): ₹{tax.amount?.toFixed(2) || '0.00'}</span>
+                        <span key={index}>{tax.name} ({tax.rate}%): {formatCurrency(tax.amount || 0)}</span>
                       ))}
                     </div>
                   )}
                 </div>
-                <span style={{ fontSize: '22px', fontWeight: 'bold' }}>₹{grandTotal > 0 ? grandTotal.toFixed(2) : getTotalAmount().toFixed(2)}</span>
+                <span style={{ fontSize: '22px', fontWeight: 'bold' }}>{formatCurrency(grandTotal > 0 ? grandTotal : getTotalAmount())}</span>
               </div>
             </div>
           </div>
@@ -2213,7 +2216,7 @@ const OrderSummary = ({
                     </div>
                   </div>
                   <div style={{ fontWeight: '600', fontSize: '14px', color: '#059669' }}>
-                    ₹{item.price * item.quantity}
+                    {formatCurrency(item.price * item.quantity)}
                   </div>
                 </div>
               ))}

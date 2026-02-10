@@ -8,6 +8,7 @@ import ImageCarousel from '../../../components/ImageCarousel';
 import ImageUpload from '../../../components/ImageUpload';
 import QRCodeModal from '../../../components/QRCodeModal';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import { getCachedMenuData, setCachedMenuData } from '../../../utils/dashboardCache';
@@ -484,7 +485,8 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 
 // Ultra Compact Menu Item Card Component
 const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, getCategoryEmoji, onItemClick }) => {
-  
+  const { formatCurrency } = useCurrency();
+
   return (
     <div 
       style={{
@@ -717,9 +719,9 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
             fontWeight: '700',
             padding: '4px 0'
           }}>
-            ₹{item.price}
+            {formatCurrency(item.price)}
           </div>
-          
+
           <div style={{
             display: 'flex',
             gap: '8px'
@@ -906,7 +908,8 @@ const getCategoryColor = (category, opacity = 1) => {
 
 // List View Item Component
 const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, getCategoryEmoji }) => {
-  
+  const { formatCurrency } = useCurrency();
+
   return (
     <div style={{
       display: 'flex',
@@ -1014,7 +1017,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
           color: '#ef4444',
           minWidth: 'fit-content'
         }}>
-        ₹{item.price}
+        {formatCurrency(item.price)}
         </div>
       </div>
       
@@ -1125,6 +1128,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
 
 // Item Detail Modal Component
 const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji }) => {
+  const { formatCurrency } = useCurrency();
   if (!isOpen || !item) return null;
   const category = categories.find(c => c.id === item.category);
 
@@ -1253,7 +1257,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 color: '#ef4444',
                 marginBottom: '4px'
               }}>
-                ₹{item.price}
+                {formatCurrency(item.price)}
               </div>
               <div style={{
                 fontSize: '14px',
@@ -1504,6 +1508,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
 const MenuManagement = () => {
   const { isLoading } = useLoading();
   const router = useRouter();
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]); // Dynamic: from backend or from menu photo extraction
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -3376,7 +3381,7 @@ const MenuManagement = () => {
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    Price (₹) *
+                    Price ({getCurrencySymbol()}) *
                   </label>
                   <input
                     type="text"
@@ -3709,7 +3714,7 @@ const MenuManagement = () => {
                           borderRadius: '6px',
                           border: '1px dashed #d1d5db'
                         }}>
-                          No variants added. Add variants if this item has different sizes or portions (e.g., Half ₹100, Full ₹200).
+                          No variants added. Add variants if this item has different sizes or portions (e.g., Half {getCurrencySymbol()}100, Full {getCurrencySymbol()}200).
                         </p>
                       )}
                     </div>

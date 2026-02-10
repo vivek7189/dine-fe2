@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 export default function DashboardTablesPanel({
   floors = [],
@@ -52,6 +53,7 @@ export default function DashboardTablesPanel({
   onRefreshTables // Callback to refresh tables data after billing
 }) {
   const router = useRouter();
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [sliderOpen, setSliderOpen] = useState(false);
   const [sliderMinimized, setSliderMinimized] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -391,18 +393,19 @@ export default function DashboardTablesPanel({
     const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
     const total = order.finalAmount || (subtotal + taxTotal);
 
+    const currencySymbol = getCurrencySymbol();
     const itemsHtml = items.map(item =>
       `<tr>
         <td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g, '&lt;')}</td>
         <td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td>
-        <td style="text-align:right;padding:2px 4px;">₹${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
+        <td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
       </tr>`
     ).join('');
 
     const taxHtml = taxBreakdown.map(tax =>
       `<tr>
         <td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td>
-        <td style="text-align:right;padding:2px 4px;">₹${(tax.amount || 0).toFixed(2)}</td>
+        <td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td>
       </tr>`
     ).join('');
 
@@ -453,12 +456,12 @@ export default function DashboardTablesPanel({
   </table>
   <div class="total-section">
     <div class="bill-info">
-      <div><span>Subtotal:</span><span>₹${subtotal.toFixed(2)}</span></div>
+      <div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>
     </div>
     ${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}
     <div class="total-row">
       <span>TOTAL:</span>
-      <span>₹${total.toFixed(2)}</span>
+      <span>${currencySymbol}${total.toFixed(2)}</span>
     </div>
   </div>
   <div class="divider">================================</div>
@@ -802,10 +805,10 @@ export default function DashboardTablesPanel({
                             borderRadius: '8px',
                             border: '1px solid #fcd34d'
                           }}>
-                            ₹{(() => {
+                            {formatCurrency((() => {
                               const total = t.currentOrderFinalAmount || t.currentOrderTotal || 0;
-                              return typeof total === 'number' ? total.toFixed(0) : total;
-                            })()}
+                              return typeof total === 'number' ? total : 0;
+                            })())}
                           </div>
                           {t.currentOrderTax > 0 && (
                             <div style={{
@@ -813,7 +816,7 @@ export default function DashboardTablesPanel({
                               color: '#6b7280',
                               marginTop: '3px'
                             }}>
-                              Tax: ₹{typeof t.currentOrderTax === 'number' ? t.currentOrderTax.toFixed(0) : t.currentOrderTax}
+                              Tax: {formatCurrency(typeof t.currentOrderTax === 'number' ? t.currentOrderTax : 0)}
                             </div>
                           )}
                         </div>
@@ -1379,7 +1382,7 @@ export default function DashboardTablesPanel({
                 )}
                 {selectedOrder && sliderMinimized && (
                   <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280', lineHeight: '1.2' }}>
-                    #{selectedOrder.orderNumber || selectedOrder.id} • {cart?.length || 0} items • ₹{getTotalAmount ? getTotalAmount().toFixed(2) : '0.00'}
+                    #{selectedOrder.orderNumber || selectedOrder.id} • {cart?.length || 0} items • {formatCurrency(getTotalAmount ? getTotalAmount() : 0)}
                   </p>
                 )}
               </div>

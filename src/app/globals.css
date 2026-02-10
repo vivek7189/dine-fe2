@@ -199,10 +199,20 @@ body {
 .hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
 }
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Menu item card - simple styles, no transforms */
+.menu-item-card {
+  contain: content;
+}
+
+.menu-item-card img {
+  image-rendering: -webkit-optimize-contrast;
 }
 
 /* Prevent layout shifts and flickering */

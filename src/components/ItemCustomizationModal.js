@@ -3,15 +3,17 @@
 import { useState, useEffect } from 'react';
 import { FaTimes, FaPlus, FaMinus, FaLeaf, FaDrumstickBite } from 'react-icons/fa';
 import { getDisplayImage } from '../utils/placeholderImages';
+import { useCurrency } from '../contexts/CurrencyContext';
 
-const ItemCustomizationModal = ({ 
-  item, 
-  isOpen, 
-  onClose, 
+const ItemCustomizationModal = ({
+  item,
+  isOpen,
+  onClose,
   onAddToCart,
-  currentQuantity = 0 
+  currentQuantity = 0
 }) => {
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  const { formatCurrency } = useCurrency();
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedCustomizations, setSelectedCustomizations] = useState([]);
   const [quantity, setQuantity] = useState(1);
@@ -400,7 +402,7 @@ const ItemCustomizationModal = ({
                         fontWeight: '700',
                         color: selectedVariant?.name === variant.name ? '#ef4444' : '#1f2937'
                       }}>
-                        ₹{variant.price}
+                        {formatCurrency(variant.price)}
                       </div>
                     </button>
                   ))}
@@ -492,7 +494,7 @@ const ItemCustomizationModal = ({
                             fontWeight: '600',
                             color: isSelected ? '#ef4444' : '#6b7280'
                           }}>
-                            +₹{customization.price}
+                            +{formatCurrency(customization.price)}
                           </div>
                         )}
                       </button>
@@ -575,7 +577,7 @@ const ItemCustomizationModal = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '14px', color: '#6b7280' }}>Base Price</span>
                 <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                  ₹{getBasePrice()}
+                  {formatCurrency(getBasePrice())}
                 </span>
               </div>
               {hasCustomizations && selectedCustomizations.length > 0 && (
@@ -584,7 +586,7 @@ const ItemCustomizationModal = ({
                     Toppings/Extras ({selectedCustomizations.length})
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                    +₹{getCustomizationPrice()}
+                    +{formatCurrency(getCustomizationPrice())}
                   </span>
                 </div>
               )}
@@ -611,7 +613,7 @@ const ItemCustomizationModal = ({
                   fontWeight: '700',
                   color: '#ef4444'
                 }}>
-                  ₹{getTotalPrice()}
+                  {formatCurrency(getTotalPrice())}
                 </span>
               </div>
             </div>

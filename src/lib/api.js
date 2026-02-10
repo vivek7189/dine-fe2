@@ -1415,6 +1415,18 @@ class ApiClient {
     });
   }
 
+  // Currency Settings endpoints
+  async getCurrencySettings(restaurantId) {
+    return this.request(`/api/admin/currency/${restaurantId}`);
+  }
+
+  async updateCurrencySettings(restaurantId, currencySettings) {
+    return this.request(`/api/admin/currency/${restaurantId}`, {
+      method: 'PUT',
+      body: { currencySettings },
+    });
+  }
+
   // Print Settings endpoints
   async getPrintSettings(restaurantId) {
     return this.request(`/api/admin/print-settings/${restaurantId}`);

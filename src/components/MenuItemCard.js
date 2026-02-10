@@ -1,19 +1,21 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { FaPlus, FaMinus, FaLeaf, FaDrumstickBite, FaStar, FaFire, FaClock, FaHeart, FaUtensils } from 'react-icons/fa';
+import React, { useState, useRef, useMemo, memo, useCallback } from 'react';
+import { FaPlus, FaMinus, FaLeaf, FaDrumstickBite, FaStar, FaFire, FaHeart, FaUtensils } from 'react-icons/fa';
 import { getDisplayImage } from '../utils/placeholderImages';
+import { useCurrency } from '../contexts/CurrencyContext';
 
-const MenuItemCard = ({ 
-  item, 
-  quantityInCart, 
-  onAddToCart, 
-  onRemoveFromCart, 
+const MenuItemCard = ({
+  item,
+  quantityInCart,
+  onAddToCart,
+  onRemoveFromCart,
   onItemClick, // New prop for opening customization modal
   onToggleFavorite, // New prop for toggling favorite
   isMobile = false,
   useModernDesign = true
 }) => {
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const isVeg = item.isVeg === true || item.category === 'veg';
   const isPopular = item.isPopular || item.rating > 4.5;
   const isSpicy = item.spiceLevel === 'hot' || item.spiceLevel === 'very-hot';
@@ -24,13 +26,13 @@ const MenuItemCard = ({
   const hasCustomizations = item.customizations && Array.isArray(item.customizations) && item.customizations.length > 0;
   const needsCustomization = hasVariants || hasCustomizations;
   
-  // Get display price - show "From ₹X" if variants exist, otherwise show regular price
+  // Get display price - show "From X" if variants exist, otherwise show regular price
   const getDisplayPrice = () => {
     if (hasVariants && item.variants.length > 0) {
       const minPrice = Math.min(...item.variants.map(v => v.price || item.price || 0));
-      return `From ₹${minPrice}`;
+      return `From ${formatCurrency(minPrice)}`;
     }
-    return `₹${item.price || 0}`;
+    return formatCurrency(item.price || 0);
   };
   
   // Handle card click - if needs customization, open modal; otherwise add directly
@@ -46,48 +48,18 @@ const MenuItemCard = ({
   // Hooks must be called at the top level, before any conditional returns
   const isOutOfStock = item.isAvailable === false;
   const [showOutOfStockLabel, setShowOutOfStockLabel] = useState(false);
-  
-  // Image loading state management to prevent flickering - must be at top level
-  const imageUrl = getDisplayImage(item);
+
+  // Image URL - memoized to prevent unnecessary recalculations
+  const imageUrl = useMemo(() => getDisplayImage(item), [item.image, item.id]);
   const hasImage = imageUrl !== null;
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+
+  // Simple ref for image element
   const imageRef = useRef(null);
-  const loadedImagesCache = useRef(new Set());
+  const [imageError, setImageError] = useState(false);
 
-  // Check if image is already loaded in cache
-  useEffect(() => {
-    if (hasImage && imageUrl) {
-      // Check if image is already in browser cache or our cache
-      if (loadedImagesCache.current.has(imageUrl)) {
-        setImageLoaded(true);
-        return;
-      }
-
-      // Preload image
-      const img = new Image();
-      img.onload = () => {
-        loadedImagesCache.current.add(imageUrl);
-        setImageLoaded(true);
-        setImageError(false);
-      };
-      img.onerror = () => {
-        setImageError(true);
-        setImageLoaded(false);
-      };
-      img.src = imageUrl;
-    }
-  }, [imageUrl, hasImage]);
-
-  // Reset loading state when image URL changes
-  useEffect(() => {
-    if (hasImage && imageUrl) {
-      if (!loadedImagesCache.current.has(imageUrl)) {
-        setImageLoaded(false);
-        setImageError(false);
-      }
-    }
-  }, [imageUrl, hasImage]);
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+  }, []);
   
   if (!useModernDesign) {
     // Original Compact Design (Exact old style)
@@ -366,7 +338,6 @@ const MenuItemCard = ({
       <div
         className="menu-item-card"
         style={{
-          backgroundColor: '#1f2937',
           borderRadius: '8px',
           cursor: 'pointer',
           height: isMobile ? '140px' : '150px',
@@ -377,22 +348,17 @@ const MenuItemCard = ({
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           position: 'relative',
           overflow: 'hidden',
-          transition: 'all 0.3s ease',
           border: 'none',
           filter: isOutOfStock ? 'blur(1.1px)' : 'none',
           opacity: isOutOfStock ? 0.95 : 1
         }}
         onClick={handleCardClick}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.25)';
           if (isOutOfStock) {
             setShowOutOfStockLabel(true);
           }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
           setShowOutOfStockLabel(false);
         }}
       >
@@ -418,7 +384,7 @@ const MenuItemCard = ({
           </div>
         )}
         
-        {/* Full Background Image */}
+        {/* Full Background Image - Simplified to prevent flicker */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -426,70 +392,28 @@ const MenuItemCard = ({
           right: 0,
           bottom: 0,
           zIndex: 0,
-          backgroundColor: '#1f2937' // Dark background while loading
+          overflow: 'hidden'
         }}>
-          {/* Placeholder/Skeleton while loading */}
-          {!imageLoaded && !imageError && (
-            <div style={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: '#374151',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                border: '3px solid rgba(255, 255, 255, 0.1)',
-                borderTop: '3px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-            </div>
-          )}
-          
-          {/* Actual Image - Only show when loaded */}
-          {imageLoaded && !imageError && (
+          {/* Image - Always visible, no opacity transitions */}
+          {hasImage && (
             <img
               ref={imageRef}
               src={imageUrl}
               alt={item.name}
+              loading="eager"
               style={{
+                position: 'absolute',
+                inset: 0,
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                display: 'block',
-                opacity: imageLoaded ? 1 : 0,
-                transition: 'opacity 0.2s ease-in-out'
+                display: 'block'
               }}
-              loading="lazy"
-              decoding="async"
-              onLoad={() => {
-                setImageLoaded(true);
-                loadedImagesCache.current.add(imageUrl);
-              }}
-              onError={() => {
-                setImageError(true);
-                setImageLoaded(false);
-              }}
+              decoding="sync"
+              onError={handleImageError}
             />
           )}
-          
-          {/* Error fallback - show dark background if image fails */}
-          {imageError && (
-            <div style={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: '#1f2937',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <FaUtensils size={24} color="#6b7280" />
-            </div>
-          )}
-          
+
           {/* Dark Gradient Overlay for text visibility */}
           <div style={{
             position: 'absolute',
@@ -499,7 +423,7 @@ const MenuItemCard = ({
             bottom: 0,
             background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.8) 100%)',
             pointerEvents: 'none',
-            zIndex: 1
+            zIndex: 2
           }} />
         </div>
 
@@ -1138,19 +1062,22 @@ const MenuItemCard = ({
   );
 };
 
-export default MenuItemCard;
+// Memoize to prevent re-renders during scroll
+const MemoizedMenuItemCard = memo(MenuItemCard, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.image === nextProps.item.image &&
+    prevProps.item.name === nextProps.item.name &&
+    prevProps.item.price === nextProps.item.price &&
+    prevProps.item.isAvailable === nextProps.item.isAvailable &&
+    prevProps.item.isFavorite === nextProps.item.isFavorite &&
+    prevProps.quantityInCart === nextProps.quantityInCart &&
+    prevProps.isMobile === nextProps.isMobile &&
+    prevProps.useModernDesign === nextProps.useModernDesign
+  );
+});
 
-// Add CSS for loading spinner animation
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-  `;
-  if (!document.head.querySelector('style[data-menu-item-spinner]')) {
-    style.setAttribute('data-menu-item-spinner', 'true');
-    document.head.appendChild(style);
-  }
-}
+export default MemoizedMenuItemCard;
+
+// Note: Menu item card CSS is defined in globals.css to avoid duplication

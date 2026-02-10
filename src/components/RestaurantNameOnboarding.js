@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  FaStore, 
+import {
+  FaStore,
   FaTimes,
   FaCheckCircle,
   FaForward,
@@ -10,8 +10,9 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import { redirectToSubdomain } from '../utils/subdomain';
+import { getCurrencyByCountryCode } from '../lib/currencyData';
 
-const RestaurantNameOnboarding = ({ onComplete, onSkip }) => {
+const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) => {
   const [restaurantName, setRestaurantName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +22,7 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip }) => {
 
     try {
       setLoading(true);
-      
+
       // Create restaurant with user-provided name
       const response = await apiClient.createRestaurant({
         name: restaurantName.trim(),
@@ -35,10 +36,22 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip }) => {
           close: '22:00'
         }
       });
-      
+
       // Save restaurant to localStorage for immediate use
       localStorage.setItem('selectedRestaurantId', response.restaurant.id);
       localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
+
+      // Auto-set currency settings based on selected country during registration
+      if (selectedCountryCode) {
+        try {
+          const currencyData = getCurrencyByCountryCode(selectedCountryCode);
+          await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
+          console.log('Currency auto-set to:', currencyData.currencyCode);
+        } catch (currencyError) {
+          console.warn('Failed to auto-set currency:', currencyError);
+          // Non-fatal error, continue with default currency
+        }
+      }
       
       // Check if subdomain is enabled and redirect accordingly
       if (response.restaurant.subdomainUrl) {
@@ -66,7 +79,7 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip }) => {
   const handleSkip = async () => {
     try {
       setLoading(true);
-      
+
       // Generate random restaurant name
       const randomNames = [
         'Delicious Bites', 'Flavor Junction', 'Taste Paradise', 'Culinary Corner',
@@ -74,9 +87,9 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip }) => {
         'Flavor Fusion', 'Tasty Treats', 'Cuisine Corner', 'Dining Delight',
         'Foodie Spot', 'Taste Buds', 'Culinary Hub', 'Flavor Station'
       ];
-      
+
       const randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
-      
+
       // Create restaurant with random name
       const response = await apiClient.createRestaurant({
         name: randomName,
@@ -90,10 +103,22 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip }) => {
           close: '22:00'
         }
       });
-      
+
       // Save restaurant to localStorage for immediate use
       localStorage.setItem('selectedRestaurantId', response.restaurant.id);
       localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
+
+      // Auto-set currency settings based on selected country during registration
+      if (selectedCountryCode) {
+        try {
+          const currencyData = getCurrencyByCountryCode(selectedCountryCode);
+          await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
+          console.log('Currency auto-set to:', currencyData.currencyCode);
+        } catch (currencyError) {
+          console.warn('Failed to auto-set currency:', currencyError);
+          // Non-fatal error, continue with default currency
+        }
+      }
       
       // Check if subdomain is enabled and redirect accordingly
       if (response.restaurant.subdomainUrl) {

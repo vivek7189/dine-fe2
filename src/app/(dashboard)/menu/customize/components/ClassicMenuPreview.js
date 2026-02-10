@@ -1,7 +1,9 @@
 import React from 'react';
 import { FaSearch, FaPlus } from 'react-icons/fa';
+import { useCurrency } from '../../../../../contexts/CurrencyContext';
 
 const ClassicMenuPreview = ({ restaurant, menu = [], device = 'mobile' }) => {
+  const { formatCurrency } = useCurrency();
   const isMobile = device === 'mobile';
   
   // Dummy categories if none exist
@@ -100,7 +102,7 @@ const ClassicMenuPreview = ({ restaurant, menu = [], device = 'mobile' }) => {
                 </div>
                 
                 <div className="flex items-center justify-between mt-1">
-                  <div className="font-bold text-gray-900 text-sm">₹{item.price}</div>
+                  <div className="font-bold text-gray-900 text-sm">{formatCurrency(item.price)}</div>
                   <div className="bg-white border border-red-200 text-red-600 px-3 py-1 rounded-md text-[10px] font-bold shadow-sm flex items-center gap-1">
                     ADD <FaPlus size={6} />
                   </div>

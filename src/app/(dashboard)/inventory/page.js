@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import { 
   FaBoxes, 
   FaPlus, 
@@ -209,6 +210,7 @@ const CustomDropdown = ({ options, value, onChange, placeholder }) => {
 };
 
 export default function InventoryManagement() {
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -1072,7 +1074,7 @@ export default function InventoryManagement() {
       case 'value':
         const totalValue = inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.costPerUnit), 0);
         reportTitle = 'Inventory Value Report';
-        reportContent = `Total Inventory Value: ₹${totalValue.toLocaleString()}\n\n`;
+        reportContent = `Total Inventory Value: ${getCurrencySymbol()}${totalValue.toLocaleString()}\n\n`;
         reportContent += `Breakdown by Category:\n`;
         const categoryValues = {};
         inventoryItems.forEach(item => {
@@ -1080,7 +1082,7 @@ export default function InventoryManagement() {
           categoryValues[item.category] += item.currentStock * item.costPerUnit;
         });
         Object.entries(categoryValues).forEach(([category, value]) => {
-          reportContent += `• ${category}: ₹${value.toLocaleString()}\n`;
+          reportContent += `• ${category}: ${getCurrencySymbol()}${value.toLocaleString()}\n`;
         });
         break;
       case 'supplier':
@@ -1503,7 +1505,7 @@ export default function InventoryManagement() {
                 <FaChartLine color="#3b82f6" size={20} />
               </div>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6', marginBottom: '8px' }}>
-                ₹{(dashboardStats?.totalValue || inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.costPerUnit), 0)).toLocaleString()}
+                {formatCurrency(dashboardStats?.totalValue || inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.costPerUnit), 0))}
               </div>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>
                 Current inventory value
@@ -1739,7 +1741,7 @@ export default function InventoryManagement() {
                       <div>
                         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Cost per Unit</div>
                         <div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>
-                          ₹{item.costPerUnit}
+                          {formatCurrency(item.costPerUnit)}
                         </div>
                       </div>
                     </div>
@@ -1974,7 +1976,7 @@ export default function InventoryManagement() {
                         <div>
                           <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Total Amount</div>
                           <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                            ₹{(perf.totalAmount || 0).toLocaleString()}
+                            {formatCurrency(perf.totalAmount || 0)}
                           </div>
                         </div>
                       </div>
@@ -2388,7 +2390,7 @@ export default function InventoryManagement() {
                       </div>
                     </div>
                     <div style={{ fontSize: '18px', fontWeight: '700', color: '#059669' }}>
-                      ₹{order.totalAmount.toLocaleString()}
+                      {formatCurrency(order.totalAmount)}
                     </div>
                   </div>
 
@@ -3234,7 +3236,7 @@ export default function InventoryManagement() {
                             Supplier: {suppliers.find(s => s.id === po.supplierId)?.name || 'N/A'}
                           </p>
                           <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-                            Items: {po.items?.length || 0} | Total: ₹{po.totalAmount?.toLocaleString() || '0'}
+                            Items: {po.items?.length || 0} | Total: {formatCurrency(po.totalAmount || 0)}
                           </p>
                         </div>
                         <button
@@ -3348,7 +3350,7 @@ export default function InventoryManagement() {
                           </span>
                         )}
                         <p style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                          ₹{invoice.totalAmount?.toLocaleString() || '0'}
+                          {formatCurrency(invoice.totalAmount || 0)}
                         </p>
                       </div>
                     </div>
@@ -3404,7 +3406,7 @@ export default function InventoryManagement() {
                         <button
                           onClick={async () => {
                             try {
-                              const paidAmount = prompt(`Enter paid amount (Total: ₹${invoice.totalAmount})`, invoice.totalAmount);
+                              const paidAmount = prompt(`Enter paid amount (Total: ${getCurrencySymbol()}${invoice.totalAmount})`, invoice.totalAmount);
                               if (paidAmount !== null) {
                                 await apiClient.updateSupplierInvoice(currentRestaurant.id, invoice.id, {
                                   paidAmount: parseFloat(paidAmount),
@@ -3510,7 +3512,7 @@ export default function InventoryManagement() {
                           {returnOrder.status?.toUpperCase()}
                         </span>
                         <p style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                          ₹{returnOrder.totalAmount?.toLocaleString() || '0'}
+                          {formatCurrency(returnOrder.totalAmount || 0)}
                         </p>
                       </div>
                     </div>
@@ -3830,7 +3832,7 @@ export default function InventoryManagement() {
                         </div>
                         <div style={{ textAlign: 'right', marginLeft: '16px' }}>
                           <p style={{ fontSize: '14px', fontWeight: '600', color: '#059669', margin: '0 0 4px 0' }}>
-                            ₹{suggestion.estimatedCost?.toLocaleString() || '0'}
+                            {formatCurrency(suggestion.estimatedCost || 0)}
                           </p>
                           <span style={{
                             padding: '2px 8px',
@@ -3900,7 +3902,7 @@ export default function InventoryManagement() {
                   <div>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Estimated Loss</p>
                     <p style={{ fontSize: '24px', fontWeight: '600', color: '#ef4444', margin: 0 }}>
-                      ₹{wasteSummary.totalEstimatedLoss?.toLocaleString() || '0'}
+                      {formatCurrency(wasteSummary.totalEstimatedLoss || 0)}
                     </p>
                   </div>
                   <div>
@@ -3942,7 +3944,7 @@ export default function InventoryManagement() {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <p style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444', margin: '0 0 4px 0' }}>
-                            ₹{prediction.estimatedLoss?.toLocaleString() || '0'}
+                            {formatCurrency(prediction.estimatedLoss || 0)}
                           </p>
                           <span style={{
                             padding: '2px 8px',
@@ -4005,7 +4007,7 @@ export default function InventoryManagement() {
                           const trend = await apiClient.getPriceTrend(currentRestaurant.id, item.id);
                           
                           // Show results in a modal or expandable section
-                          alert(`Price Intelligence for ${item.name}:\n\nBest Supplier: ${bestSupplier.recommendedSupplier?.supplierName || 'N/A'}\nAverage Price: ₹${comparison.comparison?.marketAverage || '0'}\nTrend: ${trend.trend || 'stable'}`);
+                          alert(`Price Intelligence for ${item.name}:\n\nBest Supplier: ${bestSupplier.recommendedSupplier?.supplierName || 'N/A'}\nAverage Price: ${getCurrencySymbol()}${comparison.comparison?.marketAverage || '0'}\nTrend: ${trend.trend || 'stable'}`);
                         } catch (error) {
                           setError(error.message);
                         }
@@ -4360,7 +4362,7 @@ export default function InventoryManagement() {
                       marginBottom: '8px', 
                       display: 'block' 
                     }}>
-                      Cost per Unit (₹)
+                      Cost per Unit ({getCurrencySymbol()})
                     </label>
                     <div style={{ position: 'relative' }}>
                       <div style={{
@@ -4372,7 +4374,7 @@ export default function InventoryManagement() {
                         fontWeight: '600',
                         color: '#059669'
                       }}>
-                        ₹
+                        {getCurrencySymbol()}
                       </div>
                       <input
                         type="number"
@@ -6330,7 +6332,7 @@ export default function InventoryManagement() {
                   <option value="">Select a Purchase Order</option>
                   {purchaseOrders.filter(po => po.status === 'approved' || po.status === 'partially_received').map(po => (
                     <option key={po.id} value={po.id}>
-                      PO #{po.id.slice(-8)} - {po.supplierName || 'Supplier'} - ₹{po.totalAmount?.toLocaleString() || '0'}
+                      PO #{po.id.slice(-8)} - {po.supplierName || 'Supplier'} - {getCurrencySymbol()}{po.totalAmount?.toLocaleString() || '0'}
                     </option>
                   ))}
                 </select>

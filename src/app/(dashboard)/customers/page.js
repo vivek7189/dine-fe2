@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedCustomersData, setCachedCustomersData } from '../../../utils/dashboardCache';
 import { 
@@ -305,6 +306,7 @@ CustomerForm.displayName = 'CustomerForm';
 
 const Customers = () => {
   const router = useRouter();
+  const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backgroundLoading, setBackgroundLoading] = useState(false);
@@ -798,7 +800,7 @@ const Customers = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#ef4444' }}>
-                        ₹{order.totalAmount}
+                        {formatCurrency(order.totalAmount)}
                       </p>
                       {order.tableNumber && (
                         <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
@@ -808,9 +810,9 @@ const Customers = () => {
                       {/* Discount info */}
                       {(order.discountAmount > 0 || order.loyaltyDiscount > 0) && (
                         <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#059669' }}>
-                          {order.discountAmount > 0 && `Offer: -₹${order.discountAmount}`}
+                          {order.discountAmount > 0 && `Offer: -${getCurrencySymbol()}${order.discountAmount}`}
                           {order.discountAmount > 0 && order.loyaltyDiscount > 0 && ' | '}
-                          {order.loyaltyDiscount > 0 && `Loyalty: -₹${order.loyaltyDiscount}`}
+                          {order.loyaltyDiscount > 0 && `Loyalty: -${getCurrencySymbol()}${order.loyaltyDiscount}`}
                         </p>
                       )}
                       {/* Loyalty points earned */}
@@ -1011,12 +1013,12 @@ const Customers = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                     <span style={{ color: '#6b7280' }}>Total Spent</span>
-                    <span style={{ fontWeight: '600', color: '#ef4444' }}>₹{Number(selectedCustomer.totalSpent || 0).toFixed(2)}</span>
+                    <span style={{ fontWeight: '600', color: '#ef4444' }}>{formatCurrency(Number(selectedCustomer.totalSpent || 0))}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                     <span style={{ color: '#6b7280' }}>Avg. Order Value</span>
                     <span style={{ fontWeight: '600', color: '#1f2937' }}>
-                      ₹{(selectedCustomer.totalOrders > 0 ? (Number(selectedCustomer.totalSpent || 0) / selectedCustomer.totalOrders).toFixed(2) : '0.00')}
+                      {formatCurrency(selectedCustomer.totalOrders > 0 ? (Number(selectedCustomer.totalSpent || 0) / selectedCustomer.totalOrders) : 0)}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
@@ -1055,7 +1057,7 @@ const Customers = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontWeight: '600', color: '#ef4444' }}>-{order.loyaltyPointsRedeemed} pts</span>
-                      <span style={{ color: '#6b7280', marginLeft: '8px' }}>(₹{order.loyaltyDiscount || 0} off)</span>
+                      <span style={{ color: '#6b7280', marginLeft: '8px' }}>({formatCurrency(order.loyaltyDiscount || 0)} off)</span>
                     </div>
                   </div>
                 ))}
@@ -1128,7 +1130,7 @@ const Customers = () => {
                         </span>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444' }}>₹{order.totalAmount}</span>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444' }}>{formatCurrency(order.totalAmount)}</span>
                         {order.loyaltyPointsEarned > 0 && (
                           <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#10b981' }}>+{order.loyaltyPointsEarned} pts</p>
                         )}
@@ -1652,7 +1654,7 @@ const Customers = () => {
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#ef4444' }}>
-                          ₹{Number(customer.totalSpent || 0).toFixed(2)}
+                          {formatCurrency(Number(customer.totalSpent || 0))}
                         </p>
                         <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>{t('customers.stats.spent')}</p>
                       </div>

@@ -4,17 +4,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaSearch, FaEdit, FaCheck, FaPlus, FaMinus, FaTrash, FaUtensils, FaHome, FaShoppingBag, FaTruck } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import { useLoading } from '../contexts/LoadingContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 
-const OrderEditModal = ({ 
-  isOpen, 
-  onClose, 
-  orderId, 
-  orderNumber, 
+const OrderEditModal = ({
+  isOpen,
+  onClose,
+  orderId,
+  orderNumber,
   selectedRestaurant,
   onOrderUpdated,
-  onOrderCompleted 
+  onOrderCompleted
 }) => {
   const { startLoading, stopLoading } = useLoading();
+  const { formatCurrency } = useCurrency();
   const [order, setOrder] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -339,7 +341,7 @@ const OrderEditModal = ({
                               )}
                             </div>
                             <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                            <p className="text-sm font-semibold text-red-600 mt-1">₹{item.price}</p>
+                            <p className="text-sm font-semibold text-red-600 mt-1">{formatCurrency(item.price)}</p>
                           </div>
                           <button
                             onClick={() => addItemToOrder(item)}
@@ -375,7 +377,7 @@ const OrderEditModal = ({
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-600">₹{item.price} × {item.quantity} = ₹{item.total}</p>
+                              <p className="text-sm text-gray-600">{formatCurrency(item.price)} × {item.quantity} = {formatCurrency(item.total)}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
@@ -503,15 +505,15 @@ const OrderEditModal = ({
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
-                        <span>₹{totals.subtotal.toFixed(2)}</span>
+                        <span>{formatCurrency(totals.subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>GST (5%):</span>
-                        <span>₹{totals.tax.toFixed(2)}</span>
+                        <span>{formatCurrency(totals.tax)}</span>
                       </div>
                       <div className="flex justify-between font-semibold text-lg border-t border-gray-300 pt-2">
                         <span>Total:</span>
-                        <span>₹{totals.total.toFixed(2)}</span>
+                        <span>{formatCurrency(totals.total)}</span>
                       </div>
                     </div>
 

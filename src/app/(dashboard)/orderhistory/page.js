@@ -6,9 +6,10 @@ import Pusher from 'pusher-js';
 import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
-import { 
+import { useCurrency } from '../../../contexts/CurrencyContext';
+import {
   FaSearch,
-  FaChevronLeft, 
+  FaChevronLeft,
   FaChevronRight,
   FaClock,
   FaUser,
@@ -30,7 +31,6 @@ import {
   FaList,
   FaTh,
   FaTimes,
-  FaRupeeSign,
   FaChartLine,
   FaShoppingBag,
   FaArrowUp,
@@ -43,6 +43,7 @@ import {
 
 const OrderHistory = () => {
   const router = useRouter();
+  const { formatCurrency, getCurrencySymbol, currencySettings } = useCurrency();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backgroundLoading, setBackgroundLoading] = useState(false);
@@ -504,10 +505,11 @@ const OrderHistory = () => {
       }
 
       const total = order.finalAmount && order.finalAmount > 0 ? order.finalAmount : (subtotal + totalTax);
-      const itemsHtml = items.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">₹${((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
-      const taxHtml = taxBreakdownArr.map(t => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${(t.name || 'Tax').replace(/</g,'&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td style="text-align:right;padding:2px 4px;">₹${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
+      const symbol = getCurrencySymbol();
+      const itemsHtml = items.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${symbol}${((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
+      const taxHtml = taxBreakdownArr.map(t => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${(t.name || 'Tax').replace(/</g,'&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td style="text-align:right;padding:2px 4px;">${symbol}${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
 
-      const billContent = `<!DOCTYPE html><html><head><title>Bill #${orderNum}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="bill-title">--- BILL / INVOICE ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>Bill#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>Customer:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>₹${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>₹${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+      const billContent = `<!DOCTYPE html><html><head><title>Bill #${orderNum}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="bill-title">--- BILL / INVOICE ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>Bill#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>Customer:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>${symbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${symbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
 
       const win = window.open('', '_blank', 'width=400,height=600');
       if (win) {
@@ -743,8 +745,8 @@ const OrderHistory = () => {
                           )}
                         </td>
                         <td className="px-5 py-4 text-center font-semibold text-gray-700">x{item.quantity}</td>
-                        <td className="px-5 py-4 text-right text-gray-600">₹{item.price}</td>
-                        <td className="px-5 py-4 text-right font-bold text-gray-900">₹{item.total || (item.price * item.quantity)}</td>
+                        <td className="px-5 py-4 text-right text-gray-600">{formatCurrency(item.price)}</td>
+                        <td className="px-5 py-4 text-right font-bold text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -763,17 +765,17 @@ const OrderHistory = () => {
             <div className="flex flex-col gap-3 max-w-sm ml-auto bg-white p-5 rounded-xl border-2 border-gray-200 shadow-sm">
               <div className="flex justify-between text-sm text-gray-600">
                 <span className="font-medium">{t('orderHistory.subtotal')}</span>
-                <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+                <span className="font-semibold">{formatCurrency(subtotal)}</span>
               </div>
               {(order.taxAmount > 0 || (parseFloat(orderTotal) - subtotal) > 0.01) && (
                 <div className="flex justify-between text-sm text-gray-600">
                   <span className="font-medium">{t('orderHistory.tax')}</span>
-                  <span className="font-semibold">₹{(order.taxAmount || (parseFloat(orderTotal) - subtotal)).toFixed(2)}</span>
+                  <span className="font-semibold">{formatCurrency(order.taxAmount || (parseFloat(orderTotal) - subtotal))}</span>
                 </div>
               )}
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t-2 border-gray-300 mt-2">
                 <span>{t('orderHistory.total')}</span>
-                <span className="text-red-600">₹{orderTotal}</span>
+                <span className="text-red-600">{formatCurrency(orderTotal)}</span>
               </div>
             </div>
             
@@ -903,11 +905,11 @@ const OrderHistory = () => {
             <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
               <div className="flex items-center justify-between mb-0.5 sm:mb-2">
                 <div className="bg-green-500 p-1 sm:p-2 rounded-md sm:rounded-lg">
-                  <FaRupeeSign className="text-white text-[10px] sm:text-sm" />
+                  <span className="text-white text-[10px] sm:text-sm font-bold">{getCurrencySymbol()}</span>
                 </div>
                 <FaArrowUp className="text-green-600 text-[8px] sm:text-xs hidden sm:block" />
               </div>
-              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">₹{stats.totalRevenue.toFixed(0)}</div>
+              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
               <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Today&apos;s Revenue</div>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
@@ -927,7 +929,7 @@ const OrderHistory = () => {
                 </div>
                 <FaArrowUp className="text-purple-600 text-[8px] sm:text-xs hidden sm:block" />
               </div>
-              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">₹{stats.avgOrderValue.toFixed(0)}</div>
+              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">{formatCurrency(stats.avgOrderValue)}</div>
               <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Avg Order Value</div>
             </div>
             <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
@@ -1197,13 +1199,13 @@ const OrderHistory = () => {
                           <div className="text-right space-y-0.5">
                             {breakdown.taxLines?.length > 0 && (
                               <>
-                                <div className="text-xs text-gray-500">Subtotal ₹{breakdown.subtotal.toFixed(2)}</div>
+                                <div className="text-xs text-gray-500">Subtotal {formatCurrency(breakdown.subtotal)}</div>
                                 {breakdown.taxLines.map((line, i) => (
-                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} ₹{line.amount.toFixed(2)}</div>
+                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} {formatCurrency(line.amount)}</div>
                                 ))}
                               </>
                             )}
-                            <span className="font-bold text-xl text-gray-900">₹{orderTotal}</span>
+                            <span className="font-bold text-xl text-gray-900">{formatCurrency(orderTotal)}</span>
                           </div>
                           <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
@@ -1280,7 +1282,7 @@ const OrderHistory = () => {
                               {order.items?.slice(0, 6).map((item, idx) => (
                                 <div key={idx} className="flex justify-between text-sm text-gray-700">
                                   <span>{item.quantity}x {item.name}</span>
-                                  <span>₹{item.total || (item.price * item.quantity)}</span>
+                                  <span>{formatCurrency(item.total || (item.price * item.quantity))}</span>
                                 </div>
                               ))}
                               {order.items?.length > 6 && <div className="text-xs text-gray-500 pt-1">+{order.items.length - 6} more</div>}
@@ -1335,13 +1337,13 @@ const OrderHistory = () => {
                           <div className="text-right">
                             {breakdown.taxLines?.length > 0 ? (
                               <div className="space-y-0.5 mb-1">
-                                <div className="text-xs text-gray-500">Subtotal ₹{breakdown.subtotal.toFixed(2)}</div>
+                                <div className="text-xs text-gray-500">Subtotal {formatCurrency(breakdown.subtotal)}</div>
                                 {breakdown.taxLines.map((line, i) => (
-                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} ₹{line.amount.toFixed(2)}</div>
+                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} {formatCurrency(line.amount)}</div>
                                 ))}
                               </div>
                             ) : null}
-                            <div className="text-2xl font-bold text-gray-900 mb-1">₹{orderTotal}</div>
+                            <div className="text-2xl font-bold text-gray-900 mb-1">{formatCurrency(orderTotal)}</div>
                             <div className="text-xs text-gray-500">{order.paymentMethod || 'Cash'}</div>
                           </div>
                         </div>
@@ -1394,7 +1396,7 @@ const OrderHistory = () => {
                             {(expandedOrders.has(order.id) ? order.items : order.items.slice(0, 2)).map((item, idx) => (
                               <div key={idx} className="flex justify-between text-sm py-1">
                                 <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                                <span className="font-medium text-gray-900">₹{item.total || (item.price * item.quantity)}</span>
+                                <span className="font-medium text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</span>
                               </div>
                             ))}
                             {!expandedOrders.has(order.id) && itemCount > 2 && (
@@ -1988,8 +1990,8 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                           )}
                         </td>
                         <td className="py-3 px-4 text-center text-gray-700">{item.quantity}</td>
-                        <td className="py-3 px-4 text-right text-gray-700">₹{item.price?.toFixed(2) || '0.00'}</td>
-                        <td className="py-3 px-4 text-right font-semibold text-gray-900">₹{(item.total || (item.price * item.quantity))?.toFixed(2) || '0.00'}</td>
+                        <td className="py-3 px-4 text-right text-gray-700">{formatCurrency(item.price)}</td>
+                        <td className="py-3 px-4 text-right font-semibold text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2009,17 +2011,17 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                   <div className="w-64 space-y-2">
                     <div className="flex justify-between text-gray-700">
                       <span>Subtotal:</span>
-                      <span>₹{subtotal.toFixed(2)}</span>
+                      <span>{formatCurrency(subtotal)}</span>
                     </div>
                     {taxAmount > 0 && (
                       <div className="flex justify-between text-gray-700">
                         <span>Tax:</span>
-                        <span>₹{taxAmount.toFixed(2)}</span>
+                        <span>{formatCurrency(taxAmount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t-2 border-gray-300">
                       <span>Total:</span>
-                      <span className="text-red-600">₹{orderTotal.toFixed(2)}</span>
+                      <span className="text-red-600">{formatCurrency(orderTotal)}</span>
                     </div>
                   </div>
                 </div>

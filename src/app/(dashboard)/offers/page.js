@@ -11,15 +11,16 @@ import {
   FaToggleOff,
   FaTimes,
   FaPercent,
-  FaRupeeSign,
   FaGift,
   FaCog,
   FaSave,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 
 const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = null }) => {
   const router = useRouter();
+  const { getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -702,7 +703,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                       }}
                     />
                     <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }}>
-                      {formData.discountType === 'percentage' ? <FaPercent /> : <FaRupeeSign />}
+                      {formData.discountType === 'percentage' ? <FaPercent /> : getCurrencySymbol()}
                     </span>
                   </div>
                   {offerErrors.discountValue && (

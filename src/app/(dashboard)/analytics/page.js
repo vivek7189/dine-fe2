@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  FaChartLine, 
-  FaMoneyBillWave, 
-  FaShoppingCart, 
-  FaUsers, 
-  FaCalendarAlt, 
+import {
+  FaChartLine,
+  FaMoneyBillWave,
+  FaShoppingCart,
+  FaUsers,
+  FaCalendarAlt,
   FaUtensils,
   FaClock,
   FaSpinner
@@ -15,8 +15,10 @@ import {
 import { FiTrendingUp } from "react-icons/fi";
 import apiClient from '../../../lib/api';
 import { getCachedAnalyticsData, setCachedAnalyticsData } from '../../../utils/dashboardCache';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 
 const Analytics = () => {
+  const { formatCurrency } = useCurrency();
   const [selectedPeriod, setSelectedPeriod] = useState('today'); // 'today' | '24h' | '7d' | '30d' | 'all'
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -162,7 +164,7 @@ const Analytics = () => {
                 }}
               />
               <div className="mt-1 md:mt-2 text-center">
-                <p className="text-xs md:text-sm font-medium text-gray-800">₹{data.revenue.toLocaleString()}</p>
+                <p className="text-xs md:text-sm font-medium text-gray-800">{formatCurrency(data.revenue)}</p>
                 <p className="text-xs text-gray-500">{data.day}</p>
               </div>
             </div>
@@ -200,7 +202,7 @@ const Analytics = () => {
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold text-primary text-sm md:text-base">₹{item.revenue.toLocaleString()}</p>
+                <p className="font-bold text-primary text-sm md:text-base">{formatCurrency(item.revenue)}</p>
                 <p className="text-xs md:text-sm text-gray-500">Revenue</p>
               </div>
             </div>
@@ -376,7 +378,7 @@ const Analytics = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
           <StatCard
             title="Total Revenue"
-            value={`₹${analytics.totalRevenue.toLocaleString()}`}
+            value={formatCurrency(analytics.totalRevenue)}
             icon={FaMoneyBillWave}
             color="#e53e3e"
           />
@@ -388,7 +390,7 @@ const Analytics = () => {
           />
           <StatCard
             title="Avg Order Value"
-            value={`₹${analytics.avgOrderValue.toLocaleString()}`}
+            value={formatCurrency(analytics.avgOrderValue)}
             icon={FaChartLine}
             color="#38a169"
           />
