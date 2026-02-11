@@ -16,11 +16,12 @@ import {
   FaSearch
 } from 'react-icons/fa';
 import { auth } from '../../../firebase';
-import { 
+import {
   signInWithPhoneNumber,
   RecaptchaVerifier,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  onAuthStateChanged
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
 import { t } from '../../lib/i18n';
@@ -202,6 +203,7 @@ const Login = () => {
   const [otp, setOtp] = useState('');
   const [staffCredentials, setStaffCredentials] = useState({ loginId: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false); // Separate loading state for Google login
   const [error, setError] = useState('');
 
   // Auth check state - start with checking true to show loading first
@@ -237,6 +239,41 @@ const Login = () => {
 
   // Auto-submit state to prevent multiple submissions
   const [autoSubmitTriggered, setAutoSubmitTriggered] = useState(false);
+
+  // Firebase auth ready state
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
+
+  // Initialize Firebase auth state listener
+  useEffect(() => {
+    if (auth) {
+      try {
+        // Firebase auth is ready when we can add a listener
+        const unsubscribe = onAuthStateChanged(auth, () => {
+          setIsFirebaseReady(true);
+        });
+        // Also set ready immediately if auth object exists and is valid
+        if (auth.app) {
+          setIsFirebaseReady(true);
+        }
+        return () => unsubscribe();
+      } catch (error) {
+        console.warn('Firebase auth listener error:', error);
+        // Fallback: set ready after delay if auth object exists
+        const timer = setTimeout(() => {
+          setIsFirebaseReady(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      // Retry after a short delay if auth isn't ready
+      const timer = setTimeout(() => {
+        if (auth) {
+          setIsFirebaseReady(true);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Check if user is already logged in and redirect
   useEffect(() => {
@@ -954,40 +991,61 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      setLoading(true);
+      setGoogleLoading(true);
       setError('');
-      
+
+      // Check if Firebase auth is properly initialized
+      if (!isFirebaseReady || !auth) {
+        // Wait a moment for auth to initialize and retry
+        console.log('Firebase not ready, waiting...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!auth) {
+          throw new Error('Authentication service not available. Please refresh the page.');
+        }
+      }
+
       const provider = new GoogleAuthProvider();
       // Add additional scopes for better user data
       provider.addScope('email');
       provider.addScope('profile');
-      
+
       // Add custom parameters to handle popup issues
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      
+
       const result = await signInWithPopup(auth, provider);
-      
+
       console.log('Google login result:', result.user);
-      
+
       // Send user data to backend (Firebase already verified the user)
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-      const googleResponse = await fetch(`${backendUrl}/api/auth/google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          uid: result.user.uid,
-          email: result.user.email,
-          name: result.user.displayName,
-          picture: result.user.photoURL
-        }),
-      });
 
-      const googleData = await googleResponse.json();
-      
+      let googleResponse;
+      let googleData;
+
+      try {
+        googleResponse = await fetch(`${backendUrl}/api/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: result.user.uid,
+            email: result.user.email,
+            name: result.user.displayName,
+            picture: result.user.photoURL
+          }),
+        });
+
+        googleData = await googleResponse.json();
+        console.log('Backend response status:', googleResponse.status);
+        console.log('Backend response data:', googleData);
+      } catch (fetchError) {
+        console.error('Backend API call failed:', fetchError);
+        throw new Error('Failed to connect to server. Please try again.');
+      }
+
       if (googleResponse.ok) {
         // Store auth token and user data in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(googleData.token); // Stores in both cookie and localStorage
@@ -1043,7 +1101,7 @@ const Login = () => {
 
     } catch (error) {
       console.error('Google login error:', error);
-      
+
       // Handle specific Firebase errors
       if (error.code === 'auth/popup-closed-by-user') {
         setError('Login cancelled. Please try again.');
@@ -1057,11 +1115,13 @@ const Login = () => {
         // Ignore COOP errors as they don't affect functionality
         console.warn('COOP policy warning (non-critical):', error.message);
         setError('Google login failed. Please try again.');
+      } else if (error.message && error.message.includes('Authentication service')) {
+        setError(error.message);
       } else {
-        setError('Google login failed. Please try again.');
+        setError('Google authentication failed. Please try again.');
       }
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -1722,7 +1782,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
-                  disabled={loading}
+                  disabled={googleLoading || loading}
                   style={{
                     width: '100%',
                     padding: '16px',
@@ -1732,35 +1792,39 @@ const Login = () => {
                     fontSize: '16px',
                     fontWeight: '600',
                     color: '#374151',
-                    cursor: loading ? 'not-allowed' : 'pointer',
+                    cursor: (googleLoading || loading) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '12px',
                     transition: 'all 0.2s',
-                    opacity: loading ? 0.6 : 1
+                    opacity: (googleLoading || loading) ? 0.6 : 1
                   }}
                   className="sm:p-4 p-3 sm:text-base text-sm"
                   onMouseEnter={(e) => {
-                    if (!loading) {
+                    if (!googleLoading && !loading) {
                       e.target.style.backgroundColor = '#f9fafb';
                       e.target.style.borderColor = '#9ca3af';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (!loading) {
+                    if (!googleLoading && !loading) {
                       e.target.style.backgroundColor = 'white';
                       e.target.style.borderColor = '#d1d5db';
                     }
                   }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  {loading ? t('login.signingIn') : t('login.googleLogin')}
+                  {googleLoading ? (
+                    <FaSpinner className="animate-spin" size={20} />
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                  )}
+                  {googleLoading ? t('login.signingIn') : t('login.googleLogin')}
                 </button>
                 
                 <div style={{
