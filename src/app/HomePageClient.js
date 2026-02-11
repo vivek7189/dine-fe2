@@ -85,14 +85,23 @@ export default function LandingPage() {
 
   useEffect(() => {
     const checkAuthInBackground = async () => {
-      if (apiClient.isAuthenticated()) router.replace(apiClient.getRedirectPath());
+      if (apiClient.isAuthenticated()) {
+        // Use hard redirect to ensure proper page load instead of client-side navigation
+        // This prevents the landing page from briefly showing at the dashboard URL
+        window.location.href = apiClient.getRedirectPath();
+      }
     };
-    setTimeout(checkAuthInBackground, 500);
-  }, [router]);
+    // Check auth immediately, no delay needed
+    checkAuthInBackground();
+  }, []);
 
   const handleLogin = () => {
-    if (apiClient.isAuthenticated()) router.replace(apiClient.getRedirectPath());
-    else router.push('/login');
+    if (apiClient.isAuthenticated()) {
+      // Use hard redirect to ensure proper page load
+      window.location.href = apiClient.getRedirectPath();
+    } else {
+      router.push('/login');
+    }
   };
 
   const handleSubmitDemoRequest = async () => {

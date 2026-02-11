@@ -371,16 +371,13 @@ class ApiClient {
     if (typeof window === 'undefined') return '/login';
     const user = this.getUser();
     if (!user) return '/login';
-    
-    // Check if user has restaurants
-    const hasRestaurants = localStorage.getItem('selectedRestaurantId');
-    
-    if (user.role === 'owner' || user.role === 'customer') {
-      return hasRestaurants ? '/dashboard' : '/admin';
-    } else if (user.role === 'staff') {
+
+    // All authenticated users (owner, customer, staff) go to dashboard
+    // Dashboard shows empty menu state with upload prompt if no menu items exist
+    if (user.role === 'owner' || user.role === 'customer' || user.role === 'staff') {
       return '/dashboard';
     }
-    
+
     return '/login';
   }
 
