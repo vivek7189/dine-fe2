@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import {
   FaStore,
-  FaTimes,
-  FaCheckCircle,
-  FaForward,
+  FaArrowRight,
   FaSpinner
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
@@ -15,6 +13,7 @@ import { getCurrencyByCountryCode } from '../lib/currencyData';
 const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) => {
   const [restaurantName, setRestaurantName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [skipping, setSkipping] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,25 +48,22 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
           console.log('Currency auto-set to:', currencyData.currencyCode);
         } catch (currencyError) {
           console.warn('Failed to auto-set currency:', currencyError);
-          // Non-fatal error, continue with default currency
         }
       }
-      
+
       // Check if subdomain is enabled and redirect accordingly
       if (response.restaurant.subdomainUrl) {
-        // Redirect to subdomain with token and user data
         const token = localStorage.getItem('authToken');
         const userData = localStorage.getItem('user');
         if (token) {
           const user = userData ? JSON.parse(userData) : null;
           redirectToSubdomain(response.restaurant.subdomainUrl, token, user);
-          return; // Don't call onComplete as we're redirecting
+          return;
         }
       }
-      
-      // Call onComplete callback
+
       onComplete(response.restaurant);
-      
+
     } catch (error) {
       console.error('Error creating restaurant:', error);
       alert(`Failed to create restaurant: ${error.message}`);
@@ -78,14 +74,12 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
 
   const handleSkip = async () => {
     try {
-      setLoading(true);
+      setSkipping(true);
 
       // Generate random restaurant name
       const randomNames = [
-        'Delicious Bites', 'Flavor Junction', 'Taste Paradise', 'Culinary Corner',
-        'Spice Garden', 'Food Haven', 'Gourmet Spot', 'Kitchen Magic',
-        'Flavor Fusion', 'Tasty Treats', 'Cuisine Corner', 'Dining Delight',
-        'Foodie Spot', 'Taste Buds', 'Culinary Hub', 'Flavor Station'
+        'My Restaurant', 'Delicious Bites', 'Flavor Junction', 'Taste Paradise',
+        'Spice Garden', 'Food Haven', 'Gourmet Spot', 'Kitchen Magic'
       ];
 
       const randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
@@ -116,41 +110,38 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
           console.log('Currency auto-set to:', currencyData.currencyCode);
         } catch (currencyError) {
           console.warn('Failed to auto-set currency:', currencyError);
-          // Non-fatal error, continue with default currency
         }
       }
-      
+
       // Check if subdomain is enabled and redirect accordingly
       if (response.restaurant.subdomainUrl) {
-        // Redirect to subdomain with token and user data
         const token = localStorage.getItem('authToken');
         const userData = localStorage.getItem('user');
         if (token) {
           const user = userData ? JSON.parse(userData) : null;
           redirectToSubdomain(response.restaurant.subdomainUrl, token, user);
-          return; // Don't call onComplete as we're redirecting
+          return;
         }
       }
-      
-      // Show notification about random name
-      alert(`Great! We've created your restaurant "${randomName}". You can change this name anytime in settings.`);
-      
-      // Call onComplete callback
+
       onComplete(response.restaurant);
-      
+
     } catch (error) {
-      console.error('Error creating restaurant with random name:', error);
+      console.error('Error creating restaurant:', error);
       alert(`Failed to create restaurant: ${error.message}`);
     } finally {
-      setLoading(false);
+      setSkipping(false);
     }
   };
+
+  const isLoading = loading || skipping;
 
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(0,0,0,0.8)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      backdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -159,69 +150,63 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
     }}>
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '24px',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
+        borderRadius: '20px',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)',
         width: '100%',
-        maxWidth: '500px',
-        position: 'relative'
+        maxWidth: '440px',
+        overflow: 'hidden'
       }}>
         {/* Header */}
         <div style={{
-          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-          padding: '32px',
-          borderRadius: '24px 24px 0 0',
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          padding: '32px 32px 28px',
           color: 'white',
-          textAlign: 'center',
-          position: 'relative'
+          textAlign: 'center'
         }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '64px',
+            height: '64px',
             backgroundColor: 'rgba(255,255,255,0.2)',
-            borderRadius: '50%',
+            borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 20px',
-            animation: 'pulse 2s infinite'
+            margin: '0 auto 16px'
           }}>
-            <FaStore size={32} />
+            <FaStore size={28} />
           </div>
-          
-          <h1 style={{ 
-            fontSize: '28px', 
-            fontWeight: '800', 
-            margin: '0 0 8px 0',
-            textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            margin: '0 0 6px 0'
           }}>
-            Welcome to DineOpen! 🍽️
+            Welcome to DineOpen!
           </h1>
-          <p style={{ 
-            fontSize: '16px', 
-            opacity: 0.9, 
-            margin: 0,
-            fontWeight: '500'
+          <p style={{
+            fontSize: '15px',
+            opacity: 0.9,
+            margin: 0
           }}>
-            Let&apos;s give your restaurant a name
+            Let&apos;s set up your restaurant
           </p>
         </div>
 
         {/* Form Content */}
-        <div style={{ padding: '32px' }}>
+        <div style={{ padding: '28px 32px 32px' }}>
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '32px' }}>
+            <div style={{ marginBottom: '24px' }}>
               <label style={{
-                display: 'block',
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1f2937',
-                marginBottom: '12px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                fontSize: '15px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '10px'
               }}>
-                <FaStore size={18} style={{ color: '#ef4444' }} />
-                What&apos;s your restaurant name?
+                <FaStore size={14} style={{ color: '#ef4444' }} />
+                Restaurant Name
               </label>
               <input
                 type="text"
@@ -230,110 +215,117 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
                 onChange={(e) => setRestaurantName(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '16px',
+                  padding: '14px 16px',
                   border: '2px solid #e5e7eb',
-                  borderRadius: '12px',
+                  borderRadius: '10px',
                   fontSize: '16px',
                   outline: 'none',
                   transition: 'all 0.2s',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  backgroundColor: '#fafafa'
                 }}
-                placeholder="Enter your restaurant name"
-                onFocus={(e) => e.target.style.borderColor = '#ef4444'}
-                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                disabled={loading}
+                placeholder="e.g. Taj Kitchen, Spice House..."
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#ef4444';
+                  e.target.style.backgroundColor = '#fff';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.backgroundColor = '#fafafa';
+                }}
+                disabled={isLoading}
               />
               <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: '8px 0 0 0',
-                fontStyle: 'italic'
+                fontSize: '13px',
+                color: '#9ca3af',
+                margin: '8px 0 0 0'
               }}>
-                Don&apos;t worry, you can change this anytime later!
+                You can change this anytime in settings
               </p>
             </div>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '16px' }}>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading || !restaurantName.trim()}
+              style={{
+                width: '100%',
+                background: isLoading || !restaurantName.trim()
+                  ? '#e5e7eb'
+                  : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: isLoading || !restaurantName.trim() ? '#9ca3af' : 'white',
+                padding: '14px 24px',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '15px',
+                border: 'none',
+                cursor: isLoading || !restaurantName.trim() ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: isLoading || !restaurantName.trim()
+                  ? 'none'
+                  : '0 4px 12px rgba(239, 68, 68, 0.25)'
+              }}
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin" size={16} />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <FaArrowRight size={14} />
+                </>
+              )}
+            </button>
+
+            {/* Skip Link */}
+            <div style={{
+              textAlign: 'center',
+              marginTop: '20px'
+            }}>
               <button
                 type="button"
                 onClick={handleSkip}
-                disabled={loading}
+                disabled={isLoading}
                 style={{
-                  flex: 1,
-                  backgroundColor: loading ? '#f3f4f6' : '#f3f4f6',
-                  color: loading ? '#9ca3af' : '#6b7280',
-                  padding: '16px 24px',
-                  borderRadius: '12px',
-                  fontWeight: '600',
-                  fontSize: '16px',
-                  border: '2px solid #e5e7eb',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  background: 'none',
+                  border: 'none',
+                  color: isLoading ? '#d1d5db' : '#6b7280',
+                  fontSize: '14px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
                   transition: 'all 0.2s',
-                  display: 'flex',
+                  fontWeight: '500',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
+                  gap: '6px'
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.target.style.backgroundColor = '#e5e7eb';
-                    e.target.style.color = '#4b5563';
+                  if (!isLoading) {
+                    e.target.style.color = '#374151';
+                    e.target.style.backgroundColor = '#f3f4f6';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.target.style.backgroundColor = '#f3f4f6';
+                  if (!isLoading) {
                     e.target.style.color = '#6b7280';
+                    e.target.style.backgroundColor = 'transparent';
                   }
                 }}
               >
-                <FaForward size={16} />
-                Use Random Name
-              </button>
-              
-              <button
-                type="submit"
-                disabled={loading || !restaurantName.trim()}
-                style={{
-                  flex: 2,
-                  background: loading || !restaurantName.trim() 
-                    ? 'linear-gradient(135deg, #d1d5db, #9ca3af)' 
-                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
-                  color: 'white',
-                  padding: '16px 24px',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  fontSize: '16px',
-                  border: 'none',
-                  cursor: loading || !restaurantName.trim() ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: loading || !restaurantName.trim() 
-                    ? 'none' 
-                    : '0 4px 12px rgba(239, 68, 68, 0.3)'
-                }}
-              >
-                {loading ? (
+                {skipping ? (
                   <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderTop: '2px solid white',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }} />
-                    Creating...
+                    <FaSpinner className="animate-spin" size={12} />
+                    Setting up...
                   </>
                 ) : (
-                  <>
-                    <FaCheckCircle size={16} />
-                    Create Restaurant
-                  </>
+                  'Skip for now'
                 )}
               </button>
             </div>
@@ -346,14 +338,8 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-        
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.8;
-          }
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>
