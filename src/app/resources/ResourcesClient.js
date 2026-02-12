@@ -13,6 +13,7 @@ export default function ResourcesClient() {
     { name: 'GST Filing Guide', href: '/resources/gst-filing-restaurants', desc: 'Monthly and annual GST filing for restaurants', icon: FaClipboardList },
     { name: 'Shop & Establishment Act', href: '/resources/shop-establishment-act', desc: 'State-wise shop and establishment registration', icon: FaBuilding },
     { name: 'Fire Safety NOC', href: '/resources/fire-safety-noc', desc: 'Fire safety compliance and NOC requirements', icon: FaFire },
+    { name: 'Liquor License Guide', href: '/resources/liquor-license-guide', desc: 'Complete guide to liquor licensing for bars and restaurants', icon: FaBalanceScale },
     { name: 'All Licenses Checklist', href: '/resources/restaurant-licenses-india', desc: 'Complete list of licenses needed to start a restaurant', icon: FaBalanceScale },
   ];
 
@@ -21,6 +22,12 @@ export default function ResourcesClient() {
     { name: 'Business Plan Template', href: '/resources/business-plan', desc: 'Free restaurant business plan template' },
     { name: 'Free Guides & eBooks', href: '/resources/guides', desc: 'Collection of free restaurant guides and eBooks' },
     { name: 'Free Templates', href: '/resources/templates', desc: 'Menu templates, checklists, and more' },
+  ];
+
+  const platformGuides = [
+    { name: 'Swiggy Registration', href: '/resources/swiggy-onboarding', desc: 'How to list your restaurant on Swiggy' },
+    { name: 'Zomato Registration', href: '/resources/zomato-onboarding', desc: 'How to register on Zomato for business' },
+    { name: 'Google Business Guide', href: '/resources/google-business-guide', desc: 'Set up and optimize Google My Business' },
   ];
 
   return (
@@ -93,6 +100,29 @@ export default function ResourcesClient() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
               {businessGuides.map((guide, idx) => (
                 <Link key={idx} href={guide.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', backgroundColor: '#f9fafb', borderRadius: '12px', textDecoration: 'none', border: '1px solid #e5e7eb', transition: 'all 0.2s' }}>
+                  <div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>{guide.name}</div>
+                    <div style={{ fontSize: '14px', color: '#6b7280' }}>{guide.desc}</div>
+                  </div>
+                  <FaArrowRight style={{ color: '#ef4444', flexShrink: 0 }} />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Platform Guides */}
+        <div style={{ padding: '60px 20px' }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '16px' }}>
+              Platform Registration Guides
+            </h2>
+            <p style={{ fontSize: '18px', color: '#6b7280', textAlign: 'center', marginBottom: '40px' }}>
+              Step-by-step guides to get your restaurant on major platforms
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+              {platformGuides.map((guide, idx) => (
+                <Link key={idx} href={guide.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', backgroundColor: 'white', borderRadius: '12px', textDecoration: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', transition: 'all 0.2s' }}>
                   <div>
                     <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '6px' }}>{guide.name}</div>
                     <div style={{ fontSize: '14px', color: '#6b7280' }}>{guide.desc}</div>

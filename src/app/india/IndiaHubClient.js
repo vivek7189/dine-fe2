@@ -61,6 +61,8 @@ export default function IndiaHubClient() {
     { name: 'Cafes', href: '/for/cafes', desc: 'Coffee shops' },
     { name: 'QSR', href: '/for/qsr', desc: 'Quick service' },
     { name: 'Cloud Kitchens', href: '/for/cloud-kitchens', desc: 'Delivery-only' },
+    { name: 'College Canteens', href: '/for/college-canteens', desc: 'University canteens' },
+    { name: 'Tiffin Services', href: '/for/tiffin-services', desc: 'Meal subscriptions' },
   ];
 
   const compliance = [
@@ -70,6 +72,10 @@ export default function IndiaHubClient() {
     { name: 'GST Filing Guide', href: '/resources/gst-filing-restaurants', desc: 'Monthly compliance' },
     { name: 'Shop & Establishment Act', href: '/resources/shop-establishment-act', desc: 'State-wise requirements' },
     { name: 'Fire Safety NOC', href: '/resources/fire-safety-noc', desc: 'NOC requirements' },
+    { name: 'Liquor License Guide', href: '/resources/liquor-license-guide', desc: 'Bar & restaurant licenses' },
+    { name: 'Swiggy Registration', href: '/resources/swiggy-onboarding', desc: 'List on Swiggy' },
+    { name: 'Zomato Registration', href: '/resources/zomato-onboarding', desc: 'List on Zomato' },
+    { name: 'Google Business Guide', href: '/resources/google-business-guide', desc: 'Get found on Google' },
   ];
 
   const tools = [
@@ -79,6 +85,9 @@ export default function IndiaHubClient() {
     { name: 'Swiggy Commission', href: '/tools/swiggy-calculator', desc: 'Calculate Swiggy fees' },
     { name: 'Zomato Commission', href: '/tools/zomato-calculator', desc: 'Calculate Zomato fees' },
     { name: 'Restaurant Profit', href: '/tools/profit-margin-calculator', desc: 'Profit margin calculator' },
+    { name: 'Closing Checklist', href: '/tools/closing-checklist', desc: 'Daily closing tasks' },
+    { name: 'Inventory Par Calculator', href: '/tools/inventory-par-calculator', desc: 'Set stock par levels' },
+    { name: 'Waste Calculator', href: '/tools/waste-calculator', desc: 'Track food waste' },
   ];
 
   return (

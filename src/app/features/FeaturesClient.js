@@ -17,7 +17,7 @@ export default function FeaturesClient() {
 
   const moreFeatures = [
     { name: 'Analytics & Reports', href: '/analytics', desc: 'Sales reports, insights & trends', icon: FaChartLine },
-    { name: 'Inventory Management', href: '/inventory', desc: 'Track stock, recipes & wastage', icon: FaBoxes },
+    { name: 'Inventory Management', href: '/features/inventory-management', desc: 'Track stock, recipes & wastage', icon: FaBoxes },
     { name: 'QR Menu & Ordering', href: '/products/qr-ordering', desc: 'Contactless dining experience', icon: FaQrcode },
     { name: 'Payment Integration', href: '/products/payments', desc: 'Accept all payment methods', icon: FaCreditCard },
     { name: 'Mobile POS', href: '/products/mobile-pos', desc: 'Tableside ordering & billing', icon: FaMobile },

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
-import { FaUtensils, FaArrowRight, FaCoffee, FaTruck, FaBuilding, FaIceCream, FaBeer, FaHamburger, FaCookie, FaStore, FaConciergeBell } from 'react-icons/fa';
+import { FaUtensils, FaArrowRight, FaCoffee, FaTruck, FaBuilding, FaIceCream, FaBeer, FaHamburger, FaCookie, FaStore, FaConciergeBell, FaStar } from 'react-icons/fa';
 
 export default function SolutionsClient() {
   const solutions = [
@@ -19,10 +19,16 @@ export default function SolutionsClient() {
     { name: 'Bars & Pubs', href: '/for/bars-pubs', desc: 'Bars, pubs & breweries', icon: FaBeer },
     { name: 'Hotels', href: '/for/hotels', desc: 'Hotel restaurants', icon: FaBuilding },
     { name: 'Canteens', href: '/for/canteens', desc: 'Corporate & school canteens', icon: FaStore },
+    { name: 'College Canteens', href: '/for/college-canteens', desc: 'College & university canteens', icon: FaBuilding },
+    { name: 'Tiffin Services', href: '/for/tiffin-services', desc: 'Tiffin & meal subscription', icon: FaTruck },
     { name: 'Catering', href: '/for/catering', desc: 'Catering businesses', icon: FaConciergeBell },
     { name: 'Sweet Shops', href: '/for/sweet-shops', desc: 'Sweet & confectionery shops', icon: FaCookie },
     { name: 'Juice Bars', href: '/for/juice-bars', desc: 'Juice bars & smoothie shops', icon: FaCoffee },
     { name: 'Pizza Shops', href: '/for/pizza-shops', desc: 'Pizza restaurants', icon: FaStore },
+  ];
+
+  const businessStrategies = [
+    { name: 'Improve Reviews', href: '/solutions/improve-reviews', desc: 'Get more 5-star ratings', icon: FaStar },
   ];
 
   const indianSolutions = [
@@ -86,8 +92,31 @@ export default function SolutionsClient() {
           </div>
         </div>
 
+        {/* Business Strategies */}
+        <div style={{ backgroundColor: 'white', padding: '60px 20px' }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '32px' }}>
+              Business Growth Strategies
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              {businessStrategies.map((strategy, idx) => (
+                <Link key={idx} href={strategy.href} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', backgroundColor: '#fef9c3', borderRadius: '12px', textDecoration: 'none', border: '1px solid #fde047', transition: 'all 0.2s' }}>
+                  <div style={{ width: '48px', height: '48px', backgroundColor: '#facc15', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <strategy.icon style={{ fontSize: '20px', color: '#713f12' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>{strategy.name}</div>
+                    <div style={{ fontSize: '14px', color: '#6b7280' }}>{strategy.desc}</div>
+                  </div>
+                  <FaArrowRight style={{ color: '#ca8a04', flexShrink: 0 }} />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Indian Cuisine Solutions */}
-        <div style={{ backgroundColor: 'white', padding: '80px 20px' }}>
+        <div style={{ backgroundColor: '#f9fafb', padding: '80px 20px' }}>
           <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
               <span style={{ fontSize: '28px' }}>🇮🇳</span>
