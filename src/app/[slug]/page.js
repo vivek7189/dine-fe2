@@ -13,7 +13,8 @@ const RESERVED_PATHS = [
   'privacy', 'terms', 'blog', 'products', 'for', 'tools', 'restaurants', 'onlineorder',
   'placeorder', 'print-kot', 'setup', 'local-login', 'kot', 'orderhistory', 'customers',
   'offers', 'customer-app', 'tables', 'hotel', 'inventory', 'automation', 'analytics',
-  'restaurant-pos-software-india', 'dineopenprintupload', 'dineai'
+  'restaurant-pos-software-india', 'dineopenprintupload', 'dineai',
+  'india', 'solutions', 'features', 'loyalty', 'pos', 'resources'
 ];
 
 // Reserved paths that have a sub-route we should redirect to (e.g. /dineopenprintupload -> /dineopenprintupload/upload)

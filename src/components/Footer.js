@@ -24,8 +24,9 @@ export default function Footer() {
     { name: 'AI Agent for Restaurant', href: '/products/ai-agent' },
     { name: 'Waiter & Captain App', href: '/products/waiter-app' },
     { name: 'Multi-Restaurant Management', href: '/products/multi-restaurant' },
-    { name: 'Loyalty & Rewards', href: '/products/loyalty-rewards' },
+    { name: 'Loyalty & Rewards', href: '/loyalty' },
     { name: 'Inventory Management', href: '/products/inventory-management' },
+    { name: 'All Features', href: '/features' },
   ];
 
   const useCaseLinks = [
@@ -38,6 +39,7 @@ export default function Footer() {
     { name: 'For Dhabas', href: '/for/dhabas' },
     { name: 'For Canteens', href: '/for/canteens' },
     { name: 'For Catering', href: '/for/catering' },
+    { name: 'All Solutions', href: '/solutions' },
   ];
 
   const toolLinks = [
@@ -60,6 +62,7 @@ export default function Footer() {
     { name: 'All Licenses Checklist', href: '/resources/restaurant-licenses-india' },
     { name: 'Free Guides & eBooks', href: '/resources/guides' },
     { name: 'Free Templates', href: '/resources/templates' },
+    { name: 'All Resources', href: '/resources' },
   ];
 
   const compareLinks = [
@@ -78,6 +81,8 @@ export default function Footer() {
     { name: 'Blog', href: '/blog' },
     { name: 'Security', href: '/security' },
     { name: 'Contact Us', href: '/contact' },
+    { name: 'India', href: '/india' },
+    { name: 'POS Locations', href: '/pos' },
   ];
 
   const legalLinks = [

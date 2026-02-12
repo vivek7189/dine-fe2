@@ -36,6 +36,29 @@ export default function sitemap() {
     },
   ];
 
+  // India hub and state pages
+  const indiaPages = [
+    {
+      url: `${baseUrl}/india`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    // State pages
+    ...[
+      'maharashtra',
+      'karnataka',
+      'tamil-nadu',
+      'delhi-ncr',
+      'gujarat',
+    ].map((slug) => ({
+      url: `${baseUrl}/india/${slug}`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    })),
+  ];
+
   // Industry/Use-case pages (/for/*)
   const industryPages = [
     'restaurants',
@@ -59,6 +82,14 @@ export default function sitemap() {
     'ice-cream-parlors',
     'juice-bars',
     'pubs-breweries',
+    // India-specific industries
+    'biryani-restaurants',
+    'thali-restaurants',
+    'south-indian-restaurants',
+    'north-indian-restaurants',
+    'mithai-shops',
+    'chai-tapri',
+    'street-food',
   ].map((slug) => ({
     url: `${baseUrl}/for/${slug}`,
     lastModified: currentDate,
@@ -177,6 +208,11 @@ export default function sitemap() {
     'chandigarh',
     'kochi',
     'goa',
+    // New Tier 2 cities
+    'surat',
+    'indore',
+    'nagpur',
+    'coimbatore',
     // North India - Uttarakhand & UP
     'haridwar',
     'rishikesh',
@@ -240,8 +276,12 @@ export default function sitemap() {
     'startup-guide',
     // Compliance guides
     'fssai-guide',
+    'fssai-registration',
     'gst-restaurants',
+    'gst-filing-restaurants',
     'restaurant-licenses-india',
+    'shop-establishment-act',
+    'fire-safety-noc',
     // Lead magnet hubs
     'guides',
     'templates',
@@ -261,6 +301,52 @@ export default function sitemap() {
       priority: 0.7,
     },
   ];
+
+  // Feature pages
+  const featurePages = [
+    'online-ordering',
+    'kitchen-display-system',
+    'table-reservation',
+    'staff-management',
+    'whatsapp-ordering',
+    'delivery-management',
+  ].map((slug) => ({
+    url: `${baseUrl}/features/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
+
+  // Loyalty pages
+  const loyaltyPages = [
+    'restaurant-loyalty-program',
+    'customer-rewards',
+    'customer-retention',
+    'referral-program',
+    'birthday-rewards',
+  ].map((slug) => ({
+    url: `${baseUrl}/loyalty/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
+
+  // Solution pages
+  const solutionPages = [
+    'restaurant-chain-management',
+    'franchise-pos',
+    'corporate-cafeteria',
+    'food-delivery-management',
+    'reduce-food-waste',
+    'increase-table-turnover',
+    'manage-peak-hours',
+    'boost-repeat-customers',
+  ].map((slug) => ({
+    url: `${baseUrl}/solutions/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
 
   // Blog posts
   const blogPosts = [
@@ -282,9 +368,13 @@ export default function sitemap() {
 
   return [
     ...staticPages,
+    ...indiaPages,
     ...corePages,
     ...resourcePages,
     ...trustPages,
+    ...featurePages,
+    ...loyaltyPages,
+    ...solutionPages,
     ...comparisonPages,
     ...alternativePages,
     ...cityPages,
