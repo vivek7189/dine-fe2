@@ -3,9 +3,61 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 class ApiClient {
   constructor() {
     this.baseURL = API_BASE_URL;
+    this.isRefreshing = false;
+    this.refreshQueue = [];
   }
 
-  async request(endpoint, options = {}) {
+  // Process queued requests after token refresh
+  processQueue(newToken) {
+    this.refreshQueue.forEach(({ resolve }) => resolve(newToken));
+    this.refreshQueue = [];
+  }
+
+  // Reject all queued requests on refresh failure
+  rejectQueue(error) {
+    this.refreshQueue.forEach(({ reject }) => reject(error));
+    this.refreshQueue = [];
+  }
+
+  // Attempt to refresh the token
+  async refreshToken() {
+    const currentToken = this.getToken();
+    if (!currentToken) {
+      throw new Error('No token to refresh');
+    }
+
+    try {
+      const response = await fetch(`${this.baseURL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentToken}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Token refresh failed');
+      }
+
+      // Save the new token
+      this.setToken(data.token);
+      return data.token;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      throw error;
+    }
+  }
+
+  // Wait for token refresh if one is in progress
+  waitForRefresh() {
+    return new Promise((resolve, reject) => {
+      this.refreshQueue.push({ resolve, reject });
+    });
+  }
+
+  async request(endpoint, options = {}, isRetry = false) {
     const url = `${this.baseURL}${endpoint}`;
     const token = this.getToken();
     
@@ -82,8 +134,54 @@ class ApiClient {
           throw new Error(data.message || data.error || 'Session expired. Please login again.');
         }
 
-        // Forbidden - might be role-based access issue
+        // Forbidden - check if it's a token expiration issue
         if (response.status === 403) {
+          const errorMsg = data.error || data.message || '';
+
+          // Check if this is a token expiration error (not a role/permission issue)
+          if (errorMsg.toLowerCase().includes('invalid or expired token') && !isRetry) {
+            console.log('🔄 Token expired - attempting refresh...');
+
+            // If already refreshing, wait for it
+            if (this.isRefreshing) {
+              try {
+                const newToken = await this.waitForRefresh();
+                // Retry with new token
+                return this.request(endpoint, options, true);
+              } catch (refreshError) {
+                this.forceLogout();
+                if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+                  window.location.href = '/login';
+                }
+                throw new Error('Session expired. Please login again.');
+              }
+            }
+
+            // Start token refresh
+            this.isRefreshing = true;
+
+            try {
+              const newToken = await this.refreshToken();
+              this.isRefreshing = false;
+              this.processQueue(newToken);
+
+              console.log('✅ Token refreshed successfully - retrying request');
+              // Retry the original request with new token
+              return this.request(endpoint, options, true);
+            } catch (refreshError) {
+              this.isRefreshing = false;
+              this.rejectQueue(refreshError);
+
+              console.log('❌ Token refresh failed - logging out');
+              this.forceLogout();
+              if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+              }
+              throw new Error('Session expired. Please login again.');
+            }
+          }
+
+          // Not a token issue - regular 403 forbidden (role/permission based)
           console.log('🚫 403 Forbidden - Access denied');
           throw new Error(data.message || data.error || 'Access denied.');
         }
@@ -317,7 +415,23 @@ class ApiClient {
     // Clear sessionStorage
     sessionStorage.clear();
 
+    // Reset refresh state
+    this.isRefreshing = false;
+    this.refreshQueue = [];
+
     console.log('🚪 Force logout completed - all auth data cleared');
+  }
+
+  // Manually refresh the auth token - can be used proactively
+  async refreshAuthToken() {
+    try {
+      const newToken = await this.refreshToken();
+      console.log('✅ Auth token refreshed successfully');
+      return { success: true, token: newToken };
+    } catch (error) {
+      console.error('❌ Failed to refresh auth token:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   getUser() {
