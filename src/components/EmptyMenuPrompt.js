@@ -3,15 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  FaUtensils,
   FaPlus,
-  FaArrowRight,
-  FaSeedling,
-  FaCoffee,
-  FaHamburger,
-  FaPizzaSlice,
-  FaCarrot,
-  FaStar,
   FaCloudUploadAlt,
   FaCamera,
   FaImage,
@@ -303,20 +295,13 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
     fileInputRef.current?.click();
   };
 
-  const sampleCategories = [
-    { name: 'Appetizers', icon: FaSeedling, color: '#10b981' },
-    { name: 'Main Course', icon: FaHamburger, color: '#f59e0b' },
-    { name: 'Beverages', icon: FaCoffee, color: '#8b5cf6' },
-    { name: 'Desserts', icon: FaPizzaSlice, color: '#ef4444' },
-  ];
-
   return (
     <div style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: '60vh',
-      padding: '40px 20px'
+      minHeight: 'auto',
+      padding: '16px 20px'
     }}>
       {/* Background processing indicator */}
       {backgroundProcessing && (
@@ -347,148 +332,74 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
         transform: isAnimating ? 'scale(0.95)' : 'scale(1)',
         transition: 'all 0.3s ease'
       }}>
-        {/* Demo Preview Banner */}
+        {/* Demo Preview Banner - Compact */}
         <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '16px',
-          padding: '20px 24px',
-          marginBottom: '32px',
-          boxShadow: '0 10px 40px rgba(102, 126, 234, 0.3)',
-          position: 'relative',
-          overflow: 'hidden'
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          borderRadius: '12px',
+          padding: '14px 20px',
+          marginBottom: '16px',
+          boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px'
         }}>
-          {/* Decorative circles */}
-          <div style={{
-            position: 'absolute',
-            top: '-20px',
-            right: '-20px',
-            width: '80px',
-            height: '80px',
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: '50%'
-          }} />
-          <div style={{
-            position: 'absolute',
-            bottom: '-30px',
-            left: '-10px',
-            width: '60px',
-            height: '60px',
-            background: 'rgba(255,255,255,0.08)',
-            borderRadius: '50%'
-          }} />
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              marginBottom: '8px'
-            }}>
-              <FaEye size={16} style={{ color: 'rgba(255,255,255,0.9)' }} />
-              <span style={{
-                color: 'rgba(255,255,255,0.9)',
-                fontSize: '13px',
-                fontWeight: '600',
-                textTransform: 'uppercase',
-                letterSpacing: '1px'
-              }}>
-                First time here?
-              </span>
-            </div>
-
+          <div style={{ textAlign: 'left' }}>
             <h3 style={{
               color: 'white',
-              fontSize: '18px',
+              fontSize: '15px',
               fontWeight: '700',
-              margin: '0 0 8px 0'
+              margin: '0 0 4px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              See how DineOpen works
+              <FaEye size={14} />
+              First time? See how it works
             </h3>
-
             <p style={{
-              color: 'rgba(255,255,255,0.8)',
-              fontSize: '14px',
-              margin: '0 0 16px 0',
-              lineHeight: '1.5'
+              color: 'rgba(255,255,255,0.85)',
+              fontSize: '12px',
+              margin: '0'
             }}>
-              Explore a live dashboard with real menu items before adding your own
+              Preview a live dashboard with sample menu
             </p>
-
-            <button
-              onClick={handlePreviewDemo}
-              disabled={loadingDemo}
-              style={{
-                background: 'white',
-                color: '#667eea',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: '700',
-                cursor: loadingDemo ? 'wait' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-              }}
-              onMouseOver={(e) => !loadingDemo && (e.currentTarget.style.transform = 'translateY(-2px)')}
-              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              {loadingDemo ? (
-                <>
-                  <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  Loading Demo...
-                </>
-              ) : (
-                <>
-                  <FaPlay size={12} />
-                  Try Interactive Demo
-                </>
-              )}
-            </button>
           </div>
-        </div>
 
-        {/* Animated Icon */}
-        <div style={{
-          position: 'relative',
-          display: 'inline-block',
-          marginBottom: '32px'
-        }}>
-          <div style={{
-            width: '120px',
-            height: '120px',
-            background: 'linear-gradient(135deg, #fef3c7, #fed7aa)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto',
-            position: 'relative',
-            animation: 'bounce 2s infinite'
-          }}>
-            <FaUtensils size={48} style={{ color: '#f59e0b' }} />
-            
-            {/* Floating sparkles */}
-            <div style={{
-              position: 'absolute',
-              top: '-10px',
-              right: '10px',
-              animation: 'float 3s ease-in-out infinite'
-            }}>
-              <FaStar size={20} style={{ color: '#fbbf24' }} />
-            </div>
-            <div style={{
-              position: 'absolute',
-              bottom: '5px',
-              left: '-5px',
-              animation: 'float 3s ease-in-out infinite 1.5s'
-            }}>
-              <FaStar size={16} style={{ color: '#f59e0b' }} />
-            </div>
-          </div>
+          <button
+            onClick={handlePreviewDemo}
+            disabled={loadingDemo}
+            style={{
+              background: 'white',
+              color: '#ef4444',
+              border: 'none',
+              padding: '10px 18px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: loadingDemo ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+            onMouseOver={(e) => !loadingDemo && (e.currentTarget.style.transform = 'scale(1.02)')}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            {loadingDemo ? (
+              <>
+                <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                Loading...
+              </>
+            ) : (
+              <>
+                <FaPlay size={10} />
+                Try Demo
+              </>
+            )}
+          </button>
         </div>
 
         {/* Main Content */}
@@ -505,109 +416,89 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
           
         </p> */}
 
-        {/* AI Upload Section */}
+        {/* AI Upload Section - Compact */}
         <div style={{
           backgroundColor: 'white',
-          padding: '32px',
-          borderRadius: '20px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          padding: '20px',
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
           border: '2px solid #ef4444',
-          marginBottom: '32px',
-          position: 'relative',
-          overflow: 'hidden'
+          marginBottom: '16px',
+          position: 'relative'
         }}>
           {/* AI Badge */}
           <div style={{
             position: 'absolute',
-            top: '16px',
-            right: '16px',
+            top: '12px',
+            right: '12px',
             background: 'linear-gradient(135deg, #ef4444, #dc2626)',
             color: 'white',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '12px',
+            padding: '4px 10px',
+            borderRadius: '12px',
+            fontSize: '11px',
             fontWeight: '700',
             display: 'flex',
             alignItems: 'center',
             gap: '4px'
           }}>
-            <FaMagic size={10} />
-            AI Powered
+            <FaMagic size={9} />
+            AI
           </div>
 
           <h3 style={{
-            fontSize: '24px',
+            fontSize: '18px',
             fontWeight: '700',
             color: '#1f2937',
-            margin: '0 0 16px 0',
+            margin: '0 0 6px 0',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+            gap: '8px'
           }}>
             <FaCloudUploadAlt style={{ color: '#ef4444' }} />
             Upload Your Menu
           </h3>
-          
+
           <p style={{
-            fontSize: '16px',
+            fontSize: '13px',
             color: '#6b7280',
-            margin: '0 0 24px 0',
-            lineHeight: '1.6'
+            margin: '0 0 14px 0'
           }}>
-            Take a photo of your menu or upload from gallery. Our AI will automatically extract items, prices, and categories.
+            Photo or upload menu - AI extracts items, prices & categories automatically
           </p>
 
-          {/* Upload Options */}
+          {/* Upload Options - Inline */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-            marginBottom: '24px'
+            display: 'flex',
+            gap: '12px',
+            marginBottom: '14px'
           }}>
             {/* Camera Upload */}
             <button
               onClick={handleCameraCapture}
               disabled={uploading}
               style={{
-                background: uploading ? 'linear-gradient(135deg, #9ca3af, #6b7280)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                flex: 1,
+                background: uploading ? '#9ca3af' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                 color: 'white',
-                padding: '20px',
-                borderRadius: '16px',
+                padding: '14px 12px',
+                borderRadius: '12px',
                 border: 'none',
                 cursor: uploading ? 'not-allowed' : 'pointer',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                gap: '12px',
-                transition: 'all 0.3s ease',
-                boxShadow: uploading ? '0 2px 8px rgba(156, 163, 175, 0.3)' : '0 4px 16px rgba(239, 68, 68, 0.3)',
-                opacity: uploading ? 0.7 : 1,
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={(e) => {
-                if (!uploading) {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!uploading) {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.3)';
-                }
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                boxShadow: uploading ? 'none' : '0 3px 12px rgba(239, 68, 68, 0.3)'
               }}
             >
               {uploading ? (
-                <FaSpinner size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                <FaSpinner size={18} style={{ animation: 'spin 1s linear infinite' }} />
               ) : (
-                <FaCamera size={32} />
+                <FaCamera size={18} />
               )}
-              <span style={{ fontWeight: '600', fontSize: '14px' }}>
+              <span style={{ fontWeight: '600', fontSize: '13px' }}>
                 {uploading ? 'Processing...' : 'Take Photo'}
-              </span>
-              <span style={{ fontSize: '12px', opacity: 0.8 }}>
-                {uploading ? 'Please wait...' : 'Camera or Gallery'}
               </span>
             </button>
 
@@ -616,129 +507,87 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
               onClick={handleGalleryUpload}
               disabled={uploading}
               style={{
-                background: uploading ? 'linear-gradient(135deg, #9ca3af, #6b7280)' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                flex: 1,
+                background: uploading ? '#9ca3af' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
                 color: 'white',
-                padding: '20px',
-                borderRadius: '16px',
+                padding: '14px 12px',
+                borderRadius: '12px',
                 border: 'none',
                 cursor: uploading ? 'not-allowed' : 'pointer',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                gap: '12px',
-                transition: 'all 0.3s ease',
-                boxShadow: uploading ? '0 2px 8px rgba(156, 163, 175, 0.3)' : '0 4px 16px rgba(59, 130, 246, 0.3)',
-                opacity: uploading ? 0.7 : 1,
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={(e) => {
-                if (!uploading) {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!uploading) {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.3)';
-                }
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                boxShadow: uploading ? 'none' : '0 3px 12px rgba(59, 130, 246, 0.3)'
               }}
             >
               {uploading ? (
-                <FaSpinner size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                <FaSpinner size={18} style={{ animation: 'spin 1s linear infinite' }} />
               ) : (
-                <FaImage size={32} />
+                <FaImage size={18} />
               )}
-              <span style={{ fontWeight: '600', fontSize: '14px' }}>
+              <span style={{ fontWeight: '600', fontSize: '13px' }}>
                 {uploading ? 'Processing...' : 'From Gallery'}
-              </span>
-              <span style={{ fontSize: '12px', opacity: 0.8 }}>
-                {uploading ? 'Please wait...' : 'Select existing photos'}
               </span>
             </button>
           </div>
 
-          {/* AI Features */}
+          {/* AI Features - Compact inline */}
           <div style={{
-            background: 'linear-gradient(135deg, #fef3c7, #fed7aa)',
-            padding: '16px',
-            borderRadius: '12px',
-            border: '1px solid #f59e0b'
+            background: '#fef3c7',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            fontSize: '11px',
+            color: '#92400e'
           }}>
-            <h4 style={{
-              fontSize: '14px',
-              fontWeight: '700',
-              color: '#92400e',
-              margin: '0 0 8px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <FaMagic size={12} />
-              AI Features
-            </h4>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-              gap: '8px',
-              fontSize: '12px',
-              color: '#92400e'
-            }}>
-              <div>✓ Auto-extract items</div>
-              <div>✓ Detect prices</div>
-              <div>✓ Categorize dishes</div>
-              <div>✓ Smart descriptions</div>
-            </div>
+            <span style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <FaMagic size={10} /> AI:
+            </span>
+            <span>✓ Auto-extract</span>
+            <span>✓ Prices</span>
+            <span>✓ Categories</span>
+            <span>✓ Descriptions</span>
           </div>
         </div>
 
-        {/* Alternative Action */}
-        <button
-          onClick={handleAddMenu}
-          disabled={isAnimating}
-          style={{
-            background: 'red',
-            color: '#fff',
-            padding: '12px 24px',
-            borderRadius: '12px',
-            fontWeight: '600',
-            fontSize: '14px',
-            border: '2px solid #e5e7eb',
-            cursor: isAnimating ? 'not-allowed' : 'pointer',
-            transition: 'all 0.3s ease',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '16px'
-          }}
-          onMouseEnter={(e) => {
-            if (!isAnimating) {
-              e.target.style.borderColor = '#d1d5db';
-              e.target.style.color = '#374151';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isAnimating) {
-              e.target.style.borderColor = '#e5e7eb';
-              e.target.style.color = '#6b7280';
-            }
-          }}
-        >
-          <FaPlus size={14} />
-          Add Items Manually
-          <FaArrowRight size={12} />
-        </button>
-
-        {/* Help Text */}
-        <p style={{
-          fontSize: '14px',
-          color: '#9ca3af',
-          margin: '0',
-          fontStyle: 'italic'
+        {/* Alternative Action - Inline with help text */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          flexWrap: 'wrap'
         }}>
-          💡 Upload any file type (images, PDFs, documents, CSV, live photos) and let AI extract your menu!
-        </p>
+          <button
+            onClick={handleAddMenu}
+            disabled={isAnimating}
+            style={{
+              background: '#ef4444',
+              color: '#fff',
+              padding: '10px 20px',
+              borderRadius: '10px',
+              fontWeight: '600',
+              fontSize: '13px',
+              border: 'none',
+              cursor: isAnimating ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <FaPlus size={12} />
+            Add Items Manually
+          </button>
+          <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+            or upload images, PDFs, CSV
+          </span>
+        </div>
       </div>
 
       {/* Hidden File Inputs */}
@@ -1140,30 +989,6 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
       )}
 
       <style jsx>{`
-        @keyframes bounce {
-          0%, 20%, 53%, 80%, 100% {
-            transform: translateY(0);
-          }
-          40%, 43% {
-            transform: translateY(-8px);
-          }
-          70% {
-            transform: translateY(-4px);
-          }
-          90% {
-            transform: translateY(-2px);
-          }
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) rotate(0deg);
-          }
-          50% {
-            transform: translateY(-10px) rotate(5deg);
-          }
-        }
-
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -1174,20 +999,9 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
           50% { transform: scale(1.05); opacity: 0.8; }
         }
 
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
         }
       `}</style>
     </div>

@@ -4469,9 +4469,9 @@ function RestaurantPOSContent() {
             {/* Demo Mode Banner */}
             {isDemoMode && (
               <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                 color: 'white',
-                padding: '14px 20px',
+                padding: '12px 20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -4498,29 +4498,57 @@ function RestaurantPOSContent() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={handleExitDemo}
-                  style={{
-                    background: 'white',
-                    color: '#667eea',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'transform 0.2s',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  <FaCloudUploadAlt size={16} />
-                  Start Adding Your Menu
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    onClick={handleExitDemo}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.4)',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+                    }}
+                  >
+                    <FaTimes size={14} />
+                    Exit Demo
+                  </button>
+                  <button
+                    onClick={handleExitDemo}
+                    style={{
+                      background: 'white',
+                      color: '#ef4444',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'transform 0.2s',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <FaCloudUploadAlt size={14} />
+                    Add Your Menu
+                  </button>
+                </div>
               </div>
             )}
 
