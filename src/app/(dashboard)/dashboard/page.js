@@ -4474,8 +4474,7 @@ function RestaurantPOSContent() {
                 padding: '10px 20px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '16px',
-                flexWrap: 'wrap'
+                gap: '12px'
               }}>
                 <div style={{
                   background: 'rgba(255,255,255,0.2)',
@@ -4487,38 +4486,42 @@ function RestaurantPOSContent() {
                 }}>
                   <FaUtensils size={16} />
                 </div>
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>
-                    Sandbox Mode - Explore the App
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2px' }}>
+                    <span style={{ fontWeight: '600', fontSize: '14px' }}>
+                      Sandbox Mode - Explore the App
+                    </span>
+                    <button
+                      onClick={handleExitDemo}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        border: '1px solid rgba(255,255,255,0.5)',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontWeight: '700',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+                      }}
+                    >
+                      <FaTimes size={10} />
+                      Exit Demo
+                    </button>
                   </div>
                   <div style={{ fontSize: '12px', opacity: 0.9 }}>
                     This is sample data to help you explore. Click around, try features - no real orders will be placed!
                   </div>
                 </div>
-                <button
-                  onClick={handleExitDemo}
-                  style={{
-                    background: 'white',
-                    color: '#ef4444',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'transform 0.2s',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    whiteSpace: 'nowrap'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  <FaTimes size={12} />
-                  Exit & Add Your Menu
-                </button>
               </div>
             )}
 
