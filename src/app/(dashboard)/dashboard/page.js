@@ -4471,84 +4471,54 @@ function RestaurantPOSContent() {
               <div style={{
                 background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                 color: 'white',
-                padding: '12px 20px',
+                padding: '10px 20px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px'
+                gap: '16px',
+                flexWrap: 'wrap'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    background: 'rgba(255,255,255,0.2)',
+                <div style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FaUtensils size={16} />
+                </div>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>
+                    Sandbox Mode - Explore the App
+                  </div>
+                  <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                    This is sample data to help you explore. Click around, try features - no real orders will be placed!
+                  </div>
+                </div>
+                <button
+                  onClick={handleExitDemo}
+                  style={{
+                    background: 'white',
+                    color: '#ef4444',
+                    border: 'none',
+                    padding: '8px 14px',
                     borderRadius: '8px',
-                    padding: '8px',
+                    fontWeight: '600',
+                    fontSize: '12px',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <FaUtensils size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '15px' }}>
-                      Demo Mode Active
-                    </div>
-                    <div style={{ fontSize: '13px', opacity: 0.9 }}>
-                      You&apos;re exploring with sample menu data
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <button
-                    onClick={handleExitDemo}
-                    style={{
-                      background: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.4)',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
-                    }}
-                  >
-                    <FaTimes size={14} />
-                    Exit Demo
-                  </button>
-                  <button
-                    onClick={handleExitDemo}
-                    style={{
-                      background: 'white',
-                      color: '#ef4444',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'transform 0.2s',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  >
-                    <FaCloudUploadAlt size={14} />
-                    Add Your Menu
-                  </button>
-                </div>
+                    gap: '6px',
+                    transition: 'transform 0.2s',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <FaTimes size={12} />
+                  Exit & Add Your Menu
+                </button>
               </div>
             )}
 
@@ -4980,14 +4950,21 @@ function RestaurantPOSContent() {
 
             {/* Category Chips - Below Search (Mobile Only - Desktop uses left sidebar) */}
             {viewMode === 'orders' && isMobile && (
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px',
-                marginTop: '12px',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}>
+              <div
+                className="hide-scrollbar"
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  marginTop: '12px',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  paddingBottom: '4px',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  WebkitOverflowScrolling: 'touch'
+                }}>
                 {categories.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
                   const categoryItems = category.id === 'all-items'
@@ -5007,11 +4984,11 @@ function RestaurantPOSContent() {
                         padding: isMobile ? '6px 12px' : '6px 14px',
                         borderRadius: '20px',
                         border: isSelected ? '2px solid #ef4444' : '1.5px solid #e5e7eb',
-                        backgroundColor: isSelected 
-                          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                        backgroundColor: isSelected
+                          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                           : '#ffffff',
-                        background: isSelected 
-                          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                           : '#ffffff',
                         color: isSelected ? 'white' : '#374151',
                         fontSize: isMobile ? '11px' : '12px',
@@ -5022,13 +4999,14 @@ function RestaurantPOSContent() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: isMobile ? '4px' : '6px',
-                        boxShadow: isSelected 
-                          ? '0 3px 10px rgba(239, 68, 68, 0.35)' 
+                        boxShadow: isSelected
+                          ? '0 3px 10px rgba(239, 68, 68, 0.35)'
                           : '0 1px 3px rgba(0, 0, 0, 0.08)',
                         letterSpacing: '-0.01em',
                         transform: isSelected ? 'scale(1.05)' : 'scale(1)',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        flexShrink: 0
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
