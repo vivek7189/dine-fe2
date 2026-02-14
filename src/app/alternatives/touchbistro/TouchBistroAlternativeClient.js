@@ -36,7 +36,7 @@ export default function TouchBistroAlternativeClient() {
               DineOpen is 100% cloud-based, works on any device (not just iPads), and includes AI voice ordering. All for 75% less than TouchBistro.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#0891b2', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#0891b2', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
                 Start Free Trial <FaArrowRight style={{ marginLeft: '8px' }} />
               </Link>
               <Link href="/compare" style={{ padding: '16px 32px', backgroundColor: 'transparent', border: '2px solid white', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
@@ -168,7 +168,7 @@ export default function TouchBistroAlternativeClient() {
               Start your free 30-day trial. No credit card required. No contracts.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#0891b2', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial - No Credit Card →

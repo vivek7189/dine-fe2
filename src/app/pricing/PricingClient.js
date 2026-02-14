@@ -136,7 +136,7 @@ export default function PricingClient() {
                 </div>
 
                 <Link
-                  href="https://app.dineopen.com/register"
+                  href="https://dineopen.com/login"
                   style={{
                     display: 'block',
                     textAlign: 'center',
@@ -206,7 +206,7 @@ export default function PricingClient() {
             Join 500+ restaurants already using DineOpen. Free 30-day trial, no credit card required.
           </p>
           <Link
-            href="https://app.dineopen.com/register"
+            href="https://dineopen.com/login"
             style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
           >
             Start Your Free Trial →

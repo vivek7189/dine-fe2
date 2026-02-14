@@ -327,7 +327,7 @@ https://www.dineopen.com/tools/recipe-cost-calculator
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Automate Your Food Costing</h2>
             <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>DineOpen tracks recipe costs automatically as ingredient prices change.</p>
-            <Link href="https://app.dineopen.com/register" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#059669', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+            <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#059669', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               Start Free Trial
             </Link>
           </div>

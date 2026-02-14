@@ -179,7 +179,7 @@ export default function GuidesHubClient() {
               Put these strategies into action with DineOpen - the complete restaurant management platform.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#1e40af', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial

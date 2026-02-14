@@ -148,7 +148,7 @@ export default function LaborCostCalculatorClient() {
           <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#ef4444', borderRadius: '16px', color: 'white' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Manage Staff with DineOpen</h2>
             <p style={{ fontSize: '16px', opacity: 0.9, marginBottom: '24px' }}>Staff scheduling, attendance tracking, and labor analytics. Free 30-day trial.</p>
-            <Link href="https://app.dineopen.com/register" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+            <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               Start Free Trial →
             </Link>
           </div>

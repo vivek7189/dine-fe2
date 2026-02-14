@@ -32,7 +32,7 @@ export default function ZomatoBaseAlternativeClient() {
               DineOpen works with ALL delivery platforms (not just Zomato), has AI voice ordering, and costs less with zero transaction fees.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '16px 32px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
                 Start Free Trial →
               </Link>
               <Link href="/compare" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ef4444', border: '2px solid #ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
@@ -99,7 +99,7 @@ export default function ZomatoBaseAlternativeClient() {
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
               Start your free 30-day trial. Import your menu in minutes. Keep using Zomato delivery.
             </p>
-            <Link href="https://app.dineopen.com/register" style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+            <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               Start Free Trial →
             </Link>
           </div>

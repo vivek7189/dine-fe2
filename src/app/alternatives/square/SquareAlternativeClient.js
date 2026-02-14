@@ -31,7 +31,7 @@ export default function SquareAlternativeClient() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-blue-700 transition-colors"
             >
               Start Free Trial →
@@ -130,7 +130,7 @@ export default function SquareAlternativeClient() {
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to Switch from Square?</h2>
           <p className="text-xl text-gray-600 mb-8">Start your free 30-day trial. No credit card required. Import your menu in minutes.</p>
           <Link
-            href="https://app.dineopen.com/register"
+            href="https://dineopen.com/login"
             className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-blue-700 transition-colors inline-block"
           >
             Start Free Trial - No Credit Card →

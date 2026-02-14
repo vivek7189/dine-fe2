@@ -170,7 +170,7 @@ export default function CompareClient() {
           </div>
           <div className="mt-12">
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-green-700 transition-colors"
             >
               Start Free 30-Day Trial →

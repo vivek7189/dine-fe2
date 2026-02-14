@@ -201,7 +201,7 @@ export default function RestaurantNameGeneratorClient() {
               DineOpen provides everything you need: POS, menus, billing, AI ordering & more.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}
             >
               Start Free 30-Day Trial →

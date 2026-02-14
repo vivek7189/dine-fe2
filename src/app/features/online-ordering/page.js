@@ -47,7 +47,7 @@ export default function OnlineOrderingPage() {
               Let customers order from their phones. QR code menus, digital ordering, multiple payment options. No app download required.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#3b82f6', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#3b82f6', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
                 Start Free Trial
               </Link>
               <Link href="/login" style={{ padding: '16px 32px', backgroundColor: 'transparent', color: 'white', border: '2px solid white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
@@ -161,7 +161,7 @@ export default function OnlineOrderingPage() {
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
               Set up online ordering in 10 minutes. Free 30-day trial, no credit card required.
             </p>
-            <Link href="https://app.dineopen.com/register" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
+            <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial
             </Link>
           </div>

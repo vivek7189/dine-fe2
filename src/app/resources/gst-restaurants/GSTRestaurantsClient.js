@@ -213,7 +213,7 @@ export default function GSTRestaurantsClient() {
                 <FaCalculator /> Try GST Calculator
               </Link>
               <Link
-                href="https://app.dineopen.com/register"
+                href="https://dineopen.com/login"
                 style={{ display: 'inline-block', padding: '18px 32px', backgroundColor: 'transparent', border: '2px solid white', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '16px' }}
               >
                 Try DineOpen Free

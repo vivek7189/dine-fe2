@@ -83,7 +83,7 @@ export default function BusinessPlanClient() {
               Professional template used by 5,000+ restaurant owners. Includes financial projections, market analysis, and everything banks and investors want to see.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#7c3aed', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#7c3aed', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 <FaDownload /> Download Free Template
               </Link>
               <Link href="/tools/break-even-calculator" style={{ padding: '16px 32px', backgroundColor: 'transparent', border: '2px solid white', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
@@ -137,7 +137,7 @@ export default function BusinessPlanClient() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <span style={{ fontSize: '14px', color: '#6b7280' }}>{template.pages} pages</span>
-                    <Link href="https://app.dineopen.com/register" style={{ padding: '10px 20px', backgroundColor: '#7c3aed', color: 'white', borderRadius: '6px', fontWeight: '600', textDecoration: 'none', fontSize: '14px' }}>
+                    <Link href="https://dineopen.com/login" style={{ padding: '10px 20px', backgroundColor: '#7c3aed', color: 'white', borderRadius: '6px', fontWeight: '600', textDecoration: 'none', fontSize: '14px' }}>
                       Download
                     </Link>
                   </div>
@@ -249,7 +249,7 @@ export default function BusinessPlanClient() {
               Get your free business plan template and join 10,000+ restaurant owners using DineOpen.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '18px 40px', backgroundColor: 'white', color: '#7c3aed', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               <FaDownload /> Download Free Template

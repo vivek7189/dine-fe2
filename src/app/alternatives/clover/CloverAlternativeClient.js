@@ -32,7 +32,7 @@ export default function CloverAlternativeClient() {
               DineOpen works on ANY device (no expensive Clover hardware), has AI voice ordering, and costs less with zero transaction fees and no long-term contracts.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '16px 32px', backgroundColor: '#1d4ed8', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: '#1d4ed8', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
                 Start Free Trial →
               </Link>
               <Link href="/compare" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#1d4ed8', border: '2px solid #1d4ed8', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
@@ -108,7 +108,7 @@ export default function CloverAlternativeClient() {
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
               Start your free 30-day trial. No hardware to buy. No long-term contracts.
             </p>
-            <Link href="https://app.dineopen.com/register" style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: 'white', color: '#1d4ed8', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+            <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: 'white', color: '#1d4ed8', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               Start Free Trial →
             </Link>
           </div>

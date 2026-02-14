@@ -208,7 +208,7 @@ export default function GlossaryClient() {
               Try DineOpen&apos;s modern POS system built with all these concepts in mind.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '16px 32px', backgroundColor: '#1e40af', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '16px' }}
             >
               Start Free Trial →

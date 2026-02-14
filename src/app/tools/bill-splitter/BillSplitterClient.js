@@ -186,7 +186,7 @@ export default function BillSplitterClient() {
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Split Bills Automatically at Your Restaurant</h2>
             <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>DineOpen POS lets customers split bills by person or by item with one tap.</p>
-            <Link href="https://app.dineopen.com/register" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#f59e0b', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+            <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#f59e0b', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               Start Free Trial
             </Link>
           </div>

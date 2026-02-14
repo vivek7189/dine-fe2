@@ -176,7 +176,7 @@ export default function FssaiRegistrationClient() {
               DineOpen automatically displays your FSSAI license on bills, tracks expiry dates, and keeps you audit-ready.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '14px 28px', backgroundColor: '#059669', color: 'white', borderRadius: '8px', fontWeight: '600', textDecoration: 'none' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '14px 28px', backgroundColor: '#059669', color: 'white', borderRadius: '8px', fontWeight: '600', textDecoration: 'none' }}>
                 Start Free Trial
               </Link>
               <Link href="/tools/fssai-fee-calculator" style={{ padding: '14px 28px', backgroundColor: 'transparent', color: 'white', border: '2px solid white', borderRadius: '8px', fontWeight: '600', textDecoration: 'none' }}>

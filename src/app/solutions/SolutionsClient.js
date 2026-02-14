@@ -58,7 +58,7 @@ export default function SolutionsClient() {
               Whether you run a cafe, cloud kitchen, fine dining, or food truck - DineOpen has the perfect POS solution tailored for your business type.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '18px 36px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial

@@ -58,7 +58,7 @@ export default function HaridwarPOSClient() {
               Just ₹999/month <span style={{ opacity: 0.8, fontSize: '16px' }}>• No setup fee • Pure Veg features included</span>
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ea580c', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ea580c', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
                 Start Free Trial →
               </Link>
               <Link href="/pricing" style={{ padding: '16px 32px', backgroundColor: 'transparent', border: '2px solid white', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
@@ -164,7 +164,7 @@ export default function HaridwarPOSClient() {
                   </li>
                 ))}
               </ul>
-              <Link href="https://app.dineopen.com/register" style={{ display: 'block', padding: '16px', backgroundColor: '#ea580c', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '16px' }}>
+              <Link href="https://dineopen.com/login" style={{ display: 'block', padding: '16px', backgroundColor: '#ea580c', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '16px' }}>
                 Start 30-Day Free Trial
               </Link>
             </div>
@@ -206,7 +206,7 @@ export default function HaridwarPOSClient() {
               Join 50+ restaurants in Haridwar using DineOpen. Start your free trial today.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#ea580c', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial →

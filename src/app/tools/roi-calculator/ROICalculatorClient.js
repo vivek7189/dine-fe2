@@ -212,7 +212,7 @@ export default function ROICalculatorClient() {
                 </div>
 
                 <Link
-                  href="https://app.dineopen.com/register"
+                  href="https://dineopen.com/login"
                   style={{ display: 'block', width: '100%', padding: '16px', backgroundColor: '#059669', color: 'white', borderRadius: '8px', fontWeight: '700', fontSize: '16px', textDecoration: 'none', textAlign: 'center' }}
                 >
                   Start Saving Today <FaArrowRight style={{ marginLeft: '8px' }} />
@@ -276,7 +276,7 @@ export default function ROICalculatorClient() {
               30-day free trial. No credit card required. Cancel anytime.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '16px 32px', backgroundColor: 'white', color: '#059669', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial →

@@ -41,7 +41,7 @@ export default function ReeloAlternativeClient() {
               Why pay ₹2,500+/month for just loyalty when DineOpen gives you loyalty, POS, AI ordering, QR menus, and inventory - all for ₹999/month?
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="https://app.dineopen.com/register" style={{ padding: '16px 32px', backgroundColor: '#7c3aed', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+              <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: '#7c3aed', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
                 Start Free Trial →
               </Link>
               <Link href="/products/loyalty-rewards" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#7c3aed', border: '2px solid #7c3aed', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
@@ -209,7 +209,7 @@ export default function ReeloAlternativeClient() {
               Get loyalty + POS + AI + QR menus for less than what you pay for Reelo alone. Free 30-day trial.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#7c3aed', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial - No Credit Card →

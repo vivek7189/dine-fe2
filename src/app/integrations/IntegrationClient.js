@@ -24,7 +24,7 @@ export default function IntegrationClient({ data }) {
             <p style={{ fontSize: '20px', color: '#6b7280', marginBottom: '16px' }}>{tagline}</p>
             <p style={{ fontSize: '16px', color: '#9ca3af', marginBottom: '32px' }}>{description}</p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '16px 32px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               {cta} <FaArrowRight style={{ marginLeft: '8px' }} />
@@ -101,7 +101,7 @@ export default function IntegrationClient({ data }) {
               Start your free 30-day trial. Integration is included at no extra cost.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial →

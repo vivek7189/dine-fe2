@@ -41,7 +41,7 @@ export default function FeaturesClient() {
               Everything you need to run your restaurant efficiently - from online ordering to kitchen management, all in one platform.
             </p>
             <Link
-              href="https://app.dineopen.com/register"
+              href="https://dineopen.com/login"
               style={{ display: 'inline-block', padding: '18px 36px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
             >
               Start Free Trial
@@ -111,7 +111,7 @@ export default function FeaturesClient() {
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link
-                href="https://app.dineopen.com/register"
+                href="https://dineopen.com/login"
                 style={{ display: 'inline-block', padding: '16px 32px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}
               >
                 Start Free Trial
