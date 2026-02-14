@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  FaUtensils, 
-  FaPlus, 
-  FaArrowRight, 
+import {
+  FaUtensils,
+  FaPlus,
+  FaArrowRight,
   FaSeedling,
   FaCoffee,
   FaHamburger,
@@ -18,11 +18,13 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaTimes,
-  FaMagic
+  FaMagic,
+  FaPlay,
+  FaEye
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 
-const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenuItemsAdded }) => {
+const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenuItemsAdded, onPreviewDemo }) => {
   const router = useRouter();
   const [isAnimating, setIsAnimating] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -31,8 +33,38 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
   const [uploadError, setUploadError] = useState('');
   const [processingStep, setProcessingStep] = useState('');
   const [backgroundProcessing, setBackgroundProcessing] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState(false);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+
+  // Handle demo preview - fetch demo menu and store in sessionStorage
+  const handlePreviewDemo = async () => {
+    setLoadingDemo(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com'}/api/demo-menu`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to load demo');
+      }
+
+      if (data.menuItems?.length > 0) {
+        sessionStorage.setItem('dineopen_demo_menu', JSON.stringify({
+          menuItems: data.menuItems,
+          categories: data.categories || [],
+          timestamp: Date.now()
+        }));
+
+        if (onPreviewDemo) {
+          onPreviewDemo(data.menuItems, data.categories);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading demo:', error);
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
 
   // Request notification permission on component mount
   useEffect(() => {
@@ -315,6 +347,110 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
         transform: isAnimating ? 'scale(0.95)' : 'scale(1)',
         transition: 'all 0.3s ease'
       }}>
+        {/* Demo Preview Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '16px',
+          padding: '20px 24px',
+          marginBottom: '32px',
+          boxShadow: '0 10px 40px rgba(102, 126, 234, 0.3)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Decorative circles */}
+          <div style={{
+            position: 'absolute',
+            top: '-20px',
+            right: '-20px',
+            width: '80px',
+            height: '80px',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-30px',
+            left: '-10px',
+            width: '60px',
+            height: '60px',
+            background: 'rgba(255,255,255,0.08)',
+            borderRadius: '50%'
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <FaEye size={16} style={{ color: 'rgba(255,255,255,0.9)' }} />
+              <span style={{
+                color: 'rgba(255,255,255,0.9)',
+                fontSize: '13px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
+              }}>
+                First time here?
+              </span>
+            </div>
+
+            <h3 style={{
+              color: 'white',
+              fontSize: '18px',
+              fontWeight: '700',
+              margin: '0 0 8px 0'
+            }}>
+              See how DineOpen works
+            </h3>
+
+            <p style={{
+              color: 'rgba(255,255,255,0.8)',
+              fontSize: '14px',
+              margin: '0 0 16px 0',
+              lineHeight: '1.5'
+            }}>
+              Explore a live dashboard with real menu items before adding your own
+            </p>
+
+            <button
+              onClick={handlePreviewDemo}
+              disabled={loadingDemo}
+              style={{
+                background: 'white',
+                color: '#667eea',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: loadingDemo ? 'wait' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+              }}
+              onMouseOver={(e) => !loadingDemo && (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              {loadingDemo ? (
+                <>
+                  <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  Loading Demo...
+                </>
+              ) : (
+                <>
+                  <FaPlay size={12} />
+                  Try Interactive Demo
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Animated Icon */}
         <div style={{
           position: 'relative',

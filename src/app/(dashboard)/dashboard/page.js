@@ -100,6 +100,7 @@ function RestaurantPOSContent() {
   const [tables, setTables] = useState([]);
   const [floors, setFloors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false); // Demo preview mode
   const [restaurantChangeLoading, setRestaurantChangeLoading] = useState(false); // Loading state for restaurant changes
   const [backgroundLoading, setBackgroundLoading] = useState(false); // Background data refresh indicator
   const [processing, setProcessing] = useState(false);
@@ -889,19 +890,54 @@ function RestaurantPOSContent() {
       const response = await apiClient.getMenu(restaurantId);
       const menuItems = response.menuItems || [];
       setMenuItems(menuItems);
-      
+
       if (menuItems.length === 0) {
         console.log('📋 No menu items found for restaurant:', restaurantId);
-        // Don't set error, just log - empty menu is valid
       } else {
         console.log('📋 Loaded menu items:', menuItems.length);
+        // Clear demo mode if user has real menu items
+        if (isDemoMode) {
+          sessionStorage.removeItem('dineopen_demo_menu');
+          setIsDemoMode(false);
+        }
       }
     } catch (error) {
       console.error('Error loading menu:', error);
-      setMenuItems([]); // Set empty array instead of leaving undefined
-      // Don't set error for menu loading failures - let user continue
+      setMenuItems([]);
     }
   };
+
+  // Handle demo preview from EmptyMenuPrompt
+  const handlePreviewDemo = (demoMenuItems, demoCategories) => {
+    console.log('🎯 Loading demo preview:', demoMenuItems?.length, 'items');
+    setMenuItems(demoMenuItems || []);
+    setIsDemoMode(true);
+  };
+
+  // Exit demo mode
+  const handleExitDemo = () => {
+    sessionStorage.removeItem('dineopen_demo_menu');
+    setMenuItems([]);
+    setIsDemoMode(false);
+  };
+
+  // Check for demo menu in sessionStorage on mount (if user has no menu)
+  useEffect(() => {
+    if (!loading && menuItems.length === 0 && !isDemoMode) {
+      const stored = sessionStorage.getItem('dineopen_demo_menu');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          if (data.menuItems?.length > 0) {
+            setMenuItems(data.menuItems);
+            setIsDemoMode(true);
+          }
+        } catch (e) {
+          sessionStorage.removeItem('dineopen_demo_menu');
+        }
+      }
+    }
+  }, [loading, menuItems.length, isDemoMode]);
 
   // Load restaurant feature flags
   useEffect(() => {
@@ -4420,15 +4456,74 @@ function RestaurantPOSContent() {
               height: '100%',
               width: '100%'
             }}>
-              <EmptyMenuPrompt 
-                restaurantName={selectedRestaurant?.name} 
+              <EmptyMenuPrompt
+                restaurantName={selectedRestaurant?.name}
                 selectedRestaurant={selectedRestaurant}
                 onAddMenu={() => router.push('/menu')}
                 onMenuItemsAdded={loadInitialData}
+                onPreviewDemo={handlePreviewDemo}
               />
             </div>
           ) : (
           <>
+            {/* Demo Mode Banner */}
+            {isDemoMode && (
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '14px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <FaUtensils size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '15px' }}>
+                      Demo Mode Active
+                    </div>
+                    <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                      You&apos;re exploring with sample menu data
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={handleExitDemo}
+                  style={{
+                    background: 'white',
+                    color: '#667eea',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'transform 0.2s',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <FaCloudUploadAlt size={16} />
+                  Start Adding Your Menu
+                </button>
+              </div>
+            )}
+
             {/* Compact Header - Mobile Only (Desktop uses top header bar) */}
           <div style={{
             padding: '8px',
