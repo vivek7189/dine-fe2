@@ -387,6 +387,7 @@ function NavigationContent({ isHidden = false }) {
     // Analytics - Commented out temporarily
     // { id: 'analytics', name: t('nav.analytics'), icon: FaChartBar, href: '/analytics', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', gradient: 'from-cyan-500 to-cyan-600', roles: ['owner'] },
+    { id: 'headquarters', name: 'Headquarters', icon: FaStore, href: '/headquarters', color: '#dc2626', gradient: 'from-red-600 to-red-700', roles: ['owner'] },
     { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', gradient: 'from-pink-500 to-pink-600', roles: ['owner'] },
     { id: 'kot', name: t('nav.kot'), icon: FaPrint, href: '/kot', color: '#f97316', gradient: 'from-orange-500 to-orange-600', roles: ['owner', 'manager', 'waiter'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'manager'] },

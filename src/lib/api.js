@@ -2163,6 +2163,122 @@ class ApiClient {
   async getCustomerOrderHistory(customerId, page = 1, limit = 20, status = 'all') {
     return this.request(`/api/public/customer/${customerId}/orders?page=${page}&limit=${limit}&status=${status}`);
   }
+
+  // ==================== OWNER CHAIN DASHBOARD ====================
+
+  // Get owner dashboard overview (all restaurants with today's stats)
+  async getOwnerDashboard(params = {}) {
+    const query = new URLSearchParams();
+    if (params.period) query.append('period', params.period);
+    if (params.startDate) query.append('startDate', params.startDate);
+    if (params.endDate) query.append('endDate', params.endDate);
+    const queryString = query.toString();
+    return this.request(`/api/owner/dashboard${queryString ? `?${queryString}` : ''}`);
+  }
+
+  // Get cross-restaurant analytics
+  async getOwnerAnalytics(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.period) queryParams.append('period', params.period);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.restaurantIds) {
+      params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
+    }
+    const query = queryParams.toString();
+    return this.request(`/api/owner/analytics${query ? `?${query}` : ''}`);
+  }
+
+  // Get all staff across owner's restaurants
+  async getOwnerStaff(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.role) queryParams.append('role', params.role);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.restaurantIds) {
+      params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
+    }
+    const query = queryParams.toString();
+    return this.request(`/api/owner/staff${query ? `?${query}` : ''}`);
+  }
+
+  // Get menu items across owner's restaurants
+  async getOwnerMenuItems(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.restaurantIds) {
+      params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
+    }
+    const query = queryParams.toString();
+    return this.request(`/api/owner/menu-items${query ? `?${query}` : ''}`);
+  }
+
+  // Get inventory across owner's restaurants
+  async getOwnerInventory(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.stockStatus) queryParams.append('stockStatus', params.stockStatus);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.restaurantIds) {
+      params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
+    }
+    const query = queryParams.toString();
+    return this.request(`/api/owner/inventory${query ? `?${query}` : ''}`);
+  }
+
+  // Update staff status (activate/deactivate)
+  async updateOwnerStaffStatus(staffId, status) {
+    return this.request(`/api/owner/staff/${staffId}/status`, {
+      method: 'PATCH',
+      body: { status }
+    });
+  }
+
+  // ==================== AI INSIGHTS ====================
+
+  // Get AI-generated insights for owner's restaurants
+  async getAIInsights(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.period) queryParams.append('period', params.period);
+    if (params.restaurantIds) {
+      params.restaurantIds.forEach(id => queryParams.append('restaurantIds[]', id));
+    }
+    const query = queryParams.toString();
+    return this.request(`/api/ai/insights${query ? `?${query}` : ''}`);
+  }
+
+  // Get email report preferences
+  async getEmailPreferences() {
+    return this.request('/api/ai/email-preferences');
+  }
+
+  // Update email report preferences
+  async updateEmailPreferences(preferences) {
+    return this.request('/api/ai/email-preferences', {
+      method: 'POST',
+      body: preferences
+    });
+  }
+
+  // Send test email report
+  async sendTestReport(email) {
+    return this.request('/api/ai/send-test-report', {
+      method: 'POST',
+      body: { email }
+    });
+  }
+
+  // Get AI insights usage (remaining count)
+  async getAIUsage() {
+    return this.request('/api/ai/usage');
+  }
 }
 
 const apiClient = new ApiClient();
