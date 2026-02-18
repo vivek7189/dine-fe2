@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaCreditCard,
@@ -41,7 +41,7 @@ function getDefaultCurrency(region) {
   }
 }
 
-export default function BillingPage() {
+function BillingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -1205,5 +1205,25 @@ export default function BillingPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function BillingPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh'
+        }}>
+          <FaSpinner className="animate-spin" size={32} color="#ef4444" />
+        </div>
+      </div>
+    }>
+      <BillingContent />
+    </Suspense>
   );
 }
