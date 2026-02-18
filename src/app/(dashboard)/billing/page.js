@@ -29,6 +29,9 @@ function BillingContent() {
   const [notification, setNotification] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [trialInfo, setTrialInfo] = useState({ daysLeft: 30, isExpired: false, startDate: null });
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [pendingPlan, setPendingPlan] = useState(null);
 
   // Calculate trial days remaining
   const calculateTrialDays = (startDate) => {
@@ -386,21 +389,43 @@ function BillingContent() {
     setTimeout(() => setNotification(null), 4000);
   };
 
+  // Email validation helper
+  const isValidEmail = (email) => {
+    if (!email || typeof email !== 'string') return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
+
   // Handle Dodo Payments checkout (international)
   const handleDodoPayment = async (plan) => {
+    if (!user) {
+      showNotification('error', 'User data not available');
+      return;
+    }
+
+    // Check if user has a valid email
+    if (!isValidEmail(user.email)) {
+      // Show email collection modal
+      setPendingPlan(plan);
+      setEmailInput('');
+      setShowEmailModal(true);
+      return;
+    }
+
+    // Proceed with payment using user's email
+    await proceedWithDodoPayment(plan, user.email);
+  };
+
+  // Proceed with Dodo payment (called after email is confirmed)
+  const proceedWithDodoPayment = async (plan, email) => {
     try {
       setPaymentProcessing(true);
-
-      if (!user) {
-        showNotification('error', 'User data not available');
-        return;
-      }
+      setShowEmailModal(false);
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-      const userEmail = user.email || user.phoneNumber || user.phone || `user-${user.uid || user.id}@example.com`;
-      const userName = user.displayName || user.name || userEmail;
+      const userName = user.displayName || user.name || 'Customer';
 
-      console.log('Dodo Payment - Creating checkout for:', { plan: plan.name, productId: plan.productId, email: userEmail });
+      console.log('Dodo Payment - Creating checkout for:', { plan: plan.name, productId: plan.productId, email });
 
       const response = await fetch(`${API_BASE_URL}/api/dodo-payments/create-checkout`, {
         method: 'POST',
@@ -409,7 +434,7 @@ function BillingContent() {
           productId: plan.productId,
           planId: plan.id,
           userId: user.uid || user.id,
-          email: userEmail,
+          email: email,
           name: userName,
           returnUrl: `${window.location.origin}/billing?payment=success`
         })
@@ -434,6 +459,24 @@ function BillingContent() {
       showNotification('error', 'Payment initialization failed. Please try again.');
     } finally {
       setPaymentProcessing(false);
+    }
+  };
+
+  // Handle email modal submission
+  const handleEmailSubmit = () => {
+    if (pendingPlan) {
+      const emailToUse = isValidEmail(emailInput)
+        ? emailInput.trim()
+        : `${user.uid || user.id}@customers.dineopen.app`;
+      proceedWithDodoPayment(pendingPlan, emailToUse);
+    }
+  };
+
+  // Handle skip email (use generated email)
+  const handleSkipEmail = () => {
+    if (pendingPlan) {
+      const generatedEmail = `${user.uid || user.id}@customers.dineopen.app`;
+      proceedWithDodoPayment(pendingPlan, generatedEmail);
     }
   };
 
@@ -692,6 +735,142 @@ function BillingContent() {
           }}>
             <FaSpinner className="animate-spin" size={32} color="#ef4444" />
             <p style={{ marginTop: '16px', color: '#374151' }}>Processing payment...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Email Collection Modal */}
+      {showEmailModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9998,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '28px',
+            borderRadius: '16px',
+            maxWidth: '420px',
+            width: '100%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            position: 'relative'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#fef3c7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <FaCreditCard size={24} color="#f59e0b" />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 8px 0' }}>
+                Add Your Email
+              </h3>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+                Enter your email to receive payment receipts and subscription updates
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="your@email.com"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#ef4444'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                autoFocus
+              />
+              {emailInput && !isValidEmail(emailInput) && (
+                <p style={{ fontSize: '12px', color: '#ef4444', marginTop: '6px' }}>
+                  Please enter a valid email address
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handleSkipEmail}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '2px solid #e5e7eb',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Skip
+              </button>
+              <button
+                onClick={handleEmailSubmit}
+                disabled={emailInput && !isValidEmail(emailInput)}
+                style={{
+                  flex: 2,
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: isValidEmail(emailInput) ? '#ef4444' : '#fca5a5',
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: isValidEmail(emailInput) ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaCreditCard size={14} />
+                Continue to Pay
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowEmailModal(false);
+                setPendingPlan(null);
+              }}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              ×
+            </button>
           </div>
         </div>
       )}
