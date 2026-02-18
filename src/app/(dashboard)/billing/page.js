@@ -12,34 +12,8 @@ import {
   FaMobile,
   FaStar,
   FaCheck,
-  FaSpinner,
-  FaExchangeAlt,
-  FaGlobe
+  FaSpinner
 } from 'react-icons/fa';
-
-// Detect if user is in India based on timezone
-function detectUserRegion() {
-  try {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    if (timezone.includes('Calcutta') || timezone.includes('Kolkata')) {
-      return 'IN';
-    }
-    if (timezone.includes('London')) {
-      return 'GB';
-    }
-    return 'OTHER';
-  } catch {
-    return 'OTHER';
-  }
-}
-
-function getDefaultCurrency(region) {
-  switch (region) {
-    case 'IN': return 'INR';
-    case 'GB': return 'GBP';
-    default: return 'USD';
-  }
-}
 
 function BillingContent() {
   const router = useRouter();
@@ -48,14 +22,11 @@ function BillingContent() {
   const [user, setUser] = useState(null);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [userRegion, setUserRegion] = useState('OTHER');
   const [currency, setCurrency] = useState('USD');
   const [notification, setNotification] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  const isIndianUser = userRegion === 'IN';
-
-  // Detect mobile screen size and user region
+  // Detect mobile screen size
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -64,10 +35,8 @@ function BillingContent() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
 
-    // Detect region and set default currency
-    const region = detectUserRegion();
-    setUserRegion(region);
-    setCurrency(getDefaultCurrency(region));
+    // Always default to USD, user can switch to INR if needed
+    setCurrency('USD');
 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
@@ -82,33 +51,36 @@ function BillingContent() {
     }
   }, [searchParams]);
 
-  // Indian plans (Razorpay) - existing plans
+  // Indian plans (Razorpay)
   const indianPlanData = {
     INR: [
       {
         id: 'free-trial',
         name: 'Free Trial',
         price: 0,
-        period: 'month',
-        description: 'Perfect for trying out DineOpen',
+        period: '30 days',
+        description: '30 days free, no credit card required',
         popular: false,
         features: [
-          'AI Agent (Voice/Chat): 50 credits/month',
-          'Up to 200 menu items',
-          '1 restaurant location',
-          'Basic POS system',
-          'Table management (up to 100 tables)',
-          'Kitchen order tracking',
-          'Mobile app access',
-          'Email support'
+          'AI Agent (Voice/Chat)',
+          'Unlimited menu items',
+          'Unlimited restaurant locations',
+          'Complete POS system',
+          'Unlimited tables & floors',
+          'Real-time kitchen display',
+          'Staff management',
+          'Analytics & reports',
+          'Inventory management',
+          'Email support',
+          'Full access for 30 days'
         ]
       },
       {
-        id: 'pay-as-you-go',
-        name: 'Pay as You Go',
+        id: 'spark-monthly',
+        name: 'Spark',
         price: 300,
-        period: 'one-time',
-        description: 'Perfect for variable order volumes',
+        period: 'month',
+        description: 'Everything you need to run your restaurant',
         popular: true,
         features: [
           'AI Agent (Voice/Chat)',
@@ -121,18 +93,17 @@ function BillingContent() {
           'Analytics & reports',
           'Inventory management',
           'Customer loyalty programs',
-          'Email & chat support',
-          '1,000 orders free/month',
-          '₹150 per 500 orders after free limit'
+          'Priority support'
         ]
       },
       {
-        id: 'monthly-fixed',
-        name: 'Monthly Fixed',
-        price: 600,
-        period: 'month',
-        description: 'Best for consistent order volumes',
+        id: 'spark-yearly',
+        name: 'Spark Yearly',
+        price: 2500,
+        period: 'year',
+        description: 'Save ₹1,100 with annual billing',
         popular: false,
+        savings: '₹1,100',
         features: [
           'AI Agent (Voice/Chat)',
           'Unlimited menu items',
@@ -144,121 +115,57 @@ function BillingContent() {
           'Analytics & reports',
           'Inventory management',
           'Customer loyalty programs',
-          'Email & chat support'
-        ]
-      },
-      {
-        id: 'enterprise',
-        name: 'Enterprise',
-        price: 4999,
-        period: 'month',
-        description: 'For restaurant chains and large operations',
-        popular: false,
-        features: [
-          'AI Agent (Voice/Chat): 2,000 credits/month',
-          'Everything in Professional',
-          'Unlimited locations',
-          'Multi-restaurant dashboard',
-          'Advanced analytics',
-          'Inventory management',
-          'Customer loyalty programs',
-          'API access',
-          '24/7 phone support',
-          'Custom integrations'
+          'Priority support',
+          '2 months free!'
         ]
       }
     ]
   };
 
-  // International plans (Dodo Payments)
+  // International plans (Dodo Payments) - USD only
   const internationalPlanData = {
     USD: [
+      {
+        id: 'free-trial',
+        name: 'Free Trial',
+        price: 0,
+        period: '30 days',
+        description: '30 days free, no credit card required',
+        popular: false,
+        features: [
+          'AI Agent (Voice/Chat)',
+          'Unlimited menu items',
+          'Unlimited restaurant locations',
+          'Complete POS system',
+          'Unlimited tables & floors',
+          'Real-time kitchen display',
+          'Staff management',
+          'Analytics & reports',
+          'Inventory management',
+          'Email support',
+          'Full access for 30 days'
+        ]
+      },
       {
         id: 'spark',
         name: 'Spark',
         price: 9.99,
         period: 'month',
         productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_SPARK || 'pdt_0NYkVJEF5ywGL040N55IY',
-        description: 'Perfect for small restaurants & cafes',
+        description: 'Everything you need to run your restaurant',
         popular: true,
         features: [
           'AI Agent (Voice/Chat)',
-          'QR Code Digital Menu',
-          'POS Billing System',
-          'Up to 10 Tables',
-          'Basic Inventory',
-          'GST/Tax Billing',
+          'Unlimited menu items',
+          'Unlimited restaurant locations',
+          'Complete POS system',
+          'Unlimited tables & floors',
+          'Real-time kitchen display',
           'Staff management',
           'Analytics & reports',
-          'Email support'
-        ]
-      },
-      {
-        id: 'flame',
-        name: 'Flame',
-        price: 89,
-        period: 'month',
-        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_FLAME || 'pdt_0NYkVvCPauMPQSMaIzqTS',
-        description: 'For growing & multi-location restaurants',
-        popular: false,
-        features: [
-          'AI Agent (Voice/Chat): 2,000 credits/month',
-          'Everything in Spark',
-          'Unlimited Tables',
-          'Unlimited locations',
-          'Multi-restaurant dashboard',
-          'Advanced Analytics',
-          'Multi-location Support',
-          'Priority 24/7 Support',
-          'API Access',
-          'Custom Integrations',
           'Inventory management',
-          'Customer loyalty programs'
-        ]
-      }
-    ],
-    GBP: [
-      {
-        id: 'spark',
-        name: 'Spark',
-        price: 7.99,
-        period: 'month',
-        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_SPARK || 'pdt_0NYkVJEF5ywGL040N55IY',
-        description: 'Perfect for small restaurants & cafes',
-        popular: true,
-        features: [
-          'AI Agent (Voice/Chat)',
-          'QR Code Digital Menu',
-          'POS Billing System',
-          'Up to 10 Tables',
-          'Basic Inventory',
-          'GST/Tax Billing',
-          'Staff management',
-          'Analytics & reports',
-          'Email support'
-        ]
-      },
-      {
-        id: 'flame',
-        name: 'Flame',
-        price: 69,
-        period: 'month',
-        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_FLAME || 'pdt_0NYkVvCPauMPQSMaIzqTS',
-        description: 'For growing & multi-location restaurants',
-        popular: false,
-        features: [
-          'AI Agent (Voice/Chat): 2,000 credits/month',
-          'Everything in Spark',
-          'Unlimited Tables',
-          'Unlimited locations',
-          'Multi-restaurant dashboard',
-          'Advanced Analytics',
-          'Multi-location Support',
-          'Priority 24/7 Support',
-          'API Access',
-          'Custom Integrations',
-          'Inventory management',
-          'Customer loyalty programs'
+          'Customer loyalty programs',
+          'Priority support'
         ]
       }
     ]
@@ -602,9 +509,9 @@ function BillingContent() {
     }
   };
 
-  // Unified payment handler
+  // Unified payment handler - based on selected currency
   const handlePayment = async (plan) => {
-    if (isIndianUser || currency === 'INR') {
+    if (currency === 'INR') {
       await handleRazorpayPayment(plan);
     } else {
       await handleDodoPayment(plan);
@@ -651,18 +558,16 @@ function BillingContent() {
     }
   };
 
-  // Determine which plans to show based on region and currency
+  // Determine which plans to show based on currency
   const currentPlans = (() => {
-    if (isIndianUser || currency === 'INR') {
+    if (currency === 'INR') {
       return indianPlanData.INR;
     }
-    return internationalPlanData[currency] || internationalPlanData.USD;
+    return internationalPlanData.USD;
   })();
 
-  // Available currencies based on region
-  const availableCurrencies = isIndianUser
-    ? ['INR', 'USD', 'GBP']
-    : ['USD', 'GBP', 'INR'];
+  // Available currencies - USD default, INR for Indian users
+  const availableCurrencies = ['USD', 'INR'];
 
   if (loading) {
     return (
@@ -744,21 +649,6 @@ function BillingContent() {
           <p style={{ fontSize: '18px', color: '#6b7280' }}>
             Manage your subscription and billing information
           </p>
-          {/* Region indicator */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginTop: '8px',
-            padding: '4px 12px',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '20px',
-            fontSize: '13px',
-            color: '#6b7280'
-          }}>
-            <FaGlobe size={12} />
-            {isIndianUser ? 'India - Razorpay' : 'International - Dodo Payments'}
-          </div>
         </div>
 
         {/* Current Subscription Status */}
@@ -839,8 +729,15 @@ function BillingContent() {
           </div>
         </div>
 
-        {/* Currency Toggle */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+        {/* Currency & Payment Method Selection */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          marginBottom: '32px'
+        }}>
+          {/* Currency Toggle */}
           <div style={{
             backgroundColor: 'white',
             padding: '4px',
@@ -850,13 +747,17 @@ function BillingContent() {
             gap: '4px'
           }}>
             {availableCurrencies.map((curr) => {
-              const symbols = { USD: '$', GBP: '£', INR: '₹' };
+              const currencyInfo = {
+                USD: { symbol: '$', gateway: 'Dodo Payments', flag: '🌍' },
+                INR: { symbol: '₹', gateway: 'Razorpay', flag: '🇮🇳' }
+              };
+              const info = currencyInfo[curr];
               return (
                 <button
                   key={curr}
                   onClick={() => setCurrency(curr)}
                   style={{
-                    padding: '8px 16px',
+                    padding: '10px 20px',
                     borderRadius: '8px',
                     border: 'none',
                     backgroundColor: currency === curr ? '#ef4444' : 'transparent',
@@ -869,11 +770,30 @@ function BillingContent() {
                     gap: '8px'
                   }}
                 >
-                  <FaExchangeAlt size={12} />
-                  {curr} ({symbols[curr]})
+                  <span>{info.flag}</span>
+                  {curr} ({info.symbol})
                 </button>
               );
             })}
+          </div>
+
+          {/* Payment Gateway Indicator */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            backgroundColor: currency === 'INR' ? '#fef3c7' : '#dbeafe',
+            borderRadius: '20px',
+            fontSize: '13px',
+            color: currency === 'INR' ? '#92400e' : '#1e40af',
+            fontWeight: '500'
+          }}>
+            <FaCreditCard size={14} />
+            <span>Payment via</span>
+            <strong>{currency === 'INR' ? 'Razorpay' : 'Dodo Payments'}</strong>
+            {currency === 'USD' && <span style={{ fontSize: '11px', opacity: 0.8 }}>(International Cards, PayPal)</span>}
+            {currency === 'INR' && <span style={{ fontSize: '11px', opacity: 0.8 }}>(UPI, Cards, Netbanking)</span>}
           </div>
         </div>
 
@@ -982,13 +902,18 @@ function BillingContent() {
                     </h3>
                     <div style={{ marginBottom: '8px' }}>
                       {plan.price === 0 ? (
-                        <span style={{
-                          fontSize: '36px',
-                          fontWeight: 'bold',
-                          color: '#10b981'
-                        }}>
-                          Free
-                        </span>
+                        <>
+                          <span style={{
+                            fontSize: '36px',
+                            fontWeight: 'bold',
+                            color: '#10b981'
+                          }}>
+                            Free
+                          </span>
+                          <span style={{ color: '#6b7280', fontSize: '16px', display: 'block', marginTop: '4px' }}>
+                            for 30 days
+                          </span>
+                        </>
                       ) : (
                         <>
                           <span style={{
@@ -999,8 +924,22 @@ function BillingContent() {
                             {formatCurrency(plan.price)}
                           </span>
                           <span style={{ color: '#6b7280', fontSize: '16px' }}>
-                            {plan.period === 'one-time' ? ' one-time' : ` /${plan.period}`}
+                            /{plan.period}
                           </span>
+                          {plan.savings && (
+                            <div style={{
+                              marginTop: '8px',
+                              display: 'inline-block',
+                              backgroundColor: '#dcfce7',
+                              color: '#166534',
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              Save {plan.savings}
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
@@ -1074,12 +1013,13 @@ function BillingContent() {
                       </>
                     ) : plan.price === 0 ? (
                       <>
-                        Get Started Free
+                        <FaRocket size={16} />
+                        Start Free Trial
                       </>
                     ) : (
                       <>
-                        <FaRocket size={16} />
-                        Upgrade Now
+                        <FaCreditCard size={16} />
+                        Pay with {currency === 'INR' ? 'Razorpay' : 'Dodo'}
                       </>
                     )}
                   </button>
