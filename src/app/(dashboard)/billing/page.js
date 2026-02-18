@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { 
-  FaCreditCard, 
-  FaCheckCircle, 
-  FaCalendarAlt, 
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  FaCreditCard,
+  FaCheckCircle,
+  FaCalendarAlt,
   FaRocket,
   FaShieldAlt,
   FaHeadset,
@@ -13,32 +13,77 @@ import {
   FaStar,
   FaCheck,
   FaSpinner,
-  FaExchangeAlt
+  FaExchangeAlt,
+  FaGlobe
 } from 'react-icons/fa';
+
+// Detect if user is in India based on timezone
+function detectUserRegion() {
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (timezone.includes('Calcutta') || timezone.includes('Kolkata')) {
+      return 'IN';
+    }
+    if (timezone.includes('London')) {
+      return 'GB';
+    }
+    return 'OTHER';
+  } catch {
+    return 'OTHER';
+  }
+}
+
+function getDefaultCurrency(region) {
+  switch (region) {
+    case 'IN': return 'INR';
+    case 'GB': return 'GBP';
+    default: return 'USD';
+  }
+}
 
 export default function BillingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [currency, setCurrency] = useState('INR');
+  const [userRegion, setUserRegion] = useState('OTHER');
+  const [currency, setCurrency] = useState('USD');
   const [notification, setNotification] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect mobile screen size
+  const isIndianUser = userRegion === 'IN';
+
+  // Detect mobile screen size and user region
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
+
+    // Detect region and set default currency
+    const region = detectUserRegion();
+    setUserRegion(region);
+    setCurrency(getDefaultCurrency(region));
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Plan data with currency support
-  const planData = {
+  // Check for payment return from Dodo
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      showNotification('success', 'Payment initiated! Your subscription will be activated shortly.');
+      // Clean URL
+      window.history.replaceState({}, '', '/billing');
+    }
+  }, [searchParams]);
+
+  // Indian plans (Razorpay) - existing plans
+  const indianPlanData = {
     INR: [
       {
         id: 'free-trial',
@@ -50,7 +95,7 @@ export default function BillingPage() {
         features: [
           'AI Agent (Voice/Chat): 50 credits/month',
           'Up to 200 menu items',
-          '1 restaurant location', 
+          '1 restaurant location',
           'Basic POS system',
           'Table management (up to 100 tables)',
           'Kitchen order tracking',
@@ -122,88 +167,98 @@ export default function BillingPage() {
           'Custom integrations'
         ]
       }
-    ],
+    ]
+  };
+
+  // International plans (Dodo Payments)
+  const internationalPlanData = {
     USD: [
       {
-        id: 'free-trial',
-        name: 'Free Trial',
-        price: 0,
+        id: 'spark',
+        name: 'Spark',
+        price: 9.99,
         period: 'month',
-        description: 'Perfect for trying out DineOpen',
-        popular: false,
+        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_SPARK || 'pdt_0NYkVJEF5ywGL040N55IY',
+        description: 'Perfect for small restaurants & cafes',
+        popular: true,
         features: [
-          'AI Agent (Voice/Chat): 50 credits/month',
-          'Up to 200 menu items',
-          '1 restaurant location',
-          'Basic POS system',
-          'Table management (up to 100 tables)',
-          'Kitchen order tracking',
-          'Mobile app access',
+          'AI Agent (Voice/Chat)',
+          'QR Code Digital Menu',
+          'POS Billing System',
+          'Up to 10 Tables',
+          'Basic Inventory',
+          'GST/Tax Billing',
+          'Staff management',
+          'Analytics & reports',
           'Email support'
         ]
       },
       {
-        id: 'pay-as-you-go',
-        name: 'Pay as You Go',
-        price: 5,
-        period: 'one-time',
-        description: 'Perfect for variable order volumes',
-        popular: true,
-        features: [
-          'AI Agent (Voice/Chat)',
-          'Unlimited menu items',
-          'Unlimited restaurant locations',
-          'Complete POS system',
-          'Unlimited tables & floors',
-          'Real-time kitchen display',
-          'Staff management',
-          'Analytics & reports',
-          'Inventory management',
-          'Customer loyalty programs',
-          'Email & chat support',
-          '1,000 orders free/month',
-          '$3 per 500 orders after free limit'
-        ]
-      },
-      {
-        id: 'monthly-fixed',
-        name: 'Monthly Fixed',
-        price: 15,
+        id: 'flame',
+        name: 'Flame',
+        price: 89,
         period: 'month',
-        description: 'Best for consistent order volumes',
-        popular: false,
-        features: [
-          'AI Agent (Voice/Chat)',
-          'Unlimited menu items',
-          'Unlimited restaurant locations',
-          'Complete POS system',
-          'Unlimited tables & floors',
-          'Real-time kitchen display',
-          'Staff management',
-          'Analytics & reports',
-          'Inventory management',
-          'Customer loyalty programs',
-          'Email & chat support'
-        ]
-      },
-      {
-        id: 'enterprise',
-        name: 'Enterprise',
-        price: 60,
-        period: 'month',
-        description: 'For restaurant chains and large operations',
+        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_FLAME || 'pdt_0NYkVvCPauMPQSMaIzqTS',
+        description: 'For growing & multi-location restaurants',
         popular: false,
         features: [
           'AI Agent (Voice/Chat): 2,000 credits/month',
-          'Everything in Professional',
+          'Everything in Spark',
+          'Unlimited Tables',
           'Unlimited locations',
           'Multi-restaurant dashboard',
-          'Advanced analytics',
+          'Advanced Analytics',
+          'Multi-location Support',
+          'Priority 24/7 Support',
+          'API Access',
+          'Custom Integrations',
           'Inventory management',
-          'Customer loyalty programs',
-          'API access',
-          '24/7 phone support',
-          'Custom integrations'
+          'Customer loyalty programs'
+        ]
+      }
+    ],
+    GBP: [
+      {
+        id: 'spark',
+        name: 'Spark',
+        price: 7.99,
+        period: 'month',
+        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_SPARK || 'pdt_0NYkVJEF5ywGL040N55IY',
+        description: 'Perfect for small restaurants & cafes',
+        popular: true,
+        features: [
+          'AI Agent (Voice/Chat)',
+          'QR Code Digital Menu',
+          'POS Billing System',
+          'Up to 10 Tables',
+          'Basic Inventory',
+          'GST/Tax Billing',
+          'Staff management',
+          'Analytics & reports',
+          'Email support'
+        ]
+      },
+      {
+        id: 'flame',
+        name: 'Flame',
+        price: 69,
+        period: 'month',
+        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_FLAME || 'pdt_0NYkVvCPauMPQSMaIzqTS',
+        description: 'For growing & multi-location restaurants',
+        popular: false,
+        features: [
+          'AI Agent (Voice/Chat): 2,000 credits/month',
+          'Everything in Spark',
+          'Unlimited Tables',
+          'Unlimited locations',
+          'Multi-restaurant dashboard',
+          'Advanced Analytics',
+          'Multi-location Support',
+          'Priority 24/7 Support',
+          'API Access',
+          'Custom Integrations',
+          'Inventory management',
+          'Customer loyalty programs'
         ]
       }
     ]
@@ -215,26 +270,26 @@ export default function BillingPage() {
         const userData = localStorage.getItem('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
-          
+
           // Check if user is owner/admin - only they can access billing
           if (parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
             showNotification('error', 'Access denied. Only owners can access billing.');
             router.push('/dashboard');
             return;
           }
-          
+
           setUser(parsedUser);
-          
+
           // Fetch subscription data from backend (only for owners/admins)
           if (parsedUser.uid || parsedUser.id) {
             try {
               const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
               showNotification('info', 'Loading billing information...');
-              
+
               // First try to get existing subscription
               console.log('Fetching subscription for user:', parsedUser.uid || parsedUser.id);
               const response = await fetch(`${API_BASE_URL}/api/payments/subscription/${parsedUser.uid || parsedUser.id}`);
-              
+
               if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.subscription) {
@@ -243,8 +298,9 @@ export default function BillingPage() {
                     status: data.subscription.status || 'active',
                     nextBillingDate: data.subscription.endDate || null,
                     lastPaymentDate: data.subscription.startDate || null,
-                    amount: 999, // Default amount
-                    currency: 'INR'
+                    amount: 999,
+                    currency: 'INR',
+                    paymentGateway: data.subscription.paymentGateway || 'razorpay'
                   });
                   showNotification('success', 'Billing information loaded!');
                 } else {
@@ -254,7 +310,7 @@ export default function BillingPage() {
                 // User doesn't exist in billing DB - create them once
                 console.log('User not found in billing DB, creating new billing user');
                 showNotification('info', 'Setting up your billing account...');
-                
+
                 const createUserResponse = await fetch(`${API_BASE_URL}/api/payments/create-user`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -270,11 +326,11 @@ export default function BillingPage() {
                     }
                   })
                 });
-                
+
                 if (createUserResponse.ok) {
                   const createResult = await createUserResponse.json();
                   console.log('New billing user created:', createResult);
-                  
+
                   if (createResult.success && createResult.data.subscription) {
                     setCurrentSubscription({
                       plan: createResult.data.subscription.planName || 'Starter',
@@ -282,7 +338,8 @@ export default function BillingPage() {
                       nextBillingDate: createResult.data.subscription.endDate || null,
                       lastPaymentDate: createResult.data.subscription.startDate || null,
                       amount: 999,
-                      currency: 'INR'
+                      currency: 'INR',
+                      paymentGateway: 'razorpay'
                     });
                     showNotification('success', 'Billing account created successfully!');
                   }
@@ -295,35 +352,33 @@ export default function BillingPage() {
             } catch (error) {
               console.error('Error loading billing information:', error);
               showNotification('error', 'Error loading billing information');
-              // Set default subscription as fallback
               setCurrentSubscription({
                 plan: 'Starter',
                 status: 'active',
                 nextBillingDate: null,
                 lastPaymentDate: null,
                 amount: 999,
-                currency: 'INR'
+                currency: 'INR',
+                paymentGateway: 'razorpay'
               });
             }
           }
         }
-        
+
         setLoading(false);
       } catch (error) {
         console.error('Error loading user data:', error);
         setLoading(false);
       }
     };
-    
+
     loadUserData();
   }, []);
 
   // Listen for restaurant changes from navigation
   useEffect(() => {
     const handleRestaurantChange = (event) => {
-      console.log('🏪 Billing page: Restaurant changed', event.detail);
-      // Billing page doesn't need to reload data as it's user-specific, not restaurant-specific
-      // But we can show a notification that the restaurant context has changed
+      console.log('Billing page: Restaurant changed', event.detail);
       showNotification('info', 'Restaurant context updated. Billing remains user-specific.');
     };
 
@@ -337,6 +392,8 @@ export default function BillingPage() {
   const formatCurrency = (amount, curr = currency) => {
     if (curr === 'INR') {
       return `₹${amount.toLocaleString()}`;
+    } else if (curr === 'GBP') {
+      return `£${amount}`;
     } else {
       return `$${amount}`;
     }
@@ -361,21 +418,69 @@ export default function BillingPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-
-  const handlePayment = async (plan) => {
+  // Handle Dodo Payments checkout (international)
+  const handleDodoPayment = async (plan) => {
     try {
       setPaymentProcessing(true);
-      
+
       if (!user) {
         showNotification('error', 'User data not available');
         return;
       }
-      
-      console.log('Current user data:', user);
-      console.log('Selected plan:', plan);
-      
+
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-      
+      const userEmail = user.email || user.phoneNumber || user.phone || `user-${user.uid || user.id}@example.com`;
+      const userName = user.displayName || user.name || userEmail;
+
+      console.log('Dodo Payment - Creating checkout for:', { plan: plan.name, productId: plan.productId, email: userEmail });
+
+      const response = await fetch(`${API_BASE_URL}/api/dodo-payments/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: plan.productId,
+          planId: plan.id,
+          userId: user.uid || user.id,
+          email: userEmail,
+          name: userName,
+          returnUrl: `${window.location.origin}/billing?payment=success`
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.checkoutUrl) {
+        // Redirect to Dodo hosted checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+
+    } catch (error) {
+      console.error('Dodo payment error:', error);
+      showNotification('error', 'Payment initialization failed. Please try again.');
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
+
+  // Handle Razorpay payment (Indian)
+  const handleRazorpayPayment = async (plan) => {
+    try {
+      setPaymentProcessing(true);
+
+      if (!user) {
+        showNotification('error', 'User data not available');
+        return;
+      }
+
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+
       // If free-trial plan, just update subscription without payment
       if (plan.id === 'free-trial' || plan.price === 0) {
         try {
@@ -390,7 +495,7 @@ export default function BillingPage() {
           });
 
           const data = await response.json();
-          
+
           if (data.success) {
             showNotification('success', 'Free Trial plan activated successfully!');
             setCurrentSubscription({
@@ -399,7 +504,8 @@ export default function BillingPage() {
               nextBillingDate: null,
               lastPaymentDate: new Date().toISOString(),
               amount: 0,
-              currency: currency
+              currency: currency,
+              paymentGateway: 'razorpay'
             });
             setTimeout(() => window.location.reload(), 2000);
           } else {
@@ -416,57 +522,48 @@ export default function BillingPage() {
 
       // For paid plans, proceed with Razorpay payment
       if (!window.Razorpay) {
-        // Load Razorpay script if not already loaded
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
         document.body.appendChild(script);
-        
+
         await new Promise((resolve) => {
           script.onload = resolve;
         });
       }
-      
-      // Prepare payment data with validation
+
       const userEmail = user.email || user.phoneNumber || user.phone || `user-${user.uid || user.id}@example.com`;
       const userPhone = user.phoneNumber || user.phone || '';
-      
+
       const paymentData = {
         planId: plan.id,
         amount: plan.price,
-        currency: currency,
+        currency: 'INR',
         email: userEmail,
         userId: user.uid || user.id,
         phone: userPhone
       };
-      
-      console.log('Payment data being sent:', paymentData);
-      
-      // Validate required fields
+
       if (!paymentData.amount || !paymentData.planId || !paymentData.email || !paymentData.userId) {
         showNotification('error', 'Missing payment information. Please try again.');
-        console.error('Missing required payment fields:', paymentData);
         return;
       }
-      
-      // Create order
+
       const orderResponse = await fetch(`${API_BASE_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(paymentData)
       });
-      
+
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
-        console.error('Order creation failed:', errorData);
         throw new Error(errorData.error || 'Failed to create order');
       }
-      
+
       const orderData = await orderResponse.json();
-      
-      // Initialize Razorpay
+
       const options = {
-        key: 'rzp_live_lMZVjvewP7tKIL', // Replace with your Razorpay key
+        key: 'rzp_live_lMZVjvewP7tKIL',
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: 'DineOpen',
@@ -490,13 +587,13 @@ export default function BillingPage() {
           });
         }
       };
-      
+
       const razorpay = new window.Razorpay(options);
       razorpay.on('payment.failed', function (response) {
         showNotification('error', 'Payment failed. Please try again.');
       });
       razorpay.open();
-      
+
     } catch (error) {
       console.error('Payment initialization error:', error);
       showNotification('error', 'Payment initialization failed. Please try again.');
@@ -505,12 +602,21 @@ export default function BillingPage() {
     }
   };
 
+  // Unified payment handler
+  const handlePayment = async (plan) => {
+    if (isIndianUser || currency === 'INR') {
+      await handleRazorpayPayment(plan);
+    } else {
+      await handleDodoPayment(plan);
+    }
+  };
+
   const verifyPayment = async (paymentData) => {
     try {
       setPaymentProcessing(true);
-      
+
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-      
+
       const response = await fetch(`${API_BASE_URL}/api/payments/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -518,22 +624,21 @@ export default function BillingPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         showNotification('success', 'Payment successful! Your plan has been upgraded.');
-        
-        // Update current subscription
-        const plan = planData[currency].find(p => p.id === paymentData.planId);
+
+        const plan = currentPlans.find(p => p.id === paymentData.planId);
         setCurrentSubscription({
           plan: plan?.name || 'Professional',
           status: 'active',
           nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           lastPaymentDate: new Date().toISOString(),
           amount: plan?.price || 2499,
-          currency: currency
+          currency: currency,
+          paymentGateway: 'razorpay'
         });
-        
-        // Refresh the page after a short delay
+
         setTimeout(() => window.location.reload(), 2000);
       } else {
         showNotification('error', 'Payment verification failed');
@@ -546,16 +651,27 @@ export default function BillingPage() {
     }
   };
 
-  const currentPlans = planData[currency] || planData.INR;
+  // Determine which plans to show based on region and currency
+  const currentPlans = (() => {
+    if (isIndianUser || currency === 'INR') {
+      return indianPlanData.INR;
+    }
+    return internationalPlanData[currency] || internationalPlanData.USD;
+  })();
+
+  // Available currencies based on region
+  const availableCurrencies = isIndianUser
+    ? ['INR', 'USD', 'GBP']
+    : ['USD', 'GBP', 'INR'];
 
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          minHeight: '60vh' 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh'
         }}>
           <FaSpinner className="animate-spin" size={32} color="#ef4444" />
         </div>
@@ -565,7 +681,7 @@ export default function BillingPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-      
+
       {/* Notification */}
       {notification && (
         <div style={{
@@ -573,7 +689,7 @@ export default function BillingPage() {
           top: '20px',
           right: '20px',
           zIndex: 1000,
-          backgroundColor: notification.type === 'success' ? '#10b981' : '#ef4444',
+          backgroundColor: notification.type === 'success' ? '#10b981' : notification.type === 'info' ? '#3b82f6' : '#ef4444',
           color: 'white',
           padding: '12px 20px',
           borderRadius: '12px',
@@ -617,24 +733,39 @@ export default function BillingPage() {
       <div style={{ width: '100%', padding: '32px 20px' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{ 
-            fontSize: '36px', 
-            fontWeight: 'bold', 
-            color: '#1f2937', 
-            marginBottom: '16px' 
+          <h1 style={{
+            fontSize: '36px',
+            fontWeight: 'bold',
+            color: '#1f2937',
+            marginBottom: '16px'
           }}>
             Billing & Subscription
           </h1>
           <p style={{ fontSize: '18px', color: '#6b7280' }}>
             Manage your subscription and billing information
           </p>
+          {/* Region indicator */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginTop: '8px',
+            padding: '4px 12px',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '20px',
+            fontSize: '13px',
+            color: '#6b7280'
+          }}>
+            <FaGlobe size={12} />
+            {isIndianUser ? 'India - Razorpay' : 'International - Dodo Payments'}
+          </div>
         </div>
 
         {/* Current Subscription Status */}
-        <div style={{ 
-          backgroundColor: 'white', 
-          borderRadius: '16px', 
-          padding: '32px', 
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '32px',
           marginBottom: '32px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
@@ -663,8 +794,8 @@ export default function BillingPage() {
                 {currentSubscription?.plan || 'Free Trial'}
               </h3>
               <p style={{ fontSize: '14px', color: '#ef4444', margin: '4px 0 0 0' }}>
-                {currentSubscription?.amount === 0 ? 'Free' : 
-                 currentSubscription?.plan === 'Pay as You Go' ? 
+                {currentSubscription?.amount === 0 ? 'Free' :
+                 currentSubscription?.plan === 'Pay as You Go' ?
                    formatCurrency(currentSubscription?.amount || 300) + ' one-time' :
                    formatCurrency(currentSubscription?.amount || 600) + ' / month'}
               </p>
@@ -718,44 +849,31 @@ export default function BillingPage() {
             display: 'flex',
             gap: '4px'
           }}>
-            <button
-              onClick={() => setCurrency('INR')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: currency === 'INR' ? '#ef4444' : 'transparent',
-                color: currency === 'INR' ? 'white' : '#6b7280',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <FaExchangeAlt size={12} />
-              INR (₹)
-            </button>
-            <button
-              onClick={() => setCurrency('USD')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: currency === 'USD' ? '#ef4444' : 'transparent',
-                color: currency === 'USD' ? 'white' : '#6b7280',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <FaExchangeAlt size={12} />
-              USD ($)
-            </button>
+            {availableCurrencies.map((curr) => {
+              const symbols = { USD: '$', GBP: '£', INR: '₹' };
+              return (
+                <button
+                  key={curr}
+                  onClick={() => setCurrency(curr)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: currency === curr ? '#ef4444' : 'transparent',
+                    color: currency === curr ? 'white' : '#6b7280',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <FaExchangeAlt size={12} />
+                  {curr} ({symbols[curr]})
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -767,30 +885,30 @@ export default function BillingPage() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           overflow: 'visible'
         }}>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: 'bold', 
-            color: '#1f2937', 
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#1f2937',
             textAlign: 'center',
             marginBottom: '32px'
           }}>
             Choose Your Plan
           </h2>
 
-          <div style={{ 
-            display: isMobile ? 'flex' : 'flex',
+          <div style={{
+            display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
             gap: '24px',
-            flexWrap: isMobile ? 'nowrap' : 'nowrap',
+            flexWrap: 'nowrap',
             overflowX: isMobile ? 'visible' : 'auto',
             overflowY: 'visible',
-            justifyContent: isMobile ? 'stretch' : 'space-between',
+            justifyContent: isMobile ? 'stretch' : 'center',
             alignItems: isMobile ? 'stretch' : 'stretch',
             position: 'relative'
           }}>
             {currentPlans.map((plan) => {
               const isCurrentPlan = currentSubscription?.plan === plan.name;
-              
+
               return (
                 <div
                   key={plan.id}
@@ -803,8 +921,8 @@ export default function BillingPage() {
                     backgroundColor: isCurrentPlan ? '#fef7f0' : 'white',
                     boxShadow: plan.popular ? '0 8px 32px rgba(239, 68, 68, 0.15)' : '0 2px 8px rgba(0,0,0,0.05)',
                     transition: 'all 0.3s ease',
-                    minWidth: isMobile ? '100%' : '250px',
-                    maxWidth: isMobile ? '100%' : 'none',
+                    minWidth: isMobile ? '100%' : '280px',
+                    maxWidth: isMobile ? '100%' : '400px',
                     flex: isMobile ? 'none' : '1 1 0',
                     width: isMobile ? '100%' : 'auto',
                     overflow: 'visible'
@@ -854,9 +972,9 @@ export default function BillingPage() {
 
                   {/* Plan Header */}
                   <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    <h3 style={{ 
-                      fontSize: '24px', 
-                      fontWeight: 'bold', 
+                    <h3 style={{
+                      fontSize: '24px',
+                      fontWeight: 'bold',
                       color: '#1f2937',
                       margin: '0 0 8px 0'
                     }}>
@@ -864,19 +982,19 @@ export default function BillingPage() {
                     </h3>
                     <div style={{ marginBottom: '8px' }}>
                       {plan.price === 0 ? (
-                        <span style={{ 
-                          fontSize: '36px', 
-                          fontWeight: 'bold', 
-                          color: '#10b981' 
+                        <span style={{
+                          fontSize: '36px',
+                          fontWeight: 'bold',
+                          color: '#10b981'
                         }}>
                           Free
                         </span>
                       ) : (
                         <>
-                          <span style={{ 
-                            fontSize: '36px', 
-                            fontWeight: 'bold', 
-                            color: '#1f2937' 
+                          <span style={{
+                            fontSize: '36px',
+                            fontWeight: 'bold',
+                            color: '#1f2937'
                           }}>
                             {formatCurrency(plan.price)}
                           </span>
@@ -928,15 +1046,15 @@ export default function BillingPage() {
                       padding: '14px 24px',
                       borderRadius: '12px',
                       border: 'none',
-                      backgroundColor: isCurrentPlan 
-                        ? '#d1d5db' 
-                        : plan.popular 
-                          ? '#ef4444' 
+                      backgroundColor: isCurrentPlan
+                        ? '#d1d5db'
+                        : plan.popular
+                          ? '#ef4444'
                           : 'transparent',
-                      color: isCurrentPlan 
-                        ? '#6b7280' 
-                        : plan.popular 
-                          ? 'white' 
+                      color: isCurrentPlan
+                        ? '#6b7280'
+                        : plan.popular
+                          ? 'white'
                           : '#ef4444',
                       border: !plan.popular && !isCurrentPlan ? '2px solid #ef4444' : 'none',
                       fontWeight: 'bold',
@@ -979,20 +1097,20 @@ export default function BillingPage() {
           marginTop: '32px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
-          <h3 style={{ 
-            fontSize: '24px', 
-            fontWeight: 'bold', 
+          <h3 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
             color: '#1f2937',
             textAlign: 'center',
             marginBottom: '32px'
           }}>
             Why Choose DineOpen?
           </h3>
-          
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-            gap: '24px' 
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '24px'
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
               <div style={{
