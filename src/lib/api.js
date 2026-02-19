@@ -721,7 +721,7 @@ class ApiClient {
   }
 
   async getOrderById(orderId) {
-    return this.request(`/api/orders/details/${orderId}`);
+    return this.request(`/api/orders/single/${orderId}`);
   }
 
   async updateOrderStatus(orderId, status, restaurantId = null) {

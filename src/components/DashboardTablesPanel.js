@@ -110,10 +110,7 @@ export default function DashboardTablesPanel({
     }
 
     try {
-      const response = await apiClient.getOrders(selectedRestaurant.id, {
-        search: orderId,
-        limit: 1
-      });
+      const response = await apiClient.getOrderById(orderId);
 
       if (response.orders && response.orders.length > 0) {
         const order = response.orders[0];
@@ -192,10 +189,7 @@ export default function DashboardTablesPanel({
     setModalPaymentMethod('cash');
 
     try {
-      const response = await apiClient.getOrders(selectedRestaurant.id, {
-        search: table.currentOrderId,
-        limit: 1
-      });
+      const response = await apiClient.getOrderById(table.currentOrderId);
 
       if (response.orders && response.orders.length > 0) {
         const order = response.orders[0];
@@ -334,10 +328,7 @@ export default function DashboardTablesPanel({
 
     // First fetch the order details
     try {
-      const response = await apiClient.getOrders(selectedRestaurant.id, {
-        search: table.currentOrderId,
-        limit: 1
-      });
+      const response = await apiClient.getOrderById(table.currentOrderId);
 
       if (!response.orders || response.orders.length === 0) {
         alert('Order not found');

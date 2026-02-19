@@ -40,14 +40,11 @@ const OrderEditModal = ({
           
           let response;
           if (orderId) {
-            response = await apiClient.getOrders(selectedRestaurant.id, { 
-              search: orderId,
-              limit: 1 
-            });
+            response = await apiClient.getOrderById(orderId);
           } else if (orderNumber) {
-            response = await apiClient.getOrders(selectedRestaurant.id, { 
+            response = await apiClient.getOrders(selectedRestaurant.id, {
               search: orderNumber,
-              limit: 1 
+              limit: 1
             });
           }
           

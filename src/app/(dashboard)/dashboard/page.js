@@ -1491,11 +1491,10 @@ function RestaurantPOSContent() {
         
         const response = await apiClient.getOrders(selectedRestaurant.id, {
         search: orderId
-          // Don't filter by status - let backend handle filtering out completed orders
         });
-        
+
       console.log('🔍 Auto-triggered order lookup response:', response);
-        
+
         if (response.orders && response.orders.length > 0) {
           const order = response.orders[0]; // Get the first matching order
         const mode = searchParams.get('mode');
