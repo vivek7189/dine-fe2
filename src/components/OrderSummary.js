@@ -81,6 +81,11 @@ const OrderSummary = ({
   onLoadSavedOrder,
   onDeleteSavedOrder
 }) => {
+  // Unified flag: disables ALL order buttons when any action is in progress
+  const orderBusy = processing || placingOrder || savingOrder;
+  // True when editing a loaded saved order (disable save button, keep place order text normal)
+  const isEditingSavedOrder = currentOrder && currentOrder.status === 'saved';
+
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const [invoice, setInvoice] = useState(null);
   const [showInvoicePermanently, setShowInvoicePermanently] = useState(false);
@@ -104,6 +109,15 @@ const OrderSummary = ({
 
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
+
+  // Dismiss KOT/billing summary when user starts a new action (adds items, loads saved order)
+  useEffect(() => {
+    if (cart?.length > 0 && orderSuccess?.show) {
+      setOrderSuccess(null);
+      setInvoice(null);
+      setShowInvoicePermanently(false);
+    }
+  }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Debug: Log cart prop received by OrderSummary
   console.log('📋 OrderSummary: Received cart prop:', cart);
@@ -801,8 +815,13 @@ const OrderSummary = ({
                   boxShadow: activeSavedOrderId === order.id ? '0 2px 6px rgba(234, 88, 12, 0.25)' : 'none'
                 }}
                 onClick={() => {
-                  if (onLoadSavedOrder && !loadingSavedOrderId && activeSavedOrderId !== order.id) {
-                    onLoadSavedOrder(order.id);
+                  if (loadingSavedOrderId) return;
+                  if (activeSavedOrderId === order.id) {
+                    // Deselect: clear cart and reset to empty state
+                    if (onClearCart) onClearCart();
+                  } else {
+                    // Select: load this saved order
+                    if (onLoadSavedOrder) onLoadSavedOrder(order.id);
                   }
                 }}
                 title={`Load saved order #${order.dailyOrderId || order.id.slice(-4).toUpperCase()}${order.tableNumber ? ` - Table ${order.tableNumber}` : ''}`}
@@ -868,6 +887,8 @@ const OrderSummary = ({
                   kotPrintWindowRef.current = null;
                   invoicePrintWindowRef.current = null;
                   setOrderSuccess(null);
+                  setInvoice(null);
+                  setShowInvoicePermanently(false);
                   onClearCart();
                   setSpecialInstructions(''); // Clear special instructions for new order
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
@@ -1083,6 +1104,8 @@ const OrderSummary = ({
                   kotPrintWindowRef.current = null;
                   invoicePrintWindowRef.current = null;
                   setOrderSuccess(null);
+                  setInvoice(null);
+                  setShowInvoicePermanently(false);
                   onClearCart();
                   setSpecialInstructions(''); // Clear special instructions for new order
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
@@ -2006,7 +2029,7 @@ const OrderSummary = ({
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <button
                 onClick={() => {
-                  if (typeof onSaveOrder === 'function' && !savingOrder) {
+                  if (typeof onSaveOrder === 'function' && !orderBusy) {
                     // Pass tax data and special instructions to save order
                     const taxData = {
                       taxBreakdown,
@@ -2017,14 +2040,14 @@ const OrderSummary = ({
                     };
                     onSaveOrder(taxData);
                   }
-                  if (isMobile && onClose && !savingOrder) {
+                  if (isMobile && onClose && !orderBusy) {
                     setTimeout(() => onClose(), 500);
                   }
                 }}
-                disabled={savingOrder || cart.length === 0}
+                disabled={orderBusy || cart.length === 0 || isEditingSavedOrder}
                 style={{
                   flex: 1,
-                  background: savingOrder || cart.length === 0
+                  background: orderBusy || cart.length === 0 || isEditingSavedOrder
                     ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                     : 'linear-gradient(135deg, #f97316, #ea580c)',
                   color: 'white',
@@ -2032,14 +2055,14 @@ const OrderSummary = ({
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
-                  cursor: savingOrder || cart.length === 0 ? 'not-allowed' : 'pointer',
+                  cursor: orderBusy || cart.length === 0 || isEditingSavedOrder ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
                   fontSize: '12px',
                   transition: 'all 0.2s',
-                  boxShadow: savingOrder || cart.length === 0 ? 'none' : '0 2px 8px rgba(249, 115, 22, 0.3)'
+                  boxShadow: orderBusy || cart.length === 0 || isEditingSavedOrder ? 'none' : '0 2px 8px rgba(249, 115, 22, 0.3)'
                 }}
               >
                 {savingOrder ? (
@@ -2072,10 +2095,10 @@ const OrderSummary = ({
                     setTimeout(() => onClose(), 500);
                   }
                 }}
-                disabled={placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
                 style={{
                   flex: 1,
-                  background: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                  background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
                     ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                     : 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: 'white',
@@ -2083,14 +2106,14 @@ const OrderSummary = ({
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
-                  cursor: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                  cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
                   fontSize: '12px',
                   transition: 'all 0.2s',
-                  boxShadow: placingOrder || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)'
+                  boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)'
                 }}
               >
                 {placingOrder ? (
@@ -2101,7 +2124,7 @@ const OrderSummary = ({
                 ) : (
                   <>
                     <FaUtensils size={12} />
-                    {currentOrder ? 'Update Order' : t('dashboard.placeOrder')}
+                    {t('dashboard.placeOrder')}
                   </>
                 )}
               </button>
@@ -2111,10 +2134,10 @@ const OrderSummary = ({
           {/* Complete Billing Button */}
           <button
             onClick={handleProcessOrder}
-            disabled={processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+            disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
             style={{
               width: '100%',
-              background: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+              background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
                 ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                 : 'linear-gradient(135deg, #10b981, #059669)',
               color: 'white',
@@ -2122,14 +2145,14 @@ const OrderSummary = ({
               borderRadius: '8px',
               fontWeight: '700',
               border: 'none',
-              cursor: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+              cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
               fontSize: billingMode ? '14px' : '12px',
               transition: 'all 0.2s',
-              boxShadow: processing || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
+              boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
             }}
           >
             {processing ? (

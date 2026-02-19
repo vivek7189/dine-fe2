@@ -2194,18 +2194,25 @@ function RestaurantPOSContent() {
             show: true
           });
 
+          const completedOrderId = currentOrder.id;
+
           setOrderSuccess({
-            orderId: currentOrder.id,
+            orderId: completedOrderId,
             dailyOrderId: currentOrder.dailyOrderId,
             show: true,
             message: 'Billing Complete! 💳'
           });
           setCurrentOrder(null);
+          setActiveSavedOrderId(null);
+          fetchSavedOrders(); // Refresh saved orders list after billing a saved order
           // Handle return navigation after billing complete
           handleOrderActionComplete({
             keepOrderSuccess: true,
             hasTable: !!(tableToUse || currentOrder.tableNumber)
           });
+
+          // Return orderId so OrderSummary can generate the invoice
+          return { orderId: completedOrderId };
         }
       } else {
         console.log('🆕 Creating new order for direct billing');
@@ -2387,8 +2394,18 @@ function RestaurantPOSContent() {
       const response = await apiClient.getOrders(selectedRestaurant.id, { status: 'saved', limit: 20 });
       console.log('📋 Fetched saved orders:', response);
       if (response.orders && Array.isArray(response.orders)) {
+        // Filter out orders older than 24 hours (client-side safety net)
+        const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+        const fresh = response.orders.filter(order => {
+          // Handle Firestore timestamp objects ({ _seconds, _nanoseconds }) and ISO strings
+          const ts = order.createdAt;
+          const ms = ts?._seconds ? ts._seconds * 1000
+            : ts?.seconds ? ts.seconds * 1000
+            : new Date(ts).getTime();
+          return !isNaN(ms) && ms >= twentyFourHoursAgo;
+        });
         // Sort by creation date, newest first
-        const sorted = response.orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const sorted = fresh.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setSavedOrders(sorted.slice(0, 10)); // Keep only the 10 most recent
         console.log('📋 Saved orders set:', sorted.slice(0, 10));
       } else {
@@ -2928,6 +2945,11 @@ function RestaurantPOSContent() {
     setCart([]);
     setTableNumber('');
     setCurrentOrder(null);
+    setActiveSavedOrderId(null);
+    setCustomerName('');
+    setCustomerMobile('');
+    setManualTableNumber('');
+    setManualRoomNumber('');
     setOrderLookup('');
     localStorage.removeItem('dine_cart');
     if (!keepOrderSuccess) {
@@ -5987,11 +6009,11 @@ function RestaurantPOSContent() {
                     setShowMobileCart(false);
                     processOrder();
                   }}
-                  disabled={processing}
+                  disabled={processing || savingOrder || placingOrder}
                   style={{
                     width: '100%',
-                    background: processing 
-                      ? 'linear-gradient(135deg, #9ca3af, #6b7280)' 
+                    background: (processing || savingOrder || placingOrder)
+                      ? 'linear-gradient(135deg, #9ca3af, #6b7280)'
                       : 'linear-gradient(135deg, #10b981, #059669)',
                     color: 'white',
                     padding: '16px',
@@ -5999,7 +6021,7 @@ function RestaurantPOSContent() {
                     fontWeight: '700',
                     fontSize: '16px',
                     border: 'none',
-                    cursor: processing ? 'not-allowed' : 'pointer',
+                    cursor: (processing || savingOrder || placingOrder) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
