@@ -96,7 +96,7 @@ const Analytics = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, change, color = '#e53e3e' }) => (
+  const StatCard = ({ title, value, subtitle, icon: Icon, change, color = '#e53e3e' }) => (
     <div className="bg-white rounded-lg md:rounded-xl shadow-sm p-3 md:p-6 hover:shadow-lg transition-all duration-300">
       <div className="flex items-center justify-between mb-2 md:mb-4">
         <div className={`p-2 md:p-3 rounded-lg md:rounded-xl`} style={{ backgroundColor: `${color}15` }}>
@@ -114,6 +114,7 @@ const Analytics = () => {
       <div>
         <h3 className="text-lg md:text-2xl font-bold text-gray-800 mb-1">{value}</h3>
         <p className="text-gray-600 text-xs md:text-sm">{title}</p>
+        {subtitle && <p className="text-gray-500 text-[12px] mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );
@@ -379,6 +380,7 @@ const Analytics = () => {
           <StatCard
             title="Total Revenue"
             value={formatCurrency(analytics.totalRevenue)}
+            subtitle={analytics.totalRevenueWithTax > analytics.totalRevenue ? `incl. tax: ${formatCurrency(analytics.totalRevenueWithTax)}` : null}
             icon={FaMoneyBillWave}
             color="#e53e3e"
           />

@@ -562,7 +562,7 @@ export default function HeadquartersPage() {
   // ============================================
 
   // Metric Card
-  const MetricCard = ({ icon: Icon, label, value, color = '#ef4444' }) => (
+  const MetricCard = ({ icon: Icon, label, value, subtitle, color = '#ef4444' }) => (
     <div style={{
       backgroundColor: 'white',
       borderRadius: '16px',
@@ -600,6 +600,7 @@ export default function HeadquartersPage() {
           {value}
         </div>
         <div style={{ fontSize: '13px', color: '#6b7280' }}>{label}</div>
+        {subtitle && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{subtitle}</div>}
       </div>
     </div>
   );
@@ -1538,6 +1539,7 @@ export default function HeadquartersPage() {
     // Calculate filtered totals
     const filteredTotalRestaurants = filteredRestaurants.length;
     const filteredTotalRevenue = analyticsData?.totalRevenue || filteredRestaurants.reduce((sum, r) => sum + (r.todayRevenue || r.revenue || 0), 0);
+    const filteredTotalRevenueWithTax = analyticsData?.totalRevenueWithTax || filteredRestaurants.reduce((sum, r) => sum + (r.revenueWithTax || r.todayRevenue || r.revenue || 0), 0);
     const filteredTotalOrders = analyticsData?.totalOrders || filteredRestaurants.reduce((sum, r) => sum + (r.todayOrders || r.orders || 0), 0);
     const filteredAvgOrderValue = analyticsData?.avgOrderValue || (filteredTotalOrders > 0 ? filteredTotalRevenue / filteredTotalOrders : 0);
 
@@ -1560,6 +1562,7 @@ export default function HeadquartersPage() {
             icon={FaRupeeSign}
             label="Revenue"
             value={formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
+            subtitle={filteredTotalRevenueWithTax > filteredTotalRevenue ? `incl. tax: ${formatCurrency ? formatCurrency(filteredTotalRevenueWithTax) : `₹${filteredTotalRevenueWithTax.toLocaleString()}`}` : null}
             color="#16a34a"
           />
           <MetricCard

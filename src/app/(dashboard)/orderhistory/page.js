@@ -75,6 +75,7 @@ const OrderHistory = () => {
   const [printSettings, setPrintSettings] = useState(null);
   const [printingOrderId, setPrintingOrderId] = useState(null);
   const [printSuccess, setPrintSuccess] = useState(null);
+  const [analyticsStats, setAnalyticsStats] = useState(null);
 
   useEffect(() => {
     // Initialize language
@@ -241,7 +242,17 @@ const OrderHistory = () => {
       setOrders(filteredOrders);
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalOrders(response.pagination?.totalOrders || filteredOrders.length);
-      
+
+      // Fetch analytics stats for stat cards (server-side, consistent with HQ page)
+      try {
+        const analyticsResponse = await apiClient.getAnalytics(restaurantId, 'today');
+        if (analyticsResponse?.success && analyticsResponse?.analytics) {
+          setAnalyticsStats(analyticsResponse.analytics);
+        }
+      } catch (analyticsErr) {
+        console.error('Analytics stats fetch error (non-blocking):', analyticsErr);
+      }
+
       // Cache the data
       const dataToCache = {
         orders: filteredOrders,
@@ -250,7 +261,7 @@ const OrderHistory = () => {
       };
       setCachedOrderHistoryData(restaurantId, dataToCache, cacheKey);
       console.log('✅ Order history data cached');
-      
+
     } catch (error) {
       console.error('Error fetching orders:', error);
       setError(t('common.error'));
@@ -611,15 +622,27 @@ const OrderHistory = () => {
     return parseFloat(subtotal.toFixed(2));
   };
 
-  // Calculate summary statistics
+  // Calculate summary statistics — use server-side analytics for consistency with HQ page
   const calculateStats = () => {
+    if (analyticsStats) {
+      // Use server-side analytics (same source as HQ and Analytics pages)
+      return {
+        totalRevenue: analyticsStats.totalRevenue || 0,
+        totalRevenueWithTax: analyticsStats.totalRevenueWithTax || 0,
+        orderCount: analyticsStats.totalOrders || 0,
+        avgOrderValue: analyticsStats.avgOrderValue || 0,
+        completedCount: orders.filter(o => o.status === 'completed').length
+      };
+    }
+
+    // Fallback: client-side calculation from current page (before analytics loads)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const todayOrders = orders.filter(order => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : 
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() :
                        (order.createdAt?._seconds ? new Date(order.createdAt._seconds * 1000) : new Date(order.createdAt));
-      return orderDate >= today && order.status !== 'cancelled' && order.status !== 'deleted';
+      return orderDate >= today && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'saved';
     });
 
     const totalRevenue = todayOrders.reduce((sum, order) => sum + calculateOrderTotal(order), 0);
@@ -627,12 +650,7 @@ const OrderHistory = () => {
     const avgOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
     const completedCount = todayOrders.filter(o => o.status === 'completed').length;
 
-    return {
-      totalRevenue,
-      orderCount,
-      avgOrderValue,
-      completedCount
-    };
+    return { totalRevenue, orderCount, avgOrderValue, completedCount };
   };
 
   const OrderDetailsModal = ({ order, onClose }) => {
@@ -911,6 +929,9 @@ const OrderHistory = () => {
               </div>
               <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
               <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Today&apos;s Revenue</div>
+              {stats.totalRevenueWithTax > stats.totalRevenue && (
+                <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">incl. tax: {formatCurrency(stats.totalRevenueWithTax)}</div>
+              )}
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
               <div className="flex items-center justify-between mb-0.5 sm:mb-2">
