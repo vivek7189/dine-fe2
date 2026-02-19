@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
@@ -60,6 +60,13 @@ export default function DashboardTablesPanel({
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderError, setOrderError] = useState(null);
   const [outOfServiceModal, setOutOfServiceModal] = useState({ open: false, table: null });
+
+  // Timer tick to keep elapsed times updated (every 60s)
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Table Actions Modal state
   const [actionsModal, setActionsModal] = useState({ open: false, table: null, order: null, loading: false });
@@ -730,15 +737,32 @@ export default function DashboardTablesPanel({
                   <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     {/* Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <div>
-                        <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
-                          {t.name || t.number}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
+                            {t.name || t.number}
+                          </span>
+                          {isOccupied && t.lastOrderTime && (() => {
+                            const elapsed = getTimeElapsed(t.lastOrderTime);
+                            if (!elapsed) return null;
+                            const isOverADay = elapsed.includes('d');
+                            return (
+                              <span style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: isOverADay ? '#dc2626' : '#92400e',
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {elapsed}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <FaChair size={9} />
                           {t.capacity || '-'} Seats
-                    </div>
-                  </div>
+                        </div>
+                      </div>
                       {/* Small Status Dot for Available, Badge for others */}
                       {isAvailable ? (
                          <div style={{ 
@@ -760,7 +784,9 @@ export default function DashboardTablesPanel({
                           border: `1px solid ${config.border}`,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '4px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
                         }}>
                           {config.label}
                         </div>
