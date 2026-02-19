@@ -31,7 +31,7 @@ export default function LandingPage() {
 
   const rotatingWords = ['Restaurants', 'Cafes', 'Bars', 'Cloud Kitchens', 'Food Trucks', 'Bakeries'];
 
-  // Demo Form State
+  // Demo Form State dd
   const [demoContactType, setDemoContactType] = useState('phone');
   const [demoPhone, setDemoPhone] = useState('');
   const [demoEmail, setDemoEmail] = useState('');
