@@ -186,7 +186,17 @@ const OrderHistory = () => {
       (staff.waiterName && staff.waiterName !== 'Customer Self-Order') ||
       (staff.name && staff.name !== 'Customer Self-Order')
     );
-    if (isStaff) return { label: 'Staff', className: 'bg-slate-100 text-slate-700 border-slate-300' };
+    if (isStaff) {
+      const rawName = staff.waiterName || staff.name || null;
+      const genericNames = ['Customer Self-Order', 'Staff Member', 'Staff', 'staff'];
+      const hasRealName = rawName && !genericNames.includes(rawName);
+      const loginId = staff.loginId || null;
+      const staffId = staff.waiterId || staff.id || staff.userId || null;
+      const display = hasRealName ? rawName : (loginId || (staffId ? staffId.slice(-6) : null));
+      const role = staff.role && staff.role !== 'waiter' ? staff.role : null;
+      const parts = [role || 'Staff', display].filter(Boolean).join(' · ');
+      return { label: parts, className: 'bg-slate-100 text-slate-700 border-slate-300' };
+    }
     // Explicit source or inferred from notes (legacy orders from public online page)
     if (src === 'online_order' || looksLikePublicOnline) return { label: 'Online order', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
     if (src === 'crave_app' || src === 'customer_app') return { label: 'Dine App', className: 'bg-pink-50 text-pink-700 border-pink-200' };
@@ -824,27 +834,25 @@ const OrderHistory = () => {
     <div className="relative custom-dropdown">
       <button
         onClick={onToggle}
-        className={`w-full px-4 py-2.5 text-left bg-white border-2 rounded-lg flex items-center justify-between text-sm font-medium transition-all shadow-sm ${isOpen ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300 hover:border-gray-400'}`}
+        className={`w-full px-3 py-2 text-left bg-white border rounded-lg flex items-center justify-between text-sm font-medium transition-all ${isOpen ? 'border-red-400 ring-1 ring-red-100 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
       >
         <div className="flex items-center gap-2 truncate">
-          {Icon && <Icon className="text-gray-400" />}
+          {Icon && <Icon className="text-gray-400 text-xs" />}
           <span className="text-gray-700">{options.find(opt => opt.value === selectedValue)?.label || placeholder}</span>
         </div>
-        <FaChevronDown className={`text-gray-400 text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <FaChevronDown className={`text-gray-400 text-[10px] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
-        <div className="absolute z-20 w-full mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl max-h-56 overflow-auto">
-          <div className="py-1">
-            {options.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => { onSelect(option.value); onToggle(); }}
-                className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${selectedValue === option.value ? 'bg-red-50 text-red-700 font-semibold border-l-4 border-red-500' : 'text-gray-700 hover:bg-gray-50'}`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => { onSelect(option.value); onToggle(); }}
+              className={`w-full px-3 py-2 text-left text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${selectedValue === option.value ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -919,49 +927,45 @@ const OrderHistory = () => {
           </div>
 
           {/* Summary Stats Cards — extra compact on mobile, 2x2 grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-4 pb-2 sm:pb-4">
-            <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-0.5 sm:mb-2">
-                <div className="bg-green-500 p-1 sm:p-2 rounded-md sm:rounded-lg">
-                  <span className="text-white text-[10px] sm:text-sm font-bold">{getCurrencySymbol()}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3 pb-2 sm:pb-3">
+            <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                <div className="bg-green-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                  <span className="text-white text-xs sm:text-sm font-bold leading-none">{getCurrencySymbol()}</span>
                 </div>
-                <FaArrowUp className="text-green-600 text-[8px] sm:text-xs hidden sm:block" />
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Revenue</span>
               </div>
-              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
-              <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Today&apos;s Revenue</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
               {stats.totalRevenueWithTax > stats.totalRevenue && (
                 <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">incl. tax: {formatCurrency(stats.totalRevenueWithTax)}</div>
               )}
             </div>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-0.5 sm:mb-2">
-                <div className="bg-blue-500 p-1 sm:p-2 rounded-md sm:rounded-lg">
-                  <FaShoppingBag className="text-white text-[10px] sm:text-sm" />
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                <div className="bg-blue-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                  <FaShoppingBag className="text-white text-xs sm:text-sm" />
                 </div>
-                <FaArrowUp className="text-blue-600 text-[8px] sm:text-xs hidden sm:block" />
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Orders</span>
               </div>
-              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">{stats.orderCount}</div>
-              <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Total Orders</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.orderCount}</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-0.5 sm:mb-2">
-                <div className="bg-purple-500 p-1 sm:p-2 rounded-md sm:rounded-lg">
-                  <FaChartLine className="text-white text-[10px] sm:text-sm" />
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                <div className="bg-purple-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                  <FaChartLine className="text-white text-xs sm:text-sm" />
                 </div>
-                <FaArrowUp className="text-purple-600 text-[8px] sm:text-xs hidden sm:block" />
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Avg Value</span>
               </div>
-              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">{formatCurrency(stats.avgOrderValue)}</div>
-              <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Avg Order Value</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{formatCurrency(stats.avgOrderValue)}</div>
             </div>
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-md sm:rounded-xl p-2 sm:p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-0.5 sm:mb-2">
-                <div className="bg-amber-500 p-1 sm:p-2 rounded-md sm:rounded-lg">
-                  <FaCheckCircle className="text-white text-[10px] sm:text-sm" />
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                <div className="bg-amber-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
+                  <FaCheckCircle className="text-white text-xs sm:text-sm" />
                 </div>
-                <FaArrowUp className="text-amber-600 text-[8px] sm:text-xs hidden sm:block" />
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Completed</span>
               </div>
-              <div className="text-sm sm:text-2xl font-bold text-gray-900 leading-tight">{stats.completedCount}</div>
-              <div className="text-[9px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 leading-tight">Completed</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.completedCount}</div>
             </div>
           </div>
 
@@ -996,25 +1000,25 @@ const OrderHistory = () => {
           )}
 
           {/* Filters Section — on mobile: search + collapse toggle; filters in expandable panel */}
-          <div className="py-3 sm:py-4 border-t border-gray-200">
+          <div className="py-2.5 sm:py-3 border-t border-gray-200">
             {isMobile ? (
               <>
                 <div className="flex gap-2 items-stretch">
                   <div className="flex-1 relative min-w-0">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-                    <input 
-                      type="text" 
-                      placeholder={t('orderHistory.searchPlaceholder')} 
-                      value={searchTerm} 
+                    <input
+                      type="text"
+                      placeholder={t('orderHistory.searchPlaceholder')}
+                      value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
-                      className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" 
+                      className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 shrink-0 transition-all ${mobileFiltersOpen ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'}`}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shrink-0 transition-all ${mobileFiltersOpen ? 'border-red-400 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
                     aria-expanded={mobileFiltersOpen}
                   >
                     <FaFilter className="text-sm" />
@@ -1065,16 +1069,16 @@ const OrderHistory = () => {
                 )}
               </>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                 <div className="sm:col-span-4 lg:col-span-5 relative">
-                  <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder={t('orderHistory.searchPlaceholder')} 
-                    value={searchTerm} 
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                  <input
+                    type="text"
+                    placeholder={t('orderHistory.searchPlaceholder')}
+                    value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
-                    className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm" 
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
                   />
                 </div>
                 <div className="sm:col-span-3 lg:col-span-2">
@@ -1099,24 +1103,24 @@ const OrderHistory = () => {
                     icon={FaUtensils} 
                   />
                 </div>
-                <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-2 sm:justify-end">
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all shadow-sm ${todayOrdersOnly ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-                    <input 
-                      type="checkbox" 
-                      checked={todayOrdersOnly} 
-                      onChange={(e) => setTodayOrdersOnly(e.target.checked)} 
-                      className="w-4 h-4 text-red-600 rounded focus:ring-red-500 border-gray-300" 
+                <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-1.5 sm:justify-end">
+                  <label className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium ${todayOrdersOnly ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="checkbox"
+                      checked={todayOrdersOnly}
+                      onChange={(e) => setTodayOrdersOnly(e.target.checked)}
+                      className="w-3.5 h-3.5 text-red-600 rounded focus:ring-red-500 border-gray-300"
                     />
-                    <span className="text-sm font-medium">{t('orderHistory.today')}</span>
+                    {t('orderHistory.today')}
                   </label>
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all shadow-sm ${myOrdersOnly ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-                    <input 
-                      type="checkbox" 
-                      checked={myOrdersOnly} 
-                      onChange={(e) => setMyOrdersOnly(e.target.checked)} 
-                      className="w-4 h-4 text-red-600 rounded focus:ring-red-500 border-gray-300" 
+                  <label className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium ${myOrdersOnly ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="checkbox"
+                      checked={myOrdersOnly}
+                      onChange={(e) => setMyOrdersOnly(e.target.checked)}
+                      className="w-3.5 h-3.5 text-red-600 rounded focus:ring-red-500 border-gray-300"
                     />
-                    <span className="text-sm font-medium">{t('orderHistory.mine')}</span>
+                    {t('orderHistory.mine')}
                   </label>
                 </div>
               </div>
@@ -1126,8 +1130,8 @@ const OrderHistory = () => {
       </div>
         
       {/* Orders List */}
-      <div className="flex-1 p-4 sm:px-6 sm:py-6 overflow-y-auto">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+      <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto">
+        <div className="w-full px-3 sm:px-6 lg:px-8">
           {orders.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-16 text-center">
               <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1137,7 +1141,7 @@ const OrderHistory = () => {
               <p className="text-sm text-gray-500">{t('orderHistory.adjustFilters')}</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-2.5">
             {orders.map((order) => {
               const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus);
               const orderTotal = calculateOrderTotal(order);
@@ -1147,9 +1151,9 @@ const OrderHistory = () => {
               
               if (isCompactView) {
                 return (
-                  <div key={order.id} className="bg-white rounded-xl shadow-md border border-gray-200 hover:border-red-300 hover:shadow-lg transition-all duration-200 group overflow-hidden">
-                    <div className="p-4 flex items-center gap-4">
-                      <div className="w-1.5 h-16 rounded-full flex-shrink-0" style={{ backgroundColor: statusStyle.border }} />
+                  <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200 group overflow-hidden">
+                    <div className="p-3 flex items-center gap-3">
+                      <div className="w-1 h-14 rounded-full flex-shrink-0" style={{ backgroundColor: statusStyle.border }} />
                       <div className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
                         <div className="col-span-12 sm:col-span-3 flex sm:flex-col items-center sm:items-start justify-between sm:justify-center gap-2">
                           <div className="flex items-center gap-2">
@@ -1161,9 +1165,9 @@ const OrderHistory = () => {
                             >
                               {expandedOrders.has(order.id) ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
                             </button>
-                            <div 
-                              onClick={() => copyToClipboard(order.dailyOrderId?.toString() || order.id)} 
-                              className="font-bold text-lg text-gray-900 cursor-pointer hover:text-red-600 flex items-center gap-2 transition-colors"
+                            <div
+                              onClick={() => copyToClipboard(order.dailyOrderId?.toString() || order.id)}
+                              className="font-bold text-base text-gray-900 cursor-pointer hover:text-red-600 flex items-center gap-2 transition-colors"
                             >
                               <span>#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
                               <FaCopy className="text-gray-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1226,7 +1230,7 @@ const OrderHistory = () => {
                                 ))}
                               </>
                             )}
-                            <span className="font-bold text-xl text-gray-900">{formatCurrency(orderTotal)}</span>
+                            <span className="font-bold text-lg text-gray-900">{formatCurrency(orderTotal)}</span>
                           </div>
                           <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
@@ -1325,17 +1329,17 @@ const OrderHistory = () => {
               }
 
               return (
-                <div key={order.id} className="bg-white rounded-xl shadow-md border border-gray-200 hover:border-red-300 hover:shadow-lg transition-all duration-200 group overflow-hidden">
-                  <div className="p-5">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <FaReceipt className="text-red-600 text-lg" />
+                <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200 group overflow-hidden">
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center flex-shrink-0">
+                        <FaReceipt className="text-red-600 text-sm" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start justify-between mb-2">
                           <div>
                             <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <h3 className="text-lg font-bold text-gray-900">
+                              <h3 className="text-base font-bold text-gray-900">
                                 #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
                               </h3>
                               <span 
@@ -1356,19 +1360,18 @@ const OrderHistory = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            {breakdown.taxLines?.length > 0 ? (
-                              <div className="space-y-0.5 mb-1">
-                                <div className="text-xs text-gray-500">Subtotal {formatCurrency(breakdown.subtotal)}</div>
-                                {breakdown.taxLines.map((line, i) => (
-                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} {formatCurrency(line.amount)}</div>
-                                ))}
+                            <div className="flex items-baseline justify-end gap-2">
+                              <span className="text-xl font-bold text-gray-900">{formatCurrency(orderTotal)}</span>
+                              <span className="text-[11px] text-gray-400">{order.paymentMethod || 'Cash'}</span>
+                            </div>
+                            {breakdown.taxLines?.length > 0 && (
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {formatCurrency(breakdown.subtotal)} + {breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}
                               </div>
-                            ) : null}
-                            <div className="text-2xl font-bold text-gray-900 mb-1">{formatCurrency(orderTotal)}</div>
-                            <div className="text-xs text-gray-500">{order.paymentMethod || 'Cash'}</div>
+                            )}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-3 p-2.5 bg-gray-50 rounded-lg border border-gray-100">
                           <div className="flex items-center gap-2">
                             <FaUser className="text-gray-400 text-sm flex-shrink-0" />
                             <div className="min-w-0">
@@ -1401,7 +1404,7 @@ const OrderHistory = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200 mb-4">
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-2.5 border border-gray-200 mb-3">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-semibold text-gray-700">{itemCount} {t('orderHistory.items')}</span>
                             <button 
@@ -1433,77 +1436,76 @@ const OrderHistory = () => {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-wrap justify-end gap-2">
-                          {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
-                            <button 
-                              onClick={() => handleMarkCompleted(order.id)} 
-                              className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 transition-all flex items-center gap-2"
-                            >
-                              <FaCheckCircle /> Mark Bill Complete
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => handleViewOrder(order)} 
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center gap-2 shadow-sm"
-                          >
-                            <FaEye /> {t('orderHistory.view')}
-                          </button>
-                          {/* Invoice button hidden - using unified print flow */}
-                          <button
-                            onClick={() => handleSmartPrint(order)}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${printingOrderId === order.id ? 'bg-orange-200 border-2 border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border-2 border-orange-200 hover:bg-orange-100'}`}
-                            title={order.status === 'completed' ? 'Print Bill' : 'Print KOT'}
-                            disabled={printingOrderId === order.id}
-                          >
-                            {printingOrderId === order.id ? <FaSpinner className="animate-spin" /> : <FaPrint />}
-                            {printingOrderId === order.id ? 'Sending...' : (order.status === 'completed' ? 'Print Bill' : 'Print KOT')}
-                          </button>
-                          {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
-                            <button 
-                              onClick={() => handleCancelOrder(order.id)} 
-                              className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-2 border-red-200 rounded-lg hover:bg-red-100 transition-all flex items-center gap-2"
-                            >
-                              <FaTimesCircle /> {t('orderHistory.cancel')}
-                            </button>
-                          )}
-                          {order.status !== 'deleted' && (
-                          <button 
-                            onClick={() => handleEditOrder(order.id)} 
-                            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg hover:from-red-700 hover:to-red-800 transition-all flex items-center gap-2 shadow-lg"
-                          >
-                            <FaEdit /> {t('orderHistory.edit')}
-                          </button>
-                          )}
-                          {order.status !== 'deleted' && (
-                            <button 
-                              onClick={() => handleDeleteOrder(order.id)} 
-                              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-300 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-2"
-                              title={t('common.delete') || 'Delete order'}
-                            >
-                              <FaTrash /> {t('common.delete') || 'Delete'}
-                            </button>
-                          )}
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center justify-between gap-3 mt-1 pt-3 border-t border-gray-100">
+                          <div className="flex items-center gap-3 min-w-0">
                             <div
                               onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
-                              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
+                              className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
                               title="Click to copy Order Number"
                             >
-                              <span className="text-xs text-gray-500">Order#</span>
-                              <span className="text-sm font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
-                              <FaCopy className="text-gray-400 text-xs" />
+                              <span className="text-[11px] text-gray-400">Order Number</span>
+                              <span className="text-xs font-mono font-semibold text-gray-600">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
+                              <FaCopy className="text-gray-300 text-[10px]" />
                             </div>
                             <div
                               onClick={() => copyToClipboard(order.id)}
-                              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors flex-1 min-w-0"
+                              className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors min-w-0"
                               title="Click to copy Order ID"
                             >
-                              <span className="text-xs text-gray-500">ID</span>
-                              <span className="text-sm font-mono font-semibold text-gray-700 truncate" title={order.id}>{order.id}</span>
-                              <FaCopy className="text-gray-400 text-xs flex-shrink-0" />
+                              <span className="text-[11px] text-gray-400">Order ID</span>
+                              <span className="text-xs font-mono font-semibold text-gray-600 truncate max-w-[140px]" title={order.id}>{order.id}</span>
+                              <FaCopy className="text-gray-300 text-[10px] flex-shrink-0" />
                             </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                              <button
+                                onClick={() => handleMarkCompleted(order.id)}
+                                className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1.5"
+                              >
+                                <FaCheckCircle /> Complete
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleViewOrder(order)}
+                              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                            >
+                              <FaEye /> {t('orderHistory.view')}
+                            </button>
+                            <button
+                              onClick={() => handleSmartPrint(order)}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
+                              title={order.status === 'completed' ? 'Print Bill' : 'Print KOT'}
+                              disabled={printingOrderId === order.id}
+                            >
+                              {printingOrderId === order.id ? <FaSpinner className="animate-spin" /> : <FaPrint />}
+                              {printingOrderId === order.id ? 'Sending...' : (order.status === 'completed' ? 'Print Bill' : 'Print KOT')}
+                            </button>
+                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                              <button
+                                onClick={() => handleCancelOrder(order.id)}
+                                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1.5"
+                              >
+                                <FaTimesCircle /> {t('orderHistory.cancel')}
+                              </button>
+                            )}
+                            {order.status !== 'deleted' && (
+                              <button
+                                onClick={() => handleEditOrder(order.id)}
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
+                              >
+                                <FaEdit /> {t('orderHistory.edit')}
+                              </button>
+                            )}
+                            {order.status !== 'deleted' && (
+                              <button
+                                onClick={() => handleDeleteOrder(order.id)}
+                                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 transition-all flex items-center gap-1.5"
+                                title={t('common.delete') || 'Delete order'}
+                              >
+                                <FaTrash /> {t('common.delete') || 'Delete'}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
