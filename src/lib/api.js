@@ -1135,9 +1135,10 @@ class ApiClient {
     return this.request(`/api/google-reviews/review-link/${restaurantId}${params}`);
   }
 
-  async deleteOrder(orderId) {
+  async deleteOrder(orderId, reason) {
     return this.request(`/api/orders/${orderId}`, {
       method: 'DELETE',
+      body: JSON.stringify({ reason: reason || undefined }),
     });
   }
 

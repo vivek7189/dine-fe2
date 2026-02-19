@@ -54,6 +54,9 @@ const KitchenOrderTicket = () => {
   const [notification, setNotification] = useState({ show: false });
   const [isPollingActive, setIsPollingActive] = useState(false);
   const [pollCount, setPollCount] = useState(0);
+  const [deleteModal, setDeleteModal] = useState({ show: false, orderId: null, kotId: null });
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deletingOrderId, setDeletingOrderId] = useState(null);
 
   // Load restaurant and KOT data
   const loadKotData = useCallback(async (showSpinner = true, useCache = true) => {
@@ -571,24 +574,38 @@ const KitchenOrderTicket = () => {
     }
   };
 
-  const deleteOrder = async (orderId, kotId) => {
-    if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
-      return;
-    }
-    
+  const openDeleteModal = (orderId, kotId) => {
+    setDeleteModal({ show: true, orderId, kotId });
+    setDeleteReason('');
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ show: false, orderId: null, kotId: null });
+    setDeleteReason('');
+  };
+
+  const confirmDeleteOrder = async () => {
+    const { orderId, kotId } = deleteModal;
+    closeDeleteModal();
+    setDeletingOrderId(orderId);
+
     try {
-      await apiClient.deleteOrder(orderId);
-      
+      await apiClient.deleteOrder(orderId, deleteReason.trim() || undefined);
+
       // Remove from local state
-      setKotOrders(prev => prev.filter(order => order.id !== kotId));
-      
-      // Close modal if this order was selected
-      if (selectedKot && selectedKot.id === kotId) {
+      setKotOrders(prev => prev.filter(order => order.id !== orderId));
+
+      // Close detail modal if this order was selected
+      if (selectedKot && selectedKot.id === orderId) {
         setSelectedKot(null);
       }
+
+      setNotification({ show: true, type: 'success', message: 'Order deleted successfully' });
     } catch (error) {
       console.error('Error deleting order:', error);
       setError(error.message || 'Failed to delete order');
+    } finally {
+      setDeletingOrderId(null);
     }
   };
 
@@ -1860,29 +1877,31 @@ const KitchenOrderTicket = () => {
                       {/* Delete button - only for admin/owner */}
                       {(userRole === 'admin' || userRole === 'owner') && (
                         <button
-                          onClick={() => deleteOrder(kot.id, kot.id)}
+                          onClick={() => openDeleteModal(kot.id, kot.kotId)}
+                          disabled={deletingOrderId === kot.id}
                           style={{
-                            backgroundColor: '#dc2626',
+                            backgroundColor: deletingOrderId === kot.id ? '#f87171' : '#dc2626',
                             color: 'white',
                             padding: '6px 8px',
                             borderRadius: '6px',
                             fontWeight: '500',
                             border: 'none',
-                            cursor: 'pointer',
+                            cursor: deletingOrderId === kot.id ? 'not-allowed' : 'pointer',
                             transition: 'all 0.2s',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '11px'
+                            fontSize: '11px',
+                            opacity: deletingOrderId === kot.id ? 0.7 : 1
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#b91c1c';
+                            if (deletingOrderId !== kot.id) e.target.style.backgroundColor = '#b91c1c';
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#dc2626';
+                            if (deletingOrderId !== kot.id) e.target.style.backgroundColor = '#dc2626';
                           }}
                         >
-                          <FaTrash size={10} />
+                          {deletingOrderId === kot.id ? <FaSpinner size={10} className="animate-spin" /> : <FaTrash size={10} />}
                         </button>
                       )}
                     </div>
@@ -2371,6 +2390,138 @@ const KitchenOrderTicket = () => {
         </div>
       )}
       
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: isClient && isMobile ? 'flex-end' : 'center',
+          justifyContent: 'center',
+          zIndex: 60,
+          padding: isClient && isMobile ? '0' : '16px'
+        }} onClick={(e) => { if (e.target === e.currentTarget) closeDeleteModal(); }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: isClient && isMobile ? '20px 20px 0 0' : '16px',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            width: '100%',
+            maxWidth: '420px',
+            overflow: 'hidden'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '20px 24px 16px',
+              borderBottom: '1px solid #fee2e2',
+              background: 'linear-gradient(135deg, #fef2f2, #fee2e2)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: '#dc2626',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FaTrash color="white" size={16} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#991b1b' }}>Delete Order</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', marginTop: '2px' }}>This action cannot be undone</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '20px 24px' }}>
+              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#4b5563', lineHeight: '1.5' }}>
+                Are you sure you want to delete order <strong style={{ color: '#1f2937' }}>#{deleteModal.orderId?.slice(-6)?.toUpperCase()}</strong>? The order will be permanently removed from the kitchen queue.
+              </p>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Reason for deletion <span style={{ color: '#9ca3af', fontWeight: '400' }}>(optional)</span>
+                </label>
+                <textarea
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="e.g. Customer changed their mind, duplicate order..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: '#1f2937',
+                    resize: 'vertical',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#f87171'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; }}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={closeDeleteModal}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.target.style.backgroundColor = '#f9fafb'; }}
+                onMouseLeave={(e) => { e.target.style.backgroundColor = 'white'; }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteOrder}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                onMouseEnter={(e) => { e.target.style.backgroundColor = '#b91c1c'; }}
+                onMouseLeave={(e) => { e.target.style.backgroundColor = '#dc2626'; }}
+              >
+                <FaTrash size={12} />
+                Delete Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Notification for copy feedback */}
       <Notification
         show={notification.show}
