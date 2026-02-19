@@ -2011,8 +2011,8 @@ const Admin = () => {
     try {
       setLoading(true);
       const updatedData = { isAvailable: !currentStatus };
-      await apiClient.updateMenuItem(itemId, updatedData);
-      setMenuItems(items => items.map(item => 
+      await apiClient.updateMenuItem(itemId, updatedData, selectedRestaurant?.id);
+      setMenuItems(items => items.map(item =>
         item.id === itemId ? { ...item, isAvailable: !currentStatus } : item
       ));
     } catch (error) {
@@ -2028,7 +2028,7 @@ const Admin = () => {
 
     try {
       setLoading(true);
-      await apiClient.deleteMenuItem(itemId);
+      await apiClient.deleteMenuItem(itemId, selectedRestaurant?.id);
       setMenuItems(items => items.filter(item => item.id !== itemId));
     } catch (error) {
       console.error('Error deleting menu item:', error);

@@ -1807,7 +1807,7 @@ const MenuManagement = () => {
 
       if (editingItem) {
         // Update existing item
-        await apiClient.updateMenuItem(editingItem.id, itemData);
+        await apiClient.updateMenuItem(editingItem.id, itemData, currentRestaurant?.id);
         setMenuItems(items => items.map(item => 
           item.id === editingItem.id ? { ...itemData, id: editingItem.id } : item
         ));
@@ -1841,7 +1841,7 @@ const MenuManagement = () => {
         if (formData.tempImages && formData.tempImages.length > 0) {
           try {
             const files = formData.tempImages.map(temp => temp.file);
-            const uploadResponse = await apiClient.uploadMenuItemImages(newItem.id, files);
+            const uploadResponse = await apiClient.uploadMenuItemImages(newItem.id, files, currentRestaurant?.id);
             
             if (uploadResponse.success) {
               // Update the new item with uploaded images
@@ -1939,7 +1939,7 @@ const MenuManagement = () => {
 
     try {
       setOperationLoading(true);
-      await apiClient.deleteMenuItem(itemId);
+      await apiClient.deleteMenuItem(itemId, currentRestaurant?.id);
       setMenuItems(items => items.filter(item => item.id !== itemId));
     } catch (error) {
       console.error('Error deleting menu item:', error);
@@ -2035,7 +2035,7 @@ const MenuManagement = () => {
     try {
       setOperationLoading(true);
       const updatedData = { isAvailable: !currentStatus };
-      await apiClient.updateMenuItem(itemId, updatedData);
+      await apiClient.updateMenuItem(itemId, updatedData, currentRestaurant?.id);
       setMenuItems(items => items.map(item => 
         item.id === itemId ? { ...item, isAvailable: !currentStatus } : item
       ));
@@ -2155,7 +2155,7 @@ const MenuManagement = () => {
       }
 
       // For existing items, use the existing API
-      const response = await apiClient.uploadMenuItemImages(editingItem.id, files);
+      const response = await apiClient.uploadMenuItemImages(editingItem.id, files, currentRestaurant?.id);
       
       if (response.success) {
         // Update form data with new images
@@ -2206,7 +2206,7 @@ const MenuManagement = () => {
       }
 
       // For existing items, call the API to delete
-      const response = await apiClient.deleteMenuItemImage(editingItem.id, imageIndex);
+      const response = await apiClient.deleteMenuItemImage(editingItem.id, imageIndex, currentRestaurant?.id);
       
       if (response.success) {
         // Update form data

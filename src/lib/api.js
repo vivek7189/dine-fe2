@@ -601,15 +601,17 @@ class ApiClient {
     });
   }
 
-  async updateMenuItem(itemId, updateData) {
-    return this.request(`/api/menus/item/${itemId}`, {
+  async updateMenuItem(itemId, updateData, restaurantId) {
+    const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
+    return this.request(`/api/menus/item/${itemId}${query}`, {
       method: 'PATCH',
       body: updateData,
     });
   }
 
-  async deleteMenuItem(itemId) {
-    return this.request(`/api/menus/item/${itemId}`, {
+  async deleteMenuItem(itemId, restaurantId) {
+    const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
+    return this.request(`/api/menus/item/${itemId}${query}`, {
       method: 'DELETE',
     });
   }
@@ -1708,21 +1710,23 @@ class ApiClient {
   }
 
   // Menu item image management
-  async uploadMenuItemImages(itemId, files) {
+  async uploadMenuItemImages(itemId, files, restaurantId) {
     const formData = new FormData();
     files.forEach((file, index) => {
       formData.append('images', file);
     });
+    const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
 
-    return this.request(`/api/menu-items/${itemId}/images`, {
+    return this.request(`/api/menu-items/${itemId}/images${query}`, {
       method: 'POST',
       body: formData
       // Don't set headers - let request method handle auth and Content-Type
     });
   }
 
-  async deleteMenuItemImage(itemId, imageIndex) {
-    return this.request(`/api/menu-items/${itemId}/images/${imageIndex}`, {
+  async deleteMenuItemImage(itemId, imageIndex, restaurantId) {
+    const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
+    return this.request(`/api/menu-items/${itemId}/images/${imageIndex}${query}`, {
       method: 'DELETE'
     });
   }
