@@ -188,13 +188,14 @@ const OrderHistory = () => {
     );
     if (isStaff) {
       const rawName = staff.waiterName || staff.name || null;
-      const genericNames = ['Customer Self-Order', 'Staff Member', 'Staff', 'staff'];
+      const genericNames = ['Customer Self-Order', 'Staff Member', 'Staff', 'staff', 'Restaurant Owner'];
       const hasRealName = rawName && !genericNames.includes(rawName);
+      const phone = staff.phone || null;
       const loginId = staff.loginId || null;
       const staffId = staff.waiterId || staff.id || staff.userId || null;
-      const display = hasRealName ? rawName : (loginId || (staffId ? staffId.slice(-6) : null));
-      const role = staff.role && staff.role !== 'waiter' ? staff.role : null;
-      const parts = [role || 'Staff', display].filter(Boolean).join(' · ');
+      const display = hasRealName ? rawName : (phone || loginId || (staffId ? staffId.slice(-6) : null));
+      const roleLabel = staff.role === 'owner' ? 'Owner' : (staff.role === 'admin' ? 'Admin' : 'Staff');
+      const parts = [roleLabel, display].filter(Boolean).join(' · ');
       return { label: parts, className: 'bg-slate-100 text-slate-700 border-slate-300' };
     }
     // Explicit source or inferred from notes (legacy orders from public online page)

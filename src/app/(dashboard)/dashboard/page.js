@@ -2232,10 +2232,11 @@ function RestaurantPOSContent() {
         paymentMethod,
           status: 'completed', // Set status to completed since payment is processed immediately
         staffInfo: {
-            userId: currentUser.id,
-          name: currentUser.name || 'Staff',
-            loginId: currentUser.loginId || currentUser.id,
-          role: currentUser.role || 'waiter'
+            userId: currentUser?.id || null,
+          name: currentUser?.name || 'Staff',
+            loginId: currentUser?.loginId || currentUser?.phone || currentUser?.id || null,
+            phone: currentUser?.phone || null,
+          role: currentUser?.role || 'waiter'
         },
         items: cart.map(item => ({
           menuItemId: item.id,
@@ -2606,10 +2607,16 @@ function RestaurantPOSContent() {
         },
         orderType,
         paymentMethod,
-        staffInfo: {
-          name: 'Staff Member',
-          id: 'staff-001'
-        },
+        staffInfo: (() => {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          return {
+            userId: u.id || null,
+            name: u.name || 'Staff',
+            loginId: u.loginId || u.phone || u.id || null,
+            phone: u.phone || null,
+            role: u.role || 'waiter'
+          };
+        })(),
         // Tax information from OrderSummary
         totalAmount: subtotal || getTotalAmount(),
         taxBreakdown: taxBreakdown,
@@ -2838,10 +2845,16 @@ function RestaurantPOSContent() {
           },
           orderType,
           paymentMethod,
-          staffInfo: {
-            name: 'Staff Member',
-            id: 'staff-001'
-          },
+          staffInfo: (() => {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            return {
+              userId: u.id || null,
+              name: u.name || 'Staff',
+              loginId: u.loginId || u.phone || u.id || null,
+              phone: u.phone || null,
+              role: u.role || 'waiter'
+            };
+          })(),
           // Tax information from OrderSummary
           totalAmount: subtotal || getTotalAmount(),
           taxBreakdown: taxBreakdown,
