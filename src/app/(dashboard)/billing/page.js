@@ -15,7 +15,9 @@ import {
   FaSpinner,
   FaClock,
   FaExclamationTriangle,
-  FaFire
+  FaFire,
+  FaTimes,
+  FaHistory
 } from 'react-icons/fa';
 
 function BillingContent() {
@@ -32,6 +34,13 @@ function BillingContent() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [pendingPlan, setPendingPlan] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [billingHistory, setBillingHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+  const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_live_lMZVjvewP7tKIL';
 
   // Calculate trial days remaining
   const calculateTrialDays = (startDate) => {
@@ -52,8 +61,6 @@ function BillingContent() {
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
-
-    // Always default to USD, user can switch to INR if needed
     setCurrency('USD');
 
     return () => window.removeEventListener('resize', checkMobile);
@@ -61,13 +68,66 @@ function BillingContent() {
 
   // Check for payment return from Dodo
   useEffect(() => {
+    const subscriptionId = searchParams.get('subscription_id');
+    const status = searchParams.get('status');
     const paymentStatus = searchParams.get('payment');
-    if (paymentStatus === 'success') {
-      showNotification('success', 'Payment initiated! Your subscription will be activated shortly.');
+
+    if (subscriptionId && user) {
+      // Verify session with backend
+      verifyDodoSession(subscriptionId, status);
       // Clean URL
       window.history.replaceState({}, '', '/billing');
+    } else if (paymentStatus === 'success') {
+      showNotification('success', 'Payment initiated! Your subscription will be activated shortly.');
+      window.history.replaceState({}, '', '/billing');
     }
-  }, [searchParams]);
+  }, [searchParams, user]);
+
+  // Verify Dodo session after redirect
+  const verifyDodoSession = async (subscriptionId, status) => {
+    try {
+      const userId = user?.uid || user?.id;
+      if (!userId) return;
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/dodo-payments/verify-session?subscription_id=${subscriptionId}&status=${status || ''}&userId=${userId}`
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.status === 'active') {
+        showNotification('success', data.message || 'Subscription activated!');
+        // Reload to get fresh data
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showNotification('info', 'Payment processing... Your plan will update shortly.');
+        // Try sync as fallback
+        setTimeout(() => syncSubscription(userId), 3000);
+      }
+    } catch (error) {
+      console.error('Verify session error:', error);
+      showNotification('info', 'Verifying payment... Please wait.');
+    }
+  };
+
+  // Sync subscription (restore purchase)
+  const syncSubscription = async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/dodo-payments/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+
+      const data = await response.json();
+      if (data.success && data.synced) {
+        showNotification('success', data.message || 'Subscription restored!');
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+    }
+  };
 
   // Indian plans (Razorpay)
   const indianPlanData = {
@@ -187,7 +247,7 @@ function BillingContent() {
         name: 'Blaze',
         price: 89,
         period: 'month',
-        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_BLAZE || 'pdt_0NYkVvCPauMPQSMaIzqTS',
+        productId: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_BLAZE || process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_FLAME || 'pdt_0NYkVvCPauMPQSMaIzqTS',
         description: 'For restaurant chains',
         popular: false,
         features: [
@@ -213,7 +273,7 @@ function BillingContent() {
         if (userData) {
           const parsedUser = JSON.parse(userData);
 
-          // Check if user is owner/admin - only they can access billing
+          // Check if user is owner/admin
           if (parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
             showNotification('error', 'Access denied. Only owners can access billing.');
             router.push('/dashboard');
@@ -222,21 +282,19 @@ function BillingContent() {
 
           setUser(parsedUser);
 
-          // Fetch subscription data from backend (only for owners/admins)
+          // Fetch subscription data from backend
           if (parsedUser.uid || parsedUser.id) {
             try {
-              const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
               showNotification('info', 'Loading billing information...');
+              const userId = parsedUser.uid || parsedUser.id;
 
-              // First try to get existing subscription
-              console.log('Fetching subscription for user:', parsedUser.uid || parsedUser.id);
-              const response = await fetch(`${API_BASE_URL}/api/payments/subscription/${parsedUser.uid || parsedUser.id}`);
+              console.log('Fetching subscription for user:', userId);
+              const response = await fetch(`${API_BASE_URL}/api/payments/subscription/${userId}`);
 
               if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.subscription) {
                   const sub = data.subscription;
-                  // Use trial info from backend
                   const isTrial = sub.isTrial || sub.planId === 'free-trial' || sub.planName === 'Free Trial' || sub.amount === 0;
                   const planName = isTrial ? 'Free Trial' : (sub.planName || 'Free Trial');
 
@@ -251,22 +309,26 @@ function BillingContent() {
                     amount: isTrial ? 0 : (sub.amount || 0),
                     currency: sub.currency || 'USD',
                     paymentGateway: sub.paymentGateway || 'dodo',
-                    isTrial
+                    dodoSubscriptionId: sub.dodoSubscriptionId || null,
+                    isTrial,
+                    cancelledAt: sub.cancelledAt || null,
                   });
 
-                  // Use trial info from backend (already calculated)
                   if (isTrial) {
                     setTrialInfo({
                       daysLeft: sub.trialDaysRemaining ?? sub.daysRemaining ?? calculateTrialDays(sub.trialStartDate || sub.startDate).daysLeft,
                       isExpired: sub.trialIsExpired ?? false
                     });
+
+                    // Auto-sync for free/trial users with Dodo
+                    syncSubscription(userId);
                   }
                   showNotification('success', 'Billing information loaded!');
                 } else {
                   throw new Error('No subscription data');
                 }
               } else if (response.status === 404) {
-                // User doesn't exist in billing DB - create them once
+                // User doesn't exist in billing DB - create them
                 console.log('User not found in billing DB, creating new billing user');
                 showNotification('info', 'Setting up your billing account...');
 
@@ -305,7 +367,6 @@ function BillingContent() {
                       paymentGateway: 'dodo',
                       isTrial: true
                     });
-                    // Use trial days from backend or default to 30
                     setTrialInfo({
                       daysLeft: sub.trialDays || 30,
                       isExpired: false
@@ -323,13 +384,15 @@ function BillingContent() {
               showNotification('error', 'Error loading billing information');
               setCurrentSubscription({
                 plan: 'Free Trial',
+                planId: 'free-trial',
                 status: 'active',
                 nextBillingDate: null,
                 lastPaymentDate: null,
                 trialStartDate: new Date().toISOString(),
                 amount: 0,
                 currency: 'USD',
-                paymentGateway: 'dodo'
+                paymentGateway: 'dodo',
+                isTrial: true
               });
               setTrialInfo({ daysLeft: 30, isExpired: false });
             }
@@ -346,7 +409,7 @@ function BillingContent() {
     loadUserData();
   }, []);
 
-  // Listen for restaurant changes from navigation
+  // Listen for restaurant changes
   useEffect(() => {
     const handleRestaurantChange = (event) => {
       console.log('Billing page: Restaurant changed', event.detail);
@@ -354,31 +417,20 @@ function BillingContent() {
     };
 
     window.addEventListener('restaurantChanged', handleRestaurantChange);
-
-    return () => {
-      window.removeEventListener('restaurantChanged', handleRestaurantChange);
-    };
+    return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, []);
 
   const formatCurrency = (amount, curr = currency) => {
-    if (curr === 'INR') {
-      return `₹${amount.toLocaleString()}`;
-    } else if (curr === 'GBP') {
-      return `£${amount}`;
-    } else {
-      return `$${amount}`;
-    }
+    if (curr === 'INR') return `\u20B9${amount.toLocaleString()}`;
+    if (curr === 'GBP') return `\u00A3${amount}`;
+    return `$${amount}`;
   };
 
   const formatDate = (dateString) => {
     if (!dateString || dateString === 'NA') return 'NA';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      });
+      return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     } catch (error) {
       return dateString;
     }
@@ -389,40 +441,34 @@ function BillingContent() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Email validation helper
   const isValidEmail = (email) => {
     if (!email || typeof email !== 'string') return false;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email.trim());
   };
 
-  // Handle Dodo Payments checkout (international)
+  // ── Handle Dodo Payments checkout (international) ──
   const handleDodoPayment = async (plan) => {
     if (!user) {
       showNotification('error', 'User data not available');
       return;
     }
 
-    // Check if user has a valid email
     if (!isValidEmail(user.email)) {
-      // Show email collection modal
       setPendingPlan(plan);
       setEmailInput('');
       setShowEmailModal(true);
       return;
     }
 
-    // Proceed with payment using user's email
     await proceedWithDodoPayment(plan, user.email);
   };
 
-  // Proceed with Dodo payment (called after email is confirmed)
   const proceedWithDodoPayment = async (plan, email) => {
     try {
       setPaymentProcessing(true);
       setShowEmailModal(false);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const userName = user.displayName || user.name || 'Customer';
 
       console.log('Dodo Payment - Creating checkout for:', { plan: plan.name, productId: plan.productId, email });
@@ -436,7 +482,6 @@ function BillingContent() {
           userId: user.uid || user.id,
           email: email,
           name: userName,
-          returnUrl: `${window.location.origin}/billing?payment=success`
         })
       });
 
@@ -448,7 +493,6 @@ function BillingContent() {
       const data = await response.json();
 
       if (data.success && data.checkoutUrl) {
-        // Redirect to Dodo hosted checkout
         window.location.href = data.checkoutUrl;
       } else {
         throw new Error('No checkout URL received');
@@ -456,13 +500,12 @@ function BillingContent() {
 
     } catch (error) {
       console.error('Dodo payment error:', error);
-      showNotification('error', 'Payment initialization failed. Please try again.');
+      showNotification('error', error.message || 'Payment initialization failed. Please try again.');
     } finally {
       setPaymentProcessing(false);
     }
   };
 
-  // Handle email modal submission
   const handleEmailSubmit = () => {
     if (pendingPlan) {
       const emailToUse = isValidEmail(emailInput)
@@ -472,7 +515,6 @@ function BillingContent() {
     }
   };
 
-  // Handle skip email (use generated email)
   const handleSkipEmail = () => {
     if (pendingPlan) {
       const generatedEmail = `${user.uid || user.id}@customers.dineopen.app`;
@@ -480,7 +522,7 @@ function BillingContent() {
     }
   };
 
-  // Handle Razorpay payment (Indian)
+  // ── Handle Razorpay payment (Indian) ──
   const handleRazorpayPayment = async (plan) => {
     try {
       setPaymentProcessing(true);
@@ -490,9 +532,6 @@ function BillingContent() {
         return;
       }
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-
-      // If free-trial plan, just update subscription without payment
       if (plan.id === 'free-trial' || plan.price === 0) {
         try {
           const response = await fetch(`${API_BASE_URL}/api/payments/update-subscription`, {
@@ -509,15 +548,6 @@ function BillingContent() {
 
           if (data.success) {
             showNotification('success', 'Free Trial plan activated successfully!');
-            setCurrentSubscription({
-              plan: 'Free Trial',
-              status: 'active',
-              nextBillingDate: null,
-              lastPaymentDate: new Date().toISOString(),
-              amount: 0,
-              currency: currency,
-              paymentGateway: 'razorpay'
-            });
             setTimeout(() => window.location.reload(), 2000);
           } else {
             showNotification('error', 'Failed to activate Free Trial plan');
@@ -531,16 +561,12 @@ function BillingContent() {
         return;
       }
 
-      // For paid plans, proceed with Razorpay payment
       if (!window.Razorpay) {
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
         document.body.appendChild(script);
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-        });
+        await new Promise((resolve) => { script.onload = resolve; });
       }
 
       const userEmail = user.email || user.phoneNumber || user.phone || `user-${user.uid || user.id}@example.com`;
@@ -574,7 +600,7 @@ function BillingContent() {
       const orderData = await orderResponse.json();
 
       const options = {
-        key: 'rzp_live_lMZVjvewP7tKIL',
+        key: RAZORPAY_KEY,
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: 'DineOpen',
@@ -585,9 +611,7 @@ function BillingContent() {
           email: user.email || user.phoneNumber || '',
           contact: user.phoneNumber || ''
         },
-        theme: {
-          color: '#ef4444'
-        },
+        theme: { color: '#ef4444' },
         handler: function (response) {
           verifyPayment({
             razorpay_payment_id: response.razorpay_payment_id,
@@ -600,7 +624,7 @@ function BillingContent() {
       };
 
       const razorpay = new window.Razorpay(options);
-      razorpay.on('payment.failed', function (response) {
+      razorpay.on('payment.failed', function () {
         showNotification('error', 'Payment failed. Please try again.');
       });
       razorpay.open();
@@ -613,7 +637,6 @@ function BillingContent() {
     }
   };
 
-  // Unified payment handler - based on selected currency
   const handlePayment = async (plan) => {
     if (currency === 'INR') {
       await handleRazorpayPayment(plan);
@@ -626,8 +649,6 @@ function BillingContent() {
     try {
       setPaymentProcessing(true);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-
       const response = await fetch(`${API_BASE_URL}/api/payments/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -638,18 +659,6 @@ function BillingContent() {
 
       if (data.success) {
         showNotification('success', 'Payment successful! Your plan has been upgraded.');
-
-        const plan = currentPlans.find(p => p.id === paymentData.planId);
-        setCurrentSubscription({
-          plan: plan?.name || 'Professional',
-          status: 'active',
-          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          lastPaymentDate: new Date().toISOString(),
-          amount: plan?.price || 2499,
-          currency: currency,
-          paymentGateway: 'razorpay'
-        });
-
         setTimeout(() => window.location.reload(), 2000);
       } else {
         showNotification('error', 'Payment verification failed');
@@ -662,26 +671,110 @@ function BillingContent() {
     }
   };
 
-  // Determine which plans to show based on currency
-  const currentPlans = (() => {
-    if (currency === 'INR') {
-      return indianPlanData.INR;
+  // ── Cancel Subscription ──
+  const handleCancelSubscription = async () => {
+    try {
+      setCancelling(true);
+      const userId = user?.uid || user?.id;
+
+      // Cancel on Dodo if it's a Dodo subscription
+      if (currentSubscription?.paymentGateway === 'dodo') {
+        const response = await fetch(`${API_BASE_URL}/api/dodo-payments/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          showNotification('success', data.message || 'Subscription cancelled.');
+          setShowCancelModal(false);
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          showNotification('error', data.error || 'Failed to cancel subscription');
+        }
+      } else {
+        // For Razorpay, just update subscription to free
+        const response = await fetch(`${API_BASE_URL}/api/payments/update-subscription`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            email: user.email || '',
+            planId: 'free-trial'
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          showNotification('success', 'Subscription cancelled.');
+          setShowCancelModal(false);
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          showNotification('error', 'Failed to cancel subscription');
+        }
+      }
+    } catch (error) {
+      console.error('Cancel error:', error);
+      showNotification('error', 'Failed to cancel subscription');
+    } finally {
+      setCancelling(false);
     }
+  };
+
+  // ── Billing History ──
+  const loadBillingHistory = async () => {
+    try {
+      const userId = user?.uid || user?.id;
+      if (!userId) return;
+
+      // Load from both Razorpay and Dodo
+      const [razorpayRes, dodoRes] = await Promise.allSettled([
+        fetch(`${API_BASE_URL}/api/payments/history/${userId}`),
+        fetch(`${API_BASE_URL}/api/dodo-payments/billing-history/${userId}`),
+      ]);
+
+      const history = [];
+
+      if (razorpayRes.status === 'fulfilled' && razorpayRes.value.ok) {
+        const data = await razorpayRes.value.json();
+        if (data.success && data.data) {
+          data.data.forEach(p => history.push({ ...p, gateway: 'Razorpay' }));
+        }
+      }
+
+      if (dodoRes.status === 'fulfilled' && dodoRes.value.ok) {
+        const data = await dodoRes.value.json();
+        if (data.success && data.history) {
+          data.history.forEach(p => history.push({ ...p, gateway: 'Dodo' }));
+        }
+      }
+
+      // Sort by date
+      history.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
+
+      setBillingHistory(history);
+      setShowHistory(true);
+    } catch (error) {
+      console.error('Error loading billing history:', error);
+      showNotification('error', 'Failed to load billing history');
+    }
+  };
+
+  const currentPlans = (() => {
+    if (currency === 'INR') return indianPlanData.INR;
     return internationalPlanData.USD;
   })();
 
-  // Available currencies - USD default, INR for Indian users
   const availableCurrencies = ['USD', 'INR'];
+
+  // Is current subscription a paid plan?
+  const isPaidPlan = currentSubscription && !currentSubscription.isTrial && currentSubscription.planId !== 'free-trial' && currentSubscription.planId !== 'free' && currentSubscription.status === 'active';
 
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '60vh'
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
           <FaSpinner className="animate-spin" size={32} color="#ef4444" />
         </div>
       </div>
@@ -694,16 +787,10 @@ function BillingContent() {
       {/* Notification */}
       {notification && (
         <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 1000,
+          position: 'fixed', top: '20px', right: '20px', zIndex: 1000,
           backgroundColor: notification.type === 'success' ? '#10b981' : notification.type === 'info' ? '#3b82f6' : '#ef4444',
-          color: 'white',
-          padding: '12px 20px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-          animation: 'slideIn 0.3s ease-out'
+          color: 'white', padding: '12px 20px', borderRadius: '12px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.1)', animation: 'slideIn 0.3s ease-out'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FaCheckCircle size={16} />
@@ -715,23 +802,13 @@ function BillingContent() {
       {/* Loading Overlay */}
       {paymentProcessing && (
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div style={{
-            backgroundColor: 'white',
-            padding: '32px',
-            borderRadius: '16px',
-            textAlign: 'center',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+            backgroundColor: 'white', padding: '32px', borderRadius: '16px',
+            textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
           }}>
             <FaSpinner className="animate-spin" size={32} color="#ef4444" />
             <p style={{ marginTop: '16px', color: '#374151' }}>Processing payment...</p>
@@ -739,40 +816,82 @@ function BillingContent() {
         </div>
       )}
 
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9998, padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white', padding: '28px', borderRadius: '16px',
+            maxWidth: '420px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto 16px'
+              }}>
+                <FaExclamationTriangle size={24} color="#ef4444" />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 8px 0' }}>
+                Cancel Subscription?
+              </h3>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+                {currentSubscription?.nextBillingDate
+                  ? `You'll keep access until ${formatDate(currentSubscription.nextBillingDate)}, then downgrade to free.`
+                  : 'Your subscription will be cancelled and you\'ll be downgraded to free.'}
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px',
+                  border: '2px solid #e5e7eb', backgroundColor: 'white',
+                  color: '#6b7280', fontWeight: '600', fontSize: '14px', cursor: 'pointer'
+                }}
+              >
+                Keep Plan
+              </button>
+              <button
+                onClick={handleCancelSubscription}
+                disabled={cancelling}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px',
+                  border: 'none', backgroundColor: '#ef4444',
+                  color: 'white', fontWeight: '600', fontSize: '14px',
+                  cursor: cancelling ? 'not-allowed' : 'pointer',
+                  opacity: cancelling ? 0.7 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                }}
+              >
+                {cancelling ? <><FaSpinner className="animate-spin" size={14} /> Cancelling...</> : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Email Collection Modal */}
       {showEmailModal && (
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9998,
-          padding: '20px'
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9998, padding: '20px'
         }}>
           <div style={{
-            backgroundColor: 'white',
-            padding: '28px',
-            borderRadius: '16px',
-            maxWidth: '420px',
-            width: '100%',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            backgroundColor: 'white', padding: '28px', borderRadius: '16px',
+            maxWidth: '420px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
             position: 'relative'
           }}>
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: '#fef3c7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px'
+                width: '56px', height: '56px', borderRadius: '50%',
+                backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto 16px'
               }}>
                 <FaCreditCard size={24} color="#f59e0b" />
               </div>
@@ -791,14 +910,9 @@ function BillingContent() {
                 onChange={(e) => setEmailInput(e.target.value)}
                 placeholder="your@email.com"
                 style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  boxSizing: 'border-box'
+                  width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb',
+                  borderRadius: '10px', fontSize: '16px', outline: 'none',
+                  transition: 'border-color 0.2s', boxSizing: 'border-box'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#ef4444'}
                 onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
@@ -812,39 +926,21 @@ function BillingContent() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={handleSkipEmail}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: '2px solid #e5e7eb',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
+              <button onClick={handleSkipEmail} style={{
+                flex: 1, padding: '12px', borderRadius: '10px', border: '2px solid #e5e7eb',
+                backgroundColor: 'white', color: '#6b7280', fontWeight: '600', fontSize: '14px', cursor: 'pointer'
+              }}>
                 Skip
               </button>
               <button
                 onClick={handleEmailSubmit}
                 disabled={emailInput && !isValidEmail(emailInput)}
                 style={{
-                  flex: 2,
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: 'none',
+                  flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
                   backgroundColor: isValidEmail(emailInput) ? '#ef4444' : '#fca5a5',
-                  color: 'white',
-                  fontWeight: '600',
-                  fontSize: '14px',
+                  color: 'white', fontWeight: '600', fontSize: '14px',
                   cursor: isValidEmail(emailInput) ? 'pointer' : 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                 }}
               >
                 <FaCreditCard size={14} />
@@ -853,24 +949,77 @@ function BillingContent() {
             </div>
 
             <button
-              onClick={() => {
-                setShowEmailModal(false);
-                setPendingPlan(null);
-              }}
+              onClick={() => { setShowEmailModal(false); setPendingPlan(null); }}
               style={{
-                position: 'absolute',
-                top: '12px',
-                right: '12px',
-                background: 'none',
-                border: 'none',
-                fontSize: '20px',
-                color: '#9ca3af',
-                cursor: 'pointer',
-                padding: '4px'
+                position: 'absolute', top: '12px', right: '12px', background: 'none',
+                border: 'none', fontSize: '20px', color: '#9ca3af', cursor: 'pointer', padding: '4px'
               }}
             >
-              ×
+              &times;
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Billing History Modal */}
+      {showHistory && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9998, padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white', padding: '24px', borderRadius: '16px',
+            maxWidth: '520px', width: '100%', maxHeight: '80vh', overflow: 'auto',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)', position: 'relative'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                Billing History
+              </h3>
+              <button
+                onClick={() => setShowHistory(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', color: '#9ca3af', cursor: 'pointer' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {billingHistory.length === 0 ? (
+              <p style={{ color: '#6b7280', textAlign: 'center', padding: '20px' }}>No billing history yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {billingHistory.slice(0, 20).map((item, idx) => (
+                  <div key={idx} style={{
+                    padding: '12px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
+                        {(item.type || 'payment').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                        {formatDate(item.createdAt || item.date)} &middot; {item.gateway}
+                        {item.planId ? ` \u00B7 ${item.planId}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      {item.amount ? (
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
+                          {formatCurrency(item.amount, item.currency || 'USD')}
+                        </div>
+                      ) : null}
+                      <div style={{
+                        fontSize: '10px', fontWeight: '600',
+                        color: item.status === 'paid' || item.status === 'completed' || item.status === 'verified' ? '#10b981' : '#f59e0b'
+                      }}>
+                        {item.status || '-'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -878,18 +1027,13 @@ function BillingContent() {
       <div style={{ width: '100%', padding: '16px 20px' }}>
 
         {/* Trial Banner */}
-        {(currentSubscription?.plan === 'Free Trial' || currentSubscription?.plan?.includes('Trial')) && (
+        {(currentSubscription?.isTrial || currentSubscription?.plan === 'Free Trial') && (
           <div style={{
             backgroundColor: trialInfo.isExpired ? '#fef2f2' : '#f0fdf4',
             border: `1px solid ${trialInfo.isExpired ? '#fecaca' : '#bbf7d0'}`,
-            borderRadius: '12px',
-            padding: '12px 20px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px'
+            borderRadius: '12px', padding: '12px 20px', marginBottom: '16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {trialInfo.isExpired ? (
@@ -916,12 +1060,8 @@ function BillingContent() {
             </div>
             {!trialInfo.isExpired && (
               <div style={{
-                backgroundColor: '#dcfce7',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: '600',
-                color: '#166534'
+                backgroundColor: '#dcfce7', padding: '4px 12px', borderRadius: '20px',
+                fontSize: '12px', fontWeight: '600', color: '#166534'
               }}>
                 {Math.round((trialInfo.daysLeft / 30) * 100)}% remaining
               </div>
@@ -931,83 +1071,66 @@ function BillingContent() {
 
         {/* Current Plan Banner */}
         {(() => {
-          // Determine display plan name
           const displayPlan = currentSubscription?.plan || 'Free Trial';
-          const isTrial = displayPlan === 'Free Trial' || currentSubscription?.amount === 0;
-          const isBlaze = displayPlan.toLowerCase().includes('blaze');
+          const isTrial = currentSubscription?.isTrial || displayPlan === 'Free Trial' || currentSubscription?.amount === 0;
+          const isBlaze = displayPlan.toLowerCase().includes('blaze') || displayPlan.toLowerCase().includes('flame');
           const isSpark = displayPlan.toLowerCase().includes('spark') && !isTrial;
+          const isCancelled = currentSubscription?.cancelledAt || currentSubscription?.status === 'cancelled';
 
           return (
             <div style={{
               backgroundColor: isTrial ? '#f0fdf4' : 'white',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              marginBottom: '16px',
+              borderRadius: '12px', padding: '16px 20px', marginBottom: '16px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               border: isTrial ? '1px solid #bbf7d0' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px'
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexWrap: 'wrap', gap: '12px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
+                  width: '44px', height: '44px', borderRadius: '12px',
                   backgroundColor: isTrial ? '#dcfce7' : isBlaze ? '#fef3c7' : '#fee2e2',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
-                  {isTrial ? (
-                    <FaClock size={20} color="#16a34a" />
-                  ) : isBlaze ? (
-                    <FaFire size={20} color="#f59e0b" />
-                  ) : (
-                    <FaRocket size={20} color="#ef4444" />
-                  )}
+                  {isTrial ? <FaClock size={20} color="#16a34a" /> :
+                    isBlaze ? <FaFire size={20} color="#f59e0b" /> :
+                      <FaRocket size={20} color="#ef4444" />}
                 </div>
                 <div>
                   <div style={{
-                    fontSize: '11px',
-                    color: isTrial ? '#166534' : '#6b7280',
-                    marginBottom: '2px',
-                    fontWeight: '500',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    fontSize: '11px', color: isTrial ? '#166534' : '#6b7280',
+                    marginBottom: '2px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px'
                   }}>
-                    {isTrial ? '🎉 Active Trial' : 'Current Plan'}
+                    {isTrial ? 'Active Trial' : isCancelled ? 'Cancelled' : 'Current Plan'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{
-                      fontSize: '20px',
-                      fontWeight: '700',
-                      color: isTrial ? '#166534' : '#1f2937'
-                    }}>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: isTrial ? '#166534' : '#1f2937' }}>
                       {isTrial ? 'Free Trial' : displayPlan}
                     </span>
                     {!isTrial && currentSubscription?.amount > 0 && (
-                      <span style={{
-                        fontSize: '14px',
-                        color: '#ef4444',
-                        fontWeight: '600'
-                      }}>
+                      <span style={{ fontSize: '14px', color: '#ef4444', fontWeight: '600' }}>
                         {formatCurrency(currentSubscription.amount)}/{currentSubscription?.period || 'month'}
+                      </span>
+                    )}
+                    {isCancelled && (
+                      <span style={{
+                        backgroundColor: '#fecaca', color: '#dc2626', padding: '4px 10px',
+                        borderRadius: '12px', fontSize: '12px', fontWeight: '600'
+                      }}>
+                        Cancelled
+                      </span>
+                    )}
+                    {!isTrial && currentSubscription?.nextBillingDate && !isCancelled && (
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                        Renews {formatDate(currentSubscription.nextBillingDate)}
                       </span>
                     )}
                     {isTrial && (
                       <span style={{
                         backgroundColor: trialInfo.isExpired ? '#fecaca' : '#bbf7d0',
                         color: trialInfo.isExpired ? '#dc2626' : '#166534',
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600',
+                        display: 'flex', alignItems: 'center', gap: '4px'
                       }}>
                         {trialInfo.isExpired ? (
                           <><FaExclamationTriangle size={10} /> Expired</>
@@ -1019,34 +1142,53 @@ function BillingContent() {
                   </div>
                 </div>
               </div>
-              <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                Billing
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Billing History Button */}
+                <button
+                  onClick={loadBillingHistory}
+                  style={{
+                    padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                    backgroundColor: 'white', color: '#6b7280', fontWeight: '500',
+                    fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <FaHistory size={12} /> History
+                </button>
+                {/* Cancel Button — only for paid active plans */}
+                {isPaidPlan && !isCancelled && (
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    style={{
+                      padding: '8px 14px', borderRadius: '8px', border: '1px solid #fecaca',
+                      backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: '500',
+                      fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                    }}
+                  >
+                    <FaTimes size={12} /> Cancel Plan
+                  </button>
+                )}
+                <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                  Billing
+                </h1>
+              </div>
             </div>
           );
         })()}
 
         {/* Currency Toggle - Centered */}
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '20px'
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: '12px', marginBottom: '20px'
         }}>
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            backgroundColor: 'white',
-            padding: '6px',
-            borderRadius: '12px',
+            display: 'flex', alignItems: 'center', gap: '4px',
+            backgroundColor: 'white', padding: '6px', borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
           }}>
             {availableCurrencies.map((curr) => {
               const currencyInfo = {
-                USD: { symbol: '$', flag: '🌍', label: 'International' },
-                INR: { symbol: '₹', flag: '🇮🇳', label: 'India' }
+                USD: { symbol: '$', flag: '\uD83C\uDF0D', label: 'International' },
+                INR: { symbol: '\u20B9', flag: '\uD83C\uDDEE\uD83C\uDDF3', label: 'India' }
               };
               const info = currencyInfo[curr];
               const isActive = currency === curr;
@@ -1055,18 +1197,11 @@ function BillingContent() {
                   key={curr}
                   onClick={() => setCurrency(curr)}
                   style={{
-                    padding: '10px 24px',
-                    borderRadius: '8px',
-                    border: 'none',
+                    padding: '10px 24px', borderRadius: '8px', border: 'none',
                     backgroundColor: isActive ? '#ef4444' : 'transparent',
-                    color: isActive ? 'white' : '#6b7280',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
+                    color: isActive ? 'white' : '#6b7280', fontWeight: '600',
+                    fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', gap: '8px'
                   }}
                 >
                   <span style={{ fontSize: '18px' }}>{info.flag}</span>
@@ -1079,40 +1214,29 @@ function BillingContent() {
             })}
           </div>
 
-          {/* Payment Method Badge */}
           <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
             padding: '6px 14px',
             backgroundColor: currency === 'INR' ? '#fef3c7' : '#dbeafe',
-            borderRadius: '20px',
-            fontSize: '12px',
-            color: currency === 'INR' ? '#92400e' : '#1e40af',
-            fontWeight: '500'
+            borderRadius: '20px', fontSize: '12px',
+            color: currency === 'INR' ? '#92400e' : '#1e40af', fontWeight: '500'
           }}>
             <FaCreditCard size={12} />
             <span>{currency === 'INR' ? 'Razorpay' : 'Dodo Payments'}</span>
             <span style={{ opacity: 0.7, fontSize: '11px' }}>
-              {currency === 'USD' ? '• Cards, PayPal' : '• UPI, Cards, Netbanking'}
+              {currency === 'USD' ? '\u00B7 Cards, PayPal' : '\u00B7 UPI, Cards, Netbanking'}
             </span>
           </div>
         </div>
 
         {/* Plans Grid */}
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-          overflow: 'visible'
+          backgroundColor: 'white', borderRadius: '12px', padding: '20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'visible'
         }}>
           <h2 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#1f2937',
-            textAlign: 'center',
-            marginBottom: '20px'
+            fontSize: '18px', fontWeight: '600', color: '#1f2937',
+            textAlign: 'center', marginBottom: '20px'
           }}>
             Choose Your Plan
           </h2>
@@ -1123,32 +1247,45 @@ function BillingContent() {
             gap: '16px'
           }}>
             {currentPlans.map((plan) => {
-              // Check if this is the current plan (handle various naming)
               const currentPlanName = currentSubscription?.plan?.toLowerCase() || '';
               const currentPlanId = currentSubscription?.planId?.toLowerCase() || '';
               const planNameLower = plan.name.toLowerCase();
               const planIdLower = plan.id.toLowerCase();
 
               const isCurrentPlan =
-                // Direct name match
                 currentSubscription?.plan === plan.name ||
-                // Free Trial variations (Starter, free-trial, Free Trial, etc.)
                 ((currentPlanName === 'free trial' || currentPlanName === 'starter' ||
                   currentPlanId === 'free-trial' || currentPlanId === 'starter' ||
                   currentSubscription?.amount === 0) && planIdLower.includes('free')) ||
-                // Spark variations
                 (currentPlanName.includes('spark') && planNameLower === 'spark') ||
-                // Blaze variations
-                (currentPlanName.includes('blaze') && planNameLower === 'blaze');
+                (currentPlanName.includes('blaze') && planNameLower === 'blaze') ||
+                (currentPlanName.includes('flame') && planNameLower === 'blaze');
 
               const isPopular = plan.popular && !isCurrentPlan;
+
+              // Determine button text for upgrade/downgrade
+              let buttonText = '';
+              if (isCurrentPlan) {
+                buttonText = plan.price === 0 ? 'Currently Active' : 'Your Plan';
+              } else if (plan.price === 0) {
+                buttonText = 'Start Free Trial';
+              } else if (isPaidPlan && plan.price > 0) {
+                // If current plan price > this plan price, it's a downgrade
+                const currentAmount = currentSubscription?.amount || 0;
+                if (currentAmount > plan.price) {
+                  buttonText = `Downgrade to ${plan.name}`;
+                } else {
+                  buttonText = `Upgrade to ${plan.name}`;
+                }
+              } else {
+                buttonText = `Subscribe - ${currency === 'INR' ? 'Razorpay' : 'Dodo'}`;
+              }
 
               return (
                 <div
                   key={plan.id}
                   style={{
-                    position: 'relative',
-                    padding: '20px 16px',
+                    position: 'relative', padding: '20px 16px',
                     border: isCurrentPlan ? '2px solid #10b981' : isPopular ? '2px solid #ef4444' : '1px solid #e5e7eb',
                     borderRadius: '12px',
                     backgroundColor: isCurrentPlan ? '#f0fdf4' : 'white',
@@ -1156,49 +1293,28 @@ function BillingContent() {
                     boxShadow: isCurrentPlan ? '0 4px 12px rgba(16, 185, 129, 0.15)' : 'none'
                   }}
                 >
-                  {/* Current Plan Badge - Always show for current */}
                   {isCurrentPlan && (
                     <div style={{
-                      position: 'absolute',
-                      top: '-10px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      padding: '4px 14px',
-                      borderRadius: '12px',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      textTransform: 'uppercase',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
+                      position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: '#10b981', color: 'white', padding: '4px 14px',
+                      borderRadius: '12px', fontSize: '10px', fontWeight: '700',
+                      textTransform: 'uppercase', whiteSpace: 'nowrap',
+                      display: 'flex', alignItems: 'center', gap: '4px'
                     }}>
                       <FaCheckCircle size={10} /> Your Plan
                     </div>
                   )}
-                  {/* Popular Badge - Only if not current */}
                   {isPopular && (
                     <div style={{
-                      position: 'absolute',
-                      top: '-10px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      backgroundColor: '#ef4444',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      whiteSpace: 'nowrap'
+                      position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: '#ef4444', color: 'white', padding: '4px 12px',
+                      borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                      textTransform: 'uppercase', whiteSpace: 'nowrap'
                     }}>
                       Popular
                     </div>
                   )}
 
-                  {/* Plan Header */}
                   <div style={{ textAlign: 'center', marginBottom: '16px' }}>
                     <h3 style={{ fontSize: '18px', fontWeight: '600', color: isCurrentPlan ? '#166534' : '#1f2937', margin: '0 0 8px 0' }}>
                       {plan.name}
@@ -1211,18 +1327,12 @@ function BillingContent() {
                         </div>
                         {isCurrentPlan && (
                           <div style={{
-                            marginTop: '8px',
-                            height: '6px',
-                            backgroundColor: '#e5e7eb',
-                            borderRadius: '3px',
-                            overflow: 'hidden'
+                            marginTop: '8px', height: '6px', backgroundColor: '#e5e7eb',
+                            borderRadius: '3px', overflow: 'hidden'
                           }}>
                             <div style={{
-                              height: '100%',
-                              width: `${Math.round((trialInfo.daysLeft / 30) * 100)}%`,
-                              backgroundColor: '#10b981',
-                              borderRadius: '3px',
-                              transition: 'width 0.3s'
+                              height: '100%', width: `${Math.round((trialInfo.daysLeft / 30) * 100)}%`,
+                              backgroundColor: '#10b981', borderRadius: '3px', transition: 'width 0.3s'
                             }} />
                           </div>
                         )}
@@ -1235,14 +1345,9 @@ function BillingContent() {
                         <span style={{ fontSize: '14px', color: '#6b7280' }}>/{plan.period}</span>
                         {plan.savings && (
                           <div style={{
-                            marginTop: '4px',
-                            backgroundColor: '#dcfce7',
-                            color: '#166534',
-                            padding: '2px 8px',
-                            borderRadius: '10px',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            display: 'inline-block'
+                            marginTop: '4px', backgroundColor: '#dcfce7', color: '#166534',
+                            padding: '2px 8px', borderRadius: '10px', fontSize: '11px',
+                            fontWeight: '600', display: 'inline-block'
                           }}>
                             Save {plan.savings}
                           </div>
@@ -1252,50 +1357,33 @@ function BillingContent() {
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '8px 0 0 0' }}>{plan.description}</p>
                   </div>
 
-                  {/* Top Action Button */}
                   <button
                     onClick={() => !isCurrentPlan && handlePayment(plan)}
                     disabled={isCurrentPlan || paymentProcessing}
                     style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
+                      width: '100%', padding: '10px', borderRadius: '8px',
                       border: isCurrentPlan ? '2px solid #10b981' : 'none',
                       backgroundColor: isCurrentPlan ? '#dcfce7' : isPopular ? '#ef4444' : '#f3f4f6',
                       color: isCurrentPlan ? '#166534' : isPopular ? 'white' : '#ef4444',
-                      fontWeight: '600',
-                      fontSize: '13px',
-                      cursor: isCurrentPlan ? 'default' : 'pointer',
-                      marginBottom: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
+                      fontWeight: '600', fontSize: '13px',
+                      cursor: isCurrentPlan ? 'default' : 'pointer', marginBottom: '16px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
                   >
                     {isCurrentPlan ? (
-                      plan.price === 0 ? (
-                        <><FaCheckCircle size={12} /> Currently Active</>
-                      ) : (
-                        <><FaCheckCircle size={12} /> Your Plan</>
-                      )
+                      <><FaCheckCircle size={12} /> {buttonText}</>
                     ) : plan.price === 0 ? (
-                      <><FaRocket size={12} /> Start Free Trial</>
+                      <><FaRocket size={12} /> {buttonText}</>
                     ) : (
-                      <><FaCreditCard size={12} /> Subscribe - {currency === 'INR' ? 'Razorpay' : 'Dodo'}</>
+                      <><FaCreditCard size={12} /> {buttonText}</>
                     )}
                   </button>
 
-                  {/* Features */}
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {plan.features.slice(0, 6).map((feature, idx) => (
                       <li key={idx} style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                        padding: '4px 0',
-                        fontSize: '12px',
-                        color: '#4b5563'
+                        display: 'flex', alignItems: 'flex-start', gap: '8px',
+                        padding: '4px 0', fontSize: '12px', color: '#4b5563'
                       }}>
                         <FaCheck size={10} color="#10b981" style={{ marginTop: '3px', flexShrink: 0 }} />
                         <span>{feature}</span>
@@ -1313,12 +1401,10 @@ function BillingContent() {
           </div>
         </div>
 
-        {/* Quick Benefits - Compact */}
+        {/* Quick Benefits */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '12px',
-          marginTop: '20px'
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '12px', marginTop: '20px'
         }}>
           {[
             { icon: FaShieldAlt, text: '99.9% Uptime', color: '#10b981' },
@@ -1327,15 +1413,9 @@ function BillingContent() {
             { icon: FaFire, text: 'AI Powered', color: '#ef4444' }
           ].map((item, idx) => (
             <div key={idx} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'white',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              fontSize: '12px',
-              fontWeight: '500',
-              color: '#374151'
+              display: 'flex', alignItems: 'center', gap: '8px',
+              backgroundColor: 'white', padding: '10px 14px', borderRadius: '8px',
+              fontSize: '12px', fontWeight: '500', color: '#374151'
             }}>
               <item.icon size={14} color={item.color} />
               {item.text}
@@ -1361,17 +1441,11 @@ function BillingContent() {
   );
 }
 
-// Wrap in Suspense for useSearchParams
 export default function BillingPage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '60vh'
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
           <FaSpinner className="animate-spin" size={32} color="#ef4444" />
         </div>
       </div>
