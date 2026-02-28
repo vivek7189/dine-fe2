@@ -41,9 +41,11 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
       localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
 
       // Seed default menu & tables so user sees a populated dashboard
-      apiClient.seedDefaultMenu(response.restaurant.id).catch(err => {
+      try {
+        await apiClient.seedDefaultMenu(response.restaurant.id);
+      } catch (err) {
         console.warn('Failed to seed default menu:', err);
-      });
+      }
 
       // Auto-set currency settings based on selected country during registration
       if (selectedCountryCode) {
@@ -108,9 +110,11 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
       localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
 
       // Seed default menu & tables so user sees a populated dashboard
-      apiClient.seedDefaultMenu(response.restaurant.id).catch(err => {
+      try {
+        await apiClient.seedDefaultMenu(response.restaurant.id);
+      } catch (err) {
         console.warn('Failed to seed default menu:', err);
-      });
+      }
 
       // Auto-set currency settings based on selected country during registration
       if (selectedCountryCode) {
