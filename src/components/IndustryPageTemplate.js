@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CommonHeader from './CommonHeader';
 import Footer from './Footer';
+import InternalLinks from './InternalLinks';
 import {
   FaCheckCircle, FaArrowRight, FaPlay, FaChevronDown, FaChevronUp,
   FaUtensils, FaQrcode, FaUsers, FaBoxes, FaChartBar, FaWhatsapp, FaFileInvoice,
@@ -495,6 +496,7 @@ export default function IndustryPageTemplate({
         </div>
       </section>
 
+      <InternalLinks currentPath={`/for/${industry?.toLowerCase().replace(/\s+/g, '-')}`} variant="industry" />
       <Footer />
     </div>
   );

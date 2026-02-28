@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 
 export default function SwiggyZomatoClient() {
   const [platform, setPlatform] = useState('swiggy');
@@ -269,6 +270,7 @@ export default function SwiggyZomatoClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/tools/swiggy-zomato-calculator" variant="tool" />
       <Footer />
     </>
   );

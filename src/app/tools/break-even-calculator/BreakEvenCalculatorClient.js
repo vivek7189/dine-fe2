@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 
 export default function BreakEvenCalculatorClient() {
   const [currency, setCurrency] = useState('$');
@@ -118,6 +119,7 @@ export default function BreakEvenCalculatorClient() {
           </div>
         </div>
       </div>
+      <InternalLinks currentPath="/tools/break-even-calculator" variant="tool" />
       <Footer />
     </>
   );

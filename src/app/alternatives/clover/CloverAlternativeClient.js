@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { feature: 'Monthly Price', dineopen: '$10/month', competitor: '$14.95+/month', winner: 'dineopen' },
@@ -114,6 +115,7 @@ export default function CloverAlternativeClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/alternatives/clover" variant="alternative" />
       <Footer />
     </>
   );

@@ -61,9 +61,57 @@ export default function UKPOSPage() {
     "areaServed": { "@type": "Country", "name": "United Kingdom" },
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the best restaurant POS software in the UK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen is a top-rated restaurant EPOS for the UK, offering VAT-compliant billing, AI voice ordering with UK accent support, and Deliveroo, Just Eat, and Uber Eats integration. Plans start from just \u00a38/month."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support Deliveroo and Just Eat in the UK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen integrates directly with Deliveroo, Just Eat, and Uber Eats across all UK cities. Orders flow automatically into your EPOS, streamlining delivery management for London, Manchester, Birmingham, and beyond."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does restaurant POS cost in the UK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen restaurant EPOS starts at just \u00a38/month for UK restaurants. This includes VAT-compliant billing, QR menus, delivery integration, and AI voice ordering. No long-term contracts, cancel anytime."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support English voice ordering in the UK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen supports AI-powered voice ordering with UK English accent support, perfect for pubs, gastropubs, and restaurants. Staff can take orders hands-free during busy weekend rushes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I get a free trial of DineOpen in the UK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen offers a 30-day free trial for all UK restaurants and pubs. No credit card required. You get full access to VAT billing, delivery integrations, and AI voice ordering features."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

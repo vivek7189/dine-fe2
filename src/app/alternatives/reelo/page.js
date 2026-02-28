@@ -26,6 +26,53 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is DineOpen better than Reelo?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is a complete POS + loyalty platform, while Reelo is loyalty-only. DineOpen at ₹300/month includes POS, billing, inventory, and all loyalty features in one platform."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen have loyalty features like Reelo?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen includes loyalty points, birthday rewards, referral programs, and WhatsApp marketing — all built directly into the POS at no extra cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does DineOpen cost vs Reelo?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen costs ₹300/month for a full POS + loyalty platform. Reelo charges separately for loyalty-only features, making DineOpen a more complete and cost-effective solution."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I replace Reelo with DineOpen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen includes all of Reelo's loyalty features plus a complete POS system with billing, inventory management, and AI voice ordering in one integrated platform."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support WhatsApp marketing like Reelo?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen includes built-in WhatsApp campaigns and automated messages for customer engagement, similar to Reelo but integrated directly with your POS data."
+      }
+    }
+  ]
+};
+
 export default function ReeloAlternativePage() {
   const structuredData = {
     "@context": "https://schema.org",
@@ -37,6 +84,7 @@ export default function ReeloAlternativePage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <ReeloAlternativeClient />
     </>

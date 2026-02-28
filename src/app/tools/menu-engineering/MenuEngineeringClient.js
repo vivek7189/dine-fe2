@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 
 export default function MenuEngineeringClient() {
   const [items, setItems] = useState([
@@ -270,6 +271,7 @@ export default function MenuEngineeringClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/tools/menu-engineering" variant="tool" />
       <Footer />
     </>
   );

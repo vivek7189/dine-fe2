@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 import { FaCalculator, FaRupeeSign, FaPercent, FaChartPie, FaLightbulb, FaArrowRight } from 'react-icons/fa';
 
 export default function FoodCostCalculatorClient() {
@@ -576,6 +577,7 @@ export default function FoodCostCalculatorClient() {
         </div>
       </section>
 
+      <InternalLinks currentPath="/tools/food-cost-calculator" variant="tool" />
       <Footer />
     </div>
   );

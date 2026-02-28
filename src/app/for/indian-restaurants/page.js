@@ -19,6 +19,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS for Indian restaurants?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for Indian restaurants, offering thali combo management, tandoor order tracking, multi-language support, GST billing, and delivery integration."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support multi-language menus for Indian restaurants?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports multi-language menus so your staff and customers can view items in Hindi, English, or regional languages. Kitchen tickets can also be printed in the preferred language."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can DineOpen manage thali combos and regional cuisine menus?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen makes it easy to create thali combos, set up regional cuisine categories, and manage diverse Indian menus with customizable portion sizes and pricing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does Indian restaurant POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at $9.99/month (approximately ₹300 in India) with a free Starter plan. GST billing and multi-language support are included in all plans."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for Indian restaurants?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan with core POS features. Upgrade to paid plans for delivery integration, advanced analytics, and multi-location support."
+      }
+    }
+  ]
+};
+
 export default function IndianRestaurantsPage() {
-  return <IndianRestaurantsClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <IndianRestaurantsClient />
+    </>
+  );
 }

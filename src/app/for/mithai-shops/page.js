@@ -19,6 +19,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS for mithai shops and Indian sweet stores?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for mithai shops, offering weight-based billing, festival rush management, box and gift packing options, and GST-compliant invoicing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support weight-based billing for sweets?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports weight-based billing where you can price items per kg or per piece. It integrates with weighing scales for accurate and fast billing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can DineOpen handle festival rush at mithai shops?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen is built to handle high-volume festival rush during Diwali, Raksha Bandhan, and other occasions with fast billing, pre-packed box options, and queue management."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does mithai shop POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Weight-based billing and box packing features are included in paid plans."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for mithai shops?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan to explore core billing features. Upgrade to access weight-based billing, gift box management, and multi-location support."
+      }
+    }
+  ]
+};
+
 export default function MithaiShopsPage() {
-  return <MithaiShopsClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <MithaiShopsClient />
+    </>
+  );
 }

@@ -25,9 +25,58 @@ export default function MussooriePOSPage() {
     "offers": { "@type": "Offer", "price": "999", "priceCurrency": "INR" },
     "areaServed": { "@type": "City", "name": "Mussoorie" }
   };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the best restaurant POS software in Mussoorie?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen is the top-rated restaurant POS software in Mussoorie, offering Mall Road cafe billing, hotel restaurant management, seasonal rush handling, and valley view seating management. Plans start at ₹999/month."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen work with Zomato and Swiggy in Mussoorie?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen integrates directly with Zomato and Swiggy for Mussoorie restaurants. Orders flow automatically into your POS, perfect for Mall Road cafes and hotel restaurants."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does restaurant POS cost in Mussoorie?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen restaurant POS starts at ₹999/month for Mussoorie restaurants, including GST billing, tourist-friendly QR menus, seasonal billing management, and bakery support. All prices are GST-inclusive."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support Hindi voice ordering in Mussoorie?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen supports AI-powered voice ordering in Hindi and English, perfect for Mussoorie's hill station cafes and hotel restaurants. QR menus also serve tourists in multiple languages."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I get a free trial of DineOpen in Mussoorie?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen offers a 30-day free trial for all Mussoorie restaurants and cafes. No credit card required. Get full access to seasonal management, GST billing, and tourist-friendly features."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <MussooriePOSClient />
     </>
   );

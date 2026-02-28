@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 import { FaCalculator, FaChartLine, FaArrowRight, FaCheck } from 'react-icons/fa';
 
 export default function ROICalculatorClient() {
@@ -284,6 +285,7 @@ export default function ROICalculatorClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/tools/roi-calculator" variant="tool" />
       <Footer />
     </>
   );

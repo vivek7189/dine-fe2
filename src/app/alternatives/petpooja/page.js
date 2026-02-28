@@ -33,6 +33,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is DineOpen better than Petpooja?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers AI voice ordering and zero transaction fees compared to Petpooja's 1.5-2% fees. DineOpen starts at just ₹300/month, making it a more affordable and feature-rich alternative."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much cheaper is DineOpen vs Petpooja?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at ₹300/month compared to Petpooja's ₹1,000+/month. With zero transaction fees, restaurants save ₹50,000+ per year by switching to DineOpen."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I switch from Petpooja to DineOpen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, switching from Petpooja to DineOpen is easy with our guided migration process. You can start a free 30-day trial to test DineOpen before fully switching."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen have Zomato/Swiggy integration like Petpooja?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers direct integration with both Zomato and Swiggy, just like Petpooja. Additionally, DineOpen includes AI voice ordering that Petpooja does not offer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support GST billing like Petpooja?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen provides full GST compliance with automated tax reports. All billing and invoicing meets Indian tax requirements out of the box."
+      }
+    }
+  ]
+};
+
 export default function PetpoojaAlternativePage() {
-  return <PetpoojaAlternativeClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <PetpoojaAlternativeClient />
+    </>
+  );
 }

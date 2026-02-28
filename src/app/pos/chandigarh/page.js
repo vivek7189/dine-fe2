@@ -66,9 +66,57 @@ export default function ChandigarhPOSPage() {
     }
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the best restaurant POS software in Chandigarh?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen is the top-rated restaurant POS software in Chandigarh tricity (Chandigarh, Mohali, Panchkula), offering GST-compliant billing, bar and pub management with tab tracking, and AI voice ordering in Hindi and Punjabi. Plans start at ₹999/month."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen work with Zomato and Swiggy in Chandigarh?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen integrates directly with Zomato and Swiggy for Chandigarh tricity restaurants. Orders from Sector 17, Sector 26, Elante Mall, and Mohali flow automatically into your POS."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does restaurant POS cost in Chandigarh?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen restaurant POS starts at ₹999/month for Chandigarh restaurants, including GST billing, bar tab management, QR menus, and delivery integration. All prices are GST-inclusive."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support Punjabi voice ordering in Chandigarh?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen supports AI-powered voice ordering in Hindi, Punjabi, and English, perfect for Chandigarh's vibrant cafe and bar scene. Staff can take orders hands-free during busy weekend nights."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I get a free trial of DineOpen in Chandigarh?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen offers a 30-day free trial for all Chandigarh tricity restaurants, cafes, and bars. No credit card required. Get full access to bar management, GST billing, and delivery integrations."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

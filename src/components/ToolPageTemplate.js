@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CommonHeader from './CommonHeader';
 import Footer from './Footer';
+import InternalLinks from './InternalLinks';
 import {
   FaCheckCircle, FaArrowRight, FaPlay, FaChevronDown, FaChevronUp
 } from 'react-icons/fa';
@@ -21,7 +22,8 @@ export default function ToolPageTemplate({
   faqs,
   ctaTitle,
   ctaDescription,
-  relatedTools
+  relatedTools,
+  currentPath
 }) {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
@@ -452,6 +454,7 @@ export default function ToolPageTemplate({
         </div>
       </section>
 
+      {currentPath && <InternalLinks currentPath={currentPath} variant="tool" />}
       <Footer />
     </div>
   );

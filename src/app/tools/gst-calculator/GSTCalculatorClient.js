@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 import { FaCalculator, FaRupeeSign, FaPercent, FaReceipt, FaArrowRight, FaExchangeAlt } from 'react-icons/fa';
 
 export default function GSTCalculatorClient() {
@@ -581,6 +582,7 @@ export default function GSTCalculatorClient() {
         </div>
       </section>
 
+      <InternalLinks currentPath="/tools/gst-calculator" variant="tool" />
       <Footer />
     </div>
   );

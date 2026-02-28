@@ -109,6 +109,7 @@ export default function InvoiceGeneratorClient() {
       ctaTitle="Start Generating Invoices"
       ctaDescription="Create professional restaurant bills instantly. Free to use, GST-compliant guaranteed."
       relatedTools={relatedTools}
+      currentPath="/tools/restaurant-invoice-generator"
     />
   );
 }

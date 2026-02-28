@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 
 const nameDatabase = {
   indian: ['Spice Garden', 'Curry House', 'Tandoor Palace', 'Masala Magic', 'Saffron Kitchen', 'The Dhaba', 'Naan Stop', 'Chutney Corner', 'Biryani Express', 'Roti Grill', 'Desi Delight', 'Punjab Junction', 'Mirchi Masala', 'Thali House', 'Bombay Bites'],
@@ -209,6 +210,7 @@ export default function RestaurantNameGeneratorClient() {
           </div>
         </div>
       </div>
+      <InternalLinks currentPath="/tools/restaurant-name-generator" variant="tool" />
       <Footer />
     </>
   );

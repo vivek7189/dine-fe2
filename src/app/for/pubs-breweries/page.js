@@ -17,6 +17,58 @@ export const metadata = {
   alternates: { canonical: 'https://www.dineopen.com/for/pubs-breweries' },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS for pubs and microbreweries?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for pubs and microbreweries, offering tab management, happy hour pricing, keg tracking, liquor inventory management, and age verification support."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support keg tracking for microbreweries?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen tracks keg levels, pour counts, and batch information for craft beer. You get real-time visibility into remaining stock and can set low-level alerts."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can DineOpen manage happy hour pricing automatically?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports automatic happy hour pricing with scheduled time slots. Prices adjust automatically during happy hours and revert back when the period ends."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does pub and brewery POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Tab management, happy hour pricing, and keg tracking are included in paid plans."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for pubs and breweries?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan to explore core features. Upgrade to access keg tracking, happy hour automation, and detailed beverage analytics."
+      }
+    }
+  ]
+};
+
 export default function PubsBreweriesPage() {
-  return <PubsBreweriesClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <PubsBreweriesClient />
+    </>
+  );
 }

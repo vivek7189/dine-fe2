@@ -19,6 +19,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS software for bars and pubs?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for bars and pubs, offering tab management, happy hour pricing, split billing, and liquor inventory tracking tailored for nightlife businesses."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support bar tab management?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen lets you open tabs for customers, add orders throughout the night, and close tabs with split bill options. It simplifies bar operations during peak hours."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can DineOpen handle liquor inventory tracking?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen provides detailed inventory tracking for liquor, beer, and mixers with pour tracking, low stock alerts, and wastage reporting to minimize losses."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does bar POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at $9.99/month with a free Starter plan available. It includes features like happy hour pricing and tab management at no extra cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for bars?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan so you can try core POS features for your bar. Upgrade anytime to access advanced features like multi-location management."
+      }
+    }
+  ]
+};
+
 export default function BarsPubsPage() {
-  return <BarsPubsClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <BarsPubsClient />
+    </>
+  );
 }

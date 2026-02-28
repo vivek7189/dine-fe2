@@ -17,6 +17,58 @@ export const metadata = {
   alternates: { canonical: 'https://www.dineopen.com/for/tiffin-services' },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best software for tiffin services?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best software for tiffin and dabba services, offering subscription management, meal plan scheduling, delivery route planning, and automated customer billing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can DineOpen manage tiffin subscriptions and meal plans?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports daily, weekly, and monthly tiffin subscriptions. You can manage meal plans, pause and resume subscriptions, and track delivery schedules easily."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen handle delivery route planning for tiffin services?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen helps organize delivery routes for efficient tiffin distribution. You can group customers by area and optimize delivery sequences to save time."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does tiffin service software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Subscription management and delivery tracking features are included in paid plans."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for tiffin services?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan to try core features. Upgrade to access subscription management, delivery route planning, and automated billing."
+      }
+    }
+  ]
+};
+
 export default function TiffinServicesPage() {
-  return <TiffinServicesClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <TiffinServicesClient />
+    </>
+  );
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 
 export default function TipCalculatorClient() {
   const [billAmount, setBillAmount] = useState('');
@@ -182,6 +183,7 @@ export default function TipCalculatorClient() {
           </div>
         </div>
       </div>
+      <InternalLinks currentPath="/tools/tip-calculator" variant="tool" />
       <Footer />
     </>
   );

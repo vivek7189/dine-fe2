@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 import { FaCloud, FaMobileAlt, FaMicrophone, FaGlobe, FaArrowRight } from 'react-icons/fa';
 
 const comparisonData = [
@@ -176,6 +177,7 @@ export default function TouchBistroAlternativeClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/alternatives/touchbistro" variant="alternative" />
       <Footer />
     </>
   );

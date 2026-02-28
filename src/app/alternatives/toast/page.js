@@ -32,6 +32,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is DineOpen better than Toast POS?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen offers AI voice ordering and zero transaction fees compared to Toast's 2.49% + $0.15 per transaction. At $9.99/month vs Toast's $69/month, DineOpen is significantly more affordable with more advanced AI features."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much can I save switching from Toast to DineOpen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Restaurants save $7,000+ per year by switching from Toast to DineOpen. DineOpen costs $9.99/month compared to Toast's $69/month, and charges zero transaction fees."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen require proprietary hardware like Toast?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No, DineOpen works on any device including phones, tablets, and laptops. There is no hardware lock-in or expensive proprietary equipment required like with Toast."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I switch from Toast to DineOpen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, switching from Toast to DineOpen is straightforward with our easy migration process. Start with a free 30-day trial to test all features before committing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen have online ordering like Toast?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen includes built-in online ordering, QR code menus, and AI voice ordering — a feature Toast does not offer. All online ordering features are included at no extra cost."
+      }
+    }
+  ]
+};
+
 export default function ToastAlternativePage() {
-  return <ToastAlternativeClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <ToastAlternativeClient />
+    </>
+  );
 }

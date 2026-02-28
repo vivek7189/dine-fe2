@@ -19,6 +19,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS software for small restaurants in India?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for small restaurants in India, offering QR menu ordering, GST billing, UPI payments, and inventory management at an affordable price."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does restaurant POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at just $9.99/month (approximately ₹300 in India). A free Starter plan is also available for restaurants just getting started with digital billing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support QR menu and UPI payments?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports QR code menus for contactless ordering and integrates with UPI payment methods, making it easy for customers to pay digitally."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is DineOpen GST compliant for Indian restaurants?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen is fully GST compliant with automatic tax calculations, GST invoice generation, and GSTR-ready reports for hassle-free tax filing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for restaurants?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan with core POS features. You can try it risk-free and upgrade to paid plans as your restaurant business grows."
+      }
+    }
+  ]
+};
+
 export default function RestaurantsPage() {
-  return <RestaurantsClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <RestaurantsClient />
+    </>
+  );
 }

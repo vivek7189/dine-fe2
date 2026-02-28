@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { feature: 'Monthly Price', dineopen: '₹999/month', petpooja: '₹1,999+/month', winner: 'dineopen' },
@@ -181,6 +182,7 @@ export default function PetpoojaAlternativeClient() {
           <p className="text-gray-500 mt-4">Join 500+ Indian restaurants that switched to DineOpen</p>
         </div>
       </section>
+      <InternalLinks currentPath="/alternatives/petpooja" variant="alternative" />
     </div>
   );
 }

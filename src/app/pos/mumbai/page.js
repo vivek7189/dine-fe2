@@ -54,9 +54,57 @@ export default function MumbaiPOSPage() {
     "priceRange": "₹₹",
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the best restaurant POS software in Mumbai?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen is the best restaurant POS software in Mumbai, offering GST-compliant billing, Zomato and Swiggy integration, UPI payments, and AI voice ordering in Hindi and Marathi. Plans start at just ₹999/month."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen work with Zomato and Swiggy in Mumbai?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen integrates directly with Zomato and Swiggy for Mumbai restaurants. Orders from Andheri, Bandra, Colaba, and all areas flow automatically into your POS, reducing errors and speeding up delivery."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does restaurant POS cost in Mumbai?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen restaurant POS starts at ₹999/month for Mumbai restaurants, including GST billing, QR menus, and delivery integration. All prices are GST-inclusive with no hidden charges."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support Marathi voice ordering in Mumbai?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen supports AI-powered voice ordering in both Marathi and Hindi, ideal for Mumbai restaurants. Staff can take orders hands-free in their preferred language during busy hours."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I get a free trial of DineOpen in Mumbai?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen offers a 30-day free trial for all Mumbai restaurants. No credit card required. Get full access to GST billing, delivery integration, and offline mode that works even during monsoons."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

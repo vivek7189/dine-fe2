@@ -24,6 +24,53 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is DineOpen better than POSist?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen offers AI voice ordering, AI chat assistant, and menu extraction at just ₹300/month compared to POSist's ₹2,000+/month. DineOpen also has zero setup fees and instant onboarding."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much cheaper is DineOpen vs POSist?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at ₹300/month versus POSist's ₹2,000+/month. DineOpen offers instant setup compared to POSist's lengthy onboarding process, saving both time and money."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I switch from POSist to DineOpen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, switching from POSist to DineOpen is easy with our guided migration. Start a free 30-day trial to test all features before fully committing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support chain management like POSist?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen's Blaze plan supports unlimited locations with centralized management, making it ideal for restaurant chains — similar to POSist but at a lower cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen have better AI than POSist?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen includes AI voice ordering for phone orders, an AI chat assistant for staff support, and AI-powered menu extraction from images — features POSist does not offer."
+      }
+    }
+  ]
+};
+
 export default function POSistAlternativePage() {
   const structuredData = {
     "@context": "https://schema.org",
@@ -35,6 +82,7 @@ export default function POSistAlternativePage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <POSistAlternativeClient />
     </>

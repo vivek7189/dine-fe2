@@ -66,9 +66,57 @@ export default function UAEPOSPage() {
     }
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the best restaurant POS software in UAE?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen is a top-rated restaurant POS for UAE, offering VAT-compliant billing, Talabat and Deliveroo integration, multi-language support in Arabic, English, Hindi, and Urdu, and multi-currency handling. Plans start at AED 149/month."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support Talabat and Deliveroo in UAE?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen integrates directly with Talabat and Deliveroo across UAE. Orders from Dubai Marina, Downtown Dubai, Abu Dhabi Corniche, and Sharjah flow automatically into your POS."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does restaurant POS cost in UAE?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen restaurant POS starts at AED 149/month for UAE restaurants. This includes VAT-compliant billing, multi-currency support (AED, USD, INR), delivery integration, and mall food court features. No long-term contracts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support Arabic voice ordering in UAE?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen supports AI-powered voice ordering in Arabic, English, Hindi, and Urdu, perfect for UAE's diverse restaurant scene. Seamless Arabic-English menu switching serves your diverse customer base."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I get a free trial of DineOpen in UAE?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen offers a 30-day free trial for all UAE restaurants. No credit card required. Get full access to VAT billing, Talabat/Deliveroo integration, and multi-language features."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

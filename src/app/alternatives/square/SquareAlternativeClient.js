@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { feature: 'Monthly Price', dineopen: '$10/month', square: '$60+/month', winner: 'dineopen' },
@@ -138,6 +139,7 @@ export default function SquareAlternativeClient() {
           <p className="text-gray-500 mt-4">Join 500+ restaurants that switched from Square to DineOpen</p>
         </div>
       </section>
+      <InternalLinks currentPath="/alternatives/square" variant="alternative" />
     </div>
   );
 }

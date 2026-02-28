@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 import { FaCheck, FaTimes, FaArrowRight, FaDollarSign, FaMicrophone, FaGlobe, FaStore } from 'react-icons/fa';
 
 const comparisonData = [
@@ -177,6 +178,7 @@ export default function LightspeedAlternativeClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/alternatives/lightspeed" variant="alternative" />
       <Footer />
     </>
   );

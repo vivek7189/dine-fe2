@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 import { FaRupeeSign, FaMicrophone, FaHeadset, FaStore, FaArrowRight } from 'react-icons/fa';
 
 const comparisonData = [
@@ -195,6 +196,7 @@ export default function POSistAlternativeClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/alternatives/posist" variant="alternative" />
       <Footer />
     </>
   );

@@ -109,6 +109,7 @@ export default function QRMenuGeneratorClient() {
       ctaTitle="Create Your QR Menu Now"
       ctaDescription="Join thousands of restaurants using digital QR menus. Free to start, no credit card needed."
       relatedTools={relatedTools}
+      currentPath="/tools/qr-menu-generator"
     />
   );
 }

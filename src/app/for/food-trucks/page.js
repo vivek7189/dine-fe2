@@ -19,6 +19,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS for food trucks in India?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for food trucks, offering mobile billing, offline mode, QR ordering, and a compact interface that works perfectly on smartphones and tablets."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen work offline for food trucks?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen works in offline mode so you can continue billing even without stable internet. All data syncs automatically when connectivity is restored."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I use DineOpen on my phone for food truck billing?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen is fully mobile-friendly and works on any smartphone or tablet. No expensive POS hardware is needed, making it ideal for food truck operations."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does food truck POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at just $9.99/month with a free Starter plan available. No expensive hardware required since it runs on your existing phone or tablet."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for food trucks?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan with core billing features. You can start using it immediately on your phone without any upfront investment."
+      }
+    }
+  ]
+};
+
 export default function FoodTrucksPage() {
-  return <FoodTrucksClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <FoodTrucksClient />
+    </>
+  );
 }

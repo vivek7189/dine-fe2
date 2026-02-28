@@ -1,0 +1,146 @@
+# DineOpen
+
+> The Global Restaurant Operating System. Cloud POS, AI voice ordering, waiter apps, inventory management, and loyalty programs for restaurants worldwide.
+
+DineOpen is a cloud-based restaurant management platform trusted by 1000+ restaurants across 20+ countries. It provides an all-in-one solution including POS billing, AI-powered voice and chat ordering, QR code menus, kitchen display systems, table reservations, inventory tracking, delivery integrations (Zomato, Swiggy), and customer loyalty programs.
+
+## Key Facts
+
+- Founded: 2024
+- Website: https://www.dineopen.com
+- Contact: support@dineopen.com
+- Rating: 4.8/5 (1000+ reviews)
+- Countries: USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ more
+- Free Trial: 30 days, no credit card required
+- Transaction Fees: Zero (only monthly subscription)
+
+## Pricing
+
+- Spark Plan: $9.99/month (international) | ₹300/month (India) — up to 3 locations
+- Blaze Plan: $89/month — unlimited locations, centralized dashboard, cross-location analytics
+- All plans include: unlimited menu items, unlimited tables, AI Agent, POS, inventory, analytics, KDS
+
+## Core Features
+
+- Lightning-Fast Cloud POS (bill in 3 seconds)
+- AI Agent: voice ordering, chat assistant, menu extraction from images
+- Waiter & Captain App for tableside ordering
+- Online Table Reservations
+- Smart Inventory Management with auto low-stock alerts
+- Kitchen Display System (KDS)
+- AI-Powered Analytics & Reporting
+- Loyalty & Rewards Program
+- Zomato & Swiggy Integration
+- UPI, Card, PayPal payments (zero DineOpen transaction fees)
+- GST-compliant billing (India)
+- WhatsApp Marketing
+- Multi-location support
+
+## Products
+
+- [Cloud POS](https://www.dineopen.com/products/pos-software)
+- [AI Agent](https://www.dineopen.com/products/ai-agent)
+- [Waiter App](https://www.dineopen.com/products/waiter-app)
+- [Restaurant Management](https://www.dineopen.com/products/restaurant-management)
+- [Inventory Management](https://www.dineopen.com/products/inventory-management)
+- [Billing Software](https://www.dineopen.com/products/billing-software)
+- [Loyalty & Rewards](https://www.dineopen.com/products/loyalty-rewards)
+- [Hotel Management](https://www.dineopen.com/products/hotel-management)
+- [Multi-Restaurant](https://www.dineopen.com/products/multi-restaurant)
+- [Supply Management](https://www.dineopen.com/products/supply-management)
+
+## Industries Served
+
+- [Restaurants](https://www.dineopen.com/for/restaurants)
+- [Cafes](https://www.dineopen.com/for/cafes)
+- [Cloud Kitchens](https://www.dineopen.com/for/cloud-kitchens)
+- [Bars & Pubs](https://www.dineopen.com/for/bars-pubs)
+- [Bakeries](https://www.dineopen.com/for/bakeries)
+- [Hotels](https://www.dineopen.com/for/hotels)
+- [Food Trucks](https://www.dineopen.com/for/food-trucks)
+- [QSR / Fast Food](https://www.dineopen.com/for/qsr)
+- [Fine Dining](https://www.dineopen.com/for/fine-dining)
+- [Sweet Shops](https://www.dineopen.com/for/sweet-shops)
+- [Dhabas](https://www.dineopen.com/for/dhabas)
+- [Catering](https://www.dineopen.com/for/catering)
+- [Food Courts](https://www.dineopen.com/for/food-courts)
+- [Pizza Shops](https://www.dineopen.com/for/pizza-shops)
+- [Ice Cream Parlors](https://www.dineopen.com/for/ice-cream-parlors)
+- [Juice Bars](https://www.dineopen.com/for/juice-bars)
+- [Canteens](https://www.dineopen.com/for/canteens)
+
+## Free Tools
+
+- [Food Cost Calculator](https://www.dineopen.com/tools/food-cost-calculator)
+- [Break-Even Calculator](https://www.dineopen.com/tools/break-even-calculator)
+- [QR Menu Generator](https://www.dineopen.com/tools/qr-menu-generator)
+- [ROI Calculator](https://www.dineopen.com/tools/roi-calculator)
+- [Menu Engineering Tool](https://www.dineopen.com/tools/menu-engineering)
+- [Restaurant Name Generator](https://www.dineopen.com/tools/restaurant-name-generator)
+- [Tip Calculator](https://www.dineopen.com/tools/tip-calculator)
+- [GST Calculator](https://www.dineopen.com/tools/gst-calculator)
+- [Invoice Generator](https://www.dineopen.com/tools/restaurant-invoice-generator)
+- [Profit Margin Calculator](https://www.dineopen.com/tools/profit-margin-calculator)
+- [Recipe Cost Calculator](https://www.dineopen.com/tools/recipe-cost-calculator)
+- [Bill Splitter](https://www.dineopen.com/tools/bill-splitter)
+
+## Competitor Comparisons
+
+- [DineOpen vs Petpooja](https://www.dineopen.com/alternatives/petpooja)
+- [DineOpen vs Toast](https://www.dineopen.com/alternatives/toast)
+- [DineOpen vs Square](https://www.dineopen.com/alternatives/square)
+- [DineOpen vs POSist](https://www.dineopen.com/alternatives/posist)
+- [DineOpen vs Clover](https://www.dineopen.com/alternatives/clover)
+- [DineOpen vs Zomato Base](https://www.dineopen.com/alternatives/zomato-base)
+- [DineOpen vs LightSpeed](https://www.dineopen.com/alternatives/lightspeed)
+- [DineOpen vs TouchBistro](https://www.dineopen.com/alternatives/touchbistro)
+- [DineOpen vs Reelo](https://www.dineopen.com/alternatives/reelo)
+
+## Key Differentiators vs Competitors
+
+1. **AI-first**: Built-in voice ordering and AI chat assistant — competitors charge extra or don't offer it
+2. **Zero transaction fees**: Unlike Square (2.6%), Toast (2.49%), Clover (2.3%)
+3. **Lowest pricing**: $9.99/month vs Toast ($69), Square ($60), LightSpeed ($89), TouchBistro ($69)
+4. **No hardware lock-in**: Works on any device (phone, tablet, laptop) — no proprietary hardware required
+5. **Global + local**: Supports 20+ countries with localized tax, payments, and language
+
+## Integrations
+
+- [Zomato](https://www.dineopen.com/integrations/zomato)
+- [Swiggy](https://www.dineopen.com/integrations/swiggy)
+- [Razorpay](https://www.dineopen.com/integrations/razorpay)
+
+## Resources
+
+- [Pricing](https://www.dineopen.com/pricing)
+- [Blog](https://www.dineopen.com/blog)
+- [Security](https://www.dineopen.com/security)
+- [Glossary](https://www.dineopen.com/glossary)
+- [Restaurant Business Plan Guide](https://www.dineopen.com/resources/business-plan)
+- [Restaurant Startup Guide](https://www.dineopen.com/resources/startup-guide)
+- [FSSAI Registration Guide](https://www.dineopen.com/resources/fssai-guide)
+- [GST for Restaurants](https://www.dineopen.com/resources/gst-restaurants)
+
+## FAQ
+
+### What is DineOpen?
+DineOpen is a cloud-based restaurant operating system that includes POS billing, AI-powered voice and chat ordering, waiter/captain apps, table reservations, inventory management, kitchen display system, analytics, and loyalty programs. It works on any device with no hardware installation needed.
+
+### How much does DineOpen cost?
+Spark plan starts at $9.99/month (international) or ₹300/month (India). Blaze plan for chains is $89/month with unlimited locations. All plans include a 30-day free trial with no credit card required, zero transaction fees, and unlimited menu items.
+
+### What countries does DineOpen serve?
+DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. The platform is cloud-based with localized billing, tax compliance, and payment gateway support for each region.
+
+### Does DineOpen have AI features?
+Yes. DineOpen includes an AI Agent with voice ordering in local languages, AI chat assistant for customer support, AI menu extraction from images, and intelligent business analytics with actionable insights.
+
+### How does DineOpen compare to competitors?
+DineOpen offers AI-powered features (voice ordering, chat), zero transaction fees, and significantly lower pricing compared to Square ($60/mo), Toast ($69/mo), LightSpeed ($89/mo), and TouchBistro ($69/mo). It includes unlimited menu items and multi-location support on all plans.
+
+### Is DineOpen suitable for small restaurants?
+Yes. The Spark plan at $9.99/month is designed for small restaurants, cafes, and food trucks. It includes the full AI Agent, unlimited menu items, complete POS system, unlimited tables, and real-time kitchen display. No hardware purchase or technical expertise required.
+
+## Optional
+
+- [Full documentation for LLMs](https://www.dineopen.com/llms-full.txt)

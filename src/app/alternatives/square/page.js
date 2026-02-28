@@ -32,6 +32,58 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is DineOpen better than Square for restaurants?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is purpose-built for restaurants with AI voice ordering and zero transaction fees, compared to Square's 2.6% + $0.10 per transaction. DineOpen includes restaurant-specific features that Square charges extra for."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much cheaper is DineOpen vs Square?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen costs $9.99/month compared to Square's $60/month for restaurants. DineOpen also charges zero transaction fees versus Square's 2.6% + $0.10, saving restaurants thousands per year."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen have a free plan like Square?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen offers a 30-day free trial with all features included. The Spark plan at $9.99/month includes AI voice ordering and features that Square charges extra for on top of their transaction fees."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I switch from Square to DineOpen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, switching from Square to DineOpen is easy with our migration process. Start a free 30-day trial to test all features before fully switching."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support payment processing like Square?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports cards, UPI, and PayPal via Dodo Payments and Razorpay. Unlike Square, DineOpen charges zero transaction fees on its end."
+      }
+    }
+  ]
+};
+
 export default function SquareAlternativePage() {
-  return <SquareAlternativeClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <SquareAlternativeClient />
+    </>
+  );
 }

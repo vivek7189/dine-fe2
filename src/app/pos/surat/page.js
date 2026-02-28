@@ -55,9 +55,57 @@ export default function SuratPOSPage() {
     "priceRange": "₹₹",
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the best restaurant POS software in Surat?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen is the top-rated restaurant POS software in Surat, offering GST-compliant billing for Gujarat, Gujarati voice ordering, weight-based billing for farsan shops, and Zomato/Swiggy integration. Plans start at ₹999/month."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen work with Zomato and Swiggy in Surat?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen integrates directly with Zomato and Swiggy for Surat restaurants. Orders from Adajan, Vesu, Piplod, and Athwa flow automatically into your POS."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does restaurant POS cost in Surat?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen restaurant POS starts at ₹999/month for Surat restaurants, including GST billing, weight-based billing for farsan and ghari shops, QR menus, and delivery integration. All prices are GST-inclusive."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does DineOpen support Gujarati voice ordering in Surat?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen supports AI-powered voice ordering in Gujarati and English, perfect for Surat's locho shops, farsan marts, and diamond city restaurants. Gujarati menus make it easy for staff."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I get a free trial of DineOpen in Surat?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen offers a 30-day free trial for all Surat restaurants and food shops. No credit card required. Get full access to Gujarati language support, GST billing, and weight-based billing."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <CityPOSClient cityData={cityData} />
     </>
   );

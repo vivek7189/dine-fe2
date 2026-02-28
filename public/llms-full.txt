@@ -1,0 +1,425 @@
+# DineOpen — Complete Reference for AI Systems
+
+> DineOpen is the Global Restaurant Operating System. A cloud-based, AI-powered platform for restaurant POS, ordering, inventory, analytics, and loyalty — serving 1000+ restaurants across 20+ countries.
+
+---
+
+## Company Overview
+
+- **Name**: DineOpen
+- **Website**: https://www.dineopen.com
+- **Founded**: 2024
+- **Contact**: support@dineopen.com
+- **Category**: Restaurant Technology / SaaS
+- **Tagline**: The Global Restaurant Operating System
+- **Rating**: 4.8/5 based on 1000+ reviews
+- **Social Media**:
+  - Twitter: https://twitter.com/dineopenoffice
+  - LinkedIn: https://linkedin.com/company/dineopen
+  - Instagram: https://instagram.com/dineopen
+  - YouTube: https://youtube.com/@dineopen
+
+## Service Areas
+
+DineOpen operates globally with localized support in:
+- **North America**: USA, Canada
+- **Europe**: UK
+- **Asia**: India, UAE, Singapore
+- **Oceania**: Australia
+- **Other**: 20+ additional countries
+
+### India Coverage (34 Cities)
+Mumbai, Delhi, Bangalore, Chennai, Hyderabad, Pune, Kolkata, Ahmedabad, Jaipur, Lucknow, Chandigarh, Kochi, Goa, Surat, Indore, Nagpur, Coimbatore, Haridwar, Rishikesh, Dehradun, Mussoorie, Varanasi, Agra, Prayagraj, Noida, Meerut, Saharanpur, Amritsar, Shimla
+
+### India State Hubs
+Maharashtra, Karnataka, Tamil Nadu, Delhi NCR, Gujarat
+
+---
+
+## Pricing (Detailed)
+
+### International Pricing (USD)
+
+| Plan | Price | Locations | Features |
+|------|-------|-----------|----------|
+| Spark | $9.99/month | Up to 3 | Full POS, AI Agent, unlimited menus, unlimited tables, inventory, analytics, KDS, loyalty |
+| Blaze | $89/month | Unlimited | Everything in Spark + centralized dashboard, cross-location analytics, centralized menu management |
+
+### India Pricing (INR)
+
+| Plan | Price | Locations | Features |
+|------|-------|-----------|----------|
+| Spark | ₹300/month | Up to 3 | Full POS, AI Agent, unlimited menus, unlimited tables, inventory, analytics, KDS, loyalty |
+| Spark Yearly | ₹2,500/year | Up to 3 | Same as Spark monthly (save ~30%) |
+| Blaze | $89/month | Unlimited | Everything in Spark + multi-location management |
+
+### What's Included in All Plans
+- 30-day free trial (no credit card required)
+- Zero transaction fees from DineOpen
+- Unlimited menu items
+- Unlimited tables
+- AI Agent (voice + chat ordering)
+- Cloud POS
+- Waiter/Captain App
+- Kitchen Display System
+- Inventory Management
+- Analytics & Reports
+- Loyalty & Rewards
+- Online ordering integration
+
+---
+
+## Product Suite (Detailed)
+
+### 1. Cloud POS — https://www.dineopen.com/products/pos-software
+Fast, cloud-based point-of-sale system that works on any device. Generate bills in 3 seconds. Supports dine-in, takeaway, and delivery. GST-compliant billing for India. Works offline with auto-sync.
+
+### 2. AI Agent — https://www.dineopen.com/products/ai-agent
+Industry-first AI-powered ordering system:
+- **Voice Ordering**: Accept orders via voice in local languages
+- **AI Chat Assistant**: Automated customer support and ordering via chat
+- **Menu Extraction**: Upload a photo of any menu and AI digitizes it instantly
+- **Smart Analytics**: AI-generated business insights and recommendations
+
+### 3. Waiter App — https://www.dineopen.com/products/waiter-app
+Mobile app for waiters and captains:
+- Tableside order taking on phone/tablet
+- Real-time order status updates
+- Table assignment and management
+- Split bills and merge tables
+- Works on Android and iOS
+
+### 4. Restaurant Management — https://www.dineopen.com/products/restaurant-management
+Complete restaurant operations dashboard:
+- Real-time sales tracking
+- Staff performance monitoring
+- Customer insights and segmentation
+- Revenue analytics by item, category, time period
+- Multi-outlet comparison (Blaze plan)
+
+### 5. Inventory Management — https://www.dineopen.com/products/inventory-management
+Smart stock tracking:
+- Real-time stock levels
+- Auto low-stock alerts
+- Recipe-level ingredient tracking
+- Waste tracking and reporting
+- Supplier management
+- Purchase order generation
+
+### 6. Billing Software — https://www.dineopen.com/products/billing-software
+- GST-compliant invoicing (India)
+- Multiple payment method support
+- Split billing
+- Discount and coupon management
+- Daily/weekly/monthly reconciliation
+- Tax report generation
+
+### 7. Loyalty & Rewards — https://www.dineopen.com/products/loyalty-rewards
+Customer retention tools:
+- Points-based loyalty program
+- Birthday rewards automation
+- Referral program management
+- Customer segmentation
+- WhatsApp marketing campaigns
+- Visit and spend tracking
+
+### 8. Hotel Management — https://www.dineopen.com/products/hotel-management
+Extended POS for hotel F&B operations:
+- Room service integration
+- Multi-restaurant within hotel
+- Banquet and event management
+- Centralized billing
+
+### 9. Multi-Restaurant — https://www.dineopen.com/products/multi-restaurant
+For chains and franchises:
+- Centralized menu management
+- Cross-location analytics
+- Standardized operations
+- Location-wise P&L
+- Role-based access control
+
+### 10. Supply Management — https://www.dineopen.com/products/supply-management
+- Vendor management
+- Purchase order automation
+- Delivery tracking
+- Cost analysis per supplier
+- Quality tracking
+
+---
+
+## Features (Detailed Pages)
+
+### Online Ordering — https://www.dineopen.com/features/online-ordering
+Accept orders directly from your website. QR code menus for dine-in. No commission fees (unlike Zomato/Swiggy).
+
+### Kitchen Display System — https://www.dineopen.com/features/kitchen-display-system
+Digital order display for kitchen staff. Priority-based order management. Average preparation time tracking. Multi-station support.
+
+### Table Reservation — https://www.dineopen.com/features/table-reservation
+Online booking widget. Real-time table availability. Waitlist management. SMS/WhatsApp confirmation.
+
+### Staff Management — https://www.dineopen.com/features/staff-management
+Attendance tracking. Role-based permissions. Performance analytics. Shift scheduling.
+
+### WhatsApp Ordering — https://www.dineopen.com/features/whatsapp-ordering
+Accept orders via WhatsApp. Automated menu sharing. Order confirmation messages. Marketing campaigns.
+
+### Delivery Management — https://www.dineopen.com/features/delivery-management
+Zomato and Swiggy integration. Delivery partner tracking. Order consolidation. Commission tracking.
+
+---
+
+## Industries Served (27 Verticals)
+
+DineOpen serves all types of food & beverage businesses:
+
+| Industry | Page |
+|----------|------|
+| Restaurants | https://www.dineopen.com/for/restaurants |
+| Cafes | https://www.dineopen.com/for/cafes |
+| Cloud Kitchens | https://www.dineopen.com/for/cloud-kitchens |
+| Bars & Pubs | https://www.dineopen.com/for/bars-pubs |
+| Bakeries | https://www.dineopen.com/for/bakeries |
+| Hotels | https://www.dineopen.com/for/hotels |
+| Food Trucks | https://www.dineopen.com/for/food-trucks |
+| QSR / Fast Food | https://www.dineopen.com/for/qsr |
+| Fine Dining | https://www.dineopen.com/for/fine-dining |
+| Sweet Shops | https://www.dineopen.com/for/sweet-shops |
+| Dhabas | https://www.dineopen.com/for/dhabas |
+| Catering | https://www.dineopen.com/for/catering |
+| Food Courts | https://www.dineopen.com/for/food-courts |
+| Pizza Shops | https://www.dineopen.com/for/pizza-shops |
+| Indian Restaurants | https://www.dineopen.com/for/indian-restaurants |
+| Chinese Restaurants | https://www.dineopen.com/for/chinese-restaurants |
+| Ice Cream Parlors | https://www.dineopen.com/for/ice-cream-parlors |
+| Juice Bars | https://www.dineopen.com/for/juice-bars |
+| Canteens | https://www.dineopen.com/for/canteens |
+| Pubs & Breweries | https://www.dineopen.com/for/pubs-breweries |
+| Biryani Restaurants | https://www.dineopen.com/for/biryani-restaurants |
+| Thali Restaurants | https://www.dineopen.com/for/thali-restaurants |
+| South Indian Restaurants | https://www.dineopen.com/for/south-indian-restaurants |
+| North Indian Restaurants | https://www.dineopen.com/for/north-indian-restaurants |
+| Mithai Shops | https://www.dineopen.com/for/mithai-shops |
+| Chai & Tapri | https://www.dineopen.com/for/chai-tapri |
+| Street Food | https://www.dineopen.com/for/street-food |
+
+---
+
+## Competitor Comparison
+
+### DineOpen vs Square POS
+- DineOpen: $9.99/mo, zero transaction fees, AI ordering
+- Square: $60/mo + 2.6% + $0.10 per transaction, no AI features
+- Page: https://www.dineopen.com/alternatives/square
+
+### DineOpen vs Toast POS
+- DineOpen: $9.99/mo, zero transaction fees, works on any device
+- Toast: $69/mo + 2.49% + $0.15 per transaction, proprietary hardware required
+- Page: https://www.dineopen.com/alternatives/toast
+
+### DineOpen vs Petpooja (India)
+- DineOpen: ₹300/mo, AI Agent included, modern cloud-first
+- Petpooja: ₹1,000+/mo, no AI features, legacy system
+- Page: https://www.dineopen.com/alternatives/petpooja
+
+### DineOpen vs POSist/Restroworks (India)
+- DineOpen: ₹300/mo, zero setup fees, instant onboarding
+- POSist: Custom pricing (typically ₹2,000+/mo), lengthy setup
+- Page: https://www.dineopen.com/alternatives/posist
+
+### DineOpen vs Clover
+- DineOpen: $9.99/mo, any device, zero transaction fees
+- Clover: $14.95/mo + 2.3% + $0.10, proprietary hardware ($599+)
+- Page: https://www.dineopen.com/alternatives/clover
+
+### DineOpen vs LightSpeed
+- DineOpen: $9.99/mo, AI-powered, global
+- LightSpeed: $89/mo, no AI features, limited to select countries
+- Page: https://www.dineopen.com/alternatives/lightspeed
+
+### DineOpen vs TouchBistro
+- DineOpen: $9.99/mo, cloud-based, any device
+- TouchBistro: $69/mo, iPad-only, limited integrations
+- Page: https://www.dineopen.com/alternatives/touchbistro
+
+### DineOpen vs Zomato Base (India)
+- DineOpen: ₹300/mo, independent platform, own customer data
+- Zomato Base: Free but locks you into Zomato ecosystem
+- Page: https://www.dineopen.com/alternatives/zomato-base
+
+### DineOpen vs Reelo (India)
+- DineOpen: Full POS + loyalty + AI, ₹300/mo
+- Reelo: Loyalty-only platform, no POS
+- Page: https://www.dineopen.com/alternatives/reelo
+
+Full comparison page: https://www.dineopen.com/compare
+
+---
+
+## Free Tools (36+)
+
+DineOpen offers free restaurant management tools:
+
+### Calculators
+- [Food Cost Calculator](https://www.dineopen.com/tools/food-cost-calculator) — Calculate food cost percentage and menu pricing
+- [Break-Even Calculator](https://www.dineopen.com/tools/break-even-calculator) — Find your break-even point
+- [ROI Calculator](https://www.dineopen.com/tools/roi-calculator) — Calculate return on investment for restaurant tech
+- [Profit Margin Calculator](https://www.dineopen.com/tools/profit-margin-calculator) — Calculate profit margins per dish
+- [Recipe Cost Calculator](https://www.dineopen.com/tools/recipe-cost-calculator) — Cost out recipes ingredient by ingredient
+- [Labor Cost Calculator](https://www.dineopen.com/tools/labor-cost-calculator) — Calculate staff labor costs
+- [Tip Calculator](https://www.dineopen.com/tools/tip-calculator) — Calculate tips and split bills
+- [GST Calculator](https://www.dineopen.com/tools/gst-calculator) — Indian GST calculation for restaurants
+- [Menu Price Calculator](https://www.dineopen.com/tools/menu-price-calculator) — Optimal menu pricing
+- [Liquor Cost Calculator](https://www.dineopen.com/tools/liquor-cost-calculator) — Bar pour cost calculation
+- [Catering Calculator](https://www.dineopen.com/tools/catering-calculator) — Catering event cost estimation
+- [EMI Calculator](https://www.dineopen.com/tools/emi-calculator) — Loan EMI for restaurant equipment
+- [FSSAI Fee Calculator](https://www.dineopen.com/tools/fssai-fee-calculator) — FSSAI license fee estimation
+- [Rent Calculator](https://www.dineopen.com/tools/rent-calculator) — Restaurant rent affordability
+- [Seating Capacity Calculator](https://www.dineopen.com/tools/seating-capacity-calculator) — Optimal seating layout
+- [Table Turnover Calculator](https://www.dineopen.com/tools/table-turnover-calculator) — Table turnover rate optimization
+- [Delivery Radius Calculator](https://www.dineopen.com/tools/delivery-radius-calculator) — Optimal delivery zone
+- [Swiggy/Zomato Commission Calculator](https://www.dineopen.com/tools/swiggy-zomato-calculator) — Platform commission analysis
+- [Staff Calculator](https://www.dineopen.com/tools/staff-calculator) — Staff requirement estimation
+- [Tip Pooling Calculator](https://www.dineopen.com/tools/tip-pooling-calculator) — Fair tip distribution
+- [Kitchen Conversion Calculator](https://www.dineopen.com/tools/kitchen-conversion-calculator) — Measurement conversions
+- [Bill Splitter](https://www.dineopen.com/tools/bill-splitter) — Split restaurant bills
+
+### Generators
+- [QR Menu Generator](https://www.dineopen.com/tools/qr-menu-generator) — Create QR code digital menus
+- [Restaurant Name Generator](https://www.dineopen.com/tools/restaurant-name-generator) — AI-powered name ideas
+- [Restaurant Invoice Generator](https://www.dineopen.com/tools/restaurant-invoice-generator) — Professional invoice templates
+- [Menu Description Generator](https://www.dineopen.com/tools/menu-description-generator) — AI menu descriptions
+- [Review Response Generator](https://www.dineopen.com/tools/review-response-generator) — AI review responses
+- [Tagline Generator](https://www.dineopen.com/tools/tagline-generator) — Restaurant tagline ideas
+- [Social Caption Generator](https://www.dineopen.com/tools/social-caption-generator) — Social media captions
+- [Job Description Generator](https://www.dineopen.com/tools/job-description-generator) — Restaurant job postings
+- [Complaint Response Generator](https://www.dineopen.com/tools/complaint-response-generator) — Customer complaint responses
+
+### Management Tools
+- [Menu Engineering](https://www.dineopen.com/tools/menu-engineering) — Analyze menu item profitability
+- [KOT System](https://www.dineopen.com/tools/kot-system) — Kitchen order ticket management
+- [Table Management](https://www.dineopen.com/tools/table-management) — Table layout and management
+- [Loyalty Program](https://www.dineopen.com/tools/loyalty-program) — Customer loyalty setup
+- [Opening Checklist](https://www.dineopen.com/tools/opening-checklist) — Daily restaurant opening checklist
+
+---
+
+## Solutions
+
+- [Restaurant Chain Management](https://www.dineopen.com/solutions/restaurant-chain-management)
+- [Franchise POS](https://www.dineopen.com/solutions/franchise-pos)
+- [Corporate Cafeteria](https://www.dineopen.com/solutions/corporate-cafeteria)
+- [Food Delivery Management](https://www.dineopen.com/solutions/food-delivery-management)
+- [Reduce Food Waste](https://www.dineopen.com/solutions/reduce-food-waste)
+- [Increase Table Turnover](https://www.dineopen.com/solutions/increase-table-turnover)
+- [Manage Peak Hours](https://www.dineopen.com/solutions/manage-peak-hours)
+- [Boost Repeat Customers](https://www.dineopen.com/solutions/boost-repeat-customers)
+
+## Loyalty Programs
+
+- [Restaurant Loyalty Program](https://www.dineopen.com/loyalty/restaurant-loyalty-program)
+- [Customer Rewards](https://www.dineopen.com/loyalty/customer-rewards)
+- [Customer Retention](https://www.dineopen.com/loyalty/customer-retention)
+- [Referral Program](https://www.dineopen.com/loyalty/referral-program)
+- [Birthday Rewards](https://www.dineopen.com/loyalty/birthday-rewards)
+
+---
+
+## Integrations
+
+- **Zomato**: Sync orders from Zomato directly to DineOpen POS — https://www.dineopen.com/integrations/zomato
+- **Swiggy**: Sync orders from Swiggy directly to DineOpen POS — https://www.dineopen.com/integrations/swiggy
+- **Razorpay**: Accept UPI, cards, netbanking payments in India — https://www.dineopen.com/integrations/razorpay
+- **Dodo Payments**: International card and PayPal payments
+
+---
+
+## Resources & Guides
+
+- [Restaurant Business Plan](https://www.dineopen.com/resources/business-plan) — Complete guide to writing a restaurant business plan
+- [Restaurant Startup Guide](https://www.dineopen.com/resources/startup-guide) — Step-by-step guide to opening a restaurant
+- [FSSAI Guide](https://www.dineopen.com/resources/fssai-guide) — Food safety license guide for India
+- [FSSAI Registration](https://www.dineopen.com/resources/fssai-registration) — How to register for FSSAI
+- [GST for Restaurants](https://www.dineopen.com/resources/gst-restaurants) — GST compliance guide
+- [GST Filing](https://www.dineopen.com/resources/gst-filing-restaurants) — How to file GST returns
+- [Restaurant Licenses India](https://www.dineopen.com/resources/restaurant-licenses-india) — All licenses needed
+- [Shop & Establishment Act](https://www.dineopen.com/resources/shop-establishment-act) — Legal compliance
+- [Fire Safety NOC](https://www.dineopen.com/resources/fire-safety-noc) — Fire safety certification
+- [Guides Hub](https://www.dineopen.com/resources/guides) — All guides
+- [Templates](https://www.dineopen.com/resources/templates) — Restaurant document templates
+
+---
+
+## Payment Methods Supported
+
+### International
+- Credit/Debit Cards (Visa, Mastercard, Amex)
+- PayPal
+- Processed via Dodo Payments
+
+### India
+- UPI (Google Pay, PhonePe, Paytm)
+- Credit/Debit Cards
+- Netbanking
+- Cash
+- Processed via Razorpay
+
+**Important**: DineOpen charges zero transaction fees. Only standard payment gateway processing fees apply.
+
+---
+
+## Technical Details
+
+- **Platform**: Cloud-based SaaS (works in any web browser)
+- **Devices**: Any device — phones, tablets, laptops, desktops
+- **Offline Mode**: Works offline with auto-sync when connected
+- **API**: REST API available for custom integrations
+- **Security**: Enterprise-grade encryption, SOC 2 compliant practices
+- **Uptime**: 99.9% uptime SLA
+- **Data**: Customer owns all data, exportable anytime
+
+---
+
+## FAQ (Comprehensive)
+
+### What is DineOpen?
+DineOpen is a cloud-based restaurant operating system that provides POS billing, AI-powered voice and chat ordering, waiter/captain apps, online table reservations, inventory management, kitchen display system (KDS), AI analytics, and customer loyalty programs. It works on any device — phone, tablet, or laptop — with no hardware installation needed. Trusted by 1000+ restaurants across 20+ countries.
+
+### How much does DineOpen cost?
+DineOpen Spark plan starts at $9.99/month internationally or ₹300/month in India, covering up to 3 locations. The Blaze plan at $89/month supports unlimited locations with centralized management. All plans include a 30-day free trial with no credit card required, zero transaction fees from DineOpen, and unlimited menu items and tables.
+
+### What features are included in all plans?
+Every DineOpen plan includes: AI Agent (voice and chat ordering), Cloud POS (bill generation in 3 seconds), Waiter/Captain App, Online Table Reservations, Inventory Management with auto low-stock alerts, AI-Powered Analytics, Kitchen Display System (KDS), Loyalty & Rewards Program, Zomato/Swiggy integration, and multi-payment support.
+
+### Which countries does DineOpen serve?
+DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. The platform is fully cloud-based with localized billing formats, tax compliance (GST for India, VAT for UK/UAE), and region-specific payment gateway integration.
+
+### Is there a free trial?
+Yes, DineOpen offers a 30-day free trial with no credit card required. You get full access to all features including the AI Agent, POS, inventory management, analytics, and loyalty program. No feature restrictions during the trial period.
+
+### Does DineOpen support multiple restaurant locations?
+Yes. The Spark plan supports up to 3 locations. The Blaze plan supports unlimited locations with a centralized dashboard, cross-location analytics, centralized menu management, and role-based access control for staff across all outlets.
+
+### Can I use DineOpen on my phone or tablet?
+Yes. DineOpen is fully responsive and works on any device — phones, tablets, laptops, and desktop computers. There's a dedicated Waiter App for tableside ordering on mobile devices. Restaurant managers can monitor operations from anywhere using their phone.
+
+### Are there transaction fees?
+No. DineOpen charges zero transaction fees on all plans. You only pay the monthly subscription. Standard payment gateway processing fees (from Razorpay, Dodo Payments, etc.) apply as normal, but DineOpen adds no additional charges per transaction.
+
+### What AI features does DineOpen have?
+DineOpen's AI capabilities include: voice ordering in local languages, an AI chat assistant for automated customer interactions, AI-powered menu extraction from images (upload a photo and get a digital menu), and intelligent business analytics that provide actionable recommendations based on your sales, inventory, and customer data.
+
+### How does DineOpen compare to Toast, Square, and Petpooja?
+DineOpen differentiates with AI-first features (voice ordering, chat assistant), zero transaction fees (unlike Square at 2.6% or Toast at 2.49%), significantly lower monthly pricing ($9.99 vs $60-89/month for competitors), no proprietary hardware requirement (works on any device), and unlimited menu items included in all plans.
+
+### What payment methods are supported?
+International: Credit/debit cards and PayPal via Dodo Payments. India: UPI (Google Pay, PhonePe, Paytm), credit/debit cards, and netbanking via Razorpay. Cash payments are also supported. DineOpen charges no additional transaction fees beyond standard gateway processing.
+
+### Is DineOpen suitable for small restaurants and cafes?
+Absolutely. DineOpen is designed for restaurants of all sizes — from single-table chai shops to multi-location chains. The Spark plan at $9.99/month (or ₹300/month in India) is perfect for small cafes, food trucks, bakeries, and independent restaurants. It includes the full AI Agent, unlimited menu items, complete POS, unlimited tables, and real-time KDS. No hardware purchase or technical expertise needed.
+
+---
+
+## Sitemap
+
+Full XML sitemap: https://www.dineopen.com/sitemap.xml

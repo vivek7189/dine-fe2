@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
+import InternalLinks from '../../components/InternalLinks';
 import { FaCheck, FaMapMarkerAlt, FaStar, FaQuoteLeft } from 'react-icons/fa';
 
 export default function CityPOSClient({ cityData }) {
@@ -190,6 +191,7 @@ export default function CityPOSClient({ cityData }) {
           </div>
         </div>
       </div>
+      <InternalLinks currentPath={`/pos/${city.toLowerCase().replace(/\s+/g, '-')}`} variant="city" />
       <Footer />
     </>
   );

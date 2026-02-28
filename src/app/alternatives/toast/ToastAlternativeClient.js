@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { feature: 'Monthly Price', dineopen: '$10/month', toast: '$69+/month', winner: 'dineopen' },
@@ -139,6 +140,7 @@ export default function ToastAlternativeClient() {
           <p className="text-gray-500 mt-4">Join 500+ restaurants that switched from Toast to DineOpen</p>
         </div>
       </section>
+      <InternalLinks currentPath="/alternatives/toast" variant="alternative" />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { feature: 'Monthly Price', dineopen: '₹999/month', competitor: '₹1,500+/month', winner: 'dineopen' },
@@ -105,6 +106,7 @@ export default function ZomatoBaseAlternativeClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/alternatives/zomato-base" variant="alternative" />
       <Footer />
     </>
   );

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
 import { FaCheck, FaTimes, FaGift, FaWhatsapp, FaRupeeSign } from 'react-icons/fa';
 
 const comparisonData = [
@@ -218,6 +219,7 @@ export default function ReeloAlternativeClient() {
           </div>
         </section>
       </div>
+      <InternalLinks currentPath="/alternatives/reelo" variant="alternative" />
       <Footer />
     </>
   );

@@ -24,6 +24,53 @@ export const metadata = {
   },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is DineOpen better than TouchBistro?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen costs $9.99/month versus TouchBistro's $69/month, works on any device (not just iPad), and includes AI voice ordering and zero transaction fees."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen work on iPad like TouchBistro?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen works on any device — iPad, Android tablets, laptops, and phones. Unlike TouchBistro, you are not limited to iPad-only operation."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much cheaper is DineOpen vs TouchBistro?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen costs $9.99/month compared to TouchBistro's $69/month. Restaurants save $700+ per year by switching to DineOpen."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I switch from TouchBistro to DineOpen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, switching is straightforward. Start a free 30-day trial to test all of DineOpen's features before migrating from TouchBistro."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does DineOpen have that TouchBistro doesn't?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen offers AI voice ordering, works on any device (not iPad-only), charges zero transaction fees, and includes built-in delivery integration — features TouchBistro lacks."
+      }
+    }
+  ]
+};
+
 export default function TouchBistroAlternativePage() {
   const structuredData = {
     "@context": "https://schema.org",
@@ -35,6 +82,7 @@ export default function TouchBistroAlternativePage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <TouchBistroAlternativeClient />
     </>

@@ -17,6 +17,58 @@ export const metadata = {
   alternates: { canonical: 'https://www.dineopen.com/for/food-courts' },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS for food courts and mall food zones?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for food courts, offering centralized billing, token-based ordering, multi-vendor management, and high-speed checkout for mall food zones."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support token-based ordering for food courts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports token-based ordering where customers receive a token number and collect their food when ready. This streamlines operations in busy food courts."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can DineOpen manage multiple vendors in a food court?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen supports multi-vendor food court setups with centralized billing, separate vendor dashboards, and automated revenue splitting between vendors."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does food court POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at $9.99/month per vendor with a free Starter plan available. Token system and centralized billing are included in paid plans."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for food courts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan to test core features. Upgrade to access multi-vendor management, token systems, and centralized analytics."
+      }
+    }
+  ]
+};
+
 export default function FoodCourtsPage() {
-  return <FoodCourtsClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <FoodCourtsClient />
+    </>
+  );
 }

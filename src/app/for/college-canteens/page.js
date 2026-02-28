@@ -17,6 +17,58 @@ export const metadata = {
   alternates: { canonical: 'https://www.dineopen.com/for/college-canteens' },
 };
 
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the best POS for college and university canteens?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best POS for college canteens, offering student ID integration, wallet-based payments, fast billing for rush hours, and detailed sales analytics."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen support student ID and wallet payments?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen integrates with student ID systems and supports digital wallet payments. Students can pay quickly with their ID cards, reducing queue times between classes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can DineOpen handle rush hour billing in college canteens?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen is built for speed with quick-select menus and one-tap billing. It handles the lunch rush efficiently when hundreds of students need to be served quickly."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does college canteen POS software cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen starts at $9.99/month with a free Starter plan available. Student wallet and ID integration features are included in paid plans at no extra cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen offer a free trial for college canteens?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DineOpen offers a free Starter plan to try core billing features. Upgrade to access student wallet integration, analytics, and multi-counter support."
+      }
+    }
+  ]
+};
+
 export default function CollegeCanteensPage() {
-  return <CollegeCanteensClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <CollegeCanteensClient />
+    </>
+  );
 }
