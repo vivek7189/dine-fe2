@@ -34,6 +34,30 @@ export default function sitemap() {
       changeFrequency: 'weekly',
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/free-restaurant-billing-software`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/restaurant-billing-app`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/gst-billing-software-restaurant`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-petpooja`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
   ];
 
   // India hub and state pages
@@ -358,7 +382,13 @@ export default function sitemap() {
     'best-practices-restaurant-staff-management',
     'how-to-increase-restaurant-revenue',
     'restaurant-technology-trends-2024',
-    'best-restaurant-pos-systems-india-comparison-2024'
+    'best-restaurant-pos-systems-india-comparison-2024',
+    'ai-voice-ordering-restaurants-2026',
+    'zero-transaction-fees-restaurant-pos',
+    'cloud-kitchen-guide-2026',
+    'restaurant-metrics-not-tracking',
+    'how-to-open-restaurant-india-2026',
+    'restaurant-pos-vs-billing-software'
   ].map((slug) => ({
     url: `${baseUrl}/blog/${slug}`,
     lastModified: currentDate,

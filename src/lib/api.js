@@ -906,6 +906,12 @@ class ApiClient {
     });
   }
 
+  async seedDefaultMenu(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/seed-default`, {
+      method: 'POST',
+    });
+  }
+
   async seedOrders(restaurantId) {
     return this.request(`/api/seed-orders/${restaurantId}`, {
       method: 'POST',

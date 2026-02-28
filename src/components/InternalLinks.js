@@ -61,6 +61,7 @@ const alternatives = [
   { name: 'POSist Alternative', href: '/alternatives/posist' },
   { name: 'Zomato Base Alternative', href: '/alternatives/zomato-base' },
   { name: 'Clover Alternative', href: '/alternatives/clover' },
+  { name: 'DineOpen vs Petpooja', href: '/vs/dineopen-vs-petpooja' },
 ];
 
 const products = [
@@ -70,6 +71,9 @@ const products = [
   { name: 'Inventory', href: '/products/inventory-management' },
   { name: 'Loyalty & Rewards', href: '/products/loyalty-rewards' },
   { name: 'Billing Software', href: '/products/billing-software' },
+  { name: 'Free Billing Software', href: '/free-restaurant-billing-software' },
+  { name: 'Restaurant Billing App', href: '/restaurant-billing-app' },
+  { name: 'GST Billing Software', href: '/gst-billing-software-restaurant' },
 ];
 
 const tools = [
