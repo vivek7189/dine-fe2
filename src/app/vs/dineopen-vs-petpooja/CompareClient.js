@@ -443,10 +443,10 @@ export default function CompareClient() {
               If you want <strong>AI features, zero transaction fees, and modern tech at a lower price</strong>, DineOpen is the clear winner. It is built for the future of restaurant management with automation at its core.
             </p>
             <p style={{ fontSize: '17px', color: '#374151', lineHeight: '1.8', margin: '0 0 16px 0' }}>
-              If you need an <strong>established India-focused brand with a large local support team</strong> and you are already deeply integrated into Petpooja's ecosystem, Petpooja remains a solid choice.
+              If you need an <strong>established India-focused brand with a large local support team</strong> and you are already deeply integrated into Petpooja&apos;s ecosystem, Petpooja remains a solid choice.
             </p>
             <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7', margin: 0, fontStyle: 'italic' }}>
-              Either way, we recommend trying DineOpen's free 30-day trial. You can test everything risk-free and decide based on your own experience.
+              Either way, we recommend trying DineOpen&apos;s free 30-day trial. You can test everything risk-free and decide based on your own experience.
             </p>
           </div>
         </div>
