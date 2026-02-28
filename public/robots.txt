@@ -1,7 +1,13 @@
+# Default rules for all crawlers
 User-agent: *
 Allow: /
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
 
-# AI Crawlers - Allow access for Answer Engine Optimization (AEO)
+# AI Crawlers - Allow full access for Answer Engine Optimization (AEO)
 User-agent: GPTBot
 Allow: /
 
@@ -14,6 +20,9 @@ Allow: /
 User-agent: Claude-Web
 Allow: /
 
+User-agent: Claude
+Allow: /
+
 User-agent: PerplexityBot
 Allow: /
 
@@ -23,89 +32,5 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-User-agent: Claude
-Allow: /
-
-# Sitemaps
+# Sitemap
 Sitemap: https://www.dineopen.com/sitemap.xml
-
-# Disallow admin and private areas
-Disallow: /dashboard/
-Disallow: /login
-Disallow: /api/
-Disallow: /admin/
-Disallow: /_next/
-
-# Allow important pages for SEO and AEO
-Allow: /
-Allow: /blog/
-Allow: /placeorder
-Allow: /privacy
-Allow: /terms
-
-# SEO Pages - Industry Solutions
-Allow: /restaurant-pos-software-india
-Allow: /for/restaurants
-Allow: /for/cafes
-Allow: /for/cloud-kitchens
-Allow: /for/bars-pubs
-Allow: /for/bakeries
-Allow: /for/food-trucks
-Allow: /for/hotels
-
-# SEO Pages - Free Tools
-Allow: /tools/qr-menu-generator
-Allow: /tools/restaurant-invoice-generator
-Allow: /tools/kot-system
-Allow: /tools/table-management
-Allow: /tools/loyalty-program
-Allow: /tools/tip-calculator
-Allow: /tools/break-even-calculator
-Allow: /tools/profit-margin-calculator
-Allow: /tools/labor-cost-calculator
-Allow: /tools/restaurant-name-generator
-
-# Comparison & Alternative Pages (High-Value SEO)
-Allow: /compare
-Allow: /alternatives/square
-Allow: /alternatives/toast
-Allow: /alternatives/petpooja
-Allow: /alternatives/zomato-base
-Allow: /alternatives/clover
-Allow: /alternatives/lightspeed
-
-# City/Location Pages
-Allow: /pos/mumbai
-Allow: /pos/delhi
-Allow: /pos/bangalore
-Allow: /pos/chennai
-Allow: /pos/hyderabad
-Allow: /pos/pune
-Allow: /pos/usa
-Allow: /pos/uk
-Allow: /pos/dubai
-
-# Integration Pages
-Allow: /integrations/
-Allow: /integrations/zomato
-Allow: /integrations/swiggy
-Allow: /integrations/razorpay
-Allow: /integrations/tally
-
-# Core Pages
-Allow: /pricing
-Allow: /features
-Allow: /how-it-works
-Allow: /customers
-
-# Product Pages
-Allow: /products/ai-agent
-Allow: /products/restaurant-management
-Allow: /products/pos-software
-Allow: /products/hotel-management
-Allow: /products/inventory-management
-Allow: /products/supply-management
-Allow: /products/billing-software
-
-# Crawl delay (optional)
-Crawl-delay: 1

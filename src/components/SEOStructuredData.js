@@ -50,7 +50,8 @@ export default function SEOStructuredData() {
     "offers": [
       {
         "@type": "Offer",
-        "price": "10",
+        "name": "Spark Plan",
+        "price": "9.99",
         "priceCurrency": "USD",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -58,7 +59,8 @@ export default function SEOStructuredData() {
       },
       {
         "@type": "Offer",
-        "price": "999",
+        "name": "Spark Plan (India)",
+        "price": "300",
         "priceCurrency": "INR",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -93,41 +95,6 @@ export default function SEOStructuredData() {
     "releaseNotes": "Global Restaurant Operating System - POS, Orders, Inventory, Analytics, Growth"
   };
 
-  // LocalBusiness Schema (for GEO SEO)
-  const localBusinessSchema = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "DineOpen",
-    "image": `${baseUrl}/og-image.jpg`,
-    "@id": baseUrl,
-    "url": baseUrl,
-    "telephone": "+91-XXX-XXX-XXXX",
-    "priceRange": "₹₹₹",
-    "address": {
-      "@type": "PostalAddress",
-      "addressCountry": "IN",
-      "addressLocality": "India"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": "28.6139",
-      "longitude": "77.2090"
-    },
-    "openingHoursSpecification": {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday"
-      ],
-      "opens": "00:00",
-      "closes": "23:59"
-    }
-  };
 
   // Breadcrumb Schema
   const breadcrumbSchema = {
@@ -143,7 +110,7 @@ export default function SEOStructuredData() {
     ]
   };
 
-  // FAQ Schema
+  // FAQ Schema (Single unified FAQ - covers global + India context)
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -153,23 +120,7 @@ export default function SEOStructuredData() {
         "name": "What is DineOpen?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen is the global restaurant operating system - an all-in-one platform that powers restaurants worldwide. It includes cloud POS, waiter & captain apps, online table reservations, inventory management, AI-powered analytics, and loyalty programs. Trusted by 1000+ restaurants across 20+ countries."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What features does DineOpen include?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen includes 6 core modules: Lightning-Fast Cloud POS (bill in 3 seconds), Waiter & Captain App for tableside ordering, Online Table Reservations (24/7 booking), Smart Inventory with auto low-stock alerts, AI Analytics for business insights, and Loyalty & Rewards to keep customers coming back."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Which countries does DineOpen serve?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen is a global platform serving restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. Our cloud-based system works anywhere with internet access, with localized billing and tax support for each region."
+          "text": "DineOpen is a cloud-based restaurant operating system that powers restaurants worldwide. It includes a complete POS system, waiter & captain apps, online table reservations, inventory management, AI-powered analytics, kitchen display system, and loyalty programs. It works on any device with internet access and does not require hardware installation. Trusted by 1000+ restaurants across 20+ countries."
         }
       },
       {
@@ -177,31 +128,23 @@ export default function SEOStructuredData() {
         "name": "How much does DineOpen cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen offers flexible pricing starting at ₹999 per month for the Starter plan, perfect for small cafes. We also offer Pro and Enterprise plans with more features. All plans include a 1-month free trial with no credit card required."
+          "text": "DineOpen starts at $9.99/month (Spark plan) for international users, with localized pricing available in each region. The Blaze plan for restaurant chains is $89/month. All plans include a 30-day free trial with no credit card required, zero transaction fees, and unlimited menu items."
         }
       },
       {
         "@type": "Question",
-        "name": "Does DineOpen support multiple restaurants?",
+        "name": "What features does DineOpen include?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen supports multi-restaurant management, allowing you to manage multiple locations from a single dashboard. This is perfect for restaurant chains or franchise owners."
+          "text": "DineOpen includes: AI Agent with voice and chat ordering, Lightning-Fast Cloud POS (bill in 3 seconds), Waiter & Captain App for tableside ordering, Online Table Reservations (24/7 booking), Smart Inventory with auto low-stock alerts, AI Analytics for business insights, Kitchen Display System, Loyalty & Rewards, and integrations with delivery platforms like Zomato and Swiggy."
         }
       },
       {
         "@type": "Question",
-        "name": "Can I use DineOpen on mobile devices?",
+        "name": "Which countries does DineOpen serve?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen is fully responsive and works seamlessly on phones, tablets, and computers. You can manage your restaurant operations from anywhere with an internet connection."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What payment methods does DineOpen accept?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen integrates with multiple payment gateways including Razorpay, supporting cash, card, UPI, and digital wallet payments. We don't charge any transaction fees."
+          "text": "DineOpen is a global platform serving restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. Our cloud-based system works anywhere with internet access, with localized billing, tax support, and payment gateways for each region."
         }
       },
       {
@@ -209,47 +152,31 @@ export default function SEOStructuredData() {
         "name": "Is there a free trial available?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, we offer a 1-month free trial for all new users. No credit card required. You can explore all features during the trial period."
+          "text": "Yes, DineOpen offers a 30-day free trial for all new users. No credit card required. You get access to all features during the trial period including AI Agent, POS, inventory management, and analytics."
         }
       },
       {
         "@type": "Question",
-        "name": "What is the best restaurant POS system in India?",
+        "name": "Does DineOpen support multiple restaurant locations?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen is the best AI-powered restaurant POS system in India, starting at ₹999/month with zero transaction fees. Unlike competitors like Petpooja (₹1,999/month + 1.5-2% fees) or POSist (₹1,799/month + 1.5% fees), DineOpen offers AI features, unlimited multi-restaurant support, and saves restaurants ₹53,000-₹60,000+ per year."
+          "text": "Yes, DineOpen supports multi-restaurant management. The Spark plan supports up to 3 locations, and the Blaze plan offers unlimited locations with a centralized chain dashboard, cross-location analytics, and centralized menu management."
         }
       },
       {
         "@type": "Question",
-        "name": "Which restaurant POS system has no transaction fees?",
+        "name": "Can I use DineOpen on mobile devices?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen is the only major restaurant POS system in India with zero transaction fees. Competitors like Petpooja, POSist, Gofrugal, Razorpay POS, and Zomato Base all charge 1.5-2.6% transaction fees, which can cost restaurants ₹40,000-₹60,000+ per year."
+          "text": "Yes, DineOpen is fully responsive and works seamlessly on phones, tablets, and computers. The dedicated Waiter App allows tableside ordering, and managers can monitor operations from anywhere with an internet connection."
         }
       },
       {
         "@type": "Question",
-        "name": "What is the cheapest restaurant management software in India?",
+        "name": "Does DineOpen charge transaction fees?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen is the most cost-effective restaurant management software in India at ₹999/month. Combined with zero transaction fees, it costs ₹11,988 per year, compared to competitors that cost ₹50,000-₹72,000+ per year including fees."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Which restaurant POS supports multiple locations?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "DineOpen offers unlimited multi-restaurant support included in all plans. Unlike Petpooja, POSist, and Gofrugal which charge additional fees for multiple locations, DineOpen allows you to manage unlimited restaurants from a single dashboard at no extra cost."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does a restaurant POS system cost in India?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Restaurant POS systems in India cost ₹999-₹2,500/month plus 1.5-2.6% transaction fees. DineOpen costs ₹999/month with zero transaction fees (total: ₹11,988/year). Petpooja costs ₹1,999/month + fees (₹67,188/year), POSist costs ₹1,799/month + fees (₹64,788/year), making DineOpen the most affordable option."
+          "text": "No, DineOpen charges zero transaction fees on all plans. You only pay the monthly subscription. Payment processing fees from your payment gateway (Razorpay, Dodo Payments, etc.) apply as standard, but DineOpen does not add any additional fees on top."
         }
       },
       {
@@ -257,15 +184,31 @@ export default function SEOStructuredData() {
         "name": "Does DineOpen have AI features?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, DineOpen is the only restaurant POS system in India with comprehensive AI features including AI-powered voice ordering, AI menu extraction from images, and intelligent order matching. Competitors like Petpooja, POSist, Zomato Base, and Swiggy do not offer AI capabilities."
+          "text": "Yes, DineOpen includes comprehensive AI features: AI-powered voice ordering where customers can place orders by speaking, AI chat assistant for customer queries, AI menu extraction from images (snap a photo of your menu to digitize it), and intelligent analytics for business insights."
         }
       },
       {
         "@type": "Question",
-        "name": "Compare DineOpen vs Petpooja vs POSist",
+        "name": "How does DineOpen compare to other restaurant POS systems?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen (₹999/month, 0% fees) vs Petpooja (₹1,999/month, 1.5-2% fees) vs POSist (₹1,799/month, 1.5% fees). DineOpen is 50% cheaper, includes AI features, unlimited multi-restaurant support, and saves ₹53,000-₹60,000+ per year compared to competitors."
+          "text": "DineOpen stands out with AI-powered features (voice ordering, chat assistant), zero transaction fees, and significantly lower pricing compared to alternatives like Square, Toast, Petpooja, and POSist. DineOpen also includes unlimited menu items and multi-location support at no extra cost in most plans."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What payment methods does DineOpen support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DineOpen integrates with multiple payment gateways. International users get Dodo Payments supporting cards and PayPal. Indian users get Razorpay supporting UPI, cards, and netbanking. Cash payments are also supported. No additional transaction fees from DineOpen."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is DineOpen suitable for small restaurants?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DineOpen is designed for restaurants of all sizes. The Spark plan at $9.99/month is perfect for small cafes and restaurants, offering AI Agent, unlimited menu items, complete POS system, unlimited tables, and real-time kitchen display. No hardware installation or technical expertise required."
         }
       }
     ]
@@ -291,19 +234,28 @@ export default function SEOStructuredData() {
   const cloudPOSProductSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": "Lightning-Fast Cloud POS",
-    "description": "Bill in 3 seconds flat with DineOpen's cloud-based POS system. Works on any device, syncs in real-time, supports multiple payment methods including UPI, cards, and cash. Part of the Global Restaurant Operating System.",
+    "name": "DineOpen Cloud POS",
+    "description": "Bill in 3 seconds flat with DineOpen's cloud-based POS system. Works on any device, syncs in real-time, supports multiple payment methods including UPI, cards, cash, and PayPal. Part of the Global Restaurant Operating System.",
     "brand": {
       "@type": "Brand",
       "name": "DineOpen"
     },
-    "offers": {
-      "@type": "Offer",
-      "price": "999",
-      "priceCurrency": "INR",
-      "availability": "https://schema.org/InStock",
-      "url": `${baseUrl}/restaurant-pos-software-india`
-    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "price": "9.99",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "url": `${baseUrl}/products/pos-software`
+      },
+      {
+        "@type": "Offer",
+        "price": "300",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": `${baseUrl}/restaurant-pos-software-india`
+      }
+    ],
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
@@ -331,13 +283,22 @@ export default function SEOStructuredData() {
       { "@type": "Country", "name": "Canada" },
       { "@type": "Country", "name": "Australia" }
     ],
-    "offers": {
-      "@type": "Offer",
-      "price": "999",
-      "priceCurrency": "INR",
-      "availability": "https://schema.org/InStock",
-      "url": "https://www.dineopen.com"
-    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "price": "9.99",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "url": "https://www.dineopen.com/pricing"
+      },
+      {
+        "@type": "Offer",
+        "price": "300",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://www.dineopen.com/pricing"
+      }
+    ],
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
       "name": "DineOpen Restaurant Operating System",
@@ -399,14 +360,24 @@ export default function SEOStructuredData() {
       "name": "DineOpen"
     },
     "category": "Restaurant Operating System",
-    "offers": {
-      "@type": "Offer",
-      "price": "999",
-      "priceCurrency": "INR",
-      "priceValidUntil": "2027-12-31",
-      "availability": "https://schema.org/InStock",
-      "url": "https://www.dineopen.com"
-    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "price": "9.99",
+        "priceCurrency": "USD",
+        "priceValidUntil": "2027-12-31",
+        "availability": "https://schema.org/InStock",
+        "url": "https://www.dineopen.com/pricing"
+      },
+      {
+        "@type": "Offer",
+        "price": "300",
+        "priceCurrency": "INR",
+        "priceValidUntil": "2027-12-31",
+        "availability": "https://schema.org/InStock",
+        "url": "https://www.dineopen.com/pricing"
+      }
+    ],
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
@@ -484,10 +455,6 @@ export default function SEOStructuredData() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
       <script
         type="application/ld+json"

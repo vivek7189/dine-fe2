@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import apiClient from '../lib/api';
-import SEOStructuredData from '../components/SEOStructuredData';
-import FAQSchema from '../components/FAQSchema';
 import CommonHeader from '../components/CommonHeader';
 import Footer from '../components/Footer';
 import { 
@@ -136,22 +134,22 @@ export default function LandingPage() {
 
   const plans = [
     {
-      name: "Starter",
-      type: "starter",
-      price: currency === 'INR' ? '₹300' : currency === 'GBP' ? '£8' : '$10',
+      name: "Spark",
+      type: "spark",
+      price: currency === 'INR' ? '₹300' : currency === 'GBP' ? '£8' : '$9.99',
       period: 'per month',
-      subPrice: currency === 'INR' ? 'Perfect for small restaurants' : 'Perfect for getting started',
-      features: ["AI Agent (Voice & Chat)", "QR Code Digital Menu", "POS Billing System", "Up to 10 Tables", "Basic Inventory", "Email Support"],
+      subPrice: currency === 'INR' ? 'Perfect for small restaurants' : 'For growing restaurants',
+      features: ["AI Agent (Voice & Chat)", "QR Code Digital Menu", "Complete POS System", "Unlimited Tables", "Real-time Kitchen Display", "Up to 3 Locations"],
       button: "Start Free Trial",
       popular: true
     },
     {
-      name: "Professional",
-      type: "professional",
-      price: currency === 'INR' ? '₹600' : currency === 'GBP' ? '£24' : '$30',
+      name: "Blaze",
+      type: "blaze",
+      price: currency === 'INR' ? '₹2,500' : currency === 'GBP' ? '£72' : '$89',
       period: 'per month',
-      subPrice: 'For growing restaurants',
-      features: ["Everything in Starter", "Unlimited Tables", "Advanced AI Analytics", "Multi-location Support", "Priority 24/7 Support", "API Access", "Custom Integrations"],
+      subPrice: 'For restaurant chains',
+      features: ["Everything in Spark", "Unlimited Locations", "Chain Dashboard", "Cross-location Analytics", "Centralized Menu Management", "Priority 24/7 Support"],
       button: "Start Free Trial",
       popular: false
     }
@@ -164,9 +162,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#ffffff', fontFamily: 'Inter, sans-serif', overflowX: 'hidden' }}>
-      <SEOStructuredData />
-      <FAQSchema />
+    <main style={{ minHeight: '100vh', backgroundColor: '#ffffff', fontFamily: 'var(--font-inter), Inter, sans-serif', overflowX: 'hidden' }}>
       
       <style jsx global>{`
         @keyframes float-y { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
@@ -2252,7 +2248,7 @@ export default function LandingPage() {
           </div>
         </div>
       )}
-    </div>
-    
+    </main>
+
   );
 }

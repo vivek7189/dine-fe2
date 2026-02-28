@@ -4,11 +4,11 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'DineOpen Pricing | Restaurant POS from $10/month | Free Trial',
-  description: 'DineOpen pricing plans starting at $10/month (₹999 in India). AI voice ordering, QR menus, zero transaction fees. Compare Starter vs Professional plans. Free 30-day trial.',
+  title: 'DineOpen Pricing | Restaurant POS from $9.99/month | Free Trial',
+  description: 'DineOpen pricing plans starting at $9.99/month (₹300/month in India). AI voice ordering, QR menus, zero transaction fees. Compare Spark vs Blaze plans. Free 30-day trial.',
   keywords: 'DineOpen pricing, restaurant POS pricing, cheap restaurant POS, affordable restaurant software, restaurant billing software price, POS system cost, restaurant management software pricing, DineOpen cost, free restaurant POS trial',
   openGraph: {
-    title: 'DineOpen Pricing | Restaurant POS from $10/month',
+    title: 'DineOpen Pricing | Restaurant POS from $9.99/month',
     description: 'Affordable restaurant POS pricing. AI features, zero transaction fees. Free 30-day trial.',
     url: 'https://www.dineopen.com/pricing',
     siteName: 'DineOpen',
@@ -16,7 +16,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DineOpen Pricing | Restaurant POS from $10/month',
+    title: 'DineOpen Pricing | Restaurant POS from $9.99/month',
     description: 'Affordable restaurant POS with AI. Zero transaction fees. Free 30-day trial.',
   },
   alternates: {
@@ -34,19 +34,28 @@ export default function PricingPage() {
     "offers": [
       {
         "@type": "Offer",
-        "name": "Starter Plan",
-        "price": "10",
+        "name": "Spark Plan",
+        "price": "9.99",
         "priceCurrency": "USD",
-        "priceValidUntil": "2026-12-31",
+        "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
         "url": "https://www.dineopen.com/pricing"
       },
       {
         "@type": "Offer",
-        "name": "Professional Plan",
-        "price": "30",
+        "name": "Blaze Plan",
+        "price": "89",
         "priceCurrency": "USD",
-        "priceValidUntil": "2026-12-31",
+        "priceValidUntil": "2027-12-31",
+        "availability": "https://schema.org/InStock",
+        "url": "https://www.dineopen.com/pricing"
+      },
+      {
+        "@type": "Offer",
+        "name": "Spark Plan (India)",
+        "price": "300",
+        "priceCurrency": "INR",
+        "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
         "url": "https://www.dineopen.com/pricing"
       }

@@ -1,4 +1,6 @@
 import HomePageClient from './HomePageClient';
+import SEOStructuredData from '../components/SEOStructuredData';
+import Link from 'next/link';
 
 // Force static generation for SEO - This ensures the page is pre-rendered at build time
 export const dynamic = 'force-static';
@@ -74,9 +76,106 @@ export const metadata = {
   },
 };
 
-// This page is statically generated at build time for optimal SEO
-// The metadata above is server-rendered and included in the static HTML
-// HomePageClient is a client component but Next.js pre-renders the initial HTML
+// Server component: structured data + SEO content rendered as static HTML
+// HomePageClient handles all interactive UI on top
 export default function HomePage() {
-  return <HomePageClient />;
+  return (
+    <>
+      {/* Server-rendered structured data - guaranteed in HTML even without JS */}
+      <SEOStructuredData />
+
+      {/* Server-rendered SEO content block - crawlers always see this text in HTML source */}
+      {/* Visually hidden but readable by search engines and AI crawlers */}
+      <div
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          borderWidth: 0,
+        }}
+        aria-hidden="false"
+      >
+        <h1>DineOpen - The Global Restaurant Operating System</h1>
+        <p>
+          DineOpen powers restaurants worldwide with an all-in-one operating system.
+          Cloud POS, AI-powered voice ordering, waiter apps, table reservations,
+          inventory management, analytics, and loyalty programs.
+          Trusted by 1000+ restaurants across 20+ countries.
+        </p>
+        <h2>Products</h2>
+        <nav aria-label="Products">
+          <ul>
+            <li><Link href="/products/pos-software">Lightning-Fast Cloud POS - Bill in 3 seconds</Link></li>
+            <li><Link href="/products/ai-agent">AI Agent - Voice and chat ordering for restaurants</Link></li>
+            <li><Link href="/products/waiter-app">Waiter and Captain App - Tableside ordering</Link></li>
+            <li><Link href="/products/inventory-management">Smart Inventory Management</Link></li>
+            <li><Link href="/products/loyalty-rewards">Loyalty and Rewards Program</Link></li>
+            <li><Link href="/products/restaurant-management">Restaurant Management System</Link></li>
+            <li><Link href="/products/hotel-management">Hotel Management Software</Link></li>
+            <li><Link href="/products/billing-software">Restaurant Billing Software</Link></li>
+            <li><Link href="/features/kitchen-display-system">Kitchen Display System</Link></li>
+            <li><Link href="/features/online-ordering">Online Ordering System</Link></li>
+          </ul>
+        </nav>
+        <h2>Pricing</h2>
+        <p>
+          DineOpen Spark plan starts at $9.99 per month internationally and ₹300 per month in India.
+          Blaze plan for restaurant chains at $89 per month. All plans include a 30-day free trial
+          with zero transaction fees.
+        </p>
+        <h2>Industries</h2>
+        <nav aria-label="Industries">
+          <ul>
+            <li><Link href="/for/restaurants">POS for Restaurants</Link></li>
+            <li><Link href="/for/cafes">POS for Cafes</Link></li>
+            <li><Link href="/for/cloud-kitchens">POS for Cloud Kitchens</Link></li>
+            <li><Link href="/for/bars-pubs">POS for Bars and Pubs</Link></li>
+            <li><Link href="/for/bakeries">POS for Bakeries</Link></li>
+            <li><Link href="/for/hotels">POS for Hotels</Link></li>
+            <li><Link href="/for/food-trucks">POS for Food Trucks</Link></li>
+            <li><Link href="/for/qsr">POS for QSR and Fast Food</Link></li>
+          </ul>
+        </nav>
+        <h2>Compare Alternatives</h2>
+        <nav aria-label="Alternatives">
+          <ul>
+            <li><Link href="/alternatives/petpooja">DineOpen vs Petpooja Alternative</Link></li>
+            <li><Link href="/alternatives/toast">DineOpen vs Toast Alternative</Link></li>
+            <li><Link href="/alternatives/square">DineOpen vs Square Alternative</Link></li>
+            <li><Link href="/alternatives/posist">DineOpen vs POSist Alternative</Link></li>
+            <li><Link href="/alternatives/zomato-base">DineOpen vs Zomato Base Alternative</Link></li>
+          </ul>
+        </nav>
+        <h2>Free Tools</h2>
+        <nav aria-label="Free Tools">
+          <ul>
+            <li><Link href="/tools/food-cost-calculator">Food Cost Calculator</Link></li>
+            <li><Link href="/tools/break-even-calculator">Break Even Calculator</Link></li>
+            <li><Link href="/tools/qr-menu-generator">QR Menu Generator</Link></li>
+            <li><Link href="/tools/restaurant-name-generator">Restaurant Name Generator</Link></li>
+            <li><Link href="/tools/roi-calculator">ROI Calculator</Link></li>
+          </ul>
+        </nav>
+        <h2>Locations</h2>
+        <nav aria-label="Locations">
+          <ul>
+            <li><Link href="/pos/mumbai">Restaurant POS Mumbai</Link></li>
+            <li><Link href="/pos/delhi">Restaurant POS Delhi</Link></li>
+            <li><Link href="/pos/bangalore">Restaurant POS Bangalore</Link></li>
+            <li><Link href="/pos/usa">Restaurant POS USA</Link></li>
+            <li><Link href="/pos/uk">Restaurant POS UK</Link></li>
+            <li><Link href="/pos/uae">Restaurant POS UAE</Link></li>
+          </ul>
+        </nav>
+      </div>
+
+      {/* Interactive client component */}
+      <HomePageClient />
+    </>
+  );
 }
