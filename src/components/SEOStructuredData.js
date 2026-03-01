@@ -236,6 +236,7 @@ export default function SEOStructuredData() {
     "@type": "Product",
     "name": "DineOpen Cloud POS",
     "description": "Bill in 3 seconds flat with DineOpen's cloud-based POS system. Works on any device, syncs in real-time, supports multiple payment methods including UPI, cards, cash, and PayPal. Part of the Global Restaurant Operating System.",
+    "image": `${baseUrl}/favicon.png`,
     "brand": {
       "@type": "Brand",
       "name": "DineOpen"
@@ -245,6 +246,7 @@ export default function SEOStructuredData() {
         "@type": "Offer",
         "price": "9.99",
         "priceCurrency": "USD",
+        "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
         "url": `${baseUrl}/products/pos-software`
       },
@@ -252,6 +254,7 @@ export default function SEOStructuredData() {
         "@type": "Offer",
         "price": "300",
         "priceCurrency": "INR",
+        "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
         "url": `${baseUrl}/restaurant-pos-software-india`
       }
@@ -355,6 +358,7 @@ export default function SEOStructuredData() {
     "@type": "Product",
     "name": "DineOpen Restaurant Operating System",
     "description": "The all-in-one restaurant operating system powering restaurants worldwide. Cloud POS (bill in 3 seconds), waiter apps, online table reservations, smart inventory, AI analytics, and loyalty programs. Trusted by 1000+ restaurants globally.",
+    "image": `${baseUrl}/favicon.png`,
     "brand": {
       "@type": "Brand",
       "name": "DineOpen"
