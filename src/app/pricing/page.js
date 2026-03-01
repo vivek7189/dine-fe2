@@ -30,6 +30,7 @@ export default function PricingPage() {
     "@type": "Product",
     "name": "DineOpen Restaurant POS",
     "description": "AI-powered restaurant POS and billing software with voice ordering, QR menus, and zero transaction fees.",
+    "image": "https://www.dineopen.com/favicon.png",
     "brand": { "@type": "Brand", "name": "DineOpen" },
     "offers": [
       {

@@ -56,6 +56,7 @@ export default function AIAgentProductPage() {
     "@type": "Product",
     "name": "AI Agent for Restaurant",
     "description": "Intelligent voice and chat assistant for restaurants that takes orders via voice commands, answers questions, manages tables, and handles operations through natural conversation.",
+    "image": "https://www.dineopen.com/favicon.png",
     "brand": {
       "@type": "Brand",
       "name": "DineOpen"
