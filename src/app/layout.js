@@ -54,8 +54,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={inter.variable}>
       <head>
-        {/* TODO: Add Google Search Console verification - get tag from https://search.google.com/search-console */}
-        {/* <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" /> */}
+        <meta name="google-site-verification" content="RTIIGHLt3AjnBo3YbmCmbEc32r0dYS6XpO0n2bX7T1A" />
         {/* TODO: Add GA4 - get measurement ID from https://analytics.google.com */}
         {/* <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script> */}
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
