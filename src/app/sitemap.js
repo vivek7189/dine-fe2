@@ -114,6 +114,7 @@ export default function sitemap() {
     'mithai-shops',
     'chai-tapri',
     'street-food',
+    'small-business',
   ].map((slug) => ({
     url: `${baseUrl}/for/${slug}`,
     lastModified: currentDate,
