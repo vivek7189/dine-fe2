@@ -4,6 +4,7 @@ import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
 import InternalLinks from '../../components/InternalLinks';
+import Breadcrumb from '../../components/Breadcrumb';
 import { FaCheck, FaMapMarkerAlt, FaStar, FaQuoteLeft } from 'react-icons/fa';
 
 export default function CityPOSClient({ cityData }) {
@@ -32,6 +33,11 @@ export default function CityPOSClient({ cityData }) {
     <>
       <CommonHeader />
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', paddingTop: '80px' }}>
+        <Breadcrumb items={[
+          { label: 'Home', href: '/' },
+          { label: 'Locations', href: '/pos/mumbai' },
+          { label: `POS in ${city}` },
+        ]} />
         {/* Hero */}
         <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>

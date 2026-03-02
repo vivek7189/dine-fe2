@@ -8,6 +8,21 @@ const nextConfig = {
   },
   // Enable static optimization
   swcMinify: true,
+  // Redirects to fix GSC 404 errors
+  async redirects() {
+    return [
+      {
+        source: '/products/table-management',
+        destination: '/features/table-reservation',
+        permanent: true,
+      },
+      {
+        source: '/api-docs',
+        destination: '/',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import CommonHeader from './CommonHeader';
 import Footer from './Footer';
 import InternalLinks from './InternalLinks';
+import Breadcrumb from './Breadcrumb';
 import {
   FaCheckCircle, FaArrowRight, FaPlay, FaChevronDown, FaChevronUp,
   FaUtensils, FaQrcode, FaUsers, FaBoxes, FaChartBar, FaWhatsapp, FaFileInvoice,
@@ -56,6 +57,12 @@ export default function IndustryPageTemplate({
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
       <CommonHeader />
+
+      <Breadcrumb items={[
+        { label: 'Home', href: '/' },
+        { label: 'Industries', href: '/for/restaurants' },
+        { label: `POS for ${industry}` },
+      ]} />
 
       {/* Hero Section */}
       <section style={{

@@ -4,12 +4,12 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Free Food Cost Calculator for Restaurants | DineOpen',
-  description: 'Free food cost calculator for restaurants. Calculate food cost percentage, profit margins, and ideal pricing. No login required - use instantly.',
-  keywords: 'food cost calculator, restaurant food cost, food cost percentage calculator, restaurant profit calculator, menu costing tool free',
+  title: 'Restaurant Food Cost Calculator Free | Menu Price Calculator | DineOpen',
+  description: 'Free restaurant food cost calculator. Calculate food cost percentage, profit margins, and ideal menu pricing. Restaurant food price calculator and menu price calculator — no login required, use instantly.',
+  keywords: 'restaurant food cost calculator, restaurant food price calculator, restaurant menu price calculator, food cost calculator, food cost percentage calculator, restaurant profit calculator, menu costing tool free, food cost formula, restaurant pricing calculator',
   openGraph: {
-    title: 'Free Food Cost Calculator for Restaurants | DineOpen',
-    description: 'Calculate food cost percentage and profit margins instantly. Free tool for restaurant owners.',
+    title: 'Restaurant Food Cost Calculator Free | Menu Price Calculator | DineOpen',
+    description: 'Free restaurant food cost calculator. Calculate food cost percentage, profit margins, and ideal menu pricing instantly.',
     url: 'https://www.dineopen.com/tools/food-cost-calculator',
     siteName: 'DineOpen',
     type: 'website',

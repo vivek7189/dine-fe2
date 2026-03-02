@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import CommonHeader from './CommonHeader';
 import Footer from './Footer';
 import InternalLinks from './InternalLinks';
+import Breadcrumb from './Breadcrumb';
 import {
   FaCheckCircle, FaArrowRight, FaPlay, FaChevronDown, FaChevronUp
 } from 'react-icons/fa';
@@ -42,6 +43,12 @@ export default function ToolPageTemplate({
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
       <CommonHeader />
+
+      <Breadcrumb items={[
+        { label: 'Home', href: '/' },
+        { label: 'Free Tools', href: '/tools/food-cost-calculator' },
+        { label: toolName },
+      ]} />
 
       {/* Hero Section */}
       <section style={{

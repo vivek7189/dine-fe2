@@ -5,9 +5,9 @@ export const dynamic = 'force-static';
 
 // SEO Metadata for AI Agent product page
 export const metadata = {
-  title: 'AI Agent for Restaurant | Voice & Chat Assistant | DineOpen',
-  description: 'Intelligent AI agent for restaurants with voice order taking, chat support, table management, and instant answers. Transform your restaurant operations with DineOpen AI Agent. Start free trial.',
-  keywords: 'AI agent for restaurant, voice order taking, restaurant AI assistant, voice POS system, restaurant chatbot, AI restaurant software, voice ordering system, restaurant automation, AI order taking, restaurant voice assistant, smart restaurant assistant, conversational AI for restaurant',
+  title: 'Restaurant AI Agent | Voice Ordering & Chat Assistant 2026 | DineOpen',
+  description: 'Restaurant AI that takes orders by voice, answers customer questions, and manages operations. AI agent for restaurants with voice ordering, chat support, table management. Transform your restaurant with AI. Free trial.',
+  keywords: 'restaurant ai, AI agent for restaurant, restaurant AI assistant, voice order taking, voice POS system, restaurant chatbot, AI restaurant software, voice ordering system, restaurant automation, AI order taking, restaurant voice assistant, smart restaurant assistant, conversational AI for restaurant, restaurant artificial intelligence',
   authors: [{ name: 'DineOpen Team' }],
   creator: 'DineOpen',
   publisher: 'DineOpen',
@@ -23,8 +23,8 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: 'AI Agent for Restaurant | Voice & Chat Assistant | DineOpen',
-    description: 'Intelligent AI agent for restaurants with voice order taking, chat support, and instant answers. Transform your restaurant operations.',
+    title: 'Restaurant AI Agent | Voice Ordering & Chat Assistant | DineOpen',
+    description: 'Restaurant AI that takes orders by voice, answers questions, and manages operations. Free trial.',
     url: 'https://www.dineopen.com/products/ai-agent',
     siteName: 'DineOpen',
     images: [

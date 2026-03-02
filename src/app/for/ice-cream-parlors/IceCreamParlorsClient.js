@@ -87,15 +87,15 @@ export default function IceCreamParlorsClient() {
   return (
     <IndustryPageTemplate
       industry="Ice Cream Parlors"
-      heroTitle="POS Built for"
+      heroTitle="Best POS System for"
       heroHighlight="Ice Cream Shops"
-      heroDescription="Scoops, cones, sundaes, shakes - DineOpen handles all combinations with visual menus, loyalty programs, and queue-busting features for your ice cream parlor."
+      heroDescription="The best POS system for ice cream shops. Scoops, cones, sundaes, shakes - DineOpen handles all combinations with visual menus, loyalty programs, and queue-busting features. Free 30-day trial."
       painPoints={painPoints}
       benefits={benefits}
       testimonial={testimonial}
       faqs={faqs}
       ctaTitle="Ready to Scoop Up More Sales?"
-      ctaDescription="Join ice cream parlors across India using DineOpen for faster, sweeter service."
+      ctaDescription="Join ice cream shops worldwide using DineOpen — the best POS system for ice cream parlors. Free 30-day trial."
       relatedIndustries={relatedIndustries}
     />
   );
