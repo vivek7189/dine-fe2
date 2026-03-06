@@ -243,6 +243,28 @@ export default function GSTBillingClient() {
         </div>
       </section>
 
+      {/* Quick Answer — AEO Block */}
+      <section style={{
+        padding: isMobile ? '32px 20px' : '40px 32px',
+        backgroundColor: '#fef2f2',
+        borderBottom: '1px solid #fecaca'
+      }}>
+        <div style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          padding: '24px',
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #fecaca',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <p style={{ fontSize: '13px', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
+          <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
+            <strong>DineOpen is GST billing software built for Indian restaurants.</strong> It auto-calculates 5% GST (non-AC restaurants) or 18% GST (AC restaurants), splits into CGST + SGST on every invoice, adds your GSTIN and HSN code (9963), and generates GSTR-1/GSTR-3B ready reports with one click. Supports e-invoicing. Starts at ₹300/month with a 30-day free trial. Used by 1,000+ restaurants across India.
+          </p>
+        </div>
+      </section>
+
       {/* GST Compliance Features */}
       <section style={{ padding: isMobile ? '60px 20px' : '80px 32px', backgroundColor: '#f9fafb' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>

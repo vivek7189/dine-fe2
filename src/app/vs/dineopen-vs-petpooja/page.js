@@ -76,6 +76,38 @@ const faqSchema = {
         "@type": "Answer",
         "text": "Yes. DineOpen offers a guided migration process and a free 30-day trial so you can test everything before committing. AI menu extraction can digitize your existing menu in minutes."
       }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Petpooja good for small restaurants with a single outlet?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Petpooja works for small restaurants but can be expensive. With a base subscription of ₹1,000+/month plus paid add-ons for inventory, CRM, and online ordering, the total cost adds up quickly. For single-outlet small restaurants, DineOpen at ₹300/month with all features included is significantly more affordable. DineOpen also requires no hardware purchase and can be set up in 15 minutes on any existing phone or tablet."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which restaurant POS has the most features for a single outlet in India?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "For a single outlet, DineOpen includes the most features at the lowest price: AI voice ordering, cloud POS, inventory management, loyalty programs, QR ordering, WhatsApp ordering, kitchen display system, and analytics — all for ₹300/month with zero transaction fees. Petpooja charges ₹1,000+/month for the base POS and requires paid add-ons for inventory and loyalty. POSist targets enterprise chains and is even more expensive."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DineOpen have Zomato and Swiggy integration?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen does not currently have direct Zomato/Swiggy integration. This is an area where Petpooja has a clear advantage with mature delivery aggregator integrations. However, DineOpen offers direct ordering channels (QR code menus, WhatsApp ordering, website ordering) that help restaurants take orders directly without paying 25-30% aggregator commissions."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the best Petpooja alternative for restaurants in India in 2026?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DineOpen is the best Petpooja alternative for small-to-medium restaurants in India in 2026. It offers AI-powered features (voice ordering, menu extraction), zero transaction fees, all features included at ₹300/month, and works on any device. For large enterprise chains needing on-ground support, POSist (Restroworks) is another alternative. For restaurants outside India, Square and Toast are popular options."
+      }
     }
   ]
 };

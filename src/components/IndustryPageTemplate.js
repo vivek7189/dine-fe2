@@ -18,6 +18,7 @@ export default function IndustryPageTemplate({
   heroTitle,
   heroHighlight,
   heroDescription,
+  quickAnswer,
   painPoints,
   benefits,
   features,
@@ -182,6 +183,28 @@ export default function IndustryPageTemplate({
           </div>
         </div>
       </section>
+
+      {/* Quick Answer — AEO Block */}
+      {quickAnswer && (
+        <section style={{
+          padding: isMobile ? '32px 20px' : '40px 32px',
+          backgroundColor: '#fffbeb',
+          borderBottom: '1px solid #fde68a'
+        }}>
+          <div style={{
+            maxWidth: '800px',
+            margin: '0 auto',
+            padding: '24px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #fde68a',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <p style={{ fontSize: '13px', fontWeight: '700', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
+            <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>{quickAnswer}</p>
+          </div>
+        </section>
+      )}
 
       {/* Pain Points Section */}
       <section style={{ padding: isMobile ? '60px 20px' : '80px 32px', backgroundColor: '#f9fafb' }}>

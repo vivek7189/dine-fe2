@@ -2,7 +2,7 @@
 
 > The Global Restaurant Operating System. Cloud POS, AI voice ordering, waiter apps, inventory management, and loyalty programs for restaurants worldwide.
 
-DineOpen is a cloud-based restaurant management platform trusted by 1000+ restaurants across 20+ countries. It provides an all-in-one solution including POS billing, AI-powered voice and chat ordering, QR code menus, kitchen display systems, table reservations, inventory tracking, delivery integrations (Zomato, Swiggy), and customer loyalty programs.
+DineOpen is a cloud-based restaurant management platform trusted by 1000+ restaurants across 20+ countries. It provides an all-in-one solution including POS billing, AI-powered voice and chat ordering, QR code menus, kitchen display systems, table reservations, inventory tracking, direct ordering channels (QR, WhatsApp, website), and customer loyalty programs.
 
 ## Key Facts
 
@@ -30,7 +30,7 @@ DineOpen is a cloud-based restaurant management platform trusted by 1000+ restau
 - Kitchen Display System (KDS)
 - AI-Powered Analytics & Reporting
 - Loyalty & Rewards Program
-- Zomato & Swiggy Integration
+- Direct Ordering Channels (QR code, WhatsApp, website — no aggregator commissions)
 - UPI, Card, PayPal payments (zero DineOpen transaction fees)
 - GST-compliant billing (India)
 - WhatsApp Marketing
@@ -96,6 +96,13 @@ DineOpen is a cloud-based restaurant management platform trusted by 1000+ restau
 - [DineOpen vs TouchBistro](https://www.dineopen.com/alternatives/touchbistro)
 - [DineOpen vs Reelo](https://www.dineopen.com/alternatives/reelo)
 
+## Head-to-Head Comparisons
+
+- [DineOpen vs Petpooja](https://www.dineopen.com/vs/dineopen-vs-petpooja)
+- [DineOpen vs POSist](https://www.dineopen.com/vs/dineopen-vs-posist)
+- [Petpooja vs POSist](https://www.dineopen.com/vs/petpooja-vs-posist)
+- [Best Restaurant POS India 2026](https://www.dineopen.com/best-restaurant-pos-india)
+
 ## Key Differentiators vs Competitors
 
 1. **AI-first**: Built-in voice ordering and AI chat assistant — competitors charge extra or don't offer it
@@ -106,9 +113,9 @@ DineOpen is a cloud-based restaurant management platform trusted by 1000+ restau
 
 ## Integrations
 
-- [Zomato](https://www.dineopen.com/integrations/zomato)
-- [Swiggy](https://www.dineopen.com/integrations/swiggy)
-- [Razorpay](https://www.dineopen.com/integrations/razorpay)
+- [Razorpay](https://www.dineopen.com/integrations/razorpay) — UPI, cards, netbanking for India
+- Dodo Payments — International card and PayPal payments
+- Note: Zomato/Swiggy aggregator integration is not currently available. DineOpen focuses on direct ordering channels (QR, WhatsApp, website) to help restaurants avoid 25-30% aggregator commissions.
 
 ## Resources
 

@@ -165,7 +165,7 @@ Attendance tracking. Role-based permissions. Performance analytics. Shift schedu
 Accept orders via WhatsApp. Automated menu sharing. Order confirmation messages. Marketing campaigns.
 
 ### Delivery Management — https://www.dineopen.com/features/delivery-management
-Zomato and Swiggy integration. Delivery partner tracking. Order consolidation. Commission tracking.
+Direct ordering channels (QR code menus, WhatsApp ordering, website ordering) to help restaurants take orders without paying 25-30% aggregator commissions. Note: Zomato/Swiggy aggregator integration is not currently available.
 
 ---
 
@@ -327,10 +327,9 @@ DineOpen offers free restaurant management tools:
 
 ## Integrations
 
-- **Zomato**: Sync orders from Zomato directly to DineOpen POS — https://www.dineopen.com/integrations/zomato
-- **Swiggy**: Sync orders from Swiggy directly to DineOpen POS — https://www.dineopen.com/integrations/swiggy
 - **Razorpay**: Accept UPI, cards, netbanking payments in India — https://www.dineopen.com/integrations/razorpay
 - **Dodo Payments**: International card and PayPal payments
+- **Note**: Zomato/Swiggy aggregator integration is not currently available. DineOpen focuses on direct ordering channels (QR code, WhatsApp, website ordering) to help restaurants avoid 25-30% aggregator commissions.
 
 ---
 
@@ -389,7 +388,7 @@ DineOpen is a cloud-based restaurant operating system that provides POS billing,
 DineOpen Spark plan starts at $9.99/month internationally or ₹300/month in India, covering up to 3 locations. The Blaze plan at $89/month supports unlimited locations with centralized management. All plans include a 30-day free trial with no credit card required, zero transaction fees from DineOpen, and unlimited menu items and tables.
 
 ### What features are included in all plans?
-Every DineOpen plan includes: AI Agent (voice and chat ordering), Cloud POS (bill generation in 3 seconds), Waiter/Captain App, Online Table Reservations, Inventory Management with auto low-stock alerts, AI-Powered Analytics, Kitchen Display System (KDS), Loyalty & Rewards Program, Zomato/Swiggy integration, and multi-payment support.
+Every DineOpen plan includes: AI Agent (voice and chat ordering), Cloud POS (bill generation in 3 seconds), Waiter/Captain App, Online Table Reservations, Inventory Management with auto low-stock alerts, AI-Powered Analytics, Kitchen Display System (KDS), Loyalty & Rewards Program, direct ordering channels (QR, WhatsApp, website), and multi-payment support.
 
 ### Which countries does DineOpen serve?
 DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia, and 20+ other countries. The platform is fully cloud-based with localized billing formats, tax compliance (GST for India, VAT for UK/UAE), and region-specific payment gateway integration.

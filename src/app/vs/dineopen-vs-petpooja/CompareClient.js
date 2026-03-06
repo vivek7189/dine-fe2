@@ -13,8 +13,7 @@ const comparisonData = [
   { feature: 'AI Menu Extraction', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
   { feature: 'Cloud POS', dineopen: '✓', petpooja: '✓', winner: 'tie' },
   { feature: 'GST Billing', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'Zomato Integration', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'Swiggy Integration', dineopen: '✓', petpooja: '✓', winner: 'tie' },
+  { feature: 'Zomato/Swiggy Integration', dineopen: '✗ (Not yet)', petpooja: '✓ Direct', winner: 'petpooja' },
   { feature: 'Kitchen Display System', dineopen: '✓', petpooja: '✓', winner: 'tie' },
   { feature: 'Waiter App', dineopen: '✓', petpooja: '✓', winner: 'tie' },
   { feature: 'Inventory Management', dineopen: '✓', petpooja: '✓', winner: 'tie' },
@@ -448,6 +447,85 @@ export default function CompareClient() {
             <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7', margin: 0, fontStyle: 'italic' }}>
               Either way, we recommend trying DineOpen&apos;s free 30-day trial. You can test everything risk-free and decide based on your own experience.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Best for Small Restaurants */}
+      <section style={{ padding: '60px 20px', backgroundColor: '#fff7ed' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '30px', fontWeight: '800', textAlign: 'center', color: '#111827', marginBottom: '12px' }}>
+            Best POS for Small Restaurants with Single Outlet
+          </h2>
+          <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '32px', fontSize: '16px' }}>
+            If you run a single restaurant, here is what matters most
+          </p>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '32px', border: '1px solid #fed7aa' }}>
+            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', margin: '0 0 20px 0' }}>
+              Small restaurants with a single outlet have different needs than chains. You need <strong>affordable pricing</strong>, <strong>quick setup</strong>, and <strong>all features in one place</strong> without paying for modules you do not use yet.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+              {[
+                { label: 'Total cost (1 year)', dineopen: '₹3,600', petpooja: '₹20,000+' },
+                { label: 'Features included', dineopen: 'All features', petpooja: 'Base only' },
+                { label: 'Setup time', dineopen: '15 minutes', petpooja: '1-3 days' },
+                { label: 'Hardware needed', dineopen: 'Any phone/tablet', petpooja: 'Often proprietary' },
+              ].map((row, i) => (
+                <div key={i} style={{ backgroundColor: '#fafafa', padding: '16px', borderRadius: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>{row.label}</div>
+                  <div style={{ fontSize: '15px', fontWeight: '700', color: '#16a34a', marginBottom: '4px' }}>DineOpen: {row.dineopen}</div>
+                  <div style={{ fontSize: '14px', color: '#6b7280' }}>Petpooja: {row.petpooja}</div>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: '15px', color: '#6b7280', margin: 0, lineHeight: '1.7' }}>
+              For a single-outlet restaurant, DineOpen saves you ₹16,000+ in the first year alone — and you get AI features, loyalty programs, and inventory tracking that Petpooja charges extra for.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Migration Guide */}
+      <section style={{ padding: '60px 20px', backgroundColor: '#f0fdf4' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '30px', fontWeight: '800', textAlign: 'center', color: '#111827', marginBottom: '32px' }}>
+            How to Switch from Petpooja to DineOpen
+          </h2>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {[
+              { step: '1', title: 'Start a free trial (2 minutes)', desc: 'Sign up at dineopen.com. No credit card, no contracts. You get full access to all features for 30 days.' },
+              { step: '2', title: 'Import your menu with AI (2 minutes)', desc: 'Take a photo of your physical menu or screenshot your Petpooja menu. DineOpen AI extracts all items, prices, and categories automatically.' },
+              { step: '3', title: 'Run both systems in parallel (3-5 days)', desc: 'Keep Petpooja running while you test DineOpen alongside it. Train staff on the new system — takes about 15 minutes per person.' },
+              { step: '4', title: 'Switch over fully', desc: 'Once your team is comfortable, make DineOpen your primary POS. Export your Petpooja data for records. Cancel your Petpooja subscription.' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                <div style={{ fontSize: '28px', fontWeight: '800', color: '#16a34a', minWidth: '36px' }}>{item.step}</div>
+                <div>
+                  <h4 style={{ fontSize: '17px', fontWeight: '700', color: '#111827', marginBottom: '6px' }}>{item.title}</h4>
+                  <p style={{ fontSize: '15px', color: '#6b7280', margin: 0, lineHeight: '1.7' }}>{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Related Reading */}
+      <section style={{ padding: '48px 20px', backgroundColor: '#ffffff' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '20px', textAlign: 'center' }}>Related Reading</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+            {[
+              { title: 'Petpooja Review 2026', href: '/blog/petpooja-review-2026', desc: 'Honest, in-depth review' },
+              { title: 'Petpooja Alternative', href: '/alternatives/petpooja', desc: 'Full alternative comparison' },
+              { title: 'Best POS India', href: '/blog/best-restaurant-pos-systems-india-comparison-2024', desc: 'Market comparison guide' },
+              { title: 'Billing App Guide', href: '/blog/restaurant-billing-app-complete-guide', desc: 'Complete buyer\'s guide' },
+            ].map((link, i) => (
+              <Link key={i} href={link.href} style={{ padding: '16px', borderRadius: '10px', border: '1px solid #e5e7eb', textDecoration: 'none', display: 'block' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444', marginBottom: '4px' }}>{link.title}</div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>{link.desc}</div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
