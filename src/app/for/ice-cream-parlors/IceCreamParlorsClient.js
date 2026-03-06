@@ -64,16 +64,24 @@ export default function IceCreamParlorsClient() {
       answer: 'Yes! Collect birthdays during billing. System auto-sends birthday wishes with free scoop coupon. Kids bring families - great for repeat business.'
     },
     {
-      question: 'How do I manage flavor availability?',
-      answer: 'Mark flavors as available/unavailable in real-time. QR menu shows only available flavors. Get alerts when stock runs low.'
+      question: 'How does ice cream inventory management work?',
+      answer: 'DineOpen tracks inventory at the ingredient level — milk, cream, cones, cups, toppings, and fruit purees. It calculates servings from current stock, sends low-stock alerts, monitors expiry dates, and auto-generates purchase orders. Track flavor-wise sales to stock smarter each season.'
     },
     {
       question: 'Can customers order via QR to skip queues?',
-      answer: 'Yes! Customers scan QR, see visual menu with all flavors and photos, place order, pay online. Get token number and collect when ready. No queue!'
+      answer: 'Yes! Customers scan QR, see visual menu with all flavors and photos, place order, pay online. Get token number and collect when ready. No queue! Shops using QR ordering report 40% higher throughput during peak summer hours.'
     },
     {
-      question: 'How do I handle party packs and bulk orders?',
-      answer: 'Create party pack products (1L, 2L, 5L). Take advance bookings for birthday parties. Manage home delivery with address and time slots.'
+      question: 'How do I handle party packs and delivery orders?',
+      answer: 'Create party pack products (1L, 2L, 5L tubs). Take advance bookings for birthday parties. Manage delivery zones, time slots, and dry ice charges. Track distribution orders separately from walk-in sales.'
+    },
+    {
+      question: 'Is DineOpen suitable for small ice cream shops?',
+      answer: 'Absolutely. DineOpen starts at ₹300/month with all features included — no add-on fees. Even a single-counter ice cream shop gets scoop billing, inventory, loyalty programs, and QR menus. New staff can learn it in 15 minutes.'
+    },
+    {
+      question: 'Can I manage multiple ice cream shop locations?',
+      answer: 'Yes. The Blaze plan supports unlimited locations with centralized menu control, inter-branch stock transfers, location-wise sales comparison, and a single dashboard to manage everything — even from your phone.'
     },
   ];
 

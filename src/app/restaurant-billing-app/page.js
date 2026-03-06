@@ -4,9 +4,9 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Restaurant Billing App | Mobile POS & Billing | DineOpen',
-  description: 'Best restaurant billing app for your phone and tablet. Bill in 3 seconds, QR scanning, split bills, UPI/card/cash payments, KOT printing, offline mode. Download free.',
-  keywords: 'restaurant billing app, billing app for restaurant, restaurant POS app, mobile billing app restaurant, restaurant bill app download, restaurant billing software mobile, phone billing app restaurant',
+  title: 'Best Restaurant Billing App 2026 | Bill in 3 Sec, Free Trial | DineOpen',
+  description: 'Best restaurant billing app for Android, iOS & tablet. Bill in 3 seconds, GST-compliant invoices, split bills, UPI/card/cash, KOT printing, offline mode. Used by 1000+ restaurants. Free 30-day trial.',
+  keywords: 'restaurant billing app, restaurant bill app, billing app for restaurant, table billing app, restaurant POS app, mobile billing app restaurant, restaurant billing software, best billing app for restaurant India',
   authors: [{ name: 'DineOpen Team' }],
   creator: 'DineOpen',
   publisher: 'DineOpen',

@@ -37,6 +37,8 @@ const industries = [
   { name: 'Sweet Shops', href: '/for/sweet-shops' },
   { name: 'Dhabas', href: '/for/dhabas' },
   { name: 'Catering', href: '/for/catering' },
+  { name: 'Ice Cream Parlors', href: '/for/ice-cream-parlors' },
+  { name: 'Juice Bars', href: '/for/juice-bars' },
 ];
 
 const cities = [
@@ -85,6 +87,15 @@ const tools = [
   { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
 ];
 
+const guides = [
+  { name: 'Ice Cream Shop POS Guide', href: '/blog/best-pos-system-ice-cream-shop-2026' },
+  { name: 'Petpooja Review 2026', href: '/blog/petpooja-review-2026' },
+  { name: 'Restaurant Billing App Guide', href: '/blog/restaurant-billing-app-complete-guide' },
+  { name: 'POS vs Billing Software', href: '/blog/restaurant-pos-vs-billing-software' },
+  { name: 'How to Open Restaurant in India', href: '/blog/how-to-open-restaurant-india-2026' },
+  { name: 'Restaurant Technology Trends 2026', href: '/blog/restaurant-technology-trends-2024' },
+];
+
 function LinkSection({ title, links, exclude }) {
   const filtered = exclude ? links.filter(l => l.href !== exclude) : links;
   return (
@@ -112,6 +123,7 @@ export default function InternalLinks({ currentPath, variant = 'all' }) {
   const showAlternatives = ['all', 'city', 'industry'].includes(variant);
   const showProducts = ['all', 'tool', 'alternative'].includes(variant);
   const showTools = ['all', 'city', 'industry', 'alternative'].includes(variant);
+  const showGuides = ['all', 'city', 'industry', 'alternative', 'tool'].includes(variant);
 
   return (
     <section style={{
@@ -144,6 +156,9 @@ export default function InternalLinks({ currentPath, variant = 'all' }) {
         )}
         {showTools && (
           <LinkSection title="Free Tools" links={tools} exclude={currentPath} />
+        )}
+        {showGuides && (
+          <LinkSection title="Popular Guides" links={guides} exclude={currentPath} />
         )}
 
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
