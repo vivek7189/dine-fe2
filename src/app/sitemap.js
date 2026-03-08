@@ -143,6 +143,7 @@ export default function sitemap() {
   // Tool pages (/tools/*) - Free tools for SEO traffic
   const toolPages = [
     'qr-menu-generator',
+    'qr-menu-maker',
     'restaurant-invoice-generator',
     'kot-system',
     'table-management',

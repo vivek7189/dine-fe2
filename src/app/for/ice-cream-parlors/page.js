@@ -4,20 +4,20 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Best POS System for Ice Cream Shop 2026 | Ice Cream Parlor Software | DineOpen',
-  description: 'Best POS system for ice cream shop with scoop billing, combo offers, loyalty programs & seasonal menu management. Ice cream POS system for parlors, gelato shops & frozen dessert stores. Free trial, zero transaction fees.',
-  keywords: 'best pos system for ice cream shop, pos system for ice cream shop, ice cream pos system, pos for ice cream shop, ice cream parlor POS, ice cream shop software, ice cream shop management software, ice cream inventory management, ice cream pos free, small ice cream shop pos software, ice cream shop pos system, ice cream pos software, gelato shop POS, frozen dessert billing, scoop billing software, ice cream distribution software, dessert parlor POS',
+  title: 'Best POS for Ice Cream Shops 2026 — ₹0 Transaction Fees [Free Trial] | DineOpen',
+  description: 'Top-rated ice cream shop POS system used by 1000+ parlors. Scoop billing in 3 sec, combo pricing, loyalty programs, seasonal menus & QR ordering. Works on phone/tablet. Start free — no credit card needed.',
+  keywords: 'best pos system for ice cream shop, pos system for ice cream shop, ice cream pos system, pos for ice cream shop, ice cream shop pos system, ice cream parlor POS, ice cream shop software, ice cream shop management software, ice cream inventory management, ice cream pos free, small ice cream shop pos software, ice cream pos software, gelato shop POS, frozen dessert billing, scoop billing software, ice cream distribution software, dessert parlor POS, best pos for ice cream shop, free pos ice cream',
   openGraph: {
-    title: 'Best POS System for Ice Cream Shop | Ice Cream Parlor Software | DineOpen',
-    description: 'Best POS system for ice cream shops with scoop billing, combo offers, loyalty programs, and seasonal menu management. Free trial.',
+    title: 'Best POS for Ice Cream Shops 2026 — Scoop Billing + Loyalty [Free Trial]',
+    description: 'Ice cream POS with scoop billing, combo pricing, loyalty programs & seasonal menus. Used by 1000+ parlors. ₹0 transaction fees. Try free for 30 days.',
     url: 'https://www.dineopen.com/for/ice-cream-parlors',
     siteName: 'DineOpen',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Best POS System for Ice Cream Shop | DineOpen',
-    description: 'Ice cream POS system with scoop billing, combos, loyalty & seasonal menus. Free trial.',
+    title: 'Best POS for Ice Cream Shops 2026 — ₹0 Fees [Free Trial]',
+    description: 'Ice cream POS with scoop billing in 3 sec, combos, loyalty & seasonal menus. 1000+ parlors trust DineOpen. Try free.',
   },
   alternates: { canonical: 'https://www.dineopen.com/for/ice-cream-parlors' },
 };

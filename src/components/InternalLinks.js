@@ -82,6 +82,7 @@ const tools = [
   { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator' },
   { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
   { name: 'QR Menu Generator', href: '/tools/qr-menu-generator' },
+  { name: 'Free QR Menu Maker', href: '/tools/qr-menu-maker' },
   { name: 'ROI Calculator', href: '/tools/roi-calculator' },
   { name: 'Menu Engineering', href: '/tools/menu-engineering' },
   { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
