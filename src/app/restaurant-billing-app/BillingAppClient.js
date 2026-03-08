@@ -130,100 +130,176 @@ export default function BillingAppClient() {
       {/* Hero Section */}
       <section style={{
         background: 'linear-gradient(180deg, #eef2ff 0%, #ffffff 100%)',
-        padding: isMobile ? '60px 20px' : '80px 32px'
+        padding: isMobile ? '60px 20px' : '80px 32px',
+        overflow: 'hidden'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{
-            display: 'inline-block',
-            padding: '8px 16px',
-            backgroundColor: '#eef2ff',
-            borderRadius: '20px',
-            marginBottom: '24px',
-            border: '1px solid #c7d2fe'
-          }}>
-            <span style={{ fontSize: '14px', color: '#4f46e5', fontWeight: '600' }}>
-              Works on Any Phone, Tablet, or Laptop
-            </span>
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 400px',
+          gap: isMobile ? '40px' : '48px',
+          alignItems: 'center'
+        }}>
+          {/* Left: Text */}
+          <div style={{ textAlign: isMobile ? 'center' : 'left' }}>
+            <div style={{
+              display: 'inline-block',
+              padding: '8px 16px',
+              backgroundColor: '#eef2ff',
+              borderRadius: '20px',
+              marginBottom: '24px',
+              border: '1px solid #c7d2fe'
+            }}>
+              <span style={{ fontSize: '14px', color: '#4f46e5', fontWeight: '600' }}>
+                Works on Any Phone, Tablet, or Laptop
+              </span>
+            </div>
+
+            <h1 style={{
+              fontSize: isMobile ? '32px' : '48px',
+              fontWeight: '800',
+              color: '#111827',
+              lineHeight: '1.2',
+              marginBottom: '24px',
+              letterSpacing: '-1px'
+            }}>
+              Restaurant Billing App<br />
+              <span style={{ color: '#4f46e5' }}>Bill From Your Phone</span>
+            </h1>
+
+            <p style={{
+              fontSize: isMobile ? '16px' : '18px',
+              color: '#6b7280',
+              lineHeight: '1.7',
+              maxWidth: '560px',
+              margin: isMobile ? '0 auto 20px' : '0 0 20px',
+            }}>
+              Turn any smartphone into a powerful restaurant billing system. Generate bills in 3 seconds,
+              accept UPI/card/cash, print KOTs, and manage tables — all from your phone.
+            </p>
+
+            <p style={{
+              fontSize: '15px',
+              color: '#4f46e5',
+              fontWeight: '600',
+              marginBottom: '32px'
+            }}>
+              Starting at just Rs 300/month in India | $9.99/month internationally | 30-day free trial
+            </p>
+
+            <div style={{
+              display: 'flex',
+              gap: '16px',
+              justifyContent: isMobile ? 'center' : 'flex-start',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={handleGetStarted}
+                style={{
+                  padding: '16px 32px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                  color: 'white',
+                  fontWeight: '700',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(79, 70, 229, 0.4)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Start Free Trial <FaArrowRight size={16} />
+              </button>
+              <Link
+                href="/products/pos-software"
+                style={{
+                  padding: '16px 32px',
+                  borderRadius: '10px',
+                  background: 'white',
+                  color: '#374151',
+                  fontWeight: '700',
+                  border: '2px solid #e5e7eb',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                  textDecoration: 'none'
+                }}
+              >
+                <FaMobile size={14} /> See All Features
+              </Link>
+            </div>
           </div>
 
-          <h1 style={{
-            fontSize: isMobile ? '32px' : '52px',
-            fontWeight: '800',
-            color: '#111827',
-            lineHeight: '1.2',
-            marginBottom: '24px',
-            letterSpacing: '-1px'
-          }}>
-            Restaurant Billing App<br />
-            <span style={{ color: '#4f46e5' }}>Bill From Your Phone</span>
-          </h1>
-
-          <p style={{
-            fontSize: isMobile ? '16px' : '20px',
-            color: '#6b7280',
-            lineHeight: '1.7',
-            maxWidth: '700px',
-            margin: '0 auto 20px',
-          }}>
-            Turn any smartphone into a powerful restaurant billing system. Generate bills in 3 seconds,
-            accept UPI/card/cash, print KOTs, and manage tables — all from your phone.
-          </p>
-
-          <p style={{
-            fontSize: '16px',
-            color: '#4f46e5',
-            fontWeight: '600',
-            marginBottom: '40px'
-          }}>
-            Starting at just Rs 300/month in India | $9.99/month internationally | 30-day free trial
-          </p>
-
+          {/* Right: iPhone Mockup */}
           <div style={{
             display: 'flex',
-            gap: '16px',
             justifyContent: 'center',
-            flexWrap: 'wrap'
+            alignItems: 'center',
           }}>
-            <button
-              onClick={handleGetStarted}
-              style={{
-                padding: '16px 32px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
-                color: 'white',
-                fontWeight: '700',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '16px',
+            <div style={{
+              position: 'relative',
+              maxWidth: '300px',
+              width: '100%',
+              filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25))',
+            }}>
+              <img
+                src="/billing-app-screenshot.png"
+                alt="DineOpen Restaurant Billing App - Table management with 20 tables, take orders, menu & billing on iPhone"
+                width={300}
+                height={649}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '4px',
+                }}
+              />
+              {/* Floating badge */}
+              <div style={{
+                position: 'absolute',
+                bottom: '60px',
+                right: '-20px',
+                backgroundColor: '#ffffff',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.4)',
-                transition: 'all 0.2s'
-              }}
-            >
-              Start Free Trial <FaArrowRight size={16} />
-            </button>
-            <Link
-              href="/products/pos-software"
-              style={{
-                padding: '16px 32px',
-                borderRadius: '10px',
-                background: 'white',
-                color: '#374151',
-                fontWeight: '700',
-                border: '2px solid #e5e7eb',
-                cursor: 'pointer',
-                fontSize: '16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#111827',
+                whiteSpace: 'nowrap',
+              }}>
+                <FaBolt size={14} color="#4f46e5" />
+                Bill in 3 seconds
+              </div>
+              <div style={{
+                position: 'absolute',
+                top: '80px',
+                left: '-20px',
+                backgroundColor: '#ffffff',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                transition: 'all 0.2s',
-                textDecoration: 'none'
-              }}
-            >
-              <FaMobile size={14} /> See All Features
-            </Link>
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#111827',
+                whiteSpace: 'nowrap',
+              }}>
+                <FaCheckCircle size={14} color="#22c55e" />
+                20 Tables Live
+              </div>
+            </div>
           </div>
         </div>
       </section>
