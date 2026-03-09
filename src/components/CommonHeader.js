@@ -7,7 +7,7 @@ import {
   FaChevronDown, FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding,
   FaUtensils, FaCoffee, FaCloudMeatball, FaBeer, FaBirthdayCake, FaTruck, FaHotel,
   FaQrcode, FaFileInvoice, FaClipboardList, FaChair, FaGift,
-  FaBars, FaTimes
+  FaBars, FaTimes, FaShoppingCart, FaUsers, FaBook, FaTable, FaCog
 } from 'react-icons/fa';
 
 export default function CommonHeader() {
@@ -30,12 +30,17 @@ export default function CommonHeader() {
   };
 
   const productItems = [
-    { name: 'AI Agent for Restaurant', href: '/products/ai-agent', icon: FaRobot },
-    { name: 'Restaurant Management', href: '/products/restaurant-management', icon: FaStore },
-    { name: 'POS Software', href: '/products/pos-software', icon: FaUtensils },
-    { name: 'Supply Management', href: '/products/supply-management', icon: FaWarehouse },
-    { name: 'Hotel Management', href: '/products/hotel-management', icon: FaBuilding },
-    { name: 'Billing Software', href: '/products/billing-software', icon: FaFileInvoice },
+    { name: 'DineOpen POS', href: '/products/pos', icon: FaUtensils },
+    { name: 'DineOpen Menu', href: '/products/menu', icon: FaBook },
+    { name: 'DineOpen Orders', href: '/products/orders', icon: FaShoppingCart },
+    { name: 'DineOpen Loyalty', href: '/products/loyalty', icon: FaUsers },
+    { name: 'DineOpen Hotel', href: '/products/hotel', icon: FaBuilding },
+    { name: 'DineOpen Kitchen', href: '/products/kitchen', icon: FaClipboardList },
+    { name: 'DineOpen AI', href: '/products/ai', icon: FaRobot },
+    { name: 'DineOpen Inventory', href: '/products/inventory', icon: FaBoxes },
+    { name: 'DineOpen Tables', href: '/products/tables', icon: FaTable },
+    { name: 'DineOpen Billing', href: '/products/billing', icon: FaFileInvoice },
+    { name: 'DineOpen Admin', href: '/products/admin', icon: FaCog },
   ];
 
   const solutionItems = [

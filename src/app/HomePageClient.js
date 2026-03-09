@@ -328,7 +328,7 @@ export default function LandingPage() {
                       onMouseLeave={() => setShowProductsDropdown(false)}
                     >
                       <Link 
-                        href="/products/ai-agent" 
+                        href="/products/ai" 
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -351,7 +351,7 @@ export default function LandingPage() {
                         <span style={{ fontWeight: '500', fontSize: '14px' }}>AI Agent for Restaurant</span>
                       </Link>
                       <Link 
-                        href="/products/restaurant-management" 
+                        href="/products/admin" 
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -374,7 +374,7 @@ export default function LandingPage() {
                         <span style={{ fontWeight: '500', fontSize: '14px' }}>Restaurant Management System</span>
                       </Link>
                       <Link 
-                        href="/products/inventory-management" 
+                        href="/products/inventory" 
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -420,7 +420,7 @@ export default function LandingPage() {
                         <span style={{ fontWeight: '500', fontSize: '14px' }}>Supply Management</span>
                       </Link>
                       <Link 
-                        href="/products/hotel-management" 
+                        href="/products/hotel" 
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -627,7 +627,7 @@ export default function LandingPage() {
               marginBottom: '24px'
             }}>
               {/* Feature 1: Cloud POS */}
-              <Link href="/products/pos-software" style={{ textDecoration: 'none' }}>
+              <Link href="/products/pos" style={{ textDecoration: 'none' }}>
               <div style={{
                 background: 'linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%)',
                 border: '2px solid #fecdd3',
@@ -675,7 +675,7 @@ export default function LandingPage() {
               </Link>
 
               {/* Feature 2: Waiter & Captain App */}
-              <Link href="/products/waiter-app" style={{ textDecoration: 'none' }}>
+              <Link href="/products/orders" style={{ textDecoration: 'none' }}>
               <div style={{
                 background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
                 border: '2px solid #bbf7d0',
@@ -771,7 +771,7 @@ export default function LandingPage() {
               </Link>
 
               {/* Feature 4: Inventory Management */}
-              <Link href="/products/inventory-management" style={{ textDecoration: 'none' }}>
+              <Link href="/products/inventory" style={{ textDecoration: 'none' }}>
               <div style={{
                 background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
                 border: '2px solid #fde047',
@@ -819,7 +819,7 @@ export default function LandingPage() {
               </Link>
 
               {/* Feature 5: AI Analytics */}
-              <Link href="/products/ai-agent" style={{ textDecoration: 'none' }}>
+              <Link href="/products/ai" style={{ textDecoration: 'none' }}>
               <div style={{
                 background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
                 border: '2px solid #ddd6fe',
@@ -867,7 +867,7 @@ export default function LandingPage() {
               </Link>
 
               {/* Feature 6: Loyalty & Rewards */}
-              <Link href="/products/loyalty-rewards" style={{ textDecoration: 'none' }}>
+              <Link href="/products/loyalty" style={{ textDecoration: 'none' }}>
               <div style={{
                 background: 'linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%)',
                 border: '2px solid #f5d0fe',

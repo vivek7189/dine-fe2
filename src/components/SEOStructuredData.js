@@ -248,7 +248,7 @@ export default function SEOStructuredData() {
         "priceCurrency": "USD",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
-        "url": `${baseUrl}/products/pos-software`
+        "url": `${baseUrl}/products/pos`
       },
       {
         "@type": "Offer",

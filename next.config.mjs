@@ -8,12 +8,68 @@ const nextConfig = {
   },
   // Enable static optimization
   swcMinify: true,
-  // Redirects to fix GSC 404 errors
+  // Redirects for SEO and product branding
   async redirects() {
     return [
+      // Legacy product URL redirects → new branded URLs
+      {
+        source: '/products/pos-software',
+        destination: '/products/pos',
+        permanent: true,
+      },
+      {
+        source: '/products/pos-software/:path*',
+        destination: '/products/pos/:path*',
+        permanent: true,
+      },
+      {
+        source: '/products/loyalty-rewards',
+        destination: '/products/loyalty',
+        permanent: true,
+      },
+      {
+        source: '/products/hotel-management',
+        destination: '/products/hotel',
+        permanent: true,
+      },
+      {
+        source: '/products/inventory-management',
+        destination: '/products/inventory',
+        permanent: true,
+      },
+      {
+        source: '/products/billing-software',
+        destination: '/products/billing',
+        permanent: true,
+      },
+      {
+        source: '/products/ai-agent',
+        destination: '/products/ai',
+        permanent: true,
+      },
+      {
+        source: '/products/restaurant-management',
+        destination: '/products/admin',
+        permanent: true,
+      },
+      {
+        source: '/products/multi-restaurant',
+        destination: '/products/admin/multi-restaurant',
+        permanent: true,
+      },
+      {
+        source: '/products/supply-management',
+        destination: '/products/inventory/suppliers',
+        permanent: true,
+      },
+      {
+        source: '/products/waiter-app',
+        destination: '/products/orders/waiter-app',
+        permanent: true,
+      },
       {
         source: '/products/table-management',
-        destination: '/features/table-reservation',
+        destination: '/products/tables',
         permanent: true,
       },
       {

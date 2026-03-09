@@ -28,6 +28,33 @@ import { t } from '../../lib/i18n';
 import RestaurantNameOnboarding from '../../components/RestaurantNameOnboarding';
 import { redirectToSubdomain } from '../../utils/subdomain';
 
+// Product ref to dashboard route mapping
+// Used when users come from product pages (e.g., /login?ref=menu)
+const REF_TO_ROUTE = {
+  'menu': '/menu',
+  'loyalty': '/customers',
+  'hotel': '/hotel',
+  'pos': '/dashboard',
+  'kitchen': '/kot',
+  'orders': '/orderhistory',
+  'ai': '/dineai',
+  'billing': '/billing',
+  'tables': '/tables',
+  'inventory': '/inventory',
+  'admin': '/admin',
+};
+
+// Get the redirect path based on ?ref= parameter stored in sessionStorage
+function getRefRedirectPath() {
+  if (typeof window === 'undefined') return '/dashboard';
+  const ref = sessionStorage.getItem('loginRef');
+  if (ref && REF_TO_ROUTE[ref]) {
+    sessionStorage.removeItem('loginRef');
+    return REF_TO_ROUTE[ref];
+  }
+  return '/dashboard';
+}
+
 // Country data with flags and codes
 const countries = [
   { code: 'IN', name: 'India', flag: '🇮🇳', dialCode: '+91' },
@@ -242,6 +269,16 @@ const Login = () => {
 
   // Firebase auth ready state
   const [isFirebaseReady, setIsFirebaseReady] = useState(false);
+
+  // Capture ?ref= parameter from URL and store in sessionStorage
+  // This persists through OAuth redirects and page reloads during login flow
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    if (ref && REF_TO_ROUTE[ref]) {
+      sessionStorage.setItem('loginRef', ref);
+    }
+  }, []);
 
   // Initialize Firebase auth state listener
   useEffect(() => {
@@ -677,7 +714,7 @@ const Login = () => {
             } else if (firebaseData.redirectTo) {
               router.replace(firebaseData.redirectTo);
             } else {
-              router.replace('/dashboard');
+              router.replace(getRefRedirectPath());
             }
           }
         } else {
@@ -729,7 +766,7 @@ const Login = () => {
             } else if (data.redirectTo) {
               router.replace(data.redirectTo);
             } else {
-              router.replace('/dashboard');
+              router.replace(getRefRedirectPath());
             }
           }
         } else {
@@ -776,15 +813,13 @@ const Login = () => {
   const handleRestaurantOnboardingComplete = (restaurant) => {
     console.log('✅ Restaurant created:', restaurant);
     setShowRestaurantOnboarding(false);
-    // Redirect to dashboard
-    router.replace('/dashboard');
+    router.replace(getRefRedirectPath());
   };
 
   const handleRestaurantOnboardingSkip = () => {
     console.log('⏭️ Restaurant onboarding skipped');
     setShowRestaurantOnboarding(false);
-    // Redirect to dashboard
-    router.replace('/dashboard');
+    router.replace(getRefRedirectPath());
   };
 
   // Email/Password Registration
@@ -899,7 +934,7 @@ const Login = () => {
         if (registerData.firstTimeUser) {
           setShowRestaurantOnboarding(true);
         } else {
-          router.replace(registerData.redirectTo || '/dashboard');
+          router.replace(registerData.redirectTo || getRefRedirectPath());
         }
       } else {
         setError('Registration successful but login failed. Please login.');
@@ -979,7 +1014,7 @@ const Login = () => {
         if (loginData.subdomainUrl) {
           redirectToSubdomain(loginData.subdomainUrl, loginData.token, loginData.user);
         } else {
-          router.replace(loginData.redirectTo || '/dashboard');
+          router.replace(loginData.redirectTo || getRefRedirectPath());
         }
       }
     } catch (err) {
@@ -1092,7 +1127,7 @@ const Login = () => {
           } else if (googleData.redirectTo) {
             router.replace(googleData.redirectTo);
           } else {
-            router.replace('/dashboard');
+            router.replace(getRefRedirectPath());
           }
         }
       } else {
@@ -1163,8 +1198,8 @@ const Login = () => {
         };
         apiClient.setUser(userData); // Stores in both cookie and localStorage
         
-        // Staff goes to main POS page
-        router.replace('/dashboard');
+        // Staff goes to POS page or ref-based product page
+        router.replace(getRefRedirectPath());
       } else {
         setError(data.error || 'Login failed');
       }

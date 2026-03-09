@@ -195,23 +195,74 @@ export default function sitemap() {
     priority: 0.8,
   }));
 
-  // Product pages
+  // Product pages - branded DineOpen products
   const productPages = [
-    'ai-agent',
-    'restaurant-management',
-    'pos-software',
-    'hotel-management',
-    'inventory-management',
-    'supply-management',
-    'billing-software',
-    'loyalty-rewards',
-    'waiter-app',
-    'multi-restaurant',
+    // DineOpen Menu
+    'menu',
+    'menu/qr-menu',
+    'menu/digital-menu',
+    'menu/management',
+    'menu/themes',
+    'menu/online-menu',
+    // DineOpen Loyalty
+    'loyalty',
+    'loyalty/crm',
+    'loyalty/rewards',
+    'loyalty/offers',
+    'loyalty/customer-app',
+    'loyalty/whatsapp',
+    // DineOpen Hotel
+    'hotel',
+    'hotel/rooms',
+    'hotel/bookings',
+    'hotel/front-desk',
+    'hotel/room-service',
+    'hotel/housekeeping',
+    // DineOpen POS
+    'pos',
+    'pos/cloud-pos',
+    'pos/takeaway',
+    'pos/dine-in',
+    'pos/small-restaurants',
+    // DineOpen Kitchen
+    'kitchen',
+    'kitchen/kot',
+    'kitchen/display',
+    // DineOpen Orders
+    'orders',
+    'orders/online',
+    'orders/qr-ordering',
+    'orders/delivery',
+    // DineOpen AI
+    'ai',
+    'ai/voice-ordering',
+    'ai/chatbot',
+    'ai/insights',
+    // DineOpen Billing
+    'billing',
+    'billing/gst',
+    'billing/invoices',
+    // DineOpen Tables
+    'tables',
+    'tables/reservations',
+    'tables/floor-plan',
+    // DineOpen Inventory
+    'inventory',
+    'inventory/stock',
+    'inventory/suppliers',
+    'inventory/recipes',
+    'inventory/purchase-orders',
+    'inventory/ai-reorder',
+    // DineOpen Admin
+    'admin',
+    'admin/staff',
+    'admin/multi-restaurant',
+    'admin/shifts',
   ].map((slug) => ({
     url: `${baseUrl}/products/${slug}`,
     lastModified: currentDate,
     changeFrequency: 'weekly',
-    priority: 0.85,
+    priority: slug.includes('/') ? 0.80 : 0.90,
   }));
 
   // Comparison & Alternative pages (high-value for SEO)

@@ -110,16 +110,17 @@ export default function HomePage() {
         <h2>Products</h2>
         <nav aria-label="Products">
           <ul>
-            <li><Link href="/products/pos-software">Lightning-Fast Cloud POS - Bill in 3 seconds</Link></li>
-            <li><Link href="/products/ai-agent">AI Agent - Voice and chat ordering for restaurants</Link></li>
-            <li><Link href="/products/waiter-app">Waiter and Captain App - Tableside ordering</Link></li>
-            <li><Link href="/products/inventory-management">Smart Inventory Management</Link></li>
-            <li><Link href="/products/loyalty-rewards">Loyalty and Rewards Program</Link></li>
-            <li><Link href="/products/restaurant-management">Restaurant Management System</Link></li>
-            <li><Link href="/products/hotel-management">Hotel Management Software</Link></li>
-            <li><Link href="/products/billing-software">Restaurant Billing Software</Link></li>
-            <li><Link href="/features/kitchen-display-system">Kitchen Display System</Link></li>
-            <li><Link href="/features/online-ordering">Online Ordering System</Link></li>
+            <li><Link href="/products/pos">DineOpen POS - Lightning-Fast Cloud POS, bill in 3 seconds</Link></li>
+            <li><Link href="/products/menu">DineOpen Menu - Digital menu builder with QR codes and 6 themes</Link></li>
+            <li><Link href="/products/orders">DineOpen Orders - Online ordering, QR ordering, delivery management</Link></li>
+            <li><Link href="/products/loyalty">DineOpen Loyalty - Customer CRM, rewards, and WhatsApp marketing</Link></li>
+            <li><Link href="/products/hotel">DineOpen Hotel - Room management, bookings, and front desk</Link></li>
+            <li><Link href="/products/kitchen">DineOpen Kitchen - Kitchen display system and KOT management</Link></li>
+            <li><Link href="/products/ai">DineOpen AI - Voice ordering and AI chat assistant</Link></li>
+            <li><Link href="/products/inventory">DineOpen Inventory - Smart stock tracking with AI reorder</Link></li>
+            <li><Link href="/products/tables">DineOpen Tables - Table management and reservations</Link></li>
+            <li><Link href="/products/billing">DineOpen Billing - GST-compliant billing software</Link></li>
+            <li><Link href="/products/admin">DineOpen Admin - Staff management and multi-restaurant control</Link></li>
           </ul>
         </nav>
         <h2>Pricing</h2>

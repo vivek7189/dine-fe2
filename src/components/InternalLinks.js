@@ -67,15 +67,17 @@ const alternatives = [
 ];
 
 const products = [
-  { name: 'Cloud POS', href: '/products/pos-software' },
-  { name: 'AI Agent', href: '/products/ai-agent' },
-  { name: 'Waiter App', href: '/products/waiter-app' },
-  { name: 'Inventory', href: '/products/inventory-management' },
-  { name: 'Loyalty & Rewards', href: '/products/loyalty-rewards' },
-  { name: 'Billing Software', href: '/products/billing-software' },
-  { name: 'Free Billing Software', href: '/free-restaurant-billing-software' },
-  { name: 'Restaurant Billing App', href: '/restaurant-billing-app' },
-  { name: 'GST Billing Software', href: '/gst-billing-software-restaurant' },
+  { name: 'DineOpen POS', href: '/products/pos' },
+  { name: 'DineOpen Menu', href: '/products/menu' },
+  { name: 'DineOpen Orders', href: '/products/orders' },
+  { name: 'DineOpen Loyalty', href: '/products/loyalty' },
+  { name: 'DineOpen Hotel', href: '/products/hotel' },
+  { name: 'DineOpen Kitchen', href: '/products/kitchen' },
+  { name: 'DineOpen AI', href: '/products/ai' },
+  { name: 'DineOpen Inventory', href: '/products/inventory' },
+  { name: 'DineOpen Tables', href: '/products/tables' },
+  { name: 'DineOpen Billing', href: '/products/billing' },
+  { name: 'DineOpen Admin', href: '/products/admin' },
 ];
 
 const tools = [

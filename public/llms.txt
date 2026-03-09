@@ -38,16 +38,51 @@ DineOpen is a cloud-based restaurant management platform trusted by 1000+ restau
 
 ## Products
 
-- [Cloud POS](https://www.dineopen.com/products/pos-software)
-- [AI Agent](https://www.dineopen.com/products/ai-agent)
-- [Waiter App](https://www.dineopen.com/products/waiter-app)
-- [Restaurant Management](https://www.dineopen.com/products/restaurant-management)
-- [Inventory Management](https://www.dineopen.com/products/inventory-management)
-- [Billing Software](https://www.dineopen.com/products/billing-software)
-- [Loyalty & Rewards](https://www.dineopen.com/products/loyalty-rewards)
-- [Hotel Management](https://www.dineopen.com/products/hotel-management)
-- [Multi-Restaurant](https://www.dineopen.com/products/multi-restaurant)
-- [Supply Management](https://www.dineopen.com/products/supply-management)
+DineOpen offers 11 branded product modules, each available as part of the platform:
+
+### DineOpen POS — Point of Sale System
+Cloud-based POS with lightning-fast billing (3 seconds), multi-payment support (cash, card, UPI), dine-in/takeaway/delivery modes, real-time Pusher updates, and multi-location management.
+- [DineOpen POS](https://www.dineopen.com/products/pos) | [Cloud POS](https://www.dineopen.com/products/pos/cloud-pos) | [Dine-in POS](https://www.dineopen.com/products/pos/dine-in) | [Takeaway POS](https://www.dineopen.com/products/pos/takeaway) | [Small Restaurant POS](https://www.dineopen.com/products/pos/small-restaurants)
+
+### DineOpen Menu — Digital Menu Builder
+Create stunning digital menus with 6 themes (Default, Classic, Bistro, Cube, Book, Carousel), QR code generation, 3D previews, multi-device support, bulk upload, and category management with emoji support.
+- [DineOpen Menu](https://www.dineopen.com/products/menu) | [QR Menu](https://www.dineopen.com/products/menu/qr-menu) | [Digital Menu](https://www.dineopen.com/products/menu/digital-menu) | [Menu Themes](https://www.dineopen.com/products/menu/themes)
+
+### DineOpen Orders — Online Ordering System
+Accept orders from QR codes, WhatsApp, and your website. Includes order history with search, status filtering, invoice generation, real-time tracking, and delivery management — all without aggregator commissions.
+- [DineOpen Orders](https://www.dineopen.com/products/orders) | [Online Ordering](https://www.dineopen.com/products/orders/online) | [QR Ordering](https://www.dineopen.com/products/orders/qr-ordering) | [Delivery](https://www.dineopen.com/products/orders/delivery)
+
+### DineOpen Loyalty — Customer Loyalty & CRM
+Complete customer relationship management with contact database, order history tracking, promotional offers, loyalty rewards program, branded customer app (Crave), and WhatsApp marketing campaigns.
+- [DineOpen Loyalty](https://www.dineopen.com/products/loyalty) | [Restaurant CRM](https://www.dineopen.com/products/loyalty/crm) | [Rewards Program](https://www.dineopen.com/products/loyalty/rewards) | [WhatsApp Marketing](https://www.dineopen.com/products/loyalty/whatsapp) | [Customer App](https://www.dineopen.com/products/loyalty/customer-app)
+
+### DineOpen Hotel — Hotel Management
+Room inventory management, calendar-based booking system, guest check-in/check-out, room service ordering integrated with POS, maintenance scheduling, and invoice generation for hotel-restaurants and small hotels.
+- [DineOpen Hotel](https://www.dineopen.com/products/hotel) | [Room Management](https://www.dineopen.com/products/hotel/rooms) | [Booking System](https://www.dineopen.com/products/hotel/bookings) | [Front Desk](https://www.dineopen.com/products/hotel/front-desk)
+
+### DineOpen Kitchen — Kitchen Display System
+Real-time kitchen order ticket (KOT) display with status tracking (pending → in-progress → ready → completed), sound notifications, cooking timers, and receipt printing.
+- [DineOpen Kitchen](https://www.dineopen.com/products/kitchen) | [KOT System](https://www.dineopen.com/products/kitchen/kot) | [Kitchen Display](https://www.dineopen.com/products/kitchen/display)
+
+### DineOpen AI — AI Agent for Restaurants
+Voice ordering in 10+ Indian languages, AI chatbot for customer questions, smart table management via voice, knowledge base training with custom documents, and AI-powered business insights.
+- [DineOpen AI](https://www.dineopen.com/products/ai) | [Voice Ordering](https://www.dineopen.com/products/ai/voice-ordering) | [AI Chatbot](https://www.dineopen.com/products/ai/chatbot) | [AI Insights](https://www.dineopen.com/products/ai/insights)
+
+### DineOpen Inventory — Smart Inventory Management
+Stock tracking with barcode support, supplier management, recipe costing, purchase orders, GRN processing, invoice OCR, AI-powered reorder suggestions, waste predictions, and inter-location transfers.
+- [DineOpen Inventory](https://www.dineopen.com/products/inventory) | [Stock Management](https://www.dineopen.com/products/inventory/stock) | [Suppliers](https://www.dineopen.com/products/inventory/suppliers) | [Recipe Costing](https://www.dineopen.com/products/inventory/recipes) | [AI Reorder](https://www.dineopen.com/products/inventory/ai-reorder)
+
+### DineOpen Tables — Table Management & Reservations
+Floor plan management, table CRUD with capacity settings, real-time availability tracking, date/time-based reservations, booking forms with customer details, and visual status indicators.
+- [DineOpen Tables](https://www.dineopen.com/products/tables) | [Reservations](https://www.dineopen.com/products/tables/reservations) | [Floor Planning](https://www.dineopen.com/products/tables/floor-plan)
+
+### DineOpen Billing — GST Billing Software
+GST-compliant invoice generation with HSN codes, automatic tax calculation, multiple payment methods, tax record maintenance for filing, and subscription management.
+- [DineOpen Billing](https://www.dineopen.com/products/billing) | [GST Billing](https://www.dineopen.com/products/billing/gst) | [Invoice Generator](https://www.dineopen.com/products/billing/invoices)
+
+### DineOpen Admin — Restaurant Administration
+Multi-restaurant management, staff CRUD with role-based access (owner/manager/waiter/custom), menu sync across locations, tax/currency configuration, printer settings, and shift scheduling.
+- [DineOpen Admin](https://www.dineopen.com/products/admin) | [Staff Management](https://www.dineopen.com/products/admin/staff) | [Multi-Restaurant](https://www.dineopen.com/products/admin/multi-restaurant) | [Shift Scheduling](https://www.dineopen.com/products/admin/shifts)
 
 ## Industries Served
 

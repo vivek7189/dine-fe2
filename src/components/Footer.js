@@ -20,13 +20,17 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const productLinks = [
-    { name: 'Restaurant POS Software', href: '/restaurant-pos-software-india' },
-    { name: 'AI Agent for Restaurant', href: '/products/ai-agent' },
-    { name: 'Waiter & Captain App', href: '/products/waiter-app' },
-    { name: 'Multi-Restaurant Management', href: '/products/multi-restaurant' },
-    { name: 'Loyalty & Rewards', href: '/loyalty' },
-    { name: 'Inventory Management', href: '/products/inventory-management' },
-    { name: 'All Features', href: '/features' },
+    { name: 'DineOpen POS', href: '/products/pos' },
+    { name: 'DineOpen Menu', href: '/products/menu' },
+    { name: 'DineOpen Orders', href: '/products/orders' },
+    { name: 'DineOpen Loyalty', href: '/products/loyalty' },
+    { name: 'DineOpen Hotel', href: '/products/hotel' },
+    { name: 'DineOpen Kitchen', href: '/products/kitchen' },
+    { name: 'DineOpen AI', href: '/products/ai' },
+    { name: 'DineOpen Inventory', href: '/products/inventory' },
+    { name: 'DineOpen Tables', href: '/products/tables' },
+    { name: 'DineOpen Billing', href: '/products/billing' },
+    { name: 'DineOpen Admin', href: '/products/admin' },
   ];
 
   const useCaseLinks = [

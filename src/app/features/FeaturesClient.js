@@ -16,15 +16,15 @@ export default function FeaturesClient() {
   ];
 
   const moreFeatures = [
-    { name: 'Analytics & Reports', href: '/analytics', desc: 'Sales reports, insights & trends', icon: FaChartLine },
-    { name: 'Inventory Management', href: '/features/inventory-management', desc: 'Track stock, recipes & wastage', icon: FaBoxes },
-    { name: 'QR Menu & Ordering', href: '/products/qr-ordering', desc: 'Contactless dining experience', icon: FaQrcode },
-    { name: 'Payment Integration', href: '/products/payments', desc: 'Accept all payment methods', icon: FaCreditCard },
-    { name: 'Mobile POS', href: '/products/mobile-pos', desc: 'Tableside ordering & billing', icon: FaMobile },
-    { name: 'Loyalty & Rewards', href: '/loyalty', desc: 'Customer loyalty programs', icon: FaBell },
-    { name: 'GST Billing', href: '/restaurant-pos-software-india', desc: 'Compliant GST invoices', icon: FaReceipt },
-    { name: 'KOT Management', href: '/products/kot', desc: 'Kitchen order tickets', icon: FaClipboardList },
-    { name: 'Multi-location', href: '/products/multi-restaurant', desc: 'Manage multiple outlets', icon: FaCog },
+    { name: 'Analytics & Reports', href: '/products/pos', desc: 'Sales reports, insights & trends', icon: FaChartLine },
+    { name: 'DineOpen Inventory', href: '/products/inventory', desc: 'Track stock, recipes & wastage', icon: FaBoxes },
+    { name: 'DineOpen Menu', href: '/products/menu/qr-menu', desc: 'QR menus & contactless dining', icon: FaQrcode },
+    { name: 'DineOpen Billing', href: '/products/billing', desc: 'Accept all payment methods', icon: FaCreditCard },
+    { name: 'DineOpen Orders', href: '/products/orders', desc: 'Online & tableside ordering', icon: FaMobile },
+    { name: 'DineOpen Loyalty', href: '/products/loyalty', desc: 'Customer loyalty programs', icon: FaBell },
+    { name: 'GST Billing', href: '/products/billing/gst', desc: 'Compliant GST invoices', icon: FaReceipt },
+    { name: 'DineOpen Kitchen', href: '/products/kitchen', desc: 'Kitchen order tickets & KDS', icon: FaClipboardList },
+    { name: 'DineOpen Admin', href: '/products/admin/multi-restaurant', desc: 'Manage multiple outlets', icon: FaCog },
   ];
 
   return (
