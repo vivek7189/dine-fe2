@@ -174,13 +174,20 @@ export default function sitemap() {
     'swiggy-zomato-calculator',
     'emi-calculator',
     'opening-checklist',
-    // AI-powered tools (login-gated)
+    // AI-powered tools (free, no login)
     'menu-description-generator',
     'review-response-generator',
     'tagline-generator',
     'social-caption-generator',
     'job-description-generator',
     'complaint-response-generator',
+    // New calculators & tools
+    'revenue-forecast-calculator',
+    'customer-lifetime-value-calculator',
+    'google-review-calculator',
+    'restaurant-valuation-calculator',
+    'recipe-scaler',
+    'startup-cost-calculator',
   ].map((slug) => ({
     url: `${baseUrl}/tools/${slug}`,
     lastModified: currentDate,

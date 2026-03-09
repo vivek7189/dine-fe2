@@ -86,6 +86,12 @@ const tools = [
   { name: 'ROI Calculator', href: '/tools/roi-calculator' },
   { name: 'Menu Engineering', href: '/tools/menu-engineering' },
   { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
+  { name: 'Revenue Forecast', href: '/tools/revenue-forecast-calculator' },
+  { name: 'Startup Cost Calculator', href: '/tools/startup-cost-calculator' },
+  { name: 'Recipe Scaler', href: '/tools/recipe-scaler' },
+  { name: 'Restaurant Valuation', href: '/tools/restaurant-valuation-calculator' },
+  { name: 'Review Response AI', href: '/tools/review-response-generator' },
+  { name: 'Menu Description AI', href: '/tools/menu-description-generator' },
 ];
 
 const guides = [

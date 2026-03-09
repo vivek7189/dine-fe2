@@ -1,115 +1,101 @@
 'use client';
 
-import ToolPageTemplate from '../../../components/ToolPageTemplate';
-import { FaQrcode, FaImage, FaMobile, FaPalette, FaLanguage, FaSync } from 'react-icons/fa';
+import { useState } from 'react';
+import Link from 'next/link';
+import CommonHeader from '../../../components/CommonHeader';
+import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
+import Breadcrumb from '../../../components/Breadcrumb';
+import { FaQrcode, FaArrowRight, FaCheckCircle } from 'react-icons/fa';
 
 export default function QRMenuGeneratorClient() {
-  const features = [
-    {
-      icon: FaQrcode,
-      title: 'Unique QR Per Table',
-      description: 'Generate unique QR codes for each table. Customers scan and orders are tagged to the right table.'
-    },
-    {
-      icon: FaImage,
-      title: 'Menu with Photos',
-      description: 'Upload photos for each dish. Visual menus increase orders by 30% compared to text-only menus.'
-    },
-    {
-      icon: FaPalette,
-      title: '5 Beautiful Themes',
-      description: 'Choose from Classic, Carousel, Cube, Book, or Bistro themes to match your restaurant style.'
-    },
-    {
-      icon: FaMobile,
-      title: 'No App Required',
-      description: 'Customers just scan with their phone camera. No app download, no signup needed to view menu.'
-    },
-    {
-      icon: FaLanguage,
-      title: 'Multi-Language Support',
-      description: 'Menu available in English and Hindi. Customers can switch language preference.'
-    },
-    {
-      icon: FaSync,
-      title: 'Real-Time Updates',
-      description: 'Update prices, add items, mark out-of-stock - changes reflect instantly on all QR menus.'
-    },
-  ];
-
-  const howItWorks = [
-    {
-      title: 'Add Your Menu Items',
-      description: 'Enter your dishes with names, prices, descriptions, and photos. Set up categories, variants, and add-ons.'
-    },
-    {
-      title: 'Choose Your Theme',
-      description: 'Pick a menu theme that matches your restaurant brand. Customize colors and add your logo.'
-    },
-    {
-      title: 'Generate QR Codes',
-      description: 'Generate unique QR codes for each table or a single QR for your restaurant. Download and print.'
-    },
-    {
-      title: 'Customers Scan & Order',
-      description: 'Customers scan the QR, browse your beautiful menu, and place orders directly from their phones.'
-    },
-  ];
-
-  const benefits = [
-    'Zero paper menu printing costs',
-    'Update menu instantly, no reprinting',
-    'Higher average order value with photos',
-    'Reduce order errors significantly',
-    'Contactless, hygienic ordering',
-    'Track which items are most viewed'
-  ];
-
-  const faqs = [
-    {
-      question: 'Is the QR menu generator really free?',
-      answer: 'Yes, you can create and use QR menus for free with DineOpen. Advanced features like ordering and payments are part of the full platform.'
-    },
-    {
-      question: 'Do customers need to download an app?',
-      answer: 'No! Customers just scan the QR code with their phone camera and the menu opens in their browser. No app download or signup required.'
-    },
-    {
-      question: 'Can I update the menu after printing QR codes?',
-      answer: 'Yes! The QR code stays the same, but the menu it links to can be updated anytime. Change prices, add items, mark out-of-stock - all instant.'
-    },
-    {
-      question: 'What menu themes are available?',
-      answer: 'DineOpen offers 5 themes: Classic (clean list), Carousel (swipe cards), Cube (3D effect), Book (page flip), and Bistro (elegant grid).'
-    },
-    {
-      question: 'Can I add photos to my menu?',
-      answer: 'Absolutely! Upload photos for each dish. Menus with photos typically see 30% higher order values.'
-    },
-  ];
-
-  const relatedTools = [
-    { name: 'Invoice Generator', href: '/tools/restaurant-invoice-generator' },
-    { name: 'KOT System', href: '/tools/kot-system' },
-    { name: 'Table Management', href: '/tools/table-management' },
-    { name: 'Loyalty Program', href: '/tools/loyalty-program' },
-  ];
-
   return (
-    <ToolPageTemplate
-      toolName="QR Menu Generator"
-      toolIcon={FaQrcode}
-      heroTitle="Create Beautiful"
-      heroHighlight="QR Menus for Free"
-      heroDescription="Generate digital QR code menus for your restaurant in minutes. Customers scan, browse with photos, and order - all without downloading any app. Zero printing costs, instant updates."
-      features={features}
-      howItWorks={howItWorks}
-      benefits={benefits}
-      faqs={faqs}
-      ctaTitle="Create Your QR Menu Now"
-      ctaDescription="Join thousands of restaurants using digital QR menus. Free to start, no credit card needed."
-      relatedTools={relatedTools}
-      currentPath="/tools/qr-menu-generator"
-    />
+    <div style={{ minHeight: '100vh', backgroundColor: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+      <CommonHeader />
+      <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Free Tools', href: '/tools/food-cost-calculator' }, { label: 'QR Menu Generator' }]} />
+
+      <div style={{ paddingTop: '80px' }}>
+        {/* Hero */}
+        <section style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white', padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '20px', fontSize: '12px', marginBottom: '16px' }}>
+              Free Tool &bull; No Login Required
+            </div>
+            <h1 style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px' }}>QR Code Menu Generator for Restaurants</h1>
+            <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '24px' }}>
+              Create a free QR code for your restaurant menu in 30 seconds. No sign-up needed.
+            </p>
+            <Link href="/tools/qr-menu-maker" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '10px',
+              padding: '16px 32px', backgroundColor: 'white', color: '#2563eb',
+              borderRadius: '10px', fontWeight: '700', fontSize: '18px', textDecoration: 'none'
+            }}>
+              <FaQrcode /> Create Your QR Menu Now <FaArrowRight />
+            </Link>
+          </div>
+        </section>
+
+        {/* Benefits */}
+        <section style={{ padding: '60px 20px' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '40px' }}>
+              Why Use a QR Code Menu?
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
+              {[
+                { title: 'Zero Printing Costs', desc: 'Update your menu anytime without reprinting. Save thousands on printing costs every month.' },
+                { title: 'Contactless & Hygienic', desc: 'Guests scan and view the menu on their own phone. No shared physical menus.' },
+                { title: 'Update Instantly', desc: 'Change prices, add specials, mark items as sold out — changes reflect in real-time.' },
+                { title: 'Works on Any Phone', desc: 'No app download needed. Every smartphone camera can scan QR codes natively.' },
+                { title: 'Better Guest Experience', desc: 'Beautiful digital menus with photos, descriptions, and dietary info.' },
+                { title: 'Track Engagement', desc: 'See how many guests scan your QR code and which items they view most.' },
+              ].map((item, idx) => (
+                <div key={idx} style={{ padding: '24px', backgroundColor: '#f0f9ff', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <FaCheckCircle style={{ color: '#2563eb' }} />
+                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>{item.title}</h3>
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA to QR Maker */}
+        <section style={{ padding: '60px 20px', backgroundColor: '#eff6ff', textAlign: 'center' }}>
+          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <FaQrcode style={{ fontSize: '48px', color: '#2563eb', marginBottom: '16px' }} />
+            <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px', color: '#111827' }}>Ready to Create Your QR Menu?</h2>
+            <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '24px' }}>
+              Our free QR Menu Maker lets you generate and download a custom QR code in seconds. No login, no signup.
+            </p>
+            <Link href="/tools/qr-menu-maker" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '10px',
+              padding: '16px 32px', backgroundColor: '#2563eb', color: 'white',
+              borderRadius: '10px', fontWeight: '700', fontSize: '18px', textDecoration: 'none'
+            }}>
+              <FaQrcode /> Open Free QR Menu Maker <FaArrowRight />
+            </Link>
+          </div>
+        </section>
+
+        {/* DineOpen CTA */}
+        <section style={{ padding: '60px 20px', backgroundColor: '#2563eb', color: 'white', textAlign: 'center' }}>
+          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Want a Full Digital Menu System?</h2>
+            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>
+              DineOpen gives you QR menus with photos, themes, multi-language support, online ordering, and POS integration.
+            </p>
+            <Link href="/pricing" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#2563eb', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+              Start Free Trial
+            </Link>
+          </div>
+        </section>
+
+        <InternalLinks currentPath="/tools/qr-menu-generator" variant="tool" />
+      </div>
+      <Footer />
+    </div>
   );
 }

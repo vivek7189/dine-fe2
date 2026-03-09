@@ -1,117 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
+import useAITool from '../../../hooks/useAITool';
 
 export default function ComplaintResponseClient() {
-  const [complaintType, setComplaintType] = useState('food');
   const [complaint, setComplaint] = useState('');
-  const [tone, setTone] = useState('apologetic');
-  const [offerCompensation, setOfferCompensation] = useState(true);
-
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [channel, setChannel] = useState('Email');
   const [generatedResponse, setGeneratedResponse] = useState('');
-  const [apiCallsUsed, setApiCallsUsed] = useState(0);
-  const MAX_API_CALLS = 10;
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const loginStatus = localStorage.getItem('dineopen_logged_in');
-    const calls = localStorage.getItem('dineopen_complaint_gen_calls');
-    setIsLoggedIn(loginStatus === 'true');
-    setApiCallsUsed(parseInt(calls) || 0);
-  }, []);
+  const { generate, isGenerating, error, remaining } = useAITool('complaint-response');
 
-  const complaintTypes = [
-    { value: 'food', label: 'Food Quality Issue' },
-    { value: 'service', label: 'Poor Service' },
-    { value: 'delay', label: 'Long Wait / Delay' },
-    { value: 'wrong', label: 'Wrong Order' },
-    { value: 'hygiene', label: 'Hygiene Concern' },
-    { value: 'billing', label: 'Billing Issue' },
-    { value: 'delivery', label: 'Delivery Problem' },
-  ];
-
-  const tones = [
-    { value: 'apologetic', label: 'Apologetic' },
-    { value: 'empathetic', label: 'Empathetic' },
-    { value: 'professional', label: 'Professional' },
-    { value: 'friendly', label: 'Friendly' },
-  ];
+  const channels = ['Email', 'Google Review', 'Zomato', 'Swiggy', 'Social Media', 'In-Person'];
 
   const handleGenerate = async () => {
-    if (!isLoggedIn) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    if (apiCallsUsed >= MAX_API_CALLS) {
-      alert('You have reached the limit of 10 free generations.');
-      return;
-    }
-
     if (!complaint.trim()) {
       alert('Please describe the complaint first.');
       return;
     }
 
-    setIsGenerating(true);
+    const result = await generate({
+      complaint,
+      restaurantName: restaurantName || undefined,
+      channel,
+    });
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const response = generateMockResponse();
-      setGeneratedResponse(response);
-
-      const newCount = apiCallsUsed + 1;
-      setApiCallsUsed(newCount);
-      localStorage.setItem('dineopen_complaint_gen_calls', newCount.toString());
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setIsGenerating(false);
+    if (result) {
+      setGeneratedResponse(result);
     }
-  };
-
-  const generateMockResponse = () => {
-    const greetings = {
-      apologetic: 'We sincerely apologize for',
-      empathetic: 'We completely understand your frustration regarding',
-      professional: 'Thank you for bringing to our attention',
-      friendly: 'We really appreciate you reaching out about',
-    };
-
-    const typeResponses = {
-      food: `${greetings[tone]} the issue with your food. This is not the experience we want for our guests. Our kitchen team takes food quality very seriously, and we will immediately look into what went wrong.`,
-      service: `${greetings[tone]} the service you received. We pride ourselves on providing excellent hospitality, and clearly we fell short this time. We will address this with our team right away.`,
-      delay: `${greetings[tone]} the delay in your order. We understand how frustrating it is to wait longer than expected, especially when you're hungry. We're working on improving our kitchen efficiency.`,
-      wrong: `${greetings[tone]} receiving the wrong order. This should not have happened, and we take full responsibility for this mix-up.`,
-      hygiene: `${greetings[tone]} your hygiene concern. Cleanliness is our top priority, and we take such feedback extremely seriously. We will immediately investigate and take corrective action.`,
-      billing: `${greetings[tone]} the billing discrepancy. We completely understand how concerning this must be. Our team will review your bill immediately and ensure any errors are corrected.`,
-      delivery: `${greetings[tone]} the delivery issue. We understand how disappointing it is when your food doesn't arrive as expected.`,
-    };
-
-    let response = typeResponses[complaintType];
-
-    if (offerCompensation) {
-      response += `\n\nTo make it up to you, we would like to offer you a complimentary meal / discount on your next visit. Please reach out to us directly so we can arrange this for you.`;
-    }
-
-    response += `\n\nYour feedback helps us improve, and we truly value your patronage. We hope you'll give us another chance to serve you better.\n\nWarm regards,\n[Your Restaurant Name]`;
-
-    return response;
-  };
-
-  const handleLogin = () => {
-    window.location.href = 'https://app.dineopen.com/login?redirect=' + encodeURIComponent(window.location.href);
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedResponse);
-    alert('Copied to clipboard!');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -122,7 +49,7 @@ export default function ComplaintResponseClient() {
         <section style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', color: 'white', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '20px', fontSize: '12px', marginBottom: '16px' }}>
-              ✨ AI-Powered
+              AI-Powered &bull; Free, No Login
             </div>
             <h1 style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px' }}>Complaint Response Generator</h1>
             <p style={{ fontSize: '18px', opacity: 0.95 }}>
@@ -141,59 +68,50 @@ export default function ComplaintResponseClient() {
 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Complaint Type
-                  </label>
-                  <select
-                    value={complaintType}
-                    onChange={(e) => setComplaintType(e.target.value)}
-                    style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
-                  >
-                    {complaintTypes.map(c => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Customer Complaint / Review
+                    Customer Complaint / Review *
                   </label>
                   <textarea
                     value={complaint}
                     onChange={(e) => setComplaint(e.target.value)}
                     placeholder="Paste the customer complaint or describe the issue..."
-                    rows={4}
-                    style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }}
+                    rows={5}
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }}
                   />
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Response Tone
+                    Restaurant Name (Optional)
                   </label>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {tones.map(t => (
-                      <button
-                        key={t.value}
-                        onClick={() => setTone(t.value)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: tone === t.value ? '#dc2626' : '#f3f4f6',
-                          color: tone === t.value ? 'white' : '#374151',
-                          border: 'none', borderRadius: '20px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'
-                        }}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+                  <input
+                    type="text"
+                    value={restaurantName}
+                    onChange={(e) => setRestaurantName(e.target.value)}
+                    placeholder="e.g., Spice Garden"
+                    style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                  />
                 </div>
 
                 <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={offerCompensation} onChange={(e) => setOfferCompensation(e.target.checked)} />
-                    <span style={{ fontSize: '14px' }}>Include compensation offer</span>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Channel
                   </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {channels.map(ch => (
+                      <button
+                        key={ch}
+                        onClick={() => setChannel(ch)}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: channel === ch ? '#dc2626' : '#f3f4f6',
+                          color: channel === ch ? 'white' : '#374151',
+                          border: 'none', borderRadius: '20px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'
+                        }}
+                      >
+                        {ch}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <button
@@ -206,12 +124,17 @@ export default function ComplaintResponseClient() {
                     fontWeight: '700', fontSize: '16px'
                   }}
                 >
-                  {isGenerating ? 'Generating...' : '✨ Generate Response'}
+                  {isGenerating ? 'Generating...' : 'Generate Response'}
                 </button>
 
-                {isLoggedIn && (
+                {remaining !== null && (
                   <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
-                    {MAX_API_CALLS - apiCallsUsed} free generations remaining
+                    {remaining} free generations remaining today
+                  </p>
+                )}
+                {error && (
+                  <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '14px', color: '#dc2626', backgroundColor: '#fef2f2', padding: '12px', borderRadius: '8px' }}>
+                    {error}
                   </p>
                 )}
               </div>
@@ -223,9 +146,9 @@ export default function ComplaintResponseClient() {
                   {generatedResponse && (
                     <button
                       onClick={copyToClipboard}
-                      style={{ padding: '8px 16px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                      style={{ padding: '8px 16px', backgroundColor: copied ? '#059669' : '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
                     >
-                      Copy
+                      {copied ? 'Copied!' : 'Copy'}
                     </button>
                   )}
                 </div>
@@ -252,22 +175,17 @@ export default function ComplaintResponseClient() {
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', color: '#111827' }}>Tips for Handling Complaints</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-              <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                <p style={{ fontWeight: '600', marginBottom: '4px' }}>Respond Quickly</p>
-                <p style={{ fontSize: '13px', color: '#6b7280' }}>Reply within 24 hours to show you care</p>
-              </div>
-              <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                <p style={{ fontWeight: '600', marginBottom: '4px' }}>Never Argue</p>
-                <p style={{ fontSize: '13px', color: '#6b7280' }}>Acknowledge their feelings, do not defend</p>
-              </div>
-              <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                <p style={{ fontWeight: '600', marginBottom: '4px' }}>Offer Solution</p>
-                <p style={{ fontSize: '13px', color: '#6b7280' }}>Give them a reason to come back</p>
-              </div>
-              <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                <p style={{ fontWeight: '600', marginBottom: '4px' }}>Take Offline</p>
-                <p style={{ fontSize: '13px', color: '#6b7280' }}>Move to DM/email for detailed discussions</p>
-              </div>
+              {[
+                { title: 'Respond Quickly', desc: 'Reply within 24 hours to show you care' },
+                { title: 'Never Argue', desc: 'Acknowledge their feelings, do not defend' },
+                { title: 'Offer Solution', desc: 'Give them a reason to come back' },
+                { title: 'Take Offline', desc: 'Move to DM/email for detailed discussions' },
+              ].map((tip, idx) => (
+                <div key={idx} style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                  <p style={{ fontWeight: '600', marginBottom: '4px' }}>{tip.title}</p>
+                  <p style={{ fontSize: '13px', color: '#6b7280' }}>{tip.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -282,43 +200,9 @@ export default function ComplaintResponseClient() {
             </Link>
           </div>
         </section>
+
+        <InternalLinks currentPath="/tools/complaint-response-generator" variant="tool" />
       </div>
-
-      {/* Login Modal */}
-      {showLoginModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
-            <p style={{ fontSize: '48px', marginBottom: '16px' }}>🔐</p>
-            <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>Login Required</h3>
-            <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-              Create a free account to generate responses. You get 10 free generations!
-            </p>
-            <button
-              onClick={handleLogin}
-              style={{
-                width: '100%', padding: '14px', backgroundColor: '#dc2626', color: 'white',
-                border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', marginBottom: '12px'
-              }}
-            >
-              Login / Sign Up Free
-            </button>
-            <button
-              onClick={() => setShowLoginModal(false)}
-              style={{
-                width: '100%', padding: '12px', backgroundColor: 'transparent', color: '#6b7280',
-                border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
       <Footer />
     </>
   );

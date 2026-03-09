@@ -4,7 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaMagic, FaCopy, FaRedo, FaLock, FaUtensils, FaCheckCircle } from 'react-icons/fa';
+import InternalLinks from '../../../components/InternalLinks';
+import useAITool from '../../../hooks/useAITool';
+import { FaMagic, FaCopy, FaRedo, FaUtensils, FaCheckCircle } from 'react-icons/fa';
 
 export default function MenuDescriptionGeneratorClient() {
   const [dishName, setDishName] = useState('');
@@ -12,10 +14,10 @@ export default function MenuDescriptionGeneratorClient() {
   const [cuisine, setCuisine] = useState('indian');
   const [tone, setTone] = useState('casual');
   const [dietaryTags, setDietaryTags] = useState([]);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedDescriptions, setGeneratedDescriptions] = useState([]);
-  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [generatedDescription, setGeneratedDescription] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const { generate, isGenerating, error, remaining } = useAITool('menu-description');
 
   const cuisines = [
     { value: 'indian', label: 'Indian' },
@@ -40,11 +42,7 @@ export default function MenuDescriptionGeneratorClient() {
   const dietaryOptions = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Jain', 'No Onion-Garlic', 'Keto', 'Low-Calorie'];
 
   const toggleDietary = (tag) => {
-    if (dietaryTags.includes(tag)) {
-      setDietaryTags(dietaryTags.filter(t => t !== tag));
-    } else {
-      setDietaryTags([...dietaryTags, tag]);
-    }
+    setDietaryTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
   const handleGenerate = async () => {
@@ -53,72 +51,22 @@ export default function MenuDescriptionGeneratorClient() {
       return;
     }
 
-    // Check if user is logged in (you would check actual auth state here)
-    const isLoggedIn = false; // Replace with actual auth check
+    const result = await generate({
+      dishName,
+      ingredients: [ingredients, dietaryTags.length > 0 ? `Dietary: ${dietaryTags.join(', ')}` : ''].filter(Boolean).join('. '),
+      cuisine: cuisines.find(c => c.value === cuisine)?.label || cuisine,
+      style: tone,
+    });
 
-    if (!isLoggedIn) {
-      setShowLoginPrompt(true);
-      return;
+    if (result) {
+      setGeneratedDescription(result);
     }
-
-    // If logged in, call API
-    generateDescriptions();
   };
 
-  const generateDescriptions = async () => {
-    setIsGenerating(true);
-    setGeneratedDescriptions([]);
-
-    // Simulate API call - In production, this would call your AI endpoint
-    setTimeout(() => {
-      const mockDescriptions = generateMockDescriptions();
-      setGeneratedDescriptions(mockDescriptions);
-      setIsGenerating(false);
-    }, 2000);
-  };
-
-  const generateMockDescriptions = () => {
-    // These would come from your AI API
-    const templates = {
-      casual: [
-        `Our ${dishName} is comfort food at its best! Made with ${ingredients || 'fresh ingredients'}, this dish brings all the flavors you love to your table.`,
-        `Craving something delicious? Try our ${dishName} - a crowd favorite that never disappoints. ${dietaryTags.length > 0 ? dietaryTags.join(', ') + ' friendly!' : ''}`,
-        `${dishName} done right! We take ${ingredients || 'quality ingredients'} and turn them into pure magic. Your taste buds will thank you.`,
-      ],
-      fineDining: [
-        `An exquisite preparation of ${dishName}, artfully crafted with ${ingredients || 'the finest seasonal ingredients'}. A symphony of flavors that elevates the dining experience.`,
-        `Discover the elegance of our ${dishName} - a thoughtfully composed dish where ${ingredients || 'premium ingredients'} come together in perfect harmony.`,
-        `Our chef\'s interpretation of ${dishName} showcases culinary mastery. ${ingredients ? `Featuring ${ingredients},` : ''} each element is carefully balanced to create a memorable experience.`,
-      ],
-      quirky: [
-        `Holy moly, it\'s ${dishName}! This bad boy is loaded with ${ingredients || 'goodness'} and ready to rock your world. You\'ve been warned.`,
-        `${dishName}: Because life\'s too short for boring food! We packed in ${ingredients || 'all the good stuff'} and added a dash of awesome.`,
-        `Meet your new obsession: ${dishName}! It\'s like a party in your mouth and everyone\'s invited. ${dietaryTags.length > 0 ? `Plus, it\'s ${dietaryTags.join(' & ')}!` : ''}`,
-      ],
-      healthFocused: [
-        `Nourish your body with our ${dishName}. Crafted with ${ingredients || 'wholesome ingredients'}, this dish delivers both nutrition and flavor. ${dietaryTags.length > 0 ? dietaryTags.join(', ') + '.' : ''}`,
-        `Feel good about what you eat! Our ${dishName} features ${ingredients || 'nutrient-rich ingredients'} that fuel your day without compromising on taste.`,
-        `Healthy never tasted so good! Try our ${dishName} - a perfect balance of ${ingredients || 'fresh, quality ingredients'} designed for mindful eating.`,
-      ],
-      indulgent: [
-        `Give in to temptation with our ${dishName}. Rich, decadent, and absolutely irresistible. Made with ${ingredients || 'premium ingredients'} for the ultimate indulgence.`,
-        `${dishName}: Pure indulgence on a plate. We don\'t hold back on ${ingredients || 'the good stuff'}. Go ahead, you deserve this.`,
-        `Warning: Our ${dishName} is dangerously delicious! Loaded with ${ingredients || 'incredible flavors'}, this dish is for those who believe in treating themselves.`,
-      ],
-    };
-
-    return templates[tone] || templates.casual;
-  };
-
-  const handleCopy = (text, index) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const handleLoginAndGenerate = () => {
-    // Redirect to login with return URL
-    window.location.href = `https://app.dineopen.com/login?returnUrl=${encodeURIComponent(window.location.href)}&action=menu-generator`;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedDescription);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -129,7 +77,7 @@ export default function MenuDescriptionGeneratorClient() {
         <section style={{ background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', color: 'white', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '20px', marginBottom: '16px', fontSize: '14px' }}>
-              <FaMagic /> AI-Powered
+              <FaMagic /> AI-Powered &bull; Free, No Login
             </div>
             <h1 style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px' }}>Menu Description Generator</h1>
             <p style={{ fontSize: '18px', opacity: 0.95 }}>
@@ -234,102 +182,57 @@ export default function MenuDescriptionGeneratorClient() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
                 }}
               >
-                {isGenerating ? (
-                  <>Generating...</>
-                ) : (
-                  <><FaMagic /> Generate Descriptions</>
-                )}
+                {isGenerating ? <>Generating...</> : <><FaMagic /> Generate Description</>}
               </button>
 
-              {/* Login Prompt Modal */}
-              {showLoginPrompt && (
-                <div style={{
-                  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                  backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  zIndex: 1000, padding: '20px'
-                }}>
-                  <div style={{
-                    backgroundColor: 'white', borderRadius: '16px', padding: '32px',
-                    maxWidth: '400px', width: '100%', textAlign: 'center'
-                  }}>
-                    <div style={{
-                      width: '64px', height: '64px', backgroundColor: '#fce7f3', borderRadius: '50%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px'
-                    }}>
-                      <FaLock style={{ color: '#ec4899', fontSize: '24px' }} />
-                    </div>
-                    <h3 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '12px', color: '#111827' }}>
-                      Free Account Required
-                    </h3>
-                    <p style={{ fontSize: '15px', color: '#6b7280', marginBottom: '24px' }}>
-                      Sign up for a free DineOpen account to generate AI menu descriptions. It only takes 30 seconds!
-                    </p>
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <button
-                        onClick={handleLoginAndGenerate}
-                        style={{
-                          padding: '14px', backgroundColor: '#ec4899', color: 'white',
-                          border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer'
-                        }}
-                      >
-                        Sign Up Free
-                      </button>
-                      <button
-                        onClick={() => setShowLoginPrompt(false)}
-                        style={{
-                          padding: '14px', backgroundColor: '#f3f4f6', color: '#374151',
-                          border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer'
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '16px' }}>
-                      Already have an account? <a href="https://app.dineopen.com/login" style={{ color: '#ec4899' }}>Log in</a>
-                    </p>
-                  </div>
-                </div>
+              {remaining !== null && (
+                <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px', color: '#6b7280' }}>
+                  {remaining} free generations remaining today
+                </p>
+              )}
+              {error && (
+                <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '14px', color: '#dc2626', backgroundColor: '#fef2f2', padding: '12px', borderRadius: '8px' }}>
+                  {error}
+                </p>
               )}
 
-              {/* Generated Descriptions */}
-              {generatedDescriptions.length > 0 && (
+              {/* Generated Description */}
+              {generatedDescription && (
                 <div style={{ marginTop: '32px' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#111827' }}>
-                    Generated Descriptions for &quot;{dishName}&quot;
+                    Generated Description for &quot;{dishName}&quot;
                   </h3>
-                  <div style={{ display: 'grid', gap: '16px' }}>
-                    {generatedDescriptions.map((desc, idx) => (
-                      <div key={idx} style={{
-                        padding: '20px', backgroundColor: '#fdf2f8', borderRadius: '12px',
-                        border: '1px solid #fbcfe8', position: 'relative'
-                      }}>
-                        <p style={{ fontSize: '15px', color: '#374151', lineHeight: 1.7, marginBottom: '12px' }}>
-                          {desc}
-                        </p>
-                        <button
-                          onClick={() => handleCopy(desc, idx)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: '8px 16px', backgroundColor: copiedIndex === idx ? '#059669' : '#ec4899',
-                            color: 'white', border: 'none', borderRadius: '6px',
-                            fontSize: '13px', fontWeight: '500', cursor: 'pointer'
-                          }}
-                        >
-                          {copiedIndex === idx ? <><FaCheckCircle /> Copied!</> : <><FaCopy /> Copy</>}
-                        </button>
-                      </div>
-                    ))}
+                  <div style={{
+                    padding: '20px', backgroundColor: '#fdf2f8', borderRadius: '12px',
+                    border: '1px solid #fbcfe8'
+                  }}>
+                    <p style={{ fontSize: '15px', color: '#374151', lineHeight: 1.7, marginBottom: '12px', whiteSpace: 'pre-wrap' }}>
+                      {generatedDescription}
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button
+                        onClick={handleCopy}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 16px', backgroundColor: copied ? '#059669' : '#ec4899',
+                          color: 'white', border: 'none', borderRadius: '6px',
+                          fontSize: '13px', fontWeight: '500', cursor: 'pointer'
+                        }}
+                      >
+                        {copied ? <><FaCheckCircle /> Copied!</> : <><FaCopy /> Copy</>}
+                      </button>
+                      <button
+                        onClick={handleGenerate}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 16px', backgroundColor: '#f3f4f6', color: '#374151',
+                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
+                        }}
+                      >
+                        <FaRedo /> Regenerate
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={handleGenerate}
-                    style={{
-                      marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '12px 24px', backgroundColor: '#f3f4f6', color: '#374151',
-                      border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px'
-                    }}
-                  >
-                    <FaRedo /> Generate More
-                  </button>
                 </div>
               )}
             </div>
@@ -363,11 +266,13 @@ export default function MenuDescriptionGeneratorClient() {
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Create Your Digital Menu</h2>
             <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>DineOpen creates beautiful QR menus with professional descriptions for all your dishes.</p>
-            <Link href="https://dineopen.com/login" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#ec4899', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
+            <Link href="/pricing" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#ec4899', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               Start Free Trial
             </Link>
           </div>
         </section>
+
+        <InternalLinks currentPath="/tools/menu-description-generator" variant="tool" />
       </div>
       <Footer />
     </>

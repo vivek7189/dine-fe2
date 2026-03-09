@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
+import InternalLinks from '../../../components/InternalLinks';
+import useAITool from '../../../hooks/useAITool';
 
 export default function RestaurantNameClient() {
   const [cuisine, setCuisine] = useState('indian');
@@ -11,21 +13,10 @@ export default function RestaurantNameClient() {
   const [keywords, setKeywords] = useState('');
   const [location, setLocation] = useState('');
   const [style, setStyle] = useState('creative');
+  const [generatedText, setGeneratedText] = useState('');
+  const [copiedIdx, setCopiedIdx] = useState(null);
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedNames, setGeneratedNames] = useState([]);
-  const [apiCallsUsed, setApiCallsUsed] = useState(0);
-  const MAX_API_CALLS = 10;
-
-  useEffect(() => {
-    // Check login status and API usage from localStorage
-    const loginStatus = localStorage.getItem('dineopen_logged_in');
-    const calls = localStorage.getItem('dineopen_name_gen_calls');
-    setIsLoggedIn(loginStatus === 'true');
-    setApiCallsUsed(parseInt(calls) || 0);
-  }, []);
+  const { generate, isGenerating, error, remaining } = useAITool('restaurant-name');
 
   const cuisineOptions = [
     { value: 'indian', label: 'Indian' },
@@ -55,84 +46,31 @@ export default function RestaurantNameClient() {
   ];
 
   const handleGenerate = async () => {
-    if (!isLoggedIn) {
-      setShowLoginModal(true);
-      return;
-    }
+    const cuisineLabel = cuisineOptions.find(c => c.value === cuisine)?.label || cuisine;
+    const vibeLabel = themeOptions.find(t => t.value === theme)?.label || theme;
 
-    if (apiCallsUsed >= MAX_API_CALLS) {
-      alert('You have reached the limit of 10 free generations. Please upgrade to continue.');
-      return;
-    }
+    const result = await generate({
+      cuisine: cuisineLabel,
+      vibe: `${vibeLabel}, ${styleOptions.find(s => s.value === style)?.label || style}`,
+      location: location || 'India',
+      keywords: keywords || undefined,
+    });
 
-    setIsGenerating(true);
-
-    try {
-      // TODO: Replace with actual API call to your backend
-      // const response = await fetch('/api/generate-names', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ cuisine, theme, keywords, location, style })
-      // });
-      // const data = await response.json();
-
-      // Mock response for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const mockNames = generateMockNames();
-      setGeneratedNames(mockNames);
-
-      // Update API call count
-      const newCount = apiCallsUsed + 1;
-      setApiCallsUsed(newCount);
-      localStorage.setItem('dineopen_name_gen_calls', newCount.toString());
-    } catch (error) {
-      console.error('Error generating names:', error);
-      alert('Failed to generate names. Please try again.');
-    } finally {
-      setIsGenerating(false);
+    if (result) {
+      setGeneratedText(result);
     }
   };
 
-  const generateMockNames = () => {
-    // This would be replaced by actual AI response
-    const cuisineMap = {
-      indian: ['Spice Route', 'Masala Magic', 'Curry House', 'Tandoor Tales', 'Desi Delights', 'Namaste Kitchen', 'Saffron Stories', 'Mirchi & More'],
-      chinese: ['Wok & Roll', 'Dragon Bowl', 'Noodle Nirvana', 'Bamboo Bites', 'Dynasty Diner', 'Golden Chopsticks', 'Dim Sum Dreams', 'Rice Republic'],
-      italian: ['Pasta Prima', 'La Cucina', 'Olive & Oak', 'Trattoria Bella', 'Piazza Kitchen', 'Tuscan Table', 'Basilico', 'Il Forno'],
-      cafe: ['Brew & Bites', 'The Daily Grind', 'Caffeine Culture', 'Bean There', 'Cozy Corner Cafe', 'The Coffee Canvas', 'Morning Mood', 'Cuppa Joy'],
-      fusion: ['East Meets West', 'Flavor Fusion', 'Cross Culture Kitchen', 'The Blend', 'Twisted Classics', 'Global Grill', 'Mix & Match', 'Border Crossings'],
-      mexican: ['Taco Tales', 'Salsa Studio', 'Fiesta Kitchen', 'Casa de Sabor', 'Burrito Brothers', 'Guac & Roll', 'Cantina Corner', 'Aztec Bites'],
-      continental: ['The Continental', 'European Table', 'Classic Kitchen', 'The Grill Room', 'Savory & Sweet', 'The Brasserie', 'Continental Corner', 'Prime & Proper'],
-      streetfood: ['Street Eats', 'Chaat Corner', 'The Food Cart', 'Urban Bites', 'Gully Kitchen', 'Thela Tales', 'Street Side Story', 'Hawker House'],
-    };
-
-    const names = cuisineMap[cuisine] || cuisineMap.indian;
-    const shuffled = names.sort(() => Math.random() - 0.5);
-
-    return shuffled.slice(0, 6).map((name, i) => ({
-      name: keywords ? `${name} ${keywords.split(' ')[0] || ''}`.trim() : name,
-      tagline: getRandomTagline(cuisine),
-      available: Math.random() > 0.3,
-    }));
+  const copyToClipboard = (text, idx) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  const getRandomTagline = (cuisine) => {
-    const taglines = [
-      'Where flavor meets passion',
-      'Taste the tradition',
-      'Every bite tells a story',
-      'Crafted with love',
-      'Your culinary destination',
-      'Flavors that inspire',
-    ];
-    return taglines[Math.floor(Math.random() * taglines.length)];
-  };
-
-  const handleLogin = () => {
-    // Redirect to login
-    window.location.href = 'https://app.dineopen.com/login?redirect=' + encodeURIComponent(window.location.href);
-  };
+  // Parse the AI response into name entries
+  const names = generatedText
+    ? generatedText.split('\n').filter(line => line.trim().length > 0)
+    : [];
 
   return (
     <>
@@ -142,7 +80,7 @@ export default function RestaurantNameClient() {
         <section style={{ background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', color: 'white', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '20px', fontSize: '12px', marginBottom: '16px' }}>
-              ✨ AI-Powered
+              AI-Powered &bull; Free, No Login
             </div>
             <h1 style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px' }}>Restaurant Name Generator</h1>
             <p style={{ fontSize: '18px', opacity: 0.95 }}>
@@ -247,12 +185,17 @@ export default function RestaurantNameClient() {
                     fontWeight: '700', fontSize: '16px'
                   }}
                 >
-                  {isGenerating ? 'Generating...' : '✨ Generate Names'}
+                  {isGenerating ? 'Generating...' : 'Generate Names'}
                 </button>
 
-                {isLoggedIn && (
+                {remaining !== null && (
                   <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
-                    {MAX_API_CALLS - apiCallsUsed} free generations remaining
+                    {remaining} free generations remaining today
+                  </p>
+                )}
+                {error && (
+                  <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '14px', color: '#dc2626', backgroundColor: '#fef2f2', padding: '12px', borderRadius: '8px' }}>
+                    {error}
                   </p>
                 )}
               </div>
@@ -261,23 +204,25 @@ export default function RestaurantNameClient() {
               <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
                 <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', color: '#111827' }}>Generated Names</h3>
 
-                {generatedNames.length > 0 ? (
+                {names.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {generatedNames.map((item, i) => (
-                      <div key={i} style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '12px', backgroundColor: '#fdf2f8' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <p style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>{item.name}</p>
-                            <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>{item.tagline}</p>
-                          </div>
-                          <span style={{
-                            padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600',
-                            backgroundColor: item.available ? '#dcfce7' : '#fee2e2',
-                            color: item.available ? '#166534' : '#991b1b'
-                          }}>
-                            {item.available ? 'Available' : 'Taken'}
-                          </span>
-                        </div>
+                    {names.map((line, i) => (
+                      <div
+                        key={i}
+                        onClick={() => copyToClipboard(line.replace(/^\d+[\.\)]\s*/, ''), i)}
+                        style={{
+                          padding: '16px', border: '1px solid #e5e7eb', borderRadius: '12px',
+                          backgroundColor: '#fdf2f8', cursor: 'pointer', transition: 'transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        <p style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
+                          {line}
+                        </p>
+                        <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px' }}>
+                          {copiedIdx === i ? 'Copied!' : 'Click to copy'}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -302,43 +247,9 @@ export default function RestaurantNameClient() {
             </Link>
           </div>
         </section>
+
+        <InternalLinks currentPath="/tools/restaurant-name-generator" variant="tool" />
       </div>
-
-      {/* Login Modal */}
-      {showLoginModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
-            <p style={{ fontSize: '48px', marginBottom: '16px' }}>🔐</p>
-            <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>Login Required</h3>
-            <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-              Create a free account to generate AI-powered restaurant names. You get 10 free generations!
-            </p>
-            <button
-              onClick={handleLogin}
-              style={{
-                width: '100%', padding: '14px', backgroundColor: '#ec4899', color: 'white',
-                border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', marginBottom: '12px'
-              }}
-            >
-              Login / Sign Up Free
-            </button>
-            <button
-              onClick={() => setShowLoginModal(false)}
-              style={{
-                width: '100%', padding: '12px', backgroundColor: 'transparent', color: '#6b7280',
-                border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
       <Footer />
     </>
   );
