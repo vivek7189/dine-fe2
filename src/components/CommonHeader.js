@@ -30,17 +30,17 @@ export default function CommonHeader() {
   };
 
   const productItems = [
-    { name: 'DineOpen POS', href: '/products/pos', icon: FaUtensils },
-    { name: 'DineOpen Menu', href: '/products/menu', icon: FaBook },
-    { name: 'DineOpen Orders', href: '/products/orders', icon: FaShoppingCart },
-    { name: 'DineOpen Loyalty', href: '/products/loyalty', icon: FaUsers },
-    { name: 'DineOpen Hotel', href: '/products/hotel', icon: FaBuilding },
-    { name: 'DineOpen Kitchen', href: '/products/kitchen', icon: FaClipboardList },
-    { name: 'DineOpen AI', href: '/products/ai', icon: FaRobot },
-    { name: 'DineOpen Inventory', href: '/products/inventory', icon: FaBoxes },
-    { name: 'DineOpen Tables', href: '/products/tables', icon: FaTable },
-    { name: 'DineOpen Billing', href: '/products/billing', icon: FaFileInvoice },
-    { name: 'DineOpen Admin', href: '/products/admin', icon: FaCog },
+    { name: 'DineOpen POS', href: '/products/pos', icon: FaUtensils, desc: 'Lightning-fast cloud POS', featured: true },
+    { name: 'DineOpen Menu', href: '/products/menu', icon: FaBook, desc: 'Digital menus & QR codes', featured: true },
+    { name: 'DineOpen AI', href: '/products/ai', icon: FaRobot, desc: 'Voice ordering & AI assistant', featured: true },
+    { name: 'DineOpen Hotel', href: '/products/hotel', icon: FaBuilding, desc: 'Room & booking management', featured: true },
+    { name: 'DineOpen Inventory', href: '/products/inventory', icon: FaBoxes, desc: 'Stock tracking & AI reorder', featured: true },
+    { name: 'DineOpen Orders', href: '/products/orders', icon: FaShoppingCart, desc: 'Online & QR ordering', featured: true },
+    { name: 'DineOpen Loyalty', href: '/products/loyalty', icon: FaUsers, desc: 'CRM & rewards' },
+    { name: 'DineOpen Kitchen', href: '/products/kitchen', icon: FaClipboardList, desc: 'KDS & KOT management' },
+    { name: 'DineOpen Tables', href: '/products/tables', icon: FaTable, desc: 'Reservations & floor plan' },
+    { name: 'DineOpen Billing', href: '/products/billing', icon: FaFileInvoice, desc: 'GST billing & invoices' },
+    { name: 'DineOpen Admin', href: '/products/admin', icon: FaCog, desc: 'Multi-outlet management' },
   ];
 
   const solutionItems = [
@@ -120,6 +120,127 @@ export default function CommonHeader() {
               <span style={{ fontWeight: '500', fontSize: '14px' }}>{item.name}</span>
             </Link>
           ))}
+        </div>
+      </>
+    )
+  );
+
+  const featuredProducts = productItems.filter(p => p.featured);
+  const moreProducts = productItems.filter(p => !p.featured);
+
+  const ProductsMegaMenu = ({ show, onMouseEnter, onMouseLeave }) => (
+    show && (
+      <>
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            height: '8px',
+            zIndex: 101
+          }}
+          onMouseEnter={onMouseEnter}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginTop: '8px',
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 12px 48px rgba(0, 0, 0, 0.15)',
+            padding: '24px',
+            width: '640px',
+            zIndex: 100,
+            border: '1px solid rgba(0, 0, 0, 0.06)'
+          }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          {/* Featured Products Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
+            {featuredProducts.map((item, index) => (
+              <Link
+                key={index}
+                href={item.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '14px',
+                  borderRadius: '12px',
+                  color: '#374151',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                  border: '1px solid transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#fef2f2';
+                  e.currentTarget.style.borderColor = '#fecaca';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = 'transparent';
+                }}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <item.icon size={18} color="#ef4444" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827', marginBottom: '2px' }}>{item.name}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>{item.desc}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '0 0 12px' }} />
+
+          {/* More Products Row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {moreProducts.map((item, index) => (
+              <Link
+                key={index}
+                href={item.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  color: '#6b7280',
+                  textDecoration: 'none',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                  e.currentTarget.style.color = '#ef4444';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#6b7280';
+                }}
+              >
+                <item.icon size={14} />
+                <span>{item.name}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </>
     )
@@ -214,12 +335,42 @@ export default function CommonHeader() {
         {/* Desktop Navigation */}
         {!isMobile && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flex: 1, justifyContent: 'center', maxWidth: '800px' }}>
-            <NavDropdown
-              label="Products"
-              items={productItems}
-              show={showProductsDropdown}
-              setShow={setShowProductsDropdown}
-            />
+            <div
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setShowProductsDropdown(true)}
+              onMouseLeave={() => setShowProductsDropdown(false)}
+            >
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                style={{
+                  color: '#374151',
+                  textDecoration: 'none',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => { e.target.style.color = '#ef4444'; }}
+                onMouseLeave={(e) => { e.target.style.color = '#374151'; }}
+              >
+                Products
+                <FaChevronDown size={12} style={{
+                  transform: showProductsDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease'
+                }} />
+              </a>
+              <ProductsMegaMenu
+                show={showProductsDropdown}
+                onMouseEnter={() => setShowProductsDropdown(true)}
+                onMouseLeave={() => setShowProductsDropdown(false)}
+              />
+            </div>
 
             <NavDropdown
               label="Solutions"
@@ -345,30 +496,70 @@ export default function CommonHeader() {
           maxHeight: 'calc(100vh - 64px)',
           overflowY: 'auto'
         }}>
-          {/* Products Section */}
-          <div style={{ marginBottom: '24px' }}>
+          {/* Featured Products */}
+          <div style={{ marginBottom: '20px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '12px' }}>
               Products
             </h3>
-            {productItems.map((item, index) => (
+            {featuredProducts.map((item, index) => (
               <Link
                 key={index}
                 href={item.href}
                 onClick={() => setShowMobileMenu(false)}
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   gap: '12px',
                   padding: '12px 0',
                   color: '#374151',
                   textDecoration: 'none',
-                  borderBottom: index < productItems.length - 1 ? '1px solid #f3f4f6' : 'none'
+                  borderBottom: '1px solid #f3f4f6'
                 }}
               >
-                <item.icon size={18} color="#ef4444" />
-                <span style={{ fontWeight: '500', fontSize: '15px' }}>{item.name}</span>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: '2px'
+                }}>
+                  <item.icon size={16} color="#ef4444" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '15px', color: '#111827' }}>{item.name}</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '1px' }}>{item.desc}</div>
+                </div>
               </Link>
             ))}
+            {/* More products in compact row */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '12px' }}>
+              {moreProducts.map((item, index) => (
+                <Link
+                  key={index}
+                  href={item.href}
+                  onClick={() => setShowMobileMenu(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    border: '1px solid #e5e7eb',
+                    color: '#6b7280',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    fontWeight: '500'
+                  }}
+                >
+                  <item.icon size={12} color="#ef4444" />
+                  <span>{item.name.replace('DineOpen ', '')}</span>
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Solutions Section */}
