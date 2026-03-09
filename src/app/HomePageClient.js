@@ -7,11 +7,12 @@ import Image from 'next/image';
 import apiClient from '../lib/api';
 import CommonHeader from '../components/CommonHeader';
 import Footer from '../components/Footer';
-import { 
-  FaUtensils, FaChartBar, FaTable, FaMobile, FaCloud, FaClock, FaUsers, FaCheckCircle, 
-  FaArrowRight, FaBars, FaTimes, FaPlay, FaShieldAlt, FaHeadset, FaRocket, FaChevronDown, 
-  FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding, FaWhatsapp, FaQrcode, FaReceipt, 
-  FaMicrophone, FaStar, FaCamera, FaMagic, FaBolt, FaFilePdf, FaImage, FaSpinner, FaPaperPlane
+import {
+  FaUtensils, FaChartBar, FaTable, FaMobile, FaCloud, FaClock, FaUsers, FaCheckCircle,
+  FaArrowRight, FaBars, FaTimes, FaPlay, FaShieldAlt, FaHeadset, FaRocket, FaChevronDown,
+  FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding, FaWhatsapp, FaQrcode, FaReceipt,
+  FaMicrophone, FaStar, FaCamera, FaMagic, FaBolt, FaFilePdf, FaImage, FaSpinner, FaPaperPlane,
+  FaBook, FaShoppingCart, FaClipboardList, FaFileInvoice, FaCog
 } from 'react-icons/fa';
 
 export default function LandingPage() {
@@ -285,164 +286,135 @@ export default function LandingPage() {
                     transition: 'all 0.2s ease',
                     cursor: 'pointer'
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.color = '#ef4444';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.color = '#374151';
-                  }}
+                  onMouseEnter={(e) => { e.target.style.color = '#ef4444'; }}
+                  onMouseLeave={(e) => { e.target.style.color = '#374151'; }}
                 >
                   Products
-                  <FaChevronDown size={12} />
+                  <FaChevronDown size={12} style={{
+                    transform: showProductsDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease'
+                  }} />
                 </a>
-                
+
                 {showProductsDropdown && (
                   <>
-                    {/* Invisible bridge to prevent gap */}
-                    <div 
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        height: '8px',
-                        zIndex: 101
-                      }}
+                    <div
+                      style={{ position: 'absolute', top: '100%', left: 0, right: 0, height: '8px', zIndex: 101 }}
                       onMouseEnter={() => setShowProductsDropdown(true)}
                     />
-                    <div 
+                    <div
                       style={{
                         position: 'absolute',
                         top: '100%',
-                        left: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
                         marginTop: '8px',
                         backgroundColor: 'white',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-                        padding: '12px 0',
-                        minWidth: '280px',
+                        borderRadius: '16px',
+                        boxShadow: '0 12px 48px rgba(0, 0, 0, 0.15)',
+                        padding: '24px',
+                        width: '640px',
                         zIndex: 100,
-                        border: '1px solid rgba(239, 68, 68, 0.1)'
+                        border: '1px solid rgba(0, 0, 0, 0.06)'
                       }}
                       onMouseEnter={() => setShowProductsDropdown(true)}
                       onMouseLeave={() => setShowProductsDropdown(false)}
                     >
-                      <Link 
-                        href="/products/ai" 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '12px 20px',
-                          color: '#374151',
-                          textDecoration: 'none',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#fef2f2';
-                          e.currentTarget.style.color = '#ef4444';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = '#374151';
-                        }}
-                      >
-                        <FaRobot size={18} color="#ef4444" />
-                        <span style={{ fontWeight: '500', fontSize: '14px' }}>AI Agent for Restaurant</span>
-                      </Link>
-                      <Link 
-                        href="/products/admin" 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '12px 20px',
-                          color: '#374151',
-                          textDecoration: 'none',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#fef2f2';
-                          e.currentTarget.style.color = '#ef4444';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = '#374151';
-                        }}
-                      >
-                        <FaStore size={18} color="#ef4444" />
-                        <span style={{ fontWeight: '500', fontSize: '14px' }}>Restaurant Management System</span>
-                      </Link>
-                      <Link 
-                        href="/products/inventory" 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '12px 20px',
-                          color: '#374151',
-                          textDecoration: 'none',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#fef2f2';
-                          e.currentTarget.style.color = '#ef4444';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = '#374151';
-                        }}
-                      >
-                        <FaBoxes size={18} color="#ef4444" />
-                        <span style={{ fontWeight: '500', fontSize: '14px' }}>Inventory Management</span>
-                      </Link>
-                      <Link 
-                        href="/products/supply-management" 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '12px 20px',
-                          color: '#374151',
-                          textDecoration: 'none',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#fef2f2';
-                          e.currentTarget.style.color = '#ef4444';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = '#374151';
-                        }}
-                      >
-                        <FaWarehouse size={18} color="#ef4444" />
-                        <span style={{ fontWeight: '500', fontSize: '14px' }}>Supply Management</span>
-                      </Link>
-                      <Link 
-                        href="/products/hotel" 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '12px 20px',
-                          color: '#374151',
-                          textDecoration: 'none',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#fef2f2';
-                          e.currentTarget.style.color = '#ef4444';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = '#374151';
-                        }}
-                      >
-                        <FaBuilding size={18} color="#ef4444" />
-                        <span style={{ fontWeight: '500', fontSize: '14px' }}>Hotel Management</span>
-                      </Link>
-                  </div>
+                      {/* Featured Products Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
+                        {[
+                          { name: 'DineOpen POS', href: '/products/pos', icon: FaUtensils, desc: 'Lightning-fast cloud POS' },
+                          { name: 'DineOpen Menu', href: '/products/menu', icon: FaBook, desc: 'Digital menus & QR codes' },
+                          { name: 'DineOpen AI', href: '/products/ai', icon: FaRobot, desc: 'Voice ordering & AI assistant' },
+                          { name: 'DineOpen Hotel', href: '/products/hotel', icon: FaBuilding, desc: 'Room & booking management' },
+                          { name: 'DineOpen Inventory', href: '/products/inventory', icon: FaBoxes, desc: 'Stock tracking & AI reorder' },
+                          { name: 'DineOpen Orders', href: '/products/orders', icon: FaShoppingCart, desc: 'Online & QR ordering' },
+                        ].map((item, index) => (
+                          <Link
+                            key={index}
+                            href={item.href}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '12px',
+                              padding: '14px',
+                              borderRadius: '12px',
+                              color: '#374151',
+                              textDecoration: 'none',
+                              transition: 'all 0.2s ease',
+                              border: '1px solid transparent'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#fef2f2';
+                              e.currentTarget.style.borderColor = '#fecaca';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.borderColor = 'transparent';
+                            }}
+                          >
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '10px',
+                              background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <item.icon size={18} color="#ef4444" />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827', marginBottom: '2px' }}>{item.name}</div>
+                              <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>{item.desc}</div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '0 0 12px' }} />
+
+                      {/* More Products Row */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {[
+                          { name: 'DineOpen Loyalty', href: '/products/loyalty', icon: FaUsers },
+                          { name: 'DineOpen Kitchen', href: '/products/kitchen', icon: FaClipboardList },
+                          { name: 'DineOpen Tables', href: '/products/tables', icon: FaTable },
+                          { name: 'DineOpen Billing', href: '/products/billing', icon: FaFileInvoice },
+                          { name: 'DineOpen Admin', href: '/products/admin', icon: FaCog },
+                        ].map((item, index) => (
+                          <Link
+                            key={index}
+                            href={item.href}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              color: '#6b7280',
+                              textDecoration: 'none',
+                              fontSize: '13px',
+                              fontWeight: '500',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f9fafb';
+                              e.currentTarget.style.color = '#ef4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = '#6b7280';
+                            }}
+                          >
+                            <item.icon size={14} />
+                            <span>{item.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
