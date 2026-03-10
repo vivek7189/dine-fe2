@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import CommonHeader from '../../../components/CommonHeader';
-import Footer from '../../../components/Footer';
-import InternalLinks from '../../../components/InternalLinks';
+import CommonHeader from '../../../../components/CommonHeader';
+import Footer from '../../../../components/Footer';
+import InternalLinks from '../../../../components/InternalLinks';
 import { FaCalculator, FaRupeeSign, FaPercent, FaChartPie, FaLightbulb, FaArrowRight, FaPlus, FaTrash } from 'react-icons/fa';
 
 const defaultIngredients = [
@@ -117,10 +117,10 @@ export default function FoodCostCalculatorClient() {
 
   const getFoodCostStatus = (percent) => {
     if (percent === null || percent === undefined) return null;
-    if (percent <= 28) return { color: '#22c55e', status: 'Excellent', message: 'Your food cost is well optimized!' };
-    if (percent <= 32) return { color: '#f59e0b', status: 'Good — Industry Standard', message: 'Your food cost is within industry standard range.' };
-    if (percent <= 38) return { color: '#f97316', status: 'High — Optimize', message: 'Consider optimizing ingredient costs or adjusting pricing.' };
-    return { color: '#ef4444', status: 'Too High — Needs Attention', message: 'Your food cost needs immediate attention. Review ingredients and pricing.' };
+    if (percent <= 28) return { color: '#22c55e', status: 'बहुत अच्छा', message: 'आपकी food cost काफी अच्छी optimized है!' };
+    if (percent <= 32) return { color: '#f59e0b', status: 'ठीक है — Industry Standard', message: 'आपकी food cost industry standard range में है।' };
+    if (percent <= 38) return { color: '#f97316', status: 'ज़्यादा — Optimize करें', message: 'Ingredient costs कम करने या pricing adjust करने पर विचार करें।' };
+    return { color: '#ef4444', status: 'बहुत ज़्यादा — Attention चाहिए', message: 'आपकी food cost पर तुरंत ध्यान देने की ज़रूरत है। Ingredients और pricing review करें।' };
   };
 
   const status = results ? getFoodCostStatus(results.foodCostPercent) : null;
@@ -157,24 +157,24 @@ export default function FoodCostCalculatorClient() {
 
   const faqs = [
     {
-      q: 'What is a good food cost percentage for a restaurant?',
-      a: 'Most restaurants aim for 28-35%. QSR targets 25-30%, casual dining 28-32%, fine dining 30-35%. Below 25% may indicate quality concerns. Above 38% needs immediate attention — check ingredient costs, portion sizes, and supplier pricing.'
+      q: 'Restaurant के लिए अच्छा food cost percentage कितना होना चाहिए?',
+      a: 'ज़्यादातर restaurants के लिए 28-35% food cost percentage अच्छा माना जाता है। QSR के लिए 25-30%, casual dining के लिए 28-32%, fine dining के लिए 30-35%, और cloud kitchen के लिए 25-28% ideal है। 25% से कम होने पर quality concern हो सकता है। 38% से ज़्यादा होने पर तुरंत ingredient costs, portion sizes, और supplier pricing check करें।'
     },
     {
-      q: 'How do you calculate food cost percentage?',
-      a: 'Food Cost % = (Total Ingredient Cost per Portion \u00f7 Selling Price) \u00d7 100. For a recipe with \u20b9120 ingredient cost making 4 portions, cost per portion is \u20b930. If selling at \u20b9100, food cost is 30%.'
+      q: 'Food cost percentage कैसे calculate करें?',
+      a: 'Food Cost % = (Total Ingredient Cost per Portion \u00f7 Selling Price) \u00d7 100। उदाहरण: अगर एक recipe में \u20b9120 की ingredients लगती हैं और 4 portions बनते हैं, तो per portion cost \u20b930 है। अगर selling price \u20b9100 है, तो food cost 30% होगी।'
     },
     {
-      q: 'What\u2019s the difference between food cost and food cost percentage?',
-      a: 'Food cost is the absolute rupee value of ingredients (\u20b980). Food cost percentage is that amount relative to selling price (\u20b980/\u20b9250 = 32%). Percentage is more useful for comparison and benchmarking across dishes.'
+      q: 'Food cost और food cost percentage में क्या फर्क है?',
+      a: 'Food cost वो actual rupee amount है जो ingredients पर खर्च होती है (जैसे \u20b980)। Food cost percentage उस amount का selling price से ratio है percentage में (\u20b980/\u20b9250 = 32%)। Percentage ज़्यादा useful है क्योंकि इससे अलग-अलग dishes की comparison और industry benchmarks से match किया जा सकता है।'
     },
     {
-      q: 'How often should I calculate food cost?',
-      a: 'Calculate food cost for every new menu item and review monthly. Ingredient prices fluctuate — especially vegetables and dairy. Use software like DineOpen to track food costs automatically with every sale.'
+      q: 'Food cost कितनी बार calculate करनी चाहिए?',
+      a: 'हर नई menu item के लिए food cost ज़रूर calculate करें और monthly review करें। India में vegetables, dairy, और poultry की prices बहुत fluctuate करती हैं। DineOpen जैसे software से हर sale के साथ automatically food cost track हो सकती है।'
     },
     {
-      q: 'What causes food cost to be too high?',
-      a: 'Common causes: over-portioning, ingredient waste, theft/pilferage, not tracking inventory, not updating prices when ingredients get costlier, and buying from a single supplier without comparing prices.'
+      q: 'Food cost ज़्यादा क्यों होती है?',
+      a: 'Common कारण: over-portioning, ingredient waste, theft/pilferage, inventory track न करना, ingredient prices बढ़ने पर menu price update न करना, और एक ही supplier से बिना compare किए buying करना। Standardized recipes और proper inventory management से 5-10% food cost कम हो सकती है।'
     }
   ];
 
@@ -188,6 +188,37 @@ export default function FoodCostCalculatorClient() {
         padding: isMobile ? '48px 20px' : '72px 32px'
       }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+          {/* Language Toggle */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '20px'
+          }}>
+            <Link href="/tools/food-cost-calculator" style={{
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#9ca3af',
+              backgroundColor: '#374151',
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+            }}>
+              English
+            </Link>
+            <span style={{
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: 'white',
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            }}>
+              हिन्दी
+            </span>
+          </div>
+
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -200,7 +231,7 @@ export default function FoodCostCalculatorClient() {
           }}>
             <FaCalculator size={14} color="#22c55e" />
             <span style={{ fontSize: '13px', color: '#d1d5db', fontWeight: '600' }}>
-              Free Tool — No Login Required
+              Free Tool — Login ज़रूरी नहीं
             </span>
           </div>
 
@@ -211,7 +242,7 @@ export default function FoodCostCalculatorClient() {
             marginBottom: '16px',
             lineHeight: '1.15'
           }}>
-            Food Cost Calculator
+            रेस्टोरेंट फूड कॉस्ट <span style={{ color: '#ef4444' }}>कैलकुलेटर</span>
           </h1>
           <p style={{
             fontSize: isMobile ? '16px' : '18px',
@@ -220,7 +251,7 @@ export default function FoodCostCalculatorClient() {
             margin: '0 auto',
             lineHeight: '1.6'
           }}>
-            Calculate food cost percentage, profit margins, and ideal selling price for every dish on your menu. Add ingredients, set portions, and get instant results.
+            अपने menu की हर dish का food cost percentage, profit margin, और ideal selling price calculate करें। Ingredients डालें, portions set करें, और तुरंत results पाएं।
           </p>
         </div>
       </section>
@@ -251,7 +282,7 @@ export default function FoodCostCalculatorClient() {
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <FaRupeeSign color="#16a34a" /> Recipe Details
+                <FaRupeeSign color="#16a34a" /> अपने Numbers डालें
               </h2>
 
               {/* Dish Name & Target Food Cost */}
@@ -262,7 +293,7 @@ export default function FoodCostCalculatorClient() {
                 marginBottom: '20px'
               }}>
                 <div>
-                  <label style={labelStyle}>Dish Name (optional)</label>
+                  <label style={labelStyle}>Dish का नाम (optional)</label>
                   <input
                     type="text"
                     value={dishName}
@@ -298,11 +329,11 @@ export default function FoodCostCalculatorClient() {
                   }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f3f4f6' }}>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Ingredient</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Purchase Cost ({'\u20b9'})</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Purchase Qty</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Ingredient का नाम</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>खरीदी Price ({'\u20b9'})</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>खरीदी Qty</th>
                         <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Unit</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Qty Used</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Recipe में Use</th>
                         <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Unit</th>
                         <th style={{ padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px', width: '36px' }}></th>
                       </tr>
@@ -402,7 +433,7 @@ export default function FoodCostCalculatorClient() {
                     fontWeight: '600'
                   }}
                 >
-                  <FaPlus size={11} /> Add Ingredient
+                  <FaPlus size={11} /> Ingredient जोड़ें
                 </button>
               </div>
 
@@ -414,7 +445,7 @@ export default function FoodCostCalculatorClient() {
                 marginBottom: '24px'
               }}>
                 <div>
-                  <label style={labelStyle}>Number of Portions</label>
+                  <label style={labelStyle}>कितने Portions</label>
                   <input
                     type="number"
                     value={portions}
@@ -455,7 +486,7 @@ export default function FoodCostCalculatorClient() {
                     gap: '8px'
                   }}
                 >
-                  <FaCalculator size={14} /> Calculate
+                  <FaCalculator size={14} /> Calculate करें
                 </button>
                 <button
                   onClick={resetCalculator}
@@ -470,7 +501,7 @@ export default function FoodCostCalculatorClient() {
                     fontSize: '14px'
                   }}
                 >
-                  Reset
+                  Reset करें
                 </button>
               </div>
             </div>
@@ -550,7 +581,7 @@ export default function FoodCostCalculatorClient() {
                       textAlign: 'center',
                       border: '1px solid #f3f4f6'
                     }}>
-                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cost Per Portion</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Per Portion Cost</div>
                       <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>{'\u20b9'}{results.costPerPortion.toFixed(2)}</div>
                     </div>
                   </div>
@@ -569,7 +600,7 @@ export default function FoodCostCalculatorClient() {
                     }}>
                       <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '4px' }}>Suggested Price</div>
                       <div style={{ fontSize: '20px', fontWeight: '700', color: '#92400e' }}>{'\u20b9'}{results.suggestedPrice.toFixed(2)}</div>
-                      <div style={{ fontSize: '10px', color: '#a16207' }}>at {targetFoodCost}% food cost</div>
+                      <div style={{ fontSize: '10px', color: '#a16207' }}>{targetFoodCost}% food cost पर</div>
                     </div>
                     {results.grossProfit !== null ? (
                       <div style={{
@@ -590,7 +621,7 @@ export default function FoodCostCalculatorClient() {
                         border: '1px solid #f3f4f6'
                       }}>
                         <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Gross Profit</div>
-                        <div style={{ fontSize: '14px', color: '#9ca3af' }}>Enter selling price</div>
+                        <div style={{ fontSize: '14px', color: '#9ca3af' }}>Selling price डालें</div>
                       </div>
                     )}
                   </div>
@@ -637,7 +668,7 @@ export default function FoodCostCalculatorClient() {
               ) : (
                 <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
                   <FaPercent size={36} style={{ marginBottom: '16px', opacity: 0.4 }} />
-                  <p style={{ fontSize: '14px' }}>Add ingredients to see results</p>
+                  <p style={{ fontSize: '14px' }}>Results देखने के लिए ingredients डालें</p>
                 </div>
               )}
             </div>
@@ -649,13 +680,13 @@ export default function FoodCostCalculatorClient() {
       <section style={{ padding: isMobile ? '40px 20px' : '64px 32px', backgroundColor: '#ffffff' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
 
-          {/* H2: What is Food Cost Percentage? */}
+          {/* H2: Food Cost Percentage क्या है? */}
           <div style={{ marginBottom: '48px' }}>
             <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              What is Food Cost Percentage?
+              Food Cost Percentage क्या है?
             </h2>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              Food cost percentage is the ratio of ingredient costs to the menu selling price, expressed as a percentage. It is the single most important metric for restaurant profitability because it directly measures how much of every rupee earned goes toward ingredients versus profit.
+              Food cost percentage आपकी ingredient cost और menu selling price का ratio है, जो percentage में express किया जाता है। यह restaurant profitability के लिए सबसे important metric है क्योंकि यह directly बताता है कि कमाए गए हर rupee में से कितना ingredients पर खर्च हो रहा है और कितना profit है।
             </p>
             <div style={{
               backgroundColor: '#f3f4f6',
@@ -669,20 +700,20 @@ export default function FoodCostCalculatorClient() {
               Food Cost % = (Ingredient Cost {'\u00f7'} Selling Price) {'\u00d7'} 100
             </div>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              For example, if a dish costs {'\u20b9'}80 to make and sells for {'\u20b9'}250, the food cost percentage is 32%. Most successful restaurants in India keep their food cost between 28-35%, depending on the type of restaurant and the segment they serve.
+              उदाहरण: अगर एक dish बनाने में {'\u20b9'}80 लगते हैं और selling price {'\u20b9'}250 है, तो food cost percentage 32% होगा। India में ज़्यादातर successful restaurants अपनी food cost 28-35% के बीच रखते हैं, restaurant type और segment के हिसाब से।
             </p>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8' }}>
-              Tracking this metric consistently helps you price your menu correctly, identify dishes that are losing money, and maintain healthy profit margins across your entire menu. Without knowing your food cost percentage, you are essentially guessing whether your restaurant is making money on each dish.
+              इस metric को regularly track करने से आप अपने menu की pricing सही रख सकते हैं, पता लगा सकते हैं कि कौन सी dishes पर loss हो रहा है, और पूरे menu पर healthy profit margins maintain कर सकते हैं। Food cost percentage जाने बिना, आप basically guess कर रहे हैं कि आपका restaurant हर dish पर profit कमा रहा है या नहीं।
             </p>
           </div>
 
-          {/* H2: Ideal Food Cost Percentage by Restaurant Type */}
+          {/* H2: Restaurant Type के अनुसार Ideal Food Cost */}
           <div style={{ marginBottom: '48px' }}>
             <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              Ideal Food Cost Percentage by Restaurant Type
+              Restaurant Type के अनुसार Ideal Food Cost
             </h2>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '20px' }}>
-              Different restaurant formats have different ideal food cost targets. The table below shows industry benchmarks that you can use to evaluate your own food cost performance.
+              अलग-अलग restaurant formats के लिए अलग ideal food cost targets होते हैं। नीचे दी गई table में industry benchmarks हैं जिनसे आप अपनी food cost performance evaluate कर सकते हैं।
             </p>
             <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', minWidth: '500px' }}>
@@ -695,12 +726,12 @@ export default function FoodCostCalculatorClient() {
                 </thead>
                 <tbody>
                   {[
-                    ['Quick Service (QSR)', '25-30%', 'High volume, lower prices'],
+                    ['Quick Service (QSR)', '25-30%', 'High volume, कम prices'],
                     ['Casual Dining', '28-32%', 'Balanced approach'],
-                    ['Fine Dining', '30-35%', 'Premium ingredients, higher prices'],
-                    ['Cloud Kitchen', '25-28%', 'No dine-in costs'],
-                    ['Bakery & Cafe', '20-25%', 'High-margin beverages'],
-                    ['Bar & Pub', '20-25% (food), 18-22% (drinks)', 'Beverages are profit centers'],
+                    ['Fine Dining', '30-35%', 'Premium ingredients, ज़्यादा prices'],
+                    ['Cloud Kitchen', '25-28%', 'Dine-in cost नहीं'],
+                    ['Bakery & Cafe', '20-25%', 'Beverages पर high margin'],
+                    ['Bar & Pub', '20-25% (food), 18-22% (drinks)', 'Beverages profit centers हैं'],
                   ].map((row, idx) => (
                     <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
                       <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', color: '#111827' }}>{row[0]}</td>
@@ -712,25 +743,25 @@ export default function FoodCostCalculatorClient() {
               </table>
             </div>
             <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7' }}>
-              Use these benchmarks as a starting point. Your actual target should account for your rent, labor costs, and desired profit margin.
+              इन benchmarks को starting point की तरह use करें। आपका actual target आपके rent, labor costs, और desired profit margin पर depend करेगा।
             </p>
           </div>
 
-          {/* H2: How to Calculate Food Cost — Step by Step */}
+          {/* H2: Food Cost Calculate कैसे करें — Step by Step */}
           <div style={{ marginBottom: '48px' }}>
             <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              How to Calculate Food Cost — Step by Step
+              Food Cost Calculate कैसे करें — Step by Step
             </h2>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '16px' }}>
-              Follow these five steps to calculate the food cost for any dish on your menu. This process is exactly what our calculator above automates for you.
+              अपने menu की किसी भी dish के लिए food cost calculate करने के लिए इन 5 steps को follow करें। ऊपर दिया गया calculator यही process automatically करता है।
             </p>
             <div style={{ marginBottom: '20px' }}>
               {[
-                { step: 1, title: 'List all ingredients used in the recipe', desc: 'Write down every ingredient that goes into the dish, including oil, spices, and garnishes. Missing even small items can add up to 5-10% error in your food cost calculation.' },
-                { step: 2, title: 'Record the purchase cost and quantity for each ingredient', desc: 'Note the price you paid and the quantity you bought. For example, paneer at \u20b9320 per kg, butter at \u20b9520 per kg. Always use the most recent purchase price for accuracy.' },
-                { step: 3, title: 'Calculate the cost of the quantity actually used', desc: 'If you bought 1 kg of paneer for \u20b9320 but only used 250g, the cost for that ingredient is \u20b980. Divide the purchase cost by purchase quantity, then multiply by the quantity used.' },
-                { step: 4, title: 'Sum all ingredient costs to get total recipe cost', desc: 'Add up the individual ingredient costs. This gives you the total raw material cost for the entire recipe batch.' },
-                { step: 5, title: 'Divide by portions, then calculate food cost percentage', desc: 'Divide total recipe cost by the number of portions to get cost per portion. Then divide by selling price and multiply by 100 to get food cost percentage.' },
+                { step: 1, title: 'Recipe में use होने वाली सभी ingredients list करें', desc: 'Dish में लगने वाली हर ingredient लिख लें — oil, spices, और garnishes सहित। छोटी items miss करने से food cost calculation में 5-10% तक का error आ सकता है।' },
+                { step: 2, title: 'हर ingredient की purchase cost और quantity note करें', desc: 'जो price pay किया और जितनी quantity खरीदी, दोनों लिखें। जैसे: Paneer \u20b9320 per kg, Butter \u20b9520 per kg। Accuracy के लिए हमेशा most recent purchase price use करें।' },
+                { step: 3, title: 'Actually use हुई quantity की cost calculate करें', desc: 'अगर 1 kg Paneer \u20b9320 में खरीदा लेकिन सिर्फ 250g use किया, तो उस ingredient की cost \u20b980 होगी। Purchase cost को purchase quantity से divide करें, फिर used quantity से multiply करें।' },
+                { step: 4, title: 'सभी ingredient costs जोड़कर total recipe cost निकालें', desc: 'सभी individual ingredient costs add करें। इससे आपको पूरी recipe batch की total raw material cost मिलेगी।' },
+                { step: 5, title: 'Portions से divide करें, फिर food cost percentage calculate करें', desc: 'Total recipe cost को portions की संख्या से divide करके per portion cost निकालें। फिर selling price से divide करके 100 से multiply करें — यह आपका food cost percentage है।' },
               ].map((item) => (
                 <div key={item.step} style={{
                   display: 'flex',
@@ -775,79 +806,79 @@ export default function FoodCostCalculatorClient() {
             </div>
           </div>
 
-          {/* H2: 5 Ways to Reduce Your Food Cost */}
+          {/* H2: Food Cost कम करने के 5 तरीके */}
           <div style={{ marginBottom: '48px' }}>
             <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              5 Ways to Reduce Your Food Cost
+              Food Cost कम करने के 5 तरीके
             </h2>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '20px' }}>
-              If your food cost percentage is higher than your target, here are five proven strategies to bring it down without sacrificing quality.
+              अगर आपकी food cost percentage target से ज़्यादा है, तो quality compromise किए बिना इसे कम करने के 5 proven तरीके यहां हैं।
             </p>
             <div style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
                 <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
                 <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>1. Track inventory religiously</div>
+                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>1. Inventory religiously track करें</div>
                   <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Use a proper <Link href="/products/inventory" style={{ color: '#16a34a', textDecoration: 'underline' }}>inventory management system</Link> to track every ingredient that comes in and goes out. Without tracking, you cannot identify waste, theft, or over-ordering. Even a 5% reduction in waste can save lakhs annually.
+                    एक proper <Link href="/products/inventory" style={{ color: '#16a34a', textDecoration: 'underline' }}>inventory management system</Link> use करें ताकि हर ingredient जो आती है और जाती है, track हो। Tracking के बिना waste, theft, या over-ordering identify नहीं हो सकती। सिर्फ 5% waste कम होने से सालाना लाखों बच सकते हैं।
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
                 <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
                 <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>2. Standardize recipes and portions</div>
+                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>2. Recipes और portions standardize करें</div>
                   <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Create standard recipe cards with exact measurements for every dish. Train your kitchen staff to follow them. Consistent output means predictable costs. A cook who adds an extra 50g of paneer per dish can cost you thousands per month.
+                    हर dish के लिए exact measurements वाली standard recipe cards बनाएं। Kitchen staff को train करें कि वो उन्हें follow करें। Consistent output मतलब predictable costs। एक cook जो per dish 50g extra paneer डालता है, वो monthly हज़ारों का नुकसान कर सकता है।
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
                 <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
                 <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>3. Negotiate with multiple suppliers</div>
+                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>3. Multiple suppliers से negotiate करें</div>
                   <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Never rely on a single supplier. Get quotes from 2-3 vendors for every major ingredient. Even a 5-10% better price on paneer, oil, or chicken can significantly lower your overall food cost percentage.
+                    कभी एक ही supplier पर depend न रहें। हर major ingredient के लिए 2-3 vendors से quotes लें। Paneer, oil, या chicken पर 5-10% better price भी आपकी overall food cost percentage significantly कम कर सकता है।
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
                 <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
                 <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>4. Use seasonal ingredients</div>
+                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>4. Seasonal ingredients use करें</div>
                   <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Seasonal produce is 30-50% cheaper than off-season alternatives. Design your menu to feature seasonal vegetables and fruits. This also improves the taste and freshness of your dishes, which customers notice and appreciate.
+                    Seasonal produce off-season alternatives से 30-50% सस्ती होती है। अपना menu ऐसे design करें जिसमें seasonal vegetables और fruits featured हों। इससे dishes का taste और freshness भी improve होता है, जो customers notice करते हैं।
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
                 <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
                 <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>5. Analyze your menu with menu engineering</div>
+                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>5. Menu engineering से menu analyze करें</div>
                   <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Use <Link href="/tools/menu-engineering" style={{ color: '#16a34a', textDecoration: 'underline' }}>menu engineering techniques</Link> to identify which dishes are profitable and popular, and which are dragging down your margins. Remove or re-price dishes that have high food costs and low sales.
+                    <Link href="/tools/menu-engineering" style={{ color: '#16a34a', textDecoration: 'underline' }}>Menu engineering techniques</Link> use करके पता लगाएं कि कौन सी dishes profitable और popular हैं, और कौन सी आपकी margins down कर रही हैं। High food cost और low sales वाली dishes को remove या re-price करें।
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* H2: Food Cost vs Food Cost Percentage */}
+          {/* H2: Food Cost vs Food Cost Percentage — क्या फर्क है? */}
           <div style={{ marginBottom: '48px' }}>
             <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              Food Cost vs Food Cost Percentage — What{'\u2019'}s the Difference?
+              Food Cost vs Food Cost Percentage — क्या फर्क है?
             </h2>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              Food cost is the actual rupee amount you spend on ingredients for a dish. For example, if the ingredients for a paneer butter masala cost {'\u20b9'}80, that is your food cost. It is an absolute number.
+              Food cost वो actual rupee amount है जो आप किसी dish की ingredients पर खर्च करते हैं। जैसे, अगर paneer butter masala बनाने में {'\u20b9'}80 लगते हैं, तो वो आपकी food cost है। यह एक absolute number है।
             </p>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              Food cost percentage, on the other hand, is a relative metric. It tells you what percentage of the selling price goes toward ingredients. If you sell that dish for {'\u20b9'}250, your food cost percentage is ({'\u20b9'}80 / {'\u20b9'}250) {'\u00d7'} 100 = 32%.
+              Food cost percentage दूसरी तरफ एक relative metric है। यह बताता है कि selling price का कितना percentage ingredients पर जा रहा है। अगर आप वो dish {'\u20b9'}250 में बेचते हैं, तो food cost percentage ({'\u20b9'}80 / {'\u20b9'}250) {'\u00d7'} 100 = 32% होगा।
             </p>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              The percentage is far more useful than the absolute number because it lets you compare across dishes regardless of price point, track trends over time, and benchmark against industry standards. A {'\u20b9'}500 ingredient cost sounds high, but it is fine for a {'\u20b9'}2000 dish (25% food cost) and terrible for a {'\u20b9'}600 dish (83% food cost).
+              Percentage absolute number से कहीं ज़्यादा useful है क्योंकि इससे आप अलग-अलग price point वाली dishes की comparison कर सकते हैं, time के साथ trends track कर सकते हैं, और industry standards से benchmark कर सकते हैं। {'\u20b9'}500 की ingredient cost ज़्यादा लगती है, लेकिन {'\u20b9'}2000 की dish के लिए यह ठीक है (25% food cost) और {'\u20b9'}600 की dish के लिए बहुत ज़्यादा (83% food cost)।
             </p>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8' }}>
-              Always use food cost percentage rather than absolute food cost when making pricing and menu decisions. This is the metric that lets you see the full picture and make informed business choices.
+              Pricing और menu decisions लेते समय हमेशा food cost percentage use करें, absolute food cost नहीं। यही वो metric है जो आपको full picture दिखाता है और informed business choices लेने में मदद करता है।
             </p>
           </div>
         </div>
@@ -863,7 +894,7 @@ export default function FoodCostCalculatorClient() {
             marginBottom: '24px',
             textAlign: 'center'
           }}>
-            Frequently Asked Questions
+            अक्सर पूछे जाने वाले सवाल
           </h2>
           <div>
             {faqs.map((faq, idx) => (
@@ -930,10 +961,10 @@ export default function FoodCostCalculatorClient() {
           padding: isMobile ? '32px 24px' : '48px 40px'
         }}>
           <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#ffffff', marginBottom: '12px' }}>
-            Want to Track Food Costs Automatically?
+            Food Costs Automatically Track करना चाहते हैं?
           </h3>
           <p style={{ fontSize: '15px', color: '#9ca3af', marginBottom: '24px', maxWidth: '500px', margin: '0 auto 24px', lineHeight: '1.6' }}>
-            DineOpen tracks your inventory, calculates food costs per dish automatically with every sale, and alerts you when costs rise above your target.
+            DineOpen आपकी inventory track करता है, हर sale के साथ automatically per dish food cost calculate करता है, और जब costs target से ऊपर जाएं तो alert देता है।
           </p>
           <Link
             href="/#pricing"
@@ -950,7 +981,7 @@ export default function FoodCostCalculatorClient() {
               fontSize: '15px'
             }}
           >
-            Get Started with DineOpen <FaArrowRight size={14} />
+            DineOpen शुरू करें <FaArrowRight size={14} />
           </Link>
         </div>
       </section>
@@ -959,7 +990,7 @@ export default function FoodCostCalculatorClient() {
       <section style={{ padding: isMobile ? '20px' : '40px 32px', backgroundColor: '#f9fafb' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280', marginBottom: '16px' }}>
-            More Free Tools
+            और Free Tools
           </h3>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/tools/menu-price-calculator" style={{
@@ -999,7 +1030,7 @@ export default function FoodCostCalculatorClient() {
         </div>
       </section>
 
-      <InternalLinks currentPath="/tools/food-cost-calculator" variant="tool" />
+      <InternalLinks currentPath="/hi/tools/food-cost-calculator" variant="tool" />
       <Footer />
     </div>
   );

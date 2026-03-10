@@ -509,6 +509,43 @@ export default function sitemap() {
     priority: 0.7,
   }));
 
+  // Hindi tool pages
+  const hindiToolPages = [
+    {
+      url: `${baseUrl}/hi/tools/food-cost-calculator`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+  ];
+
+  // Hindi blog pages
+  const hindiBlogPages = [
+    {
+      url: `${baseUrl}/hi/blog`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.75,
+    },
+    ...[
+      'restaurant-billing-software-guide-2026',
+      'restaurant-kaise-khole-2026',
+      'food-cost-kaise-kam-kare',
+      'pos-system-kya-hai',
+      'restaurant-gst-billing-software',
+      'menu-card-kaise-banaye',
+      'restaurant-inventory-management-hindi',
+      'online-order-kaise-le',
+      'restaurant-profit-kaise-badhaye',
+      'qr-menu-kaise-banaye-free',
+    ].map((slug) => ({
+      url: `${baseUrl}/hi/blog/${slug}`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    })),
+  ];
+
   return [
     ...staticPages,
     ...indiaPages,
@@ -525,6 +562,8 @@ export default function sitemap() {
     ...industryPages,
     ...toolPages,
     ...productPages,
-    ...blogPosts
+    ...blogPosts,
+    ...hindiBlogPages,
+    ...hindiToolPages
   ];
 }

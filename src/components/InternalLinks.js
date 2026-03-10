@@ -105,6 +105,14 @@ const guides = [
   { name: 'Restaurant Technology Trends 2026', href: '/blog/restaurant-technology-trends-2024' },
 ];
 
+const hindiGuides = [
+  { name: 'रेस्टोरेंट बिलिंग सॉफ्टवेयर गाइड', href: '/hi/blog/restaurant-billing-software-guide-2026' },
+  { name: 'रेस्टोरेंट कैसे खोलें 2026', href: '/hi/blog/restaurant-kaise-khole-2026' },
+  { name: 'POS सिस्टम क्या है?', href: '/hi/blog/pos-system-kya-hai' },
+  { name: 'फूड कॉस्ट कम करें', href: '/hi/blog/food-cost-kaise-kam-kare' },
+  { name: 'QR मेनू कैसे बनाएं (Free)', href: '/hi/blog/qr-menu-kaise-banaye-free' },
+];
+
 function LinkSection({ title, links, exclude }) {
   const filtered = exclude ? links.filter(l => l.href !== exclude) : links;
   return (
@@ -133,6 +141,7 @@ export default function InternalLinks({ currentPath, variant = 'all' }) {
   const showProducts = ['all', 'tool', 'alternative'].includes(variant);
   const showTools = ['all', 'city', 'industry', 'alternative'].includes(variant);
   const showGuides = ['all', 'city', 'industry', 'alternative', 'tool'].includes(variant);
+  const showHindiGuides = ['all', 'city', 'industry', 'alternative', 'tool'].includes(variant);
 
   return (
     <section style={{
@@ -168,6 +177,9 @@ export default function InternalLinks({ currentPath, variant = 'all' }) {
         )}
         {showGuides && (
           <LinkSection title="Popular Guides" links={guides} exclude={currentPath} />
+        )}
+        {showHindiGuides && (
+          <LinkSection title="हिंदी गाइड (Hindi Guides)" links={hindiGuides} exclude={currentPath} />
         )}
 
         <div style={{ textAlign: 'center', marginTop: '24px' }}>

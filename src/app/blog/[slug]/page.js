@@ -13,17 +13,31 @@ export async function generateStaticParams() {
   }));
 }
 
+// Hindi equivalents for hreflang
+const englishToHindiMap = {
+  'restaurant-billing-app-complete-guide': 'restaurant-billing-software-guide-2026',
+  'how-to-open-restaurant-india-2026': 'restaurant-kaise-khole-2026',
+  'how-to-reduce-restaurant-operating-costs': 'food-cost-kaise-kam-kare',
+  'restaurant-pos-vs-billing-software': 'pos-system-kya-hai',
+  'how-to-create-online-menu-restaurant': 'menu-card-kaise-banaye',
+  'ultimate-guide-restaurant-inventory-management': 'restaurant-inventory-management-hindi',
+  'how-to-increase-restaurant-revenue': 'restaurant-profit-kaise-badhaye',
+  'why-qr-code-menus-are-essential-in-2024': 'qr-menu-kaise-banaye-free',
+};
+
 // Generate metadata for each blog post
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const post = blogPostContent[slug];
-  
+
   if (!post) {
     return {
       title: 'Blog Post Not Found | DineOpen',
       description: 'The blog post you are looking for does not exist.',
     };
   }
+
+  const hindiSlug = englishToHindiMap[slug];
 
   return {
     title: `${post.title} | DineOpen Blog`,
@@ -49,6 +63,13 @@ export async function generateMetadata({ params }) {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt,
+    },
+    alternates: {
+      canonical: `https://www.dineopen.com/blog/${slug}`,
+      languages: {
+        'en': `https://www.dineopen.com/blog/${slug}`,
+        ...(hindiSlug ? { 'hi': `https://www.dineopen.com/hi/blog/${hindiSlug}` } : {}),
+      },
     },
   };
 }
