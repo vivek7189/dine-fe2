@@ -9,6 +9,7 @@ export const hindiBlogPosts = [
   { slug: 'online-order-kaise-le', title: 'ऑनलाइन ऑर्डर कैसे लें — Swiggy, Zomato और Direct Orders', excerpt: 'अपने रेस्टोरेंट में online ordering कैसे शुरू करें। Aggregator vs direct orders, QR ordering, और WhatsApp orders।', date: '2026-03-08', category: 'ऑनलाइन ऑर्डर', categoryColor: '#3b82f6' },
   { slug: 'restaurant-profit-kaise-badhaye', title: 'रेस्टोरेंट का प्रॉफिट कैसे बढ़ाएं — 15 Proven Tips', excerpt: 'Revenue बढ़ाने और cost कम करने के practical तरीके। Menu engineering, upselling, loyalty programs और technology का use।', date: '2026-03-09', category: 'प्रॉफिट', categoryColor: '#f59e0b' },
   { slug: 'qr-menu-kaise-banaye-free', title: 'QR मेनू कैसे बनाएं (FREE) — 5 मिनट में Digital Menu Ready', excerpt: 'बिना coding के अपने रेस्टोरेंट का QR menu बनाएं। DineOpen का free QR menu maker use करके 5 मिनट में menu ready।', date: '2026-03-10', category: 'QR मेनू', categoryColor: '#ef4444' },
+  { slug: 'lpg-gas-shortage-restaurant-crisis-2026', title: 'LPG गैस की कमी: Indian Restaurants इस Crisis से कैसे बचें (2026)', excerpt: 'Middle East war की वजह से India में LPG supply बंद हो रही है — Mumbai के 20% restaurants बंद हो गए। जानिए क्या हो रहा है, अभी क्या करें, और अपनी kitchen को crisis-proof कैसे बनाएं।', date: '2026-03-10', category: 'Industry News', categoryColor: '#ef4444', isStatic: true, staticPath: '/hi/blog/lpg-gas-shortage-restaurant-crisis-2026.html' },
 ];
 
 export const hindiBlogPostContent = {

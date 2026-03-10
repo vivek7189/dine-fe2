@@ -23,6 +23,7 @@ const englishToHindiMap = {
   'ultimate-guide-restaurant-inventory-management': 'restaurant-inventory-management-hindi',
   'how-to-increase-restaurant-revenue': 'restaurant-profit-kaise-badhaye',
   'why-qr-code-menus-are-essential-in-2024': 'qr-menu-kaise-banaye-free',
+  'lpg-gas-crisis-restaurants-india-2026': 'lpg-gas-shortage-restaurant-crisis-2026',
 };
 
 // Generate metadata for each blog post

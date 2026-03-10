@@ -344,6 +344,16 @@ export const blogPosts = [
     category: 'Technology',
     categoryColor: '#3b82f6',
   },
+  {
+    slug: 'lpg-gas-crisis-restaurants-india-2026',
+    title: 'LPG Gas Crisis: How Indian Restaurants Can Survive the Supply Shortage (2026)',
+    excerpt: 'The Middle East conflict has disrupted LPG supplies across India — 20% of Mumbai restaurants have shut down. Here\'s what\'s happening, what you can do right now, and how to crisis-proof your restaurant kitchen.',
+    date: '2026-03-10',
+    category: 'Industry News',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/lpg-gas-crisis-restaurants-india-2026.html'
+  },
 ];
 
 // Blog post content - for static generation

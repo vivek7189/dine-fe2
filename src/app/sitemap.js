@@ -501,7 +501,8 @@ export default function sitemap() {
     'best-restaurant-software-india-2025',
     'best-pos-system-pizza-restaurant',
     'restaurant-inventory-sheet',
-    'restaurant-cost-management-profit'
+    'restaurant-cost-management-profit',
+    'lpg-gas-crisis-restaurants-india-2026'
   ].map((slug) => ({
     url: `${baseUrl}/blog/${slug}`,
     lastModified: currentDate,
@@ -538,6 +539,7 @@ export default function sitemap() {
       'online-order-kaise-le',
       'restaurant-profit-kaise-badhaye',
       'qr-menu-kaise-banaye-free',
+      'lpg-gas-shortage-restaurant-crisis-2026',
     ].map((slug) => ({
       url: `${baseUrl}/hi/blog/${slug}`,
       lastModified: currentDate,
