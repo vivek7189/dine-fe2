@@ -354,6 +354,106 @@ export const blogPosts = [
     isStatic: true,
     staticPath: '/blog/lpg-gas-crisis-restaurants-india-2026.html'
   },
+  {
+    slug: 'how-to-start-sweet-shop-india',
+    title: 'How to Start a Sweet Shop (Mithai Shop) in India: Complete Guide',
+    excerpt: 'Complete guide to starting a sweet shop business in India — investment costs, FSSAI license, kitchen setup, billing, and marketing strategies for mithai shops.',
+    date: '2026-03-10',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-sweet-shop-india.html'
+  },
+  {
+    slug: 'how-to-start-dhaba-business-india',
+    title: 'How to Start a Dhaba Business in India: Investment, Profit & Setup Guide',
+    excerpt: 'Everything you need to know about starting a dhaba business in India — location selection, investment breakdown, licenses, kitchen setup, and daily operations.',
+    date: '2026-03-10',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-dhaba-business-india.html'
+  },
+  {
+    slug: 'how-to-start-food-truck-india',
+    title: 'How to Start a Food Truck Business in India: Cost, Licenses & Guide',
+    excerpt: 'Step-by-step guide to launching a food truck business in India — costs from ₹7.5 lakh, licenses, menu planning, location strategy, and marketing tips.',
+    date: '2026-03-10',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-food-truck-india.html'
+  },
+  {
+    slug: 'fssai-license-restaurant-complete-guide',
+    title: 'FSSAI License for Restaurants: Complete Registration Guide (2026)',
+    excerpt: 'Complete guide to getting FSSAI food license for your restaurant — types of licenses, documents required, online application process, fees, and renewal.',
+    date: '2026-03-10',
+    category: 'Compliance',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/fssai-license-restaurant-complete-guide.html'
+  },
+  {
+    slug: 'gst-on-restaurant-india-guide',
+    title: 'GST on Restaurants in India: Complete Tax Guide for Food Business Owners',
+    excerpt: 'Everything about GST for restaurants — current rates, registration process, Input Tax Credit, composition scheme, and how to stay compliant.',
+    date: '2026-03-10',
+    category: 'Compliance',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/gst-on-restaurant-india-guide.html'
+  },
+  {
+    slug: 'how-to-register-restaurant-zomato-swiggy',
+    title: 'How to Register Your Restaurant on Zomato & Swiggy: Complete Guide',
+    excerpt: 'Step-by-step guide to listing your restaurant on Zomato and Swiggy — registration process, documents, commission structure, and tips to optimize your listing.',
+    date: '2026-03-10',
+    category: 'Online Ordering',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/how-to-register-restaurant-zomato-swiggy.html'
+  },
+  {
+    slug: 'how-to-start-tiffin-service-india',
+    title: 'How to Start a Tiffin Service Business from Home in India',
+    excerpt: 'Complete guide to starting a tiffin/dabba service from home — low investment, menu planning, pricing, delivery logistics, and scaling up.',
+    date: '2026-03-10',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-tiffin-service-india.html'
+  },
+  {
+    slug: 'how-to-start-catering-business-india',
+    title: 'How to Start a Catering Business in India: Licenses, Cost & Profit Guide',
+    excerpt: 'Start a catering business in India — wedding, corporate, and event catering setup guide with investment breakdown, licenses, staffing, and operations.',
+    date: '2026-03-10',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-catering-business-india.html'
+  },
+  {
+    slug: 'how-to-start-qsr-india',
+    title: 'How to Start a Quick Service Restaurant (QSR) in India: Low-Cost Setup Guide',
+    excerpt: 'Guide to starting a QSR/fast food restaurant in India — investment from ₹5 lakh, menu design, technology stack, franchise vs independent, and operations.',
+    date: '2026-03-10',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-qsr-india.html'
+  },
+  {
+    slug: 'restaurant-marketing-ideas-india',
+    title: 'Restaurant Marketing Ideas: 15 Low-Cost Strategies to Get More Customers in India',
+    excerpt: '15 proven, low-cost marketing strategies for Indian restaurants — Google My Business, social media, loyalty programs, WhatsApp marketing, and more.',
+    date: '2026-03-10',
+    category: 'Marketing',
+    categoryColor: '#ec4899',
+    isStatic: true,
+    staticPath: '/blog/restaurant-marketing-ideas-india.html'
+  },
 ];
 
 // Blog post content - for static generation

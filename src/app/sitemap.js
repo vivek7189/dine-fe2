@@ -502,7 +502,18 @@ export default function sitemap() {
     'best-pos-system-pizza-restaurant',
     'restaurant-inventory-sheet',
     'restaurant-cost-management-profit',
-    'lpg-gas-crisis-restaurants-india-2026'
+    'lpg-gas-crisis-restaurants-india-2026',
+    // New blog posts (March 2026)
+    'how-to-start-sweet-shop-india',
+    'how-to-start-dhaba-business-india',
+    'how-to-start-food-truck-india',
+    'fssai-license-restaurant-complete-guide',
+    'gst-on-restaurant-india-guide',
+    'how-to-register-restaurant-zomato-swiggy',
+    'how-to-start-tiffin-service-india',
+    'how-to-start-catering-business-india',
+    'how-to-start-qsr-india',
+    'restaurant-marketing-ideas-india',
   ].map((slug) => ({
     url: `${baseUrl}/blog/${slug}`,
     lastModified: currentDate,
@@ -540,6 +551,17 @@ export default function sitemap() {
       'restaurant-profit-kaise-badhaye',
       'qr-menu-kaise-banaye-free',
       'lpg-gas-shortage-restaurant-crisis-2026',
+      // New Hindi blog posts (March 2026)
+      'mithai-dukan-kaise-khole',
+      'dhaba-business-kaise-shuru-kare',
+      'food-truck-business-kaise-shuru-kare',
+      'fssai-license-kaise-banaye',
+      'restaurant-gst-guide-hindi',
+      'zomato-swiggy-par-restaurant-kaise-register-kare',
+      'tiffin-service-kaise-shuru-kare',
+      'catering-business-kaise-shuru-kare',
+      'qsr-kaise-khole',
+      'restaurant-marketing-ideas-hindi',
     ].map((slug) => ({
       url: `${baseUrl}/hi/blog/${slug}`,
       lastModified: currentDate,

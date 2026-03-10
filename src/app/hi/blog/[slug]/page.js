@@ -21,6 +21,16 @@ const hindiToEnglishMap = {
   'restaurant-profit-kaise-badhaye': 'how-to-increase-restaurant-revenue',
   'qr-menu-kaise-banaye-free': 'why-qr-code-menus-are-essential-in-2024',
   'lpg-gas-shortage-restaurant-crisis-2026': 'lpg-gas-crisis-restaurants-india-2026',
+  'mithai-dukan-kaise-khole': 'how-to-start-sweet-shop-india',
+  'dhaba-business-kaise-shuru-kare': 'how-to-start-dhaba-business-india',
+  'food-truck-business-kaise-shuru-kare': 'how-to-start-food-truck-india',
+  'fssai-license-kaise-banaye': 'fssai-license-restaurant-complete-guide',
+  'restaurant-gst-guide-hindi': 'gst-on-restaurant-india-guide',
+  'zomato-swiggy-par-restaurant-kaise-register-kare': 'how-to-register-restaurant-zomato-swiggy',
+  'tiffin-service-kaise-shuru-kare': 'how-to-start-tiffin-service-india',
+  'catering-business-kaise-shuru-kare': 'how-to-start-catering-business-india',
+  'qsr-kaise-khole': 'how-to-start-qsr-india',
+  'restaurant-marketing-ideas-hindi': 'restaurant-marketing-ideas-india',
 };
 
 export async function generateMetadata({ params }) {
