@@ -454,6 +454,308 @@ export const blogPosts = [
     isStatic: true,
     staticPath: '/blog/restaurant-marketing-ideas-india.html'
   },
+  {
+    slug: 'best-pos-system-ice-cream-shop',
+    title: 'Best POS System for Ice Cream Shops in India (2026)',
+    excerpt: 'Complete guide to choosing the best POS for your ice cream parlour — scoop-based billing, flavor tracking, topping customizations, and birthday club features compared.',
+    date: '2026-03-11',
+    category: 'POS',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-pos-system-ice-cream-shop.html'
+  },
+  {
+    slug: 'how-to-start-ice-cream-parlour-india',
+    title: 'How to Start an Ice Cream Parlour in India: Complete Business Guide (2026)',
+    excerpt: 'Step-by-step guide to starting an ice cream parlour — investment from ₹3 lakh, FSSAI license, equipment, suppliers, menu strategy, and profit margins.',
+    date: '2026-03-11',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-ice-cream-parlour-india.html'
+  },
+  {
+    slug: 'ice-cream-shop-inventory-management',
+    title: 'Ice Cream Shop Inventory Management: Complete Guide to Reducing Waste',
+    excerpt: 'Master flavor-level stock tracking, expiry management, and AI-powered reorder suggestions for your ice cream business.',
+    date: '2026-03-11',
+    category: 'Operations',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/ice-cream-shop-inventory-management.html'
+  },
+  {
+    slug: 'petpooja-alternative-2026',
+    title: 'Best Petpooja Alternatives in 2026: Save ₹58,000+/Year',
+    excerpt: 'Detailed comparison of Petpooja alternatives — pricing, transaction fees, AI features, and migration guide. Find affordable POS software for your restaurant.',
+    date: '2026-03-11',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/petpooja-alternative-2026.html'
+  },
+  {
+    slug: 'best-pos-system-restaurant-india',
+    title: 'Best POS System for Restaurants in India (2026 Comparison)',
+    excerpt: 'Top 7 restaurant POS systems compared — DineOpen, Petpooja, Posist, and more. Pricing, features, transaction fees, and which POS fits your restaurant type.',
+    date: '2026-03-11',
+    category: 'POS',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-pos-system-restaurant-india.html'
+  },
+  {
+    slug: 'free-qr-menu-maker-guide',
+    title: 'Free QR Menu Maker: Create Digital Menus in 5 Minutes (2026 Guide)',
+    excerpt: 'Step-by-step guide to creating free QR code menus for your restaurant. Compare QR menu makers, design tips, and save ₹5,000/year on printing.',
+    date: '2026-03-11',
+    category: 'Technology',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/free-qr-menu-maker-guide.html'
+  },
+  {
+    slug: 'restaurant-loyalty-program-guide',
+    title: 'Restaurant Loyalty Program Guide: Boost Repeat Visits by 40%',
+    excerpt: 'Complete guide to building a restaurant loyalty program — points, birthday clubs, WhatsApp campaigns, and measuring ROI with real examples.',
+    date: '2026-03-11',
+    category: 'Revenue',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/restaurant-loyalty-program-guide.html'
+  },
+  {
+    slug: 'restaurant-technology-trends-2026',
+    title: 'Restaurant Technology Trends 2026: AI, Automation & the Future',
+    excerpt: '7 restaurant tech trends transforming food businesses in 2026 — AI voice ordering, predictive inventory, KDS, QR ordering, and WhatsApp commerce.',
+    date: '2026-03-11',
+    category: 'Technology',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-technology-trends-2026.html'
+  },
+  {
+    slug: 'chocolate-shop-pos-software-india',
+    title: 'Best POS Software for Chocolate Shops in India (2026)',
+    excerpt: 'Guide to POS systems for chocolate shops — weight-based billing, gift box combos, recipe costing, festive season management, and inventory tracking.',
+    date: '2026-03-11',
+    category: 'POS',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/chocolate-shop-pos-software-india.html'
+  },
+  {
+    slug: 'restaurant-automation-software-guide',
+    title: 'Restaurant Automation Software: Complete Guide for Owners (2026)',
+    excerpt: 'How to automate your restaurant — POS, KDS, AI ordering, inventory, loyalty, and marketing. Save ₹12,000+/month vs multi-tool setup.',
+    date: '2026-03-11',
+    category: 'Technology',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-automation-software-guide.html'
+  },
+  // Content gap blogs (March 2026)
+  {
+    slug: 'how-to-start-cafe-coffee-shop-india',
+    title: 'How to Start a Cafe or Coffee Shop in India: Complete Guide (2026)',
+    excerpt: 'Step-by-step guide to starting a cafe — investment from ₹5 lakh, FSSAI license, coffee equipment, menu, interior design, and profit margins.',
+    date: '2026-03-12',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-cafe-coffee-shop-india.html'
+  },
+  {
+    slug: 'how-to-start-juice-bar-india',
+    title: 'How to Start a Juice Bar in India: Investment, Setup & Profit Guide (2026)',
+    excerpt: 'Complete guide to starting a juice bar business — equipment, FSSAI license, menu, location, suppliers, and profit margins of 60-70%.',
+    date: '2026-03-12',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-juice-bar-india.html'
+  },
+  {
+    slug: 'how-to-start-chai-tapri-business',
+    title: 'How to Start a Chai Tapri Business in India: Low-Cost Startup Guide (2026)',
+    excerpt: 'Start a chai tapri with just ₹50,000 — location, equipment, tea suppliers, menu, pricing, and how to scale from one stall to a chain.',
+    date: '2026-03-12',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-chai-tapri-business.html'
+  },
+  {
+    slug: 'how-to-start-bakery-india',
+    title: 'How to Start a Bakery Business in India: Complete Guide (2026)',
+    excerpt: 'Complete bakery startup guide — home bakery vs commercial, equipment, FSSAI license, recipes, pricing, packaging, and marketing strategies.',
+    date: '2026-03-12',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-start-bakery-india.html'
+  },
+  {
+    slug: 'cloud-kitchen-vs-restaurant-india',
+    title: 'Cloud Kitchen vs Restaurant in India: Which Is Better in 2026?',
+    excerpt: 'Detailed comparison — investment, profit margins, operations, pros/cons. Plus hybrid model strategy and real cost breakdowns.',
+    date: '2026-03-12',
+    category: 'Industry Insights',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/cloud-kitchen-vs-restaurant-india.html'
+  },
+  {
+    slug: 'dineopen-vs-posist-detailed-comparison',
+    title: 'DineOpen vs Posist: Detailed POS Comparison for Indian Restaurants (2026)',
+    excerpt: 'Feature-by-feature comparison of DineOpen and Posist — pricing, AI features, integrations, and which POS is best for your restaurant size.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/dineopen-vs-posist-detailed-comparison.html'
+  },
+  {
+    slug: 'swiggy-zomato-commission-calculator-guide',
+    title: 'Swiggy & Zomato Commission Calculator: How Much Are You Really Paying? (2026)',
+    excerpt: 'Understand the real cost of Swiggy and Zomato — commission rates, GST on commission, packaging charges, and how to reduce delivery costs.',
+    date: '2026-03-12',
+    category: 'Operations',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/swiggy-zomato-commission-calculator-guide.html'
+  },
+  {
+    slug: 'best-billing-software-small-restaurant',
+    title: 'Best Billing Software for Small Restaurants in India (2026)',
+    excerpt: 'Top billing software for small restaurants and dhabas — GST-ready, affordable, easy to use. Compare features, pricing, and find the best fit.',
+    date: '2026-03-12',
+    category: 'POS',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-billing-software-small-restaurant.html'
+  },
+  {
+    slug: 'how-to-calculate-food-cost-percentage',
+    title: 'How to Calculate Food Cost Percentage: Formula, Examples & Tips (2026)',
+    excerpt: 'Learn the food cost percentage formula, ideal ranges for different restaurant types, and proven strategies to reduce food costs with real examples.',
+    date: '2026-03-12',
+    category: 'Operations',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/how-to-calculate-food-cost-percentage.html'
+  },
+  {
+    slug: 'restaurant-break-even-analysis-guide',
+    title: 'Restaurant Break-Even Analysis: How to Calculate When You\'ll Be Profitable (2026)',
+    excerpt: 'Step-by-step break-even analysis for restaurants — fixed costs, variable costs, break-even point formula, and strategies to reach profitability faster.',
+    date: '2026-03-12',
+    category: 'Finance',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/restaurant-break-even-analysis-guide.html'
+  },
+  // High-value SEO content blogs (March 2026 - Batch 2)
+  {
+    slug: 'how-to-hire-restaurant-staff-india',
+    title: 'How to Hire Restaurant Staff in India: Complete Recruitment Guide (2026)',
+    excerpt: 'Complete guide to hiring restaurant staff — salary benchmarks by city, where to find candidates, interview process, legal requirements (PF/ESI), and retention strategies.',
+    date: '2026-03-12',
+    category: 'Staff Management',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/how-to-hire-restaurant-staff-india.html'
+  },
+  {
+    slug: 'restaurant-profit-margins-india-guide',
+    title: 'Restaurant Profit Margins in India: Complete Benchmark Guide (2026)',
+    excerpt: 'Detailed profit margin benchmarks by restaurant type — fine dining, QSR, cloud kitchen, dhaba, cafe. Cost breakdown, city-wise comparison, and strategies to improve margins.',
+    date: '2026-03-12',
+    category: 'Finance',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/restaurant-profit-margins-india-guide.html'
+  },
+  {
+    slug: 'how-to-respond-negative-reviews-restaurant',
+    title: 'How to Respond to Negative Google Reviews for Restaurants: Templates & Strategy (2026)',
+    excerpt: '10 copy-paste response templates for common restaurant complaints — slow service, bad food, rude staff, billing errors. Plus strategies to turn negative reviews into repeat customers.',
+    date: '2026-03-12',
+    category: 'Marketing',
+    categoryColor: '#ec4899',
+    isStatic: true,
+    staticPath: '/blog/how-to-respond-negative-reviews-restaurant.html'
+  },
+  {
+    slug: 'restaurant-kitchen-hygiene-checklist',
+    title: 'Restaurant Kitchen Hygiene Checklist: Daily, Weekly & Monthly SOPs (2026)',
+    excerpt: 'Complete kitchen hygiene checklist — daily cleaning tasks, weekly deep clean, monthly audits, FSSAI compliance, food storage temperatures, and staff hygiene standards.',
+    date: '2026-03-12',
+    category: 'Operations',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/restaurant-kitchen-hygiene-checklist.html'
+  },
+  {
+    slug: 'cost-to-open-restaurant-india-2026',
+    title: 'How Much Does It Cost to Open a Restaurant in India in 2026? Complete Breakdown',
+    excerpt: 'Detailed cost breakdown — from ₹2 lakh dhaba to ₹1.5 crore fine dining. City-wise comparison, equipment list with prices, hidden costs, and funding options including Mudra Loan.',
+    date: '2026-03-12',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/cost-to-open-restaurant-india-2026.html'
+  },
+  {
+    slug: 'reduce-zomato-swiggy-commission-restaurants',
+    title: 'How to Reduce Zomato & Swiggy Commission: Save ₹50,000+ Per Month (2026)',
+    excerpt: 'Real math on aggregator commissions (18-28%) and 7 proven strategies to reduce them — direct ordering, WhatsApp orders, QR menus, loyalty programs, and hybrid approach.',
+    date: '2026-03-12',
+    category: 'Revenue',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/reduce-zomato-swiggy-commission-restaurants.html'
+  },
+  {
+    slug: 'restaurant-grand-opening-marketing-plan',
+    title: 'Restaurant Grand Opening Marketing Plan: The First 30 Days Playbook (2026)',
+    excerpt: 'Complete launch playbook — pre-launch social media strategy, opening day event plan, first 30 days checklist, budget breakdown (₹40K-1.5L), and how to get 50 Google reviews fast.',
+    date: '2026-03-12',
+    category: 'Marketing',
+    categoryColor: '#ec4899',
+    isStatic: true,
+    staticPath: '/blog/restaurant-grand-opening-marketing-plan.html'
+  },
+  {
+    slug: 'menu-engineering-guide-restaurants',
+    title: 'Menu Engineering Guide: How to Design a Menu That Maximizes Profit (2026)',
+    excerpt: 'Data-driven menu engineering — Stars/Plow Horses/Puzzles/Dogs matrix, menu psychology, pricing strategies, design best practices, and how to increase profit by 10-15%.',
+    date: '2026-03-12',
+    category: 'Revenue',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/menu-engineering-guide-restaurants.html'
+  },
+  {
+    slug: 'mudra-loan-restaurant-business-india',
+    title: 'Mudra Loan for Restaurant Business in India: Complete Application Guide (2026)',
+    excerpt: 'Everything about PMMY Mudra Loan — Shishu/Kishore/Tarun categories, eligibility, documents, interest rates, application process, and how to write a business plan that gets approved.',
+    date: '2026-03-12',
+    category: 'Finance',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/mudra-loan-restaurant-business-india.html'
+  },
+  {
+    slug: 'restaurant-instagram-marketing-guide',
+    title: 'Restaurant Instagram Marketing Guide: Get More Customers in 2026',
+    excerpt: '30 content ideas, Reels strategy, posting schedule, hashtag strategy, food photography tips, and Instagram ad campaigns (₹5K-15K/month) to fill your restaurant.',
+    date: '2026-03-12',
+    category: 'Marketing',
+    categoryColor: '#ec4899',
+    isStatic: true,
+    staticPath: '/blog/restaurant-instagram-marketing-guide.html'
+  },
 ];
 
 // Blog post content - for static generation

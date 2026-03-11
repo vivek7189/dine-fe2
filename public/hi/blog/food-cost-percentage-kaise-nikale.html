@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Food Cost Percentage कैसे निकालें — Formula, Examples और Tips। Restaurant food cost 30% कैसे रखें, per-item calculation, और DineOpen से automatic tracking करें।">
+    <meta name="keywords" content="food cost percentage kaise nikale, food cost formula Hindi, restaurant food cost calculation, food cost percentage formula, food cost kaise calculate kare, food cost percentage India">
+    <meta name="author" content="DineOpen Team">
+    <title>Food Cost Percentage कैसे निकालें — Formula, Examples और Tips (2026) | DineOpen</title>
+
+    <!-- Canonical & Hreflang -->
+    <link rel="canonical" href="https://www.dineopen.com/hi/blog/food-cost-percentage-kaise-nikale" />
+    <link rel="alternate" hreflang="hi" href="https://www.dineopen.com/hi/blog/food-cost-percentage-kaise-nikale" />
+    <link rel="alternate" hreflang="en" href="https://www.dineopen.com/blog/how-to-calculate-food-cost-percentage" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Food Cost Percentage कैसे निकालें — Formula, Examples और Tips (2026)">
+    <meta property="og:description" content="Food Cost Percentage कैसे निकालें — Formula, Examples और Tips। Restaurant food cost 30% कैसे रखें, per-item calculation, और DineOpen से automatic tracking करें।">
+    <meta property="og:url" content="https://www.dineopen.com/hi/blog/food-cost-percentage-kaise-nikale">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&h=630&fit=crop">
+    <meta property="og:locale" content="hi_IN">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Food Cost Percentage कैसे निकालें — Formula, Examples और Tips (2026)">
+    <meta name="twitter:description" content="Food Cost Percentage कैसे निकालें — Formula, Examples और Tips। Restaurant food cost calculation Hindi में सीखें।">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&h=630&fit=crop">
+
+    <!-- Structured Data - BlogPosting -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Food Cost Percentage कैसे निकालें — Formula, Examples और Tips (2026)",
+      "description": "Food Cost Percentage कैसे निकालें — Formula, Examples और Tips। Restaurant food cost 30% कैसे रखें, per-item calculation, और DineOpen से automatic tracking करें।",
+      "inLanguage": "hi",
+      "author": {
+        "@type": "Person",
+        "name": "DineOpen Team"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "DineOpen",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.dineopen.com/favicon.png"
+        }
+      },
+      "datePublished": "2026-03-12",
+      "dateModified": "2026-03-12",
+      "image": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&h=630&fit=crop",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://www.dineopen.com/hi/blog/food-cost-percentage-kaise-nikale"
+      }
+    }
+    </script>
+
+    <!-- Structured Data - FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Food cost percentage कैसे calculate करते हैं?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Food Cost Percentage = (Total Food Cost ÷ Total Food Revenue) × 100। उदाहरण: अगर आपने ₹1,50,000 ingredients पर खर्च किए और ₹5,00,000 revenue आया, तो food cost percentage = (1,50,000 ÷ 5,00,000) × 100 = 30%। यह formula per-item और overall दोनों के लिए काम करता है।"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Restaurant का ideal food cost percentage कितना होना चाहिए?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Restaurant type के हिसाब से ideal food cost अलग-अलग होता है: QSR/Fast food 25-30%, Casual dining 28-35%, Fine dining 30-38%, Cafe 25-30%, Cloud kitchen 28-32%, Dhaba 25-30%, Bakery 30-40%, Ice cream parlour 20-30%, और Bar/Pub food 18-25%। Average target 28-35% के बीच रखना अच्छा माना जाता है।"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Actual और theoretical food cost में क्या difference है?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Theoretical food cost वो है जो recipes के हिसाब से होना चाहिए — perfect portions, zero waste, कोई theft नहीं। Actual food cost वो है जो actually खर्च हुआ — जिसमें wastage, spillage, over-portioning, theft, और staff meals शामिल हैं। अगर actual और theoretical food cost में gap 2-3% से ज़्यादा है, तो कहीं problem है।"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Food cost percentage ज़्यादा हो तो क्या करें?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Food cost कम करने के लिए: (1) Recipe standardization करें — हर dish की exact quantity fix करें, (2) Supplier से negotiate करें — bulk buying पर discount लें, (3) Menu engineering करें — high-profit items promote करें, (4) Waste tracking शुरू करें, (5) Portion control implements करें, (6) Seasonal ingredients use करें, (7) DineOpen जैसे software से real-time tracking करें।"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Food cost based pricing कैसे करें?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Menu pricing formula: Selling Price = Food Cost ÷ Target Food Cost Percentage। उदाहरण: अगर एक dish बनाने में ₹150 लगते हैं और आप 30% food cost target कर रहे हैं, तो selling price = ₹150 ÷ 0.30 = ₹500। इसी तरह 25% target पर price = ₹150 ÷ 0.25 = ₹600 होगा।"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Food cost track करने के लिए कौन सा software use करें?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "DineOpen सबसे affordable और effective food cost tracking software है। इसमें recipe-level costing, auto inventory deduction, purchase tracking, waste logging, और real-time food cost dashboard मिलता है। सिर्फ ₹300/month से शुरू होता है और Hindi में support मिलता है। DineOpen का free Food Cost Calculator tool भी available है।"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "India में 2026 में average food cost benchmarks क्या हैं?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "India 2026 benchmarks: North Indian cuisine — ingredient cost ₹100-180 per plate (food cost 30-35%), South Indian — ₹60-120 (25-30%), Chinese/Indo-Chinese — ₹80-150 (28-32%), Pizza — ₹100-180 (30-35%), Biryani — ₹120-200 (28-33%)। Ingredient prices 2026 में 8-12% बढ़ चुकी हैं, इसलिए regular menu pricing review ज़रूरी है।"
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Structured Data - BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://www.dineopen.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Hindi Blog",
+          "item": "https://www.dineopen.com/hi/blog"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Food Cost Percentage कैसे निकालें",
+          "item": "https://www.dineopen.com/hi/blog/food-cost-percentage-kaise-nikale"
+        }
+      ]
+    }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #ffffff;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            color: white;
+            padding: 40px 20px;
+            margin-bottom: 0;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            margin-bottom: 24px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .header h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .header .meta {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 40px;
+        }
+
+        .content {
+            background: white;
+            border-radius: 0;
+            padding: 0;
+        }
+
+        .hero-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .intro {
+            font-size: 22px;
+            color: #4b5563;
+            margin-bottom: 48px;
+            padding: 32px;
+            background: linear-gradient(135deg, #fef7f0 0%, #fff7ed 100%);
+            border-left: 5px solid #ef4444;
+            border-radius: 12px;
+            font-weight: 500;
+            line-height: 1.8;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section h2 {
+            font-size: clamp(28px, 4vw, 36px);
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 4px solid #ef4444;
+            line-height: 1.3;
+        }
+
+        .section h3 {
+            font-size: clamp(22px, 3vw, 26px);
+            font-weight: 700;
+            color: #1f2937;
+            margin-top: 32px;
+            margin-bottom: 16px;
+        }
+
+        .section p {
+            font-size: 18px;
+            color: #4b5563;
+            margin-bottom: 20px;
+            line-height: 1.9;
+        }
+
+        .section ul, .section ol {
+            margin-left: 28px;
+            margin-bottom: 28px;
+        }
+
+        .section li {
+            font-size: 18px;
+            color: #4b5563;
+            margin-bottom: 16px;
+            line-height: 1.9;
+        }
+
+        .section li strong {
+            color: #111827;
+        }
+
+        .section-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin: 32px 0;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #fef7f0 0%, #fff7ed 100%);
+            border: 2px solid #ef4444;
+            border-radius: 16px;
+            padding: 32px;
+            margin: 40px 0;
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.1);
+        }
+
+        .highlight-box h3 {
+            color: #ef4444;
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 24px;
+        }
+
+        .highlight-box ul {
+            margin-top: 16px;
+        }
+
+        .formula-box {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin: 40px 0;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .formula-box .formula {
+            font-size: clamp(20px, 3vw, 28px);
+            font-weight: 800;
+            color: #fbbf24;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        .formula-box .formula-desc {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 12px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 32px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .data-table thead {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .data-table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .data-table td {
+            padding: 14px 20px;
+            font-size: 16px;
+            color: #4b5563;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .data-table tbody tr:hover {
+            background: #fef7f0;
+        }
+
+        .example-box {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin: 32px 0;
+        }
+
+        .example-box h4 {
+            color: #16a34a;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .example-box p, .example-box li {
+            font-size: 17px;
+            color: #4b5563;
+            line-height: 1.8;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 48px 40px;
+            border-radius: 20px;
+            text-align: center;
+            margin: 60px 0;
+            box-shadow: 0 12px 40px rgba(239, 68, 68, 0.3);
+        }
+
+        .cta-box h3 {
+            color: white;
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 28px;
+        }
+
+        .cta-box p {
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 32px;
+            font-size: 18px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: #ef4444;
+            padding: 16px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 18px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            margin-bottom: 60px;
+        }
+
+        .faq-section h2 {
+            font-size: clamp(28px, 4vw, 36px);
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 4px solid #ef4444;
+            line-height: 1.3;
+        }
+
+        .faq-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            padding: 20px 24px;
+            background: #f9fafb;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .faq-question:hover {
+            background: #f3f4f6;
+        }
+
+        .faq-question::after {
+            content: "+";
+            font-size: 24px;
+            font-weight: 700;
+            color: #ef4444;
+            transition: transform 0.3s;
+        }
+
+        .faq-question.active::after {
+            content: "-";
+        }
+
+        .faq-answer {
+            font-size: 17px;
+            color: #4b5563;
+            padding: 0 24px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            line-height: 1.8;
+        }
+
+        .faq-answer.active {
+            padding: 16px 24px 20px;
+            max-height: 500px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        .sidebar-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .sidebar-logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .sidebar-logo h2 {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-logo p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .sidebar-cta {
+            text-align: center;
+        }
+
+        .sidebar-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-cta p {
+            color: #6b7280;
+            font-size: 15px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .sidebar-button {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .sidebar-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .sidebar-button.secondary {
+            background: white;
+            color: #ef4444;
+            border: 2px solid #ef4444;
+            box-shadow: none;
+        }
+
+        .sidebar-button.secondary:hover {
+            background: #fef7f0;
+        }
+
+        .sidebar-features {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        .sidebar-features li::before {
+            content: "\2713";
+            color: #22c55e;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .sidebar-links {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar-links li {
+            margin-bottom: 12px;
+        }
+
+        .sidebar-links a {
+            font-size: 15px;
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .sidebar-links a:hover {
+            color: #dc2626;
+            text-decoration: underline;
+        }
+
+        .related-articles {
+            margin-top: 48px;
+            margin-bottom: 20px;
+        }
+
+        .related-articles h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 20px;
+        }
+
+        .related-articles ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .related-articles li {
+            margin-bottom: 12px;
+        }
+
+        .related-articles a {
+            font-size: 17px;
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .related-articles a:hover {
+            color: #dc2626;
+            text-decoration: underline;
+        }
+
+        .footer {
+            background: #1f2937;
+            color: white;
+            text-align: center;
+            padding: 60px 20px;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer a {
+            color: #ef4444;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 968px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .sidebar {
+                position: relative;
+                top: 0;
+            }
+
+            .content {
+                padding: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 30px 16px;
+            }
+
+            .main-container {
+                padding: 20px 16px;
+            }
+
+            .hero-image {
+                height: 250px;
+                margin-bottom: 32px;
+            }
+
+            .intro {
+                padding: 24px 20px;
+                font-size: 18px;
+            }
+
+            .section {
+                margin-bottom: 48px;
+            }
+
+            .section-image {
+                height: 220px;
+            }
+
+            .cta-box {
+                padding: 32px 24px;
+            }
+
+            .formula-box {
+                padding: 28px 20px;
+            }
+
+            .data-table {
+                font-size: 14px;
+            }
+
+            .data-table th, .data-table td {
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/hi/blog" class="back-link">&larr; ब्लॉग पर वापस जाएं</a>
+            <h1>Food Cost Percentage कैसे निकालें — Formula, Examples और Tips (2026)</h1>
+            <div class="meta">
+                <span>लेखक: DineOpen Team</span>
+                <span>&bull;</span>
+                <span>12 मार्च 2026</span>
+                <span>&bull;</span>
+                <span>15 मिनट पढ़ने का समय</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <main class="content">
+            <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&h=400&fit=crop&q=80" alt="Restaurant kitchen food cost calculation" class="hero-image">
+
+            <div class="intro">
+                <strong>अगर आप restaurant, cafe, cloud kitchen, या कोई भी food business चला रहे हैं, तो Food Cost Percentage आपकी सबसे important number है।</strong> यह बताता है कि आपकी हर ₹100 की sale में से कितना पैसा ingredients पर जा रहा है। अगर food cost control में नहीं है, तो चाहे कितनी भी sale हो — profit नहीं आएगा। इस guide में हम formula, real examples, ideal benchmarks, और food cost कम करने के practical tips — सब कुछ Hindi में cover करेंगे।
+            </div>
+
+            <!-- Section 1: Food Cost Percentage क्या है? -->
+            <div class="section">
+                <h2>Food Cost Percentage क्या है?</h2>
+
+                <p>Food Cost Percentage एक metric है जो बताता है कि आपकी total food revenue का कितना percent हिस्सा raw materials (ingredients) की cost में जा रहा है। Simple words में — आप जो खाना बेच रहे हैं, उसमें ingredients पर कितना खर्चा हो रहा है।</p>
+
+                <p>यह number इसलिए important है क्योंकि restaurant business में typically 3 major costs होती हैं:</p>
+
+                <ul>
+                    <li><strong>Food Cost:</strong> 28-35% (ingredients और raw materials)</li>
+                    <li><strong>Labour Cost:</strong> 25-35% (staff salaries, benefits)</li>
+                    <li><strong>Overhead Cost:</strong> 20-30% (rent, electricity, gas, maintenance)</li>
+                </ul>
+
+                <p>अब calculate करें — अगर आपका food cost 40% है, labour 30%, और rent+overhead 25%, तो total cost = 95%। मतलब सिर्फ 5% profit। लेकिन अगर food cost 35% हो जाए, तो profit 10% हो जाएगा — <strong>double!</strong> इसीलिए food cost percentage को regularly track करना और control में रखना बेहद ज़रूरी है।</p>
+
+                <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=300&fit=crop&q=80" alt="Restaurant food ingredients and dishes" class="section-image">
+
+                <div class="highlight-box">
+                    <h3>Food Cost Percentage क्यों Track करना ज़रूरी है:</h3>
+                    <ul>
+                        <li><strong>Profitability:</strong> 1-2% food cost कम करने से monthly profit में ₹15,000-50,000 का difference आ सकता है</li>
+                        <li><strong>Pricing Decisions:</strong> सही food cost जाने बिना menu pricing करना अंधेरे में तीर मारना है</li>
+                        <li><strong>Waste Detection:</strong> अगर food cost बढ़ रहा है तो कहीं wastage, theft, या over-portioning हो रही है</li>
+                        <li><strong>Supplier Management:</strong> Ingredient prices track करके better deals negotiate कर सकते हैं</li>
+                        <li><strong>Business Health:</strong> यह number आपके food business की "pulse" है — regular monitoring से problems जल्दी पकड़ में आती हैं</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 2: Food Cost Percentage Formula -->
+            <div class="section">
+                <h2>Food Cost Percentage Formula</h2>
+
+                <div class="formula-box">
+                    <div class="formula">Food Cost % = (Total Food Cost &divide; Total Food Revenue) &times; 100</div>
+                    <div class="formula-desc">यहां Total Food Cost = एक period में ingredients पर total खर्चा, और Total Food Revenue = उसी period में food से total sales</div>
+                </div>
+
+                <h3>Overall Food Cost Percentage (Monthly/Weekly)</h3>
+                <p>यह formula आपके पूरे restaurant का overall food cost निकालता है:</p>
+
+                <div class="example-box">
+                    <h4>Example: Monthly Food Cost Calculation</h4>
+                    <ul>
+                        <li>March 2026 में total ingredients purchase = <strong>₹1,50,000</strong></li>
+                        <li>March 2026 में total food revenue = <strong>₹5,00,000</strong></li>
+                        <li>Food Cost % = (₹1,50,000 &divide; ₹5,00,000) &times; 100 = <strong>30%</strong></li>
+                    </ul>
+                    <p>यह 30% food cost बहुत अच्छा माना जाता है। मतलब हर ₹100 की sale पर ₹30 ingredients में जा रहे हैं और बाकी ₹70 से labour, rent, और profit cover हो रहा है।</p>
+                </div>
+
+                <h3>Per-Item Food Cost Percentage</h3>
+                <p>हर individual dish का food cost निकालना भी equally important है। इसका formula:</p>
+
+                <div class="formula-box">
+                    <div class="formula">Per-Item Food Cost % = (Dish बनाने की Cost &divide; Dish का Selling Price) &times; 100</div>
+                    <div class="formula-desc">इससे पता चलता है कि कौन सी dish profitable है और कौन सी loss दे रही है</div>
+                </div>
+
+                <p>Per-item food cost जानने से आप <a href="/tools/menu-engineering" style="color: #ef4444; font-weight: 600;">menu engineering</a> कर सकते हैं — high-profit items को promote करें और low-profit items को improve या remove करें।</p>
+            </div>
+
+            <!-- Section 3: Restaurant Type के हिसाब से Ideal Food Cost -->
+            <div class="section">
+                <h2>Restaurant Type के हिसाब से Ideal Food Cost</h2>
+
+                <p>हर type के food business का ideal food cost percentage अलग होता है। यह depend करता है cuisine, service model, ambiance, और target customer पर। नीचे 2026 India के benchmarks हैं:</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Restaurant Type</th>
+                            <th>Ideal Food Cost %</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>QSR / Fast Food</strong></td>
+                            <td>25-30%</td>
+                            <td>High volume, standardized recipes, low waste</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Casual Dining</strong></td>
+                            <td>28-35%</td>
+                            <td>Moderate prices, varied menu</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Fine Dining</strong></td>
+                            <td>30-38%</td>
+                            <td>Premium ingredients, higher selling prices compensate</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cafe / Coffee Shop</strong></td>
+                            <td>25-30%</td>
+                            <td>Beverages have low food cost (15-20%), food items higher</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cloud Kitchen</strong></td>
+                            <td>28-32%</td>
+                            <td>No dine-in overhead, but aggregator commissions 20-30%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dhaba / Street Food</strong></td>
+                            <td>25-30%</td>
+                            <td>Simple recipes, low overhead, high volume</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bakery</strong></td>
+                            <td>30-40%</td>
+                            <td>Flour, butter, cream — bulk ingredients, good margins on cakes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ice Cream Parlour</strong></td>
+                            <td>20-30%</td>
+                            <td>High margins, especially on scoops and shakes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bar / Pub (Food)</strong></td>
+                            <td>18-25%</td>
+                            <td>Bar snacks are high margin; alcohol food cost even lower</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box">
+                    <h3>Important Note:</h3>
+                    <ul>
+                        <li>अगर आपका food cost इन ranges से <strong>5% से ज़्यादा ऊपर</strong> है, तो urgent action लेना ज़रूरी है</li>
+                        <li>Cloud kitchens को aggregator commission (Swiggy/Zomato 20-30%) separately consider करना होगा — effective food + commission cost 50-60% तक जा सकता है</li>
+                        <li>Seasonal variations normal हैं — सर्दियों में dairy products सस्ते होते हैं, गर्मियों में vegetables महंगे</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 4: Step-by-Step Calculation Examples -->
+            <div class="section">
+                <h2>Step-by-Step Calculation Examples</h2>
+                <img src="https://images.unsplash.com/photo-1567337710282-00832b415979?w=800&h=300&fit=crop&q=80" alt="Butter chicken Indian dish ingredients" class="section-image">
+
+                <p>चलिए कुछ real Indian dishes के food cost calculate करते हैं ताकि concept clearly समझ आ जाए:</p>
+
+                <h3>Example 1: Butter Chicken (1 Plate)</h3>
+                <div class="example-box">
+                    <h4>Ingredients Breakdown:</h4>
+                    <ul>
+                        <li>Chicken 250g = <strong>₹62</strong></li>
+                        <li>Butter 30g = <strong>₹25</strong></li>
+                        <li>Cream 50ml = <strong>₹20</strong></li>
+                        <li>Tomatoes 200g = <strong>₹10</strong></li>
+                        <li>Spices (kasuri methi, garam masala, red chilli, salt) = <strong>₹15</strong></li>
+                        <li>Oil/Ghee = <strong>₹8</strong></li>
+                        <li>Naan (2 pieces) = <strong>₹10</strong></li>
+                    </ul>
+                    <p><strong>Total Ingredient Cost = ₹150</strong></p>
+                    <p><strong>Selling Price = ₹450</strong></p>
+                    <p><strong>Food Cost % = (₹150 &divide; ₹450) &times; 100 = 33.3%</strong></p>
+                    <p>यह acceptable range में है। Butter Chicken एक popular dish है जो consistently sell होती है, इसलिए 33% food cost ठीक है।</p>
+                </div>
+
+                <h3>Example 2: Veg Biryani (1 Plate)</h3>
+                <div class="example-box">
+                    <h4>Ingredients Breakdown:</h4>
+                    <ul>
+                        <li>Basmati Rice 200g = <strong>₹30</strong></li>
+                        <li>Mixed Vegetables = <strong>₹25</strong></li>
+                        <li>Ghee 20g = <strong>₹18</strong></li>
+                        <li>Biryani Masala + Saffron = <strong>₹20</strong></li>
+                        <li>Onions, Mint, Coriander = <strong>₹12</strong></li>
+                        <li>Raita (Curd + Veggies) = <strong>₹10</strong></li>
+                        <li>Gas/Fuel cost = <strong>₹5</strong></li>
+                    </ul>
+                    <p><strong>Total Ingredient Cost = ₹120</strong></p>
+                    <p><strong>Selling Price = ₹280</strong></p>
+                    <p><strong>Food Cost % = (₹120 &divide; ₹280) &times; 100 = 42.8%</strong></p>
+                    <p>यह high है! Biryani अक्सर high food cost dish होती है। Options: price बढ़ाएं ₹320 तक (37.5% food cost), या portion size थोड़ा adjust करें, या premium biryani version बनाएं ₹400+ price पर।</p>
+                </div>
+
+                <h3>Example 3: Masala Dosa (1 Plate)</h3>
+                <div class="example-box">
+                    <h4>Ingredients Breakdown:</h4>
+                    <ul>
+                        <li>Dosa Batter (rice + urad dal) = <strong>₹8</strong></li>
+                        <li>Potato filling = <strong>₹12</strong></li>
+                        <li>Coconut Chutney = <strong>₹8</strong></li>
+                        <li>Sambar = <strong>₹10</strong></li>
+                        <li>Oil = <strong>₹5</strong></li>
+                    </ul>
+                    <p><strong>Total Ingredient Cost = ₹43</strong></p>
+                    <p><strong>Selling Price = ₹160</strong></p>
+                    <p><strong>Food Cost % = (₹43 &divide; ₹160) &times; 100 = 26.8%</strong></p>
+                    <p>Excellent! South Indian items generally low food cost होते हैं। Masala Dosa एक high-profit item है — इसे menu पर prominently feature करें।</p>
+                </div>
+
+                <p>इन examples से clear है कि हर dish का food cost अलग होता है। <a href="/tools/recipe-cost-calculator" style="color: #ef4444; font-weight: 600;">DineOpen Recipe Cost Calculator</a> से आप अपनी हर dish का exact food cost calculate कर सकते हैं।</p>
+            </div>
+
+            <!-- Section 5: Actual vs Theoretical Food Cost -->
+            <div class="section">
+                <h2>Actual vs Theoretical Food Cost</h2>
+
+                <p>यह concept समझना बहुत important है क्योंकि most restaurant owners सिर्फ एक food cost number देखते हैं, जबकि actually दो numbers track करने चाहिए:</p>
+
+                <h3>Theoretical Food Cost (Recipe-Based)</h3>
+                <p>यह वो food cost है जो <strong>recipes के हिसाब से होना चाहिए</strong> — अगर हर dish perfectly बने, exact portions दिए जाएं, कोई wastage न हो, और कोई theft न हो। ऊपर के examples में हमने जो calculate किया, वो theoretical food cost है।</p>
+
+                <h3>Actual Food Cost (Reality-Based)</h3>
+                <p>यह वो food cost है जो <strong>actually हो रहा है</strong> — जिसमें reality की सारी problems शामिल हैं:</p>
+                <ul>
+                    <li><strong>Wastage:</strong> सब्जी खराब हो गई, दूध फट गया, bread expire हो गई</li>
+                    <li><strong>Over-portioning:</strong> Chef ने ज़्यादा quantity दे दी customer को</li>
+                    <li><strong>Theft/Pilferage:</strong> Staff ने ingredients घर ले गया</li>
+                    <li><strong>Spillage:</strong> Kitchen में गिरना, टूटना</li>
+                    <li><strong>Staff Meals:</strong> Staff का खाना जो track नहीं हो रहा</li>
+                    <li><strong>Complimentary Items:</strong> Free items, tasting, VIP guests</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <h3>Actual vs Theoretical Gap</h3>
+                    <ul>
+                        <li><strong>0-2% gap:</strong> Excellent — आपकी kitchen efficiently चल रही है</li>
+                        <li><strong>2-3% gap:</strong> Normal — minor improvements needed</li>
+                        <li><strong>3-5% gap:</strong> Problem — waste, theft, या portioning issues हैं, investigate करें</li>
+                        <li><strong>5%+ gap:</strong> Serious problem — immediate action ज़रूरी है, शायद theft हो रही है</li>
+                    </ul>
+                </div>
+
+                <p><strong>DineOpen automatically दोनों food costs track करता है।</strong> जब bill generate होता है, recipe के हिसाब से ingredients automatically deduct हो जाते हैं (theoretical)। जब purchase entry होती है, actual spending track होती है। Dashboard पर gap instantly दिखता है। <a href="/products/inventory/recipes" style="color: #ef4444; font-weight: 600;">Recipe Management feature</a> देखें।</p>
+            </div>
+
+            <!-- CTA Box 1 -->
+            <div class="cta-box">
+                <h3>Free Food Cost Calculator</h3>
+                <p>अपने restaurant का exact food cost percentage निकालें — free online tool, कोई signup नहीं चाहिए!</p>
+                <a href="/tools/food-cost-calculator" class="cta-button">Food Cost Calculate करें</a>
+            </div>
+
+            <!-- Section 6: Food Cost कम करने के 10 तरीके -->
+            <div class="section">
+                <h2>Food Cost कम करने के 10 तरीके</h2>
+                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=300&fit=crop&q=80" alt="Organized kitchen ingredients and cost control" class="section-image">
+
+                <p>Food cost percentage ideal range में रखना एक ongoing effort है। यहां 10 proven strategies हैं जो Indian restaurants successfully use करते हैं:</p>
+
+                <ol>
+                    <li><strong>Recipe Standardization (सबसे Important):</strong> हर dish की exact recipe लिखें — कितने gram chicken, कितना ml cream, कितना spice। Standardized recipes = consistent food cost। बिना standard recipe के हर chef अपने हिसाब से बनाता है और food cost unpredictable हो जाता है।</li>
+
+                    <li><strong>Supplier Negotiation:</strong> कम से कम 3 suppliers से quotes लें। Bulk buying पर 5-15% discount मिलता है। Monthly contracts करें। Payment terms negotiate करें — 15-30 days credit लें ताकि cash flow better रहे।</li>
+
+                    <li><strong>Menu Engineering:</strong> <a href="/tools/menu-engineering" style="color: #ef4444; font-weight: 600;">Menu Engineering</a> technique से dishes को 4 categories में divide करें — Stars (high profit + high popularity), Plowhorses (low profit + high popularity), Puzzles (high profit + low popularity), Dogs (low profit + low popularity)। Stars को promote करें, Dogs को remove करें।</li>
+
+                    <li><strong>Waste Reduction:</strong> Daily waste log maintain करें। Track करें कितना food waste हो रहा है और क्यों। FIFO (First In, First Out) method follow करें — पुराना stock पहले use करें। Proper storage और labeling से shelf life बढ़ाएं।</li>
+
+                    <li><strong>Inventory Tracking:</strong> Weekly inventory count करें। <a href="/products/inventory" style="color: #ef4444; font-weight: 600;">DineOpen Inventory Management</a> से real-time stock levels देखें। Over-ordering और under-ordering दोनों costly हैं — data-based ordering करें।</li>
+
+                    <li><strong>Seasonal Menu:</strong> जब tomatoes सस्ते हों तो tomato-based dishes promote करें। जब paneer महंगा हो तो paneer dishes की price adjust करें। Seasonal ingredients use करने से 10-20% food cost saving हो सकती है।</li>
+
+                    <li><strong>Cross-Utilization of Ingredients:</strong> एक ही ingredient multiple dishes में use करें। Example: Tandoori chicken का leftover gravy Butter Chicken में use करें। Bread ends = breadcrumbs। Vegetable trimmings = stock। यह approach waste भी कम करता है और variety भी बढ़ाता है।</li>
+
+                    <li><strong>Portion Control:</strong> Standardized portion sizes fix करें और measuring tools use करें — weighing scale, ladles with specific sizes, portion scoops। 10% over-portioning = 10% extra food cost, जो annually लाखों का loss है।</li>
+
+                    <li><strong>Vendor Credit Terms:</strong> Suppliers से 15-30 days credit negotiate करें। इससे आपका cash flow improve होता है — customer से पहले payment आ जाता है, supplier को बाद में देना है। Early payment discount भी negotiate करें (2-3% discount for payment within 7 days)।</li>
+
+                    <li><strong>DineOpen Technology:</strong> Manual tracking में errors होते हैं और time लगता है। DineOpen से auto inventory deduction, purchase tracking, recipe costing, waste logging — सब automated है। Real-time dashboard पर food cost daily देखें और instantly action लें। <a href="/tools/food-cost-calculator" style="color: #ef4444; font-weight: 600;">Food Cost Calculator</a> try करें।</li>
+                </ol>
+
+                <p>इन 10 strategies को implement करके average restaurant अपना food cost 3-8% तक कम कर सकता है। ₹5,00,000 monthly revenue वाले restaurant के लिए यह ₹15,000-40,000 monthly extra profit है!</p>
+            </div>
+
+            <!-- Section 7: Menu Pricing Food Cost Based -->
+            <div class="section">
+                <h2>Menu Pricing — Food Cost Based</h2>
+
+                <p>अब सबसे practical question — menu price कैसे set करें? Food cost based pricing सबसे reliable method है:</p>
+
+                <div class="formula-box">
+                    <div class="formula">Selling Price = Food Cost &divide; Target Food Cost %</div>
+                    <div class="formula-desc">Example: अगर dish बनाने में ₹150 लगते हैं और target food cost 30% है, तो Selling Price = ₹150 &divide; 0.30 = ₹500</div>
+                </div>
+
+                <h3>Different Target Percentages पर Pricing</h3>
+                <p>एक dish जिसकी ingredient cost ₹150 है:</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Target Food Cost %</th>
+                            <th>Selling Price</th>
+                            <th>Gross Profit per Plate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>25%</td>
+                            <td>₹600</td>
+                            <td>₹450</td>
+                        </tr>
+                        <tr>
+                            <td>30%</td>
+                            <td>₹500</td>
+                            <td>₹350</td>
+                        </tr>
+                        <tr>
+                            <td>33%</td>
+                            <td>₹455</td>
+                            <td>₹305</td>
+                        </tr>
+                        <tr>
+                            <td>35%</td>
+                            <td>₹429</td>
+                            <td>₹279</td>
+                        </tr>
+                        <tr>
+                            <td>40%</td>
+                            <td>₹375</td>
+                            <td>₹225</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Price set करते time सिर्फ food cost ही नहीं, बल्कि competition, customer perception, और location भी consider करें। <a href="/tools/menu-price-calculator" style="color: #ef4444; font-weight: 600;">DineOpen Menu Price Calculator</a> से optimal price instantly calculate करें।</p>
+
+                <div class="highlight-box">
+                    <h3>Pricing Tips:</h3>
+                    <ul>
+                        <li><strong>Psychological Pricing:</strong> ₹500 की जगह ₹499 या ₹495 रखें — customer को सस्ता feel होता है</li>
+                        <li><strong>Bundle Pricing:</strong> Combo meals बनाएं — Butter Chicken + Naan + Raita = ₹550 (individually ₹650) — customer value feel करता है, आपका volume बढ़ता है</li>
+                        <li><strong>High-margin items पहले:</strong> Menu में सबसे ऊपर और highlighted items high-profit वाले रखें</li>
+                        <li><strong>Quarterly Review:</strong> हर 3 months में ingredient prices review करें और menu prices adjust करें</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 8: Common Mistakes -->
+            <div class="section">
+                <h2>Food Cost में Common Mistakes</h2>
+
+                <p>बहुत से restaurant owners ये गलतियां करते हैं जो उनका food cost बढ़ा देती हैं:</p>
+
+                <ol>
+                    <li><strong>Food Cost Track ही नहीं करना:</strong> "अंदाज़े से" चलाना सबसे बड़ी mistake है। बिना data के कैसे पता चलेगा कि problem कहां है? Monthly नहीं, weekly food cost track करें।</li>
+
+                    <li><strong>Averages पर Rely करना:</strong> "Overall food cost 30% है, so all is well" — यह ग़लत approach है। शायद कुछ dishes 50% food cost पर चल रही हैं और कुछ 15% पर। Per-item analysis ज़रूरी है।</li>
+
+                    <li><strong>Waste Ignore करना:</strong> Kitchen में daily कितना food waste हो रहा है? अगर track नहीं कर रहे, तो problem solve नहीं हो सकती। DineOpen में waste logging feature है — हर waste entry करें और pattern identify करें।</li>
+
+                    <li><strong>Supplier Prices Update नहीं करना:</strong> Tomato ₹20/kg से ₹60/kg हो गया लेकिन recipe cost sheet में अभी भी ₹20 लिखा है — तो calculated food cost ग़लत आएगा। Monthly supplier prices update करें।</li>
+
+                    <li><strong>Over-portioning Ignore करना:</strong> Chef "प्यार से" extra portion दे देता है — यह "प्यार" आपका profit खा रहा है। Standard portion sizes fix करें और training दें।</li>
+
+                    <li><strong>Staff Meals Count नहीं करना:</strong> 10 staff members दिन में 2 बार खाते हैं = 20 meals daily = 600 meals monthly। अगर average meal cost ₹80 है, तो monthly ₹48,000 staff food cost है जो अक्सर track नहीं होता। Staff meals को separately track करें।</li>
+                </ol>
+
+                <p>इन mistakes को avoid करने का सबसे आसान तरीक़ा है — <strong>technology use करें</strong>। Manual tracking में ये errors common हैं, लेकिन software automatically सब track करता है।</p>
+            </div>
+
+            <!-- Section 9: Technology से Food Cost Track करें -->
+            <div class="section">
+                <h2>Technology से Food Cost Track करें</h2>
+                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=300&fit=crop&q=80" alt="Restaurant analytics dashboard food cost tracking" class="section-image">
+
+                <p>2026 में manually food cost track करना time-consuming और error-prone है। DineOpen Restaurant Management System से food cost tracking पूरी तरह automated हो जाती है:</p>
+
+                <h3>DineOpen Food Cost Features:</h3>
+                <ul>
+                    <li><strong>Auto Inventory Deduction:</strong> जैसे ही bill generate होता है, recipe के ingredients automatically stock से deduct हो जाते हैं। मतलब real-time stock levels हमेशा accurate।</li>
+
+                    <li><strong>Recipe-Level Costing:</strong> हर dish की exact recipe और ingredient cost system में feed करें। जब ingredient price बदले, automatic सारे dish costs update हो जाएं।</li>
+
+                    <li><strong>Purchase Tracking:</strong> Supplier invoices enter करें — actual food cost automatically calculate हो जाता है। Supplier-wise comparison भी मिलता है।</li>
+
+                    <li><strong>Waste Logging:</strong> Kitchen staff waste entry करे — कितना food waste हुआ, reason क्या था। Monthly waste report से patterns identify करें।</li>
+
+                    <li><strong>Real-Time Dashboard:</strong> Daily, weekly, monthly food cost percentage एक screen पर देखें। Actual vs theoretical gap instantly दिखता है। Alerts set करें — अगर food cost 35% cross करे तो notification आए।</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <h3>DineOpen — सिर्फ ₹300/month से शुरू</h3>
+                    <ul>
+                        <li><strong>₹300 one-time registration</strong> — 1,000 free orders हर month</li>
+                        <li><strong>या ₹600/month fixed plan</strong> — unlimited orders</li>
+                        <li><strong>Hindi में support</strong> — आपकी भाषा में help</li>
+                        <li><strong>Free tools:</strong> <a href="/tools/food-cost-calculator" style="color: #ef4444;">Food Cost Calculator</a>, <a href="/tools/menu-price-calculator" style="color: #ef4444;">Menu Price Calculator</a>, <a href="/tools/recipe-cost-calculator" style="color: #ef4444;">Recipe Cost Calculator</a></li>
+                        <li><strong>Setup support:</strong> DineOpen team आपकी recipes और inventory setup करने में help करती है</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 10: India 2026 Food Cost Benchmarks -->
+            <div class="section">
+                <h2>India 2026 Food Cost Benchmarks</h2>
+
+                <p>2026 में India में ingredient prices में significant changes आई हैं। Inflation, fuel costs, और supply chain issues ने raw material prices 8-12% बढ़ा दी हैं। यहां cuisine-wise benchmarks हैं:</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Cuisine / Category</th>
+                            <th>Avg. Ingredient Cost per Plate</th>
+                            <th>Typical Food Cost %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>North Indian (Butter Chicken, Dal Makhani)</strong></td>
+                            <td>₹100 - ₹180</td>
+                            <td>30-35%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>South Indian (Dosa, Idli, Uttapam)</strong></td>
+                            <td>₹60 - ₹120</td>
+                            <td>25-30%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chinese / Indo-Chinese</strong></td>
+                            <td>₹80 - ₹150</td>
+                            <td>28-32%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pizza</strong></td>
+                            <td>₹100 - ₹180</td>
+                            <td>30-35%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Biryani</strong></td>
+                            <td>₹120 - ₹200</td>
+                            <td>28-33%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p><strong>2026 Trends:</strong></p>
+                <ul>
+                    <li><strong>Edible oil prices:</strong> 2025 से 10-15% ऊपर — deep-frying items के food cost पर direct impact</li>
+                    <li><strong>Dairy products:</strong> Paneer, cream, butter — 8-12% price increase — North Indian cuisine most affected</li>
+                    <li><strong>Chicken:</strong> ₹200-280/kg depending on city — poultry dishes पर moderate impact</li>
+                    <li><strong>Vegetables:</strong> Seasonal variation 50-200% — seasonal menu planning से significant savings possible</li>
+                    <li><strong>Grains (Rice, Wheat):</strong> Relatively stable — South Indian और bread-based items least affected</li>
+                </ul>
+
+                <p>In benchmarks को देखते हुए, quarterly menu pricing review बहुत ज़रूरी है। अगर ingredient prices बढ़ी हैं और आपने menu prices नहीं बढ़ाए, तो आपका food cost percentage automatically बढ़ जाएगा। <a href="/hi/blog/food-cost-kaise-kam-kare" style="color: #ef4444; font-weight: 600;">Food Cost कैसे कम करें</a> — detailed guide पढ़ें।</p>
+            </div>
+
+            <!-- CTA Box 2 -->
+            <div class="cta-box">
+                <h3>Free Food Cost Calculator</h3>
+                <p>अपने restaurant का food cost percentage अभी calculate करें। बिल्कुल free, कोई signup नहीं। Recipe-level और overall — दोनों calculations supported हैं।</p>
+                <a href="/tools/food-cost-calculator" class="cta-button">Free Calculator Open करें</a>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="faq-section">
+                <h2>अक्सर पूछे जाने वाले सवाल (FAQ)</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Food cost percentage कैसे calculate करते हैं?</div>
+                    <div class="faq-answer">Food Cost Percentage = (Total Food Cost &divide; Total Food Revenue) &times; 100। उदाहरण: अगर आपने ₹1,50,000 ingredients पर खर्च किए और ₹5,00,000 revenue आया, तो food cost percentage = (1,50,000 &divide; 5,00,000) &times; 100 = 30%। यह formula per-item और overall दोनों के लिए काम करता है।</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Restaurant का ideal food cost percentage कितना होना चाहिए?</div>
+                    <div class="faq-answer">Restaurant type के हिसाब से ideal food cost अलग-अलग होता है: QSR/Fast food 25-30%, Casual dining 28-35%, Fine dining 30-38%, Cafe 25-30%, Cloud kitchen 28-32%, Dhaba 25-30%, Bakery 30-40%, Ice cream parlour 20-30%, और Bar/Pub food 18-25%। Average target 28-35% के बीच रखना अच्छा माना जाता है।</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Actual और theoretical food cost में क्या difference है?</div>
+                    <div class="faq-answer">Theoretical food cost वो है जो recipes के हिसाब से होना चाहिए — perfect portions, zero waste, कोई theft नहीं। Actual food cost वो है जो actually खर्च हुआ — जिसमें wastage, spillage, over-portioning, theft, और staff meals शामिल हैं। अगर actual और theoretical food cost में gap 2-3% से ज़्यादा है, तो कहीं problem है। DineOpen automatically दोनों track करता है।</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Food cost percentage ज़्यादा हो तो क्या करें?</div>
+                    <div class="faq-answer">Food cost कम करने के लिए: (1) Recipe standardization करें — हर dish की exact quantity fix करें, (2) Supplier से negotiate करें — bulk buying पर discount लें, (3) Menu engineering करें — high-profit items promote करें, (4) Waste tracking शुरू करें, (5) Portion control implement करें, (6) Seasonal ingredients use करें, (7) DineOpen जैसे software से real-time tracking करें। इन steps से 3-8% food cost reduction possible है।</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Food cost based pricing कैसे करें?</div>
+                    <div class="faq-answer">Menu pricing formula: Selling Price = Food Cost &divide; Target Food Cost Percentage। उदाहरण: अगर एक dish बनाने में ₹150 लगते हैं और आप 30% food cost target कर रहे हैं, तो selling price = ₹150 &divide; 0.30 = ₹500। इसी तरह 25% target पर price = ₹150 &divide; 0.25 = ₹600 होगा। DineOpen Menu Price Calculator से optimal price instantly calculate करें।</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Food cost track करने के लिए कौन सा software use करें?</div>
+                    <div class="faq-answer">DineOpen सबसे affordable और effective food cost tracking software है। इसमें recipe-level costing, auto inventory deduction, purchase tracking, waste logging, और real-time food cost dashboard मिलता है। सिर्फ ₹300/month से शुरू होता है और Hindi में support मिलता है। DineOpen का free Food Cost Calculator tool भी available है जो बिना signup के use कर सकते हैं।</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">India में 2026 में average food cost benchmarks क्या हैं?</div>
+                    <div class="faq-answer">India 2026 benchmarks: North Indian cuisine — ingredient cost ₹100-180 per plate (food cost 30-35%), South Indian — ₹60-120 (25-30%), Chinese/Indo-Chinese — ₹80-150 (28-32%), Pizza — ₹100-180 (30-35%), Biryani — ₹120-200 (28-33%)। Ingredient prices 2026 में 8-12% बढ़ चुकी हैं, इसलिए regular menu pricing review ज़रूरी है।</div>
+                </div>
+            </div>
+
+            <!-- Related Articles -->
+            <div class="related-articles">
+                <h3>यह भी पढ़ें:</h3>
+                <ul>
+                    <li><a href="/hi/blog/food-cost-kaise-kam-kare">&rarr; Food Cost कैसे कम करें — Complete Guide</a></li>
+                    <li><a href="/hi/blog/restaurant-billing-software-guide-2026">&rarr; Restaurant Billing Software Guide 2026 (Hindi)</a></li>
+                    <li><a href="/hi/blog/mithai-dukan-kaise-khole">&rarr; मिठाई की दुकान कैसे खोलें — पूरी जानकारी</a></li>
+                </ul>
+            </div>
+        </main>
+
+        <aside class="sidebar">
+            <div class="sidebar-card">
+                <div class="sidebar-logo">
+                    <h2>DineOpen</h2>
+                    <p>AI-Powered Restaurant POS</p>
+                </div>
+
+                <div class="sidebar-cta">
+                    <h3>Food Cost Control करें</h3>
+                    <p>DineOpen से recipe costing, inventory tracking, और real-time food cost dashboard — सब automated</p>
+
+                    <a href="/tools/food-cost-calculator" class="sidebar-button">Free Food Cost Calculator</a>
+                    <a href="/pricing" class="sidebar-button secondary">Pricing देखें</a>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <h3 style="font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 16px;">Free Tools</h3>
+                <ul class="sidebar-links">
+                    <li><a href="/tools/food-cost-calculator">Food Cost Calculator</a></li>
+                    <li><a href="/tools/menu-price-calculator">Menu Price Calculator</a></li>
+                    <li><a href="/tools/recipe-cost-calculator">Recipe Cost Calculator</a></li>
+                    <li><a href="/tools/menu-engineering">Menu Engineering Tool</a></li>
+                    <li><a href="/products/inventory">Inventory Management</a></li>
+                </ul>
+            </div>
+
+            <div class="sidebar-card">
+                <h3 style="font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 16px;">DineOpen क्यों चुनें?</h3>
+                <ul class="sidebar-features">
+                    <li>Recipe-Level Costing</li>
+                    <li>Auto Inventory Deduction</li>
+                    <li>Real-Time Food Cost Dashboard</li>
+                    <li>Waste Logging & Reports</li>
+                    <li>Supplier Price Tracking</li>
+                    <li>GST-Ready Billing</li>
+                    <li>Analytics & Reports</li>
+                    <li>Hindi में Support</li>
+                </ul>
+            </div>
+
+            <div class="sidebar-card">
+                <h3 style="font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 16px;">Pricing</h3>
+                <p style="font-size: 16px; color: #4b5563; margin-bottom: 12px;">
+                    <strong style="color: #111827; font-size: 24px;">सिर्फ़ ₹300 से शुरू</strong><br>
+                    <span style="font-size: 14px;">One-time registration</span>
+                </p>
+                <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+                    1,000 free orders हर month<br>
+                    उसके बाद ₹150 per 500 orders
+                </p>
+                <p style="font-size: 14px; color: #6b7280;">
+                    या<br>
+                    <strong style="color: #111827;">₹600/month</strong> fixed plan
+                </p>
+            </div>
+        </aside>
+    </div>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p style="font-size: 18px; margin-bottom: 16px;">&copy; 2026 DineOpen. All rights reserved.</p>
+            <p><a href="/hi/blog">&larr; ब्लॉग पर वापस जाएं</a> | <a href="/">Home</a> | <a href="/privacy">Privacy</a> | <a href="/terms">Terms</a></p>
+        </div>
+    </div>
+
+    <script>
+        function toggleFaq(element) {
+            const answer = element.nextElementSibling;
+            const isActive = element.classList.contains('active');
+
+            // Close all FAQs
+            document.querySelectorAll('.faq-question').forEach(q => q.classList.remove('active'));
+            document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('active'));
+
+            // Open clicked one (if it was not already open)
+            if (!isActive) {
+                element.classList.add('active');
+                answer.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

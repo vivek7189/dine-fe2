@@ -31,6 +31,27 @@ const hindiToEnglishMap = {
   'catering-business-kaise-shuru-kare': 'how-to-start-catering-business-india',
   'qsr-kaise-khole': 'how-to-start-qsr-india',
   'restaurant-marketing-ideas-hindi': 'restaurant-marketing-ideas-india',
+  'ice-cream-parlour-ke-liye-best-pos': 'best-pos-system-ice-cream-shop',
+  'ice-cream-parlour-kaise-khole': 'how-to-start-ice-cream-parlour-india',
+  'ice-cream-dukan-inventory-management': 'ice-cream-shop-inventory-management',
+  'petpooja-alternative-hindi': 'petpooja-alternative-2026',
+  'best-restaurant-pos-india-hindi': 'best-pos-system-restaurant-india',
+  'free-qr-menu-kaise-banaye': 'free-qr-menu-maker-guide',
+  'restaurant-loyalty-program-hindi': 'restaurant-loyalty-program-guide',
+  'restaurant-technology-trends-hindi-2026': 'restaurant-technology-trends-2026',
+  'chocolate-shop-pos-software-hindi': 'chocolate-shop-pos-software-india',
+  'restaurant-automation-software-hindi': 'restaurant-automation-software-guide',
+  // Content gap blogs
+  'cafe-coffee-shop-kaise-khole': 'how-to-start-cafe-coffee-shop-india',
+  'juice-bar-kaise-khole': 'how-to-start-juice-bar-india',
+  'chai-tapri-business-kaise-shuru-kare': 'how-to-start-chai-tapri-business',
+  'bakery-kaise-khole': 'how-to-start-bakery-india',
+  'cloud-kitchen-ya-restaurant-kya-behtar': 'cloud-kitchen-vs-restaurant-india',
+  'dineopen-vs-posist-comparison-hindi': 'dineopen-vs-posist-detailed-comparison',
+  'swiggy-zomato-commission-kaise-bachaye': 'swiggy-zomato-commission-calculator-guide',
+  'chhote-restaurant-ke-liye-billing-software': 'best-billing-software-small-restaurant',
+  'food-cost-percentage-kaise-nikale': 'how-to-calculate-food-cost-percentage',
+  'restaurant-break-even-kaise-calculate-kare': 'restaurant-break-even-analysis-guide',
 };
 
 export async function generateMetadata({ params }) {
