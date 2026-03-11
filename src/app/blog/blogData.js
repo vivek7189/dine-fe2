@@ -756,6 +756,77 @@ export const blogPosts = [
     isStatic: true,
     staticPath: '/blog/restaurant-instagram-marketing-guide.html'
   },
+  // Search Console keyword-targeted blogs (March 2026 - Batch 3)
+  {
+    slug: 'best-restaurant-loyalty-program-software-india',
+    title: 'Best Restaurant Loyalty Program Software in India (2026): Top 7 Compared',
+    excerpt: 'Compare top 7 loyalty program software — DineOpen, Reelo, Petpooja, POSist. Features, pricing, WhatsApp integration, and ROI calculator for restaurant owners.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-restaurant-loyalty-program-software-india.html'
+  },
+  {
+    slug: 'best-restaurant-technology-2026',
+    title: 'Best Restaurant Technology in 2026: The Complete Tech Stack Guide',
+    excerpt: 'The full restaurant tech stack — POS, KDS, inventory, QR menu, online ordering, AI tools, loyalty. What you need by restaurant size and budget (₹500-30,000/month).',
+    date: '2026-03-12',
+    category: 'Technology',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/best-restaurant-technology-2026.html'
+  },
+  {
+    slug: 'petpooja-alternative-free-2026',
+    title: 'Free Petpooja Alternatives 2026: 5 Affordable POS Software for Restaurants',
+    excerpt: '5 Petpooja alternatives — DineOpen (₹300/mo), SlickPOS (free tier), POSist, Torqus, Zoho. Feature comparison, pricing, and migration guide from Petpooja.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/petpooja-alternative-free-2026.html'
+  },
+  {
+    slug: 'petpooja-pricing-plans-2026',
+    title: 'Petpooja Pricing 2026: Plans, Hidden Costs & Is It Worth It?',
+    excerpt: 'Complete Petpooja pricing breakdown — base plans (₹3K-12K/month), hidden costs (add-ons, hardware, GST), total cost of ownership, and cheaper alternatives.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/petpooja-pricing-plans-2026.html'
+  },
+  {
+    slug: 'petpooja-vs-slickpos-vs-dineopen-small-restaurant',
+    title: 'Petpooja vs SlickPOS vs DineOpen: Best POS for Small Restaurants in India (2026)',
+    excerpt: 'Head-to-head comparison for small restaurants — features, pricing, ease of use, support. Which POS is best for single-outlet restaurants with ₹3-10 lakh monthly revenue?',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/petpooja-vs-slickpos-vs-dineopen-small-restaurant.html'
+  },
+  {
+    slug: 'best-restaurant-billing-app-india-2026',
+    title: '7 Best Restaurant Billing Apps in India (2026): Free & Paid Options',
+    excerpt: 'Top 7 billing apps — DineOpen, Petpooja, SlickPOS, POSist, Zoho Invoice, Vyapar, Marg ERP. GST compliance, KOT, pricing comparison, and setup guide.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-restaurant-billing-app-india-2026.html'
+  },
+  {
+    slug: 'cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen',
+    title: 'Cloud Kitchen POS: Petpooja vs UrbanPiper vs DineOpen - Which Is Best? (2026)',
+    excerpt: 'Petpooja vs UrbanPiper vs DineOpen for cloud kitchens. Key difference: UrbanPiper is middleware, not POS. Pricing, features, and 1-year cost comparison.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen.html'
+  },
 ];
 
 // Blog post content - for static generation

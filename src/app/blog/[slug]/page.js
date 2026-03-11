@@ -66,6 +66,14 @@ const englishToHindiMap = {
   'menu-engineering-guide-restaurants': 'menu-engineering-guide-hindi',
   'mudra-loan-restaurant-business-india': 'mudra-loan-restaurant-hindi',
   'restaurant-instagram-marketing-guide': 'restaurant-instagram-marketing-hindi',
+  // Search Console keyword-targeted blogs - Batch 3
+  'best-restaurant-loyalty-program-software-india': 'best-loyalty-software-restaurant-hindi',
+  'best-restaurant-technology-2026': 'best-restaurant-technology-hindi-2026',
+  'petpooja-alternative-free-2026': 'petpooja-free-alternative-hindi',
+  'petpooja-pricing-plans-2026': 'petpooja-pricing-hindi',
+  'petpooja-vs-slickpos-vs-dineopen-small-restaurant': 'petpooja-vs-slickpos-vs-dineopen-hindi',
+  'best-restaurant-billing-app-india-2026': 'best-billing-app-restaurant-hindi',
+  'cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen': 'cloud-kitchen-pos-comparison-hindi',
 };
 
 // Generate metadata for each blog post
