@@ -829,6 +829,127 @@ export const blogPosts = [
     isStatic: true,
     staticPath: '/blog/cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen.html'
   },
+  // New SEO blogs (March 2026 - Batch 4)
+  {
+    slug: 'best-catering-management-software-india',
+    title: 'Best Catering Management Software in India 2026: Complete Comparison',
+    excerpt: 'Best catering management software in India 2026. Compare catering POS systems, event management tools, per-plate costing, bulk order tracking. DineOpen from Rs 300/month.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-catering-management-software-india.html'
+  },
+  {
+    slug: 'best-free-pos-ice-cream-shop',
+    title: 'Best Free POS for Ice Cream Shops in India (2026)',
+    excerpt: 'Best free POS software for ice cream shops in India (2026). Compare 7 free & affordable ice cream parlour POS systems with scoop billing, flavor tracking & GST invoicing.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-free-pos-ice-cream-shop.html'
+  },
+  {
+    slug: 'best-restaurant-pos-uae-dubai-2026',
+    title: 'Best Restaurant POS Systems in UAE & Dubai 2026: Complete Guide',
+    excerpt: 'Best restaurant POS systems in UAE & Dubai for 2026. Compare Foodics, LightSpeed, iiko, Revel, POSRocket & DineOpen with AED pricing, VAT compliance & delivery integration.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-restaurant-pos-uae-dubai-2026.html'
+  },
+  {
+    slug: 'best-restaurant-pos-uk-2026',
+    title: 'Best Restaurant POS Systems in UK 2026: Complete Comparison Guide',
+    excerpt: 'Best restaurant POS systems in the UK for 2026. Compare EPOS systems with AI analytics, cloud restaurant management, pricing in GBP, and HMRC MTD compliance.',
+    date: '2026-03-12',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-restaurant-pos-uk-2026.html'
+  },
+  {
+    slug: 'food-cost-calculator-complete-guide',
+    title: 'Food Cost Calculator: Complete Guide to Restaurant Menu Pricing (2026)',
+    excerpt: 'Free food cost calculator for restaurants. Learn menu pricing formulas, calculate food cost percentage, and see sample costing for 10 Indian dishes with recommended selling prices.',
+    date: '2026-03-12',
+    category: 'Finance',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/food-cost-calculator-complete-guide.html'
+  },
+  {
+    slug: 'gelato-vs-ice-cream-parlour-business-guide',
+    title: 'Gelato vs Ice Cream Parlour Business in India: Which is More Profitable? (2026)',
+    excerpt: 'Gelato vs ice cream parlour business in India: compare startup costs, profit margins, equipment & ROI for 2026. Find which frozen dessert shop is more profitable.',
+    date: '2026-03-12',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/gelato-vs-ice-cream-parlour-business-guide.html'
+  },
+  {
+    slug: 'ice-cream-business-online-delivery-guide',
+    title: 'How to Start Online Delivery for Your Ice Cream Business in India (2026)',
+    excerpt: 'Complete guide to starting online delivery for your ice cream business in India. Packaging, melt-proof delivery, Swiggy vs own delivery, pricing, and ice cream POS software setup.',
+    date: '2026-03-12',
+    category: 'Startup Guide',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/ice-cream-business-online-delivery-guide.html'
+  },
+  {
+    slug: 'ice-cream-shop-menu-pricing-guide',
+    title: 'Ice Cream Shop Menu Pricing Guide: How to Price Scoops, Sundaes & Shakes for Maximum Profit (2026)',
+    excerpt: 'Complete ice cream shop menu pricing guide for India. Learn how to price scoops, sundaes, shakes & toppings for maximum profit using ice cream shop software.',
+    date: '2026-03-12',
+    category: 'Finance',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/ice-cream-shop-menu-pricing-guide.html'
+  },
+  {
+    slug: 'kot-system-restaurant-complete-guide',
+    title: 'KOT System for Restaurants: Complete Guide to Kitchen Order Tickets (2026)',
+    excerpt: 'Complete guide to KOT systems in restaurants. Learn what a Kitchen Order Ticket is, paper vs digital KOT comparison, how digital KOT works, and why 87% of restaurants switching to digital KOT cut errors by half.',
+    date: '2026-03-12',
+    category: 'Operations',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/kot-system-restaurant-complete-guide.html'
+  },
+  {
+    slug: 'qr-code-menus-future-trend-2026',
+    title: 'QR Code Menus: Future Trend or Here to Stay? The 2026 Reality Check',
+    excerpt: 'QR code menus in 2026: fad or permanent shift? Data-driven analysis of QR menu adoption in Indian restaurants, evolution from PDF to AI-powered ordering, and future predictions.',
+    date: '2026-03-12',
+    category: 'Technology',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/qr-code-menus-future-trend-2026.html'
+  },
+  {
+    slug: 'restaurant-menu-pricing-formula-guide',
+    title: 'Restaurant Menu Pricing Formula: The Complete Guide to Profitable Pricing (2026)',
+    excerpt: 'Master the 5 restaurant menu pricing formulas with real Indian examples. Use our food price calculator method to set profitable prices for every dish on your menu in 2026.',
+    date: '2026-03-12',
+    category: 'Finance',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/restaurant-menu-pricing-formula-guide.html'
+  },
+  {
+    slug: 'what-is-restaurant-operating-system',
+    title: 'What is a Restaurant Operating System? The Complete Guide (2026)',
+    excerpt: 'What is a restaurant operating system? Complete 2026 guide covering components, evolution from manual to integrated OS, architecture, and how DineOpen connects POS, KDS, inventory, CRM, and more.',
+    date: '2026-03-12',
+    category: 'Technology',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/what-is-restaurant-operating-system.html'
+  },
 ];
 
 // Blog post content - for static generation
