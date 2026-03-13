@@ -8,6 +8,26 @@ const nextConfig = {
   },
   // Enable static optimization
   swcMinify: true,
+  // Block Vercel preview domain from being indexed (prevents duplicate content)
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'dine-frontend-ecru.vercel.app',
+          },
+        ],
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+    ];
+  },
   // Redirects for SEO and product branding
   async redirects() {
     return [
