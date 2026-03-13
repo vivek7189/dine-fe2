@@ -1080,6 +1080,35 @@ export const blogPostContent = {
         <p>As we develop new AI-powered features, restaurants using DineOpen stay ahead of the curve.</p>
 
         <p>The question isn't whether your restaurant needs to modernize. It's whether you'll do it with DineOpen or watch competitors gain the advantage.</p>
+
+        <div style="margin: 48px 0 32px;">
+          <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 3px solid #3b82f6;">Frequently Asked Questions</h2>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What makes DineOpen different from other restaurant POS systems?</h4>
+            <p style="color: #4b5563; margin: 0;">DineOpen is an AI-powered restaurant operating system, not just a POS. It combines billing, KDS, inventory, table management, QR menus, online ordering, customer loyalty, and AI voice/chat ordering in one platform. Most competitors offer these as separate add-ons at extra cost. DineOpen includes everything from ₹300 one-time or ₹600/month.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How does AI help in restaurant management?</h4>
+            <p style="color: #4b5563; margin: 0;">AI in restaurant management automates order-taking (voice and chat), predicts inventory needs, optimizes menu pricing based on sales data, provides demand forecasting for staffing, and generates actionable insights from customer behaviour patterns. This reduces labour costs, minimizes waste, and improves customer satisfaction.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Can DineOpen work for small restaurants with limited budget?</h4>
+            <p style="color: #4b5563; margin: 0;">Absolutely. DineOpen starts at ₹300 one-time registration with 1,000 free orders/month. There are no setup fees, no hardware requirements (works on any phone/tablet), and no long-term contracts. Small restaurants can start with basic features and scale up as they grow.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Does DineOpen support multiple restaurant locations?</h4>
+            <p style="color: #4b5563; margin: 0;">Yes. DineOpen supports multi-location management with centralised reporting, unified menu management, and chain-wide analytics. Restaurant owners can monitor all outlets from a single dashboard, compare performance across locations, and standardise operations.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How long does it take to set up DineOpen?</h4>
+            <p style="color: #4b5563; margin: 0;">Most restaurants are up and running within 30 minutes. Sign up, add your menu items, and start billing. No hardware installation or IT support needed. DineOpen's onboarding team also provides free setup assistance if you need help configuring advanced features like inventory or KDS.</p>
+          </div>
+        </div>
       `,
     author: 'DineOpen Team',
     authorRole: 'Product Team',
@@ -1541,6 +1570,35 @@ export const blogPostContent = {
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Happy Cafe Customers" style="width: 100%; max-width: 800px; height: 400px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
           <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">Happy customers enjoying their coffee experience</p>
+        </div>
+
+        <div style="margin: 48px 0 32px;">
+          <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 3px solid #ef4444;">Frequently Asked Questions</h2>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What is the best POS system for a cafe or coffee shop in India?</h4>
+            <p style="color: #4b5563; margin: 0;">DineOpen is the best POS for Indian cafes due to its affordable pricing (₹300 one-time or ₹600/month), express billing mode for quick coffee orders, QR code menu ordering, and full GST compliance. It also includes inventory tracking for coffee beans, milk, and syrups — features that generic POS systems lack.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How much does a cafe POS system cost?</h4>
+            <p style="color: #4b5563; margin: 0;">Cafe POS systems in India range from ₹300 one-time (DineOpen) to ₹3,000-8,000/month for solutions like Gofrugal or Zoho. Many cafes start with DineOpen's pay-per-use model (₹300 registration + 1,000 free orders/month) and upgrade to the ₹600/month plan as they grow.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Can a cafe POS handle both dine-in and takeaway orders?</h4>
+            <p style="color: #4b5563; margin: 0;">Yes. DineOpen supports dine-in table management, counter takeaway, online ordering via QR menus, and delivery through Zomato/Swiggy integration — all from one screen. Each order type is tracked separately in reports, so you can see which channel drives the most revenue.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Does DineOpen work on tablets and phones?</h4>
+            <p style="color: #4b5563; margin: 0;">Yes. DineOpen is a cloud-based POS that works on any device — Android phones, tablets, iPads, laptops, or desktops. No special hardware required. Many small cafes start with just a smartphone and a Bluetooth receipt printer.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How do I track coffee bean inventory with a POS?</h4>
+            <p style="color: #4b5563; margin: 0;">DineOpen tracks ingredient-level inventory. You set recipes (e.g., 18g beans per espresso shot) and the system auto-deducts from stock with every order. It alerts you when beans, milk, syrups, or other ingredients run low, and can generate purchase orders to your suppliers automatically.</p>
+          </div>
         </div>
 
         <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: January 25, 2025</em></p>
@@ -4675,6 +4733,35 @@ export const blogPostContent = {
 
         <p>With DineOpen's advanced inventory management system, you can take control of your inventory and save thousands annually. Start your free trial today!</p>
 
+        <div style="margin: 48px 0 32px;">
+          <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 3px solid #10b981;">Frequently Asked Questions</h2>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What is FIFO in restaurant inventory management?</h4>
+            <p style="color: #4b5563; margin: 0;">FIFO stands for First In, First Out. It means using older inventory before newer stock. For restaurants, this is critical for perishable items — the milk delivered on Monday should be used before the milk delivered on Wednesday. FIFO reduces spoilage, ensures food freshness, and minimizes waste. Label all items with receipt dates to enforce FIFO.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How often should a restaurant count inventory?</h4>
+            <p style="color: #4b5563; margin: 0;">High-value and perishable items (meat, seafood, dairy) should be counted daily. Mid-range items (vegetables, sauces) should be counted weekly. Shelf-stable items (canned goods, spices, dry goods) can be counted monthly. Using a POS with real-time inventory tracking like DineOpen reduces the need for manual counts.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What is a good food cost percentage for a restaurant?</h4>
+            <p style="color: #4b5563; margin: 0;">Most restaurants target 28-35% food cost. Fine dining restaurants may go up to 38%, while QSR and fast food outlets aim for 25-30%. Calculate food cost as: (Total Food Cost ÷ Total Food Sales) × 100. Track this weekly and investigate any spikes immediately — they usually indicate waste, theft, or supplier price increases.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How can technology help reduce restaurant inventory waste?</h4>
+            <p style="color: #4b5563; margin: 0;">POS systems like DineOpen track ingredient usage per order in real-time, send low-stock and expiry alerts, generate AI-powered reorder suggestions, log waste reasons (spoilage, over-portioning, spillage), and provide purchase history for better vendor negotiations. Restaurants using inventory management software typically reduce waste by 20-40%.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What are par levels and how do I set them?</h4>
+            <p style="color: #4b5563; margin: 0;">Par levels are the minimum quantity of each ingredient you must have on hand. Set par levels based on average daily usage × lead time + safety stock. For example, if you use 5kg onions/day, your supplier takes 2 days to deliver, and you want 1 day safety stock, your par level is 5 × (2+1) = 15kg. Review par levels monthly as demand changes seasonally.</p>
+          </div>
+        </div>
+
         <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: February 8, 2025</em></p>
       `,
     author: 'DineOpen Team',
@@ -5504,6 +5591,35 @@ export const blogPostContent = {
               <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #10b981; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 1 Month Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
             </div>
+          </div>
+        </div>
+
+        <div style="margin: 48px 0 32px;">
+          <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 3px solid #10b981;">Frequently Asked Questions</h2>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What POS features does an ice cream parlour need?</h4>
+            <p style="color: #4b5563; margin: 0;">An ice cream parlour POS needs fast billing for quick-serve queues, flavour and topping modifiers, cone/cup/sundae size variants, combo deal management, and inventory tracking for perishable items like milk, cream, and fresh fruits. Temperature-sensitive inventory alerts and seasonal menu management are also essential.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How much does an ice cream shop POS cost in India?</h4>
+            <p style="color: #4b5563; margin: 0;">Ice cream shop POS systems in India range from ₹300 one-time (DineOpen) to ₹2,000-5,000/month for feature-rich solutions. DineOpen is the most affordable option with ₹300 one-time or ₹600/month fixed pricing, including all features like QR ordering, inventory tracking, and analytics.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Can DineOpen handle seasonal menu changes for ice cream shops?</h4>
+            <p style="color: #4b5563; margin: 0;">Yes. DineOpen lets you easily add, remove, or hide menu items based on season. You can create seasonal specials, limited-time flavours, and festival combos. Changes reflect instantly across your POS, QR menu, and online ordering — no reprinting menus needed.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Does DineOpen work for ice cream delivery orders?</h4>
+            <p style="color: #4b5563; margin: 0;">Yes. DineOpen integrates with Zomato and Swiggy for aggregator delivery orders, and also supports direct online ordering via QR code menus. All delivery orders flow into the same POS dashboard, so you manage dine-in, takeaway, and delivery from one screen.</p>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How does inventory tracking work for perishable ice cream ingredients?</h4>
+            <p style="color: #4b5563; margin: 0;">DineOpen tracks ingredient-level inventory with expiry date alerts. For perishable items like milk, cream, and fresh fruits, you get low-stock warnings and expiry notifications before items go bad. The system auto-deducts ingredients per order, so you always know your real stock levels.</p>
           </div>
         </div>
 
@@ -8088,6 +8204,35 @@ export const blogPostContent = {
             <li style="margin-bottom: 8px;"><a href="/blog/restaurant-pos-vs-billing-software" style="color: #3b82f6; text-decoration: none; font-weight: 500;">Restaurant POS vs Billing Software: What's the Difference?</a></li>
             <li style="margin-bottom: 8px;"><a href="/tools/gst-calculator" style="color: #3b82f6; text-decoration: none; font-weight: 500;">Free GST Calculator for Restaurants</a></li>
           </ul>
+        </div>
+
+        <div style="margin: 48px 0 32px;">
+          <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 3px solid #3b82f6;">Frequently Asked Questions</h2>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What is a restaurant billing app?</h4>
+            <p style="color: #4b5563; margin: 0;">A restaurant billing app is software that handles order entry, bill generation, GST calculation, payment processing (cash, UPI, card), and receipt printing. Modern billing apps like DineOpen also include KOT generation, table management, inventory tracking, and analytics — making them a complete POS solution rather than just a billing tool.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How much does a restaurant billing app cost in India?</h4>
+            <p style="color: #4b5563; margin: 0;">Restaurant billing apps in India range from free (basic features) to ₹2,000-5,000/month for premium solutions. DineOpen offers two pricing options: ₹300 one-time registration with 1,000 free orders/month, or ₹600/month fixed for unlimited orders. Most Indian restaurants spend ₹500-1,500/month on billing software.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Is GST billing mandatory for restaurants in India?</h4>
+            <p style="color: #4b5563; margin: 0;">Yes, GST billing is mandatory for restaurants with annual turnover exceeding ₹20 lakh (₹10 lakh for special category states). Restaurants must charge 5% GST (without ITC) or 18% GST (with ITC) depending on their registration type. A GST-compliant billing app automatically calculates and applies the correct tax rates on every bill.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Can a billing app work offline without internet?</h4>
+            <p style="color: #4b5563; margin: 0;">Yes, apps like DineOpen support offline billing. Orders, KOTs, payments, and receipts all work without internet. Data syncs automatically when connectivity returns. This is essential for Indian restaurants where internet outages during peak hours can disrupt billing and service.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What is the difference between a billing app and a POS system?</h4>
+            <p style="color: #4b5563; margin: 0;">A billing app handles invoicing and payment processing. A POS (Point of Sale) system includes billing plus inventory management, kitchen display, table management, customer loyalty, analytics, and delivery integration. DineOpen is a full POS system that includes advanced billing features — so you get both in one platform.</p>
+          </div>
         </div>
 
         <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: March 6, 2026</em></p>
