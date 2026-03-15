@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { FaUtensils, FaArrowLeft } from 'react-icons/fa';
+import Footer from '@/components/Footer';
 
 export default function TermsOfService() {
   const router = useRouter();
@@ -349,6 +350,7 @@ export default function TermsOfService() {
           </section>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

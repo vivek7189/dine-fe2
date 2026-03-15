@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { FaUtensils, FaArrowLeft } from 'react-icons/fa';
+import Footer from '@/components/Footer';
 
 export default function PrivacyPolicy() {
   const router = useRouter();
@@ -325,6 +326,7 @@ export default function PrivacyPolicy() {
           </section>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

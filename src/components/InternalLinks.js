@@ -64,6 +64,7 @@ const alternatives = [
   { name: 'Zomato Base Alternative', href: '/alternatives/zomato-base' },
   { name: 'Clover Alternative', href: '/alternatives/clover' },
   { name: 'DineOpen vs Petpooja', href: '/vs/dineopen-vs-petpooja' },
+  { name: 'Petpooja vs POSist', href: '/vs/petpooja-vs-posist' },
 ];
 
 const products = [
@@ -94,6 +95,8 @@ const tools = [
   { name: 'Restaurant Valuation', href: '/tools/restaurant-valuation-calculator' },
   { name: 'Review Response AI', href: '/tools/review-response-generator' },
   { name: 'Menu Description AI', href: '/tools/menu-description-generator' },
+  { name: 'Bill Splitter', href: '/tools/bill-splitter' },
+  { name: 'Tip Calculator', href: '/tools/tip-calculator' },
 ];
 
 const guides = [
@@ -103,6 +106,8 @@ const guides = [
   { name: 'POS vs Billing Software', href: '/blog/restaurant-pos-vs-billing-software' },
   { name: 'How to Open Restaurant in India', href: '/blog/how-to-open-restaurant-india-2026' },
   { name: 'Restaurant Technology Trends 2026', href: '/blog/restaurant-technology-trends-2024' },
+  { name: 'Best Restaurant POS India', href: '/best-restaurant-pos-india' },
+  { name: 'Restaurant POS Software India', href: '/restaurant-pos-software-india' },
 ];
 
 const hindiGuides = [

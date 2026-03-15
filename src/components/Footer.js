@@ -43,6 +43,8 @@ export default function Footer() {
     { name: 'For Dhabas', href: '/for/dhabas' },
     { name: 'For Canteens', href: '/for/canteens' },
     { name: 'For Catering', href: '/for/catering' },
+    { name: 'Food Delivery Management', href: '/solutions/food-delivery-management' },
+    { name: 'Chain Management', href: '/solutions/restaurant-chain-management' },
     { name: 'All Solutions', href: '/solutions' },
   ];
 
@@ -55,6 +57,8 @@ export default function Footer() {
     { name: 'Table Turnover Calculator', href: '/tools/table-turnover-calculator' },
     { name: 'FSSAI Fee Calculator', href: '/tools/fssai-fee-calculator' },
     { name: 'EMI Calculator', href: '/tools/emi-calculator' },
+    { name: 'Bill Splitter', href: '/tools/bill-splitter' },
+    { name: 'Tip Calculator', href: '/tools/tip-calculator' },
     { name: 'More Free Tools...', href: '/glossary' },
   ];
 
@@ -75,8 +79,8 @@ export default function Footer() {
     { name: 'Toast Alternative', href: '/alternatives/toast' },
     { name: 'Petpooja Alternative', href: '/alternatives/petpooja' },
     { name: 'POSist Alternative', href: '/alternatives/posist' },
-    { name: 'Lightspeed Alternative', href: '/alternatives/lightspeed' },
-    { name: 'TouchBistro Alternative', href: '/alternatives/touchbistro' },
+    { name: 'Petpooja vs POSist', href: '/vs/petpooja-vs-posist' },
+    { name: 'Best POS India', href: '/best-restaurant-pos-india' },
   ];
 
   const companyLinks = [
@@ -87,6 +91,8 @@ export default function Footer() {
     { name: 'Contact Us', href: '/contact' },
     { name: 'India', href: '/india' },
     { name: 'POS Locations', href: '/pos' },
+    { name: 'Restaurant POS India', href: '/restaurant-pos-software-india' },
+    { name: 'Razorpay Integration', href: '/integrations/razorpay' },
   ];
 
   const legalLinks = [
