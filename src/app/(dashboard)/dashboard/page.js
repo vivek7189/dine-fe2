@@ -1249,13 +1249,15 @@ function RestaurantPOSContent() {
   }, [searchParams, selectedRestaurant?.id]);
 
   const filteredItems = (menuItems || []).filter(item => {
-    const matchesCategory = selectedCategory === 'all-items' 
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    // When searching, always search all items regardless of category
+    if (searchTerm.trim()) return matchesSearch;
+    const matchesCategory = selectedCategory === 'all-items'
       ? true
       : selectedCategory === 'favorites'
       ? item.isFavorite === true
       : item.category?.toLowerCase() === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesCategory;
   });
 
   const addToCart = (item) => {
@@ -4387,7 +4389,7 @@ function RestaurantPOSContent() {
                 return (
                   <div
                     key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
+                    onClick={() => setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id)}
                     style={{
                       padding: '10px 12px',
                       marginBottom: '2px',
@@ -5039,7 +5041,7 @@ function RestaurantPOSContent() {
                     <button
                       key={category.id}
                       onClick={() => {
-                        setSelectedCategory(category.id);
+                        setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);
                         if (isMobile) setShowMobileSidebar(false);
                       }}
                       style={{
@@ -5834,14 +5836,14 @@ function RestaurantPOSContent() {
                 
                 return (
                   <div key={category.id} onClick={() => {
-                    setSelectedCategory(category.id);
+                    setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);
                     setShowMobileSidebar(false);
                   }}>
                     <CategoryButton
                       category={category}
                       isSelected={isSelected}
                     onClick={() => {
-                      setSelectedCategory(category.id);
+                      setSelectedCategory(isSelected && category.id !== 'all-items' ? 'all-items' : category.id);
                       setShowMobileSidebar(false);
                     }}
                       itemCount={categoryItems.length}
