@@ -15,7 +15,7 @@ function DashboardLayoutContent({ children }) {
   const pathname = usePathname();
 
   // Check if current page is dashboard
-  const isDashboardPage = pathname === '/dashboard';
+  const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
 
   // Check if device is mobile and set client-side flag
   useEffect(() => {

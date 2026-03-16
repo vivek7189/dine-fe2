@@ -4,7 +4,8 @@ import { useState } from 'react';
 import {
   FaStore,
   FaArrowRight,
-  FaSpinner
+  FaSpinner,
+  FaMapMarkerAlt
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import { redirectToSubdomain } from '../utils/subdomain';
@@ -12,8 +13,19 @@ import { getCurrencyByCountryCode } from '../lib/currencyData';
 
 const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) => {
   const [restaurantName, setRestaurantName] = useState('');
+  const [city, setCity] = useState('');
+  const [businessType, setBusinessType] = useState('restaurant');
   const [loading, setLoading] = useState(false);
   const [skipping, setSkipping] = useState(false);
+
+  const businessTypes = [
+    { id: 'restaurant', label: 'Restaurant' },
+    { id: 'cafe', label: 'Cafe' },
+    { id: 'bar', label: 'Bar / Pub' },
+    { id: 'bakery', label: 'Bakery' },
+    { id: 'ice_cream', label: 'Ice Cream' },
+    { id: 'qsr', label: 'QSR' },
+  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,6 +37,8 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
       // Create restaurant with user-provided name
       const response = await apiClient.createRestaurant({
         name: restaurantName.trim(),
+        city: city.trim() || null,
+        businessType,
         address: '',
         phone: '',
         email: '',
@@ -249,12 +263,94 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
                 }}
                 disabled={isLoading}
               />
+            </div>
+
+            {/* City */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '15px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '10px'
+              }}>
+                <FaMapMarkerAlt size={14} style={{ color: '#ef4444' }} />
+                City
+                <span style={{ fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  boxSizing: 'border-box',
+                  backgroundColor: '#fafafa'
+                }}
+                placeholder="e.g. Mumbai, Delhi, Bangalore..."
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#ef4444';
+                  e.target.style.backgroundColor = '#fff';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.backgroundColor = '#fafafa';
+                }}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Business Type */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '15px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '10px'
+              }}>
+                <FaStore size={14} style={{ color: '#ef4444' }} />
+                What type of business?
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {businessTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setBusinessType(type.id)}
+                    disabled={isLoading}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      border: businessType === type.id ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                      background: businessType === type.id ? '#fef2f2' : '#f9fafb',
+                      color: businessType === type.id ? '#dc2626' : '#374151',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
               <p style={{
-                fontSize: '13px',
+                fontSize: '12px',
                 color: '#9ca3af',
                 margin: '8px 0 0 0'
               }}>
-                You can change this anytime in settings
+                This customizes your billing dashboard. You can change it later in settings.
               </p>
             </div>
 

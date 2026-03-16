@@ -138,7 +138,7 @@ export default function Sidebar({ isDashboardPage = false }) {
         const parsedUser = JSON.parse(userData);
 
         // Load restaurant data
-        const isDashboardPage = pathname === '/dashboard';
+        const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
         if (isDashboardPage) {
           const savedRestaurant = localStorage.getItem('selectedRestaurant');
           if (savedRestaurant) {
@@ -209,19 +209,21 @@ export default function Sidebar({ isDashboardPage = false }) {
   };
 
   const getAllNavItems = () => [
-    { id: 'pos', name: t('nav.dashboard'), icon: FaHome, href: '/dashboard', color: '#ef4444', roles: ['owner', 'manager', 'waiter'] },
+    // --- Core POS ---
+    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : t('nav.dashboard'), icon: FaHome, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'manager', 'waiter'] },
     { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'manager', 'waiter'] },
+    { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
     { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'manager'] },
+    // --- Management ---
     { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'manager'] },
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'manager'] },
+    { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner'] },
-    { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', roles: ['owner'] },
+    // --- Tools & Extras ---
     { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'manager'] },
-    { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'manager'] },
-    // { id: 'customer-app', name: 'Crave App', icon: FaMobileAlt, href: '/customer-app', color: '#ec4899', roles: ['owner'] },
-    // { id: 'offers', name: 'Offers', icon: FaTag, href: '/offers', color: '#f59e0b', roles: ['owner', 'manager'] },
+    // --- Settings (always last) ---
+    { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner'] },
     { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'manager', 'waiter', 'employee'] },
   ];
 
@@ -348,7 +350,18 @@ export default function Sidebar({ isDashboardPage = false }) {
           {/* Logo Section */}
           <div className="flex items-center justify-between px-4 py-5 border-b border-gray-100">
             <div
-              onClick={() => router.push('/dashboard')}
+              onClick={() => {
+                if (isCollapsed) {
+                  // First click on collapsed: expand the sidebar
+                  setIsCollapsed(false);
+                  localStorage.setItem('sidebarCollapsed', 'false');
+                  window.dispatchEvent(new Event('sidebarToggle'));
+                } else {
+                  // Already expanded: navigate to home
+                  const homeHref = selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard';
+                  router.push(homeHref);
+                }
+              }}
               className="flex items-center gap-2 cursor-pointer"
               style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', flex: 1 }}
             >
@@ -412,20 +425,20 @@ export default function Sidebar({ isDashboardPage = false }) {
                           isCollapsed ? 'justify-center' : 'gap-3'
                         }`}
                         style={{
-                          padding: isCollapsed ? '10px' : '10px 12px',
-                          borderRadius: '10px',
-                          backgroundColor: isActive 
-                            ? `${item.color}15` 
+                          padding: isCollapsed ? '8px' : '10px 12px',
+                          borderRadius: isCollapsed ? '12px' : '10px',
+                          backgroundColor: isActive
+                            ? (isCollapsed ? `${item.color}18` : `${item.color}12`)
                             : 'transparent',
-                          borderLeft: isActive && !isCollapsed 
-                            ? `3px solid ${item.color}` 
+                          borderLeft: isActive && !isCollapsed
+                            ? `3px solid ${item.color}`
                             : 'none',
                           marginLeft: isActive && !isCollapsed ? '4px' : '0',
                           transition: 'all 0.2s ease'
                         }}
                         onMouseEnter={(e) => {
                           if (!isActive) {
-                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                            e.currentTarget.style.backgroundColor = isCollapsed ? `${item.color}10` : '#f3f4f6';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -440,20 +453,23 @@ export default function Sidebar({ isDashboardPage = false }) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: isCollapsed ? '36px' : 'auto',
-                            height: isCollapsed ? '36px' : 'auto',
-                            borderRadius: isCollapsed ? '8px' : '0',
-                            backgroundColor: isActive && isCollapsed 
-                              ? `${item.color}20` 
+                            width: isCollapsed ? '40px' : 'auto',
+                            height: isCollapsed ? '40px' : 'auto',
+                            borderRadius: isCollapsed ? '10px' : '0',
+                            backgroundColor: isCollapsed
+                              ? (isActive ? `${item.color}22` : `${item.color}08`)
                               : 'transparent',
+                            boxShadow: isActive && isCollapsed ? `0 2px 8px ${item.color}25` : 'none',
                             transition: 'all 0.2s ease'
                           }}
                         >
                           <IconComponent
-                            size={isCollapsed ? 20 : 18}
+                            size={isCollapsed ? 18 : 18}
                             style={{
-                              color: isActive ? item.color : '#6b7280',
-                              minWidth: isCollapsed ? '20px' : '18px',
+                              color: isCollapsed
+                                ? (isActive ? item.color : `${item.color}cc`)
+                                : (isActive ? item.color : '#6b7280'),
+                              minWidth: '18px',
                               transition: 'color 0.2s ease'
                             }}
                           />
@@ -461,7 +477,7 @@ export default function Sidebar({ isDashboardPage = false }) {
                         {!isCollapsed && (
                           <span
                             className="text-sm font-medium"
-                            style={{ 
+                            style={{
                               color: isActive ? '#1f2937' : '#6b7280',
                               fontWeight: isActive ? '600' : '500'
                             }}

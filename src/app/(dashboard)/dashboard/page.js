@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Pusher from 'pusher-js';
@@ -140,6 +140,24 @@ function RestaurantPOSContent() {
   
   // Category sidebar width constant (compact, part of menu section)
   const categorySidebarWidth = 150;
+
+  // POS settings from restaurant config (dashboard customization)
+  const posSettings = useMemo(() => selectedRestaurant?.posSettings || {}, [selectedRestaurant]);
+
+  // Track which restaurant's default order type we've applied
+  const appliedDefaultOrderTypeRef = useRef(null);
+  useEffect(() => {
+    if (selectedRestaurant?.id && selectedRestaurant.id !== appliedDefaultOrderTypeRef.current) {
+      const ps = selectedRestaurant?.posSettings;
+      if (ps?.defaultOrderType) {
+        setOrderType(ps.defaultOrderType);
+      }
+      if (ps?.defaultPaymentMethod) {
+        setPaymentMethod(ps.defaultPaymentMethod);
+      }
+      appliedDefaultOrderTypeRef.current = selectedRestaurant.id;
+    }
+  }, [selectedRestaurant]);
   
   // Card design toggle state - Initialize from localStorage based on user ID
   const [useModernCards, setUseModernCards] = useState(() => {
@@ -938,6 +956,13 @@ function RestaurantPOSContent() {
       }
     }
   }, [loading, menuItems.length, isDemoMode]);
+
+  // Redirect bar-type restaurants to /dashboard/bar
+  useEffect(() => {
+    if (selectedRestaurant && selectedRestaurant.businessType === 'bar') {
+      router.replace('/dashboard/bar');
+    }
+  }, [selectedRestaurant, router]);
 
   // Load restaurant feature flags
   useEffect(() => {
@@ -5669,6 +5694,7 @@ function RestaurantPOSContent() {
             deletingSavedOrderId={deletingSavedOrderId}
             onLoadSavedOrder={loadSavedOrder}
             onDeleteSavedOrder={deleteSavedOrder}
+            posSettings={posSettings}
           />
         </div>
                 ) : (
@@ -5731,6 +5757,7 @@ function RestaurantPOSContent() {
                     deletingSavedOrderId={deletingSavedOrderId}
                     onLoadSavedOrder={loadSavedOrder}
                     onDeleteSavedOrder={deleteSavedOrder}
+                    posSettings={posSettings}
                   />
             )}
           </>

@@ -79,7 +79,8 @@ const OrderSummary = ({
   loadingSavedOrderId = null,
   deletingSavedOrderId = null,
   onLoadSavedOrder,
-  onDeleteSavedOrder
+  onDeleteSavedOrder,
+  posSettings = {}
 }) => {
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder;
@@ -1738,9 +1739,10 @@ const OrderSummary = ({
                       flexWrap: 'wrap'
                   }}>
                     {/* Customer Name */}
+                    {!posSettings.hideCustomerName && (
                     <input
                       type="text"
-                      placeholder={t('dashboard.customerName')}
+                      placeholder={posSettings.customerNameLabel || t('dashboard.customerName')}
                       value={customerName || ''}
                       style={{
                           flex: isMobile ? '0 0 auto' : '1',
@@ -1767,11 +1769,13 @@ const OrderSummary = ({
                           e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#d1d5db';
                         }}
                     />
+                    )}
                     
                     {/* Customer Mobile */}
+                    {!posSettings.hideMobile && (
                     <input
                       type="tel"
-                      placeholder="Mobile Number"
+                      placeholder={posSettings.mobileLabel || 'Mobile Number'}
                       value={customerMobile || ''}
                         maxLength={10}
                       style={{
@@ -1801,13 +1805,14 @@ const OrderSummary = ({
                           e.target.style.borderColor = digits.length === 10 ? '#22c55e' : '#d1d5db';
                         }}
                       />
+                    )}
                       
                       {/* Table/Room Number - Inline when not in-room dining, or when in-room dining is enabled */}
-                      {!inRoomDiningEnabled ? (
+                      {!posSettings.hideTableField && (!inRoomDiningEnabled ? (
                         /* Simple Table Input - All on one line */
                         <input
                           type="text"
-                          placeholder="Table No"
+                          placeholder={posSettings.tableLabel || 'Table No'}
                           value={tableNumber || ''}
                           style={{
                             flex: '0 0 auto',
@@ -1947,7 +1952,7 @@ const OrderSummary = ({
                             }}
                           />
                         </div>
-                      )}
+                      ))}
                     </div>
                   );
                 })()}
@@ -1970,8 +1975,8 @@ const OrderSummary = ({
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {[
                     { id: 'cash', label: t('dashboard.cash') },
-                    { id: 'upi', label: t('dashboard.upi') },
-                    { id: 'card', label: t('dashboard.card') }
+                    ...(!posSettings.hideUPI ? [{ id: 'upi', label: t('dashboard.upi') }] : []),
+                    ...(!posSettings.hideCard ? [{ id: 'card', label: t('dashboard.card') }] : [])
                   ].map((method) => {
                     const isSelected = paymentMethod === method.id;
                     return (
@@ -2025,9 +2030,9 @@ const OrderSummary = ({
           )}
 
           {/* First Row - Save and Place Order (hidden in billing mode) */}
-          {!billingMode && (
+          {!billingMode && (!posSettings.hideSaveOrder || !posSettings.hidePlaceOrder) && (
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <button
+              {!posSettings.hideSaveOrder && <button
                 onClick={() => {
                   if (typeof onSaveOrder === 'function' && !orderBusy) {
                     // Pass tax data and special instructions to save order
@@ -2073,12 +2078,12 @@ const OrderSummary = ({
                 ) : (
                   <>
                     <FaSave size={12} />
-                    {t('dashboard.saveOrder')}
+                    {posSettings.saveOrderLabel || t('dashboard.saveOrder')}
                   </>
                 )}
-              </button>
+              </button>}
 
-              <button
+              {!posSettings.hidePlaceOrder && <button
                 onClick={() => {
                   if (typeof onPlaceOrder === 'function') {
                     // Pass tax data and special instructions to place order
@@ -2124,10 +2129,10 @@ const OrderSummary = ({
                 ) : (
                   <>
                     <FaUtensils size={12} />
-                    {t('dashboard.placeOrder')}
+                    {posSettings.placeOrderLabel || t('dashboard.placeOrder')}
                   </>
                 )}
-              </button>
+              </button>}
             </div>
           )}
 
@@ -2163,7 +2168,7 @@ const OrderSummary = ({
             ) : (
               <>
                 <FaCheckCircle size={billingMode ? 14 : 12} />
-                {t('dashboard.completeBilling')}
+                {posSettings.completeBillingLabel || t('dashboard.completeBilling')}
               </>
             )}
           </button>
