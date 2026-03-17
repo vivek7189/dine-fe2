@@ -31,6 +31,7 @@ import { redirectToSubdomain } from '../../utils/subdomain';
 // Product ref to dashboard route mapping
 // Used when users come from product pages (e.g., /login?ref=menu)
 const REF_TO_ROUTE = {
+  'home': '/home',
   'menu': '/menu',
   'loyalty': '/customers',
   'hotel': '/hotel',
@@ -42,17 +43,18 @@ const REF_TO_ROUTE = {
   'tables': '/tables',
   'inventory': '/inventory',
   'admin': '/admin',
+  'headquarters': '/headquarters',
 };
 
 // Get the redirect path based on ?ref= parameter stored in sessionStorage
 function getRefRedirectPath() {
-  if (typeof window === 'undefined') return '/dashboard';
+  if (typeof window === 'undefined') return '/home';
   const ref = sessionStorage.getItem('loginRef');
   if (ref && REF_TO_ROUTE[ref]) {
     sessionStorage.removeItem('loginRef');
     return REF_TO_ROUTE[ref];
   }
-  return '/dashboard';
+  return '/home';
 }
 
 // Country data with flags and codes
@@ -1404,7 +1406,7 @@ const Login = () => {
               color: loginType === 'owner' ? 'white' : '#64748b',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              width: '100%' // Make it take full width since staff tab is hidden
+              width: 'auto'
             }}
             className="sm:text-base text-sm"
           >
@@ -1426,7 +1428,7 @@ const Login = () => {
               color: loginType === 'staff' ? 'white' : '#64748b',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              display: 'none' // Hide staff login tab
+              display: 'block'
             }}
             className="sm:text-base text-sm"
           >

@@ -233,7 +233,7 @@ export default function HeadquartersPage() {
         const token = localStorage.getItem('authToken');
         if (!storedUser || !token) { router.push('/login'); return; }
         const userData = JSON.parse(storedUser);
-        if (userData.role !== 'owner') { router.push('/dashboard'); return; }
+        if (userData.role !== 'owner') { router.push('/home'); return; }
         setUser(userData);
         setAuthorized(true);
         setEmailPreferences(prev => ({ ...prev, reportEmail: userData.email || '' }));

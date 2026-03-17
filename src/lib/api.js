@@ -486,10 +486,9 @@ class ApiClient {
     const user = this.getUser();
     if (!user) return '/login';
 
-    // All authenticated users (owner, customer, staff) go to dashboard
-    // Dashboard shows empty menu state with upload prompt if no menu items exist
+    // All authenticated users land on home page (role-based dashboard)
     if (user.role === 'owner' || user.role === 'customer' || user.role === 'staff') {
-      return '/dashboard';
+      return '/home';
     }
 
     return '/login';

@@ -21,7 +21,8 @@ import {
   FaUser,
   FaFire,
   FaMobileAlt,
-  FaTag
+  FaTag,
+  FaCashRegister
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -137,20 +138,20 @@ export default function Sidebar({ isDashboardPage = false }) {
 
         const parsedUser = JSON.parse(userData);
 
-        // Load restaurant data
-        const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
-        if (isDashboardPage) {
-          const savedRestaurant = localStorage.getItem('selectedRestaurant');
-          if (savedRestaurant) {
-            try {
-              const restaurant = JSON.parse(savedRestaurant);
-              setSelectedRestaurant(restaurant);
-            } catch (error) {
-              console.error('Error parsing saved restaurant:', error);
-            }
+        // Load cached restaurant data first (needed for bar/restaurant type detection)
+        const savedRestaurant = localStorage.getItem('selectedRestaurant');
+        if (savedRestaurant) {
+          try {
+            const restaurant = JSON.parse(savedRestaurant);
+            setSelectedRestaurant(restaurant);
+          } catch (error) {
+            console.error('Error parsing saved restaurant:', error);
           }
-          return;
         }
+
+        // On dashboard pages, cached data is sufficient
+        const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
+        if (isDashboardPage) return;
 
         if (parsedUser.restaurantId) {
           if (parsedUser.restaurant) {
@@ -209,8 +210,10 @@ export default function Sidebar({ isDashboardPage = false }) {
   };
 
   const getAllNavItems = () => [
+    // --- Home (landing page for all roles) ---
+    { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', roles: ['owner', 'manager', 'waiter', 'employee'] },
     // --- Core POS ---
-    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : t('nav.dashboard'), icon: FaHome, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'manager', 'waiter'] },
+    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : t('nav.dashboard'), icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'manager', 'waiter'] },
     { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'manager', 'waiter'] },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
     { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', roles: ['owner', 'manager', 'waiter'] },
@@ -235,8 +238,8 @@ export default function Sidebar({ isDashboardPage = false }) {
       return false;
     }
 
-    // Profile is always accessible to all users
-    if (item.id === 'profile') {
+    // Home and Profile are always accessible to all users
+    if (item.id === 'home' || item.id === 'profile') {
       return true;
     }
 

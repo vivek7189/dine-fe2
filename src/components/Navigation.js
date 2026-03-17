@@ -28,7 +28,8 @@ import {
   FaEllipsisV,
   FaCheck,
   FaBuilding,
-  FaRobot
+  FaRobot,
+  FaCashRegister
 } from 'react-icons/fa';
 import { HiSwitchHorizontal } from 'react-icons/hi';
 import { BiRestaurant } from 'react-icons/bi';
@@ -378,7 +379,8 @@ function NavigationContent({ isHidden = false }) {
   };
   
   const getAllNavItems = () => [
-    { id: 'pos', name: t('nav.dashboard'), icon: FaHome, href: '/dashboard', color: '#ef4444', gradient: 'from-red-500 to-red-600', roles: ['owner', 'manager', 'waiter'] },
+    { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'manager', 'waiter', 'employee'] },
+    { id: 'pos', name: t('nav.dashboard'), icon: FaCashRegister, href: '/dashboard', color: '#ef4444', gradient: 'from-red-500 to-red-600', roles: ['owner', 'manager', 'waiter'] },
     { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', gradient: 'from-amber-500 to-amber-600', roles: ['owner', 'manager', 'waiter'] },
     { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', gradient: 'from-blue-500 to-blue-600', roles: ['owner', 'manager', 'waiter'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'manager'] },
@@ -399,6 +401,11 @@ function NavigationContent({ isHidden = false }) {
   const navItems = getAllNavItems().filter(item => {
     if (!user || !user.role) {
       return false; // Don't show any items until user is loaded
+    }
+
+    // Home is always accessible to all users
+    if (item.id === 'home') {
+      return true;
     }
 
     // Check if page is in notAllowedPages array (hide for this user)

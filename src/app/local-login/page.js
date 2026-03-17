@@ -83,7 +83,7 @@ const LocalLogin = () => {
           } else if (data.redirectTo) {
             router.replace(data.redirectTo);
           } else {
-            router.replace('/dashboard');
+            router.replace('/home');
           }
         }
       } else {

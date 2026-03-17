@@ -93,7 +93,7 @@ const Setup = () => {
         
         // Redirect after short delay
         setTimeout(() => {
-          router.push(data.redirectTo || '/dashboard');
+          router.push(data.redirectTo || '/home');
         }, 1500);
       } else {
         throw new Error('Invalid response from server');
