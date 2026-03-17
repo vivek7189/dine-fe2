@@ -214,7 +214,8 @@ export default function InventoryManagement() {
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('stock');
+  const [procurementSubTab, setProcurementSubTab] = useState('suppliers');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name');
@@ -377,28 +378,30 @@ export default function InventoryManagement() {
 
   const loadSCMData = useCallback(async () => {
     if (!currentRestaurant) return;
-    
+
     try {
-      // Load SCM data based on active tab
-      if (activeTab === 'grn') {
+      // Load SCM data based on procurement sub-tab or insights tab
+      const subTab = activeTab === 'procurement' ? procurementSubTab : null;
+
+      if (subTab === 'grn') {
         const grnsData = await apiClient.getGRNs(currentRestaurant.id);
         setGrns(grnsData.grns || []);
-      } else if (activeTab === 'requisitions') {
+      } else if (subTab === 'requisitions') {
         const reqsData = await apiClient.getPurchaseRequisitions(currentRestaurant.id);
         setPurchaseRequisitions(reqsData.requisitions || []);
-      } else if (activeTab === 'invoices') {
+      } else if (subTab === 'invoices') {
         const invoicesData = await apiClient.getSupplierInvoices(currentRestaurant.id);
         setSupplierInvoices(invoicesData.invoices || []);
-      } else if (activeTab === 'suppliers') {
+      } else if (subTab === 'suppliers') {
         const perfData = await apiClient.getAllSuppliersPerformance(currentRestaurant.id);
         setSupplierPerformance(perfData.performances || []);
-      } else if (activeTab === 'returns') {
+      } else if (subTab === 'returns') {
         const returnsData = await apiClient.getSupplierReturns(currentRestaurant.id);
         setSupplierReturns(returnsData.returns || []);
-      } else if (activeTab === 'transfers') {
+      } else if (subTab === 'transfers') {
         const transfersData = await apiClient.getStockTransfers(currentRestaurant.id);
         setStockTransfers(transfersData.transfers || []);
-      } else if (activeTab === 'ai-insights') {
+      } else if (activeTab === 'insights') {
         const suggestionsData = await apiClient.getAIReorderSuggestions(currentRestaurant.id);
         setAiReorderSuggestions(suggestionsData.suggestions || []);
         const wasteData = await apiClient.getAIWastePrediction(currentRestaurant.id);
@@ -409,7 +412,7 @@ export default function InventoryManagement() {
     } catch (error) {
       console.error('Error loading SCM data:', error);
     }
-  }, [currentRestaurant, activeTab]);
+  }, [currentRestaurant, activeTab, procurementSubTab]);
 
   const loadInventoryData = useCallback(async () => {
     if (!currentRestaurant) return;
@@ -1169,18 +1172,20 @@ export default function InventoryManagement() {
   });
 
   const tabs = [
-    { id: 'dashboard', name: 'Dashboard', icon: FaChartLine },
-    { id: 'items', name: 'Inventory Items', icon: FaBoxes },
+    { id: 'stock', name: 'Stock', icon: FaBoxes },
     { id: 'recipes', name: 'Recipes', icon: FaClipboardList },
-    { id: 'suppliers', name: 'Suppliers', icon: FaWarehouse },
-    { id: 'requisitions', name: 'Requisitions', icon: FaClipboardList },
-    { id: 'purchase', name: 'Purchase Orders', icon: FaShoppingCart },
-    { id: 'grn', name: 'Goods Receipt', icon: FaBoxes },
-    { id: 'invoices', name: 'Invoices', icon: FaEnvelope },
-    { id: 'returns', name: 'Returns', icon: FaTimesCircle },
-    { id: 'transfers', name: 'Transfers', icon: FaDownload },
-    { id: 'ai-insights', name: 'AI Insights', icon: FaChartLine },
-    { id: 'reports', name: 'Reports', icon: FaChartLine }
+    { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
+    { id: 'insights', name: 'Insights', icon: FaChartLine },
+  ];
+
+  const procurementTabs = [
+    { id: 'suppliers', name: 'Suppliers' },
+    { id: 'orders', name: 'Purchase Orders' },
+    { id: 'requisitions', name: 'Requisitions' },
+    { id: 'grn', name: 'Goods Receipt' },
+    { id: 'invoices', name: 'Invoices' },
+    { id: 'returns', name: 'Returns' },
+    { id: 'transfers', name: 'Transfers' },
   ];
 
   if (loading) {
@@ -1236,58 +1241,14 @@ export default function InventoryManagement() {
             </p>
           </div>
           
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* View Toggle Buttons */}
-            <div style={{ display: 'flex', gap: '4px', backgroundColor: '#f3f4f6', borderRadius: '8px', padding: '4px' }}>
-              <button
-                onClick={() => setInventoryView('card')}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: inventoryView === 'card' ? '#059669' : 'transparent',
-                  color: inventoryView === 'card' ? 'white' : '#6b7280',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <FaTh size={12} />
-                Cards
-              </button>
-              <button
-                onClick={() => setInventoryView('list')}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: inventoryView === 'list' ? '#059669' : 'transparent',
-                  color: inventoryView === 'list' ? 'white' : '#6b7280',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <FaList size={12} />
-                List
-              </button>
-            </div>
-
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button
               onClick={() => setShowAddModal(true)}
               style={{
                 backgroundColor: '#059669',
                 color: 'white',
-                padding: '12px 20px',
-                borderRadius: '12px',
+                padding: '10px 18px',
+                borderRadius: '10px',
                 border: 'none',
                 fontWeight: '600',
                 fontSize: '14px',
@@ -1295,41 +1256,12 @@ export default function InventoryManagement() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+                boxShadow: '0 2px 8px rgba(5, 150, 105, 0.3)',
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#047857';
-                e.target.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#059669';
-                e.target.style.transform = 'translateY(0)';
-              }}
             >
-              <FaPlus size={14} />
+              <FaPlus size={12} />
               Add Item
-            </button>
-            
-            <button
-              style={{
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                padding: '12px 20px',
-                borderRadius: '12px',
-                border: 'none',
-                fontWeight: '600',
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                transition: 'all 0.2s'
-              }}
-            >
-              <FaUpload size={14} />
-              Import
             </button>
           </div>
         </div>
@@ -1440,103 +1372,99 @@ export default function InventoryManagement() {
           })}
         </div>
 
-        {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', 
-            gap: isMobile ? '12px' : '20px', 
-            marginBottom: isMobile ? '16px' : '24px' 
-          }}>
-            {/* Key Metrics Cards */}
+        {/* Stock Tab — Stats + Items */}
+        {activeTab === 'stock' && (
+          <div>
+            {/* Compact Stats Row */}
             <div style={{
-              backgroundColor: 'white',
-              padding: '24px',
-              borderRadius: '16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              border: '1px solid #e5e7eb'
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: isMobile ? '8px' : '12px',
+              marginBottom: isMobile ? '16px' : '20px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                  Total Items
-                </h3>
-                <FaBoxes color="#059669" size={20} />
+              <div style={{
+                backgroundColor: 'white',
+                padding: isMobile ? '12px' : '16px',
+                borderRadius: '12px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaBoxes color="#059669" size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#059669', lineHeight: 1 }}>
+                    {dashboardStats?.totalItems || inventoryItems.length}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Items</div>
+                </div>
               </div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#059669', marginBottom: '8px' }}>
-                {dashboardStats?.totalItems || inventoryItems.length}
+
+              <div style={{
+                backgroundColor: (dashboardStats?.lowStockItems || inventoryItems.filter(item => item.status === 'low').length) > 0 ? '#fef2f2' : 'white',
+                padding: isMobile ? '12px' : '16px',
+                borderRadius: '12px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                border: (dashboardStats?.lowStockItems || inventoryItems.filter(item => item.status === 'low').length) > 0 ? '1px solid #fecaca' : 'none'
+              }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaExclamationTriangle color="#ef4444" size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#ef4444', lineHeight: 1 }}>
+                    {dashboardStats?.lowStockItems || inventoryItems.filter(item => item.status === 'low').length}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Low Stock</div>
+                </div>
               </div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                Active inventory items
+
+              <div style={{
+                backgroundColor: 'white',
+                padding: isMobile ? '12px' : '16px',
+                borderRadius: '12px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaChartLine color="#3b82f6" size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#3b82f6', lineHeight: 1 }}>
+                    {formatCurrency(dashboardStats?.totalValue || inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.costPerUnit), 0))}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Value</div>
+                </div>
+              </div>
+
+              <div style={{
+                backgroundColor: 'white',
+                padding: isMobile ? '12px' : '16px',
+                borderRadius: '12px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaWarehouse color="#8b5cf6" size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#8b5cf6', lineHeight: 1 }}>
+                    {suppliers.length}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Suppliers</div>
+                </div>
               </div>
             </div>
 
-            <div style={{
-              backgroundColor: 'white',
-              padding: '24px',
-              borderRadius: '16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                  Low Stock Items
-                </h3>
-                <FaExclamationTriangle color="#ef4444" size={20} />
-              </div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ef4444', marginBottom: '8px' }}>
-                {dashboardStats?.lowStockItems || inventoryItems.filter(item => item.status === 'low').length}
-              </div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                Need restocking
-              </div>
-            </div>
-
-            <div style={{
-              backgroundColor: 'white',
-              padding: '24px',
-              borderRadius: '16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                  Total Value
-                </h3>
-                <FaChartLine color="#3b82f6" size={20} />
-              </div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6', marginBottom: '8px' }}>
-                {formatCurrency(dashboardStats?.totalValue || inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.costPerUnit), 0))}
-              </div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                Current inventory value
-              </div>
-            </div>
-
-            <div style={{
-              backgroundColor: 'white',
-              padding: '24px',
-              borderRadius: '16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                  Suppliers
-                </h3>
-                <FaWarehouse color="#8b5cf6" size={20} />
-              </div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#8b5cf6', marginBottom: '8px' }}>
-                {suppliers.length}
-              </div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                Active suppliers
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Inventory Items Tab */}
-        {activeTab === 'items' && (
+            {/* Items List (formerly the items tab content) */}
           <div>
             {/* Filters */}
             <div style={{
@@ -1789,10 +1717,46 @@ export default function InventoryManagement() {
               ))}
             </div>
           </div>
+          </div>
         )}
 
-        {/* Suppliers Tab */}
-        {activeTab === 'suppliers' && (
+        {/* Procurement Sub-pills */}
+        {activeTab === 'procurement' && (
+          <div style={{
+            display: 'flex',
+            gap: '6px',
+            marginBottom: '20px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            paddingBottom: '4px'
+          }}>
+            {procurementTabs.map((sub) => (
+              <button
+                key={sub.id}
+                onClick={() => setProcurementSubTab(sub.id)}
+                style={{
+                  padding: isMobile ? '8px 14px' : '8px 18px',
+                  borderRadius: '20px',
+                  border: procurementSubTab === sub.id ? 'none' : '1px solid #e5e7eb',
+                  backgroundColor: procurementSubTab === sub.id ? '#059669' : 'white',
+                  color: procurementSubTab === sub.id ? 'white' : '#6b7280',
+                  fontWeight: '500',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s',
+                  boxShadow: procurementSubTab === sub.id ? '0 2px 8px rgba(5,150,105,0.3)' : 'none'
+                }}
+              >
+                {sub.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Suppliers (Procurement sub-tab) */}
+        {activeTab === 'procurement' && procurementSubTab === 'suppliers' && (
           <div>
             <div style={{
               backgroundColor: 'white',
@@ -2176,7 +2140,7 @@ export default function InventoryManagement() {
         )}
 
         {/* Purchase Orders Tab */}
-        {activeTab === 'purchase' && (
+        {activeTab === 'procurement' && procurementSubTab === 'orders' && (
           <div>
             <div style={{
               backgroundColor: 'white',
@@ -2719,7 +2683,7 @@ export default function InventoryManagement() {
         )}
 
         {/* Reports Tab */}
-        {activeTab === 'reports' && (
+        {activeTab === 'insights' && (
           <div>
             <div style={{
               backgroundColor: 'white',
@@ -2873,7 +2837,7 @@ export default function InventoryManagement() {
         )}
 
         {/* Purchase Requisitions Tab */}
-        {activeTab === 'requisitions' && (
+        {activeTab === 'procurement' && procurementSubTab === 'requisitions' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
@@ -3095,7 +3059,7 @@ export default function InventoryManagement() {
         )}
 
         {/* GRN Tab */}
-        {activeTab === 'grn' && (
+        {activeTab === 'procurement' && procurementSubTab === 'grn' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
@@ -3176,7 +3140,7 @@ export default function InventoryManagement() {
         )}
 
         {/* Invoices Tab */}
-        {activeTab === 'invoices' && (
+        {activeTab === 'procurement' && procurementSubTab === 'invoices' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
               <h2 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
@@ -3441,7 +3405,7 @@ export default function InventoryManagement() {
         )}
 
         {/* Returns Tab */}
-        {activeTab === 'returns' && (
+        {activeTab === 'procurement' && procurementSubTab === 'returns' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
@@ -3606,7 +3570,7 @@ export default function InventoryManagement() {
         )}
 
         {/* Stock Transfers Tab */}
-        {activeTab === 'transfers' && (
+        {activeTab === 'procurement' && procurementSubTab === 'transfers' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
@@ -3764,7 +3728,7 @@ export default function InventoryManagement() {
         )}
 
         {/* AI Insights Tab */}
-        {activeTab === 'ai-insights' && (
+        {activeTab === 'insights' && (
           <div>
             <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', marginBottom: '24px' }}>
               AI Insights
@@ -4045,7 +4009,7 @@ export default function InventoryManagement() {
         )}
 
         {/* Other tabs placeholder */}
-        {!['dashboard', 'items', 'suppliers', 'recipes', 'purchase', 'reports', 'requisitions', 'grn', 'invoices', 'returns', 'transfers', 'ai-insights'].includes(activeTab) && (
+        {!['stock', 'recipes', 'procurement', 'insights'].includes(activeTab) && (
           <div style={{
             backgroundColor: 'white',
             padding: '40px',
