@@ -8,7 +8,9 @@ export const dynamicParams = false; // Return 404 for unknown slugs
 
 // Generate static params for all blog posts at build time
 export async function generateStaticParams() {
-  return blogPosts.map((post) => ({
+  // Exclude isStatic posts — they're served as raw HTML via beforeFiles rewrites
+  // Including them here would pre-render 404 pages that override the rewrites
+  return blogPosts.filter(post => !post.isStatic).map((post) => ({
     slug: post.slug,
   }));
 }

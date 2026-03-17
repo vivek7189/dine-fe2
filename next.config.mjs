@@ -88,12 +88,7 @@ const nextConfig = {
         permanent: true,
       },
       {
-        source: '/products/table-management',
-        destination: '/products/tables',
-        permanent: true,
-      },
-      {
-        source: '/api-docs',
+        source: '/$',
         destination: '/',
         permanent: true,
       },
