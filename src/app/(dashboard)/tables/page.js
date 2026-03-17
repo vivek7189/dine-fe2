@@ -122,7 +122,7 @@ const TableManagement = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
 
   // Form states
-  const [newFloor, setNewFloor] = useState({ name: '', description: '' });
+  const [newFloor, setNewFloor] = useState({ name: '', description: '', section: '' });
   const [newTable, setNewTable] = useState({
     name: '',
     capacity: 4,
@@ -572,18 +572,19 @@ const TableManagement = () => {
   // API operations
   const addFloor = async () => {
     if (!newFloor.name.trim() || !selectedRestaurant) return;
-    
+
     try {
       const floorData = {
         name: newFloor.name.trim(),
-        description: newFloor.description.trim() || null
+        description: newFloor.description.trim() || null,
+        section: newFloor.section?.trim() || null
       };
       
       const response = await apiClient.createFloor(selectedRestaurant.id, floorData);
       const newFloorData = { ...response.floor, tables: [] };
-      
+
       setFloors(prev => [...prev, newFloorData]);
-      setNewFloor({ name: '', description: '' });
+      setNewFloor({ name: '', description: '', section: '' });
       setShowAddFloor(false);
       showSuccess('Floor added successfully!');
       
@@ -600,18 +601,19 @@ const TableManagement = () => {
       const floorData = {
         name: newFloor.name.trim(),
         description: newFloor.description.trim() || null,
+        section: newFloor.section?.trim() || null,
         restaurantId: selectedRestaurant.id
       };
-      
+
       await apiClient.updateFloor(editingFloor.id, floorData);
-      
-      setFloors(prev => prev.map(floor => 
-        floor.id === editingFloor.id 
-          ? { ...floor, name: newFloor.name.trim(), description: newFloor.description.trim() || null }
+
+      setFloors(prev => prev.map(floor =>
+        floor.id === editingFloor.id
+          ? { ...floor, name: newFloor.name.trim(), description: newFloor.description.trim() || null, section: newFloor.section?.trim() || null }
           : floor
       ));
-      
-      setNewFloor({ name: '', description: '' });
+
+      setNewFloor({ name: '', description: '', section: '' });
       setEditingFloor(null);
       setShowEditFloor(false);
       showSuccess('Floor updated successfully!');
@@ -637,7 +639,7 @@ const TableManagement = () => {
 
   const startEditFloor = (floor) => {
     setEditingFloor(floor);
-    setNewFloor({ name: floor.name, description: floor.description || '' });
+    setNewFloor({ name: floor.name, description: floor.description || '', section: floor.section || '' });
     setShowEditFloor(true);
   };
 
@@ -2072,7 +2074,24 @@ const TableManagement = () => {
                       }}
                       placeholder="Description (optional)"
                     />
-                    
+
+                    <input
+                      type="text"
+                      value={newFloor.section}
+                      onChange={(e) => setNewFloor({...newFloor, section: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        outline: 'none',
+                        backgroundColor: 'white',
+                        boxSizing: 'border-box'
+                      }}
+                      placeholder="Section for pricing (e.g., AC, VIP)"
+                    />
+
                     <button
                       onClick={async () => {
                         await addFloor();
@@ -2416,8 +2435,33 @@ const TableManagement = () => {
                   placeholder="e.g., Main dining area"
                 />
               </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Section (for zone pricing)
+                </label>
+                <input
+                  type="text"
+                  value={newFloor.section}
+                  onChange={(e) => setNewFloor({...newFloor, section: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: '#fef7f0',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="e.g., AC, Non-AC, VIP, Outdoor"
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px', margin: '4px 0 0 0' }}>
+                  Used for automatic zone pricing surcharges
+                </p>
+              </div>
             </div>
-            
+
             <div style={{ padding: '20px', backgroundColor: '#fef7f0', display: 'flex', gap: '10px' }}>
               <button
                 onClick={() => setShowAddFloor(false)}
@@ -2528,14 +2572,39 @@ const TableManagement = () => {
                   placeholder="e.g., Main dining area"
                 />
               </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Section (for zone pricing)
+                </label>
+                <input
+                  type="text"
+                  value={newFloor.section}
+                  onChange={(e) => setNewFloor({...newFloor, section: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: '#fef7f0',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="e.g., AC, Non-AC, VIP, Outdoor"
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px', margin: '4px 0 0 0' }}>
+                  Used for automatic zone pricing surcharges
+                </p>
+              </div>
             </div>
-            
+
             <div style={{ padding: '20px', backgroundColor: '#fef7f0', display: 'flex', gap: '10px' }}>
               <button
                 onClick={() => {
                   setShowEditFloor(false);
                   setEditingFloor(null);
-                  setNewFloor({ name: '', description: '' });
+                  setNewFloor({ name: '', description: '', section: '' });
                 }}
                 style={{
                   flex: 1,

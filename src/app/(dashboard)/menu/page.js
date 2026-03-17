@@ -1529,6 +1529,7 @@ const MenuManagement = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [currentRestaurant, setCurrentRestaurant] = useState(null); // Will be loaded from user data
+  const isBarMode = currentRestaurant?.businessType === 'bar';
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -1553,7 +1554,12 @@ const MenuManagement = () => {
     stockQuantity: null,
     variants: [],
     customizations: [],
-    generateRecipe: true
+    generateRecipe: true,
+    // Bar-specific fields
+    spiritCategory: '',
+    ingredients: '',
+    abv: '',
+    servingUnit: ''
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
@@ -1879,6 +1885,19 @@ const MenuManagement = () => {
     });
   };
 
+  const addBarServingVariants = () => {
+    const templates = [
+      { name: 'Peg (30ml)', price: '', description: '' },
+      { name: 'Large (60ml)', price: '', description: '' },
+      { name: 'Bottle', price: '', description: '' },
+      { name: 'Pitcher', price: '', description: '' }
+    ];
+    setFormData({
+      ...formData,
+      variants: [...(formData.variants || []), ...templates]
+    });
+  };
+
   const removeVariant = (index) => {
     setFormData({
       ...formData,
@@ -1926,7 +1945,11 @@ const MenuManagement = () => {
       isAvailable: item.isAvailable !== false,
       stockQuantity: item.stockQuantity || null,
       variants: item.variants || [],
-      customizations: item.customizations || []
+      customizations: item.customizations || [],
+      spiritCategory: item.spiritCategory || '',
+      ingredients: item.ingredients || '',
+      abv: item.abv?.toString() || '',
+      servingUnit: item.servingUnit || ''
     });
     setEditingItem(item);
     setShowAddForm(true);
@@ -2074,7 +2097,11 @@ const MenuManagement = () => {
       stockQuantity: null,
       variants: [],
       customizations: [],
-      generateRecipe: true
+      generateRecipe: true,
+      spiritCategory: '',
+      ingredients: '',
+      abv: '',
+      servingUnit: ''
     });
     setEditingItem(null);
     setShowAddForm(false);
@@ -3478,13 +3505,80 @@ const MenuManagement = () => {
                   </div>
                 </div>
 
+                {/* Bar-Specific Fields */}
+                {isBarMode && (
+                  <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#fdf2f8', borderRadius: '12px', border: '1px solid #fce7f3' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#831843', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🍸 Bar Details
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Spirit Category</label>
+                        <select
+                          value={formData.spiritCategory || ''}
+                          onChange={(e) => setFormData({...formData, spiritCategory: e.target.value})}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="whiskey">Whiskey</option>
+                          <option value="vodka">Vodka</option>
+                          <option value="rum">Rum</option>
+                          <option value="gin">Gin</option>
+                          <option value="tequila">Tequila</option>
+                          <option value="beer">Beer</option>
+                          <option value="wine">Wine</option>
+                          <option value="cocktail">Cocktail</option>
+                          <option value="mocktail">Mocktail</option>
+                          <option value="shots">Shots</option>
+                          <option value="mixer">Mixer</option>
+                          <option value="snack">Bar Snack</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>ABV %</label>
+                        <input
+                          type="number"
+                          value={formData.abv || ''}
+                          onChange={(e) => setFormData({...formData, abv: e.target.value})}
+                          placeholder="e.g., 40"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Ingredients (for cocktails)</label>
+                        <input
+                          type="text"
+                          value={formData.ingredients || ''}
+                          onChange={(e) => setFormData({...formData, ingredients: e.target.value})}
+                          placeholder="e.g., Bourbon, Simple Syrup, Angostura Bitters"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Unit</label>
+                        <input
+                          type="text"
+                          value={formData.servingUnit || ''}
+                          onChange={(e) => setFormData({...formData, servingUnit: e.target.value})}
+                          placeholder="e.g., ml, peg, glass, bottle, pint"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Image Upload Section - Always Available */}
                 <div style={{ marginTop: '20px' }}>
-                  <h4 style={{ 
+                  <h4 style={{
                     fontSize: '14px',
-                    fontWeight: '600', 
+                    fontWeight: '600',
                     color: '#374151',
-                    marginBottom: '12px' 
+                    marginBottom: '12px'
                   }}>
                     Item Images (Max 4)
                   </h4>
@@ -3624,6 +3718,27 @@ const MenuManagement = () => {
                           <FaPlus size={10} />
                           Add Variant
                         </button>
+                        {isBarMode && (!formData.variants || formData.variants.length === 0) && (
+                          <button
+                            type="button"
+                            onClick={addBarServingVariants}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#7c3aed',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            🍸 Add Serving Sizes (Peg/Large/Bottle)
+                          </button>
+                        )}
                       </div>
                       {formData.variants && formData.variants.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

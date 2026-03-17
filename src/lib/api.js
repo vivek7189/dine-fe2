@@ -2113,6 +2113,21 @@ class ApiClient {
     });
   }
 
+  // ==================== PRICING SETTINGS ====================
+
+  // Get pricing settings
+  async getPricingSettings(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/pricing-settings`);
+  }
+
+  // Update pricing settings
+  async updatePricingSettings(restaurantId, settings) {
+    return this.request(`/api/restaurants/${restaurantId}/pricing-settings`, {
+      method: 'PUT',
+      body: settings,
+    });
+  }
+
   // Generate restaurant code
   async generateRestaurantCode(restaurantId) {
     return this.request(`/api/restaurants/${restaurantId}/generate-code`, {

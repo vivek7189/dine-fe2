@@ -48,6 +48,14 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     usageLimit: null,
     isFirstOrderOnly: false,
     autoApply: false,
+    // Enhanced fields
+    scope: 'order',
+    targetCategories: [],
+    targetItems: [],
+    schedule: null,
+    promotionType: 'discount',
+    bogoConfig: null,
+    eventLabel: '',
   };
 
   const [formData, setFormData] = useState(emptyOffer);
@@ -826,6 +834,236 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 />
                 {offerErrors.usageLimit && (
                   <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{offerErrors.usageLimit}</p>
+                )}
+              </div>
+
+              {/* Promotion Type */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Promotion Type
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[
+                    { value: 'discount', label: 'Discount' },
+                    { value: 'bogo', label: 'BOGO' },
+                    { value: 'event', label: 'Event' }
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, promotionType: opt.value }))}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: formData.promotionType === opt.value ? '2px solid #ec4899' : '2px solid #e5e7eb',
+                        backgroundColor: formData.promotionType === opt.value ? '#fdf2f8' : 'white',
+                        color: formData.promotionType === opt.value ? '#be185d' : '#6b7280',
+                        fontWeight: '600',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* BOGO Config */}
+              {formData.promotionType === 'bogo' && (
+                <div style={{ padding: '12px', backgroundColor: '#fdf2f8', borderRadius: '8px', border: '1px solid #fce7f3' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#831843', marginBottom: '8px' }}>
+                    BOGO Configuration
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Qty</label>
+                      <input
+                        type="number"
+                        value={formData.bogoConfig?.buyQty || 2}
+                        onChange={(e) => setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: parseInt(e.target.value) || 2, getQty: prev.bogoConfig?.getQty || 1, getDiscount: prev.bogoConfig?.getDiscount || 100 } }))}
+                        min="1"
+                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Get Qty Free</label>
+                      <input
+                        type="number"
+                        value={formData.bogoConfig?.getQty || 1}
+                        onChange={(e) => setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: parseInt(e.target.value) || 1, getDiscount: prev.bogoConfig?.getDiscount || 100 } }))}
+                        min="1"
+                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Discount %</label>
+                      <input
+                        type="number"
+                        value={formData.bogoConfig?.getDiscount || 100}
+                        onChange={(e) => setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: prev.bogoConfig?.getQty || 1, getDiscount: parseInt(e.target.value) || 100 } }))}
+                        min="0"
+                        max="100"
+                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '6px' }}>
+                    e.g., Buy 2 Get 1 at 100% off = Buy 2 Get 1 Free
+                  </p>
+                </div>
+              )}
+
+              {/* Event Label */}
+              {formData.promotionType === 'event' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Event Label
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.eventLabel || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, eventLabel: e.target.value }))}
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+                    placeholder="e.g., Ladies Night, Trivia Tuesday, Happy Hour"
+                  />
+                </div>
+              )}
+
+              {/* Scope */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Applies To
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[
+                    { value: 'order', label: 'Whole Order' },
+                    { value: 'category', label: 'Categories' },
+                    { value: 'item', label: 'Specific Items' }
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, scope: opt.value }))}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: formData.scope === opt.value ? '2px solid #ec4899' : '2px solid #e5e7eb',
+                        backgroundColor: formData.scope === opt.value ? '#fdf2f8' : 'white',
+                        color: formData.scope === opt.value ? '#be185d' : '#6b7280',
+                        fontWeight: '600',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Target Categories */}
+              {formData.scope === 'category' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Target Categories (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={(formData.targetCategories || []).join(', ')}
+                    onChange={(e) => setFormData(prev => ({ ...prev, targetCategories: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+                    placeholder="e.g., Whiskey, Beer, Cocktails"
+                  />
+                </div>
+              )}
+
+              {/* Target Items */}
+              {formData.scope === 'item' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Target Item IDs (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={(formData.targetItems || []).join(', ')}
+                    onChange={(e) => setFormData(prev => ({ ...prev, targetItems: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+                    placeholder="e.g., item_123, item_456"
+                  />
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+                    Copy item IDs from your menu
+                  </p>
+                </div>
+              )}
+
+              {/* Schedule (Happy Hour) */}
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!formData.schedule}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      schedule: e.target.checked ? { type: 'recurring', days: [1,2,3,4,5], startTime: '16:00', endTime: '19:00' } : null
+                    }))}
+                    style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Time-based schedule (Happy Hour)</span>
+                </label>
+                {formData.schedule && (
+                  <div style={{ padding: '12px', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                    <div style={{ marginBottom: '8px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Days</label>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              const days = formData.schedule.days || [];
+                              const newDays = days.includes(i) ? days.filter(d => d !== i) : [...days, i];
+                              setFormData(prev => ({ ...prev, schedule: { ...prev.schedule, days: newDays } }));
+                            }}
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              border: (formData.schedule.days || []).includes(i) ? '2px solid #f59e0b' : '1px solid #d1d5db',
+                              backgroundColor: (formData.schedule.days || []).includes(i) ? '#fef3c7' : 'white',
+                              color: (formData.schedule.days || []).includes(i) ? '#92400e' : '#6b7280',
+                              fontWeight: '600',
+                              fontSize: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Start Time</label>
+                        <input
+                          type="time"
+                          value={formData.schedule.startTime || '16:00'}
+                          onChange={(e) => setFormData(prev => ({ ...prev, schedule: { ...prev.schedule, startTime: e.target.value } }))}
+                          style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>End Time</label>
+                        <input
+                          type="time"
+                          value={formData.schedule.endTime || '19:00'}
+                          onChange={(e) => setFormData(prev => ({ ...prev, schedule: { ...prev.schedule, endTime: e.target.value } }))}
+                          style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 

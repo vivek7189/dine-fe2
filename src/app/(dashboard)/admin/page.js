@@ -369,6 +369,331 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   );
 };
 
+// Zone Pricing Management Component
+const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+  const [pricingSettings, setPricingSettings] = useState({
+    zonePricing: { enabled: false, zones: [] }
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { formatCurrency } = useCurrency();
+
+  const loadPricingSettings = async (restaurantId) => {
+    if (!restaurantId) return;
+    setLoading(true);
+    try {
+      const response = await apiClient.getPricingSettings(restaurantId);
+      if (response.settings) {
+        setPricingSettings(response.settings);
+      }
+    } catch (error) {
+      console.error('Failed to load pricing settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const savePricingSettings = async () => {
+    if (!selectedRestaurant?.id) return;
+    setSaving(true);
+    try {
+      await apiClient.updatePricingSettings(selectedRestaurant.id, pricingSettings);
+      alert('Pricing settings saved!');
+    } catch (error) {
+      console.error('Failed to save pricing settings:', error);
+      alert('Failed to save pricing settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addZone = () => {
+    const newZone = {
+      id: `zone_${Date.now()}`,
+      name: '',
+      sectionMatch: '',
+      markupType: 'percentage',
+      markupValue: 0,
+      isActive: true
+    };
+    setPricingSettings(prev => ({
+      ...prev,
+      zonePricing: {
+        ...prev.zonePricing,
+        zones: [...(prev.zonePricing?.zones || []), newZone]
+      }
+    }));
+  };
+
+  const updateZone = (index, field, value) => {
+    setPricingSettings(prev => ({
+      ...prev,
+      zonePricing: {
+        ...prev.zonePricing,
+        zones: prev.zonePricing.zones.map((z, i) => i === index ? { ...z, [field]: value } : z)
+      }
+    }));
+  };
+
+  const removeZone = (index) => {
+    setPricingSettings(prev => ({
+      ...prev,
+      zonePricing: {
+        ...prev.zonePricing,
+        zones: prev.zonePricing.zones.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  useEffect(() => {
+    if (selectedRestaurant?.id) {
+      loadPricingSettings(selectedRestaurant.id);
+    }
+  }, [selectedRestaurant?.id]);
+
+  return (
+    <div>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FaSlidersH size={20} />
+          Zone Pricing
+        </h2>
+        <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+          Add surcharges based on seating zone (e.g., AC section, VIP lounge)
+        </p>
+      </div>
+
+      {/* Restaurant Selection */}
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>Select Restaurant</h3>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {restaurants.map((restaurant) => (
+            <button
+              key={restaurant.id}
+              onClick={() => setSelectedRestaurant(restaurant)}
+              style={{
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ec4899' : '#f8fafc',
+                color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontWeight: '500',
+                fontSize: '14px',
+                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #e2e8f0',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <FaStore size={12} style={{ marginRight: '6px' }} />
+              {restaurant.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {selectedRestaurant && !loading && (
+        <div>
+          {/* Enable/Disable */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
+              <input
+                type="checkbox"
+                checked={pricingSettings.zonePricing?.enabled || false}
+                onChange={(e) => setPricingSettings(prev => ({
+                  ...prev,
+                  zonePricing: { ...prev.zonePricing, enabled: e.target.checked }
+                }))}
+                style={{ width: '18px', height: '18px' }}
+              />
+              Enable Zone Pricing
+            </label>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+              When enabled, orders from tables in specific zones will have a surcharge added to the bill automatically.
+            </p>
+          </div>
+
+          {pricingSettings.zonePricing?.enabled && (
+            <div>
+              {/* Zones List */}
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>Pricing Zones</h3>
+                  <button
+                    onClick={addZone}
+                    style={{
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <FaPlus size={12} />
+                    Add Zone
+                  </button>
+                </div>
+
+                <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
+                  The &quot;Section Match&quot; field matches against the table&apos;s section or floor name. For example, if your floor is named &quot;AC Hall&quot; and section match is &quot;AC&quot;, all tables on that floor will get the surcharge.
+                </p>
+
+                {(pricingSettings.zonePricing?.zones || []).length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '32px', color: '#9ca3af', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px dashed #d1d5db' }}>
+                    <FaSlidersH size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                    <p style={{ margin: 0 }}>No zones configured. Click &quot;Add Zone&quot; to create one.</p>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {(pricingSettings.zonePricing?.zones || []).map((zone, index) => (
+                    <div key={zone.id} style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '16px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <input
+                          type="checkbox"
+                          checked={zone.isActive}
+                          onChange={() => updateZone(index, 'isActive', !zone.isActive)}
+                          style={{ width: '18px', height: '18px' }}
+                        />
+                        <span style={{ fontWeight: '600', color: zone.isActive ? '#1f2937' : '#9ca3af', flex: 1 }}>
+                          {zone.name || 'Unnamed Zone'}
+                        </span>
+                        <button
+                          onClick={() => removeZone(index)}
+                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Zone Name</label>
+                          <input
+                            type="text"
+                            value={zone.name}
+                            onChange={(e) => updateZone(index, 'name', e.target.value)}
+                            placeholder="e.g., AC Section"
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Section Match</label>
+                          <input
+                            type="text"
+                            value={zone.sectionMatch}
+                            onChange={(e) => updateZone(index, 'sectionMatch', e.target.value)}
+                            placeholder="e.g., AC"
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Markup Type</label>
+                          <select
+                            value={zone.markupType}
+                            onChange={(e) => updateZone(index, 'markupType', e.target.value)}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          >
+                            <option value="percentage">Percentage (%)</option>
+                            <option value="flat">Flat Amount</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                            Markup Value {zone.markupType === 'percentage' ? '(%)' : '(amount)'}
+                          </label>
+                          <input
+                            type="number"
+                            value={zone.markupValue}
+                            onChange={(e) => updateZone(index, 'markupValue', parseFloat(e.target.value) || 0)}
+                            min="0"
+                            step={zone.markupType === 'percentage' ? '1' : '0.01'}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <button
+                onClick={savePricingSettings}
+                disabled={saving}
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  opacity: saving ? 0.6 : 1
+                }}
+              >
+                {saving ? <FaSpinner size={14} className="animate-spin" /> : <FaSave size={14} />}
+                {saving ? 'Saving...' : 'Save Pricing Settings'}
+              </button>
+            </div>
+          )}
+
+          {/* Save even when disabled (to save the disabled state) */}
+          {!pricingSettings.zonePricing?.enabled && (
+            <button
+              onClick={savePricingSettings}
+              disabled={saving}
+              style={{
+                backgroundColor: '#6b7280',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: 'none',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                opacity: saving ? 0.6 : 1
+              }}
+            >
+              {saving ? <FaSpinner size={14} className="animate-spin" /> : <FaSave size={14} />}
+              {saving ? 'Saving...' : 'Save Settings'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <FaSpinner size={24} style={{ animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: '#6b7280', marginTop: '8px' }}>Loading pricing settings...</p>
+        </div>
+      )}
+
+      {!selectedRestaurant && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
+          <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+          <p style={{ fontSize: '16px', margin: 0 }}>Please select a restaurant to manage pricing settings</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Currency Management Component
 const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
   const [currencySettings, setCurrencySettings] = useState({
@@ -2349,6 +2674,29 @@ const Admin = () => {
                   Tax
                 </button>
                 <button
+                  onClick={() => setActiveTab('pricing')}
+                  style={{
+                    flex: 1,
+                    background: activeTab === 'pricing' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
+                    color: activeTab === 'pricing' ? 'white' : '#6b7280',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '12px',
+                    border: activeTab === 'pricing' ? 'none' : '1px solid #e5e7eb',
+                    boxShadow: activeTab === 'pricing' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <FaSlidersH size={10} />
+                  Pricing
+                </button>
+                <button
                   onClick={() => setActiveTab('currency')}
                   style={{
                     flex: 1,
@@ -2608,6 +2956,28 @@ const Admin = () => {
               >
                 <FaPercentage size={14} />
                 Tax Management
+              </button>
+              <button
+                onClick={() => setActiveTab('pricing')}
+                style={{
+                  background: activeTab === 'pricing' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
+                  color: activeTab === 'pricing' ? 'white' : '#6b7280',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  border: activeTab === 'pricing' ? 'none' : '1.5px solid #e5e7eb',
+                  boxShadow: activeTab === 'pricing' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <FaSlidersH size={14} />
+                Zone Pricing
               </button>
               <button
                 onClick={() => setActiveTab('currency')}
@@ -5922,6 +6292,23 @@ const Admin = () => {
           border: '1px solid #fce7f3'
         }}>
           <TaxManagement
+            restaurants={restaurants}
+            selectedRestaurant={selectedRestaurant}
+            setSelectedRestaurant={setSelectedRestaurant}
+          />
+        </div>
+      )}
+
+      {/* Zone Pricing Settings Section */}
+      {activeTab === 'pricing' && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          padding: '24px',
+          border: '1px solid #fce7f3'
+        }}>
+          <ZonePricingManagement
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}

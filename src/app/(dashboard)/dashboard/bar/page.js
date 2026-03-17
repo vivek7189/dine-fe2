@@ -67,6 +67,15 @@ function BarPOSContent() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
 
+  // Loyalty & Offers
+  const [customerData, setCustomerData] = useState(null);
+  const [loyaltySettings, setLoyaltySettings] = useState(null);
+  const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
+  const [availableOffers, setAvailableOffers] = useState([]);
+  const [selectedOfferId, setSelectedOfferId] = useState('');
+  const [manualDiscount, setManualDiscount] = useState(0);
+  const [manualDiscountType, setManualDiscountType] = useState('flat'); // 'flat' or 'percentage'
+
   // Print refs
   const printWindowRef = useRef(null);
 
@@ -101,6 +110,11 @@ function BarPOSContent() {
       setCustomerName('');
       setCustomerPhone('');
     }
+    // Reset loyalty/discount state on tab switch
+    setCustomerData(null);
+    setRedeemLoyaltyPoints(0);
+    setSelectedOfferId('');
+    setManualDiscount(0);
   }, [activeTabId, activeTab]);
 
   // Redirect non-bar restaurants
@@ -149,6 +163,7 @@ function BarPOSContent() {
     loadTaxSettings(selectedRestaurant.id);
     loadPrintSettings(selectedRestaurant.id);
     fetchOpenTabs(selectedRestaurant.id);
+    loadLoyaltyAndOffers(selectedRestaurant.id);
   }, [selectedRestaurant?.id]);
 
   // ─── Data Loading ───────────────────────────────────────
@@ -178,6 +193,76 @@ function BarPOSContent() {
     } catch (err) {
       console.error('Failed to load print settings:', err);
     }
+  };
+
+  const loadLoyaltyAndOffers = async (restaurantId) => {
+    try {
+      const [settingsRes, offersRes] = await Promise.all([
+        apiClient.getPublicCustomerAppSettings(restaurantId).catch(() => null),
+        apiClient.request(`/api/offers/${restaurantId}`).catch(() => ({ offers: [] }))
+      ]);
+      if (settingsRes?.settings?.loyaltySettings) {
+        setLoyaltySettings(settingsRes.settings.loyaltySettings);
+      }
+      const activeOffers = (offersRes?.offers || []).filter(o => o.isActive);
+      setAvailableOffers(activeOffers);
+    } catch (err) {
+      console.error('Failed to load loyalty/offers:', err);
+    }
+  };
+
+  const lookupCustomer = async (phone) => {
+    if (!phone?.trim() || !selectedRestaurant?.id) return;
+    try {
+      const response = await apiClient.lookupCustomerByPhone(selectedRestaurant.id, phone.trim());
+      if (response?.found && response.customer) {
+        setCustomerData(response.customer);
+        if (!customerName && response.customer.name) {
+          setCustomerName(response.customer.name);
+        }
+      } else {
+        setCustomerData(null);
+      }
+    } catch (err) {
+      console.error('Customer lookup failed:', err);
+      setCustomerData(null);
+    }
+  };
+
+  const getOfferDiscount = () => {
+    if (!selectedOfferId || !activeTab?.items?.length) return 0;
+    const offer = availableOffers.find(o => o.id === selectedOfferId);
+    if (!offer) return 0;
+    const subtotal = (activeTab.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
+    if (subtotal < (offer.minOrderValue || 0)) return 0;
+    let discount = 0;
+    if (offer.discountType === 'percentage') {
+      discount = (subtotal * offer.discountValue) / 100;
+      if (offer.maxDiscount && discount > offer.maxDiscount) discount = offer.maxDiscount;
+    } else {
+      discount = Math.min(offer.discountValue, subtotal);
+    }
+    return Math.round(discount * 100) / 100;
+  };
+
+  const getManualDiscountAmount = () => {
+    if (!manualDiscount || !activeTab?.items?.length) return 0;
+    const subtotal = (activeTab.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
+    if (manualDiscountType === 'percentage') {
+      return Math.round((subtotal * manualDiscount / 100) * 100) / 100;
+    }
+    return Math.min(manualDiscount, subtotal);
+  };
+
+  const getLoyaltyDiscount = () => {
+    if (!loyaltySettings?.enabled || !customerData || !redeemLoyaltyPoints) return 0;
+    const subtotal = (activeTab?.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const afterDiscounts = subtotal - getOfferDiscount() - getManualDiscountAmount();
+    const redemptionRate = loyaltySettings.redemptionRate || 100;
+    const maxRedemptionPercent = loyaltySettings.maxRedemptionPercent || 20;
+    const maxFromPercent = (afterDiscounts * maxRedemptionPercent) / 100;
+    const maxFromPoints = redeemLoyaltyPoints / redemptionRate;
+    return Math.round(Math.min(maxFromPercent, maxFromPoints, afterDiscounts) * 100) / 100;
   };
 
   const fetchOpenTabs = async (restaurantId) => {
@@ -419,10 +504,17 @@ function BarPOSContent() {
 
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const subtotal = (tab.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
-      const { taxBreakdown, totalTax } = calculateTax(subtotal);
 
-      // Step 1: Update order to completed
-      await apiClient.updateOrder(activeTabId, {
+      // Calculate discounts
+      const offerDiscountAmt = getOfferDiscount();
+      const manualDiscountAmt = getManualDiscountAmount();
+      const loyaltyDiscountAmt = getLoyaltyDiscount();
+      const totalDiscount = offerDiscountAmt + manualDiscountAmt + loyaltyDiscountAmt;
+      const afterDiscount = Math.max(0, subtotal - totalDiscount);
+      const { taxBreakdown, totalTax } = calculateTax(afterDiscount);
+
+      // Step 1: Update order to completed with discounts
+      const updatePayload = {
         items: tab.items,
         status: 'completed',
         paymentStatus: 'paid',
@@ -430,11 +522,16 @@ function BarPOSContent() {
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         totalAmount: subtotal,
+        discountAmount: Math.round(totalDiscount * 100) / 100,
+        offerDiscount: offerDiscountAmt > 0 ? { offerId: selectedOfferId, amount: offerDiscountAmt, offerName: availableOffers.find(o => o.id === selectedOfferId)?.name || '' } : null,
+        manualDiscount: manualDiscountAmt > 0 ? { type: manualDiscountType, value: manualDiscount, amount: manualDiscountAmt } : null,
+        loyaltyDiscount: loyaltyDiscountAmt > 0 ? { pointsRedeemed: redeemLoyaltyPoints, amount: loyaltyDiscountAmt } : null,
         taxBreakdown,
         taxAmount: totalTax,
-        finalAmount: subtotal + totalTax,
+        finalAmount: Math.round((afterDiscount + totalTax) * 100) / 100,
         lastUpdatedBy: { name: user.name, id: user.id, role: user.role }
-      });
+      };
+      await apiClient.updateOrder(activeTabId, updatePayload);
 
       // Step 2: Verify payment
       await apiClient.verifyPayment({
@@ -448,7 +545,7 @@ function BarPOSContent() {
 
       // Step 3: Print bill
       if (printSettings?.showBillSummaryAfterBilling !== false) {
-        printBill(tab, subtotal, taxBreakdown, totalTax);
+        printBill(tab, subtotal, taxBreakdown, totalTax, { offerDiscount: offerDiscountAmt, manualDiscount: manualDiscountAmt, loyaltyDiscount: loyaltyDiscountAmt, totalDiscount });
       }
       // Server print (only if KOT printer is explicitly enabled)
       if (printSettings?.kotPrinterEnabled === true) {
@@ -511,7 +608,7 @@ function BarPOSContent() {
 
   // ─── Print ──────────────────────────────────────────────
 
-  const printBill = (tab, subtotal, taxBreakdown, totalTax) => {
+  const printBill = (tab, subtotal, taxBreakdown, totalTax, discounts = {}) => {
     const currencySymbol = getCurrencySymbol();
     const items = tab.items || [];
     const itemsHtml = items.map(item =>
@@ -521,7 +618,14 @@ function BarPOSContent() {
       `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`
     ).join('');
     const tabName = tab.customerInfo?.name || 'Tab';
-    const html = `<!DOCTYPE html><html><head><title>Bill - ${tabName}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${(selectedRestaurant?.name || 'Bar').replace(/</g, '&lt;')}</div><div class="bill-title">--- BILL / INVOICE ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>Tab:</span><span><strong>${tabName.replace(/</g, '&lt;')}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div><div><span>Payment:</span><span>${paymentMethod.toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${(subtotal + totalTax).toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for visiting!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+    // Build discount lines
+    let discountHtml = '';
+    if (discounts.offerDiscount > 0) discountHtml += `<div><span>Offer Discount:</span><span>-${currencySymbol}${discounts.offerDiscount.toFixed(2)}</span></div>`;
+    if (discounts.manualDiscount > 0) discountHtml += `<div><span>Discount:</span><span>-${currencySymbol}${discounts.manualDiscount.toFixed(2)}</span></div>`;
+    if (discounts.loyaltyDiscount > 0) discountHtml += `<div><span>Loyalty Points:</span><span>-${currencySymbol}${discounts.loyaltyDiscount.toFixed(2)}</span></div>`;
+    const afterDiscount = Math.max(0, subtotal - (discounts.totalDiscount || 0));
+    const grandTotal = afterDiscount + totalTax;
+    const html = `<!DOCTYPE html><html><head><title>Bill - ${tabName}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${(selectedRestaurant?.name || 'Bar').replace(/</g, '&lt;')}</div><div class="bill-title">--- BILL / INVOICE ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>Tab:</span><span><strong>${tabName.replace(/</g, '&lt;')}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div><div><span>Payment:</span><span>${paymentMethod.toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${grandTotal.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for visiting!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
 
     if (printWindowRef.current && !printWindowRef.current.closed) {
       printWindowRef.current.close();
@@ -1143,6 +1247,7 @@ function BarPOSContent() {
                       type="tel"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
+                      onBlur={() => lookupCustomer(customerPhone)}
                       placeholder="Phone"
                       style={{
                         width: '100%',
@@ -1159,6 +1264,19 @@ function BarPOSContent() {
                     />
                   </div>
                 </div>
+                {/* Customer Loyalty Info */}
+                {customerData && loyaltySettings?.enabled && (
+                  <div style={{ marginTop: '6px', padding: '6px 10px', backgroundColor: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#065f46' }}>
+                        {customerData.name || 'Customer'} — {customerData.loyaltyPoints || 0} pts
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#047857' }}>
+                        Worth {formatCurrency((customerData.loyaltyPoints || 0) / (loyaltySettings.redemptionRate || 100))}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Items List */}
@@ -1262,6 +1380,73 @@ function BarPOSContent() {
                   ))}
                 </div>
 
+                {/* Discounts & Loyalty Section */}
+                {activeTabItems.length > 0 && (
+                  <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {/* Offer Selector */}
+                    {availableOffers.length > 0 && (
+                      <div>
+                        <select
+                          value={selectedOfferId}
+                          onChange={(e) => setSelectedOfferId(e.target.value)}
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #e5e7eb', fontSize: '11px', fontWeight: '600', backgroundColor: '#f9fafb', boxSizing: 'border-box' }}
+                        >
+                          <option value="">No offer</option>
+                          {availableOffers.map(o => (
+                            <option key={o.id} value={o.id}>
+                              {o.name} ({o.discountType === 'percentage' ? `${o.discountValue}%` : formatCurrency(o.discountValue)} off)
+                              {o.schedule ? ' [Scheduled]' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        {getOfferDiscount() > 0 && (
+                          <div style={{ fontSize: '11px', color: '#059669', fontWeight: '600', marginTop: '2px' }}>
+                            Offer discount: -{formatCurrency(getOfferDiscount())}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Manual Discount */}
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <input
+                        type="number"
+                        value={manualDiscount || ''}
+                        onChange={(e) => setManualDiscount(parseFloat(e.target.value) || 0)}
+                        placeholder="Discount"
+                        min="0"
+                        style={{ flex: 1, padding: '7px 10px', borderRadius: '8px', border: '1.5px solid #e5e7eb', fontSize: '11px', fontWeight: '500', boxSizing: 'border-box' }}
+                      />
+                      <select
+                        value={manualDiscountType}
+                        onChange={(e) => setManualDiscountType(e.target.value)}
+                        style={{ padding: '7px 6px', borderRadius: '8px', border: '1.5px solid #e5e7eb', fontSize: '11px', fontWeight: '600', boxSizing: 'border-box' }}
+                      >
+                        <option value="flat">{getCurrencySymbol()}</option>
+                        <option value="percentage">%</option>
+                      </select>
+                    </div>
+
+                    {/* Loyalty Redemption */}
+                    {loyaltySettings?.enabled && customerData && (customerData.loyaltyPoints || 0) > 0 && (
+                      <div style={{ padding: '6px 10px', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: '#065f46' }}>Redeem Points</span>
+                          <span style={{ fontSize: '10px', color: '#047857' }}>{redeemLoyaltyPoints} pts = {formatCurrency(getLoyaltyDiscount())}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max={customerData.loyaltyPoints || 0}
+                          value={redeemLoyaltyPoints}
+                          onChange={(e) => setRedeemLoyaltyPoints(parseInt(e.target.value) || 0)}
+                          style={{ width: '100%', accentColor: '#10b981' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Grand Total - Prominent */}
                 <div style={{
                   display: 'flex',
@@ -1274,7 +1459,9 @@ function BarPOSContent() {
                   marginBottom: '12px'
                 }}>
                   <span style={{ fontSize: '14px', fontWeight: '700', color: '#374151' }}>Total</span>
-                  <span style={{ fontSize: '20px', fontWeight: '800', color: '#dc2626' }}>{formatCurrency(activeGrandTotal)}</span>
+                  <span style={{ fontSize: '20px', fontWeight: '800', color: '#dc2626' }}>
+                    {formatCurrency(Math.max(0, activeGrandTotal - getOfferDiscount() - getManualDiscountAmount() - getLoyaltyDiscount()))}
+                  </span>
                 </div>
 
                 {/* Payment & Actions - only if items exist */}
