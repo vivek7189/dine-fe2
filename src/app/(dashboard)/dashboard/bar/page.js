@@ -305,10 +305,11 @@ function BarPOSContent() {
   // ─── Tab Functions ──────────────────────────────────────
 
   const openTab = async () => {
-    if (!newTabName.trim() || !selectedRestaurant?.id) return;
+    if (!selectedRestaurant?.id) return;
     setCreatingTab(true);
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const tabName = newTabName.trim() || ''; // Empty = auto-numbered by backend
       const orderData = {
         restaurantId: selectedRestaurant.id,
         tableNumber: null,
@@ -320,7 +321,7 @@ function BarPOSContent() {
         taxBreakdown: [],
         taxAmount: 0,
         finalAmount: 0,
-        customerInfo: { name: newTabName.trim() },
+        customerInfo: tabName ? { name: tabName } : null,
         staffInfo: {
           userId: user.id,
           name: user.name || 'Staff',
@@ -578,7 +579,7 @@ function BarPOSContent() {
       const tab = tabsRef.current.find(t => t.id === activeTabId);
       if (tab) {
         await apiClient.updateOrder(activeTabId, {
-          customerInfo: { name: customerName || tab.customerInfo?.name || 'Tab', phone: customerPhone || '' }
+          customerInfo: { name: customerName || tab.customerInfo?.name || '', phone: customerPhone || '' }
         });
         setTabs(prev => prev.map(t => t.id === activeTabId ? {
           ...t,
@@ -617,7 +618,7 @@ function BarPOSContent() {
     const taxHtml = (taxBreakdown || []).map(tax =>
       `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`
     ).join('');
-    const tabName = tab.customerInfo?.name || 'Tab';
+    const tabName = tab.customerInfo?.name || (tab.tabNumber ? `Tab #${tab.tabNumber}` : 'Tab');
     // Build discount lines
     let discountHtml = '';
     if (discounts.offerDiscount > 0) discountHtml += `<div><span>Offer Discount:</span><span>-${currencySymbol}${discounts.offerDiscount.toFixed(2)}</span></div>`;
@@ -1023,7 +1024,7 @@ function BarPOSContent() {
                           textOverflow: 'ellipsis',
                           lineHeight: '1.3'
                         }}>
-                          {tab.customerInfo?.name || 'Tab'}
+                          {tab.customerInfo?.name || (tab.tabNumber ? `Tab #${tab.tabNumber}` : 'Tab')}
                         </div>
                         <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -1118,17 +1119,20 @@ function BarPOSContent() {
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
             {!activeTabId && (
               <div style={{
-                textAlign: 'center',
-                padding: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
                 color: '#9ca3af',
-                backgroundColor: '#fff',
-                borderRadius: '12px',
-                border: '2px dashed #e5e7eb',
-                marginBottom: '16px'
+                backgroundColor: '#fef3c7',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                fontSize: '13px',
               }}>
-                <FaGlassMartiniAlt size={22} style={{ opacity: 0.3, marginBottom: '8px' }} />
-                <p style={{ fontSize: '14px', fontWeight: '600', margin: 0, color: '#6b7280' }}>Select a tab or open a new one</p>
-                <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Items will be added to the active tab</p>
+                <FaGlassMartiniAlt size={14} style={{ color: '#d97706', flexShrink: 0 }} />
+                <span style={{ color: '#92400e' }}>
+                  Tap <strong>&quot;+ New Tab&quot;</strong> to start — items will be added to the active tab
+                </span>
               </div>
             )}
             <div style={{
@@ -1166,10 +1170,52 @@ function BarPOSContent() {
           overflow: 'hidden'
         }}>
           {!activeTab ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', color: '#d1d5db' }}>
-              <FaReceipt size={36} style={{ opacity: 0.3, marginBottom: '12px' }} />
-              <p style={{ fontSize: '14px', fontWeight: '600', margin: 0, color: '#9ca3af' }}>No tab selected</p>
-              <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Pick a tab from the left</p>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', color: '#6b7280' }}>
+              {/* Quick stats summary */}
+              <div style={{ textAlign: 'center', padding: '20px 0 16px 0', borderBottom: '1px solid #f3f4f6' }}>
+                <FaReceipt size={28} style={{ opacity: 0.2, marginBottom: '8px' }} />
+                <p style={{ fontSize: '15px', fontWeight: '700', margin: 0, color: '#374151' }}>
+                  {tabs.length > 0 ? `${tabs.length} Open Tab${tabs.length > 1 ? 's' : ''}` : 'No Open Tabs'}
+                </p>
+                <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: '#9ca3af' }}>
+                  {tabs.length > 0 ? 'Select a tab to view details' : 'Create a new tab to get started'}
+                </p>
+              </div>
+
+              {/* Summary when tabs exist */}
+              {tabs.length > 0 && (
+                <div style={{ padding: '16px 0' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ backgroundColor: '#f9fafb', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: '#dc2626' }}>
+                        {formatCurrency(tabs.reduce((sum, t) => sum + (t.items || []).reduce((s, i) => s + i.price * i.quantity, 0), 0))}
+                      </p>
+                      <p style={{ fontSize: '11px', margin: '4px 0 0 0', color: '#9ca3af' }}>Total across tabs</p>
+                    </div>
+                    <div style={{ backgroundColor: '#f9fafb', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: '#6b7280' }}>
+                        {tabs.reduce((sum, t) => sum + (t.items || []).reduce((s, i) => s + i.quantity, 0), 0)}
+                      </p>
+                      <p style={{ fontSize: '11px', margin: '4px 0 0 0', color: '#9ca3af' }}>Total items</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick tips */}
+              <div style={{ marginTop: 'auto', padding: '16px 0 0 0' }}>
+                <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Quick Tips</p>
+                {[
+                  { icon: '🍺', text: 'Click "+ New Tab" to open a customer tab' },
+                  { icon: '🔍', text: 'Use search or shortcodes to find items fast' },
+                  { icon: '📋', text: 'Long-press a tab to see options' },
+                ].map((tip, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '14px' }}>{tip.icon}</span>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{tip.text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <>
@@ -1184,7 +1230,7 @@ function BarPOSContent() {
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '16px', fontWeight: '800', color: '#dc2626', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {activeTab.customerInfo?.name || 'Tab'}
+                    {activeTab.customerInfo?.name || (activeTab.tabNumber ? `Tab #${activeTab.tabNumber}` : 'Tab')}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
                     <span style={{
@@ -1611,14 +1657,14 @@ function BarPOSContent() {
             width: '100%', maxWidth: '380px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
           }}>
             <h3 style={{ fontSize: '17px', fontWeight: '700', margin: '0 0 4px 0', color: '#1f2937' }}>Open New Tab</h3>
-            <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 14px 0' }}>Customer name, table, or seat number</p>
+            <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 14px 0' }}>Auto-numbered — or type a custom name</p>
             <input
               type="text"
               autoFocus
-              placeholder="e.g. Table 5, Rahul, Seat 12..."
+              placeholder="Tab name (optional — auto-numbered if empty)"
               value={newTabName}
               onChange={(e) => setNewTabName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && newTabName.trim()) openTab(); if (e.key === 'Escape') setShowNewTabDialog(false); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') openTab(); if (e.key === 'Escape') setShowNewTabDialog(false); }}
               style={{
                 width: '100%', padding: '12px 14px', border: '2px solid #e5e7eb',
                 borderRadius: '10px', fontSize: '15px', outline: 'none',
@@ -1640,13 +1686,13 @@ function BarPOSContent() {
               </button>
               <button
                 onClick={openTab}
-                disabled={!newTabName.trim() || creatingTab}
+                disabled={creatingTab}
                 style={{
                   flex: 1, padding: '11px', borderRadius: '10px', fontSize: '14px',
                   fontWeight: '700', border: 'none',
-                  backgroundColor: !newTabName.trim() || creatingTab ? '#e5e7eb' : '#ef4444',
-                  color: !newTabName.trim() || creatingTab ? '#9ca3af' : 'white',
-                  cursor: !newTabName.trim() || creatingTab ? 'not-allowed' : 'pointer',
+                  backgroundColor: creatingTab ? '#e5e7eb' : '#ef4444',
+                  color: creatingTab ? '#9ca3af' : 'white',
+                  cursor: creatingTab ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                 }}
               >
