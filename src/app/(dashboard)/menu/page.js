@@ -704,6 +704,42 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
           )}
         </div>
         
+        {/* Type-specific info badges */}
+        {(item.spiritCategory || item.abv || item.unit || item.weight || item.servingSize || item.bottleSize) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+            {item.spiritCategory && (
+              <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fdf2f8', color: '#9d174d' }}>
+                {item.spiritCategory}
+              </span>
+            )}
+            {item.abv && (
+              <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fef3c7', color: '#92400e' }}>
+                {item.abv}% ABV
+              </span>
+            )}
+            {item.bottleSize && (
+              <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fce7f3', color: '#831843' }}>
+                {item.bottleSize}
+              </span>
+            )}
+            {item.weight && (
+              <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fef9ee', color: '#92400e' }}>
+                {item.weight}
+              </span>
+            )}
+            {item.unit && (
+              <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fef9ee', color: '#92400e' }}>
+                per {item.unit}
+              </span>
+            )}
+            {item.servingSize && (
+              <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1e40af' }}>
+                {item.servingSize}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Price and Actions */}
         <div style={{
           display: 'flex',
@@ -1530,6 +1566,8 @@ const MenuManagement = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [currentRestaurant, setCurrentRestaurant] = useState(null); // Will be loaded from user data
   const isBarMode = currentRestaurant?.businessType === 'bar';
+  const isBakeryMode = currentRestaurant?.businessType === 'bakery';
+  const isIceCreamMode = currentRestaurant?.businessType === 'ice_cream';
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -1559,7 +1597,17 @@ const MenuManagement = () => {
     spiritCategory: '',
     ingredients: '',
     abv: '',
-    servingUnit: ''
+    servingUnit: '',
+    bottleSize: '',
+    // Bakery-specific fields
+    unit: '',
+    weight: '',
+    shelfLife: '',
+    mfgDate: '',
+    expiryDate: '',
+    // Ice cream-specific fields
+    servingSize: '',
+    scoopOptions: ''
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
@@ -1898,6 +1946,30 @@ const MenuManagement = () => {
     });
   };
 
+  const addBakeryPackVariants = () => {
+    const templates = [
+      { name: 'Single Piece', price: '', description: '' },
+      { name: 'Box of 6', price: '', description: '' },
+      { name: 'Box of 12', price: '', description: '' }
+    ];
+    setFormData({
+      ...formData,
+      variants: [...(formData.variants || []), ...templates]
+    });
+  };
+
+  const addIceCreamScoopVariants = () => {
+    const templates = [
+      { name: 'Single Scoop', price: '', description: '' },
+      { name: 'Double Scoop', price: '', description: '' },
+      { name: 'Triple Scoop', price: '', description: '' }
+    ];
+    setFormData({
+      ...formData,
+      variants: [...(formData.variants || []), ...templates]
+    });
+  };
+
   const removeVariant = (index) => {
     setFormData({
       ...formData,
@@ -1949,7 +2021,15 @@ const MenuManagement = () => {
       spiritCategory: item.spiritCategory || '',
       ingredients: item.ingredients || '',
       abv: item.abv?.toString() || '',
-      servingUnit: item.servingUnit || ''
+      servingUnit: item.servingUnit || '',
+      bottleSize: item.bottleSize || '',
+      unit: item.unit || '',
+      weight: item.weight || '',
+      shelfLife: item.shelfLife?.toString() || '',
+      mfgDate: item.mfgDate || '',
+      expiryDate: item.expiryDate || '',
+      servingSize: item.servingSize || '',
+      scoopOptions: item.scoopOptions?.toString() || ''
     });
     setEditingItem(item);
     setShowAddForm(true);
@@ -2101,7 +2181,15 @@ const MenuManagement = () => {
       spiritCategory: '',
       ingredients: '',
       abv: '',
-      servingUnit: ''
+      servingUnit: '',
+      bottleSize: '',
+      unit: '',
+      weight: '',
+      shelfLife: '',
+      mfgDate: '',
+      expiryDate: '',
+      servingSize: '',
+      scoopOptions: ''
     });
     setEditingItem(null);
     setShowAddForm(false);
@@ -3558,17 +3646,142 @@ const MenuManagement = () => {
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div style={{ gridColumn: '1 / -1' }}>
+                      <div>
                         <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Unit</label>
-                        <input
-                          type="text"
+                        <select
                           value={formData.servingUnit || ''}
                           onChange={(e) => setFormData({...formData, servingUnit: e.target.value})}
-                          placeholder="e.g., ml, peg, glass, bottle, pint"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="ml">ml</option>
+                          <option value="peg">Peg</option>
+                          <option value="glass">Glass</option>
+                          <option value="bottle">Bottle</option>
+                          <option value="pint">Pint</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Bottle Size</label>
+                        <select
+                          value={formData.bottleSize || ''}
+                          onChange={(e) => setFormData({...formData, bottleSize: e.target.value})}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="180ml">180ml</option>
+                          <option value="375ml">375ml</option>
+                          <option value="750ml">750ml</option>
+                          <option value="1L">1L</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bakery-Specific Fields */}
+                {isBakeryMode && (
+                  <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#fef9ee', borderRadius: '12px', border: '1px solid #fde68a' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🧁 Bakery Details
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Unit</label>
+                        <select
+                          value={formData.unit || ''}
+                          onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="piece">Piece</option>
+                          <option value="kg">Kg</option>
+                          <option value="gram">Gram</option>
+                          <option value="dozen">Dozen</option>
+                          <option value="box">Box</option>
+                          <option value="slice">Slice</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Weight</label>
+                        <input
+                          type="text"
+                          value={formData.weight || ''}
+                          onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                          placeholder="e.g., 250g, 1kg"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Shelf Life (days)</label>
+                        <input
+                          type="number"
+                          value={formData.shelfLife || ''}
+                          onChange={(e) => setFormData({...formData, shelfLife: e.target.value})}
+                          placeholder="e.g., 3"
+                          min="0"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>MFG Date</label>
+                        <input
+                          type="date"
+                          value={formData.mfgDate || ''}
+                          onChange={(e) => setFormData({...formData, mfgDate: e.target.value})}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Expiry Date</label>
+                        <input
+                          type="date"
+                          value={formData.expiryDate || ''}
+                          onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
                         />
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Ice Cream-Specific Fields */}
+                {isIceCreamMode && (
+                  <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🍦 Ice Cream Details
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Size</label>
+                        <select
+                          value={formData.servingSize || ''}
+                          onChange={(e) => setFormData({...formData, servingSize: e.target.value})}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="scoop">Scoop</option>
+                          <option value="cup">Cup</option>
+                          <option value="cone">Cone</option>
+                          <option value="sundae">Sundae</option>
+                          <option value="shake">Shake</option>
+                          <option value="tub">Tub</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Max Scoops</label>
+                        <input
+                          type="number"
+                          value={formData.scoopOptions || ''}
+                          onChange={(e) => setFormData({...formData, scoopOptions: e.target.value})}
+                          placeholder="e.g., 3"
+                          min="1"
+                          max="5"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>Use Customizations below for toppings (sprinkles, sauces, etc.)</p>
                   </div>
                 )}
 
@@ -3737,6 +3950,48 @@ const MenuManagement = () => {
                             }}
                           >
                             🍸 Add Serving Sizes (Peg/Large/Bottle)
+                          </button>
+                        )}
+                        {isBakeryMode && (!formData.variants || formData.variants.length === 0) && (
+                          <button
+                            type="button"
+                            onClick={addBakeryPackVariants}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#d97706',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            🧁 Add Pack Sizes (Piece/Box of 6/Box of 12)
+                          </button>
+                        )}
+                        {isIceCreamMode && (!formData.variants || formData.variants.length === 0) && (
+                          <button
+                            type="button"
+                            onClick={addIceCreamScoopVariants}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#2563eb',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            🍦 Add Scoop Sizes (Single/Double/Triple)
                           </button>
                         )}
                       </div>
