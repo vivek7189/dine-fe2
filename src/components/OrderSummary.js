@@ -108,6 +108,14 @@ const OrderSummary = ({
   const [useFullChatGPT, setUseFullChatGPT] = useState(true); // Feature flag - Set to true for full ChatGPT processing
   const [isMobile, setIsMobile] = useState(false);
 
+  // Offer & Discount State
+  const [activeOffers, setActiveOffers] = useState([]);
+  const [selectedOfferId, setSelectedOfferId] = useState(null);
+  const [offerDiscount, setOfferDiscount] = useState(0);
+  const [selectedOfferName, setSelectedOfferName] = useState('');
+  const [manualDiscountValue, setManualDiscountValue] = useState('');
+  const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
+
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
 
@@ -169,12 +177,18 @@ const OrderSummary = ({
       console.log('Tax not enabled for this restaurant');
       setTaxBreakdown([]);
       setTotalTax(0);
-      setGrandTotal(getTotalAmount());
+      // Apply discounts even if tax is disabled
+      const subtotal = getTotalAmount();
+      const discTotal = offerDiscount + getManualDiscountAmount();
+      setGrandTotal(Math.max(0, subtotal - discTotal));
       return;
     }
 
     const subtotal = getTotalAmount();
-    
+    // Apply discounts before tax
+    const discTotal = offerDiscount + getManualDiscountAmount();
+    const taxableAmount = Math.max(0, subtotal - discTotal);
+
     // Calculate tax based on restaurant's tax settings
     const calculatedTaxes = [];
     let totalTaxAmount = 0;
@@ -182,7 +196,7 @@ const OrderSummary = ({
     if (taxSettings.taxes && taxSettings.taxes.length > 0) {
       taxSettings.taxes.forEach(tax => {
         if (tax.enabled) {
-          const taxAmount = subtotal * (tax.rate / 100);
+          const taxAmount = taxableAmount * (tax.rate / 100);
           calculatedTaxes.push({
             name: tax.name,
             rate: tax.rate,
@@ -193,7 +207,7 @@ const OrderSummary = ({
       });
     } else if (taxSettings.defaultTaxRate) {
       // Fallback to default tax rate
-      const taxAmount = subtotal * (taxSettings.defaultTaxRate / 100);
+      const taxAmount = taxableAmount * (taxSettings.defaultTaxRate / 100);
       calculatedTaxes.push({
         name: 'GST',
         rate: taxSettings.defaultTaxRate,
@@ -202,12 +216,12 @@ const OrderSummary = ({
       totalTaxAmount = taxAmount;
     }
 
-    console.log('Calculated taxes:', calculatedTaxes, 'Total tax:', totalTaxAmount);
+    console.log('Calculated taxes:', calculatedTaxes, 'Total tax:', totalTaxAmount, 'Discount:', discTotal);
     setTaxBreakdown(calculatedTaxes);
     setTotalTax(totalTaxAmount);
-    setGrandTotal(subtotal + totalTaxAmount);
+    setGrandTotal(taxableAmount + totalTaxAmount);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount]);
   
   // Calculate tax when cart changes
   useEffect(() => {
@@ -219,7 +233,46 @@ const OrderSummary = ({
       setTotalTax(0);
       setGrandTotal(getTotalAmount());
     }
-  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings]);
+  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState]);
+
+  // Load active offers for offer selector
+  useEffect(() => {
+    if (!restaurantId) return;
+    const loadOffers = async () => {
+      try {
+        const response = await apiClient.getActiveOffers(restaurantId);
+        const offers = (response.offers || response || []).filter(o => o.isActive);
+        // Filter by schedule
+        const now = new Date();
+        const currentDay = now.getDay();
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const validOffers = offers.filter(o => {
+          if (!o.schedule || o.schedule.type !== 'recurring') return true;
+          if (o.schedule.days && !o.schedule.days.includes(currentDay)) return false;
+          if (o.schedule.startTime && currentTime < o.schedule.startTime) return false;
+          if (o.schedule.endTime && currentTime > o.schedule.endTime) return false;
+          return true;
+        });
+        setActiveOffers(validOffers);
+      } catch (err) {
+        console.error('Error loading offers:', err);
+      }
+    };
+    loadOffers();
+  }, [restaurantId]);
+
+  // Calculate manual discount amount
+  const getManualDiscountAmount = useCallback(() => {
+    const val = parseFloat(manualDiscountValue) || 0;
+    const subtotal = getTotalAmount();
+    if (manualDiscountTypeState === 'percentage') {
+      return Math.round((subtotal * val / 100) * 100) / 100;
+    }
+    return Math.min(val, subtotal);
+  }, [manualDiscountValue, manualDiscountTypeState, getTotalAmount]);
+
+  // Total discount for display
+  const totalDiscountAmount = offerDiscount + getManualDiscountAmount();
 
   // Pre-populate special instructions when editing an existing order
   useEffect(() => {
@@ -456,7 +509,12 @@ const OrderSummary = ({
           totalTax,
           finalAmount: grandTotal,
           subtotal: getTotalAmount(),
-          specialInstructions: specialInstructions.trim() || null
+          specialInstructions: specialInstructions.trim() || null,
+          offerIds: selectedOfferId ? [selectedOfferId] : [],
+          manualDiscount: getManualDiscountAmount(),
+          offerDiscount,
+          selectedOfferName,
+          totalDiscountAmount: offerDiscount + getManualDiscountAmount(),
         };
         const result = await onProcessOrder(taxData);
         console.log('Process order result:', result);
@@ -1559,8 +1617,92 @@ const OrderSummary = ({
           flexShrink: 0,
           boxShadow: '0 -4px 12px rgba(0,0,0,0.08)'
         }}>
+          {/* Offers & Discount Section */}
+          <div style={{ padding: '8px 12px 0 12px' }}>
+            {/* Offer Selector */}
+            {activeOffers.length > 0 && (
+              <div style={{ marginBottom: '6px' }}>
+                <select
+                  value={selectedOfferId || ''}
+                  onChange={(e) => {
+                    const offerId = e.target.value;
+                    if (!offerId) {
+                      setSelectedOfferId(null);
+                      setOfferDiscount(0);
+                      setSelectedOfferName('');
+                    } else {
+                      const offer = activeOffers.find(o => (o.id || o._id) === offerId);
+                      if (offer) {
+                        setSelectedOfferId(offerId);
+                        setSelectedOfferName(offer.name);
+                        // Calculate discount client-side (backend will validate)
+                        const sub = getTotalAmount();
+                        if (offer.discountType === 'percentage') {
+                          let disc = (sub * (offer.discountValue || 0)) / 100;
+                          if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
+                          setOfferDiscount(Math.round(disc * 100) / 100);
+                        } else {
+                          setOfferDiscount(Math.min(offer.discountValue || 0, sub));
+                        }
+                      }
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #e9d5ff',
+                    backgroundColor: '#f5f3ff',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#6d28d9',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">🏷️ {activeOffers.length} offer{activeOffers.length > 1 ? 's' : ''} available</option>
+                  {activeOffers.map(offer => (
+                    <option key={offer.id || offer._id} value={offer.id || offer._id}>
+                      {offer.name} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : formatCurrency(offer.discountValue)} off)
+                      {offer.schedule?.type === 'recurring' ? ' ⏰' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Manual Discount */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+              <button
+                onClick={() => setManualDiscountTypeState(prev => prev === 'flat' ? 'percentage' : 'flat')}
+                style={{
+                  width: '32px', height: '32px', borderRadius: '6px',
+                  border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6',
+                  fontWeight: '700', fontSize: '14px', color: '#374151',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                {manualDiscountTypeState === 'percentage' ? '%' : getCurrencySymbol()}
+              </button>
+              <input
+                type="number"
+                placeholder="Manual discount"
+                value={manualDiscountValue}
+                onChange={(e) => setManualDiscountValue(e.target.value)}
+                style={{
+                  flex: 1, padding: '6px 10px', borderRadius: '6px',
+                  border: '1px solid #e5e7eb', fontSize: '12px', color: '#1f2937'
+                }}
+              />
+              {getManualDiscountAmount() > 0 && (
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#10b981', alignSelf: 'center', whiteSpace: 'nowrap' }}>
+                  -{formatCurrency(getManualDiscountAmount())}
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Total - Red bar */}
-          <div style={{ padding: '10px 12px 6px 12px' }}>
+          <div style={{ padding: '4px 12px 6px 12px' }}>
             <div style={{
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
               color: 'white',
@@ -1572,14 +1714,15 @@ const OrderSummary = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>{t('common.total')}</div>
-                  {(taxBreakdown.length > 0 || totalTax > 0) && (
-                    <div style={{ fontSize: '11px', opacity: 0.9, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      <span>Subtotal: {formatCurrency(getTotalAmount())}</span>
-                      {taxBreakdown.map((tax, index) => (
-                        <span key={index}>{tax.name} ({tax.rate}%): {formatCurrency(tax.amount || 0)}</span>
-                      ))}
-                    </div>
-                  )}
+                  <div style={{ fontSize: '11px', opacity: 0.9, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <span>Subtotal: {formatCurrency(getTotalAmount())}</span>
+                    {totalDiscountAmount > 0 && (
+                      <span style={{ color: '#bbf7d0' }}>Discount: -{formatCurrency(totalDiscountAmount)}</span>
+                    )}
+                    {taxBreakdown.map((tax, index) => (
+                      <span key={index}>{tax.name} ({tax.rate}%): {formatCurrency(tax.amount || 0)}</span>
+                    ))}
+                  </div>
                 </div>
                 <span style={{ fontSize: '22px', fontWeight: 'bold' }}>{formatCurrency(grandTotal > 0 ? grandTotal : getTotalAmount())}</span>
               </div>

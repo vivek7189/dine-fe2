@@ -2026,13 +2026,7 @@ class ApiClient {
     });
   }
 
-  // Create booking (reservation)
-  async createBooking(bookingData) {
-    return this.request('/api/booking', {
-      method: 'POST',
-      body: bookingData,
-    });
-  }
+  // Create booking (reservation) — uses createBooking(restaurantId, bookingData) defined above
 
   // Get bookings
   async getBookings(restaurantId, filters = {}) {

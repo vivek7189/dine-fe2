@@ -614,12 +614,33 @@ const OrderHistory = () => {
     // Note: No fallback to current taxSettings - this prevents showing wrong tax on old orders
     // Old orders without saved tax data will show no tax (which is accurate if tax wasn't applied)
 
+    // Calculate discount breakdown from order data
+    let discountAmount = 0;
+    const discountLines = [];
+
+    if (order.discountAmount && order.discountAmount > 0) {
+      const amt = parseFloat(order.discountAmount.toFixed(2));
+      discountAmount += amt;
+      const offerName = order.appliedOffer?.name || (order.appliedOffers?.length > 0 ? order.appliedOffers[0]?.name : null) || 'Offer Discount';
+      discountLines.push({ name: offerName, amount: amt });
+    }
+    if (order.manualDiscount && order.manualDiscount > 0) {
+      const amt = parseFloat(order.manualDiscount.toFixed(2));
+      discountAmount += amt;
+      discountLines.push({ name: 'Manual Discount', amount: amt });
+    }
+    if (order.loyaltyDiscount && order.loyaltyDiscount > 0) {
+      const amt = parseFloat(order.loyaltyDiscount.toFixed(2));
+      discountAmount += amt;
+      discountLines.push({ name: 'Loyalty Points', amount: amt });
+    }
+
     // Use saved finalAmount if available, otherwise calculate
     const total = order.finalAmount && order.finalAmount > 0
       ? parseFloat(order.finalAmount.toFixed(2))
-      : parseFloat((subtotal + taxAmount).toFixed(2));
+      : parseFloat((subtotal - discountAmount + taxAmount).toFixed(2));
 
-    return { subtotal, taxAmount, taxLines, total };
+    return { subtotal, taxAmount, taxLines, discountAmount, discountLines, total };
   };
 
   const calculateOrderTotal = (order) => {
@@ -1223,9 +1244,12 @@ const OrderHistory = () => {
                         </div>
                         <div className="col-span-6 sm:col-span-2 flex flex-col items-end gap-2">
                           <div className="text-right space-y-0.5">
-                            {breakdown.taxLines?.length > 0 && (
+                            {(breakdown.taxLines?.length > 0 || breakdown.discountLines?.length > 0) && (
                               <>
                                 <div className="text-xs text-gray-500">Subtotal {formatCurrency(breakdown.subtotal)}</div>
+                                {breakdown.discountLines?.map((line, i) => (
+                                  <div key={`d${i}`} className="text-xs text-green-600">-{line.name} {formatCurrency(line.amount)}</div>
+                                ))}
                                 {breakdown.taxLines.map((line, i) => (
                                   <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} {formatCurrency(line.amount)}</div>
                                 ))}
@@ -1877,6 +1901,10 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
   const orderTotal = calculateOrderTotal(order);
   const subtotal = order.items?.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0) || 0;
   const taxAmount = order.taxAmount || Math.max(0, orderTotal - subtotal);
+  const offerDiscount = order.discountAmount || 0;
+  const manualDiscountAmt = order.manualDiscount || 0;
+  const loyaltyDiscountAmt = order.loyaltyDiscount || 0;
+  const totalDiscount = offerDiscount + manualDiscountAmt + loyaltyDiscountAmt;
   const invoiceNumber = order.dailyOrderId || order.orderNumber || (order.id ? order.id.slice(-4).toUpperCase() : 'N/A');
   
   return (
@@ -2037,10 +2065,34 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                       <span>Subtotal:</span>
                       <span>{formatCurrency(subtotal)}</span>
                     </div>
+                    {offerDiscount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>{order.appliedOffer?.name || 'Offer Discount'}:</span>
+                        <span>-{formatCurrency(offerDiscount)}</span>
+                      </div>
+                    )}
+                    {manualDiscountAmt > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Manual Discount:</span>
+                        <span>-{formatCurrency(manualDiscountAmt)}</span>
+                      </div>
+                    )}
+                    {loyaltyDiscountAmt > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Loyalty Points:</span>
+                        <span>-{formatCurrency(loyaltyDiscountAmt)}</span>
+                      </div>
+                    )}
                     {taxAmount > 0 && (
                       <div className="flex justify-between text-gray-700">
                         <span>Tax:</span>
                         <span>{formatCurrency(taxAmount)}</span>
+                      </div>
+                    )}
+                    {totalDiscount > 0 && (
+                      <div className="flex justify-between text-green-600 text-sm">
+                        <span>You saved:</span>
+                        <span>{formatCurrency(totalDiscount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t-2 border-gray-300">

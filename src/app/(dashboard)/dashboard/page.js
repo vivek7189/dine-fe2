@@ -2113,7 +2113,7 @@ function RestaurantPOSContent() {
     if (cart.length === 0 || !selectedRestaurant?.id) return;
 
     // Extract tax information and special instructions from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null } = taxData;
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0 } = taxData;
 
     // Check if order is completed and disable action
     if (currentOrder && currentOrder.status === 'completed') {
@@ -2286,6 +2286,10 @@ function RestaurantPOSContent() {
         taxBreakdown: taxBreakdown,
         taxAmount: totalTax,
         finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+        // Discount fields
+        offerIds: offerIds,
+        manualDiscount: manualDiscount,
+        customerPhone: customerMobile || null,
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : ''
@@ -2607,7 +2611,7 @@ function RestaurantPOSContent() {
     }
 
     // Extract tax information and special instructions from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null } = taxData;
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0 } = taxData;
 
     try {
       setSavingOrder(true);
@@ -2649,6 +2653,9 @@ function RestaurantPOSContent() {
         taxBreakdown: taxBreakdown,
         taxAmount: totalTax,
         finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+        // Discount fields
+        offerIds: offerIds,
+        manualDiscount: manualDiscount,
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
@@ -2745,7 +2752,7 @@ function RestaurantPOSContent() {
     }
 
     // Extract tax information and special instructions from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null } = taxData;
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0 } = taxData;
 
     try {
       setPlacingOrder(true);
@@ -2887,6 +2894,10 @@ function RestaurantPOSContent() {
           taxBreakdown: taxBreakdown,
           taxAmount: totalTax,
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+          // Discount fields
+          offerIds: offerIds,
+          manualDiscount: manualDiscount,
+          customerPhone: customerMobile || null,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
           notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',

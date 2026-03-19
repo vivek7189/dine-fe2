@@ -122,7 +122,7 @@ const TableManagement = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
 
   // Form states
-  const [newFloor, setNewFloor] = useState({ name: '', description: '', section: '' });
+  const [newFloor, setNewFloor] = useState({ name: '', description: '', section: '', areaChargeType: 'none', areaChargeValue: '' });
   const [newTable, setNewTable] = useState({
     name: '',
     capacity: 4,
@@ -577,14 +577,16 @@ const TableManagement = () => {
       const floorData = {
         name: newFloor.name.trim(),
         description: newFloor.description.trim() || null,
-        section: newFloor.section?.trim() || null
+        section: newFloor.section?.trim() || null,
+        areaChargeType: newFloor.areaChargeType || 'none',
+        areaChargeValue: parseFloat(newFloor.areaChargeValue) || 0,
       };
-      
+
       const response = await apiClient.createFloor(selectedRestaurant.id, floorData);
       const newFloorData = { ...response.floor, tables: [] };
 
       setFloors(prev => [...prev, newFloorData]);
-      setNewFloor({ name: '', description: '', section: '' });
+      setNewFloor({ name: '', description: '', section: '', areaChargeType: 'none', areaChargeValue: '' });
       setShowAddFloor(false);
       showSuccess('Floor added successfully!');
       
@@ -602,6 +604,8 @@ const TableManagement = () => {
         name: newFloor.name.trim(),
         description: newFloor.description.trim() || null,
         section: newFloor.section?.trim() || null,
+        areaChargeType: newFloor.areaChargeType || 'none',
+        areaChargeValue: parseFloat(newFloor.areaChargeValue) || 0,
         restaurantId: selectedRestaurant.id
       };
 
@@ -609,11 +613,11 @@ const TableManagement = () => {
 
       setFloors(prev => prev.map(floor =>
         floor.id === editingFloor.id
-          ? { ...floor, name: newFloor.name.trim(), description: newFloor.description.trim() || null, section: newFloor.section?.trim() || null }
+          ? { ...floor, name: newFloor.name.trim(), description: newFloor.description.trim() || null, section: newFloor.section?.trim() || null, areaChargeType: newFloor.areaChargeType || 'none', areaChargeValue: parseFloat(newFloor.areaChargeValue) || 0 }
           : floor
       ));
 
-      setNewFloor({ name: '', description: '', section: '' });
+      setNewFloor({ name: '', description: '', section: '', areaChargeType: 'none', areaChargeValue: '' });
       setEditingFloor(null);
       setShowEditFloor(false);
       showSuccess('Floor updated successfully!');
@@ -639,7 +643,7 @@ const TableManagement = () => {
 
   const startEditFloor = (floor) => {
     setEditingFloor(floor);
-    setNewFloor({ name: floor.name, description: floor.description || '', section: floor.section || '' });
+    setNewFloor({ name: floor.name, description: floor.description || '', section: floor.section || '', areaChargeType: floor.areaChargeType || 'none', areaChargeValue: floor.areaChargeValue || '' });
     setShowEditFloor(true);
   };
 
@@ -1457,6 +1461,20 @@ const TableManagement = () => {
                 }}>
                   {floor.name}
                 </span>
+                {floor.areaChargeType && floor.areaChargeType !== 'none' && floor.areaChargeValue > 0 && (
+                  <span style={{
+                    fontSize: '9px',
+                    fontWeight: '700',
+                    color: '#ea580c',
+                    backgroundColor: '#fff7ed',
+                    padding: '1px 4px',
+                    borderRadius: '3px',
+                    border: '1px solid #fed7aa',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    +{floor.areaChargeType === 'percentage' ? `${floor.areaChargeValue}%` : `₹${floor.areaChargeValue}`}
+                  </span>
+                )}
               </div>
 
               {/* Stats */}
@@ -2075,22 +2093,55 @@ const TableManagement = () => {
                       placeholder="Description (optional)"
                     />
 
-                    <input
-                      type="text"
-                      value={newFloor.section}
-                      onChange={(e) => setNewFloor({...newFloor, section: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        backgroundColor: 'white',
-                        boxSizing: 'border-box'
-                      }}
-                      placeholder="Section for pricing (e.g., AC, VIP)"
-                    />
+                    {/* Area Charge */}
+                    <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '10px', border: '1px solid #e5e7eb' }}>
+                      <p style={{ fontSize: '11px', fontWeight: '600', color: '#374151', marginBottom: '8px', margin: '0 0 8px 0' }}>Area Charge</p>
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: newFloor.areaChargeType !== 'none' ? '8px' : '0' }}>
+                        {[
+                          { value: 'none', label: 'No charge' },
+                          { value: 'percentage', label: '% Percent' },
+                          { value: 'flat', label: '₹ Flat' }
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setNewFloor({...newFloor, areaChargeType: opt.value, areaChargeValue: opt.value === 'none' ? '' : newFloor.areaChargeValue})}
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              borderRadius: '6px',
+                              border: newFloor.areaChargeType === opt.value ? '2px solid #e53e3e' : '1px solid #d1d5db',
+                              backgroundColor: newFloor.areaChargeType === opt.value ? '#fef2f2' : 'white',
+                              color: newFloor.areaChargeType === opt.value ? '#e53e3e' : '#6b7280',
+                              fontWeight: newFloor.areaChargeType === opt.value ? '700' : '500',
+                              fontSize: '11px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      {newFloor.areaChargeType !== 'none' && (
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={newFloor.areaChargeValue}
+                          onChange={(e) => setNewFloor({...newFloor, areaChargeValue: e.target.value})}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            backgroundColor: 'white',
+                            boxSizing: 'border-box'
+                          }}
+                          placeholder={newFloor.areaChargeType === 'percentage' ? 'e.g., 10 (for 10%)' : 'e.g., 50 (₹50 flat)'}
+                        />
+                      )}
+                    </div>
 
                     <button
                       onClick={async () => {
@@ -2100,7 +2151,7 @@ const TableManagement = () => {
                       disabled={!newFloor.name.trim()}
                       style={{
                         padding: '8px 12px',
-                        background: newFloor.name.trim() 
+                        background: newFloor.name.trim()
                           ? 'linear-gradient(135deg, #e53e3e, #dc2626)'
                           : 'linear-gradient(135deg, #d1d5db, #9ca3af)',
                         color: 'white',
@@ -2438,26 +2489,55 @@ const TableManagement = () => {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                  Section (for zone pricing)
+                  Area Charge
                 </label>
-                <input
-                  type="text"
-                  value={newFloor.section}
-                  onChange={(e) => setNewFloor({...newFloor, section: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#fef7f0',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="e.g., AC, Non-AC, VIP, Outdoor"
-                />
+                <div style={{ display: 'flex', gap: '6px', marginBottom: newFloor.areaChargeType !== 'none' ? '8px' : '0' }}>
+                  {[
+                    { value: 'none', label: 'No charge' },
+                    { value: 'percentage', label: '% Percent' },
+                    { value: 'flat', label: '₹ Flat' }
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setNewFloor({...newFloor, areaChargeType: opt.value, areaChargeValue: opt.value === 'none' ? '' : newFloor.areaChargeValue})}
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: newFloor.areaChargeType === opt.value ? '2px solid #e53e3e' : '1px solid #d1d5db',
+                        backgroundColor: newFloor.areaChargeType === opt.value ? '#fef2f2' : '#fef7f0',
+                        color: newFloor.areaChargeType === opt.value ? '#e53e3e' : '#6b7280',
+                        fontWeight: newFloor.areaChargeType === opt.value ? '700' : '500',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {newFloor.areaChargeType !== 'none' && (
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={newFloor.areaChargeValue}
+                    onChange={(e) => setNewFloor({...newFloor, areaChargeValue: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: '#fef7f0',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder={newFloor.areaChargeType === 'percentage' ? 'e.g., 10 (for 10%)' : 'e.g., 50 (₹50 flat)'}
+                  />
+                )}
                 <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px', margin: '4px 0 0 0' }}>
-                  Used for automatic zone pricing surcharges
+                  Extra charge for orders placed on this floor
                 </p>
               </div>
             </div>
@@ -2575,26 +2655,55 @@ const TableManagement = () => {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                  Section (for zone pricing)
+                  Area Charge
                 </label>
-                <input
-                  type="text"
-                  value={newFloor.section}
-                  onChange={(e) => setNewFloor({...newFloor, section: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#fef7f0',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="e.g., AC, Non-AC, VIP, Outdoor"
-                />
+                <div style={{ display: 'flex', gap: '6px', marginBottom: newFloor.areaChargeType !== 'none' ? '8px' : '0' }}>
+                  {[
+                    { value: 'none', label: 'No charge' },
+                    { value: 'percentage', label: '% Percent' },
+                    { value: 'flat', label: '₹ Flat' }
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setNewFloor({...newFloor, areaChargeType: opt.value, areaChargeValue: opt.value === 'none' ? '' : newFloor.areaChargeValue})}
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: newFloor.areaChargeType === opt.value ? '2px solid #e53e3e' : '1px solid #d1d5db',
+                        backgroundColor: newFloor.areaChargeType === opt.value ? '#fef2f2' : '#fef7f0',
+                        color: newFloor.areaChargeType === opt.value ? '#e53e3e' : '#6b7280',
+                        fontWeight: newFloor.areaChargeType === opt.value ? '700' : '500',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {newFloor.areaChargeType !== 'none' && (
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={newFloor.areaChargeValue}
+                    onChange={(e) => setNewFloor({...newFloor, areaChargeValue: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: '#fef7f0',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder={newFloor.areaChargeType === 'percentage' ? 'e.g., 10 (for 10%)' : 'e.g., 50 (₹50 flat)'}
+                  />
+                )}
                 <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px', margin: '4px 0 0 0' }}>
-                  Used for automatic zone pricing surcharges
+                  Extra charge for orders placed on this floor
                 </p>
               </div>
             </div>
@@ -2604,7 +2713,7 @@ const TableManagement = () => {
                 onClick={() => {
                   setShowEditFloor(false);
                   setEditingFloor(null);
-                  setNewFloor({ name: '', description: '', section: '' });
+                  setNewFloor({ name: '', description: '', section: '', areaChargeType: 'none', areaChargeValue: '' });
                 }}
                 style={{
                   flex: 1,
