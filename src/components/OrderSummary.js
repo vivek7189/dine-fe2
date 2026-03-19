@@ -152,6 +152,19 @@ const OrderSummary = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Calculate manual discount amount (must be defined before calculateTax which depends on it)
+  const getManualDiscountAmount = useCallback(() => {
+    const val = parseFloat(manualDiscountValue) || 0;
+    const subtotal = getTotalAmount();
+    if (manualDiscountTypeState === 'percentage') {
+      return Math.round((subtotal * val / 100) * 100) / 100;
+    }
+    return Math.min(val, subtotal);
+  }, [manualDiscountValue, manualDiscountTypeState, getTotalAmount]);
+
+  // Total discount for display
+  const totalDiscountAmount = offerDiscount + getManualDiscountAmount();
+
   // Compute unit price for an item considering variant and selected customizations
   const getItemUnitPrice = (cartItem) => {
     const basePrice = (cartItem?.selectedVariant?.price)
@@ -260,19 +273,6 @@ const OrderSummary = ({
     };
     loadOffers();
   }, [restaurantId]);
-
-  // Calculate manual discount amount
-  const getManualDiscountAmount = useCallback(() => {
-    const val = parseFloat(manualDiscountValue) || 0;
-    const subtotal = getTotalAmount();
-    if (manualDiscountTypeState === 'percentage') {
-      return Math.round((subtotal * val / 100) * 100) / 100;
-    }
-    return Math.min(val, subtotal);
-  }, [manualDiscountValue, manualDiscountTypeState, getTotalAmount]);
-
-  // Total discount for display
-  const totalDiscountAmount = offerDiscount + getManualDiscountAmount();
 
   // Pre-populate special instructions when editing an existing order
   useEffect(() => {
