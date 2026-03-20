@@ -50,6 +50,8 @@ const TableManagement = () => {
   const [editingFloor, setEditingFloor] = useState(null);
   const [addMode, setAddMode] = useState('single');
   const [bookingStep, setBookingStep] = useState(1);
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [hoveredTableId, setHoveredTableId] = useState(null);
 
   // Dropdown state
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -82,14 +84,21 @@ const TableManagement = () => {
   const scrollContainerRef = useRef(null);
   const canManageTables = ['owner', 'admin', 'manager'].includes(userRole);
 
-  // ── Status config ──────────────────────────────────────
+  // Timer tick to keep elapsed times updated (every 60s)
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── Status config (matching dashboard POS cards) ───────
   const statusConfig = {
-    available: { bg: '#f0fdf4', text: '#166534', label: 'Available', icon: FaCheck, border: '#22c55e' },
-    occupied: { bg: '#fefce8', text: '#92400e', label: 'Occupied', icon: FaUsers, border: '#f59e0b' },
-    serving: { bg: '#fefce8', text: '#92400e', label: 'Serving', icon: FaUtensils, border: '#f59e0b' },
-    reserved: { bg: '#eff6ff', text: '#1e40af', label: 'Reserved', icon: FaClock, border: '#3b82f6' },
-    cleaning: { bg: '#f8fafc', text: '#475569', label: 'Cleaning', icon: FaTools, border: '#64748b' },
-    'out-of-service': { bg: '#fef2f2', text: '#991b1b', label: 'Out of Service', icon: FaBan, border: '#ef4444' },
+    available: { color: '#10b981', bg: '#f0fdf4', text: '#166534', label: 'Available', icon: FaChair, border: '#10b981' },
+    occupied: { color: '#f59e0b', bg: '#fffbeb', text: '#92400e', label: 'Occupied', icon: FaUsers, border: '#fcd34d' },
+    serving: { color: '#8b5cf6', bg: '#f5f3ff', text: '#6d28d9', label: 'Serving', icon: FaUtensils, border: '#8b5cf6' },
+    reserved: { color: '#3b82f6', bg: '#eff6ff', text: '#1e40af', label: 'Reserved', icon: FaClock, border: '#3b82f6' },
+    cleaning: { color: '#6b7280', bg: '#f3f4f6', text: '#475569', label: 'Cleaning', icon: FaTools, border: '#9ca3af' },
+    'out-of-service': { color: '#ef4444', bg: '#fef2f2', text: '#991b1b', label: 'Out of Service', icon: FaBan, border: '#ef4444' },
   };
   const getTableStatusInfo = (status) => statusConfig[status] || statusConfig.available;
 
@@ -197,10 +206,13 @@ const TableManagement = () => {
 
   useEffect(() => {
     if (showBookingForm) {
-      const today = new Date().toISOString().split('T')[0];
-      setBookingData(prev => ({ ...prev, bookingDate: today }));
       setBookingStep(1);
-      fetchAvailabilityForDate(today);
+      // Use the already-set bookingDate (from selectedDate) or fall back to today
+      const dateToUse = bookingData.bookingDate || new Date().toISOString().split('T')[0];
+      if (!bookingData.bookingDate) {
+        setBookingData(prev => ({ ...prev, bookingDate: dateToUse }));
+      }
+      fetchAvailabilityForDate(dateToUse);
     }
   }, [showBookingForm]);
 
@@ -440,6 +452,7 @@ const TableManagement = () => {
 
   const createBooking = async () => {
     if (!selectedTable || !bookingData.customerName.trim() || !selectedRestaurant) return;
+    setBookingSubmitting(true);
     try {
       await apiClient.createBooking(selectedRestaurant.id, {
         tableId: selectedTable.id, customerName: bookingData.customerName.trim(),
@@ -447,14 +460,20 @@ const TableManagement = () => {
         partySize: parseInt(bookingData.partySize), bookingDate: bookingData.bookingDate,
         bookingTime: bookingData.bookingTime, notes: bookingData.notes.trim() || null, status: 'confirmed'
       });
-      await updateTableStatus(selectedTable.id, 'reserved', {
-        customerName: bookingData.customerName, reservationTime: bookingData.bookingTime
-      });
+      // Only update live table status if booking is for today
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (bookingData.bookingDate === todayStr) {
+        await updateTableStatus(selectedTable.id, 'reserved', {
+          customerName: bookingData.customerName, reservationTime: bookingData.bookingTime
+        });
+      }
       setBookingData({ customerName: '', customerPhone: '', partySize: 2, bookingDate: '', bookingTime: '', notes: '' });
       setShowBookingForm(false); setSelectedTable(null); setBookingFromHeader(false); setBookingStep(1);
+      // Refresh bookings for whichever date was booked (might differ from selectedDate)
       fetchBookingsForDate(selectedDate);
-      showSuccess('Booking confirmed!');
-    } catch (err) { showError(`Failed: ${err.message}`); }
+      if (bookingData.bookingDate !== selectedDate) fetchBookingsForDate(bookingData.bookingDate);
+      showSuccess('Booking confirmed! Table reserved successfully.');
+    } catch (err) { showError(`Failed: ${err.message}`); } finally { setBookingSubmitting(false); }
   };
 
   const handleTableAction = (action, table) => {
@@ -467,7 +486,7 @@ const TableManagement = () => {
         break;
       }
       case 'book-table': {
-        setBookingData(prev => ({ ...prev, bookingDate: new Date().toISOString().split('T')[0], partySize: Math.min(table.capacity, prev.partySize || 2) }));
+        setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(table.capacity, prev.partySize || 2) }));
         setBookingFromHeader(false); setShowBookingForm(true);
         break;
       }
@@ -503,11 +522,28 @@ const TableManagement = () => {
 
   // ── Computed ───────────────────────────────────────────
   const totalTables = allTables.length;
-  const stats = {
+  const isTodayDate = selectedDate === new Date().toISOString().split('T')[0];
+
+  // Build per-table booking map for non-today dates
+  const tableBookingsMap = {};
+  bookingsForDate.forEach(b => {
+    if (b.tableId) {
+      if (!tableBookingsMap[b.tableId]) tableBookingsMap[b.tableId] = [];
+      tableBookingsMap[b.tableId].push(b);
+    }
+  });
+
+  // For non-today: count tables with bookings as "reserved", rest as "available"
+  const stats = isTodayDate ? {
     available: allTables.filter(t => (tableStatusesForDate[t.id] || t.status) === 'available').length,
     occupied: allTables.filter(t => ['occupied', 'serving'].includes(tableStatusesForDate[t.id] || t.status)).length,
     reserved: allTables.filter(t => (tableStatusesForDate[t.id] || t.status) === 'reserved').length,
     other: allTables.filter(t => ['cleaning', 'out-of-service'].includes(tableStatusesForDate[t.id] || t.status)).length,
+  } : {
+    available: allTables.filter(t => !tableBookingsMap[t.id]?.length).length,
+    occupied: 0,
+    reserved: allTables.filter(t => tableBookingsMap[t.id]?.length > 0).length,
+    other: 0,
   };
 
   const filteredFloors = selectedFloorId === 'all' ? floors : floors.filter(f => f.id === selectedFloorId);
@@ -517,12 +553,13 @@ const TableManagement = () => {
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = isTodayDate;
 
   const changeDate = (delta) => {
-    const d = new Date(selectedDate + 'T00:00:00');
+    const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() + delta);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    const newDate = d.toISOString().split('T')[0];
+    setSelectedDate(newDate);
   };
 
   const getElapsed = (table) => {
@@ -565,12 +602,18 @@ const TableManagement = () => {
           </div>
         </div>
         {/* Grid skeleton */}
-        <div style={{ flex: 1, padding: '24px', display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', alignContent: 'start' }}>
-          {[...Array(8)].map((_, i) => (
-            <div key={i} style={{ backgroundColor: 'white', borderRadius: '16px', borderLeft: '4px solid #e2e8f0', padding: '16px', border: '1px solid #f1f5f9' }}>
-              <div style={{ width: '72px', height: '22px', borderRadius: '8px', ...shimmer, marginBottom: '12px', animationDelay: `${i * 0.05}s` }} />
-              <div style={{ width: '48px', height: '24px', borderRadius: '6px', ...shimmer, marginBottom: '8px', animationDelay: `${i * 0.05}s` }} />
-              <div style={{ width: '64px', height: '14px', borderRadius: '4px', ...shimmer, animationDelay: `${i * 0.05}s` }} />
+        <div style={{ flex: 1, padding: '24px', display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: '20px', alignContent: 'start' }}>
+          {[...Array(12)].map((_, i) => (
+            <div key={i} style={{ borderRadius: '12px', border: '1px solid #e5e7eb', padding: '12px', minHeight: '120px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ width: '40px', height: '16px', borderRadius: '4px', ...shimmer, animationDelay: `${i * 0.05}s` }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', ...shimmer, animationDelay: `${i * 0.05}s` }} />
+              </div>
+              <div style={{ width: '52px', height: '10px', borderRadius: '4px', ...shimmer, animationDelay: `${i * 0.05}s` }} />
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', ...shimmer, animationDelay: `${i * 0.05}s` }} />
+              </div>
+              <div style={{ width: '100%', height: '32px', borderRadius: '6px', ...shimmer, animationDelay: `${i * 0.05}s` }} />
             </div>
           ))}
         </div>
@@ -603,12 +646,14 @@ const TableManagement = () => {
       <style>{`
         @keyframes tblShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes tblFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes tblDropdown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes tblDropdown { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .tbl-card { transition: all 0.25s ease; cursor: pointer; }
-        .tbl-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important; }
+        @keyframes dash { to { stroke-dashoffset: 0; } }
+        @keyframes tblPulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.7; } }
+        .tbl-card { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
+        .tbl-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px -4px rgba(0,0,0,0.1) !important; }
         .tbl-action { transition: background 0.15s; }
-        .tbl-action:hover { background: #f8fafc !important; }
+        .tbl-action:hover { filter: brightness(0.95); }
       `}</style>
 
       {/* ─── HEADER ─── */}
@@ -627,26 +672,31 @@ const TableManagement = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             {/* Date navigation */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f8fafc', padding: '4px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-              <button onClick={() => changeDate(-1)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
-                <FaChevronLeft size={12} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <button onClick={() => changeDate(-1)} style={{ width: '36px', height: '36px', borderRadius: '12px 0 0 12px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', borderRight: '1px solid #f1f5f9' }}>
+                <FaChevronLeft size={11} />
               </button>
-              <div style={{ position: 'relative' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', padding: '0 8px', cursor: 'pointer' }} onClick={() => document.getElementById('tbl-date-input')?.showPicker?.()}>
-                  {formatDate(selectedDate)}
-                </span>
-                <input id="tbl-date-input" type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0, top: 0, left: 0 }} />
+              <div style={{ position: 'relative', padding: '0 6px' }}>
+                <button onClick={() => document.getElementById('tbl-date-input')?.showPicker?.()} style={{
+                  border: 'none', backgroundColor: 'transparent', cursor: 'pointer', padding: '6px 8px',
+                  fontSize: '13px', fontWeight: '700', color: isToday ? '#ef4444' : '#1f2937',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  <FaCalendarAlt size={11} color={isToday ? '#ef4444' : '#9ca3af'} />
+                  {isToday ? 'Today' : formatDate(selectedDate)}
+                </button>
+                <input id="tbl-date-input" type="date" value={selectedDate} onChange={e => { if (e.target.value) setSelectedDate(e.target.value); }} style={{ position: 'absolute', opacity: 0, width: 0, height: 0, top: 0, left: 0 }} />
               </div>
-              <button onClick={() => changeDate(1)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
-                <FaChevronRight size={12} />
+              <button onClick={() => changeDate(1)} style={{ width: '36px', height: '36px', borderRadius: '0 12px 12px 0', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151', borderLeft: '1px solid #f1f5f9' }}>
+                <FaChevronRight size={11} />
               </button>
               {!isToday && (
-                <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])} style={{ padding: '4px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', fontSize: '12px', fontWeight: '600', color: '#6b7280', cursor: 'pointer' }}>Today</button>
+                <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])} style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: '11px', fontWeight: '700', color: 'white', cursor: 'pointer', marginLeft: '6px', marginRight: '4px' }}>Today</button>
               )}
             </div>
 
             {/* Action buttons */}
-            <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setShowBookingForm(true); }} style={{
+            <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
               background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white',
               fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
@@ -669,10 +719,10 @@ const TableManagement = () => {
         <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
             { label: 'Total', count: totalTables, bg: '#f8fafc', dot: '#64748b', border: '#e2e8f0' },
-            { label: 'Available', count: stats.available, bg: '#f0fdf4', dot: '#22c55e', border: '#bbf7d0' },
-            { label: 'Occupied', count: stats.occupied, bg: '#fefce8', dot: '#f59e0b', border: '#fde68a' },
-            { label: 'Reserved', count: stats.reserved, bg: '#eff6ff', dot: '#3b82f6', border: '#bfdbfe' },
-            ...(stats.other > 0 ? [{ label: 'Other', count: stats.other, bg: '#fef2f2', dot: '#ef4444', border: '#fecaca' }] : []),
+            { label: isToday ? 'Available' : 'Free', count: stats.available, bg: '#f0fdf4', dot: '#22c55e', border: '#bbf7d0' },
+            ...(isToday && stats.occupied > 0 ? [{ label: 'Occupied', count: stats.occupied, bg: '#fefce8', dot: '#f59e0b', border: '#fde68a' }] : []),
+            ...(stats.reserved > 0 ? [{ label: isToday ? 'Reserved' : 'Booked', count: stats.reserved, bg: '#eff6ff', dot: '#3b82f6', border: '#bfdbfe' }] : []),
+            ...(isToday && stats.other > 0 ? [{ label: 'Other', count: stats.other, bg: '#fef2f2', dot: '#ef4444', border: '#fecaca' }] : []),
           ].map(s => (
             <div key={s.label} style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px',
@@ -733,7 +783,21 @@ const TableManagement = () => {
       </div>
 
       {/* ─── SCROLLABLE CONTENT ─── */}
-      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px' }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px', position: 'relative' }}>
+
+        {/* Loading overlay when changing dates */}
+        {loadingTableStatuses && (
+          <div style={{
+            position: 'absolute', inset: 0, backgroundColor: 'rgba(248,250,252,0.7)', zIndex: 20,
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '80px',
+            animation: 'tblPulse 1.2s ease-in-out infinite',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'white', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+              <div style={{ width: '18px', height: '18px', border: '2.5px solid #f3f4f6', borderTop: '2.5px solid #ef4444', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280' }}>Loading tables...</span>
+            </div>
+          </div>
+        )}
 
         {/* Floor sections */}
         {filteredFloors.map((floor) => {
@@ -779,124 +843,308 @@ const TableManagement = () => {
               ) : (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: isMobile ? '12px' : '16px',
+                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
+                  gap: isMobile ? '12px' : '20px',
                 }}>
                   {tables.map((table, idx) => {
-                    const tableStatus = tableStatusesForDate[table.id] || table.status;
+                    // For non-today: determine status from bookings, not live data
+                    const tblBookings = tableBookingsMap[table.id] || [];
+                    const hasBookings = tblBookings.length > 0;
+                    const tableStatus = isToday ? (tableStatusesForDate[table.id] || table.status) : (hasBookings ? 'reserved' : 'available');
                     const sInfo = getTableStatusInfo(tableStatus);
                     const StatusIcon = sInfo.icon;
                     const isDropdownOpen = activeDropdown === table.id;
-                    const elapsed = getElapsed(table);
-                    const orderTotal = formatCurrency(table.currentOrderTotal || table.currentOrderFinalAmount);
+                    const isOccupied = isToday && (tableStatus === 'occupied' || tableStatus === 'serving');
+                    const isAvailable = tableStatus === 'available';
+                    const elapsed = isToday ? getElapsed(table) : null;
+                    const elapsedIsLong = elapsed && elapsed.includes('d');
 
                     return (
                       <div key={table.id} className="tbl-card table-dropdown" style={{
-                        backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9',
-                        borderLeft: `4px solid ${sInfo.border}`, boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-                        padding: '16px', position: 'relative', overflow: 'visible',
+                        background: sInfo.bg,
+                        borderRadius: '12px',
+                        border: isOccupied ? 'none' : `1px solid ${sInfo.border}`,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                        padding: '0', position: 'relative', overflow: 'hidden',
+                        minHeight: '120px', display: 'flex', flexDirection: 'column',
                         opacity: 0, animation: `tblFadeIn 0.3s ease-out ${idx * 0.03}s forwards`,
-                      }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}>
-                        {/* Status badge */}
-                        <div style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px',
-                          backgroundColor: sInfo.bg, borderRadius: '8px', fontSize: '11px', fontWeight: '600', color: sInfo.text,
-                        }}>
-                          <StatusIcon size={10} /> {sInfo.label}
-                        </div>
+                      }} onClick={() => setActiveDropdown(isDropdownOpen ? null : table.id)}
+                         onMouseEnter={() => setHoveredTableId(table.id)}
+                         onMouseLeave={() => setHoveredTableId(null)}>
 
-                        {/* Table number + capacity */}
-                        <div style={{ fontSize: '22px', fontWeight: '700', color: '#1f2937', marginTop: '10px' }}>
-                          {table.name}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '13px', color: '#6b7280' }}>
-                          <FaUsers size={11} /> {table.capacity} seats
-                        </div>
+                        {/* Animated dotted border for occupied tables (today only) */}
+                        {isOccupied && (
+                          <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
+                            <rect x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx="10.5" ry="10.5" fill="none" stroke={sInfo.color} strokeWidth="2" strokeDasharray="6,6" strokeDashoffset="100">
+                              <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
+                            </rect>
+                          </svg>
+                        )}
 
-                        {/* Context row */}
-                        {(tableStatus === 'occupied' || tableStatus === 'serving') && (
-                          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
-                            <div>
-                              {table.customerName && <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{table.customerName}</div>}
-                              {elapsed && <div style={{ fontSize: '12px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '3px' }}><FaClock size={9} /> {elapsed}</div>}
+                        <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
+                          {/* Header: name + status */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>
+                                  {table.name}
+                                </span>
+                                {isOccupied && elapsed && (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, color: elapsedIsLong ? '#dc2626' : '#92400e', whiteSpace: 'nowrap' }}>
+                                    {elapsed}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <FaChair size={9} /> {table.capacity || '-'} Seats
+                              </div>
                             </div>
-                            {orderTotal && <div style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>{orderTotal}</div>}
+                            {isAvailable ? (
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px #d1fae5' }} />
+                            ) : (
+                              <div style={{
+                                background: sInfo.bg, color: sInfo.color, padding: '3px 8px', borderRadius: '12px',
+                                fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', border: `1px solid ${sInfo.border}`,
+                                display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0,
+                              }}>
+                                {sInfo.label}
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {tableStatus === 'reserved' && (
-                          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
-                            <div style={{ fontSize: '13px', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <FaClock size={10} />
-                              {table.customerName || 'Reserved'}{table.reservationTime ? ` @ ${table.reservationTime}` : ''}
-                            </div>
-                          </div>
-                        )}
-                        {tableStatus === 'cleaning' && (
-                          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>Being cleaned</div>
-                        )}
-                        {tableStatus === 'out-of-service' && (
-                          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', fontSize: '12px', color: '#ef4444' }}>Temporarily unavailable</div>
-                        )}
 
-                        {/* Dropdown */}
-                        {isDropdownOpen && (
+                          {/* Content */}
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            {isToday ? (
+                              /* ── TODAY: show live data ── */
+                              <>
+                                {isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                      Total {table.currentOrderTax ? '(incl. tax)' : ''}
+                                    </div>
+                                    <div style={{
+                                      fontSize: '18px', fontWeight: 800, color: '#b45309',
+                                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)', padding: '4px 12px',
+                                      borderRadius: '8px', border: '1px solid #fcd34d',
+                                    }}>
+                                      {formatCurrency(table.currentOrderFinalAmount || table.currentOrderTotal)}
+                                    </div>
+                                  </div>
+                                ) : isOccupied && table.customerName ? (
+                                  <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#92400e' }}>{table.customerName}</div>
+                                ) : tableStatus === 'reserved' ? (
+                                  <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1e40af' }}>{table.customerName || 'Reserved'}</div>
+                                    {table.reservationTime && <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>{table.reservationTime}</div>}
+                                  </div>
+                                ) : tableStatus === 'cleaning' ? (
+                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>Being cleaned</div>
+                                ) : tableStatus === 'out-of-service' ? (
+                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#ef4444' }}>Unavailable</div>
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
+                                    <StatusIcon size={32} color={sInfo.color} />
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              /* ── NON-TODAY: show booking info for this date ── */
+                              <>
+                                {hasBookings ? (
+                                  <div style={{ textAlign: 'center' }}>
+                                    <div style={{
+                                      fontSize: '20px', fontWeight: 800, color: '#1e40af', marginBottom: '2px',
+                                    }}>
+                                      {tblBookings.length}
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 600 }}>
+                                      {tblBookings.length === 1 ? 'Booking' : 'Bookings'}
+                                    </div>
+                                    {tblBookings[0]?.customerName && (
+                                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {tblBookings[0].customerName}
+                                        {tblBookings.length > 1 && ` +${tblBookings.length - 1}`}
+                                      </div>
+                                    )}
+                                    {tblBookings[0]?.bookingTime && (
+                                      <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>
+                                        {tblBookings[0].bookingTime}
+                                        {tblBookings.length > 1 && ` ...`}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
+                                      <FaChair size={32} color="#10b981" />
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>No bookings</div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Hover tooltip showing booking details (non-today) */}
+                        {!isToday && hasBookings && hoveredTableId === table.id && !isDropdownOpen && (
                           <div style={{
-                            position: 'absolute', top: '100%', left: '0', right: '0', marginTop: '4px',
-                            backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-                            border: '1px solid #f1f5f9', zIndex: 30, overflow: 'hidden',
+                            position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                            marginBottom: '8px', backgroundColor: '#1f2937', color: 'white', borderRadius: '12px',
+                            padding: '10px 14px', fontSize: '11px', minWidth: '180px', maxWidth: '240px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 40,
+                            animation: 'tblDropdown 0.12s ease-out',
+                          }}>
+                            <div style={{ fontWeight: 700, marginBottom: '6px', fontSize: '12px' }}>
+                              {tblBookings.length} Booking{tblBookings.length > 1 ? 's' : ''}
+                            </div>
+                            {tblBookings.slice(0, 4).map((b, bi) => (
+                              <div key={bi} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '3px 0', borderTop: bi > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
+                                <span style={{ opacity: 0.9 }}>{b.customerName || 'Guest'}</span>
+                                <span style={{ opacity: 0.6 }}>{b.bookingTime || '—'} · {b.partySize || '?'}p</span>
+                              </div>
+                            ))}
+                            {tblBookings.length > 4 && (
+                              <div style={{ opacity: 0.5, marginTop: '4px' }}>+{tblBookings.length - 4} more</div>
+                            )}
+                            {/* Arrow */}
+                            <div style={{
+                              position: 'absolute', bottom: '-5px', left: '50%', transform: 'translateX(-50%)',
+                              width: '10px', height: '10px', backgroundColor: '#1f2937',
+                              borderRadius: '2px', transform: 'translateX(-50%) rotate(45deg)',
+                            }} />
+                          </div>
+                        )}
+
+                        {/* Action buttons at bottom */}
+                        <div style={{ padding: '0 8px 8px', position: 'relative', zIndex: 2 }}>
+                          {isToday ? (
+                            /* ── TODAY: live action buttons ── */
+                            <>
+                              {isAvailable && (
+                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
+                                  width: '100%', padding: '8px 12px', background: '#059669', color: 'white', border: 'none',
+                                  borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                }}>
+                                  <FaUtensils size={10} /> Take Order
+                                </button>
+                              )}
+                              {isOccupied && (
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('view-order', table); }} style={{
+                                    flex: 1, padding: '8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
+                                    borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                                  }}>
+                                    <FaEye size={10} /> View
+                                  </button>
+                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{
+                                    width: '32px', height: '32px', background: '#fef2f2', border: 'none', color: '#ef4444',
+                                    borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                  }}>
+                                    <FaCheck size={10} />
+                                  </button>
+                                </div>
+                              )}
+                              {tableStatus === 'reserved' && (
+                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{
+                                  width: '100%', padding: '8px 12px', background: '#059669', color: 'white', border: 'none',
+                                  borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                }}>
+                                  <FaUtensils size={10} /> Seat Guest
+                                </button>
+                              )}
+                              {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
+                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{
+                                  width: '100%', padding: '8px 12px', background: 'white', color: '#059669', border: '1px solid #d1fae5',
+                                  borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                }}>
+                                  <FaCheck size={10} /> Make Available
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            /* ── NON-TODAY: book table button ── */
+                            <button className="tbl-action" onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTable(table);
+                              setBookingData(prev => ({ ...prev, bookingDate: selectedDate, partySize: Math.min(table.capacity, prev.partySize || 2) }));
+                              setBookingFromHeader(false);
+                              setShowBookingForm(true);
+                            }} style={{
+                              width: '100%', padding: '8px 12px',
+                              background: hasBookings ? 'white' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                              color: hasBookings ? '#059669' : 'white',
+                              border: hasBookings ? '1px solid #bbf7d0' : 'none',
+                              borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                            }}>
+                              <FaCalendarAlt size={10} /> {hasBookings ? '+ Add Booking' : 'Book Table'}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Dropdown overlay on card top (today only) */}
+                        {isToday && isDropdownOpen && (
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0, right: 0,
+                            backgroundColor: 'white', borderRadius: '12px 12px 0 0',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                            zIndex: 30, overflow: 'hidden',
                             animation: 'tblDropdown 0.15s ease-out',
                           }}>
-                            {tableStatus === 'available' && (
-                              <>
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#059669', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FaUtensils size={12} /> Take Order
-                                </button>
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FaCalendarAlt size={12} /> Book Table
-                                </button>
-                                {canManageTables && <>
-                                  <div style={{ height: '1px', backgroundColor: '#f1f5f9' }} />
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('out-of-service', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <FaTools size={12} /> Out of Service
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
+                              {isAvailable && (
+                                <>
+                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#f59e0b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5' }}>
+                                    <FaCalendarAlt size={12} /> Book
                                   </button>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#64748b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <FaConciergeBell size={12} /> Cleaning
+                                  {canManageTables && (
+                                    <>
+                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('out-of-service', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#8b5cf6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
+                                        <FaBan size={12} /> Service
+                                      </button>
+                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                        <FaTools size={12} /> Clean
+                                      </button>
+                                      <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
+                                        <FaTrash size={12} /> Delete
+                                      </button>
+                                    </>
+                                  )}
+                                </>
+                              )}
+                              {isOccupied && (
+                                <>
+                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                    <FaTools size={12} /> Clean
                                   </button>
-                                  <div style={{ height: '1px', backgroundColor: '#f1f5f9' }} />
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <FaTrash size={12} /> Delete
+                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
+                                    <FaCheck size={12} /> Free
                                   </button>
-                                </>}
-                              </>
-                            )}
-                            {(tableStatus === 'occupied' || tableStatus === 'serving') && (
-                              <>
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('view-order', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FaEye size={12} /> View Order
+                                </>
+                              )}
+                              {tableStatus === 'reserved' && (
+                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                  <FaCheck size={12} /> Cancel & Free
                                 </button>
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FaCheck size={12} /> Make Available
-                                </button>
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#64748b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FaConciergeBell size={12} /> Cleaning
-                                </button>
-                              </>
-                            )}
-                            {tableStatus === 'reserved' && (
-                              <>
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('take-order', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#059669', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FaUtensils size={12} /> Take Order
-                                </button>
-                                <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FaCheck size={12} /> Make Available
-                                </button>
-                              </>
-                            )}
-                            {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
-                              <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ width: '100%', padding: '11px 16px', border: 'none', backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <FaCheck size={12} /> Make Available
-                              </button>
-                            )}
+                              )}
+                              {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
+                                <>
+                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                    <FaCheck size={12} /> Free
+                                  </button>
+                                  {canManageTables && (
+                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
+                                      <FaTrash size={12} /> Delete
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -912,53 +1160,123 @@ const TableManagement = () => {
         <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', overflow: 'hidden', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FaCalendarAlt size={13} color="#6b7280" />
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaCalendarAlt size={13} color="#3b82f6" />
               </div>
               <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>
                 Bookings {isToday ? 'Today' : `for ${formatDate(selectedDate)}`}
               </span>
               {bookingsForDate.length > 0 && (
-                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '8px' }}>{bookingsForDate.length}</span>
+                <span style={{ fontSize: '12px', fontWeight: '700', backgroundColor: '#eff6ff', color: '#2563eb', padding: '3px 10px', borderRadius: '10px' }}>{bookingsForDate.length}</span>
               )}
             </div>
-            {loadingBookings && <div style={{ width: '16px', height: '16px', border: '2px solid #f3f4f6', borderTop: '2px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {loadingBookings && <div style={{ width: '16px', height: '16px', border: '2px solid #f3f4f6', borderTop: '2px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
+              <button onClick={() => { setBookingFromHeader(true); setSelectedTable(null); setBookingData(prev => ({ ...prev, bookingDate: selectedDate })); setShowBookingForm(true); }} style={{
+                padding: '6px 14px', borderRadius: '8px', border: 'none',
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '5px',
+              }}>
+                <FaPlus size={9} /> Add
+              </button>
+            </div>
           </div>
           {bookingsForDate.length === 0 ? (
-            <div style={{ padding: '32px 20px', textAlign: 'center' }}>
-              <FaCalendarAlt size={24} color="#e2e8f0" style={{ marginBottom: '8px' }} />
-              <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>No bookings for this date</p>
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <FaCalendarAlt size={20} color="#d1d5db" />
+              </div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>No bookings</p>
+              <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>No reservations for {isToday ? 'today' : formatDate(selectedDate)}</p>
             </div>
           ) : (
             <div>
               {bookingsForDate.map((booking, i) => {
                 const bStatus = booking.status || 'confirmed';
                 const bColors = {
-                  confirmed: { bg: '#f0fdf4', text: '#166534', dot: '#22c55e' },
-                  arrived: { bg: '#eff6ff', text: '#1e40af', dot: '#3b82f6' },
-                  completed: { bg: '#f8fafc', text: '#475569', dot: '#64748b' },
-                  cancelled: { bg: '#f1f5f9', text: '#64748b', dot: '#9ca3af' },
-                  'no-show': { bg: '#fef2f2', text: '#991b1b', dot: '#ef4444' },
+                  confirmed: { bg: '#f0fdf4', text: '#166534', dot: '#22c55e', label: 'Confirmed' },
+                  arrived: { bg: '#eff6ff', text: '#1e40af', dot: '#3b82f6', label: 'Arrived' },
+                  completed: { bg: '#f8fafc', text: '#475569', dot: '#64748b', label: 'Completed' },
+                  cancelled: { bg: '#f1f5f9', text: '#64748b', dot: '#9ca3af', label: 'Cancelled' },
+                  'no-show': { bg: '#fef2f2', text: '#991b1b', dot: '#ef4444', label: 'No Show' },
                 };
                 const bc = bColors[bStatus] || bColors.confirmed;
+                const tableName = booking.tableId ? (allTables.find(t => t.id === booking.tableId)?.name || '?') : null;
                 return (
-                  <div key={booking.id || i} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', borderBottom: i < bookingsForDate.length - 1 ? '1px solid #f8fafc' : 'none' }}>
-                    <div style={{ minWidth: '60px', fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                      {booking.bookingTime || '—'}
-                    </div>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: bc.dot, flexShrink: 0, boxShadow: `0 0 0 3px ${bc.dot}20` }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{booking.customerName || 'Guest'}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                        {booking.partySize} guest{booking.partySize !== 1 ? 's' : ''}
-                        {booking.tableId && ` · Table ${allTables.find(t => t.id === booking.tableId)?.name || '?'}`}
+                  <div key={booking.id || i} style={{
+                    padding: '16px 20px', borderBottom: i < bookingsForDate.length - 1 ? '1px solid #f8fafc' : 'none',
+                    display: 'flex', gap: '14px', alignItems: 'flex-start',
+                  }}>
+                    {/* Time column */}
+                    <div style={{ minWidth: '56px', textAlign: 'center', flexShrink: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>
+                        {booking.bookingTime || '—'}
                       </div>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: bc.dot, margin: '6px auto 0', boxShadow: `0 0 0 3px ${bc.dot}20` }} />
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: '600', padding: '3px 10px', borderRadius: '8px', backgroundColor: bc.bg, color: bc.text, textTransform: 'capitalize' }}>{bStatus}</span>
+
+                    {/* Main info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>{booking.customerName || 'Guest'}</span>
+                        <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: bc.bg, color: bc.text }}>{bc.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '12px', color: '#6b7280' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <FaUsers size={10} /> {booking.partySize || '?'} guest{(booking.partySize || 0) !== 1 ? 's' : ''}
+                        </span>
+                        {tableName && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FaChair size={10} /> Table {tableName}
+                          </span>
+                        )}
+                        {booking.customerPhone && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FaPhoneAlt size={9} /> {booking.customerPhone}
+                          </span>
+                        )}
+                      </div>
+                      {booking.notes && (
+                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', fontStyle: 'italic' }}>
+                          {booking.notes}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
                     {bStatus === 'confirmed' && (
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={() => updateBookingStatus(booking.id, 'arrived')} title="Check in" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}><FaCheck size={10} /></button>
-                        <button onClick={() => cancelBooking(booking.id)} title="Cancel" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><FaTimes size={10} /></button>
+                      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                        <button onClick={() => updateBookingStatus(booking.id, 'arrived')} title="Check in" style={{
+                          padding: '6px 12px', borderRadius: '8px', border: '1px solid #d1fae5', backgroundColor: '#f0fdf4',
+                          cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#059669',
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                        }}>
+                          <FaCheck size={9} /> Check in
+                        </button>
+                        <button onClick={() => cancelBooking(booking.id)} title="Cancel" style={{
+                          width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                        }}>
+                          <FaTimes size={10} />
+                        </button>
+                      </div>
+                    )}
+                    {bStatus === 'arrived' && (
+                      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                        <button onClick={() => updateBookingStatus(booking.id, 'completed')} title="Complete" style={{
+                          padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white',
+                          cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#475569',
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                        }}>
+                          <FaCheck size={9} /> Done
+                        </button>
+                        <button onClick={() => updateBookingStatus(booking.id, 'no-show')} title="No show" style={{
+                          width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                        }}>
+                          <FaBan size={10} />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1076,121 +1394,319 @@ const TableManagement = () => {
       )}
 
       {/* ─── BOOKING MODAL (3-step wizard) ─── */}
-      {showBookingForm && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowBookingForm(false); setBookingStep(1); }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '520px', maxHeight: '85vh', overflow: 'auto', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div style={{ padding: '24px 24px 16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Book a Table</h3>
-                <button onClick={() => { setShowBookingForm(false); setBookingStep(1); }} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+      {showBookingForm && (() => {
+        // Build booking conflict map for the selected date+time
+        const bookingConflicts = {};
+        bookingsForDate.forEach(b => {
+          if (b.tableId && b.bookingTime === bookingData.bookingTime && b.status !== 'cancelled' && b.status !== 'no-show') {
+            if (!bookingConflicts[b.tableId]) bookingConflicts[b.tableId] = [];
+            bookingConflicts[b.tableId].push(b);
+          }
+        });
+        // Also get all bookings for the date (any time) per table
+        const dayBookingsPerTable = {};
+        bookingsForDate.forEach(b => {
+          if (b.tableId && b.status !== 'cancelled' && b.status !== 'no-show') {
+            if (!dayBookingsPerTable[b.tableId]) dayBookingsPerTable[b.tableId] = [];
+            dayBookingsPerTable[b.tableId].push(b);
+          }
+        });
+        const hasTimeConflict = selectedTable && bookingConflicts[selectedTable.id]?.length > 0;
+
+        return (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowBookingForm(false); setBookingStep(1); }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 24px 80px rgba(0,0,0,0.18)',
+            width: '100%', maxWidth: '680px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          }} onClick={e => e.stopPropagation()}>
+
+            {/* Colorful header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              padding: '20px 24px 16px', color: 'white', position: 'relative',
+            }}>
+              <button onClick={() => { setShowBookingForm(false); setBookingStep(1); }} style={{
+                position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '50%',
+                border: 'none', backgroundColor: 'rgba(255,255,255,0.2)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><FaTimes size={12} color="white" /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaCalendarAlt size={16} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>Reserve a Table</h3>
+                  <p style={{ fontSize: '12px', opacity: 0.8, margin: '2px 0 0' }}>
+                    {bookingData.bookingDate && bookingData.bookingTime
+                      ? `${formatDate(bookingData.bookingDate)} at ${bookingData.bookingTime}`
+                      : 'Choose your preferred time'}
+                  </p>
+                </div>
               </div>
               {/* Step indicator */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {[1, 2, 3].map(step => (
-                  <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: step < 3 ? 1 : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {[
+                  { n: 1, label: 'When', icon: FaClock },
+                  { n: 2, label: 'Who', icon: FaUser },
+                  { n: 3, label: 'Where', icon: FaChair },
+                ].map(({ n, label, icon: Icon }) => (
+                  <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: n < 3 ? 1 : 'none' }}>
                     <div style={{
-                      width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '12px', fontWeight: '700',
-                      backgroundColor: bookingStep > step ? '#22c55e' : bookingStep === step ? '#ef4444' : '#f1f5f9',
-                      color: bookingStep >= step ? 'white' : '#9ca3af',
-                    }}>{bookingStep > step ? <FaCheck size={10} /> : step}</div>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: bookingStep === step ? '#1f2937' : '#9ca3af', whiteSpace: 'nowrap' }}>
-                      {step === 1 ? 'Date & Time' : step === 2 ? 'Details' : 'Table'}
-                    </span>
-                    {step < 3 && <div style={{ flex: 1, height: '2px', backgroundColor: bookingStep > step ? '#22c55e' : '#f1f5f9' }} />}
+                      width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '10px', fontWeight: '700',
+                      backgroundColor: bookingStep > n ? 'rgba(34,197,94,0.9)' : bookingStep === n ? 'white' : 'rgba(255,255,255,0.2)',
+                      color: bookingStep === n ? '#ef4444' : 'white',
+                    }}>{bookingStep > n ? <FaCheck size={9} /> : <Icon size={9} />}</div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, opacity: bookingStep === n ? 1 : 0.6 }}>{label}</span>
+                    {n < 3 && <div style={{ flex: 1, height: '2px', backgroundColor: bookingStep > n ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.2)', borderRadius: '1px' }} />}
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Step content */}
-            <div style={{ padding: '0 24px 24px', flex: 1, overflow: 'auto' }}>
+            <div style={{ padding: '20px 24px', flex: 1, overflow: 'auto' }}>
               {bookingStep === 1 && (
                 <>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Date</label>
-                  <input type="date" value={bookingData.bookingDate} onChange={e => setBookingData(p => ({ ...p, bookingDate: e.target.value }))} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>Time Slot</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
-                    {(availableTimeSlots.length > 0 ? availableTimeSlots : generateTimeSlots()).map(slot => (
-                      <button key={slot.value} onClick={() => { setBookingData(p => ({ ...p, bookingTime: slot.value })); setSelectedTimeSlot(slot.value); }} style={{
-                        padding: '10px 4px', borderRadius: '10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', textAlign: 'center',
-                        border: bookingData.bookingTime === slot.value ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                        backgroundColor: bookingData.bookingTime === slot.value ? 'rgba(239,68,68,0.05)' : 'white',
-                        color: bookingData.bookingTime === slot.value ? '#ef4444' : '#374151',
-                      }}>{slot.display}</button>
-                    ))}
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaCalendarAlt size={11} color="#ef4444" /> Pick a Date
+                  </label>
+                  <input type="date" value={bookingData.bookingDate} onChange={e => setBookingData(p => ({ ...p, bookingDate: e.target.value }))} style={{
+                    width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '15px',
+                    backgroundColor: '#fafbfc', marginBottom: '20px', outline: 'none', boxSizing: 'border-box',
+                    transition: 'border-color 0.2s',
+                  }} onFocus={e => e.target.style.borderColor = '#ef4444'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaClock size={11} color="#ef4444" /> Choose Time
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', maxHeight: '260px', overflowY: 'auto', padding: '2px' }}>
+                    {(availableTimeSlots.length > 0 ? availableTimeSlots : generateTimeSlots()).map(slot => {
+                      const isActive = bookingData.bookingTime === slot.value;
+                      return (
+                        <button key={slot.value} onClick={() => { setBookingData(p => ({ ...p, bookingTime: slot.value })); setSelectedTimeSlot(slot.value); }} style={{
+                          padding: '10px 4px', borderRadius: '12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', textAlign: 'center',
+                          border: isActive ? '2px solid #ef4444' : '1.5px solid #e8ecf0',
+                          backgroundColor: isActive ? '#ef4444' : 'white',
+                          color: isActive ? 'white' : '#374151',
+                          transition: 'all 0.15s',
+                          boxShadow: isActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none',
+                        }}>{slot.display}</button>
+                      );
+                    })}
                   </div>
                 </>
               )}
 
               {bookingStep === 2 && (
                 <>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Customer Name *</label>
-                  <input value={bookingData.customerName} onChange={e => setBookingData(p => ({ ...p, customerName: e.target.value }))} placeholder="Guest name" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Phone</label>
-                  <input value={bookingData.customerPhone} onChange={e => setBookingData(p => ({ ...p, customerPhone: e.target.value }))} placeholder="Optional" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>Party Size</label>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                      <button key={n} onClick={() => setBookingData(p => ({ ...p, partySize: n }))} style={{
-                        width: '40px', height: '40px', borderRadius: '10px', border: bookingData.partySize === n ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                        backgroundColor: bookingData.partySize === n ? 'rgba(239,68,68,0.05)' : 'white',
-                        color: bookingData.partySize === n ? '#ef4444' : '#374151', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
-                      }}>{n}</button>
-                    ))}
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaUser size={11} color="#ef4444" /> Guest Name *
+                  </label>
+                  <input value={bookingData.customerName} onChange={e => setBookingData(p => ({ ...p, customerName: e.target.value }))} placeholder="e.g. Rahul Sharma" style={{
+                    width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '15px',
+                    backgroundColor: '#fafbfc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box',
+                  }} onFocus={e => e.target.style.borderColor = '#ef4444'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaPhoneAlt size={10} color="#ef4444" /> Phone
+                  </label>
+                  <input value={bookingData.customerPhone} onChange={e => setBookingData(p => ({ ...p, customerPhone: e.target.value }))} placeholder="+91 98765 43210" style={{
+                    width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '15px',
+                    backgroundColor: '#fafbfc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box',
+                  }} onFocus={e => e.target.style.borderColor = '#ef4444'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaUsers size={11} color="#ef4444" /> Party Size
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(n => {
+                      const isActive = bookingData.partySize === n;
+                      return (
+                        <button key={n} onClick={() => setBookingData(p => ({ ...p, partySize: n }))} style={{
+                          width: '44px', height: '44px', borderRadius: '12px',
+                          border: isActive ? '2px solid #ef4444' : '1.5px solid #e8ecf0',
+                          backgroundColor: isActive ? '#ef4444' : 'white',
+                          color: isActive ? 'white' : '#374151',
+                          fontWeight: '700', fontSize: '15px', cursor: 'pointer',
+                          boxShadow: isActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none',
+                          transition: 'all 0.15s',
+                        }}>{n}</button>
+                      );
+                    })}
                   </div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Notes</label>
-                  <textarea value={bookingData.notes} onChange={e => setBookingData(p => ({ ...p, notes: e.target.value }))} placeholder="Special requests..." rows={2} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>Special Requests</label>
+                  <textarea value={bookingData.notes} onChange={e => setBookingData(p => ({ ...p, notes: e.target.value }))} placeholder="Birthday, high chair, window seat..." rows={2} style={{
+                    width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '14px',
+                    backgroundColor: '#fafbfc', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                  }} onFocus={e => e.target.style.borderColor = '#ef4444'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
                 </>
               )}
 
               {bookingStep === 3 && (
                 <>
-                  <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>Select an available table for {bookingData.bookingDate} at {bookingData.bookingTime}</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <FaChair size={13} color="#ef4444" />
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>Pick a Table</span>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                      for {formatDate(bookingData.bookingDate)} at {bookingData.bookingTime}
+                    </span>
+                  </div>
+
+                  {/* Conflict warning banner */}
+                  {hasTimeConflict && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', marginBottom: '16px',
+                      backgroundColor: '#fef3c7', borderRadius: '12px', border: '1px solid #fde68a',
+                    }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FaClock size={12} color="white" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e' }}>Time conflict on Table {selectedTable?.name}</div>
+                        <div style={{ fontSize: '11px', color: '#a16207' }}>
+                          {bookingConflicts[selectedTable.id].length} booking{bookingConflicts[selectedTable.id].length > 1 ? 's' : ''} at same time — double-booking will be created
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                     {allTables.map(table => {
-                      const isAvail = (tableStatusesForDate[table.id] || table.status) === 'available';
                       const isSelected = selectedTable?.id === table.id;
+                      const tblConflicts = bookingConflicts[table.id] || [];
+                      const tblDayBookings = dayBookingsPerTable[table.id] || [];
+                      const hasConflict = tblConflicts.length > 0;
+                      const hasDayBookings = tblDayBookings.length > 0;
+                      const cardBg = isSelected ? '#fef2f2' : hasConflict ? '#fffbeb' : hasDayBookings ? '#eff6ff' : '#f0fdf4';
+                      const cardBorder = isSelected ? '#ef4444' : hasConflict ? '#fbbf24' : hasDayBookings ? '#93c5fd' : '#86efac';
+                      const nameColor = isSelected ? '#dc2626' : '#1f2937';
+
                       return (
-                        <button key={table.id} onClick={() => isAvail && setSelectedTable(table)} disabled={!isAvail} style={{
-                          padding: '14px 10px', borderRadius: '12px', textAlign: 'center', cursor: isAvail ? 'pointer' : 'not-allowed',
-                          border: isSelected ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                          backgroundColor: isSelected ? 'rgba(239,68,68,0.05)' : isAvail ? 'white' : '#f8fafc',
-                          opacity: isAvail ? 1 : 0.4,
+                        <button key={table.id} onClick={() => setSelectedTable(table)} style={{
+                          padding: '14px 8px 12px', borderRadius: '16px', textAlign: 'center', cursor: 'pointer',
+                          border: `2px solid ${cardBorder}`,
+                          backgroundColor: cardBg,
+                          transition: 'all 0.15s', position: 'relative',
+                          boxShadow: isSelected ? '0 4px 16px rgba(239,68,68,0.2)' : '0 1px 3px rgba(0,0,0,0.04)',
+                          transform: isSelected ? 'scale(1.04)' : 'scale(1)',
                         }}>
-                          <div style={{ fontSize: '16px', fontWeight: '700', color: isSelected ? '#ef4444' : '#1f2937' }}>{table.name}</div>
-                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{table.capacity} seats</div>
+                          {/* Booking count badge */}
+                          {hasDayBookings && (
+                            <div style={{
+                              position: 'absolute', top: '-7px', right: '-7px',
+                              minWidth: '22px', height: '22px', borderRadius: '11px', padding: '0 5px',
+                              backgroundColor: hasConflict ? '#f59e0b' : '#3b82f6',
+                              color: 'white', fontSize: '10px', fontWeight: 800,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              border: '2.5px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                            }}>
+                              {tblDayBookings.length}
+                            </div>
+                          )}
+                          {/* Selected checkmark */}
+                          {isSelected && (
+                            <div style={{
+                              position: 'absolute', top: '-7px', left: '-7px',
+                              width: '22px', height: '22px', borderRadius: '50%',
+                              backgroundColor: '#ef4444', color: 'white',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              border: '2.5px solid white', boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+                            }}>
+                              <FaCheck size={9} />
+                            </div>
+                          )}
+                          <div style={{ fontSize: '20px', fontWeight: '800', color: nameColor, lineHeight: 1 }}>{table.name}</div>
+                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                            <FaChair size={9} /> {table.capacity} seats
+                          </div>
+                          {hasConflict && (
+                            <div style={{ fontSize: '9px', color: '#d97706', fontWeight: 700, marginTop: '5px', backgroundColor: '#fef3c7', padding: '2px 6px', borderRadius: '6px', display: 'inline-block' }}>
+                              {tblConflicts.length} same time
+                            </div>
+                          )}
+                          {!hasConflict && hasDayBookings && (
+                            <div style={{ fontSize: '9px', color: '#2563eb', fontWeight: 600, marginTop: '5px', backgroundColor: '#dbeafe', padding: '2px 6px', borderRadius: '6px', display: 'inline-block' }}>
+                              {tblDayBookings.length} booked
+                            </div>
+                          )}
+                          {!hasDayBookings && !isSelected && (
+                            <div style={{ fontSize: '9px', color: '#16a34a', fontWeight: 600, marginTop: '5px' }}>
+                              Free
+                            </div>
+                          )}
                         </button>
                       );
                     })}
+                  </div>
+
+                  {/* Legend */}
+                  <div style={{ display: 'flex', gap: '14px', marginTop: '16px', padding: '10px 14px', backgroundColor: '#f8fafc', borderRadius: '12px', fontSize: '11px', color: '#6b7280', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#fef2f2', border: '1.5px solid #ef4444' }} /> Selected
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#f0fdf4', border: '1.5px solid #86efac' }} /> Free
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#eff6ff', border: '1.5px solid #93c5fd' }} /> Booked
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#fffbeb', border: '1.5px solid #fbbf24' }} /> Time conflict
+                    </span>
                   </div>
                 </>
               )}
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafbfc' }}>
               {bookingStep > 1 ? (
-                <button onClick={() => setBookingStep(s => s - 1)} style={{ padding: '10px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: 'white', fontSize: '14px', fontWeight: '600', color: '#6b7280', cursor: 'pointer' }}>Back</button>
+                <button onClick={() => setBookingStep(s => s - 1)} style={{
+                  padding: '11px 22px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: 'white',
+                  fontSize: '14px', fontWeight: '600', color: '#6b7280', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  <FaChevronLeft size={10} /> Back
+                </button>
               ) : <div />}
               {bookingStep < 3 ? (
                 <button onClick={() => setBookingStep(s => s + 1)} disabled={bookingStep === 1 && (!bookingData.bookingDate || !bookingData.bookingTime)} style={{
-                  padding: '10px 24px', borderRadius: '10px', border: 'none', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-                  background: (bookingStep === 1 && bookingData.bookingDate && bookingData.bookingTime) || bookingStep === 2 ? '#1f2937' : '#e2e8f0',
+                  padding: '11px 28px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                  background: (bookingStep === 1 && bookingData.bookingDate && bookingData.bookingTime) || bookingStep === 2
+                    ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
                   color: (bookingStep === 1 && bookingData.bookingDate && bookingData.bookingTime) || bookingStep === 2 ? 'white' : '#9ca3af',
-                }}>Next</button>
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  boxShadow: (bookingStep === 1 && bookingData.bookingDate && bookingData.bookingTime) || bookingStep === 2
+                    ? '0 4px 12px rgba(239,68,68,0.3)' : 'none',
+                }}>
+                  Next <FaChevronRight size={10} />
+                </button>
               ) : (
-                <button onClick={createBooking} disabled={!selectedTable || !bookingData.customerName.trim()} style={{
-                  padding: '10px 24px', borderRadius: '10px', border: 'none', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-                  background: selectedTable && bookingData.customerName.trim() ? 'linear-gradient(135deg, #22c55e, #16a34a)' : '#e2e8f0',
+                <button onClick={createBooking} disabled={!selectedTable || !bookingData.customerName.trim() || bookingSubmitting} style={{
+                  padding: '11px 28px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: '700', cursor: bookingSubmitting ? 'wait' : 'pointer',
+                  background: selectedTable && bookingData.customerName.trim()
+                    ? (hasTimeConflict ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #22c55e, #16a34a)')
+                    : '#e2e8f0',
                   color: selectedTable && bookingData.customerName.trim() ? 'white' : '#9ca3af',
-                }}>Confirm Booking</button>
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  boxShadow: selectedTable && bookingData.customerName.trim()
+                    ? (hasTimeConflict ? '0 4px 12px rgba(245,158,11,0.3)' : '0 4px 12px rgba(34,197,94,0.3)') : 'none',
+                  opacity: bookingSubmitting ? 0.7 : 1,
+                }}>
+                  {bookingSubmitting ? (
+                    <><div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Reserving...</>
+                  ) : (
+                    <><FaCheck size={11} /> {hasTimeConflict ? 'Book Anyway' : 'Confirm Booking'}</>
+                  )}
+                </button>
               )}
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <NotificationContainer />
     </div>
