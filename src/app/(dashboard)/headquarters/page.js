@@ -156,7 +156,7 @@ const DonutChart = ({ data = [], size = 120 }) => {
   );
 };
 
-export default function HeadquartersPage() {
+export function HeadquartersContent({ embedded = false }) {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
 
@@ -231,9 +231,15 @@ export default function HeadquartersPage() {
       try {
         const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('authToken');
-        if (!storedUser || !token) { router.push('/login'); return; }
+        if (!storedUser || !token) {
+          if (!embedded) router.push('/login');
+          return;
+        }
         const userData = JSON.parse(storedUser);
-        if (userData.role !== 'owner') { router.push('/home'); return; }
+        if (userData.role !== 'owner' && userData.role !== 'admin') {
+          if (!embedded) router.push('/home');
+          return;
+        }
         setUser(userData);
         setAuthorized(true);
         setEmailPreferences(prev => ({ ...prev, reportEmail: userData.email || '' }));
@@ -242,13 +248,13 @@ export default function HeadquartersPage() {
         await loadAIUsage();
       } catch (error) {
         console.error('Auth check error:', error);
-        router.push('/login');
+        if (!embedded) router.push('/login');
       } finally {
         setLoading(false);
       }
     };
     checkAuth();
-  }, [router]);
+  }, [router, embedded]);
 
   // Resize handler
   useEffect(() => {
@@ -2311,4 +2317,8 @@ export default function HeadquartersPage() {
       `}</style>
     </div>
   );
+}
+
+export default function HeadquartersPage() {
+  return <HeadquartersContent />;
 }
