@@ -174,7 +174,7 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               key={restaurant.id}
               onClick={() => setSelectedRestaurant(restaurant)}
               style={{
-                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ec4899' : '#f8fafc',
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                 padding: '8px 16px',
                 borderRadius: '8px',
@@ -321,7 +321,7 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   onClick={saveTaxSettings}
                   disabled={saving}
                   style={{
-                    backgroundColor: saving ? '#9ca3af' : '#ec4899',
+                    backgroundColor: saving ? '#9ca3af' : '#ef4444',
                     color: 'white',
                     padding: '12px 24px',
                     borderRadius: '8px',
@@ -472,7 +472,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
               key={restaurant.id}
               onClick={() => setSelectedRestaurant(restaurant)}
               style={{
-                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ec4899' : '#f8fafc',
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                 padding: '8px 16px',
                 borderRadius: '8px',
@@ -836,7 +836,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
               key={restaurant.id}
               onClick={() => setSelectedRestaurant(restaurant)}
               style={{
-                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ec4899' : '#f8fafc',
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                 padding: '8px 16px',
                 borderRadius: '8px',
@@ -963,7 +963,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
             padding: '20px',
             backgroundColor: '#fdf2f8',
             borderRadius: '12px',
-            border: '1px solid #fce7f3'
+            border: '1px solid #f1f5f9'
           }}>
             <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
               Preview
@@ -1045,7 +1045,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
               onClick={saveCurrencySettings}
               disabled={saving}
               style={{
-                backgroundColor: saving ? '#9ca3af' : '#ec4899',
+                backgroundColor: saving ? '#9ca3af' : '#ef4444',
                 color: 'white',
                 padding: '12px 24px',
                 borderRadius: '8px',
@@ -1099,7 +1099,7 @@ const SettingToggle = ({ setting, printSettings, toggleSetting, disabled = false
       padding: '14px',
       backgroundColor: disabled ? '#f9fafb' : '#faf5f7',
       borderRadius: '12px',
-      border: '1px solid #fce7f3',
+      border: '1px solid #f1f5f9',
       opacity: disabled ? 0.6 : 1
     }}
   >
@@ -1108,7 +1108,7 @@ const SettingToggle = ({ setting, printSettings, toggleSetting, disabled = false
         width: '34px',
         height: '34px',
         borderRadius: '10px',
-        background: printSettings[setting.key] && !disabled ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#e5e7eb',
+        background: printSettings[setting.key] && !disabled ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e5e7eb',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1147,7 +1147,7 @@ const SettingToggle = ({ setting, printSettings, toggleSetting, disabled = false
         cursor: disabled ? 'not-allowed' : 'pointer',
         position: 'relative',
         transition: 'all 0.2s',
-        backgroundColor: printSettings[setting.key] && !disabled ? '#ec4899' : '#d1d5db',
+        backgroundColor: printSettings[setting.key] && !disabled ? '#ef4444' : '#d1d5db',
         flexShrink: 0,
         marginLeft: '12px'
       }}
@@ -1376,8 +1376,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 borderRadius: '12px',
                 fontWeight: '600',
                 fontSize: '14px',
-                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fce7f3',
-                background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#faf5f7',
+                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fef2f2',
+                background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
@@ -1396,7 +1396,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <FaSpinner className="spin" size={24} style={{ color: '#ec4899' }} />
+          <FaSpinner className="spin" size={24} style={{ color: '#ef4444' }} />
           <p style={{ color: '#6b7280', marginTop: '12px' }}>Loading settings...</p>
         </div>
       ) : selectedRestaurant ? (
@@ -1456,7 +1456,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
             </p>
             {installerUrlsLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px', color: '#6b7280', fontSize: '14px' }}>
-                <FaSpinner className="spin" size={18} style={{ color: '#ec4899' }} />
+                <FaSpinner className="spin" size={18} style={{ color: '#ef4444' }} />
                 Loading...
               </div>
             ) : (
@@ -1466,8 +1466,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   <div style={{
                     padding: '14px 18px',
                     borderRadius: '12px',
-                    border: '2px solid #ec4899',
-                    background: 'linear-gradient(135deg, #fdf2f8, #fce7f3)',
+                    border: '2px solid #ef4444',
+                    background: 'linear-gradient(135deg, #fdf2f8, #fef2f2)',
                     boxShadow: '0 4px 12px rgba(236,72,153,0.2)'
                   }}>
                     <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -1482,7 +1482,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         alignItems: 'center',
                         gap: '10px',
                         padding: '12px 20px',
-                        background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                         color: 'white',
                         borderRadius: '10px',
                         fontWeight: '600',
@@ -1509,8 +1509,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       minWidth: '200px',
                       padding: '16px',
                       borderRadius: '12px',
-                      border: platform.isWindows ? '2px solid #ec4899' : '1px solid #e5e7eb',
-                      background: platform.isWindows ? 'linear-gradient(135deg, #fdf2f8, #fce7f3)' : '#fafafa',
+                      border: platform.isWindows ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                      background: platform.isWindows ? 'linear-gradient(135deg, #fdf2f8, #fef2f2)' : '#fafafa',
                       boxShadow: platform.isWindows ? '0 4px 12px rgba(236,72,153,0.2)' : 'none'
                     }}
                   >
@@ -1518,7 +1518,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       <FaWindows size={20} style={{ color: '#0078d4' }} />
                       <span style={{ fontWeight: '600', color: '#1f2937' }}>Windows</span>
                       {platform.isWindows && (
-                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#ec4899', textTransform: 'uppercase' }}>Your device</span>
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#ef4444', textTransform: 'uppercase' }}>Your device</span>
                       )}
                     </div>
                     {installerUrls.windowsUrl ? (
@@ -1531,7 +1531,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                           alignItems: 'center',
                           gap: '6px',
                           padding: '8px 14px',
-                          background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                           color: 'white',
                           borderRadius: '8px',
                           fontWeight: '600',
@@ -1554,8 +1554,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       minWidth: '200px',
                       padding: '16px',
                       borderRadius: '12px',
-                      border: platform.isMac ? '2px solid #ec4899' : '1px solid #e5e7eb',
-                      background: platform.isMac ? 'linear-gradient(135deg, #fdf2f8, #fce7f3)' : '#fafafa',
+                      border: platform.isMac ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                      background: platform.isMac ? 'linear-gradient(135deg, #fdf2f8, #fef2f2)' : '#fafafa',
                       boxShadow: platform.isMac ? '0 4px 12px rgba(236,72,153,0.2)' : 'none'
                     }}
                   >
@@ -1563,7 +1563,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       <FaApple size={20} style={{ color: '#555' }} />
                       <span style={{ fontWeight: '600', color: '#1f2937' }}>Mac</span>
                       {platform.isMac && (
-                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#ec4899', textTransform: 'uppercase' }}>Your device</span>
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#ef4444', textTransform: 'uppercase' }}>Your device</span>
                       )}
                     </div>
                     {installerUrls.macUrl ? (
@@ -1576,7 +1576,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                           alignItems: 'center',
                           gap: '6px',
                           padding: '8px 14px',
-                          background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                           color: 'white',
                           borderRadius: '8px',
                           fontWeight: '600',
@@ -1598,7 +1598,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     href="/dineopenprintupload/upload"
                     style={{
                       fontSize: '13px',
-                      color: '#ec4899',
+                      color: '#ef4444',
                       fontWeight: '600',
                       textDecoration: 'none'
                     }}
@@ -1620,7 +1620,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               justifyContent: 'center',
               gap: '8px',
               padding: '14px 28px',
-              background: saving ? '#d1d5db' : 'linear-gradient(135deg, #ec4899, #db2777)',
+              background: saving ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -1727,6 +1727,29 @@ const Admin = () => {
   const [posSettings, setPosSettings] = useState({});
   const [posSettingsSaving, setPosSettingsSaving] = useState(false);
   const [businessType, setBusinessType] = useState('restaurant');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const navGroups = [
+    { label: 'MANAGE', items: [
+      { id: 'restaurants', label: 'Restaurants', icon: FaStore },
+      { id: 'staff', label: 'Staff', icon: FaUsers },
+    ]},
+    { label: 'SETTINGS', items: [
+      { id: 'settings', label: 'General', icon: FaUserCog },
+      { id: 'tax', label: 'Tax Management', icon: FaPercentage },
+      { id: 'pricing', label: 'Zone Pricing', icon: FaSlidersH },
+      { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
+      { id: 'print', label: 'Print Settings', icon: FaPrint },
+    ]},
+    { label: 'OPERATIONS', items: [
+      { id: 'order-management', label: 'Order Management', icon: FaReceipt },
+      { id: 'shifts', label: 'Shift Scheduling', icon: FaClock },
+    ]},
+    { label: 'INTEGRATIONS', items: [
+      { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
+    ]},
+  ];
+  const activeNavItem = navGroups.flatMap(function(g) { return g.items; }).find(function(i) { return i.id === activeTab; });
 
   // Sync current language and posSettings when opening Settings tab
   useEffect(() => {
@@ -2490,7 +2513,7 @@ const Admin = () => {
     return (
       <div style={{ 
         minHeight: '100vh', 
-        backgroundColor: '#fef7f0',
+        backgroundColor: '#f8fafc',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -2499,14 +2522,14 @@ const Admin = () => {
           textAlign: 'center',
           backgroundColor: 'white',
           padding: '40px',
-          borderRadius: '20px',
+          borderRadius: '16px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
         }}>
           <div style={{
             width: '40px',
             height: '40px',
-            border: '4px solid #fce7f3',
-            borderTop: '4px solid #ec4899',
+            border: '4px solid #fef2f2',
+            borderTop: '4px solid #ef4444',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 16px'
@@ -2518,601 +2541,197 @@ const Admin = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#fef7f0' }}>
-      
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <div style={{ padding: isClient && isMobile ? '16px' : '24px' }}>
-        {/* Header */}
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: isClient && isMobile ? '16px' : '24px', 
-          borderRadius: '16px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          marginBottom: isClient && isMobile ? '16px' : '24px',
-          border: '1px solid #fce7f3'
-        }}>
-          {isClient && isMobile ? (
-            // Mobile Header Layout
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  background: 'linear-gradient(135deg, #ec4899, #db2777)', 
-                  borderRadius: '12px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
-                }}>
-                  <FaShieldAlt color="white" size={18} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 2px 0' }}>
-                    Admin Dashboard
-                  </h1>
-                  <p style={{ color: '#6b7280', margin: 0, fontSize: '12px' }}>
-                    {restaurants.length} restaurants • {staff.length} staff
-                  </p>
-                </div>
+
+        {/* Mobile Header + Dropdown */}
+        {isClient && isMobile && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '36px', height: '36px',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <FaShieldAlt color="white" size={15} />
               </div>
-              
-              {/* Mobile Tab Navigation */}
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button
-                  onClick={() => setActiveTab('restaurants')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'restaurants' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'restaurants' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'restaurants' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'restaurants' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaStore size={10} />
-                  Restaurants
-                </button>
-                <button
-                  onClick={() => setActiveTab('staff')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'staff' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'staff' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'staff' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'staff' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaUsers size={10} />
-                  Staff
-                </button>
-                <button
-                  onClick={() => setActiveTab('menu')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'menu' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'menu' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'menu' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'menu' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaUtensils size={10} />
-                  Menu
-                </button>
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'settings' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'settings' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'settings' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'settings' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaUserCog size={10} />
-                  Settings
-                </button>
-                <button
-                  onClick={() => setActiveTab('tax')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'tax' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'tax' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'tax' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'tax' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaPercentage size={10} />
-                  Tax
-                </button>
-                <button
-                  onClick={() => setActiveTab('pricing')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'pricing' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'pricing' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'pricing' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'pricing' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaSlidersH size={10} />
-                  Pricing
-                </button>
-                <button
-                  onClick={() => setActiveTab('currency')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'currency' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'currency' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'currency' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'currency' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaMoneyBillWave size={10} />
-                  Currency
-                </button>
-                <button
-                  onClick={() => setActiveTab('print')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'print' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'print' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'print' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'print' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaPrint size={10} />
-                  Print
-                </button>
-                <button
-                  onClick={() => setActiveTab('order-management')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'order-management' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'order-management' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'order-management' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'order-management' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaReceipt size={10} />
-                  Orders
-                </button>
-                <button
-                  onClick={() => setActiveTab('shifts')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'shifts' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'shifts' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'shifts' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'shifts' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaClock size={10} />
-                  Shifts
-                </button>
-                <button
-                  onClick={() => setActiveTab('google-reviews')}
-                  style={{
-                    flex: 1,
-                    background: activeTab === 'google-reviews' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                    color: activeTab === 'google-reviews' ? 'white' : '#6b7280',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    border: activeTab === 'google-reviews' ? 'none' : '1px solid #e5e7eb',
-                    boxShadow: activeTab === 'google-reviews' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FaGoogle size={10} />
-                  Reviews
-                </button>
+              <div>
+                <h1 style={{ fontSize: '17px', fontWeight: 700, color: '#1f2937', margin: 0 }}>Admin</h1>
+                <p style={{ color: '#9ca3af', margin: 0, fontSize: '11px' }}>
+                  {restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''} &middot; {staff.length} staff
+                </p>
               </div>
             </div>
-          ) : (
-            // Desktop Header Layout
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                <div style={{ 
-                  width: '56px', 
-                  height: '56px', 
-                  background: 'linear-gradient(135deg, #ec4899, #db2777)', 
-                  borderRadius: '16px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
+            <div style={{ position: 'relative' }}>
+              <button onClick={function() { setMobileNavOpen(!mobileNavOpen); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '12px 16px', background: 'white', border: '1px solid #e2e8f0',
+                  borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+                  color: '#1f2937', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                }}
+              >
+                {activeNavItem && (function() { var AIcon = activeNavItem.icon; return <AIcon size={14} style={{ color: '#ef4444' }} />; })()}
+                <span style={{ flex: 1, textAlign: 'left' }}>{activeNavItem ? activeNavItem.label : 'Select'}</span>
+                <FaChevronDown size={11} style={{ color: '#9ca3af', transform: mobileNavOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+              </button>
+              {mobileNavOpen && (
+                <div>
+                  <div onClick={function() { setMobileNavOpen(false); }} style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40
+                  }}></div>
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50,
+                    background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.12)', padding: '8px',
+                    maxHeight: '60vh', overflowY: 'auto'
+                  }}>
+                    {navGroups.map(function(group) {
+                      return (
+                        <div key={group.label}>
+                          <div style={{
+                            fontSize: '10px', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.08em',
+                            padding: '10px 12px 4px', textTransform: 'uppercase'
+                          }}>{group.label}</div>
+                          {group.items.map(function(item) {
+                            var MItemIcon = item.icon;
+                            return (
+                              <button key={item.id} onClick={function() { setActiveTab(item.id); setMobileNavOpen(false); }}
+                                style={{
+                                  width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                                  padding: '10px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer',
+                                  background: activeTab === item.id ? '#fef2f2' : 'transparent',
+                                  color: activeTab === item.id ? '#dc2626' : '#374151',
+                                  fontWeight: activeTab === item.id ? 600 : 500, fontSize: '13px',
+                                  transition: 'all 0.15s', textAlign: 'left'
+                                }}
+                              >
+                                <MItemIcon size={13} style={{ color: activeTab === item.id ? '#ef4444' : '#9ca3af' }} />
+                                <span>{item.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===== DESKTOP HEADER + HORIZONTAL TABS ===== */}
+        {!(isClient && isMobile) && (
+          <div style={{ marginBottom: '24px' }}>
+            {/* Top row: title + action button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '42px', height: '42px',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(239,68,68,0.2)'
                 }}>
-                  <FaShieldAlt color="white" size={24} />
+                  <FaShieldAlt color="white" size={17} />
                 </div>
                 <div>
-                  <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 4px 0' }}>
-                    Admin Dashboard
+                  <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1f2937', margin: 0, letterSpacing: '-0.02em' }}>
+                    {activeNavItem ? activeNavItem.label : 'Admin'}
                   </h1>
-                  <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-                    Manage restaurants and staff • {restaurants.length} restaurants • {staff.length} staff members
+                  <p style={{ color: '#9ca3af', margin: 0, fontSize: '12px' }}>
+                    {restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''} &middot; {staff.length} staff
                   </p>
                 </div>
               </div>
-              
-              {/* Desktop Tab Navigation - Separate Section */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '8px', 
-                flexWrap: 'wrap',
-                paddingTop: '16px',
-                borderTop: '1px solid #f3f4f6'
-              }}>
-              <button
-                onClick={() => setActiveTab('restaurants')}
-                style={{
-                  background: activeTab === 'restaurants' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'restaurants' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'restaurants' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'restaurants' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaStore size={14} />
-                Restaurants
-              </button>
-              <button
-                onClick={() => setActiveTab('staff')}
-                style={{
-                  background: activeTab === 'staff' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'staff' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'staff' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'staff' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaUsers size={14} />
-                Staff
-              </button>
-              <button
-                onClick={() => setActiveTab('menu')}
-                style={{
-                  background: activeTab === 'menu' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'menu' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'menu' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'menu' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaUtensils size={14} />
-                Menu
-              </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                style={{
-                  background: activeTab === 'settings' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'settings' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'settings' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'settings' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaUserCog size={14} />
-                Settings
-              </button>
-              <button
-                onClick={() => setActiveTab('tax')}
-                style={{
-                  background: activeTab === 'tax' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'tax' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'tax' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'tax' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaPercentage size={14} />
-                Tax Management
-              </button>
-              <button
-                onClick={() => setActiveTab('pricing')}
-                style={{
-                  background: activeTab === 'pricing' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'pricing' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'pricing' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'pricing' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaSlidersH size={14} />
-                Zone Pricing
-              </button>
-              <button
-                onClick={() => setActiveTab('currency')}
-                style={{
-                  background: activeTab === 'currency' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'currency' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'currency' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'currency' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaMoneyBillWave size={14} />
-                Currency
-              </button>
-              <button
-                onClick={() => setActiveTab('print')}
-                style={{
-                  background: activeTab === 'print' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'print' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'print' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'print' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaPrint size={14} />
-                Print Settings
-              </button>
-              <button
-                onClick={() => setActiveTab('order-management')}
-                style={{
-                  background: activeTab === 'order-management' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'order-management' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'order-management' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'order-management' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaReceipt size={14} />
-                Order Management
-              </button>
-              <button
-                onClick={() => setActiveTab('shifts')}
-                style={{
-                  background: activeTab === 'shifts' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'shifts' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'shifts' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'shifts' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaClock size={14} />
-                Shift Scheduling
-              </button>
-              <button
-                onClick={() => setActiveTab('google-reviews')}
-                style={{
-                  background: activeTab === 'google-reviews' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#fff',
-                  color: activeTab === 'google-reviews' ? 'white' : '#6b7280',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: activeTab === 'google-reviews' ? 'none' : '1.5px solid #e5e7eb',
-                  boxShadow: activeTab === 'google-reviews' ? '0 2px 8px rgba(239,68,68,0.25)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <FaGoogle size={14} />
-                Google Reviews
-              </button>
+              {activeTab === 'restaurants' && (
+                <button onClick={function() { setShowAddRestaurantModal(true); }}
+                  style={{
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: 'white', padding: '10px 20px', borderRadius: '10px',
+                    fontWeight: 600, fontSize: '13px', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    boxShadow: '0 2px 8px rgba(239,68,68,0.25)'
+                  }}
+                >
+                  <FaPlus size={12} />
+                  Add Restaurant
+                </button>
+              )}
+              {activeTab === 'staff' && (
+                <button onClick={function() { setShowAddStaffModal(true); }}
+                  style={{
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: 'white', padding: '10px 20px', borderRadius: '10px',
+                    fontWeight: 600, fontSize: '13px', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    boxShadow: '0 2px 8px rgba(239,68,68,0.25)'
+                  }}
+                >
+                  <FaPlus size={12} />
+                  Add Staff
+                </button>
+              )}
             </div>
-            </div>
-          )}
-        </div>
 
-        {/* Action Bar — only on Restaurants / Staff / Menu tabs */}
-        {(activeTab === 'restaurants' || activeTab === 'staff' || activeTab === 'menu') && (
+            {/* Horizontal tab bar */}
+            <div style={{
+              background: 'linear-gradient(135deg, #fff1f2, #ffe4e6, #fecdd3)', borderRadius: '14px', padding: '5px 6px',
+              border: '1px solid #fecdd3',
+              display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap'
+            }}>
+              {navGroups.map(function(group, groupIdx) {
+                return (
+                  <div key={group.label} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    {groupIdx > 0 && (
+                      <div style={{ width: '1px', height: '22px', backgroundColor: '#fda4af', margin: '0 6px', flexShrink: 0, opacity: 0.4 }}></div>
+                    )}
+                    {group.items.map(function(item) {
+                      var isItemActive = activeTab === item.id;
+                      var TabIcon = item.icon;
+                      return (
+                        <button key={item.id} onClick={function() { setActiveTab(item.id); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            padding: '8px 14px', border: 'none', borderRadius: '10px', cursor: 'pointer',
+                            background: isItemActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent',
+                            color: isItemActive ? 'white' : '#9f1239',
+                            fontWeight: isItemActive ? 600 : 500, fontSize: '13px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            boxShadow: isItemActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
+                          }}
+                        >
+                          <TabIcon size={13} style={{ color: isItemActive ? 'white' : '#e11d48' }} />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+
+
+        {/* Search Bar — only on Restaurants / Staff tabs */}
+        {(activeTab === 'restaurants' || activeTab === 'staff') && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-          padding: isClient && isMobile ? '16px' : '20px',
-          marginBottom: isClient && isMobile ? '16px' : '24px',
-          border: '1px solid #fce7f3',
+          borderRadius: '12px',
+          padding: isClient && isMobile ? '12px' : '16px',
+          marginBottom: isClient && isMobile ? '12px' : '20px',
+          border: '1px solid #f1f5f9',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          flexDirection: isClient && isMobile ? 'column' : 'row',
-          gap: isClient && isMobile ? '12px' : '0'
+          gap: '12px',
+          flexDirection: isClient && isMobile ? 'column' : 'row'
         }}>
-          {/* Search Bar */}
-          <div style={{ 
-            position: 'relative', 
-            maxWidth: isClient && isMobile ? '100%' : '400px', 
+          <div style={{
+            position: 'relative',
+            maxWidth: isClient && isMobile ? '100%' : '400px',
             flex: 1,
             width: isClient && isMobile ? '100%' : 'auto'
           }}>
@@ -3122,80 +2741,50 @@ const Admin = () => {
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#9ca3af',
-              fontSize: isClient && isMobile ? '12px' : '14px'
+              fontSize: '13px'
             }} />
             <input
               type="text"
-              placeholder={`Search ${activeTab}...`}
+              placeholder={activeTab === 'restaurants' ? 'Search restaurants...' : 'Search staff...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                paddingLeft: isClient && isMobile ? '36px' : '40px',
-                paddingRight: isClient && isMobile ? '12px' : '16px',
-                paddingTop: isClient && isMobile ? '10px' : '12px',
-                paddingBottom: isClient && isMobile ? '10px' : '12px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '12px',
-                fontSize: isClient && isMobile ? '13px' : '14px',
+                paddingLeft: '38px',
+                paddingRight: '14px',
+                paddingTop: '10px',
+                paddingBottom: '10px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                fontSize: '13px',
                 outline: 'none',
-                backgroundColor: '#fef7f0',
+                backgroundColor: '#f8fafc',
                 transition: 'all 0.2s'
               }}
             />
           </div>
-          
-          {/* Add Button — Restaurants or Staff only */}
-          {activeTab !== 'menu' && (
+          {isClient && isMobile && (
             <button
-              onClick={() => activeTab === 'restaurants' ? setShowAddRestaurantModal(true) : setShowAddStaffModal(true)}
+              onClick={function() { activeTab === 'restaurants' ? setShowAddRestaurantModal(true) : setShowAddStaffModal(true); }}
               style={{
-                background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 color: 'white',
-                padding: isClient && isMobile ? '10px 16px' : '12px 20px',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: isClient && isMobile ? '13px' : '14px',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '13px',
                 border: 'none',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
                 display: 'flex',
-                width: isClient && isMobile ? '100%' : 'auto',
+                width: '100%',
                 justifyContent: 'center',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
-                marginLeft: isClient && isMobile ? '0' : '16px'
+                boxShadow: '0 2px 8px rgba(239,68,68,0.25)'
               }}
             >
-              <FaPlus size={14} />
+              <FaPlus size={12} />
               Add {activeTab === 'restaurants' ? 'Restaurant' : 'Staff'}
-            </button>
-          )}
-          
-          {/* Menu Management Button */}
-          {activeTab === 'menu' && (
-            <button
-              onClick={() => router.push('/menu')}
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                color: 'white',
-                padding: '12px 20px',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: '14px',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
-                marginLeft: '16px'
-              }}
-            >
-              <FaEdit size={14} />
-              Full Menu Management
             </button>
           )}
         </div>
@@ -3206,10 +2795,10 @@ const Admin = () => {
           <div style={{
             backgroundColor: 'white',
             borderRadius: '16px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             padding: '20px',
             marginBottom: '24px',
-            border: '1px solid #fce7f3'
+            border: '1px solid #f1f5f9'
           }}>
             <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <FaStore size={16} />
@@ -3221,7 +2810,7 @@ const Admin = () => {
                   key={restaurant.id}
                   onClick={() => setSelectedRestaurant(restaurant)}
                   style={{
-                    backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ec4899' : '#f8fafc',
+                    backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
                     color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                     padding: '12px 16px',
                     borderRadius: '12px',
@@ -3249,194 +2838,127 @@ const Admin = () => {
           // Restaurants Grid
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))',
-            gap: isClient && isMobile ? '16px' : '20px'
+            gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '16px'
           }}>
-            {filteredRestaurants.map((restaurant) => (
+            {filteredRestaurants.map(function(restaurant) {
+              var initials = restaurant.name ? restaurant.name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase() : 'R';
+              return (
               <div key={restaurant.id} style={{
                 backgroundColor: 'white',
-                borderRadius: '16px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                overflow: 'hidden',
-                transition: 'all 0.3s ease',
+                borderRadius: '12px',
+                transition: 'all 0.2s ease',
                 border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                position: 'relative',
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={function(e) {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
-                e.currentTarget.style.borderColor = '#ef4444';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)';
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={function(e) {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
-                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
               }}>
-                {/* Restaurant Header */}
-                <div style={{ padding: '20px 20px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                      <div style={{
-                        width: '44px',
-                        height: '44px',
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <FaStore color="white" size={18} />
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0, lineHeight: '1.3' }}>{restaurant.name}</h3>
-                        {restaurant.city && <p style={{ fontSize: '12px', color: '#9ca3af', margin: '2px 0 0' }}>{restaurant.city}</p>}
-                      </div>
+                <div style={{ padding: '20px' }}>
+                  {/* Identity row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '10px',
+                      backgroundColor: '#fef2f2', color: '#dc2626',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '14px', fontWeight: 700, flexShrink: 0
+                    }}>
+                      {initials}
                     </div>
-                    <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{restaurant.name}</div>
+                      <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '1px' }}>{restaurant.city || 'No location'}</div>
+                    </div>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+                      backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0',
+                      flexShrink: 0
+                    }}>Active</span>
+                  </div>
+
+                  {/* Details */}
+                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '14px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {restaurant.businessType && restaurant.businessType !== 'restaurant' && (
-                        <span style={{
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontSize: '10px',
-                          fontWeight: '600',
-                          backgroundColor: '#eff6ff',
-                          color: '#2563eb',
-                          textTransform: 'capitalize'
-                        }}>
-                          {restaurant.businessType.replace('_', ' ')}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>Type</span>
+                          <span style={{ fontSize: '12px', color: '#374151', fontWeight: 600, textTransform: 'capitalize' }}>{restaurant.businessType.replace('_', ' ')}</span>
+                        </div>
                       )}
-                      <span style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        backgroundColor: '#dcfce7',
-                        color: '#166534',
-                      }}>
-                        Active
-                      </span>
+                      {restaurant.phone && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>Phone</span>
+                          <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>{restaurant.phone}</span>
+                        </div>
+                      )}
+                      {restaurant.cuisine && Array.isArray(restaurant.cuisine) && restaurant.cuisine.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>Cuisine</span>
+                          <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>{restaurant.cuisine.join(', ')}</span>
+                        </div>
+                      )}
+                      {!restaurant.phone && !(restaurant.cuisine && restaurant.cuisine.length > 0) && !(restaurant.businessType && restaurant.businessType !== 'restaurant') && (
+                        <div style={{ fontSize: '12px', color: '#d1d5db', textAlign: 'center', padding: '4px 0' }}>No details added</div>
+                      )}
                     </div>
                   </div>
-                </div>
 
-                {/* Restaurant Details - compact row layout */}
-                <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {restaurant.address && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FaMapMarkerAlt style={{ color: '#9ca3af', fontSize: '11px', flexShrink: 0 }} />
-                      <span style={{ fontSize: '13px', color: '#4b5563', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {restaurant.address}
-                      </span>
-                    </div>
-                  )}
-                  {restaurant.phone && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FaPhone style={{ color: '#9ca3af', fontSize: '11px', flexShrink: 0 }} />
-                      <span style={{ fontSize: '13px', color: '#4b5563' }}>{restaurant.phone}</span>
-                    </div>
-                  )}
-                  {restaurant.email && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FaEnvelope style={{ color: '#9ca3af', fontSize: '11px', flexShrink: 0 }} />
-                      <span style={{ fontSize: '13px', color: '#4b5563', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{restaurant.email}</span>
-                    </div>
-                  )}
-
-                  {restaurant.cuisine && Array.isArray(restaurant.cuisine) && restaurant.cuisine.length > 0 && (
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
-                      {(Array.isArray(restaurant.cuisine) ? restaurant.cuisine : [restaurant.cuisine]).map((c, index) => (
-                        <span key={index} style={{
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: '500',
-                          backgroundColor: '#fef3c7',
-                          color: '#92400e',
-                        }}>
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#f9fafb',
-                  display: 'flex',
-                  gap: '8px',
-                  borderTop: '1px solid #f3f4f6'
-                }}>
-                  <button
-                    onClick={() => {
-                      setSelectedRestaurant(restaurant);
-                      setActiveTab('staff');
-                    }}
-                    style={{
-                      flex: 1,
-                      backgroundColor: 'white',
-                      color: '#374151',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '12px',
-                      border: '1px solid #e5e7eb',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <FaUsers size={11} />
-                    Staff
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setEditRestaurant({
-                        id: restaurant.id,
-                        name: restaurant.name || '',
-                        description: restaurant.description || '',
-                        address: restaurant.address || '',
-                        city: restaurant.city || '',
-                        phone: restaurant.phone || '',
-                        email: restaurant.email || '',
-                        cuisine: Array.isArray(restaurant.cuisine) ? restaurant.cuisine.join(', ') : (restaurant.cuisine || ''),
-                        businessType: restaurant.businessType || 'restaurant',
-                        legalBusinessName: restaurant.legalBusinessName || '',
-                        gstin: restaurant.gstin || '',
-                        staffCount: restaurant.staffCount || '',
-                        seatingCapacity: restaurant.seatingCapacity || ''
-                      });
-                      setShowEditRestaurantModal(true);
-                    }}
-                    style={{
-                      flex: 1,
-                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                      color: 'white',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '12px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <FaEdit size={11} />
-                    Edit
-                  </button>
+                  {/* Footer actions */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '14px' }}>
+                    <button
+                      onClick={function() { setSelectedRestaurant(restaurant); setActiveTab('staff'); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '0', fontSize: '13px', fontWeight: 500,
+                        backgroundColor: 'transparent', color: '#6b7280', border: 'none',
+                        cursor: 'pointer', transition: 'color 0.15s'
+                      }}
+                      onMouseEnter={function(e) { e.currentTarget.style.color = '#111827'; }}
+                      onMouseLeave={function(e) { e.currentTarget.style.color = '#6b7280'; }}
+                    >
+                      <FaUsers size={12} /> View Staff
+                    </button>
+                    <button
+                      onClick={function() {
+                        setEditRestaurant({
+                          id: restaurant.id,
+                          name: restaurant.name || '',
+                          description: restaurant.description || '',
+                          address: restaurant.address || '',
+                          city: restaurant.city || '',
+                          phone: restaurant.phone || '',
+                          email: restaurant.email || '',
+                          cuisine: Array.isArray(restaurant.cuisine) ? restaurant.cuisine.join(', ') : (restaurant.cuisine || ''),
+                          businessType: restaurant.businessType || 'restaurant',
+                          legalBusinessName: restaurant.legalBusinessName || '',
+                          gstin: restaurant.gstin || '',
+                          staffCount: restaurant.staffCount || '',
+                          seatingCapacity: restaurant.seatingCapacity || ''
+                        });
+                        setShowEditRestaurantModal(true);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '0', fontSize: '13px', fontWeight: 500,
+                        backgroundColor: 'transparent', color: '#6b7280', border: 'none',
+                        cursor: 'pointer', transition: 'color 0.15s'
+                      }}
+                      onMouseEnter={function(e) { e.currentTarget.style.color = '#111827'; }}
+                      onMouseLeave={function(e) { e.currentTarget.style.color = '#6b7280'; }}
+                    >
+                      <FaEdit size={12} /> Edit Details
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           // Staff Grid
@@ -3455,11 +2977,11 @@ const Admin = () => {
               return (
                 <div key={member.id} style={{
                   backgroundColor: isInactive ? '#e5e7eb' : 'white',
-                  borderRadius: '20px',
+                  borderRadius: '16px',
                   boxShadow: isInactive ? '0 1px 4px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.08)',
                   overflow: 'hidden',
                   transition: 'all 0.3s ease',
-                  border: isInactive ? '2px solid #9ca3af' : '1px solid #fce7f3',
+                  border: isInactive ? '2px solid #9ca3af' : '1px solid #fef2f2',
                   cursor: 'pointer',
                   opacity: isInactive ? 0.88 : 1,
                   position: 'relative'
@@ -3530,7 +3052,7 @@ const Admin = () => {
                       <div style={{ display: 'flex', gap: isClient && isMobile ? '4px' : '6px', flexWrap: 'wrap' }}>
                         <div style={{
                           padding: '4px 12px',
-                          borderRadius: '20px',
+                          borderRadius: '16px',
                           fontSize: '11px',
                           fontWeight: '600',
                           backgroundColor: roleInfo.bg,
@@ -3545,7 +3067,7 @@ const Admin = () => {
                         </div>
                         <div style={{
                           padding: '4px 12px',
-                          borderRadius: '20px',
+                          borderRadius: '16px',
                           fontSize: '11px',
                           fontWeight: '600',
                           backgroundColor: statusInfo.bg,
@@ -3892,10 +3414,10 @@ const Admin = () => {
                   {/* Actions */}
                   <div style={{ 
                     padding: isClient && isMobile ? '8px 12px' : '12px 16px',
-                    backgroundColor: '#fef7f0', 
+                    backgroundColor: '#f8fafc', 
                     display: 'flex', 
                     gap: isClient && isMobile ? '4px' : '6px',
-                    borderTop: '1px solid #fce7f3',
+                    borderTop: '1px solid #fef2f2',
                     justifyContent: 'center',
                     alignItems: 'center'
                   }}>
@@ -4173,13 +3695,13 @@ const Admin = () => {
             textAlign: 'center',
             padding: '80px 20px',
             backgroundColor: 'white',
-            borderRadius: '20px',
-            border: '1px solid #fce7f3'
+            borderRadius: '16px',
+            border: '1px solid #f1f5f9'
           }}>
             <div style={{
               width: '80px',
               height: '80px',
-              backgroundColor: '#fef7f0',
+              backgroundColor: '#f8fafc',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -4226,12 +3748,12 @@ const Admin = () => {
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
             maxWidth: '400px',
-            border: '1px solid #fce7f3'
+            border: '1px solid #f1f5f9'
           }}>
             <div style={{
               padding: '24px',
               borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, #fef7f0, #fce7f3)'
+              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h2 style={{
@@ -4344,7 +3866,7 @@ const Admin = () => {
                   disabled={loading}
                   style={{
                     flex: 1,
-                    background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
                     padding: '12px 20px',
                     borderRadius: '12px',
@@ -4683,7 +4205,7 @@ const Admin = () => {
             width: '100%',
             maxWidth: '800px',
             maxHeight: '90vh',
-            border: '1px solid #fce7f3',
+            border: '1px solid #f1f5f9',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column'
@@ -4691,7 +4213,7 @@ const Admin = () => {
             <div style={{
               padding: '24px',
               borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, #fef7f0, #fce7f3)'
+              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h2 style={{
@@ -4950,7 +4472,7 @@ const Admin = () => {
                         borderRadius: '12px',
                         fontSize: '14px',
                         outline: 'none',
-                        backgroundColor: '#fef7f0',
+                        backgroundColor: '#f8fafc',
                         transition: 'all 0.2s',
                         boxSizing: 'border-box'
                       }}
@@ -5115,7 +4637,7 @@ const Admin = () => {
                   disabled={loading}
                   style={{
                     flex: 1,
-                    background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
                     padding: '12px 20px',
                     borderRadius: '12px',
@@ -5429,19 +4951,19 @@ const Admin = () => {
             maxWidth: '600px',
             maxHeight: '90vh',
             overflowY: 'auto',
-            border: '1px solid #fce7f3'
+            border: '1px solid #f1f5f9'
           }}>
             <div style={{
               padding: '24px',
               borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, #fef7f0, #fce7f3)'
+              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{
                     width: '40px',
                     height: '40px',
-                    backgroundColor: '#ec4899',
+                    backgroundColor: '#ef4444',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
@@ -5655,10 +5177,10 @@ const Admin = () => {
               {/* Staff Info */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
                 <div style={{ 
-                  backgroundColor: '#fef7f0', 
+                  backgroundColor: '#f8fafc', 
                   padding: '16px', 
                   borderRadius: '12px',
-                  border: '1px solid #fce7f3'
+                  border: '1px solid #f1f5f9'
                 }}>
                   <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: '12px', fontSize: '16px' }}>Personal Information</h3>
                   <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
@@ -5671,10 +5193,10 @@ const Admin = () => {
                 </div>
                 
                 <div style={{ 
-                  backgroundColor: '#fef7f0', 
+                  backgroundColor: '#f8fafc', 
                   padding: '16px', 
                   borderRadius: '12px',
-                  border: '1px solid #fce7f3'
+                  border: '1px solid #f1f5f9'
                 }}>
                   <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: '12px', fontSize: '16px' }}>Work Information</h3>
                   <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
@@ -5696,10 +5218,10 @@ const Admin = () => {
             
             <div style={{ 
               padding: '24px', 
-              backgroundColor: '#fef7f0', 
+              backgroundColor: '#f8fafc', 
               display: 'flex', 
               gap: '12px',
-              borderTop: '1px solid #fce7f3'
+              borderTop: '1px solid #fef2f2'
             }}>
               <button
                 onClick={() => setSelectedStaff(null)}
@@ -5746,10 +5268,10 @@ const Admin = () => {
       {activeTab === 'settings' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #fce7f3',
+          border: '1px solid #f1f5f9',
           maxWidth: '560px'
         }}>
           {/* Choose Language */}
@@ -5759,7 +5281,7 @@ const Admin = () => {
                 width: '44px',
                 height: '44px',
                 borderRadius: '14px',
-                background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -5790,7 +5312,7 @@ const Admin = () => {
                     fontWeight: '600',
                     fontSize: '14px',
                     border: currentLang === lang.code ? 'none' : '1px solid #e5e7eb',
-                    background: currentLang === lang.code ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#f9fafb',
+                    background: currentLang === lang.code ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#f9fafb',
                     color: currentLang === lang.code ? 'white' : '#374151',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
@@ -5862,7 +5384,7 @@ const Admin = () => {
                     }}
                     style={{
                       padding: '8px 16px',
-                      borderRadius: '20px',
+                      borderRadius: '16px',
                       fontSize: '13px',
                       fontWeight: '600',
                       border: businessType === type.id ? '2px solid #ef4444' : '1px solid #e5e7eb',
@@ -6227,7 +5749,7 @@ const Admin = () => {
                 width: '44px',
                 height: '44px',
                 borderRadius: '14px',
-                background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -6261,8 +5783,8 @@ const Admin = () => {
                       borderRadius: '12px',
                       fontWeight: '600',
                       fontSize: '14px',
-                      border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fce7f3',
-                      background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#faf5f7',
+                      border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fef2f2',
+                      background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
                       color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
@@ -6286,10 +5808,10 @@ const Admin = () => {
       {activeTab === 'tax' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #fce7f3'
+          border: '1px solid #f1f5f9'
         }}>
           <TaxManagement
             restaurants={restaurants}
@@ -6303,10 +5825,10 @@ const Admin = () => {
       {activeTab === 'pricing' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #fce7f3'
+          border: '1px solid #f1f5f9'
         }}>
           <ZonePricingManagement
             restaurants={restaurants}
@@ -6320,10 +5842,10 @@ const Admin = () => {
       {activeTab === 'currency' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #fce7f3'
+          border: '1px solid #f1f5f9'
         }}>
           <CurrencyManagement
             restaurants={restaurants}
@@ -6337,10 +5859,10 @@ const Admin = () => {
       {activeTab === 'print' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #fce7f3',
+          border: '1px solid #f1f5f9',
           maxWidth: '600px'
         }}>
           <PrintSettings
@@ -6359,10 +5881,10 @@ const Admin = () => {
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '20px',
+            borderRadius: '16px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(236,72,153,0.06)',
             padding: '32px',
-            border: '1px solid #fce7f3'
+            border: '1px solid #f1f5f9'
           }}>
             <div style={{
               marginBottom: '28px',
@@ -6374,7 +5896,7 @@ const Admin = () => {
                   width: '44px',
                   height: '44px',
                   borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #ec4899, #db2777)',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -6403,13 +5925,13 @@ const Admin = () => {
                     key={restaurant.id}
                     onClick={() => setSelectedRestaurant(restaurant)}
                     style={{
-                      background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ec4899, #db2777)' : '#faf5f7',
+                      background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
                       color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                       padding: '10px 18px',
                       borderRadius: '12px',
                       fontWeight: '600',
                       fontSize: '14px',
-                      border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fce7f3',
+                      border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fef2f2',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
                       boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
@@ -6427,10 +5949,10 @@ const Admin = () => {
 
             {selectedRestaurant && (
               <div style={{
-                backgroundColor: '#fef7f0',
+                backgroundColor: '#f8fafc',
                 borderRadius: '16px',
                 padding: '24px',
-                border: '1px solid #fce7f3',
+                border: '1px solid #f1f5f9',
                 marginBottom: '24px'
               }}>
                 <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -6444,7 +5966,7 @@ const Admin = () => {
                     padding: '16px 18px',
                     backgroundColor: orderManagementSeqEnabled ? 'transparent' : 'white',
                     borderRadius: '12px',
-                    border: `2px solid ${orderManagementSeqEnabled ? '#e5e7eb' : '#ec4899'}`,
+                    border: `2px solid ${orderManagementSeqEnabled ? '#e5e7eb' : '#ef4444'}`,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     boxShadow: orderManagementSeqEnabled ? 'none' : '0 2px 8px rgba(236,72,153,0.12)'
@@ -6454,7 +5976,7 @@ const Admin = () => {
                       name="orderMode"
                       checked={!orderManagementSeqEnabled}
                       onChange={() => setOrderManagementSeqEnabled(false)}
-                      style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                      style={{ width: '18px', height: '18px', accentColor: '#ef4444' }}
                     />
                     <div>
                       <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>Daily reset</span>
@@ -6468,7 +5990,7 @@ const Admin = () => {
                     padding: '16px 18px',
                     backgroundColor: orderManagementSeqEnabled ? 'white' : 'transparent',
                     borderRadius: '12px',
-                    border: `2px solid ${orderManagementSeqEnabled ? '#ec4899' : '#e5e7eb'}`,
+                    border: `2px solid ${orderManagementSeqEnabled ? '#ef4444' : '#e5e7eb'}`,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     boxShadow: orderManagementSeqEnabled ? '0 2px 8px rgba(236,72,153,0.12)' : 'none'
@@ -6478,7 +6000,7 @@ const Admin = () => {
                       name="orderMode"
                       checked={orderManagementSeqEnabled}
                       onChange={() => setOrderManagementSeqEnabled(true)}
-                      style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                      style={{ width: '18px', height: '18px', accentColor: '#ef4444' }}
                     />
                     <div>
                       <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>Sequential (never reset)</span>
@@ -6518,7 +6040,7 @@ const Admin = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '10px',
-                    background: orderManagementSaving ? '#9ca3af' : 'linear-gradient(135deg, #ec4899, #db2777)',
+                    background: orderManagementSaving ? '#9ca3af' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
                     boxShadow: orderManagementSaving ? 'none' : '0 4px 14px rgba(236,72,153,0.35)'
                   }}
@@ -6543,10 +6065,10 @@ const Admin = () => {
       {activeTab === 'shifts' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #fce7f3',
+          border: '1px solid #f1f5f9',
           minHeight: '600px'
         }}>
           {!selectedRestaurant ? (
@@ -6574,10 +6096,10 @@ const Admin = () => {
       {activeTab === 'google-reviews' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #fce7f3',
+          border: '1px solid #f1f5f9',
           minHeight: '600px'
         }}>
           {!selectedRestaurant ? (
