@@ -2026,19 +2026,25 @@ class ApiClient {
     });
   }
 
-  // Create booking (reservation) — uses createBooking(restaurantId, bookingData) defined above
+  // Create hotel room booking
+  async createHotelBooking(bookingData) {
+    return this.request('/api/booking', {
+      method: 'POST',
+      body: bookingData,
+    });
+  }
 
-  // Get bookings
-  async getBookings(restaurantId, filters = {}) {
+  // Get hotel room bookings
+  async getHotelBookings(restaurantId, filters = {}) {
     const params = new URLSearchParams();
     if (filters.status) params.append('status', filters.status);
     if (filters.date) params.append('date', filters.date);
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    return this.request(`/api/bookings/${restaurantId}${queryString}`);
+    return this.request(`/api/room-bookings/${restaurantId}${queryString}`);
   }
 
-  // Cancel booking
-  async cancelBooking(bookingId, reason) {
+  // Cancel hotel room booking
+  async cancelHotelBooking(bookingId, reason) {
     return this.request(`/api/booking/${bookingId}/cancel`, {
       method: 'PATCH',
       body: { reason }

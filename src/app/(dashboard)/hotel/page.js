@@ -291,7 +291,7 @@ const Hotel = () => {
     try {
       setLoadingDateBookings(true);
       // Filter bookings and check-ins for the selected date
-      const allBookings = await apiClient.getBookings(restaurantId, {});
+      const allBookings = await apiClient.getHotelBookings(restaurantId, {});
       const allCheckIns = await apiClient.getHotelCheckIns(restaurantId, 'all');
 
       const selectedDate = new Date(date);
@@ -425,7 +425,7 @@ const Hotel = () => {
     try {
       setLoading(true);
       // Load all bookings without status filter
-      const response = await apiClient.getBookings(restaurantId, {});
+      const response = await apiClient.getHotelBookings(restaurantId, {});
       setBookings(response.bookings || []);
     } catch (error) {
       console.error('Error loading bookings:', error);
@@ -733,7 +733,7 @@ const Hotel = () => {
       }
 
       // Create booking
-      await apiClient.createBooking({
+      await apiClient.createHotelBooking({
         restaurantId,
         roomNumber: bookingForm.roomNumber,
         guestInfo: {
@@ -784,7 +784,7 @@ const Hotel = () => {
   const handleCancelBooking = async (bookingId, reason) => {
     try {
       setLoadingRooms(prev => ({ ...prev, [bookingId]: true }));
-      const response = await apiClient.cancelBooking(bookingId, reason);
+      const response = await apiClient.cancelHotelBooking(bookingId, reason);
       setSuccess('Booking cancelled successfully. Room is now available for the cancelled dates.');
       
       // Refresh bookings list
