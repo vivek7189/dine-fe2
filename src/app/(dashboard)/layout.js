@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import { DineAIProvider } from '../../contexts/DineAIContext';
@@ -79,6 +79,15 @@ function DashboardLayoutContent({ children }) {
   return (
     <CurrencyProvider>
       <DineAIProvider>
+        <style>{`
+          @keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .dashboard-page-content {
+            animation: pageFadeIn 0.25s ease-out both;
+          }
+        `}</style>
         <div style={{
             display: 'flex',
             height: '100vh',
@@ -99,7 +108,7 @@ function DashboardLayoutContent({ children }) {
                 height: '100vh'
               }}
             >
-              <div style={{ width: '100%', minHeight: '100%' }}>
+              <div key={pathname} className="dashboard-page-content" style={{ width: '100%', minHeight: '100%' }}>
                 {children}
               </div>
             </main>
@@ -112,55 +121,8 @@ function DashboardLayoutContent({ children }) {
   );
 }
 
-function DashboardLayoutFallback({ children }) {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  return (
-    <div style={{
-        display: 'flex',
-        height: '100vh',
-        backgroundColor: '#f9fafb',
-        overflow: 'hidden'
-      }}>
-        {/* Loading Sidebar */}
-        <div style={{
-          width: '240px',
-          height: '100vh',
-          background: 'white',
-          borderRight: '1px solid #f1f5f9',
-          padding: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            width: '24px',
-            height: '24px',
-            border: '2px solid #f1f5f9',
-            borderTop: '2px solid #ef4444',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
-        </div>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-4">
-            {children}
-          </div>
-        </main>
-      </div>
-  );
-}
-
 export default function DashboardLayout({ children }) {
   return (
-    <Suspense fallback={<DashboardLayoutFallback>{children}</DashboardLayoutFallback>}>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
-    </Suspense>
+    <DashboardLayoutContent>{children}</DashboardLayoutContent>
   );
 }

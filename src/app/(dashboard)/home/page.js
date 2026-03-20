@@ -377,13 +377,36 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* === Dashboard Widgets === */}
+      {/* === Dashboard Widgets (HQ-style) === */}
       {(() => {
-        const hasLeftContent = showStats || canAccess('history');
-        const hasRightContent = showStats || (canAccess('tables') && tables?.total > 0);
-        const useTwoColumns = !isMobile && hasLeftContent && hasRightContent;
+        const cardStyle = {
+          background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.04)', padding: '20px',
+        };
+        const sectionHeader = (icon, title, linkText, linkAction) => (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{icon}</div>
+              <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>{title}</span>
+            </div>
+            {linkText && (
+              <span onClick={linkAction} style={{
+                fontSize: '12px', color: '#ef4444', fontWeight: '600', cursor: 'pointer',
+              }}>{linkText}</span>
+            )}
+          </div>
+        );
+        const emptyState = (icon, text) => (
+          <div style={{ padding: '28px 16px', textAlign: 'center' }}>
+            <div style={{ marginBottom: '8px' }}>{icon}</div>
+            <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>{text}</p>
+          </div>
+        );
 
-        // Type configs for order icons
         const typeIcons = {
           'dine in': { icon: FaChair, color: '#3b82f6', bg: '#eff6ff' },
           'dine_in': { icon: FaChair, color: '#3b82f6', bg: '#eff6ff' },
@@ -392,7 +415,6 @@ export default function HomePage() {
           'delivery': { icon: FaArrowRight, color: '#10b981', bg: '#ecfdf5' },
           'online': { icon: FaStore, color: '#8b5cf6', bg: '#f5f3ff' },
         };
-
         const orderTypeConfig = {
           dine_in:   { label: 'Dine In',   color: '#3b82f6', bg: '#eff6ff',  icon: FaChair },
           takeaway:  { label: 'Takeaway',  color: '#f59e0b', bg: '#fffbeb',  icon: FaShoppingCart },
@@ -400,7 +422,6 @@ export default function HomePage() {
           delivery:  { label: 'Delivery',  color: '#10b981', bg: '#ecfdf5',  icon: FaArrowRight },
           online:    { label: 'Online',    color: '#8b5cf6', bg: '#f5f3ff',  icon: FaStore },
         };
-
         const rankGradients = [
           'linear-gradient(135deg, #f59e0b, #d97706)',
           'linear-gradient(135deg, #94a3b8, #64748b)',
@@ -408,66 +429,54 @@ export default function HomePage() {
           'linear-gradient(135deg, #cbd5e1, #94a3b8)',
           'linear-gradient(135deg, #e2e8f0, #cbd5e1)',
         ];
+        const defaultDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const days = revenueData.length > 0 ? revenueData : defaultDays.map(d => ({ day: d, revenue: 0 }));
 
         return (
           <div className="animate-in" style={{
             display: 'grid',
-            gridTemplateColumns: useTwoColumns ? '1.5fr 1fr' : '1fr',
+            gridTemplateColumns: isMobile ? '1fr' : (showStats ? '1.5fr 1fr' : '1fr'),
             gap: '20px',
             animationDelay: '0.2s',
           }}>
 
             {/* === LEFT COLUMN === */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-              {/* Revenue This Week */}
-              {showStats && revenueData.length > 0 && (
-                <div style={{
-                  background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
-                  padding: '18px 20px',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FaChartBar size={13} color="#64748b" />
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Revenue This Week</span>
-                    </div>
-                    {canAccess('analytics') && (
-                      <span onClick={() => navigateTo('/analytics')}
-                        style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', cursor: 'pointer' }}>
-                        Full analytics
-                      </span>
-                    )}
-                  </div>
+              {/* Revenue This Week — always show for owner/manager */}
+              {showStats && (
+                <div style={cardStyle}>
+                  {sectionHeader(
+                    <FaChartBar size={14} color="#6b7280" />,
+                    'Revenue This Week',
+                    canAccess('analytics') ? 'Full analytics' : null,
+                    () => navigateTo('/analytics')
+                  )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {revenueData.map((d, i) => {
-                      const maxRev = Math.max(...revenueData.map(r => r.revenue), 1);
+                    {days.map((d, i) => {
+                      const maxRev = Math.max(...days.map(r => r.revenue), 1);
                       const isToday = i === new Date().getDay();
                       const pct = maxRev > 0 ? (d.revenue / maxRev) * 100 : 0;
                       return (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span style={{
-                            width: '32px', fontSize: '11px', fontWeight: isToday ? '700' : '500',
-                            color: isToday ? '#ef4444' : '#94a3b8', textAlign: 'right',
+                            width: '32px', fontSize: '12px', fontWeight: isToday ? '700' : '500',
+                            color: isToday ? '#ef4444' : '#9ca3af', textAlign: 'right',
                           }}>{d.day}</span>
-                          <div style={{
-                            flex: 1, height: '22px', background: '#f1f5f9', borderRadius: '6px',
-                            overflow: 'hidden',
-                          }}>
+                          <div style={{ flex: 1, height: '24px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden' }}>
                             <div style={{
-                              width: `${Math.max(pct, 2)}%`, height: '100%',
+                              width: `${Math.max(pct, d.revenue > 0 ? 4 : 0)}%`, height: '100%',
                               background: isToday
                                 ? 'linear-gradient(90deg, #ef4444, #f97316)'
-                                : 'linear-gradient(90deg, #e2e8f0, #cbd5e1)',
-                              borderRadius: '6px',
-                              transition: 'width 0.6s ease',
+                                : 'linear-gradient(90deg, #cbd5e1, #94a3b8)',
+                              borderRadius: '8px', transition: 'width 0.6s ease',
                             }} />
                           </div>
                           <span style={{
-                            fontSize: '11px', fontWeight: isToday ? '700' : '600',
-                            color: isToday ? '#0f172a' : '#94a3b8', minWidth: '56px', textAlign: 'right',
-                          }}>
-                            {formatCurrency(d.revenue, currencySymbol)}
-                          </span>
+                            fontSize: '12px', fontWeight: isToday ? '700' : '500',
+                            color: isToday ? '#1f2937' : '#9ca3af', minWidth: '56px', textAlign: 'right',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}>{formatCurrency(d.revenue, currencySymbol)}</span>
                         </div>
                       );
                     })}
@@ -475,80 +484,64 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Orders by Type */}
-              {showStats && ordersByType.length > 0 && (
-                <div style={{
-                  background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
-                  padding: '18px 20px',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <FaClipboardList size={13} color="#64748b" />
-                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Orders by Type</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {ordersByType.map((type, i) => {
-                      const key = type.type?.toLowerCase().replace(/[\s-]/g, '_');
-                      const config = orderTypeConfig[key] || { label: type.type || 'Other', color: '#64748b', bg: '#f8fafc', icon: FaCircle };
-                      const Icon = config.icon;
-                      return (
-                        <div key={i}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{
-                                width: '26px', height: '26px', borderRadius: '7px', background: config.bg,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}>
-                                <Icon size={10} color={config.color} />
+              {/* Orders by Type — always show for owner/manager */}
+              {showStats && (
+                <div style={cardStyle}>
+                  {sectionHeader(<FaClipboardList size={14} color="#6b7280" />, 'Orders by Type')}
+                  {ordersByType.length === 0 ? (
+                    emptyState(<FaClipboardList size={24} color="#e2e8f0" />, 'Order breakdown will appear here')
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {ordersByType.map((type, i) => {
+                        const key = type.type?.toLowerCase().replace(/[\s-]/g, '_');
+                        const config = orderTypeConfig[key] || { label: type.type || 'Other', color: '#64748b', bg: '#f8fafc', icon: FaCircle };
+                        const Icon = config.icon;
+                        return (
+                          <div key={i}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{
+                                  width: '28px', height: '28px', borderRadius: '8px', background: config.bg,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}><Icon size={11} color={config.color} /></div>
+                                <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{config.label}</span>
                               </div>
-                              <span style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>{config.label}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280' }}>{type.count}</span>
+                                <span style={{
+                                  fontSize: '11px', fontWeight: '700', color: config.color,
+                                  background: config.bg, padding: '3px 10px', borderRadius: '12px',
+                                }}>{type.percentage}%</span>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>{type.count} orders</span>
-                              <span style={{
-                                fontSize: '11px', fontWeight: '700', color: config.color,
-                                background: config.bg, padding: '2px 8px', borderRadius: '10px',
-                              }}>{type.percentage}%</span>
+                            <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${type.percentage || 0}%`, height: '100%',
+                                background: `linear-gradient(90deg, ${config.color}, ${config.color}dd)`,
+                                borderRadius: '4px', transition: 'width 0.5s ease',
+                              }} />
                             </div>
                           </div>
-                          <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
-                            <div style={{
-                              width: `${type.percentage || 0}%`, height: '100%',
-                              background: config.color, borderRadius: '10px',
-                              transition: 'width 0.5s ease',
-                            }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Recent Orders */}
+              {/* Recent Orders — visible to anyone with history access */}
               {canAccess('history') && (
-                <div style={{
-                  background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    padding: '18px 20px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    borderBottom: '1px solid #f1f5f9',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FaClock size={13} color="#64748b" />
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Recent Orders</span>
-                    </div>
-                    <span onClick={() => navigateTo('/orderhistory')}
-                      style={{ fontSize: '12px', color: '#ef4444', fontWeight: '600', cursor: 'pointer' }}>
-                      View all
-                    </span>
+                <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+                  <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
+                    {sectionHeader(
+                      <FaClock size={14} color="#6b7280" />,
+                      'Recent Orders',
+                      'View all',
+                      () => navigateTo('/orderhistory')
+                    )}
                   </div>
-
                   {recentOrders.length === 0 ? (
-                    <div style={{ padding: '32px 20px', textAlign: 'center' }}>
-                      <FaClipboardList size={28} color="#e2e8f0" style={{ marginBottom: '8px' }} />
-                      <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>No orders yet today</p>
-                    </div>
+                    emptyState(<FaClipboardList size={24} color="#e2e8f0" />, 'No orders yet today')
                   ) : (
                     <div style={{ padding: '8px 12px' }}>
                       {recentOrders.map((order, i) => {
@@ -560,40 +553,32 @@ export default function HomePage() {
                         const TypeIcon = typeConf.icon;
                         return (
                           <div key={order.id || i} className="order-row" style={{
-                            padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            borderRadius: '10px', marginBottom: i < recentOrders.length - 1 ? '4px' : 0,
+                            padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            borderRadius: '12px', marginBottom: i < recentOrders.length - 1 ? '4px' : 0,
                             cursor: 'pointer',
                           }} onClick={() => navigateTo('/orderhistory')}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                               <div style={{
-                                width: '36px', height: '36px', borderRadius: '10px',
+                                width: '38px', height: '38px', borderRadius: '10px',
                                 background: typeConf.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}>
-                                <TypeIcon size={13} color={typeConf.color} />
-                              </div>
+                              }}><TypeIcon size={14} color={typeConf.color} /></div>
                               <div>
-                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
                                   #{orderNum}
-                                  <span style={{
-                                    fontSize: '11px', fontWeight: '500', color: '#94a3b8',
-                                    marginLeft: '8px', textTransform: 'capitalize',
-                                  }}>{rawType}</span>
+                                  <span style={{ fontSize: '12px', fontWeight: '500', color: '#9ca3af', marginLeft: '8px', textTransform: 'capitalize' }}>{rawType}</span>
                                 </div>
-                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                <div style={{ fontSize: '12px', color: '#9ca3af' }}>
                                   {order.createdAt ? formatTime(order.createdAt) : ''}
                                   {order.createdAt ? ` · ${getTimeAgo(order.createdAt)}` : ''}
                                 </div>
                               </div>
                             </div>
-                            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <span style={{
-                                fontSize: '10px', fontWeight: '600', padding: '2px 8px', borderRadius: '20px',
+                                fontSize: '11px', fontWeight: '600', padding: '3px 10px', borderRadius: '12px',
                                 background: status.bg, color: status.color,
                               }}>{status.label}</span>
-                              <span style={{
-                                fontSize: '13px', fontWeight: '700', color: '#0f172a',
-                                minWidth: '50px', textAlign: 'right',
-                              }}>
+                              <span style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', minWidth: '56px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                                 {formatCurrency(total, currencySymbol)}
                               </span>
                             </div>
@@ -606,157 +591,140 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* === RIGHT COLUMN === */}
-            {(showStats || (canAccess('tables') && tables?.total > 0)) && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* === RIGHT COLUMN — always show for owner/manager/admin === */}
+            {showStats && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
                 {/* Peak Hours */}
-                {showStats && busyHours.length > 0 && (
-                  <div style={{
-                    background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
-                    padding: '18px 20px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                      <FaClock size={13} color="#64748b" />
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Peak Hours</span>
-                    </div>
-                    <div style={{
-                      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-                      gap: '6px', height: '100px', marginBottom: '8px',
-                    }}>
-                      {busyHours.slice(0, 6).map((h, i) => {
-                        const maxOrders = Math.max(...busyHours.slice(0, 6).map(x => x.orders), 1);
-                        const pct = maxOrders > 0 ? (h.orders / maxOrders) * 100 : 0;
-                        const isTop = i === 0;
-                        return (
+                <div style={cardStyle}>
+                  {sectionHeader(<FaClock size={14} color="#6b7280" />, 'Peak Hours')}
+                  {busyHours.length === 0 ? (
+                    emptyState(<FaClock size={24} color="#e2e8f0" />, 'Peak hours will appear after orders')
+                  ) : (
+                    <>
+                      <div style={{
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+                        gap: '8px', height: '110px', marginBottom: '10px',
+                      }}>
+                        {busyHours.slice(0, 6).map((h, i) => {
+                          const maxOrders = Math.max(...busyHours.slice(0, 6).map(x => x.orders), 1);
+                          const pct = maxOrders > 0 ? (h.orders / maxOrders) * 100 : 0;
+                          const isTop = i === 0;
+                          return (
+                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontSize: '11px', fontWeight: '700', color: isTop ? '#ef4444' : '#6b7280' }}>{h.orders}</span>
+                              <div style={{
+                                width: '100%', borderRadius: '8px 8px 0 0',
+                                height: `${Math.max(pct, 8)}%`,
+                                background: isTop
+                                  ? 'linear-gradient(180deg, #ef4444, #f97316)'
+                                  : 'linear-gradient(180deg, #e2e8f0, #cbd5e1)',
+                                transition: 'height 0.5s ease',
+                              }} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        {busyHours.slice(0, 6).map((h, i) => (
                           <div key={i} style={{
-                            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                            flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: '600',
+                            color: i === 0 ? '#ef4444' : '#9ca3af',
                           }}>
-                            <span style={{ fontSize: '10px', fontWeight: '700', color: isTop ? '#ef4444' : '#64748b' }}>
-                              {h.orders}
-                            </span>
-                            <div style={{
-                              width: '100%', borderRadius: '6px 6px 0 0',
-                              height: `${Math.max(pct, 8)}%`,
-                              background: isTop
-                                ? 'linear-gradient(180deg, #ef4444, #f97316)'
-                                : 'linear-gradient(180deg, #e2e8f0, #cbd5e1)',
-                              transition: 'height 0.5s ease',
-                            }} />
+                            {typeof h.hour === 'number' ? `${h.hour % 12 || 12}${h.hour < 12 ? 'am' : 'pm'}` : h.hour}
                           </div>
-                        );
-                      })}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px' }}>
-                      {busyHours.slice(0, 6).map((h, i) => (
-                        <div key={i} style={{
-                          flex: 1, textAlign: 'center', fontSize: '10px', fontWeight: '600',
-                          color: i === 0 ? '#ef4444' : '#94a3b8',
-                        }}>
-                          {typeof h.hour === 'number'
-                            ? `${h.hour % 12 || 12}${h.hour < 12 ? 'am' : 'pm'}`
-                            : h.hour}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 {/* Popular Items */}
-                {showStats && popularItems.length > 0 && (
-                  <div style={{
-                    background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
-                    padding: '18px 20px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <FaTrophy size={12} color="#f59e0b" />
-                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Popular Items</span>
-                      </div>
-                      <span onClick={() => navigateTo('/menu')}
-                        style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', cursor: 'pointer' }}>
-                        View menu
-                      </span>
-                    </div>
+                <div style={cardStyle}>
+                  {sectionHeader(
+                    <FaTrophy size={14} color="#f59e0b" />,
+                    'Popular Items',
+                    'View menu',
+                    () => navigateTo('/menu')
+                  )}
+                  {popularItems.length === 0 ? (
+                    emptyState(<FaStar size={24} color="#e2e8f0" />, 'Top dishes will appear after orders')
+                  ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {popularItems.map((item, i) => (
                         <div key={i} style={{
                           display: 'flex', alignItems: 'center', gap: '12px',
-                          padding: '10px 12px', borderRadius: '10px',
+                          padding: '10px 12px', borderRadius: '12px',
                           background: i === 0 ? '#fffbeb' : '#f8fafc',
                           border: i === 0 ? '1px solid #fde68a' : '1px solid transparent',
                         }}>
                           <div style={{
-                            width: '28px', height: '28px', borderRadius: '8px',
+                            width: '30px', height: '30px', borderRadius: '10px',
                             background: rankGradients[i] || rankGradients[4],
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '12px', fontWeight: '800', color: 'white', flexShrink: 0,
-                            boxShadow: i < 3 ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
-                          }}>
-                            {i + 1}
-                          </div>
+                            fontSize: '13px', fontWeight: '800', color: 'white', flexShrink: 0,
+                            boxShadow: i < 3 ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                          }}>{i + 1}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{
-                              fontSize: '13px', fontWeight: '600', color: '#0f172a',
-                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                            }}>
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.name || item.itemName || 'Item'}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                              {item.orders || item.count || 0} sold
-                              {item.revenue ? ` · ${formatCurrency(item.revenue, currencySymbol)}` : ''}
+                            <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                              {item.orders || item.count || 0} sold{item.revenue ? ` · ${formatCurrency(item.revenue, currencySymbol)}` : ''}
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Table Status */}
-                {canAccess('tables') && tables && tables.total > 0 && (() => {
-                  const occupancyPct = Math.round((tables.occupied / tables.total) * 100);
-                  return (
-                    <div style={{
-                      background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
-                      padding: '18px 20px', cursor: 'pointer',
-                    }} onClick={() => navigateTo('/tables')}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <FaChair size={13} color="#64748b" />
-                          <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Table Status</span>
-                        </div>
-                        <span style={{
-                          fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '10px',
-                          background: occupancyPct >= 80 ? '#fef2f2' : '#ecfdf5',
-                          color: occupancyPct >= 80 ? '#dc2626' : '#059669',
-                        }}>
-                          {occupancyPct}% full
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
-                        <div style={{ flex: 1, background: '#ecfdf5', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '22px', fontWeight: '800', color: '#059669' }}>{tables.available}</div>
-                          <div style={{ fontSize: '10px', fontWeight: '600', color: '#10b981' }}>Available</div>
-                        </div>
-                        <div style={{ flex: 1, background: '#fef2f2', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '22px', fontWeight: '800', color: '#dc2626' }}>{tables.occupied}</div>
-                          <div style={{ fontSize: '10px', fontWeight: '600', color: '#ef4444' }}>Occupied</div>
-                        </div>
-                      </div>
-                      <div style={{ background: '#ecfdf5', borderRadius: '20px', height: '6px', overflow: 'hidden' }}>
-                        <div style={{
-                          width: `${occupancyPct}%`, height: '100%',
-                          background: occupancyPct >= 80 ? '#ef4444' : '#f59e0b',
-                          borderRadius: '20px', transition: 'width 0.5s ease',
-                        }} />
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', textAlign: 'center' }}>
-                        {tables.occupied} of {tables.total} tables in use
-                      </div>
-                    </div>
-                  );
-                })()}
+                {canAccess('tables') && (
+                  <div style={{ ...cardStyle, cursor: 'pointer' }} onClick={() => navigateTo('/tables')}>
+                    {sectionHeader(
+                      <FaChair size={14} color="#6b7280" />,
+                      'Table Status',
+                      null, null
+                    )}
+                    {!tables || tables.total === 0 ? (
+                      emptyState(<FaChair size={24} color="#e2e8f0" />, 'Add tables to see status here')
+                    ) : (() => {
+                      const occupancyPct = Math.round((tables.occupied / tables.total) * 100);
+                      return (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: '-28px', marginBottom: '12px' }}>
+                            <span style={{
+                              fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '12px',
+                              background: occupancyPct >= 80 ? '#fef2f2' : '#ecfdf5',
+                              color: occupancyPct >= 80 ? '#dc2626' : '#059669',
+                            }}>{occupancyPct}% full</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+                            <div style={{ flex: 1, background: '#ecfdf5', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '24px', fontWeight: '800', color: '#059669' }}>{tables.available}</div>
+                              <div style={{ fontSize: '11px', fontWeight: '600', color: '#10b981', marginTop: '2px' }}>Available</div>
+                            </div>
+                            <div style={{ flex: 1, background: '#fef2f2', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '24px', fontWeight: '800', color: '#dc2626' }}>{tables.occupied}</div>
+                              <div style={{ fontSize: '11px', fontWeight: '600', color: '#ef4444', marginTop: '2px' }}>Occupied</div>
+                            </div>
+                          </div>
+                          <div style={{ background: '#f1f5f9', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${occupancyPct}%`, height: '100%',
+                              background: occupancyPct >= 80 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 'linear-gradient(90deg, #f59e0b, #d97706)',
+                              borderRadius: '4px', transition: 'width 0.5s ease',
+                            }} />
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', textAlign: 'center' }}>
+                            {tables.occupied} of {tables.total} tables in use
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             )}
           </div>
