@@ -225,35 +225,30 @@ export function HeadquartersContent({ embedded = false }) {
   const restaurantDropdownRef = useRef(null);
   const datePickerRef = useRef(null);
 
-  // Auth check
+  // Auth check — sets authorized, data loading happens in tab effect
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('authToken');
-        if (!storedUser || !token) {
-          if (!embedded) router.push('/login');
-          return;
-        }
-        const userData = JSON.parse(storedUser);
-        if (userData.role !== 'owner' && userData.role !== 'admin') {
-          if (!embedded) router.push('/home');
-          return;
-        }
-        setUser(userData);
-        setAuthorized(true);
-        setEmailPreferences(prev => ({ ...prev, reportEmail: userData.email || '' }));
-        await loadDashboard();
-        await loadEmailPreferences();
-        await loadAIUsage();
-      } catch (error) {
-        console.error('Auth check error:', error);
-        if (!embedded) router.push('/login');
-      } finally {
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('authToken');
+    if (!storedUser || !token) {
+      if (!embedded) router.push('/login');
+      setLoading(false);
+      return;
+    }
+    try {
+      const userData = JSON.parse(storedUser);
+      if (userData.role !== 'owner' && userData.role !== 'admin') {
+        if (!embedded) router.push('/home');
         setLoading(false);
+        return;
       }
-    };
-    checkAuth();
+      setUser(userData);
+      setAuthorized(true);
+      setEmailPreferences(prev => ({ ...prev, reportEmail: userData.email || '' }));
+    } catch (error) {
+      console.error('Auth check error:', error);
+      if (!embedded) router.push('/login');
+      setLoading(false);
+    }
   }, [router, embedded]);
 
   // Resize handler
@@ -458,20 +453,42 @@ export function HeadquartersContent({ embedded = false }) {
     }
   };
 
-  // Tab change effect
+  // Initial data load — fires once when authorized, loads everything in parallel
   useEffect(() => {
     if (!authorized) return;
+    Promise.all([
+      loadDashboard(),
+      loadAnalytics(),
+      loadEmailPreferences(),
+      loadAIUsage(),
+    ]).finally(() => setLoading(false));
+  }, [authorized]);
+
+  // Track initial load to prevent duplicate fetch on mount
+  const initialLoadDone = useRef(false);
+
+  // Tab change — only loads non-overview tabs (overview already loaded above)
+  useEffect(() => {
+    if (!authorized) return;
+    // Skip overview on first authorized render (initial load handles it)
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      return;
+    }
     switch (activeTab) {
       case 'overview': loadDashboard(); loadAnalytics(); break;
       case 'staff': loadStaff(); break;
       case 'menu': loadMenuItems(); break;
       case 'inventory': loadInventory(); break;
     }
-  }, [activeTab, authorized]);
+  }, [activeTab]);
 
-  // Reload on filter/date change
+  // Reload on filter/date change (only after initial load)
+  const filtersInitialized = useRef(false);
   useEffect(() => {
-    if (activeTab === 'overview' && authorized) { loadDashboard(); loadAnalytics(); }
+    if (!authorized) return;
+    if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
+    if (activeTab === 'overview') { loadDashboard(); loadAnalytics(); }
   }, [dateRange, selectedRestaurants]);
 
   useEffect(() => { setStaffPage(1); }, [staffFilters.role, staffFilters.status, debouncedStaffSearch, selectedRestaurants]);
