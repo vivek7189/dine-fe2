@@ -225,29 +225,27 @@ export function HeadquartersContent({ embedded = false }) {
   const restaurantDropdownRef = useRef(null);
   const datePickerRef = useRef(null);
 
-  // Auth check — sets authorized, data loading happens in tab effect
+  // Auth check — synchronous, no API calls, renders page shell immediately
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('authToken');
     if (!storedUser || !token) {
       if (!embedded) router.push('/login');
-      setLoading(false);
       return;
     }
     try {
       const userData = JSON.parse(storedUser);
       if (userData.role !== 'owner' && userData.role !== 'admin') {
         if (!embedded) router.push('/home');
-        setLoading(false);
         return;
       }
       setUser(userData);
       setAuthorized(true);
+      setLoading(false); // Show page shell immediately
       setEmailPreferences(prev => ({ ...prev, reportEmail: userData.email || '' }));
     } catch (error) {
       console.error('Auth check error:', error);
       if (!embedded) router.push('/login');
-      setLoading(false);
     }
   }, [router, embedded]);
 
@@ -284,10 +282,9 @@ export function HeadquartersContent({ embedded = false }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load dashboard
+  // Load dashboard — P0 critical, has restaurant list + totals
   const loadDashboard = async () => {
     try {
-      setRefreshing(true);
       const params = {};
       if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
         params.startDate = dateRange.startDate;
@@ -301,15 +298,12 @@ export function HeadquartersContent({ embedded = false }) {
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
-    } finally {
-      setRefreshing(false);
     }
   };
 
-  // Load analytics
+  // Load analytics — P1, has charts/trends
   const loadAnalytics = async () => {
     try {
-      setRefreshing(true);
       const params = { restaurantIds: selectedRestaurants.length > 0 ? selectedRestaurants : undefined };
       if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
         params.startDate = dateRange.startDate;
@@ -323,9 +317,14 @@ export function HeadquartersContent({ embedded = false }) {
       }
     } catch (error) {
       console.error('Error loading analytics:', error);
-    } finally {
-      setRefreshing(false);
     }
+  };
+
+  // Wrapper for manual refresh button — shows spinner while both load
+  const refreshAll = async () => {
+    setRefreshing(true);
+    await Promise.all([loadDashboard(), loadAnalytics()]);
+    setRefreshing(false);
   };
 
   // Load AI insights
@@ -397,7 +396,6 @@ export function HeadquartersContent({ embedded = false }) {
   // Load staff
   const loadStaff = async () => {
     try {
-      setRefreshing(true);
       const response = await apiClient.getOwnerStaff({
         page: staffPage,
         limit: STAFF_PAGE_SIZE,
@@ -409,15 +407,12 @@ export function HeadquartersContent({ embedded = false }) {
       if (response.success) setStaffData(response);
     } catch (error) {
       console.error('Error loading staff:', error);
-    } finally {
-      setRefreshing(false);
     }
   };
 
   // Load menu
   const loadMenuItems = async () => {
     try {
-      setRefreshing(true);
       const response = await apiClient.getOwnerMenuItems({
         page: menuPage,
         limit: MENU_PAGE_SIZE,
@@ -428,15 +423,12 @@ export function HeadquartersContent({ embedded = false }) {
       if (response.success) setMenuData(response);
     } catch (error) {
       console.error('Error loading menu:', error);
-    } finally {
-      setRefreshing(false);
     }
   };
 
   // Load inventory
   const loadInventory = async () => {
     try {
-      setRefreshing(true);
       const response = await apiClient.getOwnerInventory({
         page: inventoryPage,
         limit: INVENTORY_PAGE_SIZE,
@@ -448,20 +440,24 @@ export function HeadquartersContent({ embedded = false }) {
       if (response.success) setInventoryData(response);
     } catch (error) {
       console.error('Error loading inventory:', error);
-    } finally {
-      setRefreshing(false);
     }
   };
 
-  // Initial data load — fires once when authorized, loads everything in parallel
+  // P0: Dashboard + Analytics — fire in parallel as soon as authorized
   useEffect(() => {
     if (!authorized) return;
-    Promise.all([
-      loadDashboard(),
-      loadAnalytics(),
-      loadEmailPreferences(),
-      loadAIUsage(),
-    ]).finally(() => setLoading(false));
+    loadDashboard();
+    loadAnalytics();
+  }, [authorized]);
+
+  // P2: Email prefs + AI usage — deferred, not needed for initial render
+  useEffect(() => {
+    if (!authorized) return;
+    const timer = setTimeout(() => {
+      loadEmailPreferences();
+      loadAIUsage();
+    }, 2000); // Load 2s after page renders
+    return () => clearTimeout(timer);
   }, [authorized]);
 
   // Track initial load to prevent duplicate fetch on mount
@@ -470,13 +466,13 @@ export function HeadquartersContent({ embedded = false }) {
   // Tab change — only loads non-overview tabs (overview already loaded above)
   useEffect(() => {
     if (!authorized) return;
-    // Skip overview on first authorized render (initial load handles it)
+    // Skip on first authorized render (initial load effect handles it)
     if (!initialLoadDone.current) {
       initialLoadDone.current = true;
       return;
     }
     switch (activeTab) {
-      case 'overview': loadDashboard(); loadAnalytics(); break;
+      case 'overview': refreshAll(); break;
       case 'staff': loadStaff(); break;
       case 'menu': loadMenuItems(); break;
       case 'inventory': loadInventory(); break;
@@ -488,7 +484,7 @@ export function HeadquartersContent({ embedded = false }) {
   useEffect(() => {
     if (!authorized) return;
     if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
-    if (activeTab === 'overview') { loadDashboard(); loadAnalytics(); }
+    if (activeTab === 'overview') refreshAll();
   }, [dateRange, selectedRestaurants]);
 
   useEffect(() => { setStaffPage(1); }, [staffFilters.role, staffFilters.status, debouncedStaffSearch, selectedRestaurants]);
@@ -569,22 +565,17 @@ export function HeadquartersContent({ embedded = false }) {
     return headlines[dateRange.preset] || headlines['7d'];
   };
 
-  // Loading
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
-        <FaSpinner size={40} style={{ color: '#ef4444', animation: 'spin 1s linear infinite' }} />
-      </div>
-    );
-  }
-
+  // Not authorized yet — show nothing while redirect happens
   if (!authorized) return null;
 
   // ============================================
   // COMPONENTS
   // ============================================
 
-  // Metric Card
+  // Shimmer placeholder for loading states
+  const isDataLoading = !dashboardData;
+
+  // Metric Card — shows shimmer when data not yet loaded
   const MetricCard = ({ icon: Icon, label, value, subtitle, color = '#ef4444' }) => (
     <div style={{
       backgroundColor: 'white',
@@ -619,11 +610,20 @@ export function HeadquartersContent({ embedded = false }) {
         }}>
           <Icon size={20} style={{ color: 'white' }} />
         </div>
-        <div style={{ fontSize: '26px', fontWeight: '700', color: '#1f2937', marginBottom: '4px', lineHeight: 1.2 }}>
-          {value}
-        </div>
-        <div style={{ fontSize: '13px', color: '#6b7280' }}>{label}</div>
-        {subtitle && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{subtitle}</div>}
+        {isDataLoading ? (
+          <>
+            <div style={{ width: '80px', height: '26px', borderRadius: '6px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite', marginBottom: '8px' }} />
+            <div style={{ width: '100px', height: '14px', borderRadius: '4px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: '26px', fontWeight: '700', color: '#1f2937', marginBottom: '4px', lineHeight: 1.2 }}>
+              {value}
+            </div>
+            <div style={{ fontSize: '13px', color: '#6b7280' }}>{label}</div>
+            {subtitle && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{subtitle}</div>}
+          </>
+        )}
       </div>
     </div>
   );
@@ -1638,7 +1638,9 @@ export function HeadquartersContent({ embedded = false }) {
               </div>
             </div>
             <div style={{ height: 180, width: '100%' }}>
-              {revenueChartData.length === 0 ? (
+              {!analyticsData ? (
+                <div style={{ height: '100%', borderRadius: '12px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
+              ) : revenueChartData.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
                   No data available
                 </div>
@@ -1719,7 +1721,9 @@ export function HeadquartersContent({ embedded = false }) {
               </div>
             </div>
             <div style={{ height: 180, width: '100%' }}>
-              {ordersChartData.length === 0 ? (
+              {!analyticsData ? (
+                <div style={{ height: '100%', borderRadius: '12px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite 0.2s' }} />
+              ) : ordersChartData.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
                   No data available
                 </div>
@@ -1794,7 +1798,13 @@ export function HeadquartersContent({ embedded = false }) {
                 {filteredTotalRestaurants} {filteredTotalRestaurants === 1 ? 'location' : 'locations'}
               </span>
             </div>
-            {sortedRestaurants.length === 0 ? (
+            {isDataLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[0, 1, 2].map(i => (
+                  <div key={i} style={{ height: '56px', borderRadius: '12px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: `hqShimmer 1.5s ease-in-out infinite ${i * 0.1}s` }} />
+                ))}
+              </div>
+            ) : sortedRestaurants.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>
                 No restaurants selected
               </div>
@@ -2171,7 +2181,7 @@ export function HeadquartersContent({ embedded = false }) {
           </div>
 
           {/* Refresh */}
-          <button onClick={() => { loadDashboard(); loadAnalytics(); }} disabled={refreshing} style={{
+          <button onClick={refreshAll} disabled={refreshing} style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -2326,6 +2336,10 @@ export function HeadquartersContent({ embedded = false }) {
         @keyframes slideIn {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
+        }
+        @keyframes hqShimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
         }
         .email-btn-wrapper:hover .tooltip-email {
           opacity: 1 !important;
