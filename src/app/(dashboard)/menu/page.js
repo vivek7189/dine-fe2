@@ -3073,6 +3073,78 @@ const MenuManagement = () => {
           </div>
         ) : filteredItems.length > 0 ? (
           <div style={{ position: 'relative' }}>
+            {/* Demo Menu Banner */}
+            {currentRestaurant?.hasDefaultMenu && (
+              <div style={{
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)',
+                borderRadius: '16px',
+                padding: '24px 28px',
+                marginBottom: '24px',
+                border: '1px solid #f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ flex: 1, minWidth: '240px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '24px' }}>🍽️</span>
+                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: '#92400e' }}>
+                      Sample Menu
+                    </h3>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#78350f', lineHeight: '1.5' }}>
+                    This is a demo menu to help you explore DineOpen. Adding your own items will automatically replace it.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => setShowBulkUpload(true)}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#f59e0b',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#d97706'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#f59e0b'}
+                  >
+                    <FaCloudUploadAlt size={14} />
+                    Upload Menu (AI)
+                  </button>
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#fff',
+                      color: '#92400e',
+                      border: '2px solid #f59e0b',
+                      borderRadius: '10px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#fffbeb'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#fff'}
+                  >
+                    <FaPlus size={12} />
+                    Add Manually
+                  </button>
+                </div>
+              </div>
+            )}
             {/* Operation Loading Overlay */}
             {operationLoading && (
               <div style={{
