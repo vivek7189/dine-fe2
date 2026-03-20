@@ -347,12 +347,8 @@ function NavigationContent({ isHidden = false }) {
   // Smooth navigation handler
   const handleNavigation = (href, e) => {
     e.preventDefault();
-    startLoading('Loadin...', 'content'); // Content-only loading
-    
-    // Small delay to show loading state
-    setTimeout(() => {
-      router.push(href);
-    }, 100);
+    // Navigate instantly — no loading overlay, no delay
+    router.push(href);
   };
 
   const handleLogout = () => {

@@ -17,24 +17,33 @@ export const LoadingProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Loading...');
   const [loadingType, setLoadingType] = useState('content'); // 'full' or 'content'
+  const [sidebarOffset, setSidebarOffset] = useState('0px');
   const pathname = usePathname();
 
-  // Handle route changes
+  // Clear loading when route finishes navigating
   useEffect(() => {
-    const handleRouteChange = () => {
-      setIsLoading(true);
-      setLoadingMessage('Loading...');
-      
-      // Simulate loading time for smooth transition
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 300); // 300ms for smooth transition
-
-      return () => clearTimeout(timer);
-    };
-
-    // Set loading to false when pathname changes (page loaded)
     setIsLoading(false);
+  }, [pathname]);
+
+  // Track sidebar width for overlay positioning
+  useEffect(() => {
+    const updateOffset = () => {
+      const isMobile = window.innerWidth < 768;
+      const isDash = pathname === '/dashboard' || pathname === '/dashboard/bar';
+      if (isMobile || isDash) {
+        setSidebarOffset('0px');
+      } else {
+        const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        setSidebarOffset(collapsed ? '70px' : '240px');
+      }
+    };
+    updateOffset();
+    window.addEventListener('resize', updateOffset);
+    window.addEventListener('sidebarToggle', updateOffset);
+    return () => {
+      window.removeEventListener('resize', updateOffset);
+      window.removeEventListener('sidebarToggle', updateOffset);
+    };
   }, [pathname]);
 
   const startLoading = (message = 'Loading...', type = 'content') => {
@@ -64,35 +73,36 @@ export const LoadingProvider = ({ children }) => {
   return (
     <LoadingContext.Provider value={value}>
       {children}
-      {/* Loading Overlay - Content only by default, full page when specified */}
+      {/* Loading Overlay - only covers main content area, never the sidebar */}
       {isLoading && (
         <div style={{
           position: 'fixed',
-          top: loadingType === 'full' ? 0 : '64px', // Start below navigation for content loading
-          left: 0,
+          top: 0,
+          left: loadingType === 'full' ? '0px' : sidebarOffset,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: 'rgba(255, 255, 255, 0.92)',
           backdropFilter: 'blur(4px)',
-          zIndex: loadingType === 'full' ? 9999 : 9998, // Higher z-index for full page
+          zIndex: loadingType === 'full' ? 9999 : 9998,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'column',
-          gap: '16px'
+          gap: '16px',
+          transition: 'left 0.3s ease',
         }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            border: '4px solid #f3f4f6',
-            borderTop: '4px solid #ef4444',
+            width: '40px',
+            height: '40px',
+            border: '3px solid #f3f4f6',
+            borderTop: '3px solid #ef4444',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite'
           }} />
           <p style={{
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: '600',
-            color: '#374151',
+            color: '#6b7280',
             margin: 0
           }}>
             {loadingMessage}

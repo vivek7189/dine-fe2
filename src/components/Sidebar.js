@@ -129,7 +129,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     loadData();
   }, []); // Only run once on mount
 
-  // Load restaurant data separately (can depend on pathname for dashboard optimization)
+  // Load restaurant data once on mount (not on every pathname change)
   useEffect(() => {
     const loadRestaurantData = async () => {
       try {
@@ -138,7 +138,7 @@ export default function Sidebar({ isDashboardPage = false }) {
 
         const parsedUser = JSON.parse(userData);
 
-        // Load cached restaurant data first (needed for bar/restaurant type detection)
+        // Load cached restaurant data first
         const savedRestaurant = localStorage.getItem('selectedRestaurant');
         if (savedRestaurant) {
           try {
@@ -148,10 +148,6 @@ export default function Sidebar({ isDashboardPage = false }) {
             console.error('Error parsing saved restaurant:', error);
           }
         }
-
-        // On dashboard pages, cached data is sufficient
-        const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
-        if (isDashboardPage) return;
 
         if (parsedUser.restaurantId) {
           if (parsedUser.restaurant) {
@@ -172,8 +168,8 @@ export default function Sidebar({ isDashboardPage = false }) {
               if (data.restaurants && data.restaurants.length > 0) {
                 setAllRestaurants(data.restaurants);
                 const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-                const savedRestaurant = data.restaurants.find(r => r.id === savedRestaurantId);
-                setSelectedRestaurant(savedRestaurant || data.restaurants[0]);
+                const saved = data.restaurants.find(r => r.id === savedRestaurantId);
+                setSelectedRestaurant(saved || data.restaurants[0]);
               }
             }
           } catch (error) {
@@ -185,7 +181,17 @@ export default function Sidebar({ isDashboardPage = false }) {
       }
     };
     loadRestaurantData();
-  }, [pathname]);
+
+    // Listen for restaurant switch events (from Navigation dropdown)
+    const handleRestaurantSwitch = () => {
+      const saved = localStorage.getItem('selectedRestaurant');
+      if (saved) {
+        try { setSelectedRestaurant(JSON.parse(saved)); } catch {}
+      }
+    };
+    window.addEventListener('restaurantChanged', handleRestaurantSwitch);
+    return () => window.removeEventListener('restaurantChanged', handleRestaurantSwitch);
+  }, []);
 
   const handleNavigation = (href, e) => {
     e.preventDefault();
@@ -196,11 +202,9 @@ export default function Sidebar({ isDashboardPage = false }) {
       return;
     }
 
-    startLoading('Loading...', 'content');
-    setTimeout(() => {
-      router.push(href);
-      setIsMobileMenuOpen(false);
-    }, 100);
+    // Navigate instantly — no loading overlay, no delay
+    router.push(href);
+    setIsMobileMenuOpen(false);
   };
 
   const handleLogout = () => {
