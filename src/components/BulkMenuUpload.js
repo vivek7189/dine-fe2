@@ -401,85 +401,122 @@ const BulkMenuUpload = ({
         borderRadius: '24px',
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         width: '100%',
-        maxWidth: previewMode ? '1200px' : '600px',
+        maxWidth: previewMode ? '1200px' : '580px',
         maxHeight: '90vh',
         overflowY: 'auto',
-        border: '1px solid #fed7aa'
+        overflow: 'hidden'
       }}>
-        {/* Header */}
+        {/* Colorful Header */}
         <div style={{
-          padding: '24px 32px',
-          borderBottom: '1px solid #f3f4f6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
+          background: 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)',
+          padding: '28px 32px 24px',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          <div>
-            <h2 style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: '#1f2937',
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              📤 Bulk Menu Upload
-            </h2>
-            <p style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              margin: '4px 0 0 0'
-            }}>
-              Upload menu images/PDFs and extract menu items using AI
-            </p>
+          {/* Decorative circles */}
+          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+          <div style={{ position: 'absolute', bottom: '-30px', left: '40px', width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+            <div>
+              <h2 style={{
+                fontSize: '22px',
+                fontWeight: '700',
+                color: 'white',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  background: 'rgba(255,255,255,0.2)',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FaUpload size={16} />
+                </div>
+                AI Menu Upload
+              </h2>
+              <p style={{
+                fontSize: '13px',
+                color: 'rgba(255,255,255,0.85)',
+                margin: '6px 0 0 46px'
+              }}>
+                Upload photos or files — AI extracts your menu instantly
+              </p>
+            </div>
+            <button
+              onClick={handleClose}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                fontSize: '16px',
+                color: 'white',
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+                width: '34px',
+                height: '34px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
+            >
+              <FaTimes size={14} />
+            </button>
           </div>
-          <button
-            onClick={handleClose}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              fontSize: '20px',
-              color: '#6b7280',
-              cursor: 'pointer',
-              padding: '8px',
-              borderRadius: '8px',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.color = '#ef4444';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#6b7280';
-            }}
-          >
-            <FaTimes />
-          </button>
         </div>
 
         {/* Content */}
-        <div style={{ padding: '24px 32px' }}>
+        <div style={{ padding: '24px 28px' }}>
           {!previewMode ? (
             // Upload Step
             <div>
               {/* File Upload Area */}
-              <div style={{
-                border: '3px dashed #fed7aa',
-                borderRadius: '20px',
-                padding: '40px',
-                textAlign: 'center',
-                marginBottom: '24px',
-                backgroundColor: '#fef7f0',
-                transition: 'all 0.3s ease'
-              }}>
-                <FaUpload size={48} style={{ color: '#ef4444', marginBottom: '16px' }} />
-                <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>
-                  Upload Menu Files
+              <div
+                style={{
+                  border: '2px dashed #e5e7eb',
+                  borderRadius: '16px',
+                  padding: '36px 24px',
+                  textAlign: 'center',
+                  marginBottom: '20px',
+                  backgroundColor: '#fafafa',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#ef4444';
+                  e.currentTarget.style.backgroundColor = '#fef2f2';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.backgroundColor = '#fafafa';
+                }}
+              >
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  background: 'linear-gradient(135deg, #fecaca, #fef2f2)',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 14px auto'
+                }}>
+                  <FaUpload size={22} style={{ color: '#ef4444' }} />
+                </div>
+                <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '6px' }}>
+                  Click to upload or drag & drop
                 </h4>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>
-                  Drag & drop or click to upload any file type: images, PDFs, documents, CSV, Excel, live photos (Max 10 files, 300MB total)
+                <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0, lineHeight: '1.5' }}>
+                  Photos, PDFs, Excel, CSV, Documents — up to 10 files, 300MB
                 </p>
                 <input
                   ref={fileInputRef}
@@ -487,42 +524,59 @@ const BulkMenuUpload = ({
                   multiple
                   accept="image/*,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                   onChange={handleFileSelect}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #fed7aa',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    backgroundColor: 'white'
-                  }}
+                  style={{ display: 'none' }}
                 />
+              </div>
+
+              {/* AI Feature Chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px', justifyContent: 'center' }}>
+                {[
+                  { icon: '📸', text: 'Menu Photos' },
+                  { icon: '📄', text: 'PDFs' },
+                  { icon: '📊', text: 'Excel/CSV' },
+                  { icon: '🤖', text: 'AI Extraction' }
+                ].map(chip => (
+                  <span key={chip.text} style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 12px',
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    color: '#4b5563',
+                    fontWeight: '500'
+                  }}>
+                    {chip.icon} {chip.text}
+                  </span>
+                ))}
               </div>
 
               {/* Uploaded Files List */}
               {uploadedFiles.length > 0 && (
-                <div style={{ marginBottom: '24px' }}>
-                  <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>
                     Selected Files ({uploadedFiles.length})
                   </h4>
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                  <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
                     {uploadedFiles.map((file, index) => (
                       <div key={index} style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '12px 16px',
+                        padding: '10px 14px',
                         backgroundColor: '#f8fafc',
-                        borderRadius: '8px',
-                        marginBottom: '8px',
+                        borderRadius: '10px',
+                        marginBottom: '6px',
                         border: '1px solid #e2e8f0'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           {getFileIcon(file.type)}
                           <div>
-                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                            <div style={{ fontSize: '13px', fontWeight: '500', color: '#1f2937' }}>
                               {file.name}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>
                               {formatFileSize(file.size)}
                             </div>
                           </div>
@@ -530,16 +584,18 @@ const BulkMenuUpload = ({
                         <button
                           onClick={() => handleRemoveFile(index)}
                           style={{
-                            backgroundColor: '#ef4444',
-                            color: 'white',
+                            backgroundColor: 'transparent',
+                            color: '#9ca3af',
                             border: 'none',
                             borderRadius: '6px',
-                            padding: '6px 8px',
+                            padding: '4px',
                             cursor: 'pointer',
-                            fontSize: '12px'
+                            transition: 'color 0.2s'
                           }}
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
                         >
-                          <FaTimes size={10} />
+                          <FaTimes size={12} />
                         </button>
                       </div>
                     ))}
@@ -547,20 +603,23 @@ const BulkMenuUpload = ({
                 </div>
               )}
 
-              {/* Upload Button */}
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button
                   onClick={handleClose}
                   style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#f3f4f6',
+                    padding: '11px 22px',
+                    backgroundColor: 'white',
                     color: '#6b7280',
                     fontSize: '14px',
                     fontWeight: '500',
                     border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    cursor: 'pointer'
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                 >
                   Cancel
                 </button>
@@ -568,21 +627,23 @@ const BulkMenuUpload = ({
                   onClick={handleUploadAndExtract}
                   disabled={uploadedFiles.length === 0 || processing}
                   style={{
-                    padding: '12px 24px',
-                    backgroundColor: processing ? '#d1d5db' : '#3b82f6',
+                    padding: '11px 24px',
+                    background: uploadedFiles.length === 0 || processing ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
                     fontSize: '14px',
-                    fontWeight: '500',
+                    fontWeight: '600',
                     border: 'none',
-                    borderRadius: '8px',
-                    cursor: processing ? 'not-allowed' : 'pointer',
+                    borderRadius: '10px',
+                    cursor: uploadedFiles.length === 0 || processing ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    boxShadow: uploadedFiles.length === 0 || processing ? 'none' : '0 4px 12px rgba(239, 68, 68, 0.3)',
+                    transition: 'all 0.2s'
                   }}
                 >
                   {processing ? <FaSpinner className="animate-spin" size={14} /> : <FaUpload size={14} />}
-                  {processing ? 'Processing...' : 'Upload & Extract'}
+                  {processing ? 'AI is extracting...' : 'Upload & Extract'}
                 </button>
               </div>
             </div>

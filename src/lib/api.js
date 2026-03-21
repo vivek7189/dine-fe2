@@ -1629,8 +1629,14 @@ class ApiClient {
   }
 
   // Customer Management API methods
-  async getCustomers(restaurantId) {
-    return this.request(`/api/customers/${restaurantId}`);
+  async getCustomers(restaurantId, page = 1, pageSize = 50, search = '') {
+    let url = `/api/customers/${restaurantId}?page=${page}&pageSize=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    return this.request(url);
+  }
+
+  async getCustomer(customerId) {
+    return this.request(`/api/customers/detail/${customerId}`);
   }
 
   async createCustomer(restaurantId, customerData) {

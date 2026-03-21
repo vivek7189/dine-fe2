@@ -171,7 +171,13 @@ function BarPOSContent() {
   const loadMenu = async (restaurantId) => {
     try {
       const response = await apiClient.getMenu(restaurantId);
-      setMenuItems(response.menuItems || []);
+      const realItems = response.menuItems || [];
+      if (realItems.length === 0) {
+        const { getDefaultMenu } = await import('../../../../lib/defaultMenus');
+        setMenuItems(getDefaultMenu('bar'));
+      } else {
+        setMenuItems(realItems);
+      }
     } catch (err) {
       console.error('Failed to load menu:', err);
     }

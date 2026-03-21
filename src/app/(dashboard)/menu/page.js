@@ -386,60 +386,58 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
     };
   }, [isOpen]);
   
+  const isActive = value && value !== 'all';
+
   return (
     <div ref={dropdownRef} style={{ position: 'relative', ...style }}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         style={{
-          padding: '10px 12px',
-          border: 'none',
-          borderRadius: '8px',
-          fontSize: '14px',
-          backgroundColor: '#f9fafb',
-          color: '#374151',
+          padding: '7px 12px',
+          border: isActive ? '1.5px solid #ef4444' : '1.5px solid transparent',
+          borderRadius: '20px',
+          fontSize: '13px',
+          backgroundColor: isActive ? '#fef2f2' : '#f3f4f6',
+          color: isActive ? '#dc2626' : '#6b7280',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
           outline: 'none',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          minWidth: '120px',
-          width: '100%'
+          gap: '6px',
+          fontWeight: isActive ? '600' : '500',
+          whiteSpace: 'nowrap'
         }}
-        onFocus={(e) => {
-          e.target.style.backgroundColor = '#ffffff';
-          e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
-        }}
-        onBlur={(e) => {
-          e.target.style.backgroundColor = '#f9fafb';
-          e.target.style.boxShadow = 'none';
-        }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = isActive ? '#fee2e2' : '#e5e7eb'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isActive ? '#fef2f2' : '#f3f4f6'; }}
       >
-        <span>{selectedOption ? selectedOption.label : placeholder}</span>
-        <FaChevronDown 
-          size={12} 
-          style={{ 
+        {selectedOption ? selectedOption.label : placeholder}
+        <FaChevronDown
+          size={9}
+          style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.2s ease',
-            color: '#9ca3af'
-          }} 
+            color: isActive ? '#ef4444' : '#9ca3af',
+            flexShrink: 0
+          }}
         />
       </button>
-      
+
       {isOpen && (
         <div style={{
           position: 'absolute',
           top: '100%',
           left: 0,
-          right: 0,
           backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          border: '1px solid #e5e7eb',
-          zIndex: 10000, // Higher than navigation (1000)
-          marginTop: '4px',
-          overflow: 'hidden'
+          borderRadius: '12px',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+          zIndex: 10000,
+          marginTop: '6px',
+          minWidth: '150px',
+          padding: '4px',
+          maxHeight: '240px',
+          overflowY: 'auto'
         }}>
           {options.map((option) => (
             <button
@@ -450,17 +448,16 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
               }}
               style={{
                 width: '100%',
-                padding: '10px 12px',
+                padding: '8px 12px',
                 border: 'none',
-                backgroundColor: value === option.value ? '#f3f4f6' : 'transparent',
-                color: '#374151',
-                fontSize: '14px',
+                backgroundColor: value === option.value ? '#fef2f2' : 'transparent',
+                color: value === option.value ? '#dc2626' : '#374151',
+                fontSize: '13px',
+                fontWeight: value === option.value ? '600' : '400',
                 textAlign: 'left',
                 cursor: 'pointer',
-                transition: 'background-color 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
+                transition: 'all 0.15s ease',
+                borderRadius: '8px'
               }}
               onMouseEnter={(e) => {
                 if (value !== option.value) {
@@ -473,7 +470,6 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
                 }
               }}
             >
-              {option.icon && <span style={{ fontSize: '12px' }}>{option.icon}</span>}
               {option.label}
             </button>
           ))}
@@ -1553,6 +1549,8 @@ const MenuManagement = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const moreActionsRef = useRef(null);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [loading, setLoading] = useState(true); // Start as true to show loading on first load
@@ -1568,6 +1566,17 @@ const MenuManagement = () => {
   const isBarMode = currentRestaurant?.businessType === 'bar';
   const isBakeryMode = currentRestaurant?.businessType === 'bakery';
   const isIceCreamMode = currentRestaurant?.businessType === 'ice_cream';
+
+  // Business-type-aware labels
+  const businessTypeConfig = {
+    restaurant: { item: 'Dish', add: 'Add New Dish', empty: 'Create Your Restaurant Menu', emptyDesc: 'Add dishes, categories, and pricing to get started', icon: '🍽️', label: 'Restaurant', accent: '#dc2626', accentLight: '#fef2f2', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
+    bar: { item: 'Drink', add: 'Add Drink', empty: 'Start Your Drinks Menu', emptyDesc: 'Add cocktails, spirits, beers, and bar snacks', icon: '🍸', label: 'Bar', accent: '#1e293b', accentLight: '#f1f5f9', gradient: 'linear-gradient(135deg, #334155, #1e293b)' },
+    bakery: { item: 'Item', add: 'Add Item', empty: 'Start Your Bakery Menu', emptyDesc: 'Add cakes, pastries, breads, and baked goods', icon: '🧁', label: 'Bakery', accent: '#d97706', accentLight: '#fffbeb', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+    ice_cream: { item: 'Flavor', add: 'Add Flavor', empty: 'Start Your Ice Cream Menu', emptyDesc: 'Add flavors, sundaes, shakes, and frozen treats', icon: '🍦', label: 'Ice Cream Parlor', accent: '#2563eb', accentLight: '#eff6ff', gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+    cafe: { item: 'Item', add: 'Add Item', empty: 'Start Your Cafe Menu', emptyDesc: 'Add beverages, snacks, and cafe specials', icon: '☕', label: 'Cafe', accent: '#059669', accentLight: '#ecfdf5', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
+    qsr: { item: 'Item', add: 'Add Item', empty: 'Start Your QSR Menu', emptyDesc: 'Add combos, burgers, wraps, and quick bites', icon: '🍔', label: 'Quick Service', accent: '#ea580c', accentLight: '#fff7ed', gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
+  };
+  const btype = businessTypeConfig[currentRestaurant?.businessType] || businessTypeConfig.restaurant;
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -1615,6 +1624,18 @@ const MenuManagement = () => {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Close "More" dropdown on outside click
+  useEffect(() => {
+    if (!showMoreActions) return;
+    const handler = (e) => {
+      if (moreActionsRef.current && !moreActionsRef.current.contains(e.target)) {
+        setShowMoreActions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMoreActions]);
 
   const loadMenuData = useCallback(async (restaurantId, useCache = true) => {
     try {
@@ -2611,371 +2632,224 @@ const MenuManagement = () => {
         position: 'relative',
         paddingBottom: '40px'
       }}>
-        {/* Compact Header */}
+        {/* Header */}
         <div style={{ marginBottom: '20px' }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '16px',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-              <div>
-              <h1 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#1f2937',
-                margin: 0,
-                marginBottom: '4px'
-              }}>
-{t('menu.title')}
-                </h1>
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                margin: 0
-              }}>
-{filteredItems.length} {t('common.items')} • {currentRestaurant?.name}
+          {/* Title row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                {t('menu.title')}
+              </h1>
+              <p style={{ fontSize: '12px', color: '#9ca3af', margin: '3px 0 0 0' }}>
+                {filteredItems.length} {t('common.items')}
+                {currentRestaurant?.name ? ` · ${currentRestaurant.name}` : ''}
               </p>
+            </div>
+            {/* Primary CTA */}
+            <button
+              onClick={() => setShowAddForm(true)}
+              style={{
+                padding: '10px 20px',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.4)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; }}
+            >
+              <FaPlus size={11} /> {btype.add}
+            </button>
           </div>
-          
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              gap: '6px',
-              flexWrap: 'wrap',
-              justifyContent: 'flex-end'
-            }}>
-            <button
-              onClick={() => router.push('/dashboard')}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontWeight: '600',
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-                whiteSpace: 'nowrap',
-                minWidth: 'auto'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-                e.target.style.backgroundColor = '#e5e7eb';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.backgroundColor = '#f3f4f6';
-              }}
-            >
-              <FaPlus size={10} />
-              {t('menu.freshOrder')}
-            </button>
-            <button
-                onClick={() => setShowBulkUpload(true)}
+
+          {/* Action pills row */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {[
+              { icon: <FaCloudUploadAlt size={14} />, label: 'Upload', onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2' },
+              { icon: <FaCamera size={13} />, label: 'Photo', onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7' },
+              { icon: <FaQrcode size={13} />, label: 'QR Code', onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5' },
+              { icon: <FaEye size={13} />, label: 'Customize', onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); router.push(`/menu/customize${rid ? `?restaurant=${rid}` : ''}`); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe' },
+              { icon: <FaPlus size={13} />, label: t('menu.freshOrder'), onClick: () => router.push('/dashboard'), bg: '#f3f4f6', color: '#4b5563', hoverBg: '#e5e7eb' },
+            ].map((action, i) => (
+              <button
+                key={i}
+                onClick={action.onClick}
                 style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
+                  padding: '8px 16px',
+                  backgroundColor: action.bg,
+                  color: action.color,
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '10px',
                   fontWeight: '600',
-                  fontSize: '12px',
+                  fontSize: '13px',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '3px',
-                  whiteSpace: 'nowrap',
-                  minWidth: 'auto'
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap'
                 }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.backgroundColor = '#dc2626';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.backgroundColor = '#ef4444';
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = action.hoverBg; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = action.bg; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
               >
-                <FaCloudUploadAlt size={10} />
-{t('menu.bulkUpload')}
-            </button>
-            <button
-              onClick={handleCameraCapture}
+                {action.icon} {action.label}
+              </button>
+            ))}
+            {menuItems.filter(item => item.status !== 'deleted').length > 0 && (
+              <button
+                onClick={handleBulkDeleteClick}
+                disabled={operationLoading}
                 style={{
-                  padding: '6px 12px',
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  color: 'white',
+                  padding: '8px 16px',
+                  backgroundColor: '#fef2f2',
+                  color: '#ef4444',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '10px',
                   fontWeight: '600',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
+                  fontSize: '13px',
+                  cursor: operationLoading ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '3px',
-                  whiteSpace: 'nowrap',
-                  minWidth: 'auto'
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                  opacity: operationLoading ? 0.5 : 1,
+                  whiteSpace: 'nowrap'
                 }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                }}
+                onMouseEnter={(e) => { if (!operationLoading) { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
-              <FaCamera size={10} />
-              Take Photo
-            </button>
-            <button
-              onClick={() => setShowQRCodeModal(true)}
-              style={{
-                padding: '6px 12px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: '600',
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-                whiteSpace: 'nowrap',
-                minWidth: 'auto'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-              }}
-            >
-              <FaQrcode size={10} />
-              QR Code
-            </button>
-            <button
-              onClick={() => {
-                const restaurantId = currentRestaurant?.id || localStorage.getItem('restaurantId');
-                router.push(`/menu/customize${restaurantId ? `?restaurant=${restaurantId}` : ''}`);
-              }}
-              style={{
-                padding: '8px 14px',
-                backgroundColor: '#fef3c7',
-                color: '#92400e',
-                border: '1px solid #fbbf24',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-                whiteSpace: 'nowrap',
-                minWidth: 'auto'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-                e.target.style.backgroundColor = '#fde68a';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.backgroundColor = '#fef3c7';
-              }}
-            >
-              <FaEye size={10} />
-              Customize Menu
-            </button>
-            <button
-              onClick={handleBulkDeleteClick}
-              disabled={operationLoading || menuItems.filter(item => item.status !== 'deleted').length === 0}
-              style={{
-                padding: '6px 12px',
-                background: operationLoading || menuItems.filter(item => item.status !== 'deleted').length === 0
-                  ? 'linear-gradient(135deg, #9ca3af, #6b7280)'
-                  : 'linear-gradient(135deg, #ef4444, #dc2626)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: '600',
-                fontSize: '12px',
-                cursor: operationLoading || menuItems.filter(item => item.status !== 'deleted').length === 0 ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-                whiteSpace: 'nowrap',
-                minWidth: 'auto',
-                opacity: operationLoading || menuItems.filter(item => item.status !== 'deleted').length === 0 ? 0.5 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!operationLoading && menuItems.filter(item => item.status !== 'deleted').length > 0) {
-                  e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!operationLoading && menuItems.filter(item => item.status !== 'deleted').length > 0) {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                }
-              }}
-            >
-              <FaTrash size={10} />
-              Delete All Menu
-            </button>
+                <FaTrash size={11} /> Delete All
+              </button>
+            )}
           </div>
         </div>
-              </div>
-        {/* Compact Filters */}
+
+        {/* Search + Filters */}
         <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e5e7eb',
-          padding: '16px',
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'center',
           marginBottom: '20px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+          flexWrap: 'wrap'
         }}>
+          {/* Search */}
+          <div style={{
+            position: 'relative',
+            width: '220px',
+            flexShrink: 0
+          }}>
+            <FaSearch style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#ef4444',
+              fontSize: '12px'
+            }} />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '7px 12px 7px 32px',
+                border: 'none',
+                borderRadius: '20px',
+                fontSize: '13px',
+                backgroundColor: '#f3f4f6',
+                transition: 'all 0.2s ease',
+                outline: 'none',
+                color: '#1f2937'
+              }}
+              onFocus={(e) => {
+                e.target.style.backgroundColor = '#fef2f2';
+                e.target.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.15)';
+              }}
+              onBlur={(e) => {
+                e.target.style.backgroundColor = '#f3f4f6';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+
+          {/* Filters */}
+          <CustomDropdown
+            value={selectedVegFilter}
+            onChange={setSelectedVegFilter}
+            options={[
+              { value: 'all', label: 'All Types' },
+              { value: 'veg', label: 'Veg' },
+              { value: 'non-veg', label: 'Non-Veg' }
+            ]}
+            placeholder="All Types"
+          />
+
+          <CustomDropdown
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+            options={[
+              { value: 'all', label: 'All Categories' },
+              ...categories.map(category => ({
+                value: category.id,
+                label: category.name
+              }))
+            ]}
+            placeholder="All Categories"
+          />
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* View Toggle */}
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
+            backgroundColor: '#f3f4f6',
+            borderRadius: '20px',
+            padding: '3px',
+            flexShrink: 0
           }}>
-            {/* Search Bar */}
-            <div style={{ width: '100%' }}>
-              <div style={{ position: 'relative' }}>
-                <FaSearch style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#9ca3af',
-                  fontSize: '14px'
-                }} />
-                  <input
-                    type="text"
-                  placeholder={t('menu.searchMenu')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px 10px 36px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    backgroundColor: '#f9fafb',
-                    transition: 'all 0.2s ease',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.backgroundColor = '#ffffff';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.backgroundColor = '#f9fafb';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                  />
-                </div>
-              </div>
-              
-            {/* Filter Buttons */}
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between'
-            }}>
-              {/* Veg Filter */}
-              <CustomDropdown
-                value={selectedVegFilter}
-                onChange={setSelectedVegFilter}
-                options={[
-                  { value: 'all', label: t('menu.allTypes'), icon: '🍽️' },
-                  { value: 'veg', label: t('common.veg'), icon: '🥬' },
-                  { value: 'non-veg', label: t('common.nonVeg'), icon: '🍖' }
-                ]}
-                placeholder={t('menu.allTypes')}
-                style={{ flex: 1, minWidth: '120px' }}
-              />
-
-              {/* Category Filter */}
-              <CustomDropdown
-                value={selectedCategory}
-                onChange={setSelectedCategory}
-                options={[
-                  { value: 'all', label: t('menu.allCategories'), icon: '🍽️' },
-                  ...categories.map(category => ({ 
-                    value: category.id, 
-                    label: category.name, 
-                    icon: category.emoji 
-                  }))
-                ]}
-                placeholder={t('menu.allCategories')}
-                style={{ flex: 1, minWidth: '140px' }}
-              />
-              
-              {/* View Toggle */}
-              <div style={{
+            <button
+              onClick={() => setViewMode('grid')}
+              style={{
+                padding: '6px 8px',
+                borderRadius: '16px',
+                border: 'none',
+                backgroundColor: viewMode === 'grid' ? '#ef4444' : 'transparent',
+                color: viewMode === 'grid' ? 'white' : '#9ca3af',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
                 display: 'flex',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '8px',
-                padding: '2px',
-                flexShrink: 0
-              }}>
-              <button
-                onClick={() => setViewMode('grid')}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: viewMode === 'grid' ? '#ef4444' : 'transparent',
-                    color: viewMode === 'grid' ? 'white' : '#6b7280',
-                    fontWeight: '500',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px'
-                  }}
-                >
-                  <FaTh size={12} />
-                  {t('menu.gridView')}
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: viewMode === 'list' ? '#ef4444' : 'transparent',
-                    color: viewMode === 'list' ? 'white' : '#6b7280',
-                    fontWeight: '500',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px'
-                  }}
-                >
-                  <FaList size={12} />
-                  {t('menu.listView')}
-              </button>
-            </div>
+                alignItems: 'center'
+              }}
+            >
+              <FaTh size={12} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{
+                padding: '6px 8px',
+                borderRadius: '16px',
+                border: 'none',
+                backgroundColor: viewMode === 'list' ? '#ef4444' : 'transparent',
+                color: viewMode === 'list' ? 'white' : '#9ca3af',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <FaList size={12} />
+            </button>
           </div>
-        </div>
         </div>
 
 
@@ -2995,45 +2869,7 @@ const MenuManagement = () => {
           </div>
         )}
 
-        {/* Ultra Compact Menu Items Grid */}
-        {/* Add New Dish Button */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: '24px'
-        }}>
-          <button
-            onClick={() => setShowAddForm(true)}
-            style={{
-              padding: '8px 16px',
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: '600',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
-              minWidth: '120px',
-              justifyContent: 'center'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
-            }}
-          >
-            <FaPlus size={12} />
-            {t('menu.addNewDish')}
-          </button>
-        </div>
+        {/* Menu Items Grid */}
 
         {/* Loading State */}
         {(loading || !hasInitialData || operationLoading) && menuItems.length === 0 ? (
@@ -3258,126 +3094,192 @@ const MenuManagement = () => {
               right: 0,
               bottom: 0,
               background: `
-                radial-gradient(circle at 20% 80%, rgba(239, 68, 68, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.05) 0%, transparent 50%)
+                radial-gradient(circle at 20% 80%, ${btype.accent}11 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, ${btype.accent}11 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, ${btype.accent}08 0%, transparent 70%)
               `,
               zIndex: 0
             }} />
-            
+
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{
-                width: '100px',
-                height: '100px',
-                backgroundColor: '#fef2f2',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 24px auto',
-                animation: 'bounce 2s infinite'
-              }}>
-                <FaUtensils size={40} style={{ color: '#ef4444' }} />
-            </div>
-              
-              <h3 style={{
-                fontSize: '32px',
-                fontWeight: 'bold',
-                marginBottom: '16px',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>
-                {searchTerm || selectedCategory !== 'all' ? t('menu.noDishesFound') : t('menu.menuReady')}
-            </h3>
-              
-              <p style={{
-                fontSize: '18px',
-                color: '#374151',
-                marginBottom: '8px',
-                fontWeight: '500'
-              }}>
-                {(searchTerm || selectedCategory !== 'all') ? t('menu.tryDifferentSearch') : t('menu.createMenu')}
-              </p>
-              
-              <p style={{
-                color: '#6b7280',
-                marginBottom: '32px',
-                maxWidth: '500px',
-                margin: '0 auto 32px auto',
-                fontSize: '16px',
-                lineHeight: '1.6'
-              }}>
-                {(searchTerm || selectedCategory !== 'all')
-                  ? t('menu.trySearchingElse') 
-                  : t('menu.setupRestaurantFirst')
-                }
-              </p>
-              
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'center',
-                flexWrap: 'wrap'
-              }}>
-                {(searchTerm || selectedCategory !== 'all') ? (
-            <button
-                    onClick={() => setSearchTerm('')}
+              {(searchTerm || selectedCategory !== 'all') ? (
+                <>
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px auto'
+                  }}>
+                    <span style={{ fontSize: '32px' }}>🔍</span>
+                  </div>
+                  <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
+                    {t('menu.noDishesFound')}
+                  </h3>
+                  <p style={{ color: '#6b7280', marginBottom: '24px', fontSize: '15px' }}>
+                    {t('menu.trySearchingElse')}
+                  </p>
+                  <button
+                    onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
                     style={{
-                      padding: '16px 32px',
+                      padding: '12px 28px',
                       background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '12px',
                       fontWeight: '600',
-                      fontSize: '16px',
+                      fontSize: '15px',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
-                      boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
-                      transform: 'translateY(0)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+                      boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
                     }}
                   >
                     Clear Search
-            </button>
-                ) : (
-                  <>
-            <button
-              onClick={() => setShowAddForm(true)}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Icon */}
+                  <div style={{
+                    width: '90px',
+                    height: '90px',
+                    background: btype.gradient,
+                    borderRadius: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 28px auto',
+                    boxShadow: `0 8px 24px ${btype.accent}33`,
+                    animation: 'bounce 2s infinite'
+                  }}>
+                    <span style={{ fontSize: '40px', filter: 'brightness(1.1)' }}>{btype.icon}</span>
+                  </div>
+
+                  {/* Title */}
+                  <h3 style={{
+                    fontSize: '30px',
+                    fontWeight: '800',
+                    marginBottom: '12px',
+                    background: btype.gradient,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    {btype.empty}
+                  </h3>
+
+                  <p style={{
+                    color: '#6b7280',
+                    marginBottom: '36px',
+                    maxWidth: '460px',
+                    margin: '0 auto 36px auto',
+                    fontSize: '16px',
+                    lineHeight: '1.6'
+                  }}>
+                    {btype.emptyDesc}
+                  </p>
+
+                  {/* Two option cards */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '16px',
+                    maxWidth: '560px',
+                    margin: '0 auto 24px auto'
+                  }}>
+                    {/* Upload Card */}
+                    <div
+                      onClick={() => setShowBulkUpload(true)}
                       style={{
-                        padding: '16px 32px',
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontWeight: '600',
-                        fontSize: '16px',
+                        padding: '24px 20px',
+                        background: 'white',
+                        borderRadius: '16px',
+                        border: `2px solid ${btype.accent}22`,
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
-                        transform: 'translateY(0)'
+                        textAlign: 'center',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)';
+                        e.currentTarget.style.borderColor = btype.accent;
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        e.currentTarget.style.boxShadow = `0 12px 28px ${btype.accent}20`;
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+                        e.currentTarget.style.borderColor = `${btype.accent}22`;
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
                       }}
                     >
-                      New item
-            </button>
-                  </>
-                )}
-              </div>
+                      <div style={{
+                        width: '52px',
+                        height: '52px',
+                        background: btype.gradient,
+                        borderRadius: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 14px auto'
+                      }}>
+                        <FaCloudUploadAlt size={20} style={{ color: 'white' }} />
+                      </div>
+                      <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>
+                        Upload Menu
+                      </h4>
+                      <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.4', margin: 0 }}>
+                        Upload photos, PDFs or Excel — AI extracts items automatically
+                      </p>
+                    </div>
+
+                    {/* Manual Add Card */}
+                    <div
+                      onClick={() => setShowAddForm(true)}
+                      style={{
+                        padding: '24px 20px',
+                        background: 'white',
+                        borderRadius: '16px',
+                        border: '2px solid #e5e7eb',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = btype.accent;
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        e.currentTarget.style.boxShadow = `0 12px 28px ${btype.accent}20`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                      }}
+                    >
+                      <div style={{
+                        width: '52px',
+                        height: '52px',
+                        background: 'linear-gradient(135deg, #6b7280, #4b5563)',
+                        borderRadius: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 14px auto'
+                      }}>
+                        <FaPlus size={20} style={{ color: 'white' }} />
+                      </div>
+                      <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>
+                        {btype.add}
+                      </h4>
+                      <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.4', margin: 0 }}>
+                        Add items one by one with full details, images and pricing
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : null}
@@ -3398,62 +3300,92 @@ const MenuManagement = () => {
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '8px',
+            borderRadius: '12px',
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             width: '100%',
-            maxWidth: '500px',
+            maxWidth: window.innerWidth <= 768 ? '500px' : '820px',
             maxHeight: '90vh',
             overflowY: 'auto'
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '20px 24px',
+              padding: '16px 24px',
               borderBottom: '1px solid #e5e7eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: '#fef2f2'
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              borderRadius: '12px 12px 0 0'
             }}>
-                <h2 style={{
-                fontSize: '18px',
-                  fontWeight: '600',
-                color: '#dc2626',
-                  margin: 0
-                }}>
-                  {editingItem ? 'Edit Dish' : 'Add New Dish'}
-                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{
+                    fontSize: '28px',
+                    width: '44px',
+                    height: '44px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                    borderRadius: '12px'
+                  }}>
+                    {btype.icon}
+                  </span>
+                  <div>
+                    <h2 style={{
+                      fontSize: '17px',
+                      fontWeight: '700',
+                      color: 'white',
+                      margin: 0
+                    }}>
+                      {editingItem ? 'Edit ' + btype.item : btype.add}
+                    </h2>
+                    <span style={{
+                      fontSize: '12px',
+                      color: 'rgba(255,255,255,0.8)',
+                      fontWeight: '500'
+                    }}>
+                      {btype.label}
+                    </span>
+                  </div>
+                </div>
                 <button
                   onClick={resetForm}
                   style={{
-                    backgroundColor: 'transparent',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
                     border: 'none',
-                  fontSize: '18px',
-                    color: '#6b7280',
+                    fontSize: '18px',
+                    color: 'white',
                     cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '4px',
-                    transition: 'all 0.2s ease'
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease',
+                    lineHeight: 1
                   }}
                   onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#fee2e2';
-                  e.currentTarget.style.color = '#dc2626';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.35)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#6b7280';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
                   }}
                 >
-                ×
+                  ×
                 </button>
             </div>
             
             <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
-              {/* Mobile-friendly responsive grid */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '2fr 1fr', 
-                gap: '16px', 
-                marginBottom: '16px' 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr',
+                gap: '24px',
+              }}>
+              {/* ===== LEFT COLUMN ===== */}
+              <div>
+              {/* Name + Short Code row */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '2fr 1fr',
+                gap: '16px',
+                marginBottom: '16px'
               }}>
                 {/* Name */}
                 <div>
@@ -3464,7 +3396,7 @@ const MenuManagement = () => {
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    Dish Name *
+                    {btype.item} Name *
                   </label>
                   <input
                     type="text"
@@ -3481,8 +3413,8 @@ const MenuManagement = () => {
                       backgroundColor: 'white',
                       transition: 'border-color 0.2s ease'
                     }}
-                    placeholder="Enter dish name"
-                    onFocus={(e) => e.target.style.borderColor = '#dc2626'}
+                    placeholder={'Enter ' + btype.item.toLowerCase() + ' name'}
+                    onFocus={(e) => e.target.style.borderColor = btype.accent}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
                 </div>
@@ -3513,7 +3445,7 @@ const MenuManagement = () => {
                       transition: 'border-color 0.2s ease'
                     }}
                     placeholder="e.g., DAL, SAM (optional)"
-                    onFocus={(e) => e.target.style.borderColor = '#dc2626'}
+                    onFocus={(e) => e.target.style.borderColor = btype.accent}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
                 </div>
@@ -3546,8 +3478,8 @@ const MenuManagement = () => {
                     transition: 'border-color 0.2s ease'
                   }}
                   rows="3"
-                  placeholder="Describe this dish..."
-                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  placeholder={'Describe this ' + btype.item.toLowerCase() + '...'}
+                  onFocus={(e) => e.target.style.borderColor = btype.accent}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
@@ -3586,7 +3518,7 @@ const MenuManagement = () => {
                       transition: 'border-color 0.2s ease'
                     }}
                     placeholder="Enter price"
-                    onFocus={(e) => e.target.style.borderColor = '#dc2626'}
+                    onFocus={(e) => e.target.style.borderColor = btype.accent}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
                 </div>
@@ -3608,95 +3540,15 @@ const MenuManagement = () => {
                 
               </div>
               
-              {/* Food Type - Mobile-friendly */}
-              <div style={{ marginBottom: '24px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '6px'
-                  }}>
-                    Food Type
-                  </label>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '8px',
-                  flexDirection: window.innerWidth <= 768 ? 'column' : 'row'
-                }}>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({...formData, isVeg: true})}
-                      style={{
-                        flex: 1,
-                      padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                      backgroundColor: formData.isVeg === true ? '#dc2626' : 'white',
-                        color: formData.isVeg === true ? 'white' : '#6b7280',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      textAlign: 'center'
-                      }}
-                    >
-                      Veg
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({...formData, isVeg: false})}
-                      style={{
-                        flex: 1,
-                      padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                      backgroundColor: formData.isVeg === false ? '#dc2626' : 'white',
-                        color: formData.isVeg === false ? 'white' : '#6b7280',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      textAlign: 'center'
-                      }}
-                    >
-                      Non-Veg
-                    </button>
-                  </div>
-                </div>
-
-                {/* Bar-Specific Fields */}
+              {/* Business-Type-Specific Fields — shown FIRST for relevant types */}
                 {isBarMode && (
-                  <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#fdf2f8', borderRadius: '12px', border: '1px solid #fce7f3' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#831843', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#fdf2f8', borderRadius: '12px', border: '1px solid #fce7f3' }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#831843', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       🍸 Bar Details
                     </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Spirit Category</label>
-                        <select
-                          value={formData.spiritCategory || ''}
-                          onChange={(e) => setFormData({...formData, spiritCategory: e.target.value})}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
-                        >
-                          <option value="">Select...</option>
-                          <option value="whiskey">Whiskey</option>
-                          <option value="vodka">Vodka</option>
-                          <option value="rum">Rum</option>
-                          <option value="gin">Gin</option>
-                          <option value="tequila">Tequila</option>
-                          <option value="beer">Beer</option>
-                          <option value="wine">Wine</option>
-                          <option value="cocktail">Cocktail</option>
-                          <option value="mocktail">Mocktail</option>
-                          <option value="shots">Shots</option>
-                          <option value="mixer">Mixer</option>
-                          <option value="snack">Bar Snack</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>ABV %</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>ABV %</label>
                         <input
                           type="number"
                           value={formData.abv || ''}
@@ -3705,25 +3557,25 @@ const MenuManagement = () => {
                           min="0"
                           max="100"
                           step="0.1"
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Ingredients (for cocktails)</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Ingredients (for cocktails)</label>
                         <input
                           type="text"
                           value={formData.ingredients || ''}
                           onChange={(e) => setFormData({...formData, ingredients: e.target.value})}
                           placeholder="e.g., Bourbon, Simple Syrup, Angostura Bitters"
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Unit</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Unit</label>
                         <select
                           value={formData.servingUnit || ''}
                           onChange={(e) => setFormData({...formData, servingUnit: e.target.value})}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
                           <option value="">Select...</option>
                           <option value="ml">ml</option>
@@ -3734,11 +3586,11 @@ const MenuManagement = () => {
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Bottle Size</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Bottle Size</label>
                         <select
                           value={formData.bottleSize || ''}
                           onChange={(e) => setFormData({...formData, bottleSize: e.target.value})}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
                           <option value="">Select...</option>
                           <option value="180ml">180ml</option>
@@ -3751,19 +3603,18 @@ const MenuManagement = () => {
                   </div>
                 )}
 
-                {/* Bakery-Specific Fields */}
                 {isBakeryMode && (
-                  <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#fef9ee', borderRadius: '12px', border: '1px solid #fde68a' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#fef9ee', borderRadius: '12px', border: '1px solid #fde68a' }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#92400e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       🧁 Bakery Details
                     </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Unit</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Unit</label>
                         <select
                           value={formData.unit || ''}
                           onChange={(e) => setFormData({...formData, unit: e.target.value})}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
                           <option value="">Select...</option>
                           <option value="piece">Piece</option>
@@ -3775,61 +3626,60 @@ const MenuManagement = () => {
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Weight</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Weight</label>
                         <input
                           type="text"
                           value={formData.weight || ''}
                           onChange={(e) => setFormData({...formData, weight: e.target.value})}
                           placeholder="e.g., 250g, 1kg"
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Shelf Life (days)</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Shelf Life (days)</label>
                         <input
                           type="number"
                           value={formData.shelfLife || ''}
                           onChange={(e) => setFormData({...formData, shelfLife: e.target.value})}
                           placeholder="e.g., 3"
                           min="0"
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>MFG Date</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>MFG Date</label>
                         <input
                           type="date"
                           value={formData.mfgDate || ''}
                           onChange={(e) => setFormData({...formData, mfgDate: e.target.value})}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Expiry Date</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Expiry Date</label>
                         <input
                           type="date"
                           value={formData.expiryDate || ''}
                           onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Ice Cream-Specific Fields */}
                 {isIceCreamMode && (
-                  <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       🍦 Ice Cream Details
                     </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Size</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Size</label>
                         <select
                           value={formData.servingSize || ''}
                           onChange={(e) => setFormData({...formData, servingSize: e.target.value})}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
                           <option value="">Select...</option>
                           <option value="scoop">Scoop</option>
@@ -3841,7 +3691,7 @@ const MenuManagement = () => {
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Max Scoops</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Max Scoops</label>
                         <input
                           type="number"
                           value={formData.scoopOptions || ''}
@@ -3849,23 +3699,74 @@ const MenuManagement = () => {
                           placeholder="e.g., 3"
                           min="1"
                           max="5"
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                     </div>
-                    <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>Use Customizations below for toppings (sprinkles, sauces, etc.)</p>
+                    <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px', marginBottom: 0 }}>Use Customizations below for toppings (sprinkles, sauces, etc.)</p>
                   </div>
                 )}
 
-                {/* Image Upload Section - Always Available */}
-                <div style={{ marginTop: '20px' }}>
+              {/* Food Type — compact inline pills */}
+              <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                  }}>
+                    Type
+                  </span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, isVeg: true})}
+                      style={{
+                        padding: '4px 14px',
+                        border: formData.isVeg === true ? '1.5px solid #16a34a' : '1px solid #d1d5db',
+                        borderRadius: '20px',
+                        backgroundColor: formData.isVeg === true ? '#f0fdf4' : 'white',
+                        color: formData.isVeg === true ? '#16a34a' : '#9ca3af',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      ● Veg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, isVeg: false})}
+                      style={{
+                        padding: '4px 14px',
+                        border: formData.isVeg === false ? '1.5px solid #dc2626' : '1px solid #d1d5db',
+                        borderRadius: '20px',
+                        backgroundColor: formData.isVeg === false ? '#fef2f2' : 'white',
+                        color: formData.isVeg === false ? '#dc2626' : '#9ca3af',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      ● Non-Veg
+                    </button>
+                  </div>
+                </div>
+
+              </div>{/* END LEFT COLUMN */}
+
+              {/* ===== RIGHT COLUMN ===== */}
+              <div>
+                {/* Image Upload */}
+                <div style={{ marginBottom: '20px' }}>
                   <h4 style={{
-                    fontSize: '14px',
+                    fontSize: '13px',
                     fontWeight: '600',
                     color: '#374151',
-                    marginBottom: '12px'
+                    marginBottom: '10px'
                   }}>
-                    Item Images (Max 4)
+                    {btype.item} Images (Max 4)
                   </h4>
                     <ImageUpload
                       onImagesUploaded={handleImagesUploaded}
@@ -3878,443 +3779,349 @@ const MenuManagement = () => {
                       maxImages={4}
                       disabled={uploadingImages}
                     />
-                      <p style={{ 
-                    fontSize: '12px',
-                        color: '#6b7280', 
-                    margin: '8px 0 0 0',
-                    fontStyle: 'italic'
-                      }}>
-                    💡 You can upload images anytime - they&apos;ll be saved when you submit the form
-                      </p>
               </div>
-              
-              {/* AI Recipe Generation Toggle */}
-              {!editingItem && (
-                <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+
+              {/* AI Recipe Generation Toggle — hide for bar */}
+              {!editingItem && !isBarMode && (
+                <div style={{ marginBottom: '16px', padding: '10px 12px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <input
                     type="checkbox"
                     id="generateRecipe"
                     checked={formData.generateRecipe}
                     onChange={(e) => setFormData({...formData, generateRecipe: e.target.checked})}
                     style={{
-                      width: '18px',
-                      height: '18px',
+                      width: '16px',
+                      height: '16px',
                       accentColor: '#16a34a',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      flexShrink: 0
                     }}
                   />
                   <div style={{ flex: 1 }}>
-                    <label htmlFor="generateRecipe" style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#166534', cursor: 'pointer' }}>
-                      Generate Smart Recipe with AI
+                    <label htmlFor="generateRecipe" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#166534', cursor: 'pointer' }}>
+                      Generate Smart Recipe with AI 🤖
                     </label>
-                    <p style={{ fontSize: '12px', color: '#15803d', margin: '2px 0 0 0' }}>
-                      Automatically create a list of ingredients and quantities for inventory tracking.
+                    <p style={{ fontSize: '11px', color: '#15803d', margin: '2px 0 0 0' }}>
+                      Auto-create ingredients list for inventory tracking
                     </p>
                   </div>
-                  <div style={{ fontSize: '20px' }}>🤖</div>
                 </div>
               )}
 
-              {/* Advanced Options - Variants & Customizations */}
-              <div style={{ marginTop: '24px', marginBottom: '16px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    backgroundColor: showAdvancedOptions ? '#fee2e2' : '#f9fafb',
-                    border: `2px solid ${showAdvancedOptions ? '#ef4444' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.2s ease',
-                    marginBottom: showAdvancedOptions ? '16px' : '0'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!showAdvancedOptions) {
-                      e.target.style.backgroundColor = '#f3f4f6';
-                      e.target.style.borderColor = '#d1d5db';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!showAdvancedOptions) {
-                      e.target.style.backgroundColor = '#f9fafb';
-                      e.target.style.borderColor = '#e5e7eb';
-                    }
-                  }}
-                >
-                  <span style={{
-                    fontSize: '15px',
+              {/* Variants Section — always visible on right */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                  flexWrap: 'wrap',
+                  gap: '6px'
+                }}>
+                  <label style={{
+                    fontSize: '13px',
                     fontWeight: '600',
-                    color: showAdvancedOptions ? '#dc2626' : '#374151',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
+                    color: '#374151'
                   }}>
-                    <FaTags size={14} />
-                    Advanced Options (Variants & Toppings)
-                  </span>
-                  {showAdvancedOptions ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
-                </button>
-
-                {showAdvancedOptions && (
-                  <div style={{
-                    padding: '20px',
-                    backgroundColor: '#fef7f0',
-                    borderRadius: '8px',
-                    border: '1px solid #fed7aa',
-                    marginTop: '12px'
-                  }}>
-                    {/* Variants Section */}
-                    <div style={{ marginBottom: '24px' }}>
-                      <div style={{
+                    {isBarMode ? 'Serving Sizes' : isIceCreamMode ? 'Scoop Options' : isBakeryMode ? 'Pack Sizes' : 'Variants'}
+                  </label>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={addVariant}
+                      style={{
+                        padding: '4px 10px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '12px'
-                      }}>
-                        <label style={{
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: '#374151'
-                        }}>
-                          Variants (Different Sizes/Portions)
-                        </label>
-                        <button
-                          type="button"
-                          onClick={addVariant}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <FaPlus size={10} />
-                          Add Variant
-                        </button>
-                        {isBarMode && (!formData.variants || formData.variants.length === 0) && (
-                          <button
-                            type="button"
-                            onClick={addBarServingVariants}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#7c3aed',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            🍸 Add Serving Sizes (Peg/Large/Bottle)
-                          </button>
-                        )}
-                        {isBakeryMode && (!formData.variants || formData.variants.length === 0) && (
-                          <button
-                            type="button"
-                            onClick={addBakeryPackVariants}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#d97706',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            🧁 Add Pack Sizes (Piece/Box of 6/Box of 12)
-                          </button>
-                        )}
-                        {isIceCreamMode && (!formData.variants || formData.variants.length === 0) && (
-                          <button
-                            type="button"
-                            onClick={addIceCreamScoopVariants}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#2563eb',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            🍦 Add Scoop Sizes (Single/Double/Triple)
-                          </button>
-                        )}
-                      </div>
-                      {formData.variants && formData.variants.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {formData.variants.map((variant, index) => (
-                            <div
-                              key={index}
-                              style={{
-                                padding: '14px',
-                                backgroundColor: 'white',
-                                border: '1px solid #fde68a',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '10px'
-                              }}
-                            >
-                              <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 120px auto',
-                                gap: '10px' 
-                              }}>
-                                <input
-                                  type="text"
-                                  placeholder="Variant name (e.g., Half, Full, Small)"
-                                  value={variant.name}
-                                  onChange={(e) => updateVariant(index, 'name', e.target.value)}
-                                  style={{
-                                    padding: '10px 12px',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '6px',
-                                    fontSize: '13px',
-                                    outline: 'none'
-                                  }}
-                                />
-                                <input
-                                  type="number"
-                                  placeholder="Price"
-                                  value={variant.price}
-                                  onChange={(e) => updateVariant(index, 'price', e.target.value)}
-                                  style={{
-                                    padding: '10px 12px',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '6px',
-                                    fontSize: '13px',
-                                    outline: 'none'
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeVariant(index)}
-                                  style={{
-                                    padding: '10px',
-                                    backgroundColor: '#fee2e2',
-                                    color: '#dc2626',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: '600'
-                                  }}
-                                >
-                                  <FaTrash size={10} />
-                                </button>
-                              </div>
-                              <input
-                                type="text"
-                                placeholder="Description (optional)"
-                                value={variant.description || ''}
-                                onChange={(e) => updateVariant(index, 'description', e.target.value)}
-                                style={{
-                                  padding: '10px 12px',
-                                  border: '1px solid #e5e7eb',
-                                  borderRadius: '6px',
-                                  fontSize: '13px',
-                                  outline: 'none'
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p style={{
-                          fontSize: '13px',
-                          color: '#6b7280',
-                          fontStyle: 'italic',
-                          padding: '12px',
-                          backgroundColor: 'white',
+                        gap: '3px'
+                      }}
+                    >
+                      <FaPlus size={8} />
+                      Add
+                    </button>
+                    {isBarMode && (!formData.variants || formData.variants.length === 0) && (
+                      <button
+                        type="button"
+                        onClick={addBarServingVariants}
+                        style={{
+                          padding: '4px 10px',
+                          backgroundColor: '#7c3aed',
+                          color: 'white',
+                          border: 'none',
                           borderRadius: '6px',
-                          border: '1px dashed #d1d5db'
-                        }}>
-                          No variants added. Add variants if this item has different sizes or portions (e.g., Half {getCurrencySymbol()}100, Full {getCurrencySymbol()}200).
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Customizations Section */}
-                    <div>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '12px'
-                      }}>
-                        <label style={{
-                          fontSize: '14px',
+                          fontSize: '11px',
                           fontWeight: '600',
-                          color: '#374151'
-                        }}>
-                          Customizations (Toppings/Add-ons)
-                        </label>
-                        <button
-                          type="button"
-                          onClick={addCustomization}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <FaPlus size={10} />
-                          Add Topping
-                        </button>
-                      </div>
-                      {formData.customizations && formData.customizations.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {formData.customizations.map((customization, index) => (
-                            <div
-                              key={customization.id || index}
-                              style={{
-                                padding: '14px',
-                                backgroundColor: 'white',
-                                border: '1px solid #fde68a',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '10px'
-                              }}
-                            >
-                              <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 120px auto',
-                                gap: '10px' 
-                              }}>
-                                <input
-                                  type="text"
-                                  placeholder="Topping/Add-on name (e.g., Extra Cheese)"
-                                  value={customization.name}
-                                  onChange={(e) => updateCustomization(index, 'name', e.target.value)}
-                                  style={{
-                                    padding: '10px 12px',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '6px',
-                                    fontSize: '13px',
-                                    outline: 'none'
-                                  }}
-                                />
-                                <input
-                                  type="number"
-                                  placeholder="Extra Price"
-                                  value={customization.price}
-                                  onChange={(e) => updateCustomization(index, 'price', e.target.value)}
-                                  style={{
-                                    padding: '10px 12px',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '6px',
-                                    fontSize: '13px',
-                                    outline: 'none'
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeCustomization(index)}
-                                  style={{
-                                    padding: '10px',
-                                    backgroundColor: '#fee2e2',
-                                    color: '#dc2626',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    minWidth: '40px'
-                                  }}
-                                >
-                                  <FaTrash size={10} />
-                                </button>
-                              </div>
-                              <input
-                                type="text"
-                                placeholder="Description (optional)"
-                                value={customization.description || ''}
-                                onChange={(e) => updateCustomization(index, 'description', e.target.value)}
-                                style={{
-                                  padding: '10px 12px',
-                                  border: '1px solid #e5e7eb',
-                                  borderRadius: '6px',
-                                  fontSize: '13px',
-                                  outline: 'none'
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p style={{
-                          fontSize: '13px',
-                          color: '#6b7280',
-                          fontStyle: 'italic',
-                          padding: '12px',
-                          backgroundColor: 'white',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🍸 Peg/Large/Bottle
+                      </button>
+                    )}
+                    {isBakeryMode && (!formData.variants || formData.variants.length === 0) && (
+                      <button
+                        type="button"
+                        onClick={addBakeryPackVariants}
+                        style={{
+                          padding: '4px 10px',
+                          backgroundColor: '#d97706',
+                          color: 'white',
+                          border: 'none',
                           borderRadius: '6px',
-                          border: '1px dashed #d1d5db'
-                        }}>
-                          No customizations added. Add toppings/add-ons if this item can be customized (e.g., Pizza toppings, Extra Cheese).
-                        </p>
-                      )}
-                    </div>
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🧁 Piece/Box of 6/12
+                      </button>
+                    )}
+                    {isIceCreamMode && (!formData.variants || formData.variants.length === 0) && (
+                      <button
+                        type="button"
+                        onClick={addIceCreamScoopVariants}
+                        style={{
+                          padding: '4px 10px',
+                          backgroundColor: '#2563eb',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🍦 Single/Double/Triple
+                      </button>
+                    )}
                   </div>
+                </div>
+                {formData.variants && formData.variants.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {formData.variants.map((variant, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          padding: '10px',
+                          backgroundColor: '#f9fafb',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder={isBarMode ? 'e.g., Peg, Large, Bottle' : isIceCreamMode ? 'e.g., Single, Double' : 'e.g., Half, Full'}
+                          value={variant.name}
+                          onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                          style={{
+                            flex: 1,
+                            padding: '8px 10px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            outline: 'none'
+                          }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={variant.price}
+                          onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                          style={{
+                            width: '80px',
+                            padding: '8px 10px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            outline: 'none'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeVariant(index)}
+                          style={{
+                            padding: '8px',
+                            backgroundColor: '#fee2e2',
+                            color: '#dc2626',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            flexShrink: 0
+                          }}
+                        >
+                          <FaTrash size={9} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#9ca3af',
+                    fontStyle: 'italic',
+                    padding: '10px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '6px',
+                    border: '1px dashed #d1d5db',
+                    margin: 0
+                  }}>
+                    {isBarMode ? 'Add serving sizes like Peg, Large, Bottle with different prices' : isIceCreamMode ? 'Add scoop options like Single, Double, Triple' : isBakeryMode ? 'Add pack sizes like Piece, Box of 6, Box of 12' : 'Add size variants like Half, Full, Family'}
+                  </p>
                 )}
               </div>
-              
-              {/* Actions - Mobile-friendly */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '12px', 
+
+              {/* Customizations Section */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px'
+                }}>
+                  <label style={{
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    {isBarMode ? 'Mixers & Add-ons' : isIceCreamMode ? 'Toppings' : isBakeryMode ? 'Add-ons' : 'Customizations'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addCustomization}
+                    style={{
+                      padding: '4px 10px',
+                      backgroundColor: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                  >
+                    <FaPlus size={8} />
+                    Add
+                  </button>
+                </div>
+                {formData.customizations && formData.customizations.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {formData.customizations.map((customization, index) => (
+                      <div
+                        key={customization.id || index}
+                        style={{
+                          padding: '10px',
+                          backgroundColor: '#f9fafb',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder={isBarMode ? 'e.g., Soda, Tonic Water' : isIceCreamMode ? 'e.g., Sprinkles, Chocolate Sauce' : 'e.g., Extra Cheese'}
+                          value={customization.name}
+                          onChange={(e) => updateCustomization(index, 'name', e.target.value)}
+                          style={{
+                            flex: 1,
+                            padding: '8px 10px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            outline: 'none'
+                          }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={customization.price}
+                          onChange={(e) => updateCustomization(index, 'price', e.target.value)}
+                          style={{
+                            width: '80px',
+                            padding: '8px 10px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            outline: 'none'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeCustomization(index)}
+                          style={{
+                            padding: '8px',
+                            backgroundColor: '#fee2e2',
+                            color: '#dc2626',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            flexShrink: 0
+                          }}
+                        >
+                          <FaTrash size={9} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#9ca3af',
+                    fontStyle: 'italic',
+                    padding: '10px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '6px',
+                    border: '1px dashed #d1d5db',
+                    margin: 0
+                  }}>
+                    {isBarMode ? 'Add mixers, garnishes, or snack pairings' : isIceCreamMode ? 'Add toppings like sprinkles, sauces, whipped cream' : isBakeryMode ? 'Add extras like gift wrapping, custom message' : 'Add toppings or add-ons like Extra Cheese, Butter'}
+                  </p>
+                )}
+              </div>
+              </div>{/* END RIGHT COLUMN */}
+              </div>{/* END TWO-COLUMN GRID */}
+
+              {/* Sticky Actions Bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                display: 'flex',
+                gap: '12px',
                 justifyContent: 'flex-end',
-                paddingTop: '16px',
-                borderTop: '1px solid #f3f4f6',
+                padding: '16px 0 0 0',
+                margin: '16px -24px 0 -24px',
+                padding: '14px 24px',
+                borderTop: '1px solid #e5e7eb',
+                backgroundColor: '#f9fafb',
+                borderRadius: '0 0 12px 12px',
                 flexDirection: window.innerWidth <= 768 ? 'column' : 'row'
               }}>
                 <button
                   type="button"
                   onClick={resetForm}
                   style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#6b7280',
-                    fontSize: '14px',
+                    padding: '10px 24px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    fontSize: '13px',
                     fontWeight: '500',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     width: window.innerWidth <= 768 ? '100%' : 'auto'
@@ -4326,19 +4133,20 @@ const MenuManagement = () => {
                   type="submit"
                   disabled={processing}
                   style={{
-                    padding: '12px 24px',
-                    backgroundColor: processing ? '#d1d5db' : '#dc2626',
+                    padding: '10px 28px',
+                    background: processing ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '500',
+                    fontSize: '13px',
+                    fontWeight: '600',
                     border: 'none',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     cursor: processing ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
+                    boxShadow: processing ? 'none' : '0 4px 12px rgba(0,0,0,0.15)',
                     width: window.innerWidth <= 768 ? '100%' : 'auto'
                   }}
                 >
-                  {processing ? 'Processing...' : editingItem ? 'Update Dish' : 'Add Dish'}
+                  {processing ? 'Processing...' : editingItem ? 'Update ' + btype.item : 'Add ' + btype.item}
                 </button>
               </div>
             </form>

@@ -366,12 +366,15 @@ function NavigationContent({ isHidden = false }) {
   const handleRestaurantChange = (restaurant) => {
     setSelectedRestaurant(restaurant);
     localStorage.setItem('selectedRestaurantId', restaurant.id);
+    localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
     setShowRestaurantDropdown(false);
-    
+
     // Dispatch custom event for other components to listen to
-    window.dispatchEvent(new CustomEvent('restaurantChanged', { 
-      detail: { restaurant } 
+    window.dispatchEvent(new CustomEvent('restaurantChanged', {
+      detail: { restaurant, restaurantId: restaurant.id }
     }));
+    // Full page refresh so all pages re-fetch for this restaurant
+    window.location.reload();
   };
   
   const getAllNavItems = () => [

@@ -19,13 +19,13 @@ import {
   FaMapMarkerAlt,
   FaCalendarAlt,
   FaHistory,
-  FaEye,
   FaTimes,
   FaSave,
   FaSpinner,
   FaCheckCircle,
   FaExclamationTriangle,
   FaUser,
+  FaCog,
   FaFilter,
   FaSortAmountDown,
   FaSortAmountUp,
@@ -76,21 +76,20 @@ const CustomerForm = React.memo(({
         <div style={{
           padding: '24px',
           borderBottom: '1px solid #f3f4f6',
-          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-          color: 'white',
+          backgroundColor: 'white',
           borderRadius: '16px 16px 0 0'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
               {isEdit ? t('customers.editCustomer') : t('customers.addNewCustomer')}
             </h2>
             <button
               onClick={onClose}
               style={{
-                background: 'rgba(255,255,255,0.2)',
+                background: '#f3f4f6',
                 border: 'none',
                 borderRadius: '8px',
-                color: 'white',
+                color: '#6b7280',
                 padding: '8px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -263,12 +262,12 @@ const CustomerForm = React.memo(({
               onClick={onClose}
               style={{
                 padding: '12px 24px',
-                backgroundColor: '#6b7280',
-                color: 'white',
+                backgroundColor: 'white',
+                color: '#374151',
                 borderRadius: '8px',
                 fontWeight: '600',
                 fontSize: '14px',
-                border: 'none',
+                border: '1px solid #e5e7eb',
                 cursor: 'pointer'
               }}
             >
@@ -279,7 +278,7 @@ const CustomerForm = React.memo(({
               disabled={saving}
               style={{
                 padding: '12px 24px',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                backgroundColor: '#111827',
                 color: 'white',
                 borderRadius: '8px',
                 fontWeight: '600',
@@ -316,7 +315,6 @@ const Customers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showOrderHistory, setShowOrderHistory] = useState(false);
-  const [showCustomerProfile, setShowCustomerProfile] = useState(false);
   const [sortBy, setSortBy] = useState('lastOrderDate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [isMobile, setIsMobile] = useState(false);
@@ -334,7 +332,13 @@ const Customers = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [engagementTab, setEngagementTab] = useState('customers'); // 'customers' | 'offers' | 'loyalty' | 'crave-app'
+  const [engagementTab, setEngagementTab] = useState('customers'); // 'customers' | 'offers' | 'loyalty' | 'your-app'
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 50;
 
   // Language detection
   useEffect(() => {
@@ -444,14 +448,33 @@ const Customers = () => {
   useEffect(() => {
     const handleRestaurantChange = () => {
       console.log('Restaurant changed, reloading customers');
-      loadCustomers();
+      setCurrentPage(1);
+      loadCustomers(false, 1);
     };
 
     window.addEventListener('restaurantChanged', handleRestaurantChange);
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, []);
 
-  const loadCustomers = async (useCache = true) => {
+  // Debounced search - reload from server when search term changes
+  const searchTimerRef = React.useRef(null);
+  const isInitialMount = React.useRef(true);
+  useEffect(() => {
+    if (!restaurantId) return;
+    // Skip the initial mount (restaurantId effect handles that)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      loadCustomers(false, 1, searchTerm);
+    }, 400);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [searchTerm]);
+
+  const loadCustomers = async (useCache = true, page = currentPage, search = '') => {
     try {
       const user = apiClient.getUser();
       if (!user) {
@@ -464,12 +487,14 @@ const Customers = () => {
         return;
       }
 
-      // Check for cached data first
-      if (useCache) {
+      // Check for cached data first (only for page 1 with no search)
+      if (useCache && page === 1 && !search) {
         const cachedData = getCachedCustomersData(restaurantId);
         if (cachedData) {
           console.log('⚡ Loading cached customers data instantly...');
           setCustomers(cachedData.customers || []);
+          setTotalCustomers(cachedData.total || 0);
+          setTotalPages(cachedData.totalPages || 1);
           setLoading(false);
 
           // Show background loading
@@ -482,17 +507,24 @@ const Customers = () => {
         setLoading(true);
       }
 
-      // Fetch fresh data
-      const response = await apiClient.request(`/api/customers/${restaurantId}`);
+      // Fetch fresh data with pagination and search
+      const response = await apiClient.getCustomers(restaurantId, page, PAGE_SIZE, search);
       const freshCustomers = response.customers || [];
       setCustomers(freshCustomers);
+      setTotalCustomers(response.total || 0);
+      setTotalPages(response.totalPages || 1);
+      setCurrentPage(response.page || page);
 
-      // Cache the data
-      const dataToCache = {
-        customers: freshCustomers
-      };
-      setCachedCustomersData(restaurantId, dataToCache);
-      console.log('✅ Customers data cached');
+      // Cache the data (page 1 with no search only)
+      if (page === 1 && !search) {
+        const dataToCache = {
+          customers: freshCustomers,
+          total: response.total || 0,
+          totalPages: response.totalPages || 1
+        };
+        setCachedCustomersData(restaurantId, dataToCache);
+        console.log('✅ Customers data cached');
+      }
 
     } catch (error) {
       console.error('Error loading customers:', error);
@@ -593,8 +625,9 @@ const Customers = () => {
       setFormErrors({});
       setSelectedCustomer(null);
 
-      // Reload customers
-      await loadCustomers();
+      // Reload customers (go to page 1 for new customer)
+      setCurrentPage(1);
+      await loadCustomers(false, 1);
 
     } catch (error) {
       console.error('Error saving customer:', error);
@@ -618,7 +651,10 @@ const Customers = () => {
       await apiClient.request(`/api/customers/${customer.id}`, {
         method: 'DELETE'
       });
-      await loadCustomers();
+      // If last item on current page, go back one page
+      const newPage = (customers.length <= 1 && currentPage > 1) ? currentPage - 1 : currentPage;
+      setCurrentPage(newPage);
+      await loadCustomers(false, newPage, searchTerm);
     } catch (error) {
       console.error('Error deleting customer:', error);
       setError(t('customers.messages.failedToDelete'));
@@ -644,17 +680,8 @@ const Customers = () => {
     setShowOrderHistory(true);
   };
 
-  // Filter and sort customers
-  const filteredCustomers = customers
-    .filter(customer => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (customer.name && customer.name.toLowerCase().includes(searchLower)) ||
-        (customer.phone && customer.phone.includes(searchTerm)) ||
-        (customer.email && customer.email.toLowerCase().includes(searchLower)) ||
-        (customer.city && customer.city.toLowerCase().includes(searchLower))
-      );
-    })
+  // Sort customers (search is handled server-side)
+  const filteredCustomers = [...customers]
     .sort((a, b) => {
       let aValue = a[sortBy];
       let bValue = b[sortBy];
@@ -714,12 +741,11 @@ const Customers = () => {
         <div style={{
           padding: '24px',
           borderBottom: '1px solid #f3f4f6',
-          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-          color: 'white',
+          backgroundColor: 'white',
           borderRadius: '16px 16px 0 0'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
               {t('customers.orderHistory.title')} - {selectedCustomer?.name || selectedCustomer?.phone || t('customers.form.customer')}
             </h2>
             <button
@@ -728,10 +754,10 @@ const Customers = () => {
                 setSelectedCustomer(null);
               }}
               style={{
-                background: 'rgba(255,255,255,0.2)',
+                background: '#f3f4f6',
                 border: 'none',
                 borderRadius: '8px',
-                color: 'white',
+                color: '#6b7280',
                 padding: '8px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -799,7 +825,7 @@ const Customers = () => {
                       </p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#ef4444' }}>
+                      <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>
                         {formatCurrency(order.totalAmount)}
                       </p>
                       {order.tableNumber && (
@@ -842,371 +868,6 @@ const Customers = () => {
     </div>
   );
 
-  // Customer Profile Modal - Detailed view with loyalty info
-  const CustomerProfileModal = () => {
-    if (!selectedCustomer) return null;
-
-    // Calculate loyalty stats
-    const orderHistory = selectedCustomer.orderHistory || [];
-    const totalPointsEarned = orderHistory.reduce((sum, o) => sum + (o.loyaltyPointsEarned || 0), 0);
-    const totalPointsRedeemed = orderHistory.reduce((sum, o) => sum + (o.loyaltyPointsRedeemed || 0), 0);
-    const currentPoints = selectedCustomer.loyaltyPoints || 0;
-    const redemptionHistory = orderHistory.filter(o => o.loyaltyPointsRedeemed > 0);
-
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 50,
-          padding: isMobile ? '16px' : '32px'
-        }}
-        onClick={() => {
-          setShowCustomerProfile(false);
-          setSelectedCustomer(null);
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-            width: '100%',
-            maxWidth: isMobile ? '100%' : '700px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div style={{
-            padding: '24px',
-            background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-            color: 'white',
-            borderRadius: '16px 16px 0 0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '24px',
-                  fontWeight: '700'
-                }}>
-                  {(selectedCustomer.name || 'C')[0].toUpperCase()}
-                </div>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700' }}>
-                    {selectedCustomer.name || 'Customer'}
-                  </h2>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
-                    {selectedCustomer.phone || 'No phone'}
-                  </p>
-                  {selectedCustomer.source === 'customer_app' && (
-                    <span style={{
-                      display: 'inline-block',
-                      marginTop: '6px',
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      backgroundColor: 'rgba(255,255,255,0.2)'
-                    }}>
-                      Crave App User
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowCustomerProfile(false);
-                  setSelectedCustomer(null);
-                }}
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: 'white',
-                  padding: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                <FaTimes size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Loyalty Points Summary */}
-          <div style={{ padding: '20px 24px', backgroundColor: '#faf5ff', borderBottom: '1px solid #e9d5ff' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaGift size={16} />
-              Loyalty Points
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px' }}>
-              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
-                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#7c3aed' }}>{currentPoints}</p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Current Points</p>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
-                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#10b981' }}>+{totalPointsEarned}</p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Total Earned</p>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
-                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#ef4444' }}>-{totalPointsRedeemed}</p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Total Redeemed</p>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e9d5ff' }}>
-                <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#f59e0b' }}>{redemptionHistory.length}</p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>Redemptions</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Customer Details & Stats */}
-          <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
-              {/* Contact Info */}
-              <div>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Contact Information</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {selectedCustomer.email && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
-                      <FaEnvelope size={12} style={{ color: '#9ca3af' }} />
-                      {selectedCustomer.email}
-                    </div>
-                  )}
-                  {selectedCustomer.city && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
-                      <FaMapMarkerAlt size={12} style={{ color: '#9ca3af' }} />
-                      {selectedCustomer.city}
-                    </div>
-                  )}
-                  {selectedCustomer.dob && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
-                      <FaCalendarAlt size={12} style={{ color: '#9ca3af' }} />
-                      DOB: {new Date(selectedCustomer.dob).toLocaleDateString()}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6b7280' }}>
-                    <FaCalendarAlt size={12} style={{ color: '#9ca3af' }} />
-                    Customer since: {selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString() : 'N/A'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Stats */}
-              <div>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Order Statistics</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#6b7280' }}>Total Orders</span>
-                    <span style={{ fontWeight: '600', color: '#1f2937' }}>{selectedCustomer.totalOrders || orderHistory.length || 0}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#6b7280' }}>Total Spent</span>
-                    <span style={{ fontWeight: '600', color: '#ef4444' }}>{formatCurrency(Number(selectedCustomer.totalSpent || 0))}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#6b7280' }}>Avg. Order Value</span>
-                    <span style={{ fontWeight: '600', color: '#1f2937' }}>
-                      {formatCurrency(selectedCustomer.totalOrders > 0 ? (Number(selectedCustomer.totalSpent || 0) / selectedCustomer.totalOrders) : 0)}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#6b7280' }}>Last Order</span>
-                    <span style={{ fontWeight: '600', color: '#1f2937' }}>
-                      {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Redemption History */}
-          {redemptionHistory.length > 0 && (
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Points Redemption History
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
-                {redemptionHistory.map((order, index) => (
-                  <div key={index} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 12px',
-                    backgroundColor: '#fef2f2',
-                    borderRadius: '8px',
-                    fontSize: '13px'
-                  }}>
-                    <div>
-                      <span style={{ fontWeight: '600', color: '#1f2937' }}>{order.orderNumber}</span>
-                      <span style={{ color: '#6b7280', marginLeft: '8px' }}>
-                        {new Date(order.orderDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: '600', color: '#ef4444' }}>-{order.loyaltyPointsRedeemed} pts</span>
-                      <span style={{ color: '#6b7280', marginLeft: '8px' }}>({formatCurrency(order.loyaltyDiscount || 0)} off)</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recent Orders */}
-          <div style={{ padding: '20px 24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Recent Orders ({orderHistory.length})
-              </h3>
-              {orderHistory.length > 0 && (
-                <button
-                  onClick={() => {
-                    setShowCustomerProfile(false);
-                    setShowOrderHistory(true);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#7c3aed',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  View All <FaArrowRight size={10} />
-                </button>
-              )}
-            </div>
-
-            {orderHistory.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
-                {orderHistory
-                  .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
-                  .slice(0, 5)
-                  .map((order, index) => (
-                    <div key={index} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '12px',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb'
-                    }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{order.orderNumber}</span>
-                          {order.orderTypeLabel && (
-                            <span style={{
-                              padding: '2px 6px',
-                              borderRadius: '8px',
-                              fontSize: '10px',
-                              fontWeight: '600',
-                              backgroundColor: order.orderType === 'dine_in' ? '#dbeafe' : order.orderType === 'takeaway' ? '#fef3c7' : '#dcfce7',
-                              color: order.orderType === 'dine_in' ? '#1e40af' : order.orderType === 'takeaway' ? '#92400e' : '#166534'
-                            }}>
-                              {order.orderTypeLabel}
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: '11px', color: '#6b7280' }}>
-                          {new Date(order.orderDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444' }}>{formatCurrency(order.totalAmount)}</span>
-                        {order.loyaltyPointsEarned > 0 && (
-                          <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#10b981' }}>+{order.loyaltyPointsEarned} pts</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280', fontSize: '13px' }}>
-                No orders yet
-              </div>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px' }}>
-            <button
-              onClick={() => {
-                setShowCustomerProfile(false);
-                setCustomerForm({
-                  name: selectedCustomer.name || '',
-                  phone: selectedCustomer.phone || '',
-                  email: selectedCustomer.email || '',
-                  city: selectedCustomer.city || '',
-                  dob: selectedCustomer.dob || ''
-                });
-                setShowEditModal(true);
-              }}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: '#f3f4f6',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                color: '#374151'
-              }}
-            >
-              <FaEdit size={14} />
-              Edit Profile
-            </button>
-            <button
-              onClick={() => {
-                setShowCustomerProfile(false);
-                setShowOrderHistory(true);
-              }}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: '#7c3aed',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              <FaHistory size={14} />
-              Full History
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   if (loading) {
     return (
@@ -1289,181 +950,133 @@ const Customers = () => {
         backgroundColor: '#f9fafb',
         paddingTop: 0 // Align to top
       }}>
-        <div style={{ 
-          width: '100%', 
-          padding: isMobile ? '8px' : '24px'
+        <div style={{
+          width: '100%',
+          padding: isMobile ? '8px' : '24px',
+          paddingTop: 0
         }}>
-          {/* Header - More Compact */}
-          <div style={{ 
-            backgroundColor: 'white', 
-            borderRadius: isMobile ? '12px' : '16px', 
-            padding: isMobile ? '16px' : '24px', 
-            marginBottom: isMobile ? '12px' : '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          {/* Sticky Header + Tabs */}
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 20,
+            backgroundColor: '#f9fafb',
+            paddingTop: isMobile ? '8px' : '24px',
+            paddingBottom: isMobile ? '4px' : '4px',
+            marginLeft: isMobile ? '-8px' : '-24px',
+            marginRight: isMobile ? '-8px' : '-24px',
+            paddingLeft: isMobile ? '8px' : '24px',
+            paddingRight: isMobile ? '8px' : '24px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h1 style={{ 
-                  margin: 0, 
-                  fontSize: isMobile ? '20px' : '28px', 
-                  fontWeight: '700', 
-                  color: '#1f2937',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <div style={{
-                    width: isMobile ? '32px' : '40px',
-                    height: isMobile ? '32px' : '40px',
-                    backgroundColor: '#ef4444',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white'
-                  }}>
-                    <FaUsers size={isMobile ? 16 : 20} />
-                  </div>
-                  {isMobile ? t('customers.titleShort') : t('customers.title')}
-                </h1>
-                {!isMobile && (
-                  <p style={{ margin: '8px 0 0 0', color: '#6b7280', fontSize: '16px' }}>
-                    {t('customers.subtitle')}
-                  </p>
-                )}
-              </div>
-              
-              {engagementTab === 'customers' && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: isMobile ? '8px' : '12px',
-                  padding: isMobile ? '8px 12px' : '12px 20px',
-                  fontSize: isMobile ? '12px' : '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
-                }}
-              >
-                <FaPlus size={isMobile ? 12 : 14} />
-                {isMobile ? t('customers.add') : t('customers.addCustomer')}
-              </button>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            marginBottom: isMobile ? '8px' : '12px'
+          }}>
+            <div>
+              <h1 style={{
+                margin: 0,
+                fontSize: isMobile ? '20px' : '24px',
+                fontWeight: '700',
+                color: '#1f2937'
+              }}>
+                {isMobile ? t('customers.titleShort') : t('customers.title')}
+              </h1>
+              {!isMobile && (
+                <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+                  {t('customers.subtitle')}
+                </p>
               )}
             </div>
+
+            {engagementTab === 'customers' && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              style={{
+                backgroundColor: '#111827',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: isMobile ? '8px 12px' : '10px 18px',
+                fontSize: isMobile ? '12px' : '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <FaPlus size={isMobile ? 12 : 13} />
+              {isMobile ? t('customers.add') : t('customers.addCustomer')}
+            </button>
+            )}
           </div>
 
-          {/* Customer Engagement — tab bar (same content as /offers and /customer-app embedded) */}
+          {/* Customer Engagement — tab bar */}
           <div style={{
-            backgroundColor: 'white',
+            background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%)',
             borderRadius: '12px',
-            padding: isMobile ? '10px' : '12px 16px',
-            marginBottom: isMobile ? '12px' : '16px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            border: '1px solid #e2e8f0'
+            padding: isMobile ? '4px' : '6px 8px',
+            marginBottom: isMobile ? '8px' : '12px',
+            display: 'flex',
+            gap: isMobile ? '2px' : '4px',
+            overflowX: isMobile ? 'auto' : 'visible',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none'
           }}>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px'
-            }}>
-              <button
-                type="button"
-                onClick={() => setEngagementTab('customers')}
-                style={{
-                  padding: isMobile ? '10px 12px' : '12px 16px',
-                  borderRadius: '10px',
-                  border: engagementTab === 'customers' ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                  background: engagementTab === 'customers' ? '#fef2f2' : '#f9fafb',
-                  color: engagementTab === 'customers' ? '#b91c1c' : '#6b7280',
-                  fontWeight: '600',
-                  fontSize: isMobile ? '12px' : '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <FaUsers size={14} />
-                Customers
-              </button>
-              <button
-                type="button"
-                onClick={() => setEngagementTab('offers')}
-                style={{
-                  padding: isMobile ? '10px 12px' : '12px 16px',
-                  borderRadius: '10px',
-                  border: engagementTab === 'offers' ? '2px solid #f59e0b' : '1px solid #fde68a',
-                  background: engagementTab === 'offers' ? '#fef3c7' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                  color: engagementTab === 'offers' ? '#92400e' : '#78350f',
-                  fontWeight: '600',
-                  fontSize: isMobile ? '12px' : '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <FaTag size={14} />
-                Offers & Discounts
-              </button>
-              <button
-                type="button"
-                onClick={() => setEngagementTab('loyalty')}
-                style={{
-                  padding: isMobile ? '10px 12px' : '12px 16px',
-                  borderRadius: '10px',
-                  border: engagementTab === 'loyalty' ? '2px solid #ec4899' : '1px solid #fbcfe8',
-                  background: engagementTab === 'loyalty' ? '#fce7f3' : 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)',
-                  color: engagementTab === 'loyalty' ? '#9f1239' : '#831843',
-                  fontWeight: '600',
-                  fontSize: isMobile ? '12px' : '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <FaGift size={14} />
-                Loyalty Program
-              </button>
-              <button
-                type="button"
-                onClick={() => setEngagementTab('crave-app')}
-                style={{
-                  padding: isMobile ? '10px 12px' : '12px 16px',
-                  borderRadius: '10px',
-                  border: engagementTab === 'crave-app' ? '2px solid #6366f1' : '1px solid #c7d2fe',
-                  background: engagementTab === 'crave-app' ? '#e0e7ff' : 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                  color: engagementTab === 'crave-app' ? '#312e81' : '#1e1b4b',
-                  fontWeight: '600',
-                  fontSize: isMobile ? '12px' : '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <FaMobileAlt size={14} />
-                Crave App
-              </button>
-            </div>
+            {[
+              { id: 'customers', label: 'Customers', mobileLabel: 'Customers', icon: FaUsers },
+              { id: 'offers', label: 'Offers & Discounts', mobileLabel: 'Offers', icon: FaTag },
+              { id: 'loyalty', label: 'Loyalty Program', mobileLabel: 'Loyalty', icon: FaGift },
+              { id: 'app-settings', label: 'App Settings', mobileLabel: 'Settings', icon: FaCog },
+              { id: 'your-app', label: 'Your App', mobileLabel: 'App', icon: FaMobileAlt },
+            ].map(function(tab) {
+              var TabIcon = tab.icon;
+              var isActive = engagementTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={function() { setEngagementTab(tab.id); }}
+                  style={{
+                    padding: isMobile ? '7px 10px' : '10px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: isActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent',
+                    color: isActive ? '#ffffff' : '#881b1b',
+                    fontWeight: '600',
+                    fontSize: isMobile ? '11px' : '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isMobile ? '4px' : '6px',
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                >
+                  <TabIcon size={isMobile ? 11 : 13} />
+                  {isMobile ? tab.mobileLabel : tab.label}
+                </button>
+              );
+            })}
+          </div>
           </div>
 
           {engagementTab === 'customers' && (
           <>
-          {/* Search and Filters - More Compact */}
-          <div style={{ 
-            backgroundColor: 'white', 
-            borderRadius: isMobile ? '12px' : '16px', 
-            padding: isMobile ? '12px' : '20px', 
-            marginBottom: isMobile ? '12px' : '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          {/* Search and Filters */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: isMobile ? '12px' : '16px',
+            marginBottom: isMobile ? '12px' : '16px',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
           }}>
             <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
@@ -1537,11 +1150,12 @@ const Customers = () => {
           </div>
 
           {/* Customers List */}
-          <div style={{ 
-            backgroundColor: 'white', 
-            borderRadius: isMobile ? '12px' : '16px', 
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
             overflow: 'hidden',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
           }}>
             {filteredCustomers.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1567,8 +1181,7 @@ const Customers = () => {
                         transition: 'background-color 0.2s'
                       }}
                       onClick={() => {
-                        setSelectedCustomer(customer);
-                        setShowCustomerProfile(true);
+                        router.push('/customers/' + customer.id);
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -1578,21 +1191,20 @@ const Customers = () => {
                         <div style={{
                           width: isMobile ? '32px' : '40px',
                           height: isMobile ? '32px' : '40px',
-                          backgroundColor: '#ef4444',
-                          borderRadius: '50%',
+                          backgroundColor: '#fef2f2',
+                          borderRadius: '10px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: 'white',
+                          color: '#dc2626',
                           fontSize: isMobile ? '14px' : '16px',
                           fontWeight: '600'
                         }}>
                           {(customer.name || customer.phone || 'C').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h3 style={{ margin: 0, fontSize: isMobile ? '14px' : '16px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <h3 style={{ margin: 0, fontSize: isMobile ? '14px' : '15px', fontWeight: '600', color: '#1f2937' }}>
                             {customer.name || t('customers.unnamed')}
-                            <FaEye size={isMobile ? 10 : 12} style={{ color: '#9ca3af', opacity: 0.7 }} />
                           </h3>
                           <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
                             {customer.phone && (
@@ -1653,7 +1265,7 @@ const Customers = () => {
                         <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>{t('customers.stats.orders')}</p>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#ef4444' }}>
+                        <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1f2937' }}>
                           {formatCurrency(Number(customer.totalSpent || 0))}
                         </p>
                         <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>{t('customers.stats.spent')}</p>
@@ -1677,60 +1289,60 @@ const Customers = () => {
                       })()}
                     </div>
 
-                    {/* Actions - More Compact */}
-                    <div style={{ display: 'flex', gap: isMobile ? '4px' : '8px' }}>
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center' }}>
                       <button
                         onClick={() => handleViewHistory(customer)}
                         style={{
-                          padding: isMobile ? '6px 8px' : '8px 12px',
-                          backgroundColor: '#f3f4f6',
+                          padding: 0,
+                          backgroundColor: 'transparent',
                           border: 'none',
-                          borderRadius: isMobile ? '6px' : '8px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: isMobile ? '4px' : '6px',
-                          fontSize: isMobile ? '10px' : '12px',
-                          color: '#374151'
+                          gap: '4px',
+                          fontSize: '13px',
+                          color: '#6b7280',
+                          fontWeight: '500'
                         }}
                       >
-                        <FaHistory size={isMobile ? 10 : 12} />
+                        <FaHistory size={12} />
                         {!isMobile && t('customers.actions.history')}
                       </button>
                       <button
                         onClick={() => handleEdit(customer)}
                         style={{
-                          padding: isMobile ? '6px 8px' : '8px 12px',
-                          backgroundColor: '#dbeafe',
+                          padding: 0,
+                          backgroundColor: 'transparent',
                           border: 'none',
-                          borderRadius: isMobile ? '6px' : '8px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: isMobile ? '4px' : '6px',
-                          fontSize: isMobile ? '10px' : '12px',
-                          color: '#1d4ed8'
+                          gap: '4px',
+                          fontSize: '13px',
+                          color: '#6b7280',
+                          fontWeight: '500'
                         }}
                       >
-                        <FaEdit size={isMobile ? 10 : 12} />
+                        <FaEdit size={12} />
                         {!isMobile && t('customers.actions.edit')}
                       </button>
                       <button
                         onClick={() => handleDelete(customer)}
                         style={{
-                          padding: isMobile ? '6px 8px' : '8px 12px',
-                          backgroundColor: '#fef2f2',
+                          padding: 0,
+                          backgroundColor: 'transparent',
                           border: 'none',
-                          borderRadius: isMobile ? '6px' : '8px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: isMobile ? '4px' : '6px',
-                          fontSize: isMobile ? '10px' : '12px',
-                          color: '#dc2626'
+                          gap: '4px',
+                          fontSize: '13px',
+                          color: '#dc2626',
+                          fontWeight: '500'
                         }}
                       >
-                        <FaTrash size={isMobile ? 10 : 12} />
+                        <FaTrash size={12} />
                         {!isMobile && t('customers.actions.delete')}
                       </button>
                     </div>
@@ -1750,11 +1362,11 @@ const Customers = () => {
                   <button
                     onClick={() => setShowAddModal(true)}
                     style={{
-                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      backgroundColor: '#111827',
                       color: 'white',
                       border: 'none',
-                      borderRadius: isMobile ? '8px' : '12px',
-                      padding: isMobile ? '8px 16px' : '12px 24px',
+                      borderRadius: '8px',
+                      padding: isMobile ? '8px 16px' : '10px 20px',
                       fontSize: isMobile ? '12px' : '14px',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -1764,22 +1376,220 @@ const Customers = () => {
                       margin: '0 auto'
                     }}
                   >
-                    <FaPlus size={isMobile ? 12 : 14} />
+                    <FaPlus size={isMobile ? 12 : 13} />
                     {t('customers.addFirst')}
                   </button>
                 )}
               </div>
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginTop: '16px',
+              padding: isMobile ? '12px' : '16px',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+            }}>
+              <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#6b7280' }}>
+                Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalCustomers)} of {totalCustomers} customers
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  onClick={function() { if (currentPage > 1) { var p = currentPage - 1; setCurrentPage(p); loadCustomers(false, p); } }}
+                  disabled={currentPage <= 1}
+                  style={{
+                    padding: isMobile ? '6px 10px' : '8px 14px',
+                    backgroundColor: currentPage <= 1 ? '#f3f4f6' : '#111827',
+                    color: currentPage <= 1 ? '#9ca3af' : 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: isMobile ? '12px' : '13px',
+                    fontWeight: '600',
+                    cursor: currentPage <= 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Previous
+                </button>
+                {(function() {
+                  var pages = [];
+                  var start = Math.max(1, currentPage - 2);
+                  var end = Math.min(totalPages, currentPage + 2);
+                  if (start > 1) {
+                    pages.push(1);
+                    if (start > 2) pages.push('...');
+                  }
+                  for (var i = start; i <= end; i++) { pages.push(i); }
+                  if (end < totalPages) {
+                    if (end < totalPages - 1) pages.push('...');
+                    pages.push(totalPages);
+                  }
+                  return pages.map(function(p, idx) {
+                    if (p === '...') return <span key={'dots-' + idx} style={{ padding: '0 4px', color: '#9ca3af', fontSize: '13px' }}>...</span>;
+                    return (
+                      <button
+                        key={p}
+                        onClick={function() { setCurrentPage(p); loadCustomers(false, p); }}
+                        style={{
+                          padding: isMobile ? '6px 10px' : '8px 12px',
+                          backgroundColor: currentPage === p ? '#111827' : '#f3f4f6',
+                          color: currentPage === p ? 'white' : '#374151',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: isMobile ? '12px' : '13px',
+                          fontWeight: currentPage === p ? '700' : '500',
+                          cursor: 'pointer',
+                          minWidth: isMobile ? '32px' : '36px'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    );
+                  });
+                })()}
+                <button
+                  onClick={function() { if (currentPage < totalPages) { var p = currentPage + 1; setCurrentPage(p); loadCustomers(false, p); } }}
+                  disabled={currentPage >= totalPages}
+                  style={{
+                    padding: isMobile ? '6px 10px' : '8px 14px',
+                    backgroundColor: currentPage >= totalPages ? '#f3f4f6' : '#111827',
+                    color: currentPage >= totalPages ? '#9ca3af' : 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: isMobile ? '12px' : '13px',
+                    fontWeight: '600',
+                    cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </> )}
           {engagementTab === 'offers' && (
             <div style={{ marginTop: 0 }}>
               <OffersManagement embedded={true} restaurantId={restaurantId} />
             </div>
           )}
-          {(engagementTab === 'loyalty' || engagementTab === 'crave-app') && (
+          {engagementTab === 'loyalty' && (
             <div style={{ marginTop: 0 }}>
-              <CustomerAppSettings embedded={true} restaurantId={restaurantId} />
+              <CustomerAppSettings embedded={true} restaurantId={restaurantId} section="loyalty" />
+            </div>
+          )}
+          {engagementTab === 'app-settings' && (
+            <div style={{ marginTop: 0 }}>
+              <CustomerAppSettings embedded={true} restaurantId={restaurantId} section="settings" />
+            </div>
+          )}
+          {engagementTab === 'your-app' && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              padding: isMobile ? '24px 16px' : '48px 40px',
+              textAlign: 'center',
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                backgroundColor: '#fef2f2',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px'
+              }}>
+                <FaMobileAlt size={28} style={{ color: '#ef4444' }} />
+              </div>
+              <h2 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: '700', color: '#1f2937' }}>
+                Request Your Own Dedicated App
+              </h2>
+              <p style={{ margin: '0 0 24px 0', fontSize: '15px', color: '#6b7280', lineHeight: '1.6' }}>
+                Get a custom-branded ordering app for your restaurant, bar, or bakery.
+              </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: '12px',
+                textAlign: 'left',
+                marginBottom: '32px'
+              }}>
+                {[
+                  { title: 'Online Ordering', desc: 'Let customers order directly from your app' },
+                  { title: 'Loyalty Rewards', desc: 'Built-in points and rewards system' },
+                  { title: 'Push Notifications', desc: 'Engage customers with offers and updates' },
+                  { title: 'Custom Branding', desc: 'Your logo, colors, and identity' },
+                ].map(function(feature, i) {
+                  return (
+                    <div key={i} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      border: '1px solid #f3f4f6'
+                    }}>
+                      <FaCheckCircle size={14} style={{ color: '#10b981', marginTop: '2px', flexShrink: 0 }} />
+                      <div>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{feature.title}</p>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{feature.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <button
+                onClick={async function() {
+                  try {
+                    var user = JSON.parse(localStorage.getItem('user') || '{}');
+                    await apiClient.request('/api/demo', {
+                      method: 'POST',
+                      body: {
+                        type: 'app_request',
+                        restaurantId: restaurantId,
+                        restaurantName: restaurant?.name || '',
+                        userId: user.id || '',
+                        email: user.email || '',
+                        requestedAt: new Date().toISOString()
+                      }
+                    });
+                    alert('Your app request has been submitted! We will get in touch with you soon.');
+                  } catch (err) {
+                    console.error('Error submitting app request:', err);
+                    alert('Request submitted! We will contact you soon.');
+                  }
+                }}
+                style={{
+                  padding: '14px 32px',
+                  backgroundColor: '#111827',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaMobileAlt size={14} />
+                Request App
+                <FaArrowRight size={12} />
+              </button>
             </div>
           )}
         </div>
@@ -1811,7 +1621,6 @@ const Customers = () => {
         />
       )}
       {showOrderHistory && <OrderHistoryModal />}
-      {showCustomerProfile && <CustomerProfileModal />}
     </>
   );
 };

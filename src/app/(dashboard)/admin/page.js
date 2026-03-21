@@ -1660,7 +1660,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 const Admin = () => {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
-  const [activeTab, setActiveTab] = useState('restaurants');
+  const [activeTab, setActiveTab] = useState('settings');
   const [settings, setSettings] = useState(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -1729,17 +1729,32 @@ const Admin = () => {
   const [businessType, setBusinessType] = useState('restaurant');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const handleSaveDashboardSettings = async () => {
+    if (!selectedRestaurant) return;
+    setPosSettingsSaving(true);
+    try {
+      await apiClient.updateRestaurant(selectedRestaurant.id, { posSettings, businessType });
+      const updated = { ...selectedRestaurant, posSettings, businessType };
+      localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
+      setSelectedRestaurant(updated);
+      window.location.reload();
+    } catch (err) {
+      console.error('Failed to save posSettings:', err);
+      setPosSettingsSaving(false);
+    }
+  };
+
   const navGroups = [
-    { label: 'MANAGE', items: [
-      { id: 'restaurants', label: 'Restaurants', icon: FaStore },
-      { id: 'staff', label: 'Staff', icon: FaUsers },
-    ]},
     { label: 'SETTINGS', items: [
       { id: 'settings', label: 'General', icon: FaUserCog },
       { id: 'tax', label: 'Tax Management', icon: FaPercentage },
       { id: 'pricing', label: 'Zone Pricing', icon: FaSlidersH },
       { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
       { id: 'print', label: 'Print Settings', icon: FaPrint },
+    ]},
+    { label: 'MANAGE', items: [
+      { id: 'restaurants', label: 'Restaurants', icon: FaStore },
+      { id: 'staff', label: 'Staff', icon: FaUsers },
     ]},
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
@@ -1842,9 +1857,17 @@ const Admin = () => {
         const response = await apiClient.getRestaurants();
         setRestaurants(response.restaurants || []);
         
-        // Set the first restaurant as selected by default
+        // Set selected restaurant from localStorage, or first as fallback
         if (response.restaurants && response.restaurants.length > 0) {
-          setSelectedRestaurant(response.restaurants[0]);
+          var savedId = localStorage.getItem('selectedRestaurantId');
+          var saved = savedId ? response.restaurants.find(function(r) { return r.id === savedId; }) : null;
+          var restaurant = saved || response.restaurants[0];
+          setSelectedRestaurant(restaurant);
+          setPosSettings(restaurant.posSettings || {});
+          setBusinessType(restaurant.businessType || 'restaurant');
+          // Ensure localStorage is synced
+          localStorage.setItem('selectedRestaurantId', restaurant.id);
+          localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
         }
       } catch (error) {
         console.error('Error fetching restaurants:', error);
@@ -5097,94 +5120,209 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Settings: Language + Selected Restaurant */}
+      {/* Settings: Language + Default Restaurant + Dashboard Customization */}
       {activeTab === 'settings' && (
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          padding: '24px',
-          border: '1px solid #f1f5f9',
-          maxWidth: '560px'
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: isMobile ? '16px' : '24px',
+          alignItems: 'start'
         }}>
-          {/* Choose Language */}
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          {/* LEFT COLUMN — General Settings (Language + Default Restaurant merged) */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            padding: isMobile ? '16px' : '24px',
+            border: '1px solid #f1f5f9'
+          }}>
+            {/* Card Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
               <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '14px',
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
+                justifyContent: 'center'
               }}>
-                <FaGlobe size={22} color="white" />
+                <FaSlidersH size={17} color="white" />
               </div>
               <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
-                  {t('common.settings')} – Choose language
-                </h2>
-                <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
-                  Choose your preferred language for the app
-                </p>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>General Settings</h2>
+                <p style={{ color: '#6b7280', margin: '2px 0 0 0', fontSize: '13px' }}>Language & default restaurant</p>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {getAvailableLanguages().map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    setLanguage(lang.code);
-                    setCurrentLang(lang.code);
-                  }}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    fontWeight: 500,
-                    fontSize: '13px',
-                    border: currentLang === lang.code ? '1px solid #111827' : '1px solid #e5e7eb',
-                    background: currentLang === lang.code ? '#111827' : 'white',
-                    color: currentLang === lang.code ? 'white' : '#374151',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    boxShadow: 'none'
-                  }}
-                >
-                  {lang.nativeName}
-                </button>
-              ))}
+
+            {/* Language Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <FaGlobe size={14} color="#3b82f6" />
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Language</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>App display language</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {getAvailableLanguages().map((lang) => {
+                  const isSelected = currentLang === lang.code;
+                  return (
+                    <button
+                      key={lang.code}
+                      onClick={() => setCurrentLang(lang.code)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        fontWeight: isSelected ? 600 : 500,
+                        fontSize: '13px',
+                        border: 'none',
+                        background: isSelected ? '#3b82f6' : '#f1f5f9',
+                        color: isSelected ? 'white' : '#374151',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: isSelected ? '0 2px 8px rgba(59,130,246,0.3)' : 'none'
+                      }}
+                    >
+                      {lang.nativeName}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Divider */}
+            <div style={{ height: '1px', background: '#f1f5f9', margin: '0 0 24px 0' }} />
+
+            {/* Default Restaurant Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <FaStore size={13} color="#1e293b" />
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Default Restaurant</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>Active across all pages</span>
+              </div>
+              {restaurants.length === 0 ? (
+                <p style={{ color: '#6b7280', fontSize: '13px' }}>No restaurants yet. Add one from the Restaurants tab.</p>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {restaurants.map(function(restaurant) {
+                    var isSelected = selectedRestaurant?.id === restaurant.id;
+                    return (
+                      <button
+                        key={restaurant.id}
+                        onClick={function() {
+                          setSelectedRestaurant(restaurant);
+                          setPosSettings(restaurant.posSettings || {});
+                          setBusinessType(restaurant.businessType || 'restaurant');
+                        }}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '20px',
+                          fontWeight: isSelected ? 600 : 500,
+                          fontSize: '13px',
+                          border: 'none',
+                          background: isSelected ? '#111827' : '#f1f5f9',
+                          color: isSelected ? 'white' : '#374151',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          boxShadow: isSelected ? '0 2px 8px rgba(17,24,39,0.2)' : 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <FaStore size={11} />
+                        {restaurant.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={function() {
+                // Apply language
+                setLanguage(currentLang);
+                // Apply default restaurant
+                if (selectedRestaurant) {
+                  localStorage.setItem('selectedRestaurantId', selectedRestaurant.id);
+                  localStorage.setItem('selectedRestaurant', JSON.stringify(selectedRestaurant));
+                  window.dispatchEvent(new CustomEvent('restaurantChanged', { detail: { restaurantId: selectedRestaurant.id } }));
+                }
+                // Refresh the page
+                window.location.reload();
+              }}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '12px',
+                fontWeight: '600',
+                fontSize: '14px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(239,68,68,0.3)'
+              }}
+            >
+              <FaSave size={13} />
+              Save & Apply
+            </button>
           </div>
 
-          {/* Dashboard Customization */}
+          {/* RIGHT COLUMN — Dashboard Customization */}
           <div style={{
-            paddingTop: '20px',
-            borderTop: '1px solid #f3e8f0',
-            marginBottom: '28px'
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            padding: isMobile ? '16px' : '24px',
+            border: '1px solid #f1f5f9'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
               <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '14px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 14px rgba(239,68,68,0.35)'
+                justifyContent: 'center'
               }}>
-                <FaSlidersH size={16} color="#ef4444" />
+                <FaSlidersH size={16} color="white" />
               </div>
-              <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
-                  Dashboard Customization
-                </h2>
-                <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
-                  Customize your billing dashboard buttons, fields & payments
-                </p>
+              <div style={{ flex: 1 }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0 }}>Dashboard Customization</h2>
+                <p style={{ color: '#6b7280', margin: '2px 0 0 0', fontSize: '13px' }}>Billing buttons, fields & payments</p>
               </div>
+              <button
+                type="button"
+                disabled={posSettingsSaving || !selectedRestaurant}
+                onClick={handleSaveDashboardSettings}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  border: 'none',
+                  background: posSettingsSaving ? '#e5e7eb' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  color: posSettingsSaving ? '#9ca3af' : 'white',
+                  cursor: posSettingsSaving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: posSettingsSaving ? 'none' : '0 2px 8px rgba(239,68,68,0.25)',
+                  transition: 'all 0.2s',
+                  flexShrink: 0
+                }}
+              >
+                {posSettingsSaving ? <FaSpinner className="animate-spin" size={12} /> : <FaSave size={12} />}
+                {posSettingsSaving ? 'Saving...' : 'Save'}
+              </button>
             </div>
 
             {/* Business Type Selector */}
@@ -5532,23 +5670,7 @@ const Admin = () => {
             <button
               type="button"
               disabled={posSettingsSaving || !selectedRestaurant}
-              onClick={async () => {
-                if (!selectedRestaurant) return;
-                setPosSettingsSaving(true);
-                try {
-                  await apiClient.updateRestaurant(selectedRestaurant.id, { posSettings, businessType });
-                  // Update localStorage immediately
-                  const updated = { ...selectedRestaurant, posSettings, businessType };
-                  localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
-                  setSelectedRestaurant(updated);
-                  alert('Dashboard settings saved!');
-                } catch (err) {
-                  console.error('Failed to save posSettings:', err);
-                  alert('Failed to save settings: ' + err.message);
-                } finally {
-                  setPosSettingsSaving(false);
-                }
-              }}
+              onClick={handleSaveDashboardSettings}
               style={{
                 width: '100%',
                 padding: '12px',
@@ -5570,69 +5692,6 @@ const Admin = () => {
               {posSettingsSaving ? <FaSpinner className="animate-spin" size={14} /> : <FaSave size={14} />}
               {posSettingsSaving ? 'Saving...' : 'Save Dashboard Settings'}
             </button>
-          </div>
-
-          {/* Selected Restaurant */}
-          <div style={{
-            paddingTop: '20px',
-            borderTop: '1px solid #f3e8f0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
-              }}>
-                <FaStore size={16} color="#ef4444" />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
-                  Default restaurant
-                </h2>
-                <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
-                  Choose which restaurant is selected by default on dashboard and other pages
-                </p>
-              </div>
-            </div>
-            {restaurants.length === 0 ? (
-              <p style={{ color: '#6b7280', fontSize: '14px' }}>No restaurants yet. Add one from the Restaurants tab.</p>
-            ) : (
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {restaurants.map((restaurant) => (
-                  <button
-                    key={restaurant.id}
-                    onClick={() => {
-                      setSelectedRestaurant(restaurant);
-                      localStorage.setItem('selectedRestaurantId', restaurant.id);
-                      window.dispatchEvent(new CustomEvent('restaurantChanged', { detail: { restaurantId: restaurant.id } }));
-                    }}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '8px',
-                      fontWeight: 500,
-                      fontSize: '13px',
-                      border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
-                      background: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
-                      color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                      boxShadow: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <FaStore size={14} />
-                    {restaurant.name}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -47,7 +47,7 @@ const getDarkerShade = (hexColor, percent = 20) => {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
-const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId = null }) => {
+const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId = null, section = null }) => {
   const router = useRouter();
   const { getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
@@ -547,14 +547,14 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fef7f0' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' }}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '16px' : '24px' }}>
+    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f9fafb', padding: isMobile ? '16px' : '24px' }}>
       {/* Toast Notification */}
       {showToast && (
         <div style={{
@@ -584,90 +584,79 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
         }
       `}</style>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {/* Header */}
+        {/* Header - only show on standalone page */}
+        {!section && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
           padding: isMobile ? '20px' : '32px',
           marginBottom: '24px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          border: '1px solid #fce7f3'
+          border: '1px solid #fef2f2'
         }}>
           <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <FaMobileAlt color="#ec4899" size={isMobile ? 24 : 28} />
+            <FaMobileAlt color="#ef4444" size={isMobile ? 24 : 28} />
             Customer App (Crave)
           </h1>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
             Configure your restaurant&apos;s customer ordering app settings
           </p>
         </div>
+        )}
 
+        {/* LOYALTY & REDEEM SECTION - show when section is 'loyalty' or no section filter */}
+        {(!section || section === 'loyalty') && (
+        <>
         {/* LOYALTY & REDEEM SECTION - FIRST AND PROMINENT */}
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '20px',
-          padding: isMobile ? '24px' : '32px',
-          marginBottom: '24px',
-          boxShadow: '0 8px 24px rgba(236, 72, 153, 0.15)',
-          border: '2px solid #fce7f3',
-          background: 'linear-gradient(135deg, #fff 0%, #fef7f0 100%)'
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '16px' : '28px',
+          marginBottom: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          border: '1px solid #e5e7eb',
+          background: 'white'
         }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
-                flexShrink: 0
-              }}>
-                <FaGift size={24} color="white" />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <h2 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
-                  Loyalty & Rewards Program
-                </h2>
-                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0', fontWeight: '500' }}>
-                  Enable points system for customers to earn and redeem rewards
-                </p>
-              </div>
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: isMobile ? '12px' : '0' }}>
+              <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                Loyalty & Rewards
+              </h2>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                  padding: isMobile ? '8px 14px' : '10px 20px',
+                  backgroundColor: saving ? '#9ca3af' : '#111827',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: isMobile ? '12px' : '14px',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  flexShrink: 0
+                }}
+              >
+                <FaSave size={isMobile ? 12 : 14} />
+                {saving ? 'Saving...' : 'Save'}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: saving ? '#9ca3af' : '#ec4899',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: '15px',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
-                flexShrink: 0
-              }}
-            >
-              <FaSave />
-              {saving ? 'Saving...' : 'Save Loyalty'}
-            </button>
+            <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+              Enable points system for customers to earn and redeem rewards
+            </p>
           </div>
 
           <div style={{
-            marginTop: '24px',
-            padding: '20px',
+            marginTop: isMobile ? '14px' : '24px',
+            padding: isMobile ? '14px' : '20px',
             backgroundColor: '#fef3c7',
-            borderRadius: '12px',
+            borderRadius: '10px',
             border: '1px solid #fde68a',
-            marginBottom: '24px'
+            marginBottom: isMobile ? '14px' : '24px'
           }}>
             <div style={{ fontSize: '13px', color: '#92400e', lineHeight: '1.6' }}>
               <strong>💡 How it works:</strong> Customers order through your online order page, earn loyalty points for every order, 
@@ -888,18 +877,24 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
             </div>
           )}
         </div>
+        </>
+        )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
+        {/* SETTINGS SECTION - show when section is 'settings' or no section filter */}
+        {(!section || section === 'settings') && (
+        <>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '24px' }}>
           {/* Main Settings */}
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            border: '1px solid #fce7f3'
+            borderRadius: isMobile ? '12px' : '16px',
+            padding: isMobile ? '16px' : '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden'
           }}>
             <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaCog color="#ec4899" />
+              <FaCog color="#ef4444" />
               General Settings
             </h2>
 
@@ -913,63 +908,68 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                 Restaurant Code
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                 <input
                   type="text"
                   value={settings.restaurantCode}
                   onChange={(e) => setSettings(prev => ({ ...prev, restaurantCode: e.target.value.toUpperCase() }))}
                   style={{
-                    flex: 1,
+                    flex: isMobile ? '1 1 100%' : 1,
+                    minWidth: 0,
                     padding: '12px',
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '16px',
                     fontWeight: '600',
                     letterSpacing: '2px',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    boxSizing: 'border-box'
                   }}
                   placeholder="RESTO123"
                   maxLength={10}
                 />
-                <button
-                  onClick={generateCode}
-                  disabled={generatingCode || !!settings.restaurantCode}
-                  title={settings.restaurantCode ? "Code already generated" : "Generate Code"}
-                  style={{
-                    padding: '12px 16px',
-                    backgroundColor: generatingCode || settings.restaurantCode ? '#d1d5db' : '#ec4899',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: generatingCode || settings.restaurantCode ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    color: 'white',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    opacity: settings.restaurantCode ? 0.6 : 1
-                  }}
-                >
-                  <FaSync size={12} style={{ animation: generatingCode ? 'spin 1s linear infinite' : 'none' }} />
-                  {generatingCode ? 'Generating...' : settings.restaurantCode ? 'Generated' : 'Generate'}
-                </button>
-                <button
-                  onClick={copyCode}
-                  disabled={!settings.restaurantCode}
-                  style={{
-                    padding: '12px 16px',
-                    backgroundColor: copied ? '#10b981' : settings.restaurantCode ? '#f3f4f6' : '#e5e7eb',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: settings.restaurantCode ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    opacity: settings.restaurantCode ? 1 : 0.5
-                  }}
-                >
-                  {copied ? <FaCheck color="white" /> : <FaCopy color="#6b7280" />}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={generateCode}
+                    disabled={generatingCode || !!settings.restaurantCode}
+                    title={settings.restaurantCode ? "Code already generated" : "Generate Code"}
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: generatingCode || settings.restaurantCode ? '#d1d5db' : '#ef4444',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: generatingCode || settings.restaurantCode ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: 'white',
+                      fontWeight: '600',
+                      fontSize: '12px',
+                      opacity: settings.restaurantCode ? 0.6 : 1,
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <FaSync size={12} style={{ animation: generatingCode ? 'spin 1s linear infinite' : 'none' }} />
+                    {generatingCode ? 'Generating...' : settings.restaurantCode ? 'Generated' : 'Generate'}
+                  </button>
+                  <button
+                    onClick={copyCode}
+                    disabled={!settings.restaurantCode}
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: copied ? '#10b981' : settings.restaurantCode ? '#f3f4f6' : '#e5e7eb',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: settings.restaurantCode ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      opacity: settings.restaurantCode ? 1 : 0.5
+                    }}
+                  >
+                    {copied ? <FaCheck color="white" /> : <FaCopy color="#6b7280" />}
+                  </button>
+                </div>
               </div>
               <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>
                 {settings.restaurantCode
@@ -991,28 +991,32 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
             </div>
 
             {/* Custom URL Section */}
-            <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+            <div style={{ marginTop: '24px', padding: isMobile ? '12px' : '16px', backgroundColor: '#f0f9ff', borderRadius: '12px', border: '1px solid #bae6fd' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0369a1', marginBottom: '8px' }}>
                 <FaLink style={{ marginRight: '6px' }} />
                 Custom URL (Short Link)
               </label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>dineopen.com/</span>
-                <input
-                  type="text"
-                  value={urlSlug}
-                  onChange={(e) => handleSlugChange(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    border: slugError ? '2px solid #dc2626' : slugAvailable === true ? '2px solid #10b981' : '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
-                  placeholder="your-restaurant"
-                  maxLength={30}
-                />
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b', fontWeight: '500', flexShrink: 0 }}>dineopen.com/</span>
+                  <input
+                    type="text"
+                    value={urlSlug}
+                    onChange={(e) => handleSlugChange(e.target.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      padding: '10px 12px',
+                      border: slugError ? '2px solid #dc2626' : slugAvailable === true ? '2px solid #10b981' : '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder="your-restaurant"
+                    maxLength={30}
+                  />
+                </div>
                 <button
                   onClick={saveSlug}
                   disabled={!urlSlug || !slugAvailable || savingSlug}
@@ -1027,7 +1031,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     cursor: !urlSlug || !slugAvailable ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {savingSlug ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSave size={12} />}
@@ -1106,15 +1111,15 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           {/* QR Code */}
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            border: '1px solid #fce7f3',
+            borderRadius: isMobile ? '12px' : '16px',
+            padding: isMobile ? '16px' : '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            border: '1px solid #e5e7eb',
             textAlign: 'center'
           }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <FaQrcode color="#ec4899" />
-              QR Code for Online Ordering
+            <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <FaQrcode color="#ef4444" />
+              {isMobile ? 'QR Code' : 'QR Code for Online Ordering'}
             </h2>
 
             {qrCodeUrl ? (
@@ -1180,21 +1185,21 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                       };
                     }}
                     style={{
-                      padding: '10px 12px',
+                      padding: isMobile ? '10px 8px' : '10px 12px',
                       backgroundColor: '#f3f4f6',
                       color: '#374151',
                       border: 'none',
                       borderRadius: '8px',
                       fontWeight: '500',
-                      fontSize: '13px',
+                      fontSize: isMobile ? '11px' : '13px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '4px'
                     }}
                   >
-                    <FaPrint size={14} />
+                    <FaPrint size={isMobile ? 12 : 14} />
                     Print
                   </button>
 
@@ -1208,22 +1213,22 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                       }
                     }}
                     style={{
-                      padding: '10px 12px',
+                      padding: isMobile ? '10px 8px' : '10px 12px',
                       backgroundColor: copiedUrl ? '#dcfce7' : '#f3f4f6',
                       color: copiedUrl ? '#16a34a' : '#374151',
                       border: 'none',
                       borderRadius: '8px',
                       fontWeight: '500',
-                      fontSize: '13px',
+                      fontSize: isMobile ? '11px' : '13px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '4px'
                     }}
                   >
-                    {copiedUrl ? <FaCheck size={14} /> : <FaCopy size={14} />}
-                    {copiedUrl ? 'Copied!' : 'Copy URL'}
+                    {copiedUrl ? <FaCheck size={isMobile ? 12 : 14} /> : <FaCopy size={isMobile ? 12 : 14} />}
+                    {copiedUrl ? 'Copied!' : isMobile ? 'Copy' : 'Copy URL'}
                   </button>
 
                   {/* Share Button */}
@@ -1250,21 +1255,21 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                       }
                     }}
                     style={{
-                      padding: '10px 12px',
+                      padding: isMobile ? '10px 8px' : '10px 12px',
                       backgroundColor: '#f3f4f6',
                       color: '#374151',
                       border: 'none',
                       borderRadius: '8px',
                       fontWeight: '500',
-                      fontSize: '13px',
+                      fontSize: isMobile ? '11px' : '13px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '4px'
                     }}
                   >
-                    <FaShare size={14} />
+                    <FaShare size={isMobile ? 12 : 14} />
                     Share
                   </button>
 
@@ -1302,22 +1307,22 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                       };
                     }}
                     style={{
-                      padding: '10px 12px',
+                      padding: isMobile ? '10px 8px' : '10px 12px',
                       backgroundColor: '#f3f4f6',
                       color: '#374151',
                       border: 'none',
                       borderRadius: '8px',
                       fontWeight: '500',
-                      fontSize: '13px',
+                      fontSize: isMobile ? '11px' : '13px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '4px'
                     }}
                   >
-                    <FaFilePdf size={14} />
-                    Save as PDF
+                    <FaFilePdf size={isMobile ? 12 : 14} />
+                    {isMobile ? 'PDF' : 'Save as PDF'}
                   </button>
                 </div>
 
@@ -1328,7 +1333,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     width: '100%',
                     marginTop: '12px',
                     padding: '12px',
-                    backgroundColor: '#ec4899',
+                    backgroundColor: '#ef4444',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
@@ -1364,7 +1369,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   style={{
                     width: '100%',
                     padding: '12px',
-                    backgroundColor: qrCodeUrl || !settings.restaurantCode ? '#d1d5db' : '#ec4899',
+                    backgroundColor: qrCodeUrl || !settings.restaurantCode ? '#d1d5db' : '#ef4444',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
@@ -1386,13 +1391,14 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
         {/* Branding Section - Full Width */}
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          marginTop: '24px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          border: '1px solid #fce7f3'
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '16px' : '24px',
+          marginTop: isMobile ? '12px' : '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden'
         }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '20px' }}>🎨</span>
             Header Branding
           </h2>
@@ -1400,7 +1406,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
             Customize how your restaurant appears on the online ordering page
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px' }}>
             {/* Left Column - Basic Settings */}
             <div>
               {/* Restaurant Display Name */}
@@ -1495,8 +1501,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   onDragOver={(e) => {
                     e.preventDefault();
                     if (!uploadingLogo) {
-                      e.currentTarget.style.borderColor = '#ec4899';
-                      e.currentTarget.style.backgroundColor = '#fef7f0';
+                      e.currentTarget.style.borderColor = '#ef4444';
+                      e.currentTarget.style.backgroundColor = '#f9fafb';
                     }
                   }}
                   onDragLeave={(e) => {
@@ -1539,7 +1545,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                         margin: '0 auto 12px',
                         display: 'inline-block'
                       }}>
-                        <FaSpinner size={32} style={{ color: '#ec4899' }} />
+                        <FaSpinner size={32} style={{ color: '#ef4444' }} />
                       </div>
                       <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
                         Uploading logo...
@@ -1637,53 +1643,58 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
                     Header Background Color
                   </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type="color"
-                      value={settings.branding.primaryColor}
-                      onChange={(e) => {
-                        const newColor = e.target.value;
-                        const autoTextColor = getContrastTextColor(newColor);
-                        setSettings(prev => ({
-                          ...prev,
-                          branding: {
-                            ...prev.branding,
-                            primaryColor: newColor,
-                            textColor: autoTextColor
-                          }
-                        }));
-                      }}
-                      style={{
-                        width: '50px',
-                        height: '38px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        padding: '2px'
-                      }}
-                    />
-                    <input
-                      type="text"
-                      value={settings.branding.primaryColor}
-                      onChange={(e) => {
-                        const newColor = e.target.value;
-                        setSettings(prev => ({
-                          ...prev,
-                          branding: { ...prev.branding, primaryColor: newColor }
-                        }));
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        fontFamily: 'monospace',
-                        textTransform: 'uppercase'
-                      }}
-                      placeholder="#ef4444"
-                      maxLength={7}
-                    />
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                      <input
+                        type="color"
+                        value={settings.branding.primaryColor}
+                        onChange={(e) => {
+                          const newColor = e.target.value;
+                          const autoTextColor = getContrastTextColor(newColor);
+                          setSettings(prev => ({
+                            ...prev,
+                            branding: {
+                              ...prev.branding,
+                              primaryColor: newColor,
+                              textColor: autoTextColor
+                            }
+                          }));
+                        }}
+                        style={{
+                          width: isMobile ? '40px' : '50px',
+                          height: '38px',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          flexShrink: 0
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={settings.branding.primaryColor}
+                        onChange={(e) => {
+                          const newColor = e.target.value;
+                          setSettings(prev => ({
+                            ...prev,
+                            branding: { ...prev.branding, primaryColor: newColor }
+                          }));
+                        }}
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          padding: '10px',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontFamily: 'monospace',
+                          textTransform: 'uppercase',
+                          boxSizing: 'border-box'
+                        }}
+                        placeholder="#ef4444"
+                        maxLength={7}
+                      />
+                    </div>
                     <button
                       onClick={() => {
                         const autoColor = getContrastTextColor(settings.branding.primaryColor);
@@ -1699,7 +1710,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                         borderRadius: '6px',
                         fontSize: '11px',
                         cursor: 'pointer',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        whiteSpace: 'nowrap'
                       }}
                       title="Auto-detect best text color"
                     >
@@ -1707,7 +1719,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     </button>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
-                    {['#ef4444', '#f97316', '#FFFF00', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#1f2937', '#ffffff'].map(color => (
+                    {['#ef4444', '#dc2626', '#FFFF00', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ef4444', '#1f2937', '#ffffff'].map(color => (
                       <button
                         key={color}
                         onClick={() => {
@@ -1745,12 +1757,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                         branding: { ...prev.branding, textColor: e.target.value }
                       }))}
                       style={{
-                        width: '50px',
+                        width: isMobile ? '40px' : '50px',
                         height: '38px',
                         border: '2px solid #e5e7eb',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        padding: '2px'
+                        padding: '2px',
+                        flexShrink: 0
                       }}
                     />
                     <input
@@ -1762,19 +1775,21 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                       }))}
                       style={{
                         flex: 1,
+                        minWidth: 0,
                         padding: '10px',
                         border: '2px solid #e5e7eb',
                         borderRadius: '6px',
                         fontSize: '13px',
                         fontFamily: 'monospace',
-                        textTransform: 'uppercase'
+                        textTransform: 'uppercase',
+                        boxSizing: 'border-box'
                       }}
                       placeholder="#ffffff"
                       maxLength={7}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
-                    {['#ffffff', '#1f2937', '#000000', '#ef4444', '#f97316'].map(color => (
+                    {['#ffffff', '#1f2937', '#000000', '#ef4444', '#dc2626'].map(color => (
                       <button
                         key={color}
                         onClick={() => setSettings(prev => ({
@@ -1786,7 +1801,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                           height: '24px',
                           borderRadius: '4px',
                           backgroundColor: color,
-                          border: (settings.branding.textColor || '#ffffff') === color ? '2px solid #ec4899' : '1px solid #d1d5db',
+                          border: (settings.branding.textColor || '#ffffff') === color ? '2px solid #ef4444' : '1px solid #d1d5db',
                           cursor: 'pointer'
                         }}
                         title={color}
@@ -1809,12 +1824,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                         branding: { ...prev.branding, pageBackgroundColor: e.target.value }
                       }))}
                       style={{
-                        width: '50px',
+                        width: isMobile ? '40px' : '50px',
                         height: '38px',
                         border: '2px solid #e5e7eb',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        padding: '2px'
+                        padding: '2px',
+                        flexShrink: 0
                       }}
                     />
                     <input
@@ -1826,19 +1842,21 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                       }))}
                       style={{
                         flex: 1,
+                        minWidth: 0,
                         padding: '10px',
                         border: '2px solid #e5e7eb',
                         borderRadius: '6px',
                         fontSize: '13px',
                         fontFamily: 'monospace',
-                        textTransform: 'uppercase'
+                        textTransform: 'uppercase',
+                        boxSizing: 'border-box'
                       }}
                       placeholder="#f8fafc"
                       maxLength={7}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
-                    {['#f8fafc', '#ffffff', '#fef7f0', '#f0fdf4', '#fefce8', '#fef2f2', '#f5f3ff'].map(color => (
+                    {['#f8fafc', '#ffffff', '#f9fafb', '#f0fdf4', '#fefce8', '#fef2f2', '#f5f3ff'].map(color => (
                       <button
                         key={color}
                         onClick={() => setSettings(prev => ({
@@ -1850,7 +1868,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                           height: '24px',
                           borderRadius: '4px',
                           backgroundColor: color,
-                          border: (settings.branding.pageBackgroundColor || '#f8fafc') === color ? '2px solid #ec4899' : '1px solid #d1d5db',
+                          border: (settings.branding.pageBackgroundColor || '#f8fafc') === color ? '2px solid #ef4444' : '1px solid #d1d5db',
                           cursor: 'pointer'
                         }}
                         title={color}
@@ -1864,8 +1882,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
                     Offer Card Gradient
                   </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                    <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    <div style={{ flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                       <span style={{ fontSize: '10px', color: '#6b7280' }}>Start</span>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                         <input
@@ -1881,7 +1899,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                             border: '1px solid #e5e7eb',
                             borderRadius: '4px',
                             cursor: 'pointer',
-                            padding: '2px'
+                            padding: '2px',
+                            flexShrink: 0
                           }}
                         />
                         <input
@@ -1893,18 +1912,20 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                           }))}
                           style={{
                             flex: 1,
+                            minWidth: 0,
                             padding: '8px',
                             border: '1px solid #e5e7eb',
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontFamily: 'monospace',
-                            textTransform: 'uppercase'
+                            textTransform: 'uppercase',
+                            boxSizing: 'border-box'
                           }}
                           maxLength={7}
                         />
                       </div>
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                       <span style={{ fontSize: '10px', color: '#6b7280' }}>End</span>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                         <input
@@ -1920,7 +1941,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                             border: '1px solid #e5e7eb',
                             borderRadius: '4px',
                             cursor: 'pointer',
-                            padding: '2px'
+                            padding: '2px',
+                            flexShrink: 0
                           }}
                         />
                         <input
@@ -1932,12 +1954,14 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                           }))}
                           style={{
                             flex: 1,
+                            minWidth: 0,
                             padding: '8px',
                             border: '1px solid #e5e7eb',
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontFamily: 'monospace',
-                            textTransform: 'uppercase'
+                            textTransform: 'uppercase',
+                            boxSizing: 'border-box'
                           }}
                           maxLength={7}
                         />
@@ -1959,7 +1983,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                       { start: '#dbeafe', end: '#bfdbfe', name: 'Blue' },
                       { start: '#dcfce7', end: '#bbf7d0', name: 'Green' },
                       { start: '#f3e8ff', end: '#e9d5ff', name: 'Purple' },
-                      { start: '#fce7f3', end: '#fbcfe8', name: 'Pink' },
+                      { start: '#fef2f2', end: '#f1f5f9', name: 'Pink' },
                     ].map(preset => (
                       <button
                         key={preset.name}
@@ -1994,7 +2018,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                   Header Style
                 </label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', flexDirection: isMobile ? 'column' : 'row' }}>
                   {[
                     { value: 'modern', label: 'Modern', desc: 'White background with colored accents' },
                     { value: 'gradient', label: 'Gradient', desc: 'Gradient background using brand color' },
@@ -2007,20 +2031,19 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                         branding: { ...prev.branding, headerStyle: style.value }
                       }))}
                       style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '12px 8px',
+                        flex: isMobile ? 'none' : 1,
+                        padding: isMobile ? '10px 12px' : '12px 8px',
                         backgroundColor: settings.branding.headerStyle === style.value ? settings.branding.primaryColor : '#f9fafb',
                         color: settings.branding.headerStyle === style.value ? (settings.branding.textColor || '#ffffff') : '#374151',
                         border: settings.branding.headerStyle === style.value ? 'none' : '2px solid #e5e7eb',
                         borderRadius: '10px',
                         cursor: 'pointer',
-                        textAlign: 'center',
+                        textAlign: isMobile ? 'left' : 'center',
                         transition: 'all 0.2s ease'
                       }}
                     >
-                      <div style={{ fontWeight: '600', fontSize: '13px' }}>{style.label}</div>
-                      <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px' }}>{style.desc}</div>
+                      <div style={{ fontWeight: '600', fontSize: '13px', display: isMobile ? 'inline' : 'block' }}>{style.label}</div>
+                      {isMobile ? <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '6px' }}>— {style.desc}</span> : <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px' }}>{style.desc}</div>}
                     </button>
                   ))}
                 </div>
@@ -2218,29 +2241,32 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
         </div>
 
         {/* Save Button */}
-        <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ marginTop: '24px', display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
           <button
             onClick={handleSave}
             disabled={saving}
             style={{
-              padding: '14px 32px',
-              backgroundColor: saving ? '#9ca3af' : '#ec4899',
+              padding: isMobile ? '12px 24px' : '14px 32px',
+              backgroundColor: saving ? '#9ca3af' : '#111827',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
+              borderRadius: '10px',
               fontWeight: '600',
-              fontSize: '16px',
+              fontSize: isMobile ? '14px' : '15px',
               cursor: saving ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
-              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
+              width: isMobile ? '100%' : 'auto'
             }}
           >
             <FaSave />
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

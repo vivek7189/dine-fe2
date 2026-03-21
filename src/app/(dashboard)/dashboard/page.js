@@ -704,8 +704,16 @@ function RestaurantPOSContent() {
             const freshMenuItems = menuResponse.menuItems || [];
             const freshFloors = floorsResponse.floors || floorsResponse || [];
             
-            // Update state with fresh data
-            setMenuItems(freshMenuItems);
+            // Update state with fresh data (or load defaults if empty)
+            if (freshMenuItems.length === 0) {
+              const businessType = restaurant?.businessType || 'restaurant';
+              const { getDefaultMenu } = await import('../../../lib/defaultMenus');
+              setMenuItems(getDefaultMenu(businessType));
+              setIsDemoMode(true);
+            } else {
+              setMenuItems(freshMenuItems);
+              setIsDemoMode(false);
+            }
             setFloors(freshFloors);
             
             // Also prefetch tables and get fresh floors data
@@ -751,8 +759,16 @@ function RestaurantPOSContent() {
           const fetchedMenuItems = menuResponse.menuItems || [];
           const fetchedFloors = floorsResponse.floors || floorsResponse || [];
           
-          // Update state
-          setMenuItems(fetchedMenuItems);
+          // Update state (or load defaults if empty)
+          if (fetchedMenuItems.length === 0) {
+            const businessType = restaurant?.businessType || 'restaurant';
+            const { getDefaultMenu } = await import('../../../lib/defaultMenus');
+            setMenuItems(getDefaultMenu(businessType));
+            setIsDemoMode(true);
+          } else {
+            setMenuItems(fetchedMenuItems);
+            setIsDemoMode(false);
+          }
           setFloors(fetchedFloors);
           await prefetchTables(restaurant.id);
           
@@ -906,14 +922,18 @@ function RestaurantPOSContent() {
   const loadMenu = async (restaurantId) => {
     try {
       const response = await apiClient.getMenu(restaurantId);
-      const menuItems = response.menuItems || [];
-      setMenuItems(menuItems);
+      const realItems = response.menuItems || [];
 
-      if (menuItems.length === 0) {
-        console.log('📋 No menu items found for restaurant:', restaurantId);
+      if (realItems.length === 0) {
+        console.log('📋 No menu items found, loading default menu for business type');
+        const businessType = selectedRestaurant?.businessType || 'restaurant';
+        const { getDefaultMenu } = await import('../../../lib/defaultMenus');
+        const defaultItems = getDefaultMenu(businessType);
+        setMenuItems(defaultItems);
+        setIsDemoMode(true);
       } else {
-        console.log('📋 Loaded menu items:', menuItems.length);
-        // Clear demo mode if user has real menu items
+        console.log('📋 Loaded menu items:', realItems.length);
+        setMenuItems(realItems);
         if (isDemoMode) {
           sessionStorage.removeItem('dineopen_demo_menu');
           setIsDemoMode(false);
@@ -932,30 +952,19 @@ function RestaurantPOSContent() {
     setIsDemoMode(true);
   };
 
-  // Exit demo mode
-  const handleExitDemo = () => {
+  // Exit demo mode — reload real menu from server
+  const handleExitDemo = async () => {
     sessionStorage.removeItem('dineopen_demo_menu');
-    setMenuItems([]);
     setIsDemoMode(false);
+    if (selectedRestaurant) {
+      await loadMenu(selectedRestaurant.id);
+    } else {
+      setMenuItems([]);
+    }
   };
 
-  // Check for demo menu in sessionStorage on mount (if user has no menu)
-  useEffect(() => {
-    if (!loading && menuItems.length === 0 && !isDemoMode) {
-      const stored = sessionStorage.getItem('dineopen_demo_menu');
-      if (stored) {
-        try {
-          const data = JSON.parse(stored);
-          if (data.menuItems?.length > 0) {
-            setMenuItems(data.menuItems);
-            setIsDemoMode(true);
-          }
-        } catch (e) {
-          sessionStorage.removeItem('dineopen_demo_menu');
-        }
-      }
-    }
-  }, [loading, menuItems.length, isDemoMode]);
+  // Note: Default menu loading is handled directly in loadInitialData and loadMenu
+  // to avoid race conditions and flickering
 
   // Redirect bar-type restaurants to /dashboard/bar
   useEffect(() => {
@@ -4519,24 +4528,8 @@ function RestaurantPOSContent() {
             </div>
           )}
 
-          {/* Show empty menu prompt if no menu items */}
-          {filteredItems.length === 0 && (menuItems || []).length === 0 && !loading ? (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              height: '100%',
-              width: '100%'
-            }}>
-              <EmptyMenuPrompt
-                restaurantName={selectedRestaurant?.name}
-                selectedRestaurant={selectedRestaurant}
-                onAddMenu={() => router.push('/menu')}
-                onMenuItemsAdded={loadInitialData}
-                onPreviewDemo={handlePreviewDemo}
-              />
-            </div>
-          ) : (
+          {/* Menu content — default menu auto-loads when real menu is empty */}
+          {(menuItems || []).length > 0 || loading ? (
           <>
             {/* Demo Mode Banner */}
             {isDemoMode && (
@@ -4590,8 +4583,19 @@ function RestaurantPOSContent() {
                       Exit Demo
                     </button>
                   </div>
-                  <div style={{ fontSize: '12px', opacity: 0.9 }}>
-                    This is sample data to help you explore. Click around, try features - no real orders will be placed!
+                  <div style={{ fontSize: '12px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    This is sample data to help you explore.
+                    <Link
+                      href="/menu"
+                      style={{
+                        color: 'white',
+                        fontWeight: '700',
+                        textDecoration: 'underline',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Upload your menu →
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -5634,12 +5638,16 @@ function RestaurantPOSContent() {
             )}
           </div>
           </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
+              <p style={{ color: '#9ca3af', fontSize: '14px' }}>Loading menu...</p>
+            </div>
           )}
         </div>
 
-       
+
         {/* Order Summary - Desktop Sidebar / Mobile Bottom Sheet */}
-        {!(filteredItems.length === 0 && (menuItems || []).length === 0 && !loading) && (
+        {(menuItems || []).length > 0 && (
           <>
             {/* Desktop Order Summary */}
             {!isMobile && (
