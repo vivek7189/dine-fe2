@@ -5716,6 +5716,7 @@ function RestaurantPOSContent() {
             onLoadSavedOrder={loadSavedOrder}
             onDeleteSavedOrder={deleteSavedOrder}
             posSettings={posSettings}
+            businessType={selectedRestaurant?.businessType || 'restaurant'}
           />
         </div>
                 ) : (
@@ -5779,6 +5780,7 @@ function RestaurantPOSContent() {
                     onLoadSavedOrder={loadSavedOrder}
                     onDeleteSavedOrder={deleteSavedOrder}
                     posSettings={posSettings}
+                    businessType={selectedRestaurant?.businessType || 'restaurant'}
                   />
             )}
           </>

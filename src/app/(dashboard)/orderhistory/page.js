@@ -500,6 +500,16 @@ const OrderHistory = () => {
   // Browser print fallback function - format matches KOT Printer app
   const browserPrint = (order) => {
     const restaurantName = restaurant?.name || 'Restaurant';
+    const btype = restaurant?.businessType || 'restaurant';
+    const billingLabels = {
+      restaurant: { billTitle: 'BILL / INVOICE', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Customer', footer: 'Thank you for dining with us!', billLabel: 'Bill' },
+      bar: { billTitle: 'BAR TAB', itemCol: 'Drink / Item', qtyCol: 'Qty', customerLabel: 'Guest', footer: 'Thank you for visiting! Cheers!', billLabel: 'Tab' },
+      bakery: { billTitle: 'RECEIPT', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Customer', footer: 'Thank you! Enjoy your fresh bakes!', billLabel: 'Receipt' },
+      ice_cream: { billTitle: 'RECEIPT', itemCol: 'Item / Flavor', qtyCol: 'Qty', customerLabel: 'Customer', footer: 'Thank you! Stay cool, visit again!', billLabel: 'Receipt' },
+      cafe: { billTitle: 'RECEIPT', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Name', footer: 'Thanks for stopping by! See you soon.', billLabel: 'Receipt' },
+      qsr: { billTitle: 'ORDER RECEIPT', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Token', footer: 'Thank you! Visit again.', billLabel: 'Receipt' }
+    };
+    const bLabels = billingLabels[btype] || billingLabels.restaurant;
     const orderNum = order.dailyOrderId ?? order.orderNumber ?? order.id ?? '—';
     const tableNum = order.tableNumber || order.customerDisplay?.tableNumber || order.customerInfo?.tableNumber || null;
     const roomNum = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || null;
@@ -531,7 +541,7 @@ const OrderHistory = () => {
       const itemsHtml = items.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${symbol}${((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
       const taxHtml = taxBreakdownArr.map(t => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${(t.name || 'Tax').replace(/</g,'&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td style="text-align:right;padding:2px 4px;">${symbol}${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
 
-      const billContent = `<!DOCTYPE html><html><head><title>Bill #${orderNum}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="bill-title">--- BILL / INVOICE ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>Bill#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>Customer:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>${symbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${symbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+      const billContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${orderNum}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>${bLabels.billLabel}#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>${bLabels.customerLabel}:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>${symbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${symbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
 
       const win = window.open('', '_blank', 'width=400,height=600');
       if (win) {
@@ -1897,7 +1907,17 @@ const KOTPrinterNote = ({ restaurantId }) => {
 // Invoice Modal Component
 const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrderTotal, formatDate }) => {
   if (!order) return null;
-  
+
+  const btype = restaurant?.businessType || 'restaurant';
+  const invoiceLabels = {
+    restaurant: { title: 'INVOICE', billTo: 'Bill To', itemCol: 'Item', footer: 'Thank you for your business!' },
+    bar: { title: 'BAR TAB', billTo: 'Guest', itemCol: 'Drink / Item', footer: 'Thank you for visiting! Cheers!' },
+    bakery: { title: 'RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thank you! Enjoy your fresh bakes!' },
+    ice_cream: { title: 'RECEIPT', billTo: 'Customer', itemCol: 'Item / Flavor', footer: 'Thank you! Stay cool, visit again!' },
+    cafe: { title: 'RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thanks for stopping by! See you soon.' },
+    qsr: { title: 'ORDER RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thank you! Visit again.' }
+  };
+  const iLabels = invoiceLabels[btype] || invoiceLabels.restaurant;
   const orderTotal = calculateOrderTotal(order);
   const subtotal = order.items?.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0) || 0;
   const taxAmount = order.taxAmount || Math.max(0, orderTotal - subtotal);
@@ -1980,7 +2000,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                     {restaurant?.gstin && <p className="text-gray-600 text-sm">GSTIN: {restaurant.gstin}</p>}
                   </div>
                   <div className="text-right">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">INVOICE</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">{iLabels.title}</h2>
                     <div className="text-sm text-gray-600 space-y-1">
                       <p><strong>Invoice #:</strong> {invoiceNumber}</p>
                       <p><strong>Date:</strong> {formatDate(order.createdAt)}</p>
@@ -1993,7 +2013,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
               {/* Bill To */}
               <div className="grid grid-cols-2 gap-8 mb-6">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-2">Bill To:</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-2">{iLabels.billTo}:</h3>
                   <div className="text-gray-900">
                     <p className="font-semibold">{order.customerDisplay?.name || 'Walk-in Customer'}</p>
                     {order.customerDisplay?.phone && <p className="text-sm">Phone: {order.customerDisplay.phone}</p>}
@@ -2020,7 +2040,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-100 border-b-2 border-gray-300">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Item</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">{iLabels.itemCol}</th>
                       <th className="text-center py-3 px-4 font-semibold text-gray-700">Qty</th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Unit Price</th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Total</th>
@@ -2105,7 +2125,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
 
               {/* Footer */}
               <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-                <p className="font-medium">Thank you for your business!</p>
+                <p className="font-medium">{iLabels.footer}</p>
                 <p className="mt-2">For any queries, please contact us.</p>
               </div>
               </div>
