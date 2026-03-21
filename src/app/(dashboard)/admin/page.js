@@ -165,7 +165,7 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
       {/* Restaurant Selection */}
       <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
           Select Restaurant
         </h3>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -174,13 +174,13 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               key={restaurant.id}
               onClick={() => setSelectedRestaurant(restaurant)}
               style={{
-                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                padding: '8px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
-                fontWeight: '500',
-                fontSize: '14px',
-                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #e2e8f0',
+                fontWeight: 500,
+                fontSize: '13px',
+                border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
@@ -196,7 +196,7 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
         <div>
           {/* Tax Enable/Disable */}
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
               <input
                 type="checkbox"
                 checked={taxSettings.enabled}
@@ -465,20 +465,20 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
 
       {/* Restaurant Selection */}
       <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>Select Restaurant</h3>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>Select Restaurant</h3>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {restaurants.map((restaurant) => (
             <button
               key={restaurant.id}
               onClick={() => setSelectedRestaurant(restaurant)}
               style={{
-                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                padding: '8px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
-                fontWeight: '500',
-                fontSize: '14px',
-                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #e2e8f0',
+                fontWeight: 500,
+                fontSize: '13px',
+                border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
@@ -494,7 +494,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
         <div>
           {/* Enable/Disable */}
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
               <input
                 type="checkbox"
                 checked={pricingSettings.zonePricing?.enabled || false}
@@ -827,7 +827,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
 
       {/* Restaurant Selection */}
       <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
           Select Restaurant
         </h3>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -836,13 +836,13 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
               key={restaurant.id}
               onClick={() => setSelectedRestaurant(restaurant)}
               style={{
-                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
+                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                padding: '8px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
-                fontWeight: '500',
-                fontSize: '14px',
-                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #e2e8f0',
+                fontWeight: 500,
+                fontSize: '13px',
+                border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
@@ -1373,18 +1373,18 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               }}
               style={{
                 padding: '10px 18px',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: '14px',
-                border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fef2f2',
-                background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
+                borderRadius: '8px',
+                fontWeight: 500,
+                fontSize: '13px',
+                border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
+                background: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                transition: 'all 0.15s',
+                boxShadow: 'none',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '6px'
               }}
             >
               <FaStore size={14} />
@@ -1466,7 +1466,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   <div style={{
                     padding: '14px 18px',
                     borderRadius: '12px',
-                    border: '2px solid #ef4444',
+                    border: '1px solid #111827',
                     background: 'linear-gradient(135deg, #fdf2f8, #fef2f2)',
                     boxShadow: '0 4px 12px rgba(236,72,153,0.2)'
                   }}>
@@ -1509,7 +1509,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       minWidth: '200px',
                       padding: '16px',
                       borderRadius: '12px',
-                      border: platform.isWindows ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                      border: platform.isWindows ? '1px solid #111827' : '1px solid #e5e7eb',
                       background: platform.isWindows ? 'linear-gradient(135deg, #fdf2f8, #fef2f2)' : '#fafafa',
                       boxShadow: platform.isWindows ? '0 4px 12px rgba(236,72,153,0.2)' : 'none'
                     }}
@@ -1554,7 +1554,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                       minWidth: '200px',
                       padding: '16px',
                       borderRadius: '12px',
-                      border: platform.isMac ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                      border: platform.isMac ? '1px solid #111827' : '1px solid #e5e7eb',
                       background: platform.isMac ? 'linear-gradient(135deg, #fdf2f8, #fef2f2)' : '#fafafa',
                       boxShadow: platform.isMac ? '0 4px 12px rgba(236,72,153,0.2)' : 'none'
                     }}
@@ -1620,12 +1620,12 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               justifyContent: 'center',
               gap: '8px',
               padding: '14px 28px',
-              background: saving ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+              background: saving ? '#d1d5db' : '#111827',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
-              fontSize: '15px',
-              fontWeight: '600',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: 600,
               cursor: saving ? 'not-allowed' : 'pointer',
               boxShadow: saving ? 'none' : '0 4px 14px rgba(236,72,153,0.35)',
               transition: 'all 0.2s',
@@ -2529,7 +2529,7 @@ const Admin = () => {
             width: '40px',
             height: '40px',
             border: '4px solid #fef2f2',
-            borderTop: '4px solid #ef4444',
+            borderTop: '1px solid #e5e7eb',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 16px'
@@ -2793,41 +2793,22 @@ const Admin = () => {
         {/* Restaurant Selection for Staff Tab */}
         {activeTab === 'staff' && (
           <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-            padding: '20px',
-            marginBottom: '24px',
-            border: '1px solid #f1f5f9'
+            backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '16px 20px', marginBottom: '16px',
+            display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap'
           }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaStore size={16} />
-              Select Restaurant
-            </h3>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>Restaurant:</span>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {restaurants.map((restaurant) => (
-                <button
-                  key={restaurant.id}
-                  onClick={() => setSelectedRestaurant(restaurant)}
+                <button key={restaurant.id} onClick={() => setSelectedRestaurant(restaurant)}
                   style={{
-                    backgroundColor: selectedRestaurant?.id === restaurant.id ? '#ef4444' : '#f8fafc',
+                    backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                     color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    fontWeight: '500',
-                    fontSize: '14px',
-                    border: selectedRestaurant?.id === restaurant.id ? 'none' : '2px solid #e2e8f0',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
+                    padding: '6px 14px', borderRadius: '8px', fontWeight: 500, fontSize: '13px',
+                    border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
+                    cursor: 'pointer', transition: 'all 0.15s'
                   }}
-                >
-                  <FaStore size={12} />
-                  {restaurant.name}
-                  <FaArrowRight size={10} style={{ opacity: 0.7 }} />
-                </button>
+                >{restaurant.name}</button>
               ))}
             </div>
           </div>
@@ -2964,8 +2945,8 @@ const Admin = () => {
           // Staff Grid
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))',
-            gap: isClient && isMobile ? '16px' : '20px'
+            gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '16px'
           }}>
             {filteredStaff.map((member) => {
               const roleInfo = getRoleInfo(member.role);
@@ -2976,123 +2957,71 @@ const Admin = () => {
 
               return (
                 <div key={member.id} style={{
-                  backgroundColor: isInactive ? '#e5e7eb' : 'white',
-                  borderRadius: '16px',
-                  boxShadow: isInactive ? '0 1px 4px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.08)',
+                  backgroundColor: isInactive ? '#f9fafb' : 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                   overflow: 'hidden',
-                  transition: 'all 0.3s ease',
-                  border: isInactive ? '2px solid #9ca3af' : '1px solid #fef2f2',
+                  transition: 'all 0.2s ease',
+                  border: isInactive ? '1px solid #d1d5db' : '1px solid #e5e7eb',
                   cursor: 'pointer',
-                  opacity: isInactive ? 0.88 : 1,
+                  opacity: isInactive ? 0.7 : 1,
                   position: 'relative'
                 }}
                 onMouseEnter={(e) => {
-                  if (!isClient || !isMobile && !isInactive) {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = isInactive ? '0 1px 4px rgba(0,0,0,0.1)' : '0 8px 24px rgba(0,0,0,0.12)';
+                  if (!isInactive) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isClient || !isMobile) {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = isInactive ? '0 1px 4px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.08)';
-                  }
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
                 }}>
                   {isInactive && (
                     <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      padding: '6px 12px',
-                      background: 'linear-gradient(90deg, #6b7280 0%, #9ca3af 100%)',
-                      color: 'white',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      letterSpacing: '0.05em',
-                      textAlign: 'center',
-                      zIndex: 1
+                      position: 'absolute', top: '8px', right: '8px',
+                      padding: '2px 8px', borderRadius: '4px',
+                      backgroundColor: '#fef2f2', color: '#dc2626',
+                      fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em',
+                      border: '1px solid #fecaca', zIndex: 1
                     }}>
-                      DEACTIVATED
+                      INACTIVE
                     </div>
                   )}
                   {/* Staff Header */}
-                  <div style={{
-                    padding: isClient && isMobile ? '16px' : '20px',
-                    borderBottom: '1px solid #f3f4f6',
-                    paddingTop: isInactive ? (isClient && isMobile ? '38px' : '42px') : (isClient && isMobile ? '16px' : '20px')
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{
-                          width: '48px',
-                          height: '48px',
-                          background: isInactive ? 'linear-gradient(135deg, #9ca3af, #6b7280)' : `linear-gradient(135deg, ${roleInfo.color}, ${roleInfo.color}dd)`,
-                          borderRadius: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <RoleIcon color="white" size={20} />
-                        </div>
-                        <div>
-                          <h3 style={{
-                            fontSize: isClient && isMobile ? '16px' : '18px',
-                            fontWeight: 'bold',
-                            color: isInactive ? '#6b7280' : '#1f2937',
-                            margin: 0
-                          }}>{member.name || 'Unknown'}</h3>
-                          <p style={{
-                            fontSize: isClient && isMobile ? '12px' : '13px',
-                            color: isInactive ? '#9ca3af' : '#6b7280',
-                            margin: 0
-                          }}>{member.phone || member.email || 'No contact'}</p>
-                        </div>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '40px', height: '40px',
+                        backgroundColor: isInactive ? '#f3f4f6' : roleInfo.bg,
+                        borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <RoleIcon color={isInactive ? '#9ca3af' : roleInfo.color} size={16} />
                       </div>
-                      <div style={{ display: 'flex', gap: isClient && isMobile ? '4px' : '6px', flexWrap: 'wrap' }}>
-                        <div style={{
-                          padding: '4px 12px',
-                          borderRadius: '16px',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          backgroundColor: roleInfo.bg,
-                          color: roleInfo.color,
-                          border: `1px solid ${roleInfo.color}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          <RoleIcon size={10} />
-                          {roleInfo.label}
-                        </div>
-                        <div style={{
-                          padding: '4px 12px',
-                          borderRadius: '16px',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          backgroundColor: statusInfo.bg,
-                          color: statusInfo.color,
-                          border: `1px solid ${statusInfo.color}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          <StatusIcon size={10} />
-                          {statusInfo.label}
-                        </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: isInactive ? '#6b7280' : '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member.name || 'Unknown'}</div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '1px' }}>{member.phone || member.email || 'No contact'}</div>
                       </div>
+                      <span style={{
+                        padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+                        backgroundColor: roleInfo.bg, color: roleInfo.color, border: '1px solid ' + roleInfo.color + '33',
+                        flexShrink: 0
+                      }}>
+                        {roleInfo.label}
+                      </span>
                     </div>
                   </div>
                   
                   {/* Staff Details */}
-                  <div style={{ padding: isClient && isMobile ? '16px' : '20px' }}>
+                  <div style={{ padding: '14px 20px' }}>
                     {/* Login Credentials Section */}
                     <div style={{ 
-                      backgroundColor: isInactive ? '#f3f4f6' : '#f0f9ff', 
+                      backgroundColor: '#f8fafc', 
                       padding: isClient && isMobile ? '12px' : '16px', 
                       borderRadius: '12px',
                       marginBottom: isClient && isMobile ? '12px' : '16px',
-                      border: isInactive ? '1px solid #d1d5db' : '1px solid #0ea5e9'
+                      border: '1px solid #e5e7eb'
                     }}>
                       <h4 style={{ 
                         fontSize: '14px', 
@@ -3297,11 +3226,11 @@ const Admin = () => {
                     {/* Page Access Display */}
                     {member.pageAccess && (
                       <div style={{ 
-                        backgroundColor: '#f0fdf4', 
-                        padding: isClient && isMobile ? '12px' : '16px', 
-                        borderRadius: '12px',
-                        marginBottom: isClient && isMobile ? '12px' : '16px',
-                        border: '1px solid #22c55e'
+                        backgroundColor: '#f8fafc', 
+                        padding: '14px', 
+                        borderRadius: '10px',
+                        marginBottom: '14px',
+                        border: '1px solid #e5e7eb'
                       }}>
                         <h4 style={{ 
                           fontSize: '14px', 
@@ -3386,10 +3315,10 @@ const Admin = () => {
                       return (
                         <div style={{ 
                           backgroundColor: '#f8fafc', 
-                          padding: isClient && isMobile ? '10px' : '12px', 
+                          padding: '12px', 
                           borderRadius: '10px',
-                          marginBottom: isClient && isMobile ? '12px' : '16px',
-                          border: '1px solid #e2e8f0'
+                          marginBottom: '14px',
+                          border: '1px solid #e5e7eb'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ textAlign: 'center' }}>
@@ -3413,129 +3342,33 @@ const Admin = () => {
                   
                   {/* Actions */}
                   <div style={{ 
-                    padding: isClient && isMobile ? '8px 12px' : '12px 16px',
-                    backgroundColor: '#f8fafc', 
-                    display: 'flex', 
-                    gap: isClient && isMobile ? '4px' : '6px',
-                    borderTop: '1px solid #fef2f2',
-                    justifyContent: 'center',
-                    alignItems: 'center'
+                    padding: '12px 20px',
+                    display: 'flex', gap: '4px',
+                    borderTop: '1px solid #f3f4f6',
+                    alignItems: 'center', flexWrap: 'wrap'
                   }}>
-                    {/* View button - available to everyone */}
-                    <button
-                      onClick={() => setSelectedStaff(member)}
-                      style={{
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        padding: '6px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '32px',
-                        height: '32px'
-                      }}
+                    <button onClick={() => setSelectedStaff(member)}
+                      style={{ backgroundColor: 'transparent', color: '#6b7280', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
                       title="View Details"
-                    >
-                      <FaEye size={14} />
-                    </button>
-                    
-                    {/* Status toggle - only if user can manage this staff member */}
+                    ><FaEye size={10} /> View</button>
                     {canManageStaff(member.role) && (
-                      <button
-                        onClick={() => toggleStaffStatus(member.id)}
-                        style={{
-                          backgroundColor: member.status === 'active' ? '#ef4444' : '#10b981',
-                          color: 'white',
-                          padding: '6px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '32px',
-                          height: '32px'
-                        }}
+                      <button onClick={() => toggleStaffStatus(member.id)}
+                        style={{ backgroundColor: 'transparent', color: member.status === 'active' ? '#dc2626' : '#059669', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
                         title={member.status === 'active' ? 'Deactivate' : 'Activate'}
-                      >
-                        {member.status === 'active' ? <FaUserTimes size={14} /> : <FaUserCheck size={14} />}
-                      </button>
+                      >{member.status === 'active' ? <FaUserTimes size={10} /> : <FaUserCheck size={10} />} {member.status === 'active' ? 'Deactivate' : 'Activate'}</button>
                     )}
-
-                    {/* Reset password - only for owner/admin and if can manage */}
                     {(currentUserRole === 'owner' || currentUserRole === 'admin') && canManageStaff(member.role) && (
-                      <button
-                        onClick={() => openResetPasswordModal(member)}
-                        style={{
-                          backgroundColor: '#8b5cf6',
-                          color: 'white',
-                          padding: '6px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '32px',
-                          height: '32px'
-                        }}
+                      <button onClick={() => openResetPasswordModal(member)}
+                        style={{ backgroundColor: 'transparent', color: '#6b7280', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
                         title="Reset password"
-                      >
-                        <FaKey size={14} />
-                      </button>
+                      ><FaKey size={10} /> Reset</button>
                     )}
-
-                    {/* Edit button - only for higher-level roles and if can manage */}
-                    {(currentUserRole === 'owner' || currentUserRole === 'admin') && canManageStaff(member.role) && (
-                      <button
-                        style={{
-                          backgroundColor: '#f59e0b',
-                          color: 'white',
-                          padding: '6px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '32px',
-                          height: '32px'
-                        }}
-                        title="Edit Staff"
-                      >
-                        <FaEdit size={14} />
-                      </button>
-                    )}
-
-                    {/* Delete button - only for owners and admins */}
+                    <div style={{ flex: 1 }}></div>
                     {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
-                      <button
-                        onClick={() => deleteStaff(member.id, member.name)}
-                        style={{
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          padding: '6px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '32px',
-                          height: '32px'
-                        }}
+                      <button onClick={() => deleteStaff(member.id, member.name)}
+                        style={{ backgroundColor: 'transparent', color: '#dc2626', padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
                         title="Delete Staff"
-                      >
-                        <FaTrash size={14} />
-                      </button>
+                      ><FaTrash size={10} /></button>
                     )}
                   </div>
                 </div>
@@ -3549,9 +3382,9 @@ const Admin = () => {
           <div style={{
             textAlign: 'center',
             padding: '80px 20px',
-            background: 'linear-gradient(135deg, rgb(255 246 241) 0%, rgb(254 245 242) 50%, rgb(255 244 243) 100%)',
-            borderRadius: '24px',
-            border: '1px solid rgba(239, 68, 68, 0.1)',
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
             position: 'relative',
             overflow: 'hidden'
           }}>
@@ -5290,7 +5123,7 @@ const Admin = () => {
                 <FaGlobe size={22} color="white" />
               </div>
               <div>
-                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
                   {t('common.settings')} – Choose language
                 </h2>
                 <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
@@ -5307,16 +5140,16 @@ const Admin = () => {
                     setCurrentLang(lang.code);
                   }}
                   style={{
-                    padding: '10px 18px',
-                    borderRadius: '12px',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    border: currentLang === lang.code ? 'none' : '1px solid #e5e7eb',
-                    background: currentLang === lang.code ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#f9fafb',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontWeight: 500,
+                    fontSize: '13px',
+                    border: currentLang === lang.code ? '1px solid #111827' : '1px solid #e5e7eb',
+                    background: currentLang === lang.code ? '#111827' : 'white',
                     color: currentLang === lang.code ? 'white' : '#374151',
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: currentLang === lang.code ? '0 4px 12px rgba(236,72,153,0.25)' : 'none'
+                    transition: 'all 0.15s',
+                    boxShadow: 'none'
                   }}
                 >
                   {lang.nativeName}
@@ -5342,10 +5175,10 @@ const Admin = () => {
                 justifyContent: 'center',
                 boxShadow: '0 4px 14px rgba(239,68,68,0.35)'
               }}>
-                <FaSlidersH size={20} color="white" />
+                <FaSlidersH size={16} color="#ef4444" />
               </div>
               <div>
-                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
                   Dashboard Customization
                 </h2>
                 <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
@@ -5384,12 +5217,12 @@ const Admin = () => {
                     }}
                     style={{
                       padding: '8px 16px',
-                      borderRadius: '16px',
+                      borderRadius: '8px',
                       fontSize: '13px',
-                      fontWeight: '600',
-                      border: businessType === type.id ? '2px solid #ef4444' : '1px solid #e5e7eb',
-                      background: businessType === type.id ? '#fef2f2' : '#f9fafb',
-                      color: businessType === type.id ? '#dc2626' : '#374151',
+                      fontWeight: 500,
+                      border: businessType === type.id ? '1px solid #111827' : '1px solid #e5e7eb',
+                      background: businessType === type.id ? '#111827' : 'white',
+                      color: businessType === type.id ? 'white' : '#374151',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
@@ -5419,15 +5252,15 @@ const Admin = () => {
                     type="button"
                     onClick={() => setPosSettings(prev => ({ ...prev, defaultOrderType: ot.id }))}
                     style={{
-                      padding: '8px 18px',
-                      borderRadius: '10px',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
                       fontSize: '13px',
-                      fontWeight: '600',
-                      border: (posSettings.defaultOrderType || 'dine-in') === ot.id ? '2px solid #ef4444' : '1px solid #e5e7eb',
-                      background: (posSettings.defaultOrderType || 'dine-in') === ot.id ? '#fef2f2' : '#f9fafb',
-                      color: (posSettings.defaultOrderType || 'dine-in') === ot.id ? '#dc2626' : '#374151',
+                      fontWeight: 500,
+                      border: (posSettings.defaultOrderType || 'dine-in') === ot.id ? '1px solid #111827' : '1px solid #e5e7eb',
+                      background: (posSettings.defaultOrderType || 'dine-in') === ot.id ? '#111827' : 'white',
+                      color: (posSettings.defaultOrderType || 'dine-in') === ot.id ? 'white' : '#374151',
                       cursor: 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.15s'
                     }}
                   >
                     {ot.label}
@@ -5682,9 +5515,9 @@ const Admin = () => {
                       borderRadius: '8px',
                       fontSize: '12px',
                       fontWeight: '600',
-                      border: (posSettings.defaultPaymentMethod || 'cash') === pm.id ? '2px solid #ef4444' : '1px solid #e5e7eb',
-                      background: (posSettings.defaultPaymentMethod || 'cash') === pm.id ? '#fef2f2' : '#f9fafb',
-                      color: (posSettings.defaultPaymentMethod || 'cash') === pm.id ? '#dc2626' : '#374151',
+                      border: (posSettings.defaultPaymentMethod || 'cash') === pm.id ? '1px solid #111827' : '1px solid #e5e7eb',
+                      background: (posSettings.defaultPaymentMethod || 'cash') === pm.id ? '#111827' : 'white',
+                      color: (posSettings.defaultPaymentMethod || 'cash') === pm.id ? 'white' : '#374151',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
@@ -5755,10 +5588,10 @@ const Admin = () => {
                 justifyContent: 'center',
                 boxShadow: '0 4px 14px rgba(236,72,153,0.35)'
               }}>
-                <FaStore size={22} color="white" />
+                <FaStore size={16} color="#ef4444" />
               </div>
               <div>
-                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
                   Default restaurant
                 </h2>
                 <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
@@ -5779,19 +5612,19 @@ const Admin = () => {
                       window.dispatchEvent(new CustomEvent('restaurantChanged', { detail: { restaurantId: restaurant.id } }));
                     }}
                     style={{
-                      padding: '10px 18px',
-                      borderRadius: '12px',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fef2f2',
-                      background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 500,
+                      fontSize: '13px',
+                      border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
+                      background: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                       color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
                       cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                      transition: 'all 0.15s',
+                      boxShadow: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '6px'
                     }}
                   >
                     <FaStore size={14} />
@@ -6065,11 +5898,11 @@ const Admin = () => {
       {activeTab === 'shifts' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           padding: '24px',
-          border: '1px solid #f1f5f9',
-          minHeight: '600px'
+          border: '1px solid #e5e7eb',
+          minHeight: '400px'
         }}>
           {!selectedRestaurant ? (
             <div style={{
@@ -6096,11 +5929,11 @@ const Admin = () => {
       {activeTab === 'google-reviews' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           padding: '24px',
-          border: '1px solid #f1f5f9',
-          minHeight: '600px'
+          border: '1px solid #e5e7eb',
+          minHeight: '400px'
         }}>
           {!selectedRestaurant ? (
             <div style={{
