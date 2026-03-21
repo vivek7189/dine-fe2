@@ -22,7 +22,8 @@ import {
   FaFire,
   FaMobileAlt,
   FaTag,
-  FaCashRegister
+  FaCashRegister,
+  FaCalendarAlt
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -225,6 +226,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'manager'] },
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'manager'] },
+    { id: 'shifts', name: 'Shifts', icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner'] },
     // --- Tools & Extras ---
     { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'manager'] },

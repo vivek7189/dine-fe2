@@ -50,7 +50,7 @@ import {
   FaSlidersH,
   FaCreditCard
 } from 'react-icons/fa';
-import ShiftScheduling from '../../../components/ShiftScheduling';
+// ShiftScheduling moved to /shifts page
 import GoogleReviews from '../../../components/GoogleReviews';
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 
@@ -1758,7 +1758,6 @@ const Admin = () => {
     ]},
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
-      { id: 'shifts', label: 'Shift Scheduling', icon: FaClock },
     ]},
     { label: 'INTEGRATIONS', items: [
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
@@ -5950,37 +5949,6 @@ const Admin = () => {
               <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>Add a restaurant first, then configure order numbering here.</p>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Shift Scheduling Section */}
-      {activeTab === 'shifts' && (
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-          padding: '24px',
-          border: '1px solid #e5e7eb',
-          minHeight: '400px'
-        }}>
-          {!selectedRestaurant ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '60px 20px',
-              color: '#6b7280'
-            }}>
-              <FaClock size={48} style={{ marginBottom: '16px', color: '#d1d5db' }} />
-              <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>
-                Select a Restaurant
-              </h3>
-              <p>Please select a restaurant from the dropdown above to manage shift schedules.</p>
-            </div>
-          ) : (
-            <ShiftScheduling 
-              restaurantId={selectedRestaurant.id}
-              staff={staff.filter(s => s.status === 'active')}
-            />
-          )}
         </div>
       )}
 
