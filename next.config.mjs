@@ -1,10 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   // Compress static assets for better performance
   compress: true,
+  images: {
+    domains: ['localhost', 'firebasestorage.googleapis.com', 'storage.googleapis.com'],
+  },
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003',
+  },
   // Optimize package imports for better bundle size
   experimental: {
     optimizePackageImports: ['react-icons'],
+    esmExternals: 'loose',
   },
   // Enable static optimization
   swcMinify: true,
