@@ -92,6 +92,12 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
+      // Redirect non-existent Hindi blog slugs to closest match
+      {
+        source: '/hi/blog/qr-menu-future-trend-hindi-2026',
+        destination: '/hi/blog/restaurant-technology-trends-hindi-2026',
+        permanent: true,
+      },
     ];
   },
   // Rewrites: serve static HTML blog posts at both /blog/slug and /blog/slug.html
@@ -169,13 +175,54 @@ const nextConfig = {
       'what-is-restaurant-operating-system',
     ];
 
+    // Hindi static blog slugs (served as raw HTML files in public/hi/blog/)
+    const hindiStaticBlogSlugs = [
+      'bakery-kaise-khole',
+      'best-restaurant-pos-india-hindi',
+      'cafe-coffee-shop-kaise-khole',
+      'catering-business-kaise-shuru-kare',
+      'chai-tapri-business-kaise-shuru-kare',
+      'chhote-restaurant-ke-liye-billing-software',
+      'chocolate-shop-pos-software-hindi',
+      'cloud-kitchen-ya-restaurant-kya-behtar',
+      'dhaba-business-kaise-shuru-kare',
+      'dineopen-vs-posist-comparison-hindi',
+      'food-cost-percentage-kaise-nikale',
+      'food-truck-business-kaise-shuru-kare',
+      'free-qr-menu-kaise-banaye',
+      'fssai-license-kaise-banaye',
+      'ice-cream-dukan-inventory-management',
+      'ice-cream-parlour-kaise-khole',
+      'ice-cream-parlour-ke-liye-best-pos',
+      'juice-bar-kaise-khole',
+      'lpg-gas-shortage-restaurant-crisis-2026',
+      'mithai-dukan-kaise-khole',
+      'petpooja-alternative-hindi',
+      'qsr-kaise-khole',
+      'restaurant-automation-software-hindi',
+      'restaurant-break-even-kaise-calculate-kare',
+      'restaurant-gst-guide-hindi',
+      'restaurant-loyalty-program-hindi',
+      'restaurant-marketing-ideas-hindi',
+      'restaurant-technology-trends-hindi-2026',
+      'swiggy-zomato-commission-kaise-bachaye',
+      'tiffin-service-kaise-shuru-kare',
+      'zomato-swiggy-par-restaurant-kaise-register-kare',
+    ];
+
     return {
       // beforeFiles ensures rewrites run BEFORE Next.js checks static/SSG pages
       // Without this, the dynamic [slug] route would serve a 404 for these slugs
-      beforeFiles: staticBlogSlugs.map((slug) => ({
-        source: `/blog/${slug}`,
-        destination: `/blog/${slug}.html`,
-      })),
+      beforeFiles: [
+        ...staticBlogSlugs.map((slug) => ({
+          source: `/blog/${slug}`,
+          destination: `/blog/${slug}.html`,
+        })),
+        ...hindiStaticBlogSlugs.map((slug) => ({
+          source: `/hi/blog/${slug}`,
+          destination: `/hi/blog/${slug}.html`,
+        })),
+      ],
     };
   },
 };
