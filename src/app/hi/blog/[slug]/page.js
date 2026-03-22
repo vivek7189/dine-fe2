@@ -54,6 +54,7 @@ const hindiToEnglishMap = {
   'chhote-restaurant-ke-liye-billing-software': 'best-billing-software-small-restaurant',
   'food-cost-percentage-kaise-nikale': 'how-to-calculate-food-cost-percentage',
   'restaurant-break-even-kaise-calculate-kare': 'restaurant-break-even-analysis-guide',
+  'qr-menu-future-trend-hindi-2026': 'qr-code-menus-future-trend-2026',
 };
 
 export async function generateMetadata({ params }) {

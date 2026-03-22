@@ -100,12 +100,6 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
-      // Redirect non-existent Hindi blog slugs to closest match
-      {
-        source: '/hi/blog/qr-menu-future-trend-hindi-2026',
-        destination: '/hi/blog/restaurant-technology-trends-hindi-2026',
-        permanent: true,
-      },
     ];
   },
   // Rewrites: serve static HTML blog posts at both /blog/slug and /blog/slug.html
@@ -206,6 +200,7 @@ const nextConfig = {
       'lpg-gas-shortage-restaurant-crisis-2026',
       'mithai-dukan-kaise-khole',
       'petpooja-alternative-hindi',
+      'qr-menu-future-trend-hindi-2026',
       'qsr-kaise-khole',
       'restaurant-automation-software-hindi',
       'restaurant-break-even-kaise-calculate-kare',
