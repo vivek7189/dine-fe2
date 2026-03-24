@@ -1,9 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
 import { useCurrency } from '../contexts/CurrencyContext';
+import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup';
+import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngine';
+
+const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 import {
   FaShoppingCart,
   FaTimes,
@@ -87,7 +92,9 @@ const OrderSummary = ({
   onSaveAsTemplate,
   posSettings = {},
   businessType = 'restaurant',
-  userRole = 'waiter'
+  userRole = 'waiter',
+  countryCode = 'IN',
+  onCustomerDataChange
 }) => {
   // Business-type-aware billing labels
   const billingLabels = {
@@ -126,14 +133,29 @@ const OrderSummary = ({
   const [useFullChatGPT, setUseFullChatGPT] = useState(true); // Feature flag - Set to true for full ChatGPT processing
   const [isMobile, setIsMobile] = useState(false);
 
-  // Offer & Discount State
-  const [activeOffers, setActiveOffers] = useState([]);
-  const [selectedOfferId, setSelectedOfferId] = useState(null);
-  const [offerDiscount, setOfferDiscount] = useState(0);
-  const [selectedOfferName, setSelectedOfferName] = useState('');
+  // Customer Lookup Hook
+  const { customerData, lookupStatus, triggerLookup, clearCustomer } = useCustomerLookup({ restaurantId, countryCode });
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+
+  // Offer Engine Hook
+  const {
+    applicableOffers, selectedOfferId, setSelectedOfferId, offerDiscount,
+    selectedOfferName, resetOffers, autoApplied, firstOrderOfferRejected
+  } = useOfferEngine({ restaurantId, cart, subtotal: getTotalAmount(), customerInfo: customerData, taxSettings });
+
+  // Manual Discount State (kept local — not part of offer engine)
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
-  const [showDiscountPopup, setShowDiscountPopup] = useState(false);
+
+  // Bubble customerData up to dashboard
+  useEffect(() => { onCustomerDataChange?.(customerData); }, [customerData, onCustomerDataChange]);
+
+  // Auto-fill customer name when found
+  useEffect(() => {
+    if (customerData?.name && !customerName?.trim()) {
+      onCustomerNameChange?.(customerData.name);
+    }
+  }, [customerData]);
 
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
@@ -273,32 +295,6 @@ const OrderSummary = ({
       setGrandTotal(getTotalAmount());
     }
   }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState]);
-
-  // Load active offers for offer selector
-  useEffect(() => {
-    if (!restaurantId) return;
-    const loadOffers = async () => {
-      try {
-        const response = await apiClient.getActiveOffers(restaurantId);
-        const offers = (response.offers || response || []).filter(o => o.isActive);
-        // Filter by schedule
-        const now = new Date();
-        const currentDay = now.getDay();
-        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        const validOffers = offers.filter(o => {
-          if (!o.schedule || o.schedule.type !== 'recurring') return true;
-          if (o.schedule.days && !o.schedule.days.includes(currentDay)) return false;
-          if (o.schedule.startTime && currentTime < o.schedule.startTime) return false;
-          if (o.schedule.endTime && currentTime > o.schedule.endTime) return false;
-          return true;
-        });
-        setActiveOffers(validOffers);
-      } catch (err) {
-        console.error('Error loading offers:', err);
-      }
-    };
-    loadOffers();
-  }, [restaurantId]);
 
   // Pre-populate special instructions when editing an existing order
   useEffect(() => {
@@ -1809,44 +1805,33 @@ const OrderSummary = ({
                   {/* Discount controls inline */}
                   {discountEnabled && (
                     <>
-                      {activeOffers.length > 0 && (
+                      {applicableOffers.length > 0 && (
                         <select
                           value={selectedOfferId || ''}
                           onChange={(e) => {
                             const offerId = e.target.value;
-                            if (!offerId) {
-                              setSelectedOfferId(null);
-                              setOfferDiscount(0);
-                              setSelectedOfferName('');
-                            } else {
-                              const offer = activeOffers.find(o => (o.id || o._id) === offerId);
-                              if (offer) {
-                                setSelectedOfferId(offerId);
-                                setSelectedOfferName(offer.name);
-                                const sub = getTotalAmount();
-                                if (offer.discountType === 'percentage') {
-                                  let disc = (sub * (offer.discountValue || 0)) / 100;
-                                  if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
-                                  setOfferDiscount(Math.round(disc * 100) / 100);
-                                } else {
-                                  setOfferDiscount(Math.min(offer.discountValue || 0, sub));
-                                }
-                              }
-                            }
+                            setSelectedOfferId(offerId || null);
                           }}
                           style={{
-                            flex: '0 1 auto', maxWidth: '110px', padding: '4px 4px', borderRadius: '5px',
-                            border: '1px solid #e9d5ff', backgroundColor: '#f5f3ff',
-                            fontSize: '10px', fontWeight: '600', color: '#6d28d9', cursor: 'pointer'
+                            flex: '0 1 auto', maxWidth: '130px', padding: '4px 4px', borderRadius: '5px',
+                            border: autoApplied ? '1px solid #86efac' : '1px solid #e9d5ff',
+                            backgroundColor: autoApplied ? '#f0fdf4' : '#f5f3ff',
+                            fontSize: '10px', fontWeight: '600', color: autoApplied ? '#16a34a' : '#6d28d9', cursor: 'pointer'
                           }}
                         >
-                          <option value="">Offers ({activeOffers.length})</option>
-                          {activeOffers.map(offer => (
-                            <option key={offer.id || offer._id} value={offer.id || offer._id}>
-                              {offer.name} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : formatCurrency(offer.discountValue)})
-                            </option>
-                          ))}
+                          <option value="">{autoApplied ? '✓ Auto' : `Offers (${applicableOffers.length})`}</option>
+                          {applicableOffers.map(offer => {
+                            const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                            return (
+                              <option key={offer.id || offer._id} value={offer.id || offer._id}>
+                                {offer.name} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : formatCurrency(offer.discountValue)}{saves > 0 ? ` · -${formatCurrency(saves)}` : ''})
+                              </option>
+                            );
+                          })}
                         </select>
+                      )}
+                      {firstOrderOfferRejected && (
+                        <span style={{ fontSize: '9px', color: '#dc2626', whiteSpace: 'nowrap' }}>Not first order</span>
                       )}
                       {canEditManualDiscount && (
                         <>
@@ -1886,7 +1871,7 @@ const OrderSummary = ({
                             -{formatCurrency(totalDiscountAmount)}
                           </span>
                           <button
-                            onClick={() => { setManualDiscountValue(''); setSelectedOfferId(null); setOfferDiscount(0); setSelectedOfferName(''); }}
+                            onClick={() => { setManualDiscountValue(''); resetOffers(); }}
                             style={{
                               width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
                               border: '1px solid #fecaca', backgroundColor: '#fee2e2',
@@ -2026,7 +2011,7 @@ const OrderSummary = ({
                 {/* Validation states */}
                 {(() => {
                   const mobileDigits = (customerMobile || '').replace(/\D/g, '');
-                  const isValidMobile = mobileDigits.length === 10;
+                  const isValidMobile = mobileDigits.length >= getPhoneMinLength(countryCode);
                   const isValidName = (customerName || '').trim().length > 3;
                   const isValidTable = (tableNumber || '').trim().length > 0 && /\d/.test(tableNumber);
                   const isValidRoom = (manualRoomNumber || '').trim().length > 0 && /\d/.test(manualRoomNumber);
@@ -2073,18 +2058,19 @@ const OrderSummary = ({
                     />
                     )}
                     
-                    {/* Customer Mobile */}
+                    {/* Customer Mobile + Lookup */}
                     {!posSettings.hideMobile && (
+                    <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : '1', minWidth: isMobile ? '100%' : '120px' }}>
                     <input
                       type="tel"
                       placeholder={posSettings.mobileLabel || 'Mobile Number'}
                       value={customerMobile || ''}
-                        maxLength={10}
+                        maxLength={getPhoneMinLength(countryCode) + 3}
                       style={{
-                          flex: isMobile ? '0 0 auto' : '1',
-                          minWidth: isMobile ? '100%' : '120px',
+                          width: '100%',
                         padding: isMobile ? '10px 12px' : '8px 10px',
-                          border: `2px solid ${isValidMobile ? '#22c55e' : '#d1d5db'}`,
+                        paddingRight: lookupStatus === 'loading' ? '30px' : (isMobile ? '12px' : '10px'),
+                          border: `2px solid ${isValidMobile ? '#22c55e' : lookupStatus === 'found' ? '#a78bfa' : '#d1d5db'}`,
                         borderRadius: '6px',
                         fontSize: isMobile ? '14px' : '12px',
                         outline: 'none',
@@ -2092,21 +2078,56 @@ const OrderSummary = ({
                         transition: 'border-color 0.2s'
                       }}
                       onChange={(e) => {
-                          // Only allow digits
                           const digits = e.target.value.replace(/\D/g, '');
                         if (typeof onCustomerMobileChange === 'function') {
                             onCustomerMobileChange(digits);
                           }
+                          triggerLookup(digits);
                         }}
                         onFocus={(e) => {
                           const digits = (e.target.value || '').replace(/\D/g, '');
-                          e.target.style.borderColor = digits.length === 10 ? '#22c55e' : '#d1d5db';
+                          const minLen = getPhoneMinLength(countryCode);
+                          e.target.style.borderColor = digits.length >= minLen ? '#22c55e' : '#d1d5db';
                         }}
                         onBlur={(e) => {
                           const digits = (e.target.value || '').replace(/\D/g, '');
-                          e.target.style.borderColor = digits.length === 10 ? '#22c55e' : '#d1d5db';
+                          const minLen = getPhoneMinLength(countryCode);
+                          e.target.style.borderColor = digits.length >= minLen ? '#22c55e' : '#d1d5db';
                         }}
                       />
+                      {lookupStatus === 'loading' && (
+                        <span style={{
+                          position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                          width: '14px', height: '14px', border: '2px solid #fee2e2', borderTopColor: '#ef4444',
+                          borderRadius: '50%', animation: 'custSpin .6s linear infinite', display: 'inline-block',
+                        }} />
+                      )}
+                      <style>{`@keyframes custSpin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
+                    </div>
+                    )}
+                    {/* Customer Chip — appears when customer found */}
+                    {lookupStatus === 'found' && customerData && (
+                      <button
+                        onClick={() => setShowCustomerModal(true)}
+                        style={{
+                          flex: '0 0 auto', padding: '4px 8px', borderRadius: '6px',
+                          border: '1px solid #e9d5ff', backgroundColor: '#f5f3ff',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                          fontSize: '10px', fontWeight: 600, color: '#6d28d9',
+                          transition: 'background 0.15s', whiteSpace: 'nowrap',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ede9fe'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f5f3ff'}
+                        title="View customer details"
+                      >
+                        <span style={{ maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {customerData.name}
+                        </span>
+                        {customerData.loyaltyPoints > 0 && (
+                          <span style={{ color: '#d97706', fontWeight: 700 }}>⭐{customerData.loyaltyPoints}</span>
+                        )}
+                        <span style={{ color: '#9ca3af' }}>{customerData.totalOrders}ord</span>
+                      </button>
                     )}
                       
                       {/* Table/Room Number - Inline when not in-room dining, or when in-room dining is enabled */}
@@ -2603,6 +2624,14 @@ const OrderSummary = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Customer Detail Modal (lazy loaded) */}
+      {showCustomerModal && customerData?.id && (
+        <CustomerDetailModal
+          customerId={customerData.id}
+          restaurantId={restaurantId}
+          onClose={() => setShowCustomerModal(false)}
+        />
       )}
     </div>
   );

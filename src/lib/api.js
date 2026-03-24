@@ -2207,11 +2207,17 @@ class ApiClient {
     });
   }
 
-  // Get active offers (public)
+  // Get active offers (public) - used by Crave app
   // isFirstOrder: true/false - Filter first-order-only offers based on customer status
   async getActiveOffers(restaurantId, isFirstOrder = undefined) {
     const params = isFirstOrder !== undefined ? `?isFirstOrder=${isFirstOrder}` : '';
     return this.request(`/api/public/offers/${restaurantId}${params}`);
+  }
+
+  // Get active offers for POS (authenticated, returns full fields including scope, schedule, bogoConfig)
+  async getActiveOffersForPOS(restaurantId, isFirstOrder = undefined) {
+    const params = isFirstOrder !== undefined ? `?isFirstOrder=${isFirstOrder}` : '';
+    return this.request(`/api/offers/${restaurantId}/active${params}`);
   }
 
   // Get customer app settings (public)
@@ -2219,11 +2225,11 @@ class ApiClient {
     return this.request(`/api/public/customer-app-settings/${restaurantId}`);
   }
 
-  // Lookup customer by phone (public) - for loyalty points
-  async lookupCustomerByPhone(restaurantId, phone) {
+  // Lookup customer by phone (public) - for loyalty points and customer identification
+  async lookupCustomerByPhone(restaurantId, phone, countryCode) {
     return this.request('/api/public/customer/lookup', {
       method: 'POST',
-      body: { restaurantId, phone },
+      body: { restaurantId, phone, countryCode },
     });
   }
 

@@ -48,10 +48,14 @@ import {
   FaToggleOn,
   FaToggleOff,
   FaSlidersH,
-  FaCreditCard
+  FaCreditCard,
+  FaTag
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page
+import dynamic from 'next/dynamic';
 import GoogleReviews from '../../../components/GoogleReviews';
+
+const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 
 // Tax Management Component
@@ -1881,6 +1885,7 @@ const Admin = () => {
     ]},
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
+      { id: 'offers', label: 'Offers & Discounts', icon: FaTag },
     ]},
     { label: 'INTEGRATIONS', items: [
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
@@ -6085,6 +6090,19 @@ const Admin = () => {
               <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>Add a restaurant first, then configure order numbering here.</p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Offers & Discounts Section */}
+      {activeTab === 'offers' && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          border: '1px solid #f1f5f9',
+          overflow: 'hidden'
+        }}>
+          <OffersManagement embedded={true} restaurantId={selectedRestaurant?.id} restaurants={restaurants} />
         </div>
       )}
 

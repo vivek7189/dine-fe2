@@ -124,6 +124,7 @@ function RestaurantPOSContent() {
   const [tableNumber, setTableNumber] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
+  const [customerData, setCustomerData] = useState(null); // From customer lookup hook in OrderSummary
   const [orderLookup, setOrderLookup] = useState(''); // For table number or order ID lookup
   const [currentOrder, setCurrentOrder] = useState(null); // Current order being viewed/updated
   const [orderSearchLoading, setOrderSearchLoading] = useState(false); // Loading state for order search
@@ -1529,6 +1530,7 @@ function RestaurantPOSContent() {
     setTableNumber('');
     setCustomerName('');
     setCustomerMobile('');
+    setCustomerData(null);
     setOrderLookup('');
     setCurrentOrder(null);
     setSelectedTable(null);
@@ -2239,7 +2241,8 @@ function RestaurantPOSContent() {
             phone: customerMobile || currentOrder.customerInfo?.phone || null,
             tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber || null) : null,
             roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber || null) : null // NEW: Include room number
-          }
+          },
+          customerId: customerData?.id || null
         };
 
         console.log('🔄 Update data for existing order:', updateData);
@@ -2366,6 +2369,7 @@ function RestaurantPOSContent() {
             tableNumber: finalTableNumber || null,
             roomNumber: roomNumber || null // NEW: Include room number in customer info
         },
+        customerId: customerData?.id || null,
         // Tax information from OrderSummary
         totalAmount: subtotal || getTotalAmount(),
         taxBreakdown: taxBreakdown,
@@ -2769,6 +2773,7 @@ function RestaurantPOSContent() {
           name: customerName || null,
           phone: customerMobile || null,
         },
+        customerId: customerData?.id || null,
         orderType,
         tableNumber: finalTableNumber || null,
         paymentMethod,
@@ -3071,6 +3076,7 @@ function RestaurantPOSContent() {
             tableNumber: finalTableNumber || null,
             roomNumber: roomNumber || null
           },
+          customerId: customerData?.id || null,
           orderType,
           paymentMethod,
           staffInfo: (() => {
@@ -6209,6 +6215,8 @@ function RestaurantPOSContent() {
             posSettings={posSettings}
             businessType={selectedRestaurant?.businessType || 'restaurant'}
             userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
+            countryCode={selectedRestaurant?.currencySettings?.countryCode || 'IN'}
+            onCustomerDataChange={setCustomerData}
           />
         </div>
                 ) : (
@@ -6274,6 +6282,8 @@ function RestaurantPOSContent() {
                     posSettings={posSettings}
                     businessType={selectedRestaurant?.businessType || 'restaurant'}
                     userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
+                    countryCode={selectedRestaurant?.currencySettings?.countryCode || 'IN'}
+                    onCustomerDataChange={setCustomerData}
                   />
             )}
           </>

@@ -18,7 +18,7 @@ import {
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 
-const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = null }) => {
+const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = null, restaurants = [] }) => {
   const router = useRouter();
   const { getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
@@ -56,6 +56,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     promotionType: 'discount',
     bogoConfig: null,
     eventLabel: '',
+    targetRestaurants: 'all',
   };
 
   const [formData, setFormData] = useState(emptyOffer);
@@ -514,6 +515,18 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                           fontWeight: '500'
                         }}>
                           Auto-Apply
+                        </span>
+                      )}
+                      {Array.isArray(offer.targetRestaurants) && offer.targetRestaurants.length > 0 && (
+                        <span style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#dbeafe',
+                          color: '#1d4ed8',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          📍 {offer.targetRestaurants.length} restaurant{offer.targetRestaurants.length > 1 ? 's' : ''}
                         </span>
                       )}
                     </div>
@@ -996,6 +1009,74 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
                     Copy item IDs from your menu
                   </p>
+                </div>
+              )}
+
+              {/* Restaurant Targeting */}
+              {restaurants.length > 1 && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Apply to Restaurants
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, targetRestaurants: 'all' }))}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '8px',
+                        border: formData.targetRestaurants === 'all' ? '2px solid #111827' : '2px solid #e5e7eb',
+                        backgroundColor: formData.targetRestaurants === 'all' ? '#111827' : 'white',
+                        color: formData.targetRestaurants === 'all' ? 'white' : '#6b7280',
+                        fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                      }}
+                    >
+                      All Restaurants
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, targetRestaurants: [restaurantId].filter(Boolean) }))}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '8px',
+                        border: Array.isArray(formData.targetRestaurants) ? '2px solid #111827' : '2px solid #e5e7eb',
+                        backgroundColor: Array.isArray(formData.targetRestaurants) ? '#111827' : 'white',
+                        color: Array.isArray(formData.targetRestaurants) ? 'white' : '#6b7280',
+                        fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                      }}
+                    >
+                      Specific
+                    </button>
+                  </div>
+                  {Array.isArray(formData.targetRestaurants) && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {restaurants.map(r => {
+                        const isSelected = (formData.targetRestaurants || []).includes(r.id);
+                        return (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => {
+                              const current = formData.targetRestaurants || [];
+                              const updated = isSelected
+                                ? current.filter(id => id !== r.id)
+                                : [...current, r.id];
+                              if (updated.length > 0) {
+                                setFormData(prev => ({ ...prev, targetRestaurants: updated }));
+                              }
+                            }}
+                            style={{
+                              padding: '6px 12px', borderRadius: '6px',
+                              border: isSelected ? '1.5px solid #111827' : '1.5px solid #d1d5db',
+                              backgroundColor: isSelected ? '#111827' : 'white',
+                              color: isSelected ? 'white' : '#374151',
+                              fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+                            }}
+                          >
+                            {r.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
