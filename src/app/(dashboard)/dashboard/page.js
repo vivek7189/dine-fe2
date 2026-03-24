@@ -2265,6 +2265,13 @@ function RestaurantPOSContent() {
             });
             setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Billing completion saved locally. Will sync when online.', show: true });
             setTimeout(() => setNotification(null), 4000);
+            // Show bill summary same as online path
+            setOrderSuccess({
+              orderId: currentOrder.id,
+              dailyOrderId: currentOrder.dailyOrderId,
+              show: true,
+              message: 'Billing Complete! 💳'
+            });
             setCurrentOrder(null);
             setActiveSavedOrderId(null);
             handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || currentOrder.tableNumber) });
@@ -2386,14 +2393,22 @@ function RestaurantPOSContent() {
               restaurantId: selectedRestaurant.id,
               paymentStatus: 'completed'
             };
+            const offlineIdempotencyKey = generateIdempotencyKey();
             await queueOfflineOrder({
               ...orderData,
               _offlineAction: 'complete_billing_new',
               _paymentData: paymentData,
-              idempotencyKey: generateIdempotencyKey(),
+              idempotencyKey: offlineIdempotencyKey,
             });
             setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Order saved locally. Will sync when online.', show: true });
             setTimeout(() => setNotification(null), 4000);
+            // Show bill summary same as online path
+            setOrderSuccess({
+              orderId: offlineIdempotencyKey,
+              dailyOrderId: null,
+              show: true,
+              message: 'Billing Complete! 💳'
+            });
             handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || selectedTable?.number) });
           } catch (offErr) {
             setNotification({ type: 'error', title: 'Save Failed!', message: 'Could not save billing locally.', show: true });
@@ -3088,6 +3103,7 @@ function RestaurantPOSContent() {
         // OFFLINE PATH: If offline, queue immediately to IndexedDB
         if (!isOnline) {
           try {
+            const cartKotItemsOffline = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' }));
             await queueOfflineOrder(orderData);
             setNotification({
               type: 'success',
@@ -3095,12 +3111,30 @@ function RestaurantPOSContent() {
               message: 'Order saved locally. Will sync automatically when online.',
               show: true
             });
+            // Show KOT summary same as online path
+            setOrderSuccess({
+              orderId: orderData.idempotencyKey || 'offline',
+              dailyOrderId: null,
+              show: true,
+              message: 'Order Placed to Kitchen! 👨‍🍳',
+              kotData: {
+                orderId: orderData.idempotencyKey || 'offline',
+                dailyOrderId: null,
+                items: cartKotItemsOffline,
+                tableNumber: roomNumber ? null : (finalTableNumber || null),
+                roomNumber: roomNumber || null,
+                customerName: customerName || null,
+                orderType,
+                restaurantName: selectedRestaurant?.name || 'Restaurant',
+                specialInstructions: specialInstructions || null
+              }
+            });
             setActiveSavedOrderId(null);
             handleOrderActionComplete({
               keepOrderSuccess: true,
               hasTable: !!(tableNumber || selectedTable?.number)
             });
-            setTimeout(() => setNotification(null), 5000);
+            setTimeout(() => setNotification(null), 4000);
           } catch (offlineErr) {
             console.error('Failed to save offline order:', offlineErr);
             setNotification({
@@ -3123,14 +3157,6 @@ function RestaurantPOSContent() {
         const savedRestaurantName = selectedRestaurant?.name || 'Restaurant';
         const savedSpecialInstructions = specialInstructions || null;
         const savedActiveSavedOrderId = activeSavedOrderId;
-
-        // Show instant success feedback
-        setNotification({
-          type: 'success',
-          title: 'Order Sent to Chef! 👨‍🍳',
-          message: 'Order is being processed...',
-          show: true
-        });
 
         // Clear cart and reset immediately for fast next-order flow
         setActiveSavedOrderId(null);
