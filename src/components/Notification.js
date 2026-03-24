@@ -62,10 +62,10 @@ const Notification = ({ message, type = 'info', duration = 5000, onClose, show =
   };
 
   const colorMap = {
-    success: { bg: '#0a0a0a', accent: '#22c55e', text: '#fafafa', icon: '#22c55e' },
-    error: { bg: '#0a0a0a', accent: '#ef4444', text: '#fafafa', icon: '#ef4444' },
-    warning: { bg: '#0a0a0a', accent: '#f59e0b', text: '#fafafa', icon: '#f59e0b' },
-    info: { bg: '#0a0a0a', accent: '#3b82f6', text: '#fafafa', icon: '#3b82f6' },
+    success: { bg: '#f0fdf4', accent: '#16a34a', text: '#14532d', icon: '#16a34a', shadow: 'rgba(22,163,74,0.15)' },
+    error: { bg: '#fef2f2', accent: '#dc2626', text: '#7f1d1d', icon: '#dc2626', shadow: 'rgba(220,38,38,0.15)' },
+    warning: { bg: '#fffbeb', accent: '#d97706', text: '#78350f', icon: '#d97706', shadow: 'rgba(217,119,6,0.15)' },
+    info: { bg: '#eff6ff', accent: '#2563eb', text: '#1e3a5f', icon: '#2563eb', shadow: 'rgba(37,99,235,0.15)' },
   };
 
   const colors = colorMap[type] || colorMap.info;
@@ -94,7 +94,7 @@ const Notification = ({ message, type = 'info', duration = 5000, onClose, show =
           backgroundColor: colors.bg,
           borderRadius: '8px',
           borderLeft: `3px solid ${colors.accent}`,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+          boxShadow: `0 4px 20px ${colors.shadow}, 0 1px 4px rgba(0,0,0,0.06)`,
           color: colors.text,
           fontSize: '13px',
           fontWeight: 500,

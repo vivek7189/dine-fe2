@@ -2301,7 +2301,7 @@ function RestaurantPOSContent() {
           setNotification({
             type: 'success',
             title: 'Order Completed! 💳',
-            message: `Order #${currentOrder.id.slice(-8).toUpperCase()} has been completed and payment processed.`,
+            message: `Order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)} completed. Payment processed.`,
             show: true
           });
 
@@ -2477,7 +2477,7 @@ function RestaurantPOSContent() {
       setNotification({
         type: 'success',
         title: 'Billing Complete! 💳',
-        message: `Order #${orderId} has been successfully completed and payment processed.`,
+        message: `Order #${orderResponse.order?.dailyOrderId || orderId.slice(-6)} completed. Payment processed.`,
         show: true
       });
 
@@ -3008,7 +3008,7 @@ function RestaurantPOSContent() {
           setNotification({
             type: 'success',
             title: 'Order Updated! ✏️👨‍🍳',
-            message: `Order #${currentOrder.id} has been updated and sent to kitchen with new items.`,
+            message: `Order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)} updated and sent to kitchen.`,
             show: true
           });
 
@@ -3158,6 +3158,26 @@ function RestaurantPOSContent() {
         const savedSpecialInstructions = specialInstructions || null;
         const savedActiveSavedOrderId = activeSavedOrderId;
 
+        // Show KOT summary immediately with processing indicator
+        setOrderSuccess({
+          orderId: null,
+          dailyOrderId: null,
+          show: true,
+          processing: true,
+          message: 'Order Placed to Kitchen! 👨‍🍳',
+          kotData: {
+            orderId: null,
+            dailyOrderId: null,
+            items: cartKotItems,
+            tableNumber: savedTableNumber,
+            roomNumber: savedRoomNumber,
+            customerName: savedCustomerName,
+            orderType,
+            restaurantName: savedRestaurantName,
+            specialInstructions: savedSpecialInstructions
+          }
+        });
+
         // Clear cart and reset immediately for fast next-order flow
         setActiveSavedOrderId(null);
         handleOrderActionComplete({
@@ -3186,11 +3206,12 @@ function RestaurantPOSContent() {
               show: true
             });
 
-            // Show order success with KOT data (now with real IDs)
+            // Update KOT summary with real IDs and remove processing state
             setOrderSuccess({
               orderId: response.order.id,
               dailyOrderId: response.order.dailyOrderId,
               show: true,
+              processing: false,
               message: 'Order Placed to Kitchen! 👨‍🍳',
               kotData: {
                 orderId: response.order.id,
@@ -3222,6 +3243,8 @@ function RestaurantPOSContent() {
           try {
             if (typeof queueOfflineOrder === 'function') {
               await queueOfflineOrder(orderData);
+              // Update summary to show queued instead of processing
+              setOrderSuccess(prev => prev ? { ...prev, processing: false, queued: true } : prev);
               setNotification({
                 type: 'warning',
                 title: 'Order Queued',
@@ -3230,6 +3253,7 @@ function RestaurantPOSContent() {
               });
             } else {
               // Fallback: restore cart for manual retry
+              setOrderSuccess(null);
               setCart(cartBackup);
               localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
               setNotification({
@@ -3241,6 +3265,7 @@ function RestaurantPOSContent() {
             }
           } catch (queueError) {
             console.error('Failed to queue order:', queueError);
+            setOrderSuccess(null);
             setCart(cartBackup);
             localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
             setNotification({
@@ -6183,6 +6208,7 @@ function RestaurantPOSContent() {
             onSaveAsTemplate={saveAsTemplate}
             posSettings={posSettings}
             businessType={selectedRestaurant?.businessType || 'restaurant'}
+            userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
           />
         </div>
                 ) : (
@@ -6247,6 +6273,7 @@ function RestaurantPOSContent() {
                     onDeleteSavedOrder={deleteSavedOrder}
                     posSettings={posSettings}
                     businessType={selectedRestaurant?.businessType || 'restaurant'}
+                    userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
                   />
             )}
           </>

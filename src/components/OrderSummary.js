@@ -24,7 +24,9 @@ import {
   FaExchangeAlt,
   FaTable,
   FaBed,
-  FaStickyNote
+  FaStickyNote,
+  FaTag,
+  FaInfoCircle
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -84,7 +86,8 @@ const OrderSummary = ({
   templates = [],
   onSaveAsTemplate,
   posSettings = {},
-  businessType = 'restaurant'
+  businessType = 'restaurant',
+  userRole = 'waiter'
 }) => {
   // Business-type-aware billing labels
   const billingLabels = {
@@ -130,6 +133,7 @@ const OrderSummary = ({
   const [selectedOfferName, setSelectedOfferName] = useState('');
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
+  const [showDiscountPopup, setShowDiscountPopup] = useState(false);
 
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
@@ -179,6 +183,13 @@ const OrderSummary = ({
 
   // Total discount for display
   const totalDiscountAmount = offerDiscount + getManualDiscountAmount();
+
+  // Discount settings from taxSettings
+  const discountSettings = taxSettings?.discountSettings || {};
+  const discountEnabled = discountSettings.enabled || false;
+  const canEditManualDiscount = discountEnabled &&
+    discountSettings.allowManualDiscount !== false &&
+    (discountSettings.manualDiscountRoles || ['owner']).includes(userRole?.toLowerCase());
 
   // Compute unit price for an item considering variant and selected customizations
   const getItemUnitPrice = (cartItem) => {
@@ -1072,17 +1083,53 @@ const OrderSummary = ({
                   {orderSuccess.message || 'Order Complete! ✅'}
                 </div>
               </div>
+              {/* Processing indicator - shows while API call is in flight */}
+              {orderSuccess.processing && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  padding: '6px 14px', marginBottom: '12px',
+                  backgroundColor: '#fefce8', border: '1px solid #fde68a',
+                  borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#92400e',
+                }}>
+                  <span style={{
+                    width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b',
+                    animation: 'pulse-dot 1.2s ease-in-out infinite',
+                    display: 'inline-block',
+                  }} />
+                  Sending to kitchen...
+                  <style>{`@keyframes pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.75); } }`}</style>
+                </div>
+              )}
+              {/* Queued state - API failed, saved for offline sync */}
+              {!orderSuccess.processing && orderSuccess.queued && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '5px 12px', marginBottom: '12px',
+                  backgroundColor: '#fffbeb', border: '1px solid #fde68a',
+                  borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#92400e',
+                }}>
+                  <FaInfoCircle size={10} />
+                  Queued — will sync when online
+                </div>
+              )}
+              {/* Confirmed state */}
+              {!orderSuccess.processing && !orderSuccess.queued && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '5px 12px', marginBottom: '12px',
+                  backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0',
+                  borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#166534',
+                }}>
+                  <FaCheckCircle size={10} />
+                  Confirmed
+                </div>
+              )}
               {(() => {
                 const isKitchenOrder = orderSuccess?.message?.includes('placed') || orderSuccess?.message?.includes('Updated') || orderSuccess?.message?.includes('Kitchen');
                 return (
                   <>
                     <div style={{ fontSize: '14px', color: '#166534', marginBottom: '12px', fontWeight: '600' }}>
                       {bLabels.billLabel} #{orderSuccess.dailyOrderId ?? orderSuccess.orderId ?? '—'} {isKitchenOrder ? 'sent to kitchen' : 'completed'}
-                      {orderSuccess.orderId && (
-                        <div style={{ fontSize: '11px', color: '#15803d', marginTop: '4px', fontFamily: 'monospace' }}>
-                          ID: {String(orderSuccess.orderId).slice(-8).toUpperCase()}
-                        </div>
-                      )}
                     </div>
                     <div style={{ fontSize: '12px', color: '#166534', marginBottom: '16px' }}>
                       {isKitchenOrder ? 'Your order has been sent to the kitchen for preparation.' : 'Payment processed successfully. Thank you for your order!'}
@@ -1203,6 +1250,12 @@ const OrderSummary = ({
                         <span>Subtotal:</span>
                         <span>{formatCurrency(invoice?.subtotal || 0)}</span>
                       </div>
+                      {((invoice?.totalDiscount || 0) > 0 || (invoice?.discountAmount || 0) > 0 || (invoice?.manualDiscount || 0) > 0) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#16a34a' }}>
+                          <span>Discount{invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span>
+                          <span>-{formatCurrency(invoice?.totalDiscount || ((invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0)))}</span>
+                        </div>
+                      )}
                       {invoice?.taxBreakdown?.map((tax, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
                           <span>{tax.name} ({tax.rate}%)</span>
@@ -1211,7 +1264,7 @@ const OrderSummary = ({
                       ))}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', borderTop: '2px solid #22c55e', paddingTop: '4px', marginTop: '4px' }}>
                         <span>TOTAL:</span>
-                        <span>{formatCurrency((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0))}</span>
+                        <span>{formatCurrency(invoice?.grandTotal || ((invoice?.subtotal || 0) - (invoice?.totalDiscount || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0)))}</span>
                       </div>
                     </div>
                     <div style={{ marginTop: '8px', fontSize: '11px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>{bLabels.footer}</div>
@@ -1233,7 +1286,10 @@ const OrderSummary = ({
                       const currencySymbol = getCurrencySymbol();
                       const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
                       const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${((invoice?.subtotal || 0) + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0)).toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+                      const printTotalDiscount = (invoice?.totalDiscount || 0) || ((invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0));
+                      const discountHtml = printTotalDiscount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Discount${invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span><span>-${currencySymbol}${printTotalDiscount.toFixed(2)}</span></div>` : '';
+                      const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0));
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
@@ -1709,89 +1765,7 @@ const OrderSummary = ({
           flexShrink: 0,
           boxShadow: '0 -4px 12px rgba(0,0,0,0.08)'
         }}>
-          {/* Offers & Discount Section */}
-          <div style={{ padding: '8px 12px 0 12px' }}>
-            {/* Offer Selector */}
-            {activeOffers.length > 0 && (
-              <div style={{ marginBottom: '6px' }}>
-                <select
-                  value={selectedOfferId || ''}
-                  onChange={(e) => {
-                    const offerId = e.target.value;
-                    if (!offerId) {
-                      setSelectedOfferId(null);
-                      setOfferDiscount(0);
-                      setSelectedOfferName('');
-                    } else {
-                      const offer = activeOffers.find(o => (o.id || o._id) === offerId);
-                      if (offer) {
-                        setSelectedOfferId(offerId);
-                        setSelectedOfferName(offer.name);
-                        // Calculate discount client-side (backend will validate)
-                        const sub = getTotalAmount();
-                        if (offer.discountType === 'percentage') {
-                          let disc = (sub * (offer.discountValue || 0)) / 100;
-                          if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
-                          setOfferDiscount(Math.round(disc * 100) / 100);
-                        } else {
-                          setOfferDiscount(Math.min(offer.discountValue || 0, sub));
-                        }
-                      }
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid #e9d5ff',
-                    backgroundColor: '#f5f3ff',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#6d28d9',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="">🏷️ {activeOffers.length} offer{activeOffers.length > 1 ? 's' : ''} available</option>
-                  {activeOffers.map(offer => (
-                    <option key={offer.id || offer._id} value={offer.id || offer._id}>
-                      {offer.name} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : formatCurrency(offer.discountValue)} off)
-                      {offer.schedule?.type === 'recurring' ? ' ⏰' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Manual Discount */}
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
-              <button
-                onClick={() => setManualDiscountTypeState(prev => prev === 'flat' ? 'percentage' : 'flat')}
-                style={{
-                  width: '32px', height: '32px', borderRadius: '6px',
-                  border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6',
-                  fontWeight: '700', fontSize: '14px', color: '#374151',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-              >
-                {manualDiscountTypeState === 'percentage' ? '%' : getCurrencySymbol()}
-              </button>
-              <input
-                type="number"
-                placeholder="Manual discount"
-                value={manualDiscountValue}
-                onChange={(e) => setManualDiscountValue(e.target.value)}
-                style={{
-                  flex: 1, padding: '6px 10px', borderRadius: '6px',
-                  border: '1px solid #e5e7eb', fontSize: '12px', color: '#1f2937'
-                }}
-              />
-              {getManualDiscountAmount() > 0 && (
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#10b981', alignSelf: 'center', whiteSpace: 'nowrap' }}>
-                  -{formatCurrency(getManualDiscountAmount())}
-                </span>
-              )}
-            </div>
-          </div>
+          {/* (Discount controls moved inline with special instructions below) */}
 
           {/* Total - Red bar */}
           <div style={{ padding: '4px 12px 6px 12px' }}>
@@ -1824,22 +1798,115 @@ const OrderSummary = ({
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
             <div style={{ padding: '6px 12px 12px 12px' }}>
-              {/* Customer Information Header with Special Instructions Icon */}
-              <div style={{ marginBottom: '8px' }}>
+              {/* Discount + Special Instructions row */}
+              <div style={{ marginBottom: '6px' }}>
                 <div style={{
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  color: '#1f2937',
-                  marginBottom: '8px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  gap: '5px',
+                  marginBottom: '6px'
                 }}>
-                  <span>{t('dashboard.customerName')}</span>
+                  {/* Discount controls inline */}
+                  {discountEnabled && (
+                    <>
+                      {activeOffers.length > 0 && (
+                        <select
+                          value={selectedOfferId || ''}
+                          onChange={(e) => {
+                            const offerId = e.target.value;
+                            if (!offerId) {
+                              setSelectedOfferId(null);
+                              setOfferDiscount(0);
+                              setSelectedOfferName('');
+                            } else {
+                              const offer = activeOffers.find(o => (o.id || o._id) === offerId);
+                              if (offer) {
+                                setSelectedOfferId(offerId);
+                                setSelectedOfferName(offer.name);
+                                const sub = getTotalAmount();
+                                if (offer.discountType === 'percentage') {
+                                  let disc = (sub * (offer.discountValue || 0)) / 100;
+                                  if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
+                                  setOfferDiscount(Math.round(disc * 100) / 100);
+                                } else {
+                                  setOfferDiscount(Math.min(offer.discountValue || 0, sub));
+                                }
+                              }
+                            }
+                          }}
+                          style={{
+                            flex: '0 1 auto', maxWidth: '110px', padding: '4px 4px', borderRadius: '5px',
+                            border: '1px solid #e9d5ff', backgroundColor: '#f5f3ff',
+                            fontSize: '10px', fontWeight: '600', color: '#6d28d9', cursor: 'pointer'
+                          }}
+                        >
+                          <option value="">Offers ({activeOffers.length})</option>
+                          {activeOffers.map(offer => (
+                            <option key={offer.id || offer._id} value={offer.id || offer._id}>
+                              {offer.name} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : formatCurrency(offer.discountValue)})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {canEditManualDiscount && (
+                        <>
+                          <button
+                            onClick={() => setManualDiscountTypeState(prev => prev === 'flat' ? 'percentage' : 'flat')}
+                            style={{
+                              width: '24px', height: '24px', borderRadius: '5px', flexShrink: 0,
+                              border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6',
+                              fontWeight: '700', fontSize: '11px', color: '#374151',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
+                            }}
+                          >
+                            {manualDiscountTypeState === 'percentage' ? '%' : getCurrencySymbol()}
+                          </button>
+                          <input
+                            type="number"
+                            placeholder="Discount"
+                            value={manualDiscountValue}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              const maxPct = discountSettings.maxDiscountPercent || 100;
+                              const maxAmt = discountSettings.maxDiscountAmount;
+                              if (manualDiscountTypeState === 'percentage' && val > maxPct) return;
+                              if (manualDiscountTypeState === 'flat' && maxAmt && val > maxAmt) return;
+                              setManualDiscountValue(e.target.value);
+                            }}
+                            style={{
+                              width: '110px', flex: '1 1 110px', minWidth: '80px', padding: '4px 6px', borderRadius: '5px',
+                              border: '1px solid #e5e7eb', fontSize: '11px', color: '#1f2937'
+                            }}
+                          />
+                        </>
+                      )}
+                      {totalDiscountAmount > 0 && (
+                        <>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                            -{formatCurrency(totalDiscountAmount)}
+                          </span>
+                          <button
+                            onClick={() => { setManualDiscountValue(''); setSelectedOfferId(null); setOfferDiscount(0); setSelectedOfferName(''); }}
+                            style={{
+                              width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                              border: '1px solid #fecaca', backgroundColor: '#fee2e2',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
+                            }}
+                          >
+                            <FaTimes size={7} style={{ color: '#dc2626' }} />
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Spacer to push special instructions to the right */}
+                  <div style={{ flex: 1 }} />
+
                   {/* Special Instructions Icon Button with Floating Box */}
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <button
-                      onClick={() => setShowInstructionsModal(!showInstructionsModal)}
+                      onClick={() => { setShowInstructionsModal(!showInstructionsModal); setShowDiscountPopup(false); }}
                       title={specialInstructions ? 'Edit kitchen instructions' : 'Add kitchen instructions'}
                       style={{
                         padding: '5px 8px',
@@ -1955,7 +2022,7 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
-                
+
                 {/* Validation states */}
                 {(() => {
                   const mobileDigits = (customerMobile || '').replace(/\D/g, '');

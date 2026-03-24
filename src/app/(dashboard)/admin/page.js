@@ -350,6 +350,129 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               </div>
             </div>
           )}
+
+          {/* Discount Settings */}
+          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaPercentage size={14} />
+              Discount Settings
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 16px 0' }}>
+              Control how discounts work on the billing screen
+            </p>
+
+            {/* Enable Discounts Toggle */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '16px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={taxSettings.discountSettings?.enabled || false}
+                onChange={(e) => setTaxSettings(prev => ({
+                  ...prev,
+                  discountSettings: { ...prev.discountSettings, enabled: e.target.checked }
+                }))}
+                style={{ width: '18px', height: '18px' }}
+              />
+              Enable Discounts on Dashboard
+            </label>
+
+            {taxSettings.discountSettings?.enabled && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                {/* Manual Discount Toggle */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={taxSettings.discountSettings?.allowManualDiscount !== false}
+                    onChange={(e) => setTaxSettings(prev => ({
+                      ...prev,
+                      discountSettings: { ...prev.discountSettings, allowManualDiscount: e.target.checked }
+                    }))}
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  Allow Manual Discount Input
+                </label>
+
+                {/* Roles that can apply manual discount */}
+                {taxSettings.discountSettings?.allowManualDiscount !== false && (
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 8px 0' }}>
+                      Who can apply manual discounts?
+                    </p>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {['owner', 'manager', 'admin', 'cashier', 'waiter'].map(role => {
+                        const roles = taxSettings.discountSettings?.manualDiscountRoles || ['owner'];
+                        const isSelected = roles.includes(role);
+                        return (
+                          <button
+                            key={role}
+                            onClick={() => {
+                              setTaxSettings(prev => {
+                                const current = prev.discountSettings?.manualDiscountRoles || ['owner'];
+                                const updated = isSelected
+                                  ? current.filter(r => r !== role)
+                                  : [...current, role];
+                                return {
+                                  ...prev,
+                                  discountSettings: { ...prev.discountSettings, manualDiscountRoles: updated.length > 0 ? updated : ['owner'] }
+                                };
+                              });
+                            }}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
+                              backgroundColor: isSelected ? '#111827' : 'white',
+                              color: isSelected ? 'white' : '#6b7280',
+                              cursor: 'pointer',
+                              textTransform: 'capitalize',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            {role}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Discount Limits */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max % Discount</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        type="number"
+                        min="1" max="100" step="1"
+                        value={taxSettings.discountSettings?.maxDiscountPercent || 100}
+                        onChange={(e) => setTaxSettings(prev => ({
+                          ...prev,
+                          discountSettings: { ...prev.discountSettings, maxDiscountPercent: parseInt(e.target.value) || 100 }
+                        }))}
+                        style={{ width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#6b7280' }}>%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max Flat Discount</p>
+                    <input
+                      type="number"
+                      min="0" step="1"
+                      placeholder="No limit"
+                      value={taxSettings.discountSettings?.maxDiscountAmount || ''}
+                      onChange={(e) => setTaxSettings(prev => ({
+                        ...prev,
+                        discountSettings: { ...prev.discountSettings, maxDiscountAmount: e.target.value ? parseInt(e.target.value) : null }
+                      }))}
+                      style={{ width: '100px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
