@@ -1113,8 +1113,13 @@ const Login = () => {
               if (restaurantsResponse.ok) {
                 const restaurantsData = await restaurantsResponse.json();
                 if (restaurantsData.restaurants && restaurantsData.restaurants.length > 0) {
-                  localStorage.setItem('selectedRestaurant', JSON.stringify(restaurantsData.restaurants[0]));
-                  localStorage.setItem('selectedRestaurantId', restaurantsData.restaurants[0].id);
+                  // Use user's saved default restaurant, or fall back to first
+                  const defaultId = googleData.user?.defaultRestaurantId;
+                  const defaultRestaurant = defaultId
+                    ? restaurantsData.restaurants.find(r => r.id === defaultId) || restaurantsData.restaurants[0]
+                    : restaurantsData.restaurants[0];
+                  localStorage.setItem('selectedRestaurant', JSON.stringify(defaultRestaurant));
+                  localStorage.setItem('selectedRestaurantId', defaultRestaurant.id);
                 }
               }
             } catch (restaurantError) {

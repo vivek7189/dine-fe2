@@ -1729,8 +1729,8 @@ const MenuManagement = () => {
         let restaurantId = null;
         let restaurant = null;
 
-        // For staff members, use their assigned restaurant
-        if (user.restaurantId) {
+        // For staff members (not owners), use their assigned restaurant
+        if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
           restaurantId = user.restaurantId;
           console.log('👨‍💼 Menu: Staff member - using assigned restaurant:', restaurantId);
           // Set restaurant object for staff
@@ -1746,10 +1746,15 @@ const MenuManagement = () => {
           const restaurantsResponse = await apiClient.getRestaurants();
           if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
             const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
+            const defaultId = restaurantsResponse.defaultRestaurantId;
             const selectedRestaurant = restaurantsResponse.restaurants.find(r => r.id === savedRestaurantId) ||
+                                      (defaultId ? restaurantsResponse.restaurants.find(r => r.id === defaultId) : null) ||
                                       restaurantsResponse.restaurants[0];
             restaurantId = selectedRestaurant.id;
             restaurant = selectedRestaurant;
+            // Sync localStorage
+            localStorage.setItem('selectedRestaurantId', restaurantId);
+            localStorage.setItem('selectedRestaurant', JSON.stringify(selectedRestaurant));
             console.log('✅ Menu: Selected restaurant:', restaurantId);
             setCurrentRestaurant(selectedRestaurant);
           } else {
@@ -1802,7 +1807,7 @@ const MenuManagement = () => {
           const user = JSON.parse(userData);
           let restaurantId = null;
 
-          if (user.restaurantId) {
+          if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
             restaurantId = user.restaurantId;
             // Set restaurant object for staff
             const restaurant = {

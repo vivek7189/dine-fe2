@@ -1856,15 +1856,17 @@ const Admin = () => {
         const response = await apiClient.getRestaurants();
         setRestaurants(response.restaurants || []);
         
-        // Set selected restaurant from localStorage, or first as fallback
+        // Set selected restaurant: localStorage > BE default > first
         if (response.restaurants && response.restaurants.length > 0) {
           var savedId = localStorage.getItem('selectedRestaurantId');
-          var saved = savedId ? response.restaurants.find(function(r) { return r.id === savedId; }) : null;
-          var restaurant = saved || response.restaurants[0];
+          var defaultId = response.defaultRestaurantId;
+          var restaurant = (savedId ? response.restaurants.find(function(r) { return r.id === savedId; }) : null) ||
+                          (defaultId ? response.restaurants.find(function(r) { return r.id === defaultId; }) : null) ||
+                          response.restaurants[0];
           setSelectedRestaurant(restaurant);
           setPosSettings(restaurant.posSettings || {});
           setBusinessType(restaurant.businessType || 'restaurant');
-          // Ensure localStorage is synced
+          // Always sync localStorage with resolved restaurant
           localStorage.setItem('selectedRestaurantId', restaurant.id);
           localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
         }
@@ -1881,28 +1883,16 @@ const Admin = () => {
     fetchRestaurants();
   }, [authorized]);
 
-  // Listen for restaurant changes from navigation
+  // Listen for restaurant changes from navigation dropdown
   useEffect(() => {
     const handleRestaurantChange = (event) => {
-      console.log('🏪 Admin page: Restaurant changed, reloading data', event.detail);
-      // Reload restaurants and update selected restaurant
-      const fetchRestaurants = async () => {
-        try {
-          const response = await apiClient.getRestaurants();
-          setRestaurants(response.restaurants || []);
-          
-          // Update selected restaurant based on localStorage
-          if (response.restaurants && response.restaurants.length > 0) {
-            const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-            const selectedRestaurant = response.restaurants.find(r => r.id === savedRestaurantId) || response.restaurants[0];
-            setSelectedRestaurant(selectedRestaurant);
-          }
-        } catch (error) {
-          console.error('Error reloading restaurants:', error);
-        }
-      };
-
-      fetchRestaurants();
+      console.log('🏪 Admin page: Restaurant changed', event.detail);
+      const { restaurant } = event.detail || {};
+      if (restaurant) {
+        setSelectedRestaurant(restaurant);
+        setPosSettings(restaurant.posSettings || {});
+        setBusinessType(restaurant.businessType || 'restaurant');
+      }
     };
 
     window.addEventListener('restaurantChanged', handleRestaurantChange);
@@ -5239,17 +5229,40 @@ const Admin = () => {
 
             {/* Save Button */}
             <button
-              onClick={function() {
-                // Apply language
-                setLanguage(currentLang);
-                // Apply default restaurant
-                if (selectedRestaurant) {
-                  localStorage.setItem('selectedRestaurantId', selectedRestaurant.id);
-                  localStorage.setItem('selectedRestaurant', JSON.stringify(selectedRestaurant));
-                  window.dispatchEvent(new CustomEvent('restaurantChanged', { detail: { restaurantId: selectedRestaurant.id } }));
+              onClick={async function() {
+                try {
+                  // 1. Save preferences to backend (persists across logins)
+                  await apiClient.updateUserPreferences({
+                    defaultRestaurantId: selectedRestaurant?.id || null,
+                    language: currentLang,
+                  });
+
+                  // 2. Apply language locally
+                  setLanguage(currentLang);
+
+                  // 3. Update localStorage (used by all pages on load)
+                  if (selectedRestaurant) {
+                    localStorage.setItem('selectedRestaurantId', selectedRestaurant.id);
+                    localStorage.setItem('selectedRestaurant', JSON.stringify(selectedRestaurant));
+                    // Also update user object in localStorage with defaultRestaurantId
+                    try {
+                      var userData = JSON.parse(localStorage.getItem('user') || '{}');
+                      userData.defaultRestaurantId = selectedRestaurant.id;
+                      localStorage.setItem('user', JSON.stringify(userData));
+                    } catch (e) {}
+                  }
+
+                  // 4. Dispatch event — Sidebar/Layout update instantly, other pages read localStorage on mount
+                  window.dispatchEvent(new CustomEvent('restaurantChanged', {
+                    detail: { restaurant: selectedRestaurant, restaurantId: selectedRestaurant?.id }
+                  }));
+
+                  // 5. Brief visual feedback
+                  alert('Settings saved successfully!');
+                } catch (err) {
+                  console.error('Failed to save preferences:', err);
+                  alert('Failed to save. Please try again.');
                 }
-                // Refresh the page
-                window.location.reload();
               }}
               style={{
                 width: '100%',

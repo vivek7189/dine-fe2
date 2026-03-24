@@ -743,6 +743,32 @@ class ApiClient {
     });
   }
 
+  // Saved Carts (parked orders & templates — separate from orders, no side effects)
+  async getSavedCarts(restaurantId, type = null) {
+    const query = type ? `?type=${type}` : '';
+    return this.request(`/api/saved-carts/${restaurantId}${query}`);
+  }
+
+  async createSavedCart(cartData) {
+    return this.request('/api/saved-carts', {
+      method: 'POST',
+      body: cartData,
+    });
+  }
+
+  async updateSavedCart(cartId, updateData) {
+    return this.request(`/api/saved-carts/${cartId}`, {
+      method: 'PATCH',
+      body: updateData,
+    });
+  }
+
+  async deleteSavedCart(cartId) {
+    return this.request(`/api/saved-carts/${cartId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Payment endpoints
   async createPayment(orderData) {
     return this.request('/api/payments/create', {
@@ -964,6 +990,13 @@ class ApiClient {
   // User Profile
   async getUserProfile() {
     return this.request('/api/user/profile');
+  }
+
+  async updateUserPreferences(preferences) {
+    return this.request('/api/user/preferences', {
+      method: 'PATCH',
+      body: preferences,
+    });
   }
 
   async staffLogin(loginId, password) {

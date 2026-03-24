@@ -6,6 +6,8 @@ import Pusher from 'pusher-js';
 import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
+import { setCachedData, getCachedData } from '../../../lib/offlineDb';
+import { getAllOfflineOrders } from '../../../lib/offlineDb';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   FaSearch,
@@ -38,7 +40,8 @@ import {
   FaFileInvoice,
   FaDownload,
   FaPrint,
-  FaTrash
+  FaTrash,
+  FaCloudUploadAlt
 } from 'react-icons/fa';
 
 const OrderHistory = () => {
@@ -158,7 +161,9 @@ const OrderHistory = () => {
     return map[s] || (s.charAt(0).toUpperCase() + s.slice(1));
   };
 
-  const getStatusStyle = (status, orderFlow, lastStatus) => {
+  const getStatusStyle = (status, orderFlow, lastStatus, order) => {
+    if (order?._isOffline) return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: `Pending Sync (${order.syncStatus || 'queued'})` };
+    if (order?.syncSource === 'offline') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: `${status === 'completed' ? 'Completed' : 'Confirmed'} (synced offline)` };
     if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing Completed' };
     if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Kitchen' };
     if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Completed' };
@@ -271,12 +276,41 @@ const OrderHistory = () => {
         totalOrders: response.pagination?.totalOrders || filteredOrders.length
       };
       setCachedOrderHistoryData(restaurantId, dataToCache, cacheKey);
+      // Also persist to IndexedDB for offline access
+      setCachedData(`orders_${restaurantId}_${cacheKey}`, dataToCache).catch(() => {});
       console.log('✅ Order history data cached');
 
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setError(t('common.error'));
-      setOrders([]);
+      // Try IndexedDB fallback when offline
+      try {
+        const idbCached = await getCachedData(`orders_${restaurantId}_${cacheKey}`);
+        if (idbCached) {
+          setOrders(idbCached.orders || []);
+          setTotalPages(idbCached.totalPages || 1);
+          setTotalOrders(idbCached.totalOrders || 0);
+          console.log('📦 Loaded order history from IndexedDB cache');
+        } else {
+          // Also show any pending offline orders
+          const offlineOrders = await getAllOfflineOrders();
+          const restaurantOffline = offlineOrders.filter(o => o.orderData?.restaurantId === restaurantId);
+          if (restaurantOffline.length > 0) {
+            const offlineDisplay = restaurantOffline.map(o => ({
+              id: o.idempotencyKey,
+              ...o.orderData,
+              syncStatus: o.syncStatus,
+              _isOffline: true,
+            }));
+            setOrders(offlineDisplay);
+          } else {
+            setError(t('common.error'));
+            setOrders([]);
+          }
+        }
+      } catch (idbErr) {
+        setError(t('common.error'));
+        setOrders([]);
+      }
     } finally {
       setLoading(false);
       setBackgroundLoading(false);
@@ -303,8 +337,8 @@ const OrderHistory = () => {
         let finalRestaurantId = null;
         let finalRestaurant = null;
 
-        // 1. For staff members - use assigned restaurant from user data
-        if (userData.restaurantId) {
+        // 1. For staff members (not owners) - use assigned restaurant from user data
+        if (userData.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(userData.role)) {
           finalRestaurantId = userData.restaurantId;
           finalRestaurant = {
             id: userData.restaurantId,
@@ -312,36 +346,39 @@ const OrderHistory = () => {
           };
           console.log('👨‍💼 OrderHistory: Using staff assigned restaurant:', finalRestaurantId);
         }
-        // 2. For owners - try saved restaurant first
+        // 2. For owners - fetch restaurants from API (includes defaultRestaurantId from BE)
         else {
-          const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-          const savedRestaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+          try {
+            const restaurantsResponse = await apiClient.getRestaurants();
+            if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
+              const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
+              const defaultId = restaurantsResponse.defaultRestaurantId;
 
-          if (savedRestaurantId && savedRestaurant) {
-            finalRestaurantId = savedRestaurantId;
-            finalRestaurant = savedRestaurant;
-            console.log('💾 OrderHistory: Using saved restaurant from localStorage:', finalRestaurantId);
-          }
-          // 3. If no saved restaurant, fetch from API
-          else {
-            console.log('🔄 OrderHistory: No saved restaurant, fetching from API...');
-            try {
-              const restaurantsResponse = await apiClient.getRestaurants();
-              if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
-                const firstRestaurant = restaurantsResponse.restaurants[0];
-                finalRestaurantId = firstRestaurant.id;
-                finalRestaurant = firstRestaurant;
-                console.log('✅ OrderHistory: Using first restaurant from API:', finalRestaurantId);
+              // Priority: localStorage > BE default > first restaurant
+              const resolved = restaurantsResponse.restaurants.find(r => r.id === savedRestaurantId) ||
+                              (defaultId ? restaurantsResponse.restaurants.find(r => r.id === defaultId) : null) ||
+                              restaurantsResponse.restaurants[0];
 
-                // Save to localStorage for future use
-                localStorage.setItem('selectedRestaurantId', finalRestaurantId);
-                localStorage.setItem('selectedRestaurant', JSON.stringify(finalRestaurant));
-              } else {
-                console.warn('⚠️ OrderHistory: No restaurants found in API response');
-              }
-            } catch (error) {
-              console.error('❌ OrderHistory: Error fetching restaurants:', error);
+              finalRestaurantId = resolved.id;
+              finalRestaurant = resolved;
+              console.log('✅ OrderHistory: Using restaurant:', finalRestaurantId, resolved.name);
+
+              // Sync localStorage
+              localStorage.setItem('selectedRestaurantId', finalRestaurantId);
+              localStorage.setItem('selectedRestaurant', JSON.stringify(finalRestaurant));
+            } else {
+              console.warn('⚠️ OrderHistory: No restaurants found in API response');
             }
+          } catch (error) {
+            // Fallback to localStorage if API fails
+            const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
+            const savedRestaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+            if (savedRestaurantId && savedRestaurant) {
+              finalRestaurantId = savedRestaurantId;
+              finalRestaurant = savedRestaurant;
+              console.log('💾 OrderHistory: API failed, using localStorage:', finalRestaurantId);
+            }
+            console.error('❌ OrderHistory: Error fetching restaurants:', error);
           }
         }
 
@@ -382,6 +419,21 @@ const OrderHistory = () => {
       }
     };
     fetchPrintSettings();
+  }, [restaurantId]);
+
+  // Listen for restaurant changes — update state so Pusher reconnects via dependency
+  useEffect(() => {
+    const handleRestaurantChange = (event) => {
+      const newId = event.detail?.restaurantId || localStorage.getItem('selectedRestaurantId');
+      const newRestaurant = event.detail?.restaurant || JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+      if (newId && newId !== restaurantId) {
+        console.log('📡 OrderHistory: Restaurant changed, switching to', newId);
+        setRestaurantId(newId);
+        if (newRestaurant) setRestaurant(newRestaurant);
+      }
+    };
+    window.addEventListener('restaurantChanged', handleRestaurantChange);
+    return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, [restaurantId]);
 
   // Pusher subscription for real-time order updates
@@ -697,7 +749,7 @@ const OrderHistory = () => {
 
   const OrderDetailsModal = ({ order, onClose }) => {
     if (!order) return null;
-    const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus);
+    const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus, order);
     const orderTotal = calculateOrderTotal(order);
     const subtotal = order.items?.reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0) || 0;
     const modalSourceChip = getOrderSourceChip(order);
@@ -1175,7 +1227,7 @@ const OrderHistory = () => {
           ) : (
             <div className="space-y-2.5">
             {orders.map((order) => {
-              const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus);
+              const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus, order);
               const orderTotal = calculateOrderTotal(order);
               const breakdown = getOrderBreakdown(order);
               const itemCount = Array.isArray(order.items) ? order.items.length : 0;
@@ -1202,6 +1254,7 @@ const OrderHistory = () => {
                               className="font-bold text-base text-gray-900 cursor-pointer hover:text-red-600 flex items-center gap-2 transition-colors"
                             >
                               <span>#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
+                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title="Synced from offline" />}
                               <FaCopy className="text-gray-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                           </div>
@@ -1322,6 +1375,7 @@ const OrderHistory = () => {
                             >
                               <span className="text-xs text-gray-500">Order#</span>
                               <span className="text-xs font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
+                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-[10px]" title="Synced from offline" />}
                               <FaCopy className="text-gray-400 text-[10px]" />
                             </div>
                             <div
@@ -1374,11 +1428,12 @@ const OrderHistory = () => {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <h3 className="text-base font-bold text-gray-900">
+                              <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
                                 #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
+                                {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title="Synced from offline" />}
                               </h3>
-                              <span 
-                                className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm" 
+                              <span
+                                className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
                                 style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
                               >
                                 {statusStyle.label}

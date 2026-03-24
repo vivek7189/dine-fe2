@@ -179,7 +179,7 @@ const Hotel = () => {
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
         let finalRestaurantId = null;
 
-        if (userData.restaurantId) {
+        if (userData.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(userData.role)) {
           finalRestaurantId = userData.restaurantId;
         } else {
           const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
@@ -188,7 +188,12 @@ const Hotel = () => {
           } else {
             const restaurantsResponse = await apiClient.getRestaurants();
             if (restaurantsResponse.restaurants?.length > 0) {
-              finalRestaurantId = restaurantsResponse.restaurants[0].id;
+              const defaultId = restaurantsResponse.defaultRestaurantId;
+              const resolved = (defaultId ? restaurantsResponse.restaurants.find(r => r.id === defaultId) : null) ||
+                              restaurantsResponse.restaurants[0];
+              finalRestaurantId = resolved.id;
+              localStorage.setItem('selectedRestaurantId', finalRestaurantId);
+              localStorage.setItem('selectedRestaurant', JSON.stringify(resolved));
             }
           }
         }

@@ -75,8 +75,8 @@ const KitchenOrderTicket = () => {
       const user = JSON.parse(userData);
       let restaurantId = null;
 
-      // For staff members, use their assigned restaurant
-      if (user.restaurantId) {
+      // For staff members (not owners), use their assigned restaurant
+      if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
         restaurantId = user.restaurantId;
         console.log('KOT: Using staff restaurant ID:', restaurantId);
       } 
@@ -92,9 +92,14 @@ const KitchenOrderTicket = () => {
           }
           
           const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-          const selectedRestaurant = restaurants.restaurants.find(r => r.id === savedRestaurantId) || 
+          const defaultId = restaurants.defaultRestaurantId;
+          const selectedRestaurant = restaurants.restaurants.find(r => r.id === savedRestaurantId) ||
+                                    (defaultId ? restaurants.restaurants.find(r => r.id === defaultId) : null) ||
                                     restaurants.restaurants[0];
           restaurantId = selectedRestaurant.id;
+          // Sync localStorage
+          localStorage.setItem('selectedRestaurantId', restaurantId);
+          localStorage.setItem('selectedRestaurant', JSON.stringify(selectedRestaurant));
           setCurrentRestaurant(selectedRestaurant);
           console.log('KOT: Using selected restaurant:', selectedRestaurant);
         } catch (error) {
@@ -203,32 +208,35 @@ const KitchenOrderTicket = () => {
     loadKotDataRef.current = loadKotData;
   }, [loadKotData]);
 
-  // Initial load and Pusher subscription for real-time updates
-  useEffect(() => {
-    // Prevent multiple initial loads
-    if (initialDataLoadedRef.current) {
-      console.log('⏭️ Initial KOT data already loaded, skipping...');
-      return;
-    }
-
-    console.log('🚀 KOT page useEffect - setting up Pusher');
-    initialDataLoadedRef.current = true;
-    loadKotData(true, true); // Use cache for instant load
-
-    // Get restaurant ID for Pusher channel subscription
+  // Helper: get the correct restaurant ID for Pusher
+  const getRestaurantIdForPusher = useCallback(() => {
     const userData = localStorage.getItem('user');
-    if (!userData) return;
-
+    if (!userData) return null;
     const user = JSON.parse(userData);
-    let restaurantId = user.restaurantId || user.restaurant?.id;
+    // Staff: use assigned restaurant
+    if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
+      return user.restaurantId;
+    }
+    // Owner/admin: use selected restaurant from localStorage
+    return localStorage.getItem('selectedRestaurantId') || null;
+  }, []);
 
-    if (!restaurantId) {
-      // Try to get from localStorage for owners
-      restaurantId = localStorage.getItem('selectedRestaurantId');
+  // Helper: setup Pusher subscription for a restaurant
+  const setupPusher = useCallback((restaurantId) => {
+    // Cleanup existing connection
+    if (channelRef.current) {
+      channelRef.current.unbind_all();
+    }
+    if (pusherRef.current) {
+      if (channelRef.current) {
+        pusherRef.current.unsubscribe(channelRef.current.name);
+      }
+      pusherRef.current.disconnect();
     }
 
     if (!restaurantId) {
       console.log('⚠️ No restaurant ID available for Pusher subscription');
+      setIsPollingActive(false);
       return;
     }
 
@@ -256,38 +264,58 @@ const KitchenOrderTicket = () => {
     channelRef.current.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
     channelRef.current.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
     channelRef.current.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
+  }, []);
 
-    // Cleanup on unmount
+  // Initial load and Pusher subscription
+  useEffect(() => {
+    if (initialDataLoadedRef.current) {
+      console.log('⏭️ Initial KOT data already loaded, skipping...');
+      return;
+    }
+
+    console.log('🚀 KOT page useEffect - setting up Pusher');
+    initialDataLoadedRef.current = true;
+    loadKotData(true, true);
+
+    const restaurantId = getRestaurantIdForPusher();
+    setupPusher(restaurantId);
+
     return () => {
-      console.log(`📡 Pusher: KOT unsubscribing from channel '${channelName}'`);
       if (channelRef.current) {
         channelRef.current.unbind_all();
       }
       if (pusherRef.current) {
-        pusherRef.current.unsubscribe(channelName);
+        if (channelRef.current) {
+          pusherRef.current.unsubscribe(channelRef.current.name);
+        }
         pusherRef.current.disconnect();
       }
       setIsPollingActive(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []);
 
-  // Listen for restaurant changes from navigation
+  // Listen for restaurant changes — reload data AND reconnect Pusher
   useEffect(() => {
     const handleRestaurantChange = (event) => {
-      console.log('KOT: Restaurant changed, reloading data', event.detail);
-      initialDataLoadedRef.current = false; // Reset to allow reload
-      loadKotData(true, true); // Reload with cache
+      console.log('KOT: Restaurant changed, reloading data and reconnecting Pusher', event.detail);
+      initialDataLoadedRef.current = false;
+      loadKotData(true, true);
+
+      // Reconnect Pusher to new restaurant channel
+      const newRestaurantId = event.detail?.restaurantId || localStorage.getItem('selectedRestaurantId');
+      if (newRestaurantId) {
+        setupPusher(newRestaurantId);
+      }
     };
 
-    // Listen for custom restaurant change events
     window.addEventListener('restaurantChanged', handleRestaurantChange);
 
     return () => {
       window.removeEventListener('restaurantChanged', handleRestaurantChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only set up listener once
+  }, [setupPusher]);
 
   // Cleanup on route changes to prevent memory leaks
   useEffect(() => {

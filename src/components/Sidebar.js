@@ -150,7 +150,7 @@ export default function Sidebar({ isDashboardPage = false }) {
           }
         }
 
-        if (parsedUser.restaurantId) {
+        if (parsedUser.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(parsedUser.role)) {
           if (parsedUser.restaurant) {
             setSelectedRestaurant(parsedUser.restaurant);
           }
@@ -169,8 +169,14 @@ export default function Sidebar({ isDashboardPage = false }) {
               if (data.restaurants && data.restaurants.length > 0) {
                 setAllRestaurants(data.restaurants);
                 const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-                const saved = data.restaurants.find(r => r.id === savedRestaurantId);
-                setSelectedRestaurant(saved || data.restaurants[0]);
+                const defaultId = data.defaultRestaurantId;
+                const resolved = data.restaurants.find(r => r.id === savedRestaurantId) ||
+                                (defaultId ? data.restaurants.find(r => r.id === defaultId) : null) ||
+                                data.restaurants[0];
+                setSelectedRestaurant(resolved);
+                // Sync localStorage
+                localStorage.setItem('selectedRestaurantId', resolved.id);
+                localStorage.setItem('selectedRestaurant', JSON.stringify(resolved));
               }
             }
           } catch (error) {

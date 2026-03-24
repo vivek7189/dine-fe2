@@ -292,7 +292,7 @@ const TableManagement = () => {
       const restaurantsResponse = await apiClient.getRestaurants();
       const restaurants = restaurantsResponse.restaurants || [];
       let restaurant = null;
-      if (user?.restaurantId) {
+      if (user?.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
         restaurant = restaurants.find(r => r.id === user.restaurantId);
       } else if (restaurants.length > 0) {
         const savedRestaurantId = localStorage.getItem('selectedRestaurantId');

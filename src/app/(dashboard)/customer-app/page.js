@@ -126,8 +126,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
         // Try to get from user object in localStorage (same pattern as orderhistory page)
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
 
-        // 1. For staff members - use assigned restaurant from user data
-        if (userData.restaurantId) {
+        // 1. For staff members (not owners) - use assigned restaurant from user data
+        if (userData.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(userData.role)) {
           id = userData.restaurantId;
         }
         // 2. For owners - check user.restaurant.id

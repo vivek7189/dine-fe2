@@ -324,13 +324,15 @@ function NavigationContent({ isHidden = false }) {
 
                 // Check if there's a previously selected restaurant in localStorage
                 const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-                const savedRestaurant = data.restaurants.find(r => r.id === savedRestaurantId);
+                const defaultId = data.defaultRestaurantId;
+                const resolved = data.restaurants.find(r => r.id === savedRestaurantId) ||
+                                (defaultId ? data.restaurants.find(r => r.id === defaultId) : null) ||
+                                data.restaurants[0];
 
-                // Use saved restaurant or default to first one
-                setSelectedRestaurant(savedRestaurant || data.restaurants[0]);
-                if (!savedRestaurant) {
-                  localStorage.setItem('selectedRestaurantId', data.restaurants[0].id);
-                }
+                setSelectedRestaurant(resolved);
+                // Sync localStorage
+                localStorage.setItem('selectedRestaurantId', resolved.id);
+                localStorage.setItem('selectedRestaurant', JSON.stringify(resolved));
               }
             }
           } catch (error) {

@@ -80,6 +80,9 @@ const OrderSummary = ({
   deletingSavedOrderId = null,
   onLoadSavedOrder,
   onDeleteSavedOrder,
+  // Templates props
+  templates = [],
+  onSaveAsTemplate,
   posSettings = {},
   businessType = 'restaurant'
 }) => {
@@ -895,7 +898,7 @@ const OrderSummary = ({
                     if (onLoadSavedOrder) onLoadSavedOrder(order.id);
                   }
                 }}
-                title={`Load saved order #${order.dailyOrderId || order.id.slice(-4).toUpperCase()}${order.tableNumber ? ` - Table ${order.tableNumber}` : ''}`}
+                title={`Load: ${order.name || order.id.slice(-4).toUpperCase()}${order.tableNumber ? ` - Table ${order.tableNumber}` : ''}`}
               >
                 {loadingSavedOrderId === order.id ? (
                   <FaSpinner size={8} style={{ animation: 'spin 1s linear infinite', color: '#ea580c' }} />
@@ -905,7 +908,7 @@ const OrderSummary = ({
                     fontWeight: '600',
                     color: activeSavedOrderId === order.id ? '#ffffff' : '#9a3412'
                   }}>
-                    #{order.dailyOrderId || order.id.slice(-4).toUpperCase()}
+                    {order.name || `#${order.dailyOrderId || order.id.slice(-4).toUpperCase()}`}
                   </span>
                 )}
                 <button
@@ -940,11 +943,88 @@ const OrderSummary = ({
           </div>
         )}
 
+        {/* Templates row */}
+        {templates && templates.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 0',
+            marginBottom: '8px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            borderBottom: '1px solid #f3f4f6'
+          }} className="hide-scrollbar">
+            <span style={{
+              fontSize: '10px',
+              fontWeight: '600',
+              color: '#6b7280',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}>
+              <FaUtensils size={8} style={{ marginRight: '3px', display: 'inline' }} />
+              Quick:
+            </span>
+            {templates.map((tpl) => (
+              <div
+                key={tpl.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0,
+                }}
+                onClick={() => {
+                  if (onLoadSavedOrder) onLoadSavedOrder(tpl.id);
+                }}
+                title={`Load template: ${tpl.name}`}
+              >
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  color: '#15803d'
+                }}>
+                  {tpl.name}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDeleteSavedOrder) onDeleteSavedOrder(tpl.id);
+                  }}
+                  style={{
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: '#fee2e2',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                  }}
+                  title="Delete template"
+                >
+                  <FaTimes size={6} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {shouldShowOrderSummary() ? (
           <div style={{ padding: '8px 0', paddingTop: '12px' }}>
-            <div style={{ 
-              padding: '16px', 
-              backgroundColor: '#dcfce7', 
+            <div style={{
+              padding: '16px',
+              backgroundColor: '#dcfce7',
               border: '2px solid #22c55e',
               borderRadius: '12px',
               textAlign: 'center',
@@ -2185,7 +2265,7 @@ const OrderSummary = ({
           )}
 
           {/* First Row - Save and Place Order (hidden in billing mode) */}
-          {!billingMode && (!posSettings.hideSaveOrder || !posSettings.hidePlaceOrder) && (
+          {!billingMode && (
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               {!posSettings.hideSaveOrder && <button
                 onClick={() => {
@@ -2238,7 +2318,7 @@ const OrderSummary = ({
                 )}
               </button>}
 
-              {!posSettings.hidePlaceOrder && <button
+              <button
                 onClick={() => {
                   if (typeof onPlaceOrder === 'function') {
                     // Pass tax data and special instructions to place order
@@ -2287,7 +2367,7 @@ const OrderSummary = ({
                     {posSettings.placeOrderLabel || t('dashboard.placeOrder')}
                   </>
                 )}
-              </button>}
+              </button>
             </div>
           )}
 

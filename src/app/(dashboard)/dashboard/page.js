@@ -61,12 +61,17 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import IntelligentChatbot from '../../../components/IntelligentChatbot';
 import RAGInitializer from '../../../components/RAGInitializer';
 import { getCachedDashboardData, setCachedDashboardData } from '../../../utils/dashboardCache';
+import { useSyncEngine } from '../../../hooks/useSyncEngine';
+import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 
 function RestaurantPOSContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isLoading } = useLoading();
-  
+
+  // Offline sync engine
+  const { pendingCount, isOnline, isSyncing, lastSyncEvent, networkTransition, clearTransition, manualSync, queueOfflineOrder, generateIdempotencyKey } = useSyncEngine(apiClient);
+
   // Core state
   const [selectedCategory, setSelectedCategory] = useState('all-items');
   const [cart, setCart] = useState([]);
@@ -564,9 +569,11 @@ function RestaurantPOSContent() {
       console.log('🏛️ Loading tax settings for restaurant:', restaurantId);
       const taxSettingsResponse = await apiClient.getTaxSettings(restaurantId);
       console.log('🏛️ Tax settings response:', taxSettingsResponse);
-      
+
       if (taxSettingsResponse.success) {
         setTaxSettings(taxSettingsResponse.taxSettings);
+        // Cache in IndexedDB for offline use
+        setCachedData(`tax_${restaurantId}`, taxSettingsResponse.taxSettings).catch(() => {});
         console.log('🏛️ Tax settings loaded and cached:', taxSettingsResponse.taxSettings);
       } else {
         console.log('🏛️ No tax settings found for restaurant');
@@ -574,7 +581,14 @@ function RestaurantPOSContent() {
       }
     } catch (error) {
       console.error('🏛️ Error loading tax settings:', error);
-      setTaxSettings(null);
+      // Try IndexedDB fallback
+      const cachedTax = await getCachedData(`tax_${restaurantId}`).catch(() => null);
+      if (cachedTax) {
+        setTaxSettings(cachedTax);
+        console.log('🏛️ Loaded tax settings from offline cache');
+      } else {
+        setTaxSettings(null);
+      }
     }
   }, []);
 
@@ -644,8 +658,8 @@ function RestaurantPOSContent() {
       
       let restaurant = null;
       
-      // For staff members, use their assigned restaurant
-      if (user?.restaurantId) {
+      // For staff members (not owners), use their assigned restaurant
+      if (user?.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
         // First try to use restaurant data from login response
         if (user.restaurant) {
           restaurant = user.restaurant;
@@ -653,17 +667,21 @@ function RestaurantPOSContent() {
           // Fallback to finding restaurant in the list
         restaurant = restaurantsResponse.restaurants.find(r => r.id === user.restaurantId);
         }
+        console.log('👨‍💼 Dashboard: Using staff assigned restaurant:', restaurant?.id);
       }
-      // For owners or customers (legacy), use selected restaurant from localStorage or first restaurant
+      // For owners or customers, use selected restaurant from localStorage or defaultRestaurantId from API
       else if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
         const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
-        restaurant = restaurantsResponse.restaurants.find(r => r.id === savedRestaurantId) || 
+        const defaultId = restaurantsResponse.defaultRestaurantId;
+        console.log('🔍 Dashboard: Resolving restaurant — localStorage:', savedRestaurantId, 'BE default:', defaultId);
+        restaurant = restaurantsResponse.restaurants.find(r => r.id === savedRestaurantId) ||
+                    (defaultId ? restaurantsResponse.restaurants.find(r => r.id === defaultId) : null) ||
                     restaurantsResponse.restaurants[0];
-        
-        // Save the selected restaurant ID if not already saved
-        if (!savedRestaurantId) {
-          localStorage.setItem('selectedRestaurantId', restaurant.id);
-        }
+        console.log('✅ Dashboard: Resolved to:', restaurant.id, restaurant.name);
+
+        // Always sync localStorage with the resolved restaurant
+        localStorage.setItem('selectedRestaurantId', restaurant.id);
+        localStorage.setItem('selectedRestaurant', JSON.stringify(restaurant));
       }
       
       if (restaurant) {
@@ -733,7 +751,9 @@ function RestaurantPOSContent() {
               tablesData: freshTablesData
             };
             setCachedDashboardData(restaurant.id, dataToCache);
-            
+            // Also persist to IndexedDB for deeper offline support
+            setCachedData(`dashboard_${restaurant.id}`, dataToCache).catch(() => {});
+
             console.log('✅ Fresh data loaded and cached');
           } catch (error) {
             console.error('Error fetching fresh data:', error);
@@ -750,11 +770,25 @@ function RestaurantPOSContent() {
           // Fetch fresh data in background without blocking
           fetchFreshData();
         } else {
-          // No cache, fetch normally
-          const [menuResponse, floorsResponse] = await Promise.all([
-            apiClient.getMenu(restaurant.id).catch(() => ({ menuItems: [] })),
-            apiClient.getFloors(restaurant.id).catch(() => ({ floors: [] }))
-          ]);
+          // No localStorage cache — try API, fallback to IndexedDB if offline
+          let menuResponse, floorsResponse;
+          try {
+            [menuResponse, floorsResponse] = await Promise.all([
+              apiClient.getMenu(restaurant.id),
+              apiClient.getFloors(restaurant.id)
+            ]);
+          } catch (fetchErr) {
+            console.warn('API fetch failed, trying IndexedDB cache:', fetchErr.message);
+            const idbCached = await getCachedData(`dashboard_${restaurant.id}`).catch(() => null);
+            if (idbCached) {
+              menuResponse = { menuItems: idbCached.menuItems || [] };
+              floorsResponse = { floors: idbCached.floors || [] };
+              console.log('📦 Loaded data from IndexedDB offline cache');
+            } else {
+              menuResponse = { menuItems: [] };
+              floorsResponse = { floors: [] };
+            }
+          }
           
           const fetchedMenuItems = menuResponse.menuItems || [];
           const fetchedFloors = floorsResponse.floors || floorsResponse || [];
@@ -784,7 +818,9 @@ function RestaurantPOSContent() {
             tablesData: tablesDataToCache
           };
           setCachedDashboardData(restaurant.id, dataToCache);
-          
+          // Also persist to IndexedDB for deeper offline support
+          setCachedData(`dashboard_${restaurant.id}`, dataToCache).catch(() => {});
+
         console.log('✅ Restaurant data loaded successfully');
         }
       } else {
@@ -2426,45 +2462,48 @@ function RestaurantPOSContent() {
   };
 
   // Fetch saved orders (saved status) for quick access chips
+  // Fetch parked carts from saved_carts collection (not orders)
   const fetchSavedOrders = useCallback(async () => {
     if (!selectedRestaurant?.id) return;
 
     try {
       setLoadingSavedOrders(true);
-      const response = await apiClient.getOrders(selectedRestaurant.id, { status: 'saved', limit: 20 });
-      console.log('📋 Fetched saved orders:', response);
-      if (response.orders && Array.isArray(response.orders)) {
-        // Filter out orders older than 24 hours (client-side safety net)
-        const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
-        const fresh = response.orders.filter(order => {
-          // Handle Firestore timestamp objects ({ _seconds, _nanoseconds }) and ISO strings
-          const ts = order.createdAt;
-          const ms = ts?._seconds ? ts._seconds * 1000
-            : ts?.seconds ? ts.seconds * 1000
-            : new Date(ts).getTime();
-          return !isNaN(ms) && ms >= twentyFourHoursAgo;
-        });
-        // Sort by creation date, newest first
-        const sorted = fresh.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setSavedOrders(sorted.slice(0, 10)); // Keep only the 10 most recent
-        console.log('📋 Saved orders set:', sorted.slice(0, 10));
+      const response = await apiClient.getSavedCarts(selectedRestaurant.id, 'parked');
+      console.log('📋 Fetched saved carts:', response);
+      if (response.carts && Array.isArray(response.carts)) {
+        setSavedOrders(response.carts.slice(0, 10));
       } else {
         setSavedOrders([]);
       }
     } catch (error) {
-      console.error('Error fetching saved orders:', error);
+      console.error('Error fetching saved carts:', error);
       setSavedOrders([]);
     } finally {
       setLoadingSavedOrders(false);
     }
   }, [selectedRestaurant?.id]);
 
-  // Fetch saved orders when restaurant changes
+  // Fetch templates (reusable saved carts)
+  const [templates, setTemplates] = useState([]);
+  const fetchTemplates = useCallback(async () => {
+    if (!selectedRestaurant?.id) return;
+    try {
+      const response = await apiClient.getSavedCarts(selectedRestaurant.id, 'template');
+      if (response.carts && Array.isArray(response.carts)) {
+        setTemplates(response.carts);
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  }, [selectedRestaurant?.id]);
+
+  // Fetch saved carts and templates when restaurant changes
   useEffect(() => {
     if (selectedRestaurant?.id) {
       fetchSavedOrders();
+      fetchTemplates();
     }
-  }, [selectedRestaurant?.id, fetchSavedOrders]);
+  }, [selectedRestaurant?.id, fetchSavedOrders, fetchTemplates]);
 
   // Load a saved order into the cart and form fields
   const loadSavedOrder = (orderId) => {
@@ -2474,61 +2513,63 @@ function RestaurantPOSContent() {
       setLoadingSavedOrderId(orderId);
       setIsLoadingOrder(true);
 
-      // Find order from savedOrders array (already fetched)
-      const order = savedOrders.find(o => o.id === orderId);
+      // Find cart from savedOrders (parked carts) or templates
+      const savedCart = savedOrders.find(o => o.id === orderId) || templates.find(o => o.id === orderId);
 
-      if (!order) {
-        throw new Error('Order not found');
+      if (!savedCart) {
+        throw new Error('Saved cart not found');
       }
+
+      const isTemplate = savedCart.type === 'template';
 
       // Clear current cart first
       setCart([]);
 
-      // Map order items to cart items
-      const cartItems = order.items?.map(item => ({
+      // Map saved cart items to cart items
+      const cartItems = savedCart.items?.map(item => ({
         id: item.menuItemId || item.id,
         name: item.name,
         price: item.price,
         quantity: item.quantity || 1,
         image: item.image || null,
         shortCode: item.shortCode || '',
-        notes: item.notes || ''
+        notes: item.notes || '',
+        selectedVariant: item.selectedVariant || null,
+        selectedCustomizations: item.selectedCustomizations || [],
+        basePrice: item.basePrice || item.price
       })) || [];
 
       setCart(cartItems);
 
-      // Fill customer info
-      if (order.tableNumber) {
-        setTableNumber(order.tableNumber);
-        setManualTableNumber(order.tableNumber);
-        setLocationType('table');
-      } else {
-        setTableNumber('');
-        setManualTableNumber('');
+      // Fill customer info (not for templates — templates are reusable)
+      if (!isTemplate) {
+        if (savedCart.tableNumber) {
+          setTableNumber(savedCart.tableNumber);
+          setManualTableNumber(savedCart.tableNumber);
+          setLocationType('table');
+        } else {
+          setTableNumber('');
+          setManualTableNumber('');
+        }
+        setCustomerName(savedCart.customerInfo?.name || '');
+        setCustomerMobile(savedCart.customerInfo?.phone || '');
       }
-      if (order.roomNumber) {
-        setManualRoomNumber(order.roomNumber);
-        setLocationType('room');
-      } else {
-        setManualRoomNumber('');
+      if (savedCart.orderType) {
+        setOrderType(savedCart.orderType);
       }
-      setCustomerName(order.customerInfo?.name || order.customerName || '');
-      setCustomerMobile(order.customerInfo?.phone || order.customerMobile || '');
-      if (order.orderType) {
-        setOrderType(order.orderType);
-      }
-      if (order.paymentMethod) {
-        setPaymentMethod(order.paymentMethod);
+      if (savedCart.paymentMethod) {
+        setPaymentMethod(savedCart.paymentMethod);
       }
 
-      // Set current order for editing
-      setCurrentOrder(order);
-      setActiveSavedOrderId(orderId);
+      // Do NOT set currentOrder — this is not a real order yet, just a cart
+      // Track the saved cart ID so we can delete it after placement (parked only)
+      setCurrentOrder(null);
+      setActiveSavedOrderId(isTemplate ? null : orderId);
 
       setNotification({
         type: 'success',
-        title: 'Order Loaded! 📋',
-        message: `Order #${order.dailyOrderId || order.id.slice(-6).toUpperCase()} loaded into cart`,
+        title: isTemplate ? 'Template Loaded!' : 'Cart Loaded! 📋',
+        message: `"${savedCart.name}" loaded into cart`,
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -2548,21 +2589,21 @@ function RestaurantPOSContent() {
     }
   };
 
-  // Delete a saved order
-  const deleteSavedOrder = async (orderId) => {
-    if (!orderId) return;
+  // Delete a saved cart (parked or template)
+  const deleteSavedOrder = async (cartId) => {
+    if (!cartId) return;
 
     try {
-      setDeletingSavedOrderId(orderId);
+      setDeletingSavedOrderId(cartId);
 
-      // Update order status to 'deleted' to remove it from saved orders
-      await apiClient.updateOrderStatus(orderId, 'deleted', selectedRestaurant?.id);
+      await apiClient.deleteSavedCart(cartId);
 
-      // Remove from local state
-      setSavedOrders(prev => prev.filter(o => o.id !== orderId));
+      // Remove from local state (check both parked and templates)
+      setSavedOrders(prev => prev.filter(o => o.id !== cartId));
+      setTemplates(prev => prev.filter(o => o.id !== cartId));
 
-      // Clear active order if it was the deleted one
-      if (activeSavedOrderId === orderId) {
+      // Clear active cart if it was the deleted one
+      if (activeSavedOrderId === cartId) {
         setActiveSavedOrderId(null);
         setCurrentOrder(null);
         setCart([]);
@@ -2575,18 +2616,18 @@ function RestaurantPOSContent() {
 
       setNotification({
         type: 'success',
-        title: 'Order Deleted! 🗑️',
-        message: 'Saved order removed',
+        title: 'Deleted!',
+        message: 'Saved cart removed',
         show: true
       });
       setTimeout(() => setNotification(null), 2000);
 
     } catch (error) {
-      console.error('Error deleting saved order:', error);
+      console.error('Error deleting saved cart:', error);
       setNotification({
         type: 'error',
-        title: 'Delete Failed! ❌',
-        message: error.message || 'Failed to delete order',
+        title: 'Delete Failed!',
+        message: error.message || 'Failed to delete cart',
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -2595,6 +2636,7 @@ function RestaurantPOSContent() {
     }
   };
 
+  // Save cart to saved_carts collection (no order created, no side effects)
   const saveOrder = async (taxData = {}) => {
     if (cart.length === 0) {
       setNotification({
@@ -2607,7 +2649,6 @@ function RestaurantPOSContent() {
       return;
     }
 
-    // Check if restaurant is selected
     if (!selectedRestaurant?.id) {
       setNotification({
         type: 'error',
@@ -2619,72 +2660,58 @@ function RestaurantPOSContent() {
       return;
     }
 
-    // Extract tax information and special instructions from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0 } = taxData;
+    const { specialInstructions = null } = taxData;
 
     try {
       setSavingOrder(true);
       setError(null);
 
-      // Determine if this is a room order
       const isRoomOrder = inRoomDiningEnabled && locationType === 'room' ? true : (selectedTable?.isRoom === true);
       const roomNumber = isRoomOrder
         ? (inRoomDiningEnabled && locationType === 'room' ? manualRoomNumber : (selectedTable?.name || tableNumber))
         : null;
       const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
 
-      const orderData = {
-        restaurantId: selectedRestaurant?.id,
-        tableNumber: finalTableNumber || null,
-        roomNumber: roomNumber || null, // NEW: Include room number for hotel orders
+      const tableName = finalTableNumber || roomNumber || '';
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const autoName = tableName ? `T${tableName} - ${timeStr}` : `Cart - ${timeStr}`;
+
+      const cartData = {
+        restaurantId: selectedRestaurant.id,
+        name: autoName,
+        type: 'parked',
         items: cart.map(item => ({
           menuItemId: item.id,
-          quantity: item.quantity,
-          notes: ''
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity || 1,
+          notes: item.notes || '',
+          selectedVariant: item.selectedVariant || null,
+          selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
+          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price
         })),
         customerInfo: {
-          roomNumber: roomNumber || null // NEW: Include room number in customer info
+          name: customerName || null,
+          phone: customerMobile || null,
         },
         orderType,
+        tableNumber: finalTableNumber || null,
         paymentMethod,
-        staffInfo: (() => {
-          const u = JSON.parse(localStorage.getItem('user') || '{}');
-          return {
-            userId: u.id || null,
-            name: u.name || 'Staff',
-            loginId: u.loginId || u.phone || u.id || null,
-            phone: u.phone || null,
-            role: u.role || 'waiter'
-          };
-        })(),
-        // Tax information from OrderSummary
-        totalAmount: subtotal || getTotalAmount(),
-        taxBreakdown: taxBreakdown,
-        taxAmount: totalTax,
-        finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
-        // Discount fields
-        offerIds: offerIds,
-        manualDiscount: manualDiscount,
-        // Special instructions for kitchen
-        specialInstructions: specialInstructions || null,
-        notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
-        status: 'saved' // Save as draft (not sent to KOT yet)
+        notes: specialInstructions || (isRoomOrder ? `Room order for Room ${roomNumber}` : '')
       };
 
-      const response = await apiClient.createOrder(orderData);
-      console.log('📋 Save order response:', response);
+      const response = await apiClient.createSavedCart(cartData);
+      console.log('📋 Save cart response:', response);
 
-      if (response.order) {
-        // Show success notification
+      if (response.cart) {
         setNotification({
           type: 'success',
           title: 'Order Saved! 💾',
-          message: `Order #${response.order.dailyOrderId || response.order.id.slice(-6).toUpperCase()} saved successfully`,
+          message: `"${response.cart.name}" saved successfully`,
           show: true
         });
         setTimeout(() => setNotification(null), 3000);
 
-        // Clear cart after saving
         setCart([]);
         setTableNumber('');
         setManualTableNumber('');
@@ -2695,32 +2722,64 @@ function RestaurantPOSContent() {
         setActiveSavedOrderId(null);
         localStorage.removeItem('dine_cart');
 
-        // Refresh saved orders list
         fetchSavedOrders();
       }
     } catch (error) {
-      console.error('Save order error:', error);
-
-      // Extract error message from the API response
-      let errorMessage = 'Failed to save order. Please try again.';
-      if (error.message) {
-        errorMessage = error.message;
-      }
-
-      // Show notification instead of full-page error
+      console.error('Save cart error:', error);
       setNotification({
         type: 'error',
         title: 'Save Failed! ❌',
-        message: errorMessage,
+        message: error.message || 'Failed to save cart. Please try again.',
         show: true
       });
-
-      // Auto-hide notification after 5 seconds
-      setTimeout(() => {
-        setNotification(null);
-      }, 5000);
+      setTimeout(() => setNotification(null), 5000);
     } finally {
       setSavingOrder(false);
+    }
+  };
+
+  // Save current cart as a reusable template
+  const saveAsTemplate = async (templateName) => {
+    if (cart.length === 0 || !selectedRestaurant?.id) return;
+
+    try {
+      const cartData = {
+        restaurantId: selectedRestaurant.id,
+        name: templateName || `Template - ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
+        type: 'template',
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity || 1,
+          notes: item.notes || '',
+          selectedVariant: item.selectedVariant || null,
+          selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
+          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price
+        })),
+        orderType: orderType || 'dine-in',
+      };
+
+      const response = await apiClient.createSavedCart(cartData);
+      if (response.cart) {
+        setNotification({
+          type: 'success',
+          title: 'Template Saved!',
+          message: `"${response.cart.name}" saved as template`,
+          show: true
+        });
+        setTimeout(() => setNotification(null), 3000);
+        fetchTemplates();
+      }
+    } catch (error) {
+      console.error('Save template error:', error);
+      setNotification({
+        type: 'error',
+        title: 'Template Save Failed!',
+        message: error.message || 'Failed to save template.',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 5000);
     }
   };
 
@@ -2868,8 +2927,12 @@ function RestaurantPOSContent() {
           : null;
         const finalTableNumber = !isRoomOrder ? (tableNumber || selectedTable?.number) : null;
 
+        // Generate idempotency key for deduplication (critical for offline sync)
+        const idempotencyKey = typeof generateIdempotencyKey === 'function' ? generateIdempotencyKey() : crypto.randomUUID();
+
         const orderData = {
           restaurantId: selectedRestaurant?.id,
+          idempotencyKey,
           tableNumber: finalTableNumber || null,
           roomNumber: roomNumber || null,
           items: cart.map(item => ({
@@ -2914,63 +2977,147 @@ function RestaurantPOSContent() {
         };
 
         console.log('Creating order with data:', orderData);
-      const response = await apiClient.createOrder(orderData);
-      console.log('Create order response:', response);
 
-        // NOTE: Backend automatically links room orders to hotel check-ins
-        // No need to manually link here to avoid duplicates
-        if (isRoomOrder && roomNumber && response.order) {
-          console.log('🏨 KOT room order created for room:', roomNumber, '- Backend will handle check-in linking');
+        // OFFLINE PATH: If offline, queue immediately to IndexedDB
+        if (!isOnline) {
+          try {
+            await queueOfflineOrder(orderData);
+            setNotification({
+              type: 'info',
+              title: 'Saved Offline 📱',
+              message: 'No internet. Order saved locally and will sync automatically when online.',
+              show: true
+            });
+            setActiveSavedOrderId(null);
+            handleOrderActionComplete({
+              keepOrderSuccess: true,
+              hasTable: !!(tableNumber || selectedTable?.number)
+            });
+            setTimeout(() => setNotification(null), 5000);
+          } catch (offlineErr) {
+            console.error('Failed to save offline order:', offlineErr);
+            setNotification({
+              type: 'error',
+              title: 'Save Failed!',
+              message: 'Could not save order locally. Please try again.',
+              show: true
+            });
+          }
+          setPlacingOrder(false);
+          return;
         }
 
-        if (response.order) {
-          console.log('Updating order status to confirmed...');
-          // Update order status to confirmed (sent to kitchen)
-          await apiClient.updateOrderStatus(response.order.id, 'confirmed', selectedRestaurant?.id);
+        // ONLINE PATH: Optimistic UI - show success immediately, fire API in background
+        const cartBackup = [...cart];
+        const cartKotItems = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' }));
+        const savedTableNumber = roomNumber ? null : (finalTableNumber || null);
+        const savedRoomNumber = roomNumber || null;
+        const savedCustomerName = customerName || null;
+        const savedRestaurantName = selectedRestaurant?.name || 'Restaurant';
+        const savedSpecialInstructions = specialInstructions || null;
+        const savedActiveSavedOrderId = activeSavedOrderId;
 
-          // Note: Table status management is now handled by backend
-          console.log(`🪑 Table ${tableNumber || 'N/A'} - status managed by backend`);
+        // Show instant success feedback
+        setNotification({
+          type: 'success',
+          title: 'Order Sent to Chef! 👨‍🍳',
+          message: 'Order is being processed...',
+          show: true
+        });
 
-          // Background refresh tables so instant switch shows latest state
-          if (tableNumber || selectedTable?.number) {
-            prefetchTables(selectedRestaurant?.id);
-          }
+        // Clear cart and reset immediately for fast next-order flow
+        setActiveSavedOrderId(null);
+        handleOrderActionComplete({
+          keepOrderSuccess: true,
+          hasTable: !!(tableNumber || selectedTable?.number)
+        });
 
-          // Show notification in top-right corner
-          setNotification({
-            type: 'success',
-            title: 'Order Sent to Chef! 👨‍🍳',
-            message: `Order #${response.order.dailyOrderId || response.order.id.slice(-6)} has been placed and sent to the kitchen for preparation.`,
-            show: true
-          });
+        // Fire API call — don't block the UI
+        try {
+          const response = await apiClient.createOrder(orderData);
+          console.log('Create order response:', response);
 
-          // Show order success in the cart area (with kotData for Print KOT)
-          setOrderSuccess({
-            orderId: response.order.id,
-            dailyOrderId: response.order.dailyOrderId,
-            show: true,
-            message: 'Order Placed to Kitchen! 👨‍🍳',
-            kotData: {
+          if (response.order) {
+            console.log(`✅ Order created with status=confirmed. Table ${tableNumber || 'N/A'} managed by backend.`);
+
+            // Background refresh tables
+            if (tableNumber || selectedTable?.number) {
+              prefetchTables(selectedRestaurant?.id);
+            }
+
+            // Update notification with real order ID
+            setNotification({
+              type: 'success',
+              title: 'Order Sent to Chef! 👨‍🍳',
+              message: `Order #${response.order.dailyOrderId || response.order.id.slice(-6)} placed successfully.`,
+              show: true
+            });
+
+            // Show order success with KOT data (now with real IDs)
+            setOrderSuccess({
               orderId: response.order.id,
               dailyOrderId: response.order.dailyOrderId,
-              items: cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' })),
-              tableNumber: roomNumber ? null : (finalTableNumber || null),
-              roomNumber: roomNumber || null,
-              customerName: customerName || null,
-              orderType,
-              restaurantName: selectedRestaurant?.name || 'Restaurant',
-              specialInstructions: specialInstructions || null
-            }
-          });
+              show: true,
+              message: 'Order Placed to Kitchen! 👨‍🍳',
+              kotData: {
+                orderId: response.order.id,
+                dailyOrderId: response.order.dailyOrderId,
+                items: cartKotItems,
+                tableNumber: savedTableNumber,
+                roomNumber: savedRoomNumber,
+                customerName: savedCustomerName,
+                orderType,
+                restaurantName: savedRestaurantName,
+                specialInstructions: savedSpecialInstructions
+              }
+            });
 
-          // Handle navigation after new order placed
-          setActiveSavedOrderId(null); // Clear active saved order since it was placed
-          fetchSavedOrders(); // Refresh saved orders list
-          handleOrderActionComplete({
-            keepOrderSuccess: true,
-            hasTable: !!(tableNumber || selectedTable?.number)
-          });
-          setTimeout(() => setNotification(null), 4000);
+            // Delete the parked cart if this order was loaded from one
+            if (savedActiveSavedOrderId) {
+              apiClient.deleteSavedCart(savedActiveSavedOrderId).catch(err => {
+                console.error('Error deleting placed saved cart (non-blocking):', err);
+              });
+            }
+
+            fetchSavedOrders();
+            setTimeout(() => setNotification(null), 4000);
+          }
+        } catch (apiError) {
+          console.error('Order API call failed, queuing for offline sync:', apiError);
+
+          // Queue for offline sync instead of failing
+          try {
+            if (typeof queueOfflineOrder === 'function') {
+              await queueOfflineOrder(orderData);
+              setNotification({
+                type: 'warning',
+                title: 'Order Queued',
+                message: 'Connection issue. Order saved and will sync automatically when online.',
+                show: true
+              });
+            } else {
+              // Fallback: restore cart for manual retry
+              setCart(cartBackup);
+              localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
+              setNotification({
+                type: 'error',
+                title: 'Order Failed!',
+                message: apiError.message || 'Failed to place order. Your cart has been restored.',
+                show: true
+              });
+            }
+          } catch (queueError) {
+            console.error('Failed to queue order:', queueError);
+            setCart(cartBackup);
+            localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
+            setNotification({
+              type: 'error',
+              title: 'Order Failed!',
+              message: 'Failed to place order. Your cart has been restored.',
+              show: true
+            });
+          }
+          setTimeout(() => setNotification(null), 6000);
         }
       }
     } catch (error) {
@@ -3189,6 +3336,70 @@ function RestaurantPOSContent() {
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
   }, [isFullscreen]);
+
+  // Sync event notifications — only show start + final summary (not per-order)
+  useEffect(() => {
+    if (!lastSyncEvent) return;
+    if (lastSyncEvent.type === 'sync_started') {
+      setNotification({
+        type: 'info',
+        title: 'Syncing Orders...',
+        message: 'Sending offline orders to the server.',
+        show: true
+      });
+      // Don't auto-dismiss — will be replaced by sync_complete
+    } else if (lastSyncEvent.type === 'sync_complete') {
+      if (lastSyncEvent.syncedCount > 0) {
+        setNotification({
+          type: 'success',
+          title: 'All Orders Synced',
+          message: `${lastSyncEvent.syncedCount} offline order${lastSyncEvent.syncedCount > 1 ? 's' : ''} synced successfully.${lastSyncEvent.failedCount > 0 ? ` ${lastSyncEvent.failedCount} failed.` : ''}`,
+          show: true
+        });
+      } else if (lastSyncEvent.failedCount > 0) {
+        setNotification({
+          type: 'error',
+          title: 'Sync Failed',
+          message: `${lastSyncEvent.failedCount} order${lastSyncEvent.failedCount > 1 ? 's' : ''} failed to sync.`,
+          show: true
+        });
+      } else {
+        setNotification(null); // No pending, clear the "Syncing..." notification
+      }
+      setTimeout(() => setNotification(null), 5000);
+    } else if (lastSyncEvent.type === 'failed') {
+      setNotification({
+        type: 'error',
+        title: 'Sync Failed',
+        message: 'An offline order failed to sync after 5 retries.',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 6000);
+    }
+  }, [lastSyncEvent]);
+
+  // Network transition notifications (offline/online)
+  useEffect(() => {
+    if (!networkTransition) return;
+    if (networkTransition === 'went_offline') {
+      setNotification({
+        type: 'error',
+        title: 'You\'re Offline',
+        message: 'No internet connection. Orders will be saved locally.',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 4000);
+    } else if (networkTransition === 'went_online') {
+      setNotification({
+        type: 'success',
+        title: 'Back Online',
+        message: pendingCount > 0 ? `Connected! Syncing ${pendingCount} pending order${pendingCount > 1 ? 's' : ''}...` : 'Internet connection restored.',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 4000);
+    }
+    clearTransition();
+  }, [networkTransition, clearTransition, pendingCount]);
 
   // Show onboarding if needed
   if (showOnboarding) {
@@ -3678,6 +3889,142 @@ function RestaurantPOSContent() {
           </div>
         </div>
       )}
+
+      {/* Network Status Indicator — minimal dot with pulse wave + sync animation */}
+      <style>{`
+        @keyframes livePulseRing {
+          0% { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(2.8); opacity: 0; }
+        }
+        @keyframes livePulseRing2 {
+          0% { transform: scale(1); opacity: 0.3; }
+          100% { transform: scale(3.5); opacity: 0; }
+        }
+        @keyframes syncSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes offlinePulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
+      <div
+        onClick={pendingCount > 0 && isOnline ? manualSync : undefined}
+        style={{
+          position: 'fixed',
+          top: '12px',
+          right: '14px',
+          zIndex: 1001,
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: pendingCount > 0 && isOnline ? 'pointer' : 'default',
+        }}
+        title={isSyncing ? 'Syncing orders...' : pendingCount > 0 ? `${pendingCount} pending orders. Click to sync.` : isOnline ? 'Connected' : 'Offline — orders will save locally'}
+      >
+        {/* SYNCING STATE: spinning ring around dot */}
+        {isSyncing && (
+          <>
+            <div style={{
+              position: 'absolute',
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              border: '2px solid transparent',
+              borderTopColor: '#3b82f6',
+              borderRightColor: '#3b82f6',
+              animation: 'syncSpin 0.8s linear infinite',
+            }} />
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#3b82f6',
+              boxShadow: '0 0 8px rgba(59,130,246,0.6)',
+              position: 'relative',
+              zIndex: 1,
+            }} />
+          </>
+        )}
+        {/* ONLINE STATE: green dot with pulse waves */}
+        {!isSyncing && isOnline && pendingCount === 0 && (
+          <>
+            <div style={{
+              position: 'absolute',
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: '#16a34a',
+              animation: 'livePulseRing 2.5s ease-out infinite',
+            }} />
+            <div style={{
+              position: 'absolute',
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: '#16a34a',
+              animation: 'livePulseRing2 2.5s ease-out infinite 0.5s',
+            }} />
+            <div style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: '#16a34a',
+              boxShadow: '0 0 6px rgba(22,163,106,0.5)',
+              position: 'relative',
+              zIndex: 1,
+            }} />
+          </>
+        )}
+        {/* ONLINE WITH PENDING: amber dot (waiting to sync) */}
+        {!isSyncing && isOnline && pendingCount > 0 && (
+          <div style={{
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            backgroundColor: '#f59e0b',
+            boxShadow: '0 0 8px rgba(245,158,11,0.5)',
+            position: 'relative',
+            zIndex: 1,
+          }} />
+        )}
+        {/* OFFLINE STATE: red pulsing dot */}
+        {!isSyncing && !isOnline && (
+          <div style={{
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            backgroundColor: '#ef4444',
+            boxShadow: '0 0 8px rgba(239,68,68,0.6)',
+            animation: 'offlinePulse 2s ease-in-out infinite',
+            position: 'relative',
+            zIndex: 1,
+          }} />
+        )}
+        {/* Pending count badge */}
+        {pendingCount > 0 && (
+          <span style={{
+            position: 'absolute',
+            top: '-4px',
+            right: '-6px',
+            backgroundColor: isSyncing ? '#3b82f6' : '#f59e0b',
+            color: '#fff',
+            borderRadius: '10px',
+            padding: '0px 4px',
+            fontSize: '8px',
+            fontWeight: '700',
+            zIndex: 2,
+            minWidth: '12px',
+            textAlign: 'center',
+            lineHeight: '14px',
+          }}>
+            {pendingCount}
+          </span>
+        )}
+      </div>
 
       {/* Floating Command Bar - Search & Voice */}
       {!isMobile && viewMode === 'orders' && (
@@ -4371,7 +4718,7 @@ function RestaurantPOSContent() {
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FaUsers size={22} color="#8b5cf6" />
+                  <FaUsers size={22} color="#3b82f6" />
                   <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Customers</span>
                 </div>
               </Link>
@@ -5715,6 +6062,8 @@ function RestaurantPOSContent() {
             deletingSavedOrderId={deletingSavedOrderId}
             onLoadSavedOrder={loadSavedOrder}
             onDeleteSavedOrder={deleteSavedOrder}
+            templates={templates}
+            onSaveAsTemplate={saveAsTemplate}
             posSettings={posSettings}
             businessType={selectedRestaurant?.businessType || 'restaurant'}
           />
