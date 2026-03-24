@@ -40,8 +40,12 @@ export function generateIdempotencyKey() {
 }
 
 /**
- * Queue an order for offline sync.
- * Saves to IndexedDB with syncStatus='pending'.
+ * Queue an action for offline sync.
+ * Supports multiple action types via _offlineAction field:
+ * - 'create_order' (default) → POST /api/orders
+ * - 'create_saved_cart' → POST /api/saved-carts
+ * - 'complete_billing_new' → POST /api/orders + POST /api/payments/verify
+ * - 'complete_billing_existing' → PATCH /api/orders/:id + POST /api/payments/verify
  */
 export async function queueOfflineOrder(orderData) {
   const idempotencyKey = orderData.idempotencyKey || generateIdempotencyKey();
@@ -55,11 +59,72 @@ export async function queueOfflineOrder(orderData) {
   await addSyncLog({
     idempotencyKey,
     action: 'queued',
+    actionType: orderData._offlineAction || 'create_order',
     restaurantId: orderData.restaurantId,
   });
 
   notifyListeners({ type: 'queued', idempotencyKey });
   return idempotencyKey;
+}
+
+/**
+ * Strip internal metadata fields before sending to API.
+ */
+function cleanOrderData(data) {
+  const { _offlineAction, _paymentData, _existingOrderId, ...clean } = data;
+  return clean;
+}
+
+/**
+ * Execute a single offline action based on its type.
+ * Returns { success: true, result } or throws on failure.
+ */
+async function executeOfflineAction(apiClient, orderData) {
+  const action = orderData._offlineAction || 'create_order';
+  const cleanData = cleanOrderData(orderData);
+
+  switch (action) {
+    case 'create_saved_cart': {
+      const response = await apiClient.createSavedCart(cleanData);
+      return { order: response.cart, actionType: action };
+    }
+
+    case 'complete_billing_new': {
+      const response = await apiClient.createOrder(cleanData);
+      if (response.order && orderData._paymentData) {
+        // Fire payment verification with the real order ID from server
+        try {
+          await apiClient.verifyPayment({
+            ...orderData._paymentData,
+            orderId: response.order.id,
+          });
+        } catch (payErr) {
+          console.error('Payment verification failed for offline billing (order created):', payErr);
+          // Order was created successfully — payment can be retried manually
+        }
+      }
+      return { order: response.order, actionType: action };
+    }
+
+    case 'complete_billing_existing': {
+      const orderId = orderData._existingOrderId;
+      const response = await apiClient.updateOrder(orderId, cleanData);
+      if (response.data && orderData._paymentData) {
+        try {
+          await apiClient.verifyPayment(orderData._paymentData);
+        } catch (payErr) {
+          console.error('Payment verification failed for offline billing (order updated):', payErr);
+        }
+      }
+      return { order: response.data || { id: orderId }, actionType: action };
+    }
+
+    case 'create_order':
+    default: {
+      const response = await apiClient.createOrder(cleanData);
+      return { order: response.order, idempotent: response.idempotent, actionType: action };
+    }
+  }
 }
 
 /**
@@ -108,22 +173,24 @@ export async function syncPendingOrders(apiClient) {
       try {
         await updateOrderSyncStatus(order.idempotencyKey, 'syncing');
 
-        const response = await apiClient.createOrder(order.orderData);
+        const result = await executeOfflineAction(apiClient, order.orderData);
 
-        if (response.order) {
+        if (result.order) {
           await deleteOfflineOrder(order.idempotencyKey);
           await addSyncLog({
             idempotencyKey: order.idempotencyKey,
-            action: response.idempotent ? 'synced_idempotent' : 'synced',
-            orderId: response.order.id,
-            dailyOrderId: response.order.dailyOrderId,
+            action: result.idempotent ? 'synced_idempotent' : 'synced',
+            actionType: result.actionType,
+            orderId: result.order.id,
+            dailyOrderId: result.order.dailyOrderId,
           });
           notifyListeners({
             type: 'synced',
             idempotencyKey: order.idempotencyKey,
-            orderId: response.order.id,
-            dailyOrderId: response.order.dailyOrderId,
-            idempotent: response.idempotent || false,
+            actionType: result.actionType,
+            orderId: result.order.id,
+            dailyOrderId: result.order.dailyOrderId,
+            idempotent: result.idempotent || false,
           });
           syncedCount++;
 

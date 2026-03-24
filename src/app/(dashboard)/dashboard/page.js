@@ -2243,6 +2243,39 @@ function RestaurantPOSContent() {
         };
 
         console.log('🔄 Update data for existing order:', updateData);
+
+        // OFFLINE PATH: Queue update + payment for later sync
+        if (!isOnline) {
+          try {
+            const paymentData = {
+              orderId: currentOrder.id,
+              paymentMethod: paymentMethod,
+              amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+              userId: currentUser.id,
+              restaurantId: selectedRestaurant.id,
+              paymentStatus: 'completed'
+            };
+            await queueOfflineOrder({
+              ...updateData,
+              restaurantId: selectedRestaurant.id,
+              _offlineAction: 'complete_billing_existing',
+              _existingOrderId: currentOrder.id,
+              _paymentData: paymentData,
+              idempotencyKey: generateIdempotencyKey(),
+            });
+            setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Billing completion saved locally. Will sync when online.', show: true });
+            setTimeout(() => setNotification(null), 4000);
+            setCurrentOrder(null);
+            setActiveSavedOrderId(null);
+            handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || currentOrder.tableNumber) });
+          } catch (offErr) {
+            setNotification({ type: 'error', title: 'Save Failed!', message: 'Could not save billing locally.', show: true });
+            setTimeout(() => setNotification(null), 4000);
+          }
+          setProcessing(false);
+          return;
+        }
+
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
         
         if (response.data) {
@@ -2341,8 +2374,35 @@ function RestaurantPOSContent() {
       };
 
         console.log('🛒 Creating order with data:', orderData);
-        console.log('🛒 Order data status:', orderData.status);
-        console.log('🛒 Order data staffInfo:', orderData.staffInfo);
+
+        // OFFLINE PATH: Queue order + payment for later sync
+        if (!isOnline) {
+          try {
+            const paymentAmount = finalAmount || (subtotal || getTotalAmount()) + totalTax;
+            const paymentData = {
+              paymentMethod: paymentMethod,
+              amount: paymentAmount,
+              userId: currentUser.id,
+              restaurantId: selectedRestaurant.id,
+              paymentStatus: 'completed'
+            };
+            await queueOfflineOrder({
+              ...orderData,
+              _offlineAction: 'complete_billing_new',
+              _paymentData: paymentData,
+              idempotencyKey: generateIdempotencyKey(),
+            });
+            setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Order saved locally. Will sync when online.', show: true });
+            setTimeout(() => setNotification(null), 4000);
+            handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || selectedTable?.number) });
+          } catch (offErr) {
+            setNotification({ type: 'error', title: 'Save Failed!', message: 'Could not save billing locally.', show: true });
+            setTimeout(() => setNotification(null), 4000);
+          }
+          setProcessing(false);
+          return;
+        }
+
       const orderResponse = await apiClient.createOrder(orderData);
       const orderId = orderResponse.order.id;
         console.log('✅ Order created successfully:', orderId);
@@ -2700,6 +2760,34 @@ function RestaurantPOSContent() {
         notes: specialInstructions || (isRoomOrder ? `Room order for Room ${roomNumber}` : '')
       };
 
+      // OFFLINE PATH: Queue to IndexedDB
+      if (!isOnline) {
+        try {
+          await queueOfflineOrder({
+            ...cartData,
+            _offlineAction: 'create_saved_cart',
+            idempotencyKey: generateIdempotencyKey(),
+          });
+          setNotification({ type: 'success', title: 'Order Saved Offline', message: `"${autoName}" saved locally. Will sync when online.`, show: true });
+          setTimeout(() => setNotification(null), 4000);
+          setCart([]);
+          setTableNumber('');
+          setManualTableNumber('');
+          setManualRoomNumber('');
+          setCustomerName('');
+          setCustomerMobile('');
+          setCurrentOrder(null);
+          setActiveSavedOrderId(null);
+          localStorage.removeItem('dine_cart');
+        } catch (offErr) {
+          setNotification({ type: 'error', title: 'Save Failed!', message: 'Could not save order locally.', show: true });
+          setTimeout(() => setNotification(null), 4000);
+        }
+        setSavingOrder(false);
+        return;
+      }
+
+      // ONLINE PATH
       const response = await apiClient.createSavedCart(cartData);
       console.log('📋 Save cart response:', response);
 
@@ -2726,12 +2814,31 @@ function RestaurantPOSContent() {
       }
     } catch (error) {
       console.error('Save cart error:', error);
-      setNotification({
-        type: 'error',
-        title: 'Save Failed! ❌',
-        message: error.message || 'Failed to save cart. Please try again.',
-        show: true
-      });
+      // Fallback: try to queue offline if API failed
+      try {
+        await queueOfflineOrder({
+          ...cartData,
+          _offlineAction: 'create_saved_cart',
+          idempotencyKey: generateIdempotencyKey(),
+        });
+        setNotification({ type: 'success', title: 'Order Saved Offline', message: 'Connection issue. Saved locally and will sync when online.', show: true });
+        setCart([]);
+        setTableNumber('');
+        setManualTableNumber('');
+        setManualRoomNumber('');
+        setCustomerName('');
+        setCustomerMobile('');
+        setCurrentOrder(null);
+        setActiveSavedOrderId(null);
+        localStorage.removeItem('dine_cart');
+      } catch (qErr) {
+        setNotification({
+          type: 'error',
+          title: 'Save Failed! ❌',
+          message: error.message || 'Failed to save cart. Please try again.',
+          show: true
+        });
+      }
       setTimeout(() => setNotification(null), 5000);
     } finally {
       setSavingOrder(false);

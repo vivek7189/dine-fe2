@@ -163,7 +163,7 @@ const OrderHistory = () => {
 
   const getStatusStyle = (status, orderFlow, lastStatus, order) => {
     if (order?._isOffline) return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: `Pending Sync (${order.syncStatus || 'queued'})` };
-    if (order?.syncSource === 'offline') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: `${status === 'completed' ? 'Completed' : 'Confirmed'} (synced offline)` };
+    // syncSource === 'offline' orders now show their real status — separate "Offline" chip is added in the UI
     if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing Completed' };
     if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Kitchen' };
     if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Completed' };
@@ -1302,6 +1302,11 @@ const OrderHistory = () => {
                                 {sourceChip.label}
                               </span>
                             )}
+                            {order.syncSource === 'offline' && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
+                                <FaCloudUploadAlt className="text-[8px]" /> Offline
+                              </span>
+                            )}
                           </div>
                           <span className="text-xs text-gray-500 font-medium">{order.paymentMethod || 'Cash'}</span>
                         </div>
@@ -1441,6 +1446,11 @@ const OrderHistory = () => {
                               {sourceChip && (
                                 <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
                                   {sourceChip.label}
+                                </span>
+                              )}
+                              {order.syncSource === 'offline' && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
+                                  <FaCloudUploadAlt className="text-[8px]" /> Offline
                                 </span>
                               )}
                             </div>
