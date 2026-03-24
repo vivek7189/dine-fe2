@@ -2983,9 +2983,9 @@ function RestaurantPOSContent() {
           try {
             await queueOfflineOrder(orderData);
             setNotification({
-              type: 'info',
-              title: 'Saved Offline 📱',
-              message: 'No internet. Order saved locally and will sync automatically when online.',
+              type: 'success',
+              title: 'Order Saved Offline',
+              message: 'Order saved locally. Will sync automatically when online.',
               show: true
             });
             setActiveSavedOrderId(null);
@@ -3337,25 +3337,18 @@ function RestaurantPOSContent() {
     };
   }, [isFullscreen]);
 
-  // Sync event notifications — only show start + final summary (not per-order)
+  // Sync event notifications — only show final result (no "syncing..." intermediate)
   useEffect(() => {
     if (!lastSyncEvent) return;
-    if (lastSyncEvent.type === 'sync_started') {
-      setNotification({
-        type: 'info',
-        title: 'Syncing Orders...',
-        message: 'Sending offline orders to the server.',
-        show: true
-      });
-      // Don't auto-dismiss — will be replaced by sync_complete
-    } else if (lastSyncEvent.type === 'sync_complete') {
+    if (lastSyncEvent.type === 'sync_complete') {
       if (lastSyncEvent.syncedCount > 0) {
         setNotification({
           type: 'success',
-          title: 'All Orders Synced',
+          title: 'Orders Synced',
           message: `${lastSyncEvent.syncedCount} offline order${lastSyncEvent.syncedCount > 1 ? 's' : ''} synced successfully.${lastSyncEvent.failedCount > 0 ? ` ${lastSyncEvent.failedCount} failed.` : ''}`,
           show: true
         });
+        setTimeout(() => setNotification(null), 5000);
       } else if (lastSyncEvent.failedCount > 0) {
         setNotification({
           type: 'error',
@@ -3363,10 +3356,8 @@ function RestaurantPOSContent() {
           message: `${lastSyncEvent.failedCount} order${lastSyncEvent.failedCount > 1 ? 's' : ''} failed to sync.`,
           show: true
         });
-      } else {
-        setNotification(null); // No pending, clear the "Syncing..." notification
+        setTimeout(() => setNotification(null), 6000);
       }
-      setTimeout(() => setNotification(null), 5000);
     } else if (lastSyncEvent.type === 'failed') {
       setNotification({
         type: 'error',
@@ -3378,7 +3369,7 @@ function RestaurantPOSContent() {
     }
   }, [lastSyncEvent]);
 
-  // Network transition notifications (offline/online)
+  // Network transition notifications — only show offline (online is indicated by green dot + sync result)
   useEffect(() => {
     if (!networkTransition) return;
     if (networkTransition === 'went_offline') {
@@ -3389,17 +3380,10 @@ function RestaurantPOSContent() {
         show: true
       });
       setTimeout(() => setNotification(null), 4000);
-    } else if (networkTransition === 'went_online') {
-      setNotification({
-        type: 'success',
-        title: 'Back Online',
-        message: pendingCount > 0 ? `Connected! Syncing ${pendingCount} pending order${pendingCount > 1 ? 's' : ''}...` : 'Internet connection restored.',
-        show: true
-      });
-      setTimeout(() => setNotification(null), 4000);
     }
+    // No "Back Online" notification — the green dot returning + "Orders Synced" notification is enough
     clearTransition();
-  }, [networkTransition, clearTransition, pendingCount]);
+  }, [networkTransition, clearTransition]);
 
   // Show onboarding if needed
   if (showOnboarding) {

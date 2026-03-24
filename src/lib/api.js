@@ -1,3 +1,5 @@
+import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 
 class ApiClient {
@@ -98,7 +100,10 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
+      // Report network success — we got a response from the server
+      reportNetworkSuccess();
+
       // Handle non-JSON responses
       let data;
       const contentType = response.headers.get('content-type');
@@ -195,6 +200,10 @@ class ApiClient {
 
       return data;
     } catch (error) {
+      // Network error (fetch itself failed — no response at all)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        reportNetworkFailure();
+      }
       // Only log if it's not a handled error to reduce console noise
       if (error.message && !error.message.includes('not found') && !error.message.includes('failed')) {
         console.error('API Error:', error);

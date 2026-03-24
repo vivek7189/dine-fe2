@@ -2,24 +2,51 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+/**
+ * Network status hook — no polling, no constant pinging.
+ *
+ * Strategy:
+ * 1. Listen to browser online/offline events (fast for most cases)
+ * 2. Expose reportOffline()/reportOnline() for the API client to call
+ *    when requests fail/succeed — this is the real source of truth
+ * 3. When browser says "back online", verify with one ping before trusting
+ *
+ * This avoids constant /health polling while still detecting offline correctly.
+ */
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 
-/**
- * Enhanced network status hook.
- * Uses navigator.onLine as fast signal + active ping to backend every 8s.
- * navigator.onLine is unreliable on Mac (reports true even with WiFi off
- * if other interfaces like Bluetooth exist), so we verify with a real fetch.
- */
+// Global state so multiple hook instances share the same status
+let globalIsOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+let globalListeners = [];
+
+function notifyGlobalListeners() {
+  globalListeners.forEach(fn => fn(globalIsOnline));
+}
+
+// Called by API client when a request fails with network error
+export function reportNetworkFailure() {
+  if (globalIsOnline) {
+    globalIsOnline = false;
+    notifyGlobalListeners();
+  }
+}
+
+// Called by API client when a request succeeds
+export function reportNetworkSuccess() {
+  if (!globalIsOnline) {
+    globalIsOnline = true;
+    notifyGlobalListeners();
+  }
+}
+
 export function useNetworkStatus() {
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  );
+  const [isOnline, setIsOnline] = useState(globalIsOnline);
   const [lastOnlineAt, setLastOnlineAt] = useState(Date.now());
   const [networkTransition, setNetworkTransition] = useState(null);
-  const prevOnlineRef = useRef(typeof navigator !== 'undefined' ? navigator.onLine : true);
-  const pollTimerRef = useRef(null);
+  const prevOnlineRef = useRef(globalIsOnline);
 
-  const updateOnlineStatus = useCallback((online) => {
+  const updateStatus = useCallback((online) => {
     const wasOnline = prevOnlineRef.current;
     if (online !== wasOnline) {
       prevOnlineRef.current = online;
@@ -33,60 +60,51 @@ export function useNetworkStatus() {
     }
   }, []);
 
-  // Active ping — fetch backend health endpoint
-  const pingServer = useCallback(async () => {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4000);
-      const resp = await fetch(`${API_BASE_URL}/api/health`, {
-        method: 'HEAD',
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      return resp.ok;
-    } catch {
-      return false;
-    }
-  }, []);
-
   useEffect(() => {
-    // Fast signal from browser events
-    const handleOnline = () => {
-      // Browser says online — verify with ping before trusting
-      pingServer().then(reachable => {
-        updateOnlineStatus(reachable);
-      });
+    // Subscribe to global status changes (from API client reports)
+    const handleGlobalChange = (online) => {
+      updateStatus(online);
+    };
+    globalListeners.push(handleGlobalChange);
+
+    // Browser events
+    const handleOffline = () => {
+      globalIsOnline = false;
+      updateStatus(false);
     };
 
-    const handleOffline = () => {
-      updateOnlineStatus(false);
+    const handleOnline = async () => {
+      // Browser says online — verify with one ping before trusting
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+        const resp = await fetch(`${API_BASE_URL}/api/health`, {
+          method: 'HEAD',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (resp.ok) {
+          globalIsOnline = true;
+          updateStatus(true);
+        }
+      } catch {
+        // Ping failed — don't trust the browser event
+      }
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Active polling every 8s — the real source of truth
-    const poll = async () => {
-      if (!navigator.onLine) {
-        updateOnlineStatus(false);
-        return;
-      }
-      const reachable = await pingServer();
-      updateOnlineStatus(reachable);
-    };
-
-    // Initial check
-    poll();
-
-    pollTimerRef.current = setInterval(poll, 8000);
+    // Sync with current global state on mount
+    updateStatus(globalIsOnline);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      globalListeners = globalListeners.filter(fn => fn !== handleGlobalChange);
     };
-  }, [updateOnlineStatus, pingServer]);
+  }, [updateStatus]);
 
   const clearTransition = useCallback(() => {
     setNetworkTransition(null);

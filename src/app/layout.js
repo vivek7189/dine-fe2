@@ -64,6 +64,14 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#000000" />
       </head>
       <body className={inter.className} suppressHydrationWarning={true}>
+        {/* Unregister old broken service worker from Serwist */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              registrations.forEach(function(registration) { registration.unregister(); });
+            });
+          }
+        ` }} />
         <LoadingProvider>
           <TokenExtractor />
           {children}

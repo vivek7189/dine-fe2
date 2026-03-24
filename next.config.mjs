@@ -1,10 +1,11 @@
-import withSerwistInit from "@serwist/next";
-
-const withSerwist = withSerwistInit({
-  swSrc: "src/sw.js",
-  swDest: "public/sw.js",
-  disable: process.env.NODE_ENV === "development",
-});
+// Service Worker disabled — Serwist 9.x has unsupported-route-type errors with Next.js 15.5.
+// Offline orders work via IndexedDB (no SW needed). Re-enable when Serwist fixes compatibility.
+// import withSerwistInit from "@serwist/next";
+// const withSerwist = withSerwistInit({
+//   swSrc: "src/sw.js",
+//   swDest: "public/sw.js",
+//   disable: process.env.NODE_ENV === "development",
+// });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -238,4 +239,4 @@ const nextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default nextConfig;
