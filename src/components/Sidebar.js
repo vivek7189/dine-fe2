@@ -23,7 +23,8 @@ import {
   FaMobileAlt,
   FaTag,
   FaCashRegister,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaFileInvoice
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -255,6 +256,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     // --- Tools & Extras ---
     { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'manager'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'manager'] },
+    { id: 'invoice', name: 'Invoice', icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'manager'] },
     // --- Settings (always last) ---
     { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner'] },
     { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'manager', 'waiter', 'employee'] },
@@ -284,7 +286,8 @@ export default function Sidebar({ isDashboardPage = false }) {
         'inventory': 'inventory',
         'kot': 'kot',
         'admin': 'admin',
-        'hotel': 'hotel'
+        'hotel': 'hotel',
+        'invoice': 'invoice'
       };
       const accessKey = accessMap[item.id];
       return accessKey ? pageAccess[accessKey] : false;

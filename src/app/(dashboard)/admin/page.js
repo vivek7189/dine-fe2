@@ -56,7 +56,8 @@ import {
   FaChair,
   FaBoxes,
   FaRobot,
-  FaBuilding
+  FaBuilding,
+  FaFileInvoice
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page
 import dynamic from 'next/dynamic';
@@ -1835,7 +1836,8 @@ const Admin = () => {
       analytics: false,
       inventory: false,
       kot: false,
-      admin: false
+      admin: false,
+      invoice: false
     }
   });
   const [showPassword, setShowPassword] = useState({});
@@ -1946,6 +1948,7 @@ const Admin = () => {
     { id: 'billing', name: 'Billing & Plans', icon: FaCreditCard, description: 'Subscription and billing management', color: '#06b6d4' },
     { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, description: 'AI-powered restaurant tools', color: '#6366f1' },
     { id: 'hotel', name: 'Hotel PMS', icon: FaBuilding, description: 'Hotel property management system', color: '#6366f1' },
+    { id: 'invoice', name: 'Invoice & Billing', icon: FaFileInvoice, description: 'Professional invoicing, quotes, and expense tracking', color: '#0ea5e9' },
   ];
 
   useEffect(() => {
@@ -2473,7 +2476,8 @@ const Admin = () => {
           analytics: false,
           inventory: false,
           kot: false,
-          admin: false
+          admin: false,
+          invoice: false
         }
       });
       setShowAddStaffModal(false);
@@ -3525,7 +3529,8 @@ const Admin = () => {
                             { key: 'analytics', label: 'Analytics', icon: '📊' },
                             { key: 'inventory', label: 'Inventory', icon: '📦' },
                             { key: 'kot', label: 'KOT', icon: '👨‍🍳' },
-                            { key: 'admin', label: 'Admin', icon: '⚙️' }
+                            { key: 'admin', label: 'Admin', icon: '⚙️' },
+                            { key: 'invoice', label: 'Invoice', icon: '🧾' }
                           ].map(({ key, label, icon }) => (
                             <div key={key} style={{ 
                               display: 'flex', 
@@ -4636,7 +4641,8 @@ const Admin = () => {
                     { key: 'analytics', label: t('nav.analytics'), icon: '📊' },
                     { key: 'inventory', label: t('nav.inventory'), icon: '📦' },
                     { key: 'kot', label: t('nav.kot'), icon: '👨‍🍳' },
-                    { key: 'admin', label: t('nav.admin'), icon: '⚙️' }
+                    { key: 'admin', label: t('nav.admin'), icon: '⚙️' },
+                    { key: 'invoice', label: 'Invoice', icon: '🧾' }
                   ].map(({ key, label, icon }) => (
                     <label key={key} style={{ 
                       display: 'flex', 
