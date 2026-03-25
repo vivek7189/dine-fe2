@@ -49,7 +49,14 @@ import {
   FaToggleOff,
   FaSlidersH,
   FaCreditCard,
-  FaTag
+  FaTag,
+  FaCashRegister,
+  FaClipboardList,
+  FaFire,
+  FaChair,
+  FaBoxes,
+  FaRobot,
+  FaBuilding
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page
 import dynamic from 'next/dynamic';
@@ -1922,6 +1929,60 @@ const Admin = () => {
     }
   };
 
+  // Features toggle state
+  const [featureNotAllowed, setFeatureNotAllowed] = useState([]);
+  const [featuresSaving, setFeaturesSaving] = useState(false);
+  const [featuresMessage, setFeaturesMessage] = useState({ type: '', text: '' });
+
+  const featureItems = [
+    { id: 'pos', name: 'POS / Dashboard', icon: FaCashRegister, description: 'Point of sale billing screen', color: '#ef4444' },
+    { id: 'orders', name: 'Order History', icon: FaClipboardList, description: 'View past orders and receipts', color: '#f59e0b' },
+    { id: 'kot', name: 'Kitchen Orders (KOT)', icon: FaFire, description: 'Kitchen order ticket management', color: '#f97316' },
+    { id: 'tables', name: 'Table Management', icon: FaChair, description: 'Manage restaurant tables and seating', color: '#3b82f6' },
+    { id: 'menu', name: 'Menu Management', icon: FaUtensils, description: 'Add, edit and organize menu items', color: '#10b981' },
+    { id: 'inventory', name: 'Inventory', icon: FaBoxes, description: 'Track stock and ingredients', color: '#059669' },
+    { id: 'customers', name: 'Customers', icon: FaUsers, description: 'Customer database and insights', color: '#8b5cf6' },
+    { id: 'shifts', name: 'Shifts', icon: FaCalendarAlt, description: 'Staff shift scheduling', color: '#f97316' },
+    { id: 'billing', name: 'Billing & Plans', icon: FaCreditCard, description: 'Subscription and billing management', color: '#06b6d4' },
+    { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, description: 'AI-powered restaurant tools', color: '#6366f1' },
+    { id: 'hotel', name: 'Hotel PMS', icon: FaBuilding, description: 'Hotel property management system', color: '#6366f1' },
+  ];
+
+  useEffect(() => {
+    if (activeTab === 'features') {
+      (async () => {
+        try {
+          const data = await apiClient.getUserPageAccess();
+          setFeatureNotAllowed(data.notAllowedPages || []);
+        } catch (err) {
+          console.error('Failed to load features:', err);
+        }
+      })();
+    }
+  }, [activeTab]);
+
+  const toggleFeature = (id) => {
+    setFeatureNotAllowed(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+    setFeaturesMessage({ type: '', text: '' });
+  };
+
+  const handleSaveFeatures = async () => {
+    setFeaturesSaving(true);
+    setFeaturesMessage({ type: '', text: '' });
+    try {
+      await apiClient.updateFeatures(featureNotAllowed);
+      localStorage.setItem('navNotAllowedPages', JSON.stringify(featureNotAllowed));
+      window.dispatchEvent(new CustomEvent('featuresUpdated', { detail: { notAllowedPages: featureNotAllowed } }));
+      setFeaturesMessage({ type: 'success', text: 'Features updated! Sidebar refreshed.' });
+    } catch (err) {
+      setFeaturesMessage({ type: 'error', text: err.message || 'Failed to save features' });
+    } finally {
+      setFeaturesSaving(false);
+    }
+  };
+
   const handleSaveDashboardSettings = async () => {
     if (!selectedRestaurant) return;
     setPosSettingsSaving(true);
@@ -1944,6 +2005,7 @@ const Admin = () => {
       { id: 'pricing', label: 'Zone Pricing', icon: FaSlidersH },
       { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
       { id: 'print', label: 'Print Settings', icon: FaPrint },
+      { id: 'features', label: 'Features', icon: FaToggleOn },
     ]},
     { label: 'MANAGE', items: [
       { id: 'restaurants', label: 'Restaurants', icon: FaStore },
@@ -6242,6 +6304,171 @@ const Admin = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Features Toggle Section */}
+      {activeTab === 'features' && (
+        <div>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '24px',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <FaToggleOn size={18} color="white" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Features</h2>
+                <p style={{ color: '#6b7280', margin: '2px 0 0 0', fontSize: '13px' }}>
+                  Enable or disable sidebar navigation items
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveFeatures}
+              disabled={featuresSaving}
+              style={{
+                padding: '10px 24px',
+                background: featuresSaving ? '#e5e7eb' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: featuresSaving ? '#9ca3af' : 'white',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '13px',
+                cursor: featuresSaving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: featuresSaving ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
+                transition: 'all 0.2s'
+              }}
+            >
+              {featuresSaving ? <FaSpinner className="animate-spin" size={12} /> : <FaSave size={12} />}
+              {featuresSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+
+          {/* Message */}
+          {featuresMessage.text && (
+            <div style={{
+              padding: '10px 16px',
+              borderRadius: '10px',
+              marginBottom: '20px',
+              fontSize: '13px',
+              fontWeight: '500',
+              backgroundColor: featuresMessage.type === 'error' ? '#fef2f2' : '#ecfdf5',
+              color: featuresMessage.type === 'error' ? '#dc2626' : '#059669',
+              border: `1px solid ${featuresMessage.type === 'error' ? '#fecaca' : '#a7f3d0'}`
+            }}>
+              {featuresMessage.text}
+            </div>
+          )}
+
+          {/* Feature Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '16px'
+          }}>
+            {featureItems.map((feature) => {
+              const isEnabled = !featureNotAllowed.includes(feature.id);
+              const IconComponent = feature.icon;
+              return (
+                <div
+                  key={feature.id}
+                  onClick={() => toggleFeature(feature.id)}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '14px',
+                    border: `1.5px solid ${isEnabled ? feature.color + '33' : '#e5e7eb'}`,
+                    padding: '20px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    boxShadow: isEnabled ? `0 2px 8px ${feature.color}15` : '0 1px 3px rgba(0,0,0,0.03)',
+                    opacity: isEnabled ? 1 : 0.6
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = isEnabled ? `0 6px 20px ${feature.color}20` : '0 4px 12px rgba(0,0,0,0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = isEnabled ? `0 2px 8px ${feature.color}15` : '0 1px 3px rgba(0,0,0,0.03)';
+                  }}
+                >
+                  {/* Icon */}
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    background: isEnabled ? `linear-gradient(135deg, ${feature.color}, ${feature.color}dd)` : '#f3f4f6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'all 0.2s'
+                  }}>
+                    <IconComponent size={18} color={isEnabled ? 'white' : '#9ca3af'} />
+                  </div>
+                  {/* Text */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: isEnabled ? '#111827' : '#9ca3af',
+                      margin: 0,
+                      marginBottom: '2px',
+                      transition: 'color 0.2s'
+                    }}>
+                      {feature.name}
+                    </h3>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#9ca3af',
+                      margin: 0,
+                      lineHeight: '1.4'
+                    }}>
+                      {feature.description}
+                    </p>
+                  </div>
+                  {/* Toggle */}
+                  <div style={{ flexShrink: 0 }}>
+                    {isEnabled
+                      ? <FaToggleOn size={28} style={{ color: feature.color, transition: 'color 0.2s' }} />
+                      : <FaToggleOff size={28} style={{ color: '#d1d5db', transition: 'color 0.2s' }} />
+                    }
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Info note */}
+          <p style={{
+            fontSize: '12px',
+            color: '#9ca3af',
+            marginTop: '20px',
+            fontStyle: 'italic'
+          }}>
+            Disabled features will be hidden from the sidebar navigation. Home, Admin, and Profile are always visible.
+          </p>
         </div>
       )}
 

@@ -197,7 +197,25 @@ export default function Sidebar({ isDashboardPage = false }) {
       }
     };
     window.addEventListener('restaurantChanged', handleRestaurantSwitch);
-    return () => window.removeEventListener('restaurantChanged', handleRestaurantSwitch);
+
+    // Listen for features toggle updates from admin page
+    const handleFeaturesUpdated = (e) => {
+      const updated = e.detail?.notAllowedPages;
+      if (Array.isArray(updated)) {
+        setNotAllowedPages(updated);
+      } else {
+        try {
+          const cached = localStorage.getItem('navNotAllowedPages');
+          setNotAllowedPages(cached ? JSON.parse(cached) : []);
+        } catch {}
+      }
+    };
+    window.addEventListener('featuresUpdated', handleFeaturesUpdated);
+
+    return () => {
+      window.removeEventListener('restaurantChanged', handleRestaurantSwitch);
+      window.removeEventListener('featuresUpdated', handleFeaturesUpdated);
+    };
   }, []);
 
   const handleNavigation = (href, e) => {

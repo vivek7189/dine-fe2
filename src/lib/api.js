@@ -1058,6 +1058,13 @@ class ApiClient {
     });
   }
 
+  async updateFeatures(notAllowedPages) {
+    return this.request('/api/user/features', {
+      method: 'PATCH',
+      body: { notAllowedPages },
+    });
+  }
+
   // KOT (Kitchen Order Ticket) endpoints
   async getKotOrders(restaurantId, status = null) {
     const query = status ? `?status=${status}` : '';
