@@ -57,7 +57,8 @@ import {
   FaBoxes,
   FaRobot,
   FaBuilding,
-  FaFileInvoice
+  FaFileInvoice,
+  FaLayerGroup
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page
 import dynamic from 'next/dynamic';
@@ -504,14 +505,24 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   );
 };
 
-// Zone Pricing Management Component
+// Pricing Management Component (Multi-Tier + Legacy Zone Pricing)
 const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
   const [pricingSettings, setPricingSettings] = useState({
-    zonePricing: { enabled: false, zones: [] }
+    zonePricing: { enabled: false, zones: [] },
+    multiPricing: { enabled: false, rules: [] }
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showZonePricing, setShowZonePricing] = useState(false);
+  const [floors, setFloors] = useState([]);
   const { formatCurrency } = useCurrency();
+
+  const DEFAULT_RULES = [
+    { id: 'rule_ac_dining', name: 'AC Dining', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 0 },
+    { id: 'rule_non_ac', name: 'Non-AC Dining', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 1 },
+    { id: 'rule_takeaway', name: 'Takeaway', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: false, order: 2 },
+    { id: 'rule_dine_in', name: 'Dine-In', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: false, order: 3 },
+  ];
 
   const loadPricingSettings = async (restaurantId) => {
     if (!restaurantId) return;
@@ -519,8 +530,16 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
     try {
       const response = await apiClient.getPricingSettings(restaurantId);
       if (response.settings) {
-        setPricingSettings(response.settings);
+        setPricingSettings({
+          zonePricing: response.settings.zonePricing || { enabled: false, zones: [] },
+          multiPricing: response.settings.multiPricing || { enabled: false, rules: [] }
+        });
       }
+      // Load floors for table mapping dropdown
+      try {
+        const floorsResponse = await apiClient.getFloors(restaurantId);
+        setFloors(floorsResponse?.floors || floorsResponse || []);
+      } catch { setFloors([]); }
     } catch (error) {
       console.error('Failed to load pricing settings:', error);
     } finally {
@@ -542,41 +561,81 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
     }
   };
 
-  const addZone = () => {
-    const newZone = {
-      id: `zone_${Date.now()}`,
+  // Multi-pricing rule helpers
+  const handleEnableMultiPricing = (checked) => {
+    setPricingSettings(prev => {
+      const currentRules = prev.multiPricing?.rules || [];
+      return {
+        ...prev,
+        multiPricing: {
+          ...prev.multiPricing,
+          enabled: checked,
+          rules: checked && currentRules.length === 0 ? DEFAULT_RULES : currentRules
+        }
+      };
+    });
+  };
+
+  const addCustomRule = () => {
+    const newRule = {
+      id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       name: '',
-      sectionMatch: '',
-      markupType: 'percentage',
-      markupValue: 0,
-      isActive: true
+      type: 'dynamic',
+      defaultMarkupType: 'none',
+      defaultMarkupValue: 0,
+      tableMappings: [],
+      isActive: true,
+      order: (pricingSettings.multiPricing?.rules || []).length
     };
     setPricingSettings(prev => ({
       ...prev,
-      zonePricing: {
-        ...prev.zonePricing,
-        zones: [...(prev.zonePricing?.zones || []), newZone]
+      multiPricing: {
+        ...prev.multiPricing,
+        rules: [...(prev.multiPricing?.rules || []), newRule]
       }
+    }));
+  };
+
+  const updateRule = (index, field, value) => {
+    setPricingSettings(prev => ({
+      ...prev,
+      multiPricing: {
+        ...prev.multiPricing,
+        rules: prev.multiPricing.rules.map((r, i) => i === index ? { ...r, [field]: value } : r)
+      }
+    }));
+  };
+
+  const removeRule = (index) => {
+    setPricingSettings(prev => ({
+      ...prev,
+      multiPricing: {
+        ...prev.multiPricing,
+        rules: prev.multiPricing.rules.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  // Zone pricing helpers
+  const addZone = () => {
+    const newZone = { id: `zone_${Date.now()}`, name: '', sectionMatch: '', markupType: 'percentage', markupValue: 0, isActive: true };
+    setPricingSettings(prev => ({
+      ...prev,
+      zonePricing: { ...prev.zonePricing, zones: [...(prev.zonePricing?.zones || []), newZone] }
     }));
   };
 
   const updateZone = (index, field, value) => {
     setPricingSettings(prev => ({
       ...prev,
-      zonePricing: {
-        ...prev.zonePricing,
-        zones: prev.zonePricing.zones.map((z, i) => i === index ? { ...z, [field]: value } : z)
-      }
+      zonePricing: { ...prev.zonePricing, zones: prev.zonePricing.zones.map((z, i) => i === index ? { ...z, [field]: value } : z) }
     }));
   };
 
   const removeZone = (index) => {
     setPricingSettings(prev => ({
       ...prev,
-      zonePricing: {
-        ...prev.zonePricing,
-        zones: prev.zonePricing.zones.filter((_, i) => i !== index)
-      }
+      zonePricing: { ...prev.zonePricing, zones: prev.zonePricing.zones.filter((_, i) => i !== index) }
     }));
   };
 
@@ -591,10 +650,10 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaSlidersH size={20} />
-          Zone Pricing
+          Pricing Rules
         </h2>
         <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-          Add surcharges based on seating zone (e.g., AC section, VIP lounge)
+          Configure multi-tier pricing (AC/Non-AC/Takeaway) and zone surcharges
         </p>
       </div>
 
@@ -609,13 +668,9 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
               style={{
                 backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontWeight: 500,
-                fontSize: '13px',
+                padding: '6px 14px', borderRadius: '8px', fontWeight: 500, fontSize: '13px',
                 border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
               <FaStore size={12} style={{ marginRight: '6px' }} />
@@ -627,188 +682,251 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
 
       {selectedRestaurant && !loading && (
         <div>
-          {/* Enable/Disable */}
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
-              <input
-                type="checkbox"
-                checked={pricingSettings.zonePricing?.enabled || false}
-                onChange={(e) => setPricingSettings(prev => ({
-                  ...prev,
-                  zonePricing: { ...prev.zonePricing, enabled: e.target.checked }
-                }))}
-                style={{ width: '18px', height: '18px' }}
-              />
-              Enable Zone Pricing
-            </label>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-              When enabled, orders from tables in specific zones will have a surcharge added to the bill automatically.
-            </p>
-          </div>
+          {/* ── Multi-Tier Pricing Section ── */}
+          <div style={{ marginBottom: '32px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={pricingSettings.multiPricing?.enabled || false}
+                  onChange={(e) => handleEnableMultiPricing(e.target.checked)}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                Enable Multi-Tier Pricing
+              </label>
+              <p style={{ color: '#6b7280', fontSize: '13px', margin: 0 }}>
+                Set different prices per menu item for AC Dining, Non-AC Dining, Takeaway, or custom rules. Prices auto-apply based on table mapping or waiter selection.
+              </p>
+            </div>
 
-          {pricingSettings.zonePricing?.enabled && (
-            <div>
-              {/* Zones List */}
-              <div style={{ marginBottom: '24px' }}>
+            {pricingSettings.multiPricing?.enabled && (
+              <div>
+                {/* Rules List */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>Pricing Zones</h3>
+                  <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937', margin: 0 }}>Pricing Rules</h3>
                   <button
-                    onClick={addZone}
+                    onClick={addCustomRule}
                     style={{
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
+                      backgroundColor: '#8b5cf6', color: 'white', padding: '8px 14px', borderRadius: '8px',
+                      fontWeight: '600', fontSize: '13px', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px'
                     }}
                   >
-                    <FaPlus size={12} />
-                    Add Zone
+                    <FaPlus size={11} />
+                    Add Custom Rule
                   </button>
                 </div>
 
-                <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
-                  The &quot;Section Match&quot; field matches against the table&apos;s section or floor name. For example, if your floor is named &quot;AC Hall&quot; and section match is &quot;AC&quot;, all tables on that floor will get the surcharge.
-                </p>
-
-                {(pricingSettings.zonePricing?.zones || []).length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '32px', color: '#9ca3af', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px dashed #d1d5db' }}>
-                    <FaSlidersH size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
-                    <p style={{ margin: 0 }}>No zones configured. Click &quot;Add Zone&quot; to create one.</p>
-                  </div>
-                )}
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {(pricingSettings.zonePricing?.zones || []).map((zone, index) => (
-                    <div key={zone.id} style={{
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '16px'
+                  {(pricingSettings.multiPricing?.rules || []).map((rule, index) => (
+                    <div key={rule.id} style={{
+                      backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px',
+                      opacity: rule.isActive ? 1 : 0.6
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                         <input
                           type="checkbox"
-                          checked={zone.isActive}
-                          onChange={() => updateZone(index, 'isActive', !zone.isActive)}
-                          style={{ width: '18px', height: '18px' }}
+                          checked={rule.isActive}
+                          onChange={() => updateRule(index, 'isActive', !rule.isActive)}
+                          style={{ width: '16px', height: '16px' }}
                         />
-                        <span style={{ fontWeight: '600', color: zone.isActive ? '#1f2937' : '#9ca3af', flex: 1 }}>
-                          {zone.name || 'Unnamed Zone'}
+                        <span style={{
+                          fontWeight: '600', color: rule.isActive ? '#1f2937' : '#9ca3af', flex: 1, fontSize: '14px'
+                        }}>
+                          {rule.name || 'Unnamed Rule'}
+                          {rule.type === 'fixed' && (
+                            <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px', fontWeight: 400 }}>Built-in</span>
+                          )}
                         </span>
-                        <button
-                          onClick={() => removeZone(index)}
-                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                        >
-                          <FaTrash size={14} />
-                        </button>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Zone Name</label>
-                          <input
-                            type="text"
-                            value={zone.name}
-                            onChange={(e) => updateZone(index, 'name', e.target.value)}
-                            placeholder="e.g., AC Section"
-                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Section Match</label>
-                          <input
-                            type="text"
-                            value={zone.sectionMatch}
-                            onChange={(e) => updateZone(index, 'sectionMatch', e.target.value)}
-                            placeholder="e.g., AC"
-                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Markup Type</label>
-                          <select
-                            value={zone.markupType}
-                            onChange={(e) => updateZone(index, 'markupType', e.target.value)}
-                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                        {rule.type === 'dynamic' && (
+                          <button
+                            onClick={() => removeRule(index)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
                           >
-                            <option value="percentage">Percentage (%)</option>
-                            <option value="flat">Flat Amount</option>
-                          </select>
+                            <FaTrash size={13} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Rule Name</label>
+                          <input
+                            type="text"
+                            value={rule.name}
+                            onChange={(e) => updateRule(index, 'name', e.target.value)}
+                            placeholder="e.g., Party Hall"
+                            disabled={rule.type === 'fixed'}
+                            style={{
+                              width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #d1d5db',
+                              fontSize: '13px', boxSizing: 'border-box',
+                              backgroundColor: rule.type === 'fixed' ? '#f3f4f6' : 'white'
+                            }}
+                          />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                            Markup Value {zone.markupType === 'percentage' ? '(%)' : '(amount)'}
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Default Markup</label>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <select
+                              value={rule.defaultMarkupType}
+                              onChange={(e) => updateRule(index, 'defaultMarkupType', e.target.value)}
+                              style={{ flex: 1, padding: '7px 6px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px' }}
+                            >
+                              <option value="none">None</option>
+                              <option value="percentage">%</option>
+                              <option value="flat">Flat</option>
+                            </select>
+                            {rule.defaultMarkupType !== 'none' && (
+                              <input
+                                type="number"
+                                value={rule.defaultMarkupValue}
+                                onChange={(e) => updateRule(index, 'defaultMarkupValue', parseFloat(e.target.value) || 0)}
+                                style={{ width: '70px', padding: '7px 6px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }}
+                                placeholder="0"
+                              />
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                            Table Mappings (floor names)
                           </label>
                           <input
-                            type="number"
-                            value={zone.markupValue}
-                            onChange={(e) => updateZone(index, 'markupValue', parseFloat(e.target.value) || 0)}
-                            min="0"
-                            step={zone.markupType === 'percentage' ? '1' : '0.01'}
-                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                            type="text"
+                            value={(rule.tableMappings || []).join(', ')}
+                            onChange={(e) => updateRule(index, 'tableMappings', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                            placeholder={floors.length > 0 ? `e.g., ${floors[0]?.name || 'AC Hall'}` : 'e.g., AC Hall, VIP'}
+                            style={{
+                              width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #d1d5db',
+                              fontSize: '13px', boxSizing: 'border-box'
+                            }}
                           />
+                          {floors.length > 0 && (
+                            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                              Floors: {floors.map(f => f.name).join(', ')}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px' }}>
+                  Set per-item prices for each rule on the Menu page. Items without specific prices will use the default markup above, or the base price if markup is &quot;None&quot;.
+                </p>
               </div>
+            )}
+          </div>
 
-              {/* Save Button */}
-              <button
-                onClick={savePricingSettings}
-                disabled={saving}
-                style={{
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: 'none',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: saving ? 0.6 : 1
-                }}
-              >
-                {saving ? <FaSpinner size={14} className="animate-spin" /> : <FaSave size={14} />}
-                {saving ? 'Saving...' : 'Save Pricing Settings'}
-              </button>
-            </div>
-          )}
-
-          {/* Save even when disabled (to save the disabled state) */}
-          {!pricingSettings.zonePricing?.enabled && (
+          {/* ── Legacy Zone Pricing Section ── */}
+          <div style={{ marginBottom: '24px' }}>
             <button
-              onClick={savePricingSettings}
-              disabled={saving}
+              onClick={() => setShowZonePricing(!showZonePricing)}
               style={{
-                backgroundColor: '#6b7280',
-                color: 'white',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                fontWeight: '600',
-                fontSize: '14px',
-                border: 'none',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                opacity: saving ? 0.6 : 1
+                background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                gap: '8px', fontSize: '14px', fontWeight: 600, color: '#6b7280', padding: '8px 0'
               }}
             >
-              {saving ? <FaSpinner size={14} className="animate-spin" /> : <FaSave size={14} />}
-              {saving ? 'Saving...' : 'Save Settings'}
+              <span style={{ transform: showZonePricing ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>&#9654;</span>
+              Zone Pricing (Subtotal Surcharge)
             </button>
-          )}
+            {pricingSettings.multiPricing?.enabled && (
+              <p style={{ fontSize: '12px', color: '#f59e0b', margin: '4px 0 0 24px' }}>
+                Note: When Multi-Tier Pricing is active for an order, zone pricing surcharge is skipped.
+              </p>
+            )}
+
+            {showZonePricing && (
+              <div style={{ marginTop: '12px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '12px' }}>
+                  <input
+                    type="checkbox"
+                    checked={pricingSettings.zonePricing?.enabled || false}
+                    onChange={(e) => setPricingSettings(prev => ({
+                      ...prev,
+                      zonePricing: { ...prev.zonePricing, enabled: e.target.checked }
+                    }))}
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  Enable Zone Pricing
+                </label>
+
+                {pricingSettings.zonePricing?.enabled && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>
+                        Adds a flat or percentage surcharge on the subtotal based on table section/floor match.
+                      </p>
+                      <button onClick={addZone} style={{
+                        backgroundColor: '#10b981', color: 'white', padding: '6px 12px', borderRadius: '6px',
+                        fontWeight: '600', fontSize: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                      }}>
+                        <FaPlus size={10} /> Add Zone
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {(pricingSettings.zonePricing?.zones || []).map((zone, index) => (
+                        <div key={zone.id} style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                            <input type="checkbox" checked={zone.isActive} onChange={() => updateZone(index, 'isActive', !zone.isActive)} style={{ width: '16px', height: '16px' }} />
+                            <span style={{ fontWeight: '600', color: zone.isActive ? '#1f2937' : '#9ca3af', flex: 1, fontSize: '13px' }}>
+                              {zone.name || 'Unnamed Zone'}
+                            </span>
+                            <button onClick={() => removeZone(index)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
+                              <FaTrash size={12} />
+                            </button>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '3px' }}>Name</label>
+                              <input type="text" value={zone.name} onChange={(e) => updateZone(index, 'name', e.target.value)} placeholder="e.g., AC Section"
+                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '3px' }}>Section Match</label>
+                              <input type="text" value={zone.sectionMatch} onChange={(e) => updateZone(index, 'sectionMatch', e.target.value)} placeholder="e.g., AC"
+                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '3px' }}>Type</label>
+                              <select value={zone.markupType} onChange={(e) => updateZone(index, 'markupType', e.target.value)}
+                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}>
+                                <option value="percentage">%</option>
+                                <option value="flat">Flat</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '3px' }}>Value</label>
+                              <input type="number" value={zone.markupValue} onChange={(e) => updateZone(index, 'markupValue', parseFloat(e.target.value) || 0)} min="0"
+                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }} />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={savePricingSettings}
+            disabled={saving}
+            style={{
+              backgroundColor: '#ef4444', color: 'white', padding: '12px 24px', borderRadius: '10px',
+              fontWeight: '600', fontSize: '14px', border: 'none',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              opacity: saving ? 0.6 : 1
+            }}
+          >
+            {saving ? <FaSpinner size={14} className="animate-spin" /> : <FaSave size={14} />}
+            {saving ? 'Saving...' : 'Save Pricing Settings'}
+          </button>
         </div>
       )}
 
@@ -1949,6 +2067,7 @@ const Admin = () => {
     { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, description: 'AI-powered restaurant tools', color: '#6366f1' },
     { id: 'hotel', name: 'Hotel PMS', icon: FaBuilding, description: 'Hotel property management system', color: '#6366f1' },
     { id: 'invoice', name: 'Invoice & Billing', icon: FaFileInvoice, description: 'Professional invoicing, quotes, and expense tracking', color: '#0ea5e9' },
+    { id: 'multiPricing', name: 'Multi-Tier Pricing', icon: FaLayerGroup, description: 'Per-item pricing for AC/Non-AC/Takeaway and custom rules', color: '#8b5cf6' },
   ];
 
   useEffect(() => {
@@ -2005,7 +2124,7 @@ const Admin = () => {
     { label: 'SETTINGS', items: [
       { id: 'settings', label: 'General', icon: FaUserCog },
       { id: 'tax', label: 'Tax Management', icon: FaPercentage },
-      { id: 'pricing', label: 'Zone Pricing', icon: FaSlidersH },
+      { id: 'pricing', label: 'Pricing Rules', icon: FaSlidersH },
       { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
       { id: 'print', label: 'Print Settings', icon: FaPrint },
       { id: 'features', label: 'Features', icon: FaToggleOn },

@@ -1623,9 +1623,13 @@ const MenuManagement = () => {
     expiryDate: '',
     // Ice cream-specific fields
     servingSize: '',
-    scoopOptions: ''
+    scoopOptions: '',
+    // Multi-tier pricing
+    pricingRules: {}
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
+  const [activePricingRules, setActivePricingRules] = useState([]);
 
   // Mobile detection with client-side hydration safety
   useEffect(() => {
@@ -1849,6 +1853,23 @@ const MenuManagement = () => {
     };
   }, []); // Removed loadMenuData dependency
 
+  // Load multi-pricing rules when restaurant is set
+  useEffect(() => {
+    if (!currentRestaurant?.id) return;
+    (async () => {
+      try {
+        const response = await apiClient.getPricingSettings(currentRestaurant.id);
+        const mp = response?.settings?.multiPricing;
+        if (mp?.enabled) {
+          setMultiPricingEnabled(true);
+          setActivePricingRules((mp.rules || []).filter(r => r.isActive));
+        } else {
+          setMultiPricingEnabled(false);
+          setActivePricingRules([]);
+        }
+      } catch { /* ignore — backward compatible */ }
+    })();
+  }, [currentRestaurant?.id]);
 
   const filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
@@ -1884,12 +1905,24 @@ const MenuManagement = () => {
         description: c.description || ''
       }));
 
+      // Clean up pricing rules — only keep numeric values
+      const cleanedPricingRules = {};
+      if (multiPricingEnabled && formData.pricingRules) {
+        for (const [ruleId, val] of Object.entries(formData.pricingRules)) {
+          const parsed = parseFloat(val);
+          if (!isNaN(parsed) && parsed >= 0) {
+            cleanedPricingRules[ruleId] = parsed;
+          }
+        }
+      }
+
       const itemData = {
         ...formData,
         price: parseFloat(formData.price),
         restaurantId: currentRestaurant.id,
         variants: cleanedVariants,
-        customizations: cleanedCustomizations
+        customizations: cleanedCustomizations,
+        pricingRules: cleanedPricingRules
       };
 
       if (editingItem) {
@@ -2062,7 +2095,8 @@ const MenuManagement = () => {
       mfgDate: item.mfgDate || '',
       expiryDate: item.expiryDate || '',
       servingSize: item.servingSize || '',
-      scoopOptions: item.scoopOptions?.toString() || ''
+      scoopOptions: item.scoopOptions?.toString() || '',
+      pricingRules: item.pricingRules || {}
     });
     setEditingItem(item);
     setShowAddForm(true);
@@ -2222,7 +2256,8 @@ const MenuManagement = () => {
       mfgDate: '',
       expiryDate: '',
       servingSize: '',
-      scoopOptions: ''
+      scoopOptions: '',
+      pricingRules: {}
     });
     setEditingItem(null);
     setShowAddForm(false);
@@ -3685,7 +3720,48 @@ const MenuManagement = () => {
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
                 </div>
-                
+
+                {/* Multi-Tier Pricing Rules */}
+                {multiPricingEnabled && activePricingRules.length > 0 && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Pricing by Rule
+                    </label>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '10px', marginTop: 0 }}>
+                      Set specific prices per rule. Leave blank to use the base price or the rule&apos;s default markup.
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px' }}>
+                      {activePricingRules.map(rule => (
+                        <div key={rule.id}>
+                          <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '3px' }}>{rule.name}</label>
+                          <input
+                            type="number"
+                            placeholder={formData.price ? `Base: ${formData.price}` : '—'}
+                            value={formData.pricingRules[rule.id] ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData(prev => ({
+                                ...prev,
+                                pricingRules: {
+                                  ...prev.pricingRules,
+                                  [rule.id]: val === '' ? undefined : val
+                                }
+                              }));
+                            }}
+                            min="0"
+                            step="0.01"
+                            style={{
+                              width: '100%', padding: '8px 10px', borderRadius: '6px',
+                              border: '1px solid #e5e7eb', fontSize: '13px', boxSizing: 'border-box',
+                              backgroundColor: 'white'
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Category */}
                 <div>
                   <CategoryDropdown

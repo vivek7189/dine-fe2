@@ -97,7 +97,13 @@ function RestaurantPOSContent() {
   const [manualRoomNumber, setManualRoomNumber] = useState('');
   const [locationType, setLocationType] = useState('table'); // 'table' or 'room'
   const [inRoomDiningEnabled, setInRoomDiningEnabled] = useState(false);
-  
+
+  // Multi-tier pricing state
+  const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
+  const [pricingRules, setPricingRules] = useState([]);
+  const [activePricingRuleId, setActivePricingRuleId] = useState(null);
+  const [autoSelectedRule, setAutoSelectedRule] = useState(false);
+
   // API state
   const [menuItems, setMenuItems] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
@@ -755,6 +761,20 @@ function RestaurantPOSContent() {
             // Also persist to IndexedDB for deeper offline support
             setCachedData(`dashboard_${restaurant.id}`, dataToCache).catch(() => {});
 
+            // Load multi-pricing rules
+            try {
+              const pricingResponse = await apiClient.getPricingSettings(restaurant.id);
+              const mp = pricingResponse?.settings?.multiPricing;
+              if (mp?.enabled) {
+                setMultiPricingEnabled(true);
+                setPricingRules((mp.rules || []).filter(r => r.isActive));
+              } else {
+                setMultiPricingEnabled(false);
+                setPricingRules([]);
+                setActivePricingRuleId(null);
+              }
+            } catch { /* ignore — backward compatible */ }
+
             console.log('✅ Fresh data loaded and cached');
           } catch (error) {
             console.error('Error fetching fresh data:', error);
@@ -1200,6 +1220,27 @@ function RestaurantPOSContent() {
     }
   }, [searchParams]);
 
+  // Auto-select pricing rule when table changes
+  useEffect(() => {
+    if (!multiPricingEnabled || pricingRules.length === 0) return;
+    if (selectedTable?.floor) {
+      const floorName = selectedTable.floor;
+      const matchedRule = pricingRules.find(rule =>
+        (rule.tableMappings || []).some(m =>
+          floorName.toLowerCase().includes(m.toLowerCase())
+        )
+      );
+      if (matchedRule) {
+        setActivePricingRuleId(matchedRule.id);
+        setAutoSelectedRule(true);
+      } else {
+        setAutoSelectedRule(false);
+      }
+    } else {
+      setAutoSelectedRule(false);
+    }
+  }, [selectedTable, multiPricingEnabled, pricingRules]);
+
   // Handle view parameter from URL (for view state persistence)
   useEffect(() => {
     const viewParam = searchParams.get('view');
@@ -1294,7 +1335,7 @@ function RestaurantPOSContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, selectedRestaurant?.id]);
 
-  const filteredItems = (menuItems || []).filter(item => {
+  const filteredItemsBase = (menuItems || []).filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     // When searching, always search all items regardless of category
     if (searchTerm.trim()) return matchesSearch;
@@ -1306,12 +1347,47 @@ function RestaurantPOSContent() {
     return matchesCategory;
   });
 
-  const addToCart = (item) => {
+  // Multi-tier pricing: resolve display price for an item
+  const getItemDisplayPrice = useCallback((item) => {
+    if (!multiPricingEnabled || !activePricingRuleId) return item.price;
+    // Per-item override
+    if (item.pricingRules && typeof item.pricingRules[activePricingRuleId] === 'number') {
+      return item.pricingRules[activePricingRuleId];
+    }
+    // Rule default markup
+    const rule = pricingRules.find(r => r.id === activePricingRuleId);
+    if (rule?.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) {
+      return Math.round(item.price * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
+    }
+    if (rule?.defaultMarkupType === 'flat' && rule.defaultMarkupValue) {
+      return Math.round((item.price + rule.defaultMarkupValue) * 100) / 100;
+    }
+    return item.price;
+  }, [multiPricingEnabled, activePricingRuleId, pricingRules]);
+
+  // Apply display prices to filtered items for rendering
+  const filteredItems = multiPricingEnabled && activePricingRuleId
+    ? filteredItemsBase.map(item => {
+        const displayPrice = getItemDisplayPrice(item);
+        return displayPrice !== item.price ? { ...item, price: displayPrice, _originalPrice: item.price } : item;
+      })
+    : filteredItemsBase;
+
+  const addToCart = (itemRaw) => {
     // Hide success message when adding new items
     if (orderSuccess?.show) {
       setOrderSuccess(null);
     }
-    
+
+    // Multi-tier pricing: override base price if no variant is selected
+    let item = itemRaw;
+    if (multiPricingEnabled && activePricingRuleId && !itemRaw?.selectedVariant) {
+      const adjustedPrice = getItemDisplayPrice(itemRaw);
+      if (adjustedPrice !== itemRaw.price) {
+        item = { ...itemRaw, price: adjustedPrice, basePrice: itemRaw.price, appliedPricingRuleId: activePricingRuleId };
+      }
+    }
+
     setCart(prevCart => {
       // Build a signature for matching same-config items
       const variantKey = item?.selectedVariant?.name || null;
@@ -2381,7 +2457,9 @@ function RestaurantPOSContent() {
         customerPhone: customerMobile || null,
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
-        notes: isRoomOrder ? `Room order for Room ${roomNumber}` : ''
+        notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
+        // Multi-tier pricing rule
+        pricingRuleId: activePricingRuleId || null
       };
 
         console.log('🛒 Creating order with data:', orderData);
@@ -3101,7 +3179,9 @@ function RestaurantPOSContent() {
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
           notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
-          status: 'confirmed' // Place order to kitchen
+          status: 'confirmed', // Place order to kitchen
+          // Multi-tier pricing rule
+          pricingRuleId: activePricingRuleId || null
         };
 
         console.log('Creating order with data:', orderData);
@@ -5680,6 +5760,48 @@ function RestaurantPOSContent() {
                 <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>Loading order details...</p>
               </div>
             )}
+            {/* Multi-Tier Pricing Rule Selector */}
+            {multiPricingEnabled && pricingRules.length > 0 && viewMode === 'orders' && (
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px', padding: '0 2px' }}>
+                <button
+                  onClick={() => { setActivePricingRuleId(null); setAutoSelectedRule(false); }}
+                  style={{
+                    padding: '5px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 500,
+                    border: !activePricingRuleId ? '2px solid #8b5cf6' : '1px solid #e5e7eb',
+                    backgroundColor: !activePricingRuleId ? '#f5f3ff' : 'white',
+                    color: !activePricingRuleId ? '#7c3aed' : '#6b7280',
+                    cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  Base Price
+                </button>
+                {pricingRules.map(rule => (
+                  <button
+                    key={rule.id}
+                    onClick={() => {
+                      if (!autoSelectedRule) {
+                        setActivePricingRuleId(rule.id);
+                      }
+                    }}
+                    style={{
+                      padding: '5px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 500,
+                      border: activePricingRuleId === rule.id ? '2px solid #8b5cf6' : '1px solid #e5e7eb',
+                      backgroundColor: activePricingRuleId === rule.id ? '#f5f3ff' : 'white',
+                      color: activePricingRuleId === rule.id ? '#7c3aed' : '#6b7280',
+                      cursor: autoSelectedRule ? 'default' : 'pointer',
+                      opacity: autoSelectedRule && activePricingRuleId !== rule.id ? 0.5 : 1,
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {rule.name}
+                    {autoSelectedRule && activePricingRuleId === rule.id && (
+                      <span style={{ fontSize: '10px', marginLeft: '4px', opacity: 0.7 }}>(auto)</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {viewMode === 'orders' ? (
             <div>
               {/* Group items by category when showing all items */}
