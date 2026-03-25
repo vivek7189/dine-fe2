@@ -1021,6 +1021,43 @@ class ApiClient {
     return response;
   }
 
+  // PIN Login endpoints
+  async pinLogin(identifier, pin) {
+    const response = await this.request('/api/auth/pin/login', {
+      method: 'POST',
+      body: { identifier, pin },
+    });
+    if (response.token) {
+      this.setToken(response.token);
+    }
+    return response;
+  }
+
+  async getPinStatus() {
+    return this.request('/api/auth/pin/status');
+  }
+
+  async setPin(pin, confirmPin) {
+    return this.request('/api/auth/pin/set', {
+      method: 'POST',
+      body: { pin, confirmPin },
+    });
+  }
+
+  async changePin(currentPin, newPin, confirmNewPin) {
+    return this.request('/api/auth/pin/change', {
+      method: 'POST',
+      body: { currentPin, newPin, confirmNewPin },
+    });
+  }
+
+  async disablePin(currentPin) {
+    return this.request('/api/auth/pin/disable', {
+      method: 'POST',
+      body: { currentPin },
+    });
+  }
+
   // KOT (Kitchen Order Ticket) endpoints
   async getKotOrders(restaurantId, status = null) {
     const query = status ? `?status=${status}` : '';

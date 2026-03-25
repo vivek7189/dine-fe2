@@ -250,6 +250,10 @@ const Login = () => {
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
 
+  // PIN login state
+  const [pinIdentifier, setPinIdentifier] = useState('');
+  const [pinCode, setPinCode] = useState('');
+
   // Country selection state
   const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Default to India
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
@@ -1026,6 +1030,38 @@ const Login = () => {
     }
   };
 
+  const handlePinLogin = async (e) => {
+    e.preventDefault();
+    if (!pinIdentifier || !pinCode) {
+      setError('Please enter your phone/email and PIN');
+      return;
+    }
+    if (!/^\d{5,10}$/.test(pinCode)) {
+      setError('PIN must be 5-10 digits');
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+      const data = await apiClient.pinLogin(pinIdentifier.trim(), pinCode);
+      if (data.success) {
+        apiClient.setUser(data.user);
+        if (data.subdomainUrl) {
+          redirectToSubdomain(data.subdomainUrl, data.token, data.user);
+        } else if (data.redirectTo) {
+          router.replace(data.redirectTo);
+        } else {
+          router.replace(getRefRedirectPath());
+        }
+      }
+    } catch (err) {
+      console.error('PIN login error:', err);
+      setError(err.message || err.error || 'PIN login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
@@ -1458,7 +1494,7 @@ const Login = () => {
           )}
 
           {/* Auth Method Selector for Owner Login - Always visible for Phone/Email */}
-          {loginType === 'owner' && (step === 'phone' || step === 'otp' || step === 'email-login' || step === 'email-register' || step === 'email-otp') && (
+          {loginType === 'owner' && (step === 'phone' || step === 'otp' || step === 'email-login' || step === 'email-register' || step === 'email-otp' || step === 'pin-login') && (
             <div style={{ marginBottom: '20px' }}>
               <div style={{
                 display: 'flex',
@@ -1520,10 +1556,164 @@ const Login = () => {
                   📧 Email
                 </button>
               </div>
+              {/* Login with PIN link */}
+              {step !== 'pin-login' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('pin-login');
+                    setAuthMethod('pin');
+                    setError('');
+                    setPinIdentifier('');
+                    setPinCode('');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#6b7280',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    width: '100%',
+                    padding: '4px 0',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#6b7280'; }}
+                >
+                  <FaKey style={{ marginRight: '6px', display: 'inline', fontSize: '10px' }} />
+                  Login with PIN
+                </button>
+              )}
+              {step === 'pin-login' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('phone');
+                    setAuthMethod('phone');
+                    setError('');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ef4444',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    width: '100%',
+                    padding: '4px 0',
+                    fontWeight: '600'
+                  }}
+                >
+                  ← Back to OTP Login
+                </button>
+              )}
             </div>
           )}
 
-          {loginType === 'owner' && step === "phone" ? (
+          {/* PIN Login Form */}
+          {loginType === 'owner' && step === 'pin-login' ? (
+            <>
+              <div style={{ textAlign: "center", marginBottom: "24px" }}>
+                <div style={{
+                  width: "56px",
+                  height: "56px",
+                  backgroundColor: "#fef2f2",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px"
+                }}>
+                  <FaKey style={{ fontSize: "22px", color: "#ef4444" }} />
+                </div>
+                <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#1f2937", margin: "0 0 4px 0" }}>
+                  PIN Login
+                </h3>
+                <p style={{ fontSize: "13px", color: "#9ca3af", margin: 0 }}>
+                  Enter your phone or email with your PIN
+                </p>
+              </div>
+              <form onSubmit={handlePinLogin}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                    Phone or Email
+                  </label>
+                  <input
+                    type="text"
+                    value={pinIdentifier}
+                    onChange={(e) => { setPinIdentifier(e.target.value); setError(''); }}
+                    placeholder="+91 9876543210 or your@email.com"
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '10px',
+                      fontSize: '15px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      backgroundColor: '#f9fafb'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                    PIN
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinCode}
+                    onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setPinCode(val); setError(''); }}
+                    placeholder="Enter your 5-10 digit PIN"
+                    maxLength={10}
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '10px',
+                      fontSize: '15px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      backgroundColor: '#f9fafb',
+                      letterSpacing: '4px'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading || !pinIdentifier || pinCode.length < 5}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    background: (loading || !pinIdentifier || pinCode.length < 5) ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: (loading || !pinIdentifier || pinCode.length < 5) ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: (loading || !pinIdentifier || pinCode.length < 5) ? 'none' : '0 4px 14px rgba(239,68,68,0.3)'
+                  }}
+                >
+                  {loading ? (
+                    <FaSpinner style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <>→ Login</>
+                  )}
+                </button>
+              </form>
+            </>
+          ) : loginType === 'owner' && step === "phone" ? (
             <>
               <div style={{ textAlign: "center", marginBottom: "32px" }}
               className="sm:mb-8 mb-4"

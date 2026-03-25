@@ -1856,6 +1856,72 @@ const Admin = () => {
   const [businessType, setBusinessType] = useState('restaurant');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // PIN settings state
+  const [pinStatus, setPinStatus] = useState({ pinEnabled: false, pinUpdatedAt: null });
+  const [pinFormMode, setPinFormMode] = useState('idle'); // 'idle', 'set', 'change', 'disable'
+  const [pinFormData, setPinFormData] = useState({ currentPin: '', newPin: '', confirmPin: '' });
+  const [pinSaving, setPinSaving] = useState(false);
+  const [pinMessage, setPinMessage] = useState({ type: '', text: '' });
+
+  const loadPinStatus = async () => {
+    try {
+      const data = await apiClient.getPinStatus();
+      setPinStatus({ pinEnabled: data.pinEnabled, pinUpdatedAt: data.pinUpdatedAt });
+    } catch (err) {
+      console.error('Failed to load PIN status:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      loadPinStatus();
+    }
+  }, [activeTab]);
+
+  const handlePinSubmit = async () => {
+    setPinSaving(true);
+    setPinMessage({ type: '', text: '' });
+    try {
+      if (pinFormMode === 'set') {
+        if (!/^\d{5,10}$/.test(pinFormData.newPin)) {
+          setPinMessage({ type: 'error', text: 'PIN must be 5-10 digits' });
+          setPinSaving(false);
+          return;
+        }
+        if (pinFormData.newPin !== pinFormData.confirmPin) {
+          setPinMessage({ type: 'error', text: 'PINs do not match' });
+          setPinSaving(false);
+          return;
+        }
+        await apiClient.setPin(pinFormData.newPin, pinFormData.confirmPin);
+        setPinMessage({ type: 'success', text: 'PIN enabled successfully!' });
+      } else if (pinFormMode === 'change') {
+        if (!/^\d{5,10}$/.test(pinFormData.newPin)) {
+          setPinMessage({ type: 'error', text: 'New PIN must be 5-10 digits' });
+          setPinSaving(false);
+          return;
+        }
+        if (pinFormData.newPin !== pinFormData.confirmPin) {
+          setPinMessage({ type: 'error', text: 'New PINs do not match' });
+          setPinSaving(false);
+          return;
+        }
+        await apiClient.changePin(pinFormData.currentPin, pinFormData.newPin, pinFormData.confirmPin);
+        setPinMessage({ type: 'success', text: 'PIN changed successfully!' });
+      } else if (pinFormMode === 'disable') {
+        await apiClient.disablePin(pinFormData.currentPin);
+        setPinMessage({ type: 'success', text: 'PIN login disabled' });
+      }
+      setPinFormData({ currentPin: '', newPin: '', confirmPin: '' });
+      setPinFormMode('idle');
+      await loadPinStatus();
+    } catch (err) {
+      setPinMessage({ type: 'error', text: err.message || err.error || 'Operation failed' });
+    } finally {
+      setPinSaving(false);
+    }
+  };
+
   const handleSaveDashboardSettings = async () => {
     if (!selectedRestaurant) return;
     setPosSettingsSaving(true);
@@ -5832,6 +5898,349 @@ const Admin = () => {
               {posSettingsSaving ? <FaSpinner className="animate-spin" size={14} /> : <FaSave size={14} />}
               {posSettingsSaving ? 'Saving...' : 'Save Dashboard Settings'}
             </button>
+          </div>
+
+          {/* PIN Login Security Card */}
+          <div style={{
+            gridColumn: '1 / -1',
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            padding: isMobile ? '16px' : '24px',
+            border: '1px solid #f1f5f9'
+          }}>
+            {/* Card Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: pinStatus.pinEnabled ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6b7280, #4b5563)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <FaKey size={17} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Login PIN</h2>
+                  <span style={{
+                    padding: '2px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    backgroundColor: pinStatus.pinEnabled ? '#ecfdf5' : '#f3f4f6',
+                    color: pinStatus.pinEnabled ? '#059669' : '#6b7280',
+                    border: `1px solid ${pinStatus.pinEnabled ? '#a7f3d0' : '#e5e7eb'}`
+                  }}>
+                    {pinStatus.pinEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+                <p style={{ color: '#6b7280', margin: '2px 0 0 0', fontSize: '13px' }}>
+                  Backup login when OTP doesn&apos;t arrive
+                </p>
+              </div>
+            </div>
+
+            {/* PIN Message */}
+            {pinMessage.text && (
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                marginBottom: '16px',
+                fontSize: '13px',
+                fontWeight: '500',
+                backgroundColor: pinMessage.type === 'error' ? '#fef2f2' : '#ecfdf5',
+                color: pinMessage.type === 'error' ? '#dc2626' : '#059669',
+                border: `1px solid ${pinMessage.type === 'error' ? '#fecaca' : '#a7f3d0'}`
+              }}>
+                {pinMessage.text}
+              </div>
+            )}
+
+            {/* PIN Not Set State */}
+            {!pinStatus.pinEnabled && pinFormMode === 'idle' && (
+              <div>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px 0', lineHeight: '1.5' }}>
+                  Set a 5-10 digit PIN as a backup login method. When OTP doesn&apos;t arrive, you can log in using your phone number or email along with this PIN.
+                </p>
+                <button
+                  onClick={() => { setPinFormMode('set'); setPinMessage({ type: '', text: '' }); setPinFormData({ currentPin: '', newPin: '', confirmPin: '' }); }}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 2px 8px rgba(239,68,68,0.25)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <FaKey size={12} /> Enable & Set PIN
+                </button>
+              </div>
+            )}
+
+            {/* PIN Enabled State */}
+            {pinStatus.pinEnabled && pinFormMode === 'idle' && (
+              <div>
+                <p style={{ fontSize: '13px', color: '#059669', margin: '0 0 16px 0', fontWeight: '500' }}>
+                  PIN login is active. You can use your phone/email + PIN to log in when OTP is unavailable.
+                </p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => { setPinFormMode('change'); setPinMessage({ type: '', text: '' }); setPinFormData({ currentPin: '', newPin: '', confirmPin: '' }); }}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontWeight: '600',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 2px 8px rgba(59,130,246,0.25)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <FaKey size={12} /> Change PIN
+                  </button>
+                  <button
+                    onClick={() => { setPinFormMode('disable'); setPinMessage({ type: '', text: '' }); setPinFormData({ currentPin: '', newPin: '', confirmPin: '' }); }}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#6b7280',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '10px',
+                      fontWeight: '600',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Disable PIN
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Set PIN Form */}
+            {pinFormMode === 'set' && (
+              <div style={{ maxWidth: '400px' }}>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>New PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinFormData.newPin}
+                    onChange={(e) => setPinFormData({ ...pinFormData, newPin: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="Enter 5-10 digit PIN"
+                    maxLength={10}
+                    style={{
+                      width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb', letterSpacing: '3px',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Confirm PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinFormData.confirmPin}
+                    onChange={(e) => setPinFormData({ ...pinFormData, confirmPin: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="Re-enter PIN"
+                    maxLength={10}
+                    style={{
+                      width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb', letterSpacing: '3px',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={handlePinSubmit}
+                    disabled={pinSaving || pinFormData.newPin.length < 5}
+                    style={{
+                      padding: '10px 24px',
+                      background: (pinSaving || pinFormData.newPin.length < 5) ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      color: 'white', border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
+                      cursor: (pinSaving || pinFormData.newPin.length < 5) ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
+                    }}
+                  >
+                    {pinSaving ? <FaSpinner className="animate-spin" size={12} /> : <FaSave size={12} />}
+                    {pinSaving ? 'Saving...' : 'Set PIN'}
+                  </button>
+                  <button
+                    onClick={() => { setPinFormMode('idle'); setPinMessage({ type: '', text: '' }); }}
+                    style={{
+                      padding: '10px 20px', backgroundColor: '#f3f4f6', color: '#6b7280',
+                      border: '1px solid #e5e7eb', borderRadius: '10px', fontWeight: '500', fontSize: '13px', cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Change PIN Form */}
+            {pinFormMode === 'change' && (
+              <div style={{ maxWidth: '400px' }}>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Current PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinFormData.currentPin}
+                    onChange={(e) => setPinFormData({ ...pinFormData, currentPin: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="Enter current PIN"
+                    maxLength={10}
+                    style={{
+                      width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb', letterSpacing: '3px',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>New PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinFormData.newPin}
+                    onChange={(e) => setPinFormData({ ...pinFormData, newPin: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="Enter new 5-10 digit PIN"
+                    maxLength={10}
+                    style={{
+                      width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb', letterSpacing: '3px',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Confirm New PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinFormData.confirmPin}
+                    onChange={(e) => setPinFormData({ ...pinFormData, confirmPin: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="Re-enter new PIN"
+                    maxLength={10}
+                    style={{
+                      width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb', letterSpacing: '3px',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={handlePinSubmit}
+                    disabled={pinSaving || pinFormData.currentPin.length < 5 || pinFormData.newPin.length < 5}
+                    style={{
+                      padding: '10px 24px',
+                      background: (pinSaving || pinFormData.currentPin.length < 5 || pinFormData.newPin.length < 5) ? '#d1d5db' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      color: 'white', border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
+                      cursor: (pinSaving || pinFormData.currentPin.length < 5 || pinFormData.newPin.length < 5) ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
+                    }}
+                  >
+                    {pinSaving ? <FaSpinner className="animate-spin" size={12} /> : <FaSave size={12} />}
+                    {pinSaving ? 'Saving...' : 'Change PIN'}
+                  </button>
+                  <button
+                    onClick={() => { setPinFormMode('idle'); setPinMessage({ type: '', text: '' }); }}
+                    style={{
+                      padding: '10px 20px', backgroundColor: '#f3f4f6', color: '#6b7280',
+                      border: '1px solid #e5e7eb', borderRadius: '10px', fontWeight: '500', fontSize: '13px', cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Disable PIN Form */}
+            {pinFormMode === 'disable' && (
+              <div style={{ maxWidth: '400px' }}>
+                <p style={{ fontSize: '13px', color: '#dc2626', margin: '0 0 14px 0', fontWeight: '500' }}>
+                  Enter your current PIN to disable PIN login.
+                </p>
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Current PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinFormData.currentPin}
+                    onChange={(e) => setPinFormData({ ...pinFormData, currentPin: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="Enter current PIN"
+                    maxLength={10}
+                    style={{
+                      width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', backgroundColor: '#f9fafb', letterSpacing: '3px',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={handlePinSubmit}
+                    disabled={pinSaving || pinFormData.currentPin.length < 5}
+                    style={{
+                      padding: '10px 24px',
+                      background: (pinSaving || pinFormData.currentPin.length < 5) ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      color: 'white', border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
+                      cursor: (pinSaving || pinFormData.currentPin.length < 5) ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
+                    }}
+                  >
+                    {pinSaving ? <FaSpinner className="animate-spin" size={12} /> : null}
+                    {pinSaving ? 'Disabling...' : 'Disable PIN'}
+                  </button>
+                  <button
+                    onClick={() => { setPinFormMode('idle'); setPinMessage({ type: '', text: '' }); }}
+                    style={{
+                      padding: '10px 20px', backgroundColor: '#f3f4f6', color: '#6b7280',
+                      border: '1px solid #e5e7eb', borderRadius: '10px', fontWeight: '500', fontSize: '13px', cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
