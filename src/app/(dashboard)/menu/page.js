@@ -369,23 +369,20 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
   const dropdownRef = useRef(null);
   const selectedOption = options.find(opt => opt.value === value) || null;
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
-
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
-  
+
   const isActive = value && value !== 'all';
 
   return (
@@ -394,7 +391,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         style={{
-          padding: '7px 12px',
+          padding: '7px 14px',
           border: isActive ? '1.5px solid #ef4444' : '1.5px solid transparent',
           borderRadius: '20px',
           fontSize: '13px',
@@ -430,49 +427,58 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
           top: '100%',
           left: 0,
           backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+          borderRadius: '14px',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.04)',
           zIndex: 10000,
-          marginTop: '6px',
-          minWidth: '150px',
-          padding: '4px',
-          maxHeight: '240px',
-          overflowY: 'auto'
+          marginTop: '8px',
+          minWidth: '220px',
+          padding: '6px',
+          maxHeight: '320px',
+          overflowY: 'auto',
+          animation: 'fadeInUp 0.15s ease-out'
         }}>
-          {options.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => {
-                onChange(option.value);
-                setIsOpen(false);
-              }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                backgroundColor: value === option.value ? '#fef2f2' : 'transparent',
-                color: value === option.value ? '#dc2626' : '#374151',
-                fontSize: '13px',
-                fontWeight: value === option.value ? '600' : '400',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                borderRadius: '8px'
-              }}
-              onMouseEnter={(e) => {
-                if (value !== option.value) {
-                  e.target.style.backgroundColor = '#f9fafb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (value !== option.value) {
-                  e.target.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
+          {options.map((option, idx) => {
+            const isSelected = value === option.value;
+            return (
+              <button
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: 'none',
+                  backgroundColor: isSelected ? '#fef2f2' : 'transparent',
+                  color: isSelected ? '#dc2626' : '#374151',
+                  fontSize: '13px',
+                  fontWeight: isSelected ? '600' : '450',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                <span>{option.label}</span>
+                {isSelected && <FaCheck size={10} style={{ color: '#ef4444', flexShrink: 0 }} />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1167,7 +1173,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         style={{
           position: 'fixed',
           top: 0,
@@ -1175,23 +1181,24 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           right: 0,
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 10000, // Higher than navigation (1000)
+          zIndex: 10000,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
-          padding: '20px'
+          padding: '20px',
+          overflowY: 'auto'
         }}
         onClick={onClose}
       >
         {/* Modal Content */}
-        <div 
+        <div
           style={{
             backgroundColor: '#ffffff',
             borderRadius: '16px',
             maxWidth: '500px',
             width: '100%',
-            maxHeight: '90vh',
-            overflow: 'auto',
+            marginTop: '20px',
+            marginBottom: '20px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
             position: 'relative',
             animation: 'slideInFromRight 0.3s ease-out'
@@ -2637,8 +2644,17 @@ const MenuManagement = () => {
         position: 'relative',
         paddingBottom: '40px'
       }}>
-        {/* Header */}
-        <div style={{ marginBottom: '20px' }}>
+        {/* Header - Sticky */}
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          backgroundColor: '#ffffff',
+          marginLeft: '-20px',
+          marginRight: '-20px',
+          padding: '16px 20px 0 20px',
+          marginBottom: '20px'
+        }}>
           {/* Title row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <div>
@@ -2735,14 +2751,14 @@ const MenuManagement = () => {
               </button>
             )}
           </div>
-        </div>
 
         {/* Search + Filters */}
         <div style={{
           display: 'flex',
           gap: '10px',
           alignItems: 'center',
-          marginBottom: '20px',
+          paddingBottom: '16px',
+          borderBottom: '1px solid #f3f4f6',
           flexWrap: 'wrap'
         }}>
           {/* Search */}
@@ -2856,6 +2872,7 @@ const MenuManagement = () => {
             </button>
           </div>
         </div>
+        </div>{/* END Sticky Header */}
 
 
         {/* Error Message */}
@@ -3034,47 +3051,187 @@ const MenuManagement = () => {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {['appetizer', 'main-course', 'dessert', 'beverages', 'pizza', 'chinese', 'bread', 'rice', 'dal', 'south-indian', 'north-indian', 'fast-food'].filter(cat => 
-                filteredItems.some(item => item.category === cat)
-              ).map(category => {
-                const categoryItems = filteredItems.filter(item => item.category === category);
-                const categoryInfo = categories.find(c => c.id === category);
-                const isCollapsed = collapsedCategories[category];
-                
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid #e5e7eb',
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+            }}>
+              {/* Table Header */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '40px 1fr 120px 100px 140px',
+                padding: '10px 20px',
+                backgroundColor: '#f8fafc',
+                borderBottom: '2px solid #e5e7eb',
+                gap: '12px',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>#</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Price</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Actions</span>
+              </div>
+              {/* Table Rows */}
+              {filteredItems.map((item, index) => {
+                const category = categories.find(c => c.id === item.category);
                 return (
-                <div key={category}>
-                    <button
-                      onClick={() => toggleCategoryCollapse(category)}
-                      className="w-full bg-gray-50 px-6 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors duration-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{categoryInfo?.emoji || '🍽️'}</span>
-                        <h3 className="text-lg font-semibold text-gray-900 capitalize">
-                          {categoryInfo?.name || category.split('-').join(' ')}
-                    </h3>
-                        <span className="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-sm font-medium">
-                          {categoryItems.length} items
-                    </span>
-                  </div>
-                      {isCollapsed ? <FaChevronDown size={16} /> : <FaChevronUp size={16} />}
-                    </button>
-                    
-                    {!isCollapsed && categoryItems.map((item) => (
-                      <ListViewItem
-                        key={item.id} 
-                        item={item}
-                        categories={categories}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onToggleAvailability={handleToggleAvailability}
-                        onToggleFavorite={handleToggleFavorite}
-                        getCategoryEmoji={getCategoryEmoji}
-                      />
-                    ))}
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '40px 1fr 120px 100px 140px',
+                      padding: '12px 20px',
+                      gap: '12px',
+                      alignItems: 'center',
+                      borderBottom: '1px solid #f1f5f9',
+                      backgroundColor: !item.isAvailable ? '#fafafa' : (index % 2 === 0 ? '#ffffff' : '#fcfcfd'),
+                      opacity: item.isAvailable ? 1 : 0.55,
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s ease'
+                    }}
+                    onClick={() => handleItemClick(item)}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = !item.isAvailable ? '#fafafa' : (index % 2 === 0 ? '#ffffff' : '#fcfcfd'); }}
+                  >
+                    {/* # */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '3px',
+                        border: `2px solid ${item.isVeg ? '#22c55e' : '#ef4444'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <div style={{
+                          width: '6px',
+                          height: '6px',
+                          backgroundColor: item.isVeg ? '#22c55e' : '#ef4444',
+                          borderRadius: item.isVeg ? '1px' : '50%'
+                        }} />
                       </div>
-                    );
-                  })}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>{index + 1}</span>
+                    </div>
+                    {/* Item Name */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          color: '#1e293b',
+                          textDecoration: item.isAvailable ? 'none' : 'line-through',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {item.name}
+                        </span>
+                        {item.shortCode && (
+                          <span style={{
+                            backgroundColor: '#f1f5f9',
+                            color: '#64748b',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            flexShrink: 0
+                          }}>
+                            {item.shortCode}
+                          </span>
+                        )}
+                        {!item.isAvailable && (
+                          <span style={{
+                            backgroundColor: '#fef2f2',
+                            color: '#ef4444',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            flexShrink: 0
+                          }}>
+                            OUT
+                          </span>
+                        )}
+                        {item.isFavorite && (
+                          <FaStar size={10} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                        )}
+                      </div>
+                    </div>
+                    {/* Category */}
+                    <span style={{
+                      fontSize: '12px',
+                      color: '#64748b',
+                      fontWeight: '500',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {category?.emoji ? `${category.emoji} ` : ''}{category?.name || '—'}
+                    </span>
+                    {/* Price */}
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#0f172a',
+                      textAlign: 'right',
+                      fontVariantNumeric: 'tabular-nums'
+                    }}>
+                      {formatCurrency(item.price)}
+                    </span>
+                    {/* Actions */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                      justifyContent: 'center'
+                    }}>
+                      {[
+                        { icon: <FaStar size={11} />, color: item.isFavorite ? '#f59e0b' : '#cbd5e1', hoverColor: '#f59e0b', title: 'Favorite', handler: (e) => { e.stopPropagation(); handleToggleFavorite(item); } },
+                        { icon: <FaEdit size={11} />, color: '#94a3b8', hoverColor: '#3b82f6', title: 'Edit', handler: (e) => { e.stopPropagation(); handleEdit(item); } },
+                        { icon: <FaMinus size={11} />, color: '#94a3b8', hoverColor: '#f59e0b', title: item.isAvailable ? 'Mark unavailable' : 'Mark available', handler: (e) => { e.stopPropagation(); handleToggleAvailability(item); } },
+                        { icon: <FaTrash size={11} />, color: '#94a3b8', hoverColor: '#ef4444', title: 'Delete', handler: (e) => { e.stopPropagation(); handleDelete(item.id); } },
+                      ].map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={action.handler}
+                          title={action.title}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            borderRadius: '6px',
+                            color: action.color,
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = action.hoverColor; e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = action.color; e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        >
+                          {action.icon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Footer */}
+              <div style={{
+                padding: '10px 20px',
+                backgroundColor: '#f8fafc',
+                borderTop: '1px solid #e5e7eb',
+                fontSize: '12px',
+                color: '#94a3b8',
+                fontWeight: '500'
+              }}>
+                {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
+              </div>
             </div>
           )}
           </div>
@@ -3298,10 +3455,11 @@ const MenuManagement = () => {
           inset: 0,
           backgroundColor: 'rgba(0,0,0,0.7)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
-          zIndex: 10000, // Higher than navigation (1000)
-          padding: '20px'
+          zIndex: 10000,
+          padding: '20px',
+          overflowY: 'auto'
         }}>
           <div style={{
             backgroundColor: 'white',
@@ -3309,8 +3467,8 @@ const MenuManagement = () => {
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             width: '100%',
             maxWidth: window.innerWidth <= 768 ? '500px' : '820px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
+            marginTop: '20px',
+            marginBottom: '20px'
           }}>
             {/* Modal Header */}
             <div style={{

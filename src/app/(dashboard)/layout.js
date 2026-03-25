@@ -82,10 +82,10 @@ function DashboardLayoutContent({ children }) {
         <style>{`
           @keyframes pageFadeIn {
             from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
+            to { opacity: 1; transform: none; }
           }
           .dashboard-page-content {
-            animation: pageFadeIn 0.25s ease-out both;
+            animation: pageFadeIn 0.25s ease-out forwards;
           }
         `}</style>
         <div style={{
