@@ -94,7 +94,14 @@ const OrderSummary = ({
   businessType = 'restaurant',
   userRole = 'waiter',
   countryCode = 'IN',
-  onCustomerDataChange
+  onCustomerDataChange,
+  // Multi-pricing props
+  multiPricingEnabled = false,
+  pricingRules = [],
+  activePricingRuleId = null,
+  setActivePricingRuleId,
+  autoSelectedRule = false,
+  setAutoSelectedRule,
 }) => {
   // Business-type-aware billing labels
   const billingLabels = {
@@ -730,7 +737,7 @@ const OrderSummary = ({
               </button>
             </div>
             
-            {/* QR Code Button - Hide on Mobile */}
+            {/* QR Code Button - Temporarily hidden
             {!isMobile && (
               <button
                 onClick={onShowQRCode}
@@ -752,8 +759,9 @@ const OrderSummary = ({
                 <FaQrcode size={10} />
               </button>
             )}
-            
-            {/* Clear Button - Hide on Mobile */}
+            */}
+
+            {/* Clear Button - Temporarily hidden
             {!isMobile && (
               <button
                 onClick={onClearCart}
@@ -775,9 +783,100 @@ const OrderSummary = ({
                 <FaTrash size={8} />
               </button>
             )}
+            */}
           </div>
         </div>
       </div>
+
+      {/* Multi-Pricing Rule Selector Sub-Header */}
+      {multiPricingEnabled && pricingRules.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+          padding: isMobile ? '6px 10px' : '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? '4px' : '6px',
+          flexWrap: 'nowrap',
+          overflow: 'auto',
+          borderBottom: '1px solid rgba(109,40,217,0.3)',
+          flexShrink: 0,
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+        }}>
+          {(() => {
+            const allOptions = [{ id: null, name: 'Dine-In' }, ...pricingRules];
+            const showAsButtons = allOptions.slice(0, 4);
+            const showInDropdown = allOptions.length > 4 ? allOptions.slice(4) : [];
+            return (
+              <>
+                {showAsButtons.map(rule => {
+                  const isActive = rule.id === null ? !activePricingRuleId : activePricingRuleId === rule.id;
+                  return (
+                    <button
+                      key={rule.id || 'base'}
+                      onClick={() => {
+                        if (!autoSelectedRule) {
+                          setActivePricingRuleId(rule.id);
+                          if (rule.id === null) setAutoSelectedRule(false);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: isActive ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.1)',
+                        color: 'white',
+                        border: isActive ? '2px solid white' : '1px solid rgba(255,255,255,0.25)',
+                        borderRadius: isMobile ? '4px' : '6px',
+                        padding: isMobile ? '4px 8px' : '5px 12px',
+                        fontSize: isMobile ? '9px' : '10px',
+                        fontWeight: '700',
+                        cursor: autoSelectedRule ? 'default' : 'pointer',
+                        opacity: autoSelectedRule && !isActive ? 0.5 : 1,
+                        backdropFilter: 'blur(10px)',
+                        boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {rule.name}
+                      {autoSelectedRule && isActive && (
+                        <span style={{ fontSize: '8px', marginLeft: '3px', opacity: 0.7 }}>(auto)</span>
+                      )}
+                    </button>
+                  );
+                })}
+                {showInDropdown.length > 0 && (
+                  <select
+                    value={showInDropdown.some(r => r.id === activePricingRuleId) ? activePricingRuleId : ''}
+                    onChange={(e) => {
+                      if (!autoSelectedRule && e.target.value) {
+                        setActivePricingRuleId(e.target.value);
+                      }
+                    }}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '6px',
+                      padding: '4px 6px',
+                      fontSize: '10px',
+                      fontWeight: '600',
+                      cursor: autoSelectedRule ? 'default' : 'pointer',
+                      backdropFilter: 'blur(10px)',
+                      flexShrink: 0,
+                    }}
+                    disabled={autoSelectedRule}
+                  >
+                    <option value="" style={{ color: '#333' }}>More...</option>
+                    {showInDropdown.map(rule => (
+                      <option key={rule.id} value={rule.id} style={{ color: '#333' }}>{rule.name}</option>
+                    ))}
+                  </select>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Active Table Indicator - Compact & Professional */}
       {tableNumber && (

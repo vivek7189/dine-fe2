@@ -5760,47 +5760,7 @@ function RestaurantPOSContent() {
                 <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>Loading order details...</p>
               </div>
             )}
-            {/* Multi-Tier Pricing Rule Selector */}
-            {multiPricingEnabled && pricingRules.length > 0 && viewMode === 'orders' && (
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px', padding: '0 2px' }}>
-                <button
-                  onClick={() => { setActivePricingRuleId(null); setAutoSelectedRule(false); }}
-                  style={{
-                    padding: '5px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 500,
-                    border: !activePricingRuleId ? '2px solid #8b5cf6' : '1px solid #e5e7eb',
-                    backgroundColor: !activePricingRuleId ? '#f5f3ff' : 'white',
-                    color: !activePricingRuleId ? '#7c3aed' : '#6b7280',
-                    cursor: 'pointer', transition: 'all 0.15s'
-                  }}
-                >
-                  Base Price
-                </button>
-                {pricingRules.map(rule => (
-                  <button
-                    key={rule.id}
-                    onClick={() => {
-                      if (!autoSelectedRule) {
-                        setActivePricingRuleId(rule.id);
-                      }
-                    }}
-                    style={{
-                      padding: '5px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 500,
-                      border: activePricingRuleId === rule.id ? '2px solid #8b5cf6' : '1px solid #e5e7eb',
-                      backgroundColor: activePricingRuleId === rule.id ? '#f5f3ff' : 'white',
-                      color: activePricingRuleId === rule.id ? '#7c3aed' : '#6b7280',
-                      cursor: autoSelectedRule ? 'default' : 'pointer',
-                      opacity: autoSelectedRule && activePricingRuleId !== rule.id ? 0.5 : 1,
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {rule.name}
-                    {autoSelectedRule && activePricingRuleId === rule.id && (
-                      <span style={{ fontSize: '10px', marginLeft: '4px', opacity: 0.7 }}>(auto)</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Multi-Tier Pricing Rule Selector — moved to OrderSummary header */}
 
             {viewMode === 'orders' ? (
             <div>
@@ -6339,6 +6299,12 @@ function RestaurantPOSContent() {
             userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
             countryCode={selectedRestaurant?.currencySettings?.countryCode || 'IN'}
             onCustomerDataChange={setCustomerData}
+            multiPricingEnabled={multiPricingEnabled}
+            pricingRules={pricingRules}
+            activePricingRuleId={activePricingRuleId}
+            setActivePricingRuleId={setActivePricingRuleId}
+            autoSelectedRule={autoSelectedRule}
+            setAutoSelectedRule={setAutoSelectedRule}
           />
         </div>
                 ) : (
@@ -6406,6 +6372,12 @@ function RestaurantPOSContent() {
                     userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
                     countryCode={selectedRestaurant?.currencySettings?.countryCode || 'IN'}
                     onCustomerDataChange={setCustomerData}
+                    multiPricingEnabled={multiPricingEnabled}
+                    pricingRules={pricingRules}
+                    activePricingRuleId={activePricingRuleId}
+                    setActivePricingRuleId={setActivePricingRuleId}
+                    autoSelectedRule={autoSelectedRule}
+                    setAutoSelectedRule={setAutoSelectedRule}
                   />
             )}
           </>

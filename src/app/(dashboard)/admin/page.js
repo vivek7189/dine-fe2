@@ -789,21 +789,46 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                            Table Mappings (floor names)
+                            Mapped Floors
                           </label>
-                          <input
-                            type="text"
-                            value={(rule.tableMappings || []).join(', ')}
-                            onChange={(e) => updateRule(index, 'tableMappings', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                            placeholder={floors.length > 0 ? `e.g., ${floors[0]?.name || 'AC Hall'}` : 'e.g., AC Hall, VIP'}
-                            style={{
-                              width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #d1d5db',
-                              fontSize: '13px', boxSizing: 'border-box'
-                            }}
-                          />
-                          {floors.length > 0 && (
-                            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 0' }}>
-                              Floors: {floors.map(f => f.name).join(', ')}
+                          {floors.length > 0 ? (
+                            <div style={{
+                              border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 8px',
+                              display: 'flex', flexWrap: 'wrap', gap: '6px', minHeight: '36px', alignItems: 'center',
+                              backgroundColor: 'white'
+                            }}>
+                              {floors.map(floor => {
+                                const isSelected = (rule.tableMappings || []).includes(floor.name);
+                                return (
+                                  <label key={floor.id || floor.name} style={{
+                                    display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px',
+                                    padding: '3px 8px', borderRadius: '12px', cursor: 'pointer',
+                                    backgroundColor: isSelected ? '#f5f3ff' : '#f9fafb',
+                                    border: isSelected ? '1px solid #8b5cf6' : '1px solid #e5e7eb',
+                                    color: isSelected ? '#7c3aed' : '#6b7280',
+                                    fontWeight: isSelected ? 600 : 400,
+                                    transition: 'all 0.15s'
+                                  }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        const current = rule.tableMappings || [];
+                                        const updated = isSelected
+                                          ? current.filter(m => m !== floor.name)
+                                          : [...current, floor.name];
+                                        updateRule(index, 'tableMappings', updated);
+                                      }}
+                                      style={{ display: 'none' }}
+                                    />
+                                    {floor.name}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+                              No floors configured. Add floors on the Tables page first.
                             </p>
                           )}
                         </div>
@@ -829,7 +854,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
               }}
             >
               <span style={{ transform: showZonePricing ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>&#9654;</span>
-              Zone Pricing (Subtotal Surcharge)
+              Floor-Based Pricing (Subtotal Surcharge)
             </button>
             {pricingSettings.multiPricing?.enabled && (
               <p style={{ fontSize: '12px', color: '#f59e0b', margin: '4px 0 0 24px' }}>
@@ -856,7 +881,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>
-                        Adds a flat or percentage surcharge on the subtotal based on table section/floor match.
+                        Adds a flat or percentage surcharge on the subtotal based on the assigned floor.
                       </p>
                       <button onClick={addZone} style={{
                         backgroundColor: '#10b981', color: 'white', padding: '6px 12px', borderRadius: '6px',
@@ -885,9 +910,14 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                                 style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }} />
                             </div>
                             <div>
-                              <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '3px' }}>Section Match</label>
-                              <input type="text" value={zone.sectionMatch} onChange={(e) => updateZone(index, 'sectionMatch', e.target.value)} placeholder="e.g., AC"
-                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }} />
+                              <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '3px' }}>Floor</label>
+                              <select value={zone.sectionMatch || ''} onChange={(e) => updateZone(index, 'sectionMatch', e.target.value)}
+                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}>
+                                <option value="">Select Floor</option>
+                                {floors.map(floor => (
+                                  <option key={floor.id || floor.name} value={floor.name}>{floor.name}</option>
+                                ))}
+                              </select>
                             </div>
                             <div>
                               <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '3px' }}>Type</label>
