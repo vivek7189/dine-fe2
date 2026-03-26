@@ -1012,7 +1012,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                 }}
               >
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', margin: '0 0 4px 0' }}>
-                  Delete Table "{deletingTableName}"?
+                  Delete Table &ldquo;{deletingTableName}&rdquo;?
                 </h3>
                 <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 14px 0' }}>
                   Please provide a reason for removing this table.
