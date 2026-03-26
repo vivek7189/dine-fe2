@@ -1296,11 +1296,20 @@ function RestaurantPOSContent() {
         setActivePricingRuleId(null);
         setAutoSelectedRule(false);
       }
-    } else if (orderType === 'dine-in' && !selectedTable?.floor) {
-      // Switching back to dine-in without a table — clear auto and let user pick area
-      setAutoSelectedRule(false);
-      // Keep current rule selection if any, or clear to base
-      if (autoSelectedRule) setActivePricingRuleId(null);
+    } else if (orderType === 'dine-in') {
+      // Auto-select first area rule when switching to dine-in (if no table mapping)
+      if (!selectedTable?.floor) {
+        setAutoSelectedRule(false);
+        const skipNames = ['dine-in', 'dinein', 'dine in', 'takeaway', 'take away', 'delivery'];
+        const areaRules = pricingRules.filter(r =>
+          !skipNames.includes((r.name || '').toLowerCase().trim())
+        );
+        if (areaRules.length > 0) {
+          setActivePricingRuleId(areaRules[0].id);
+        } else {
+          setActivePricingRuleId(null);
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderType, multiPricingEnabled, pricingRules]);

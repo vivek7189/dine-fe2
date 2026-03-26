@@ -222,14 +222,15 @@ const OrderSummary = ({
     (discountSettings.manualDiscountRoles || ['owner']).includes(userRole?.toLowerCase());
 
   // Compute unit price for an item considering variant and selected customizations
+  // Uses item.price (which reflects the active pricing rule) over item.basePrice
   const getItemUnitPrice = (cartItem) => {
-    const basePrice = (cartItem?.selectedVariant?.price)
-      ?? (typeof cartItem?.basePrice === 'number' ? cartItem.basePrice : undefined)
-      ?? (typeof cartItem?.price === 'number' ? cartItem.price : 0);
+    const unitPrice = (cartItem?.selectedVariant?.price)
+      ?? (typeof cartItem?.price === 'number' ? cartItem.price : undefined)
+      ?? (typeof cartItem?.basePrice === 'number' ? cartItem.basePrice : 0);
     const extras = Array.isArray(cartItem?.selectedCustomizations)
       ? cartItem.selectedCustomizations.reduce((sum, c) => sum + (c?.price || 0), 0)
       : (typeof cartItem?.customizationPrice === 'number' ? cartItem.customizationPrice : 0);
-    return (basePrice || 0) + (extras || 0);
+    return (unitPrice || 0) + (extras || 0);
   };
   
   const calculateTax = useCallback(async () => {
