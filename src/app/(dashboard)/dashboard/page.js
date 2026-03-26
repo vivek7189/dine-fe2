@@ -1235,14 +1235,17 @@ function RestaurantPOSContent() {
 
   // Handle table parameters from URL
   useEffect(() => {
-    const tableParam = searchParams.get('table');
-    const floorParam = searchParams.get('floor');
+    // Support both param formats: tables page (tableId/tableNo/floorId/floorName) and direct (table/floor/capacity)
+    const tableParam = searchParams.get('table') || searchParams.get('tableNo');
+    const floorParam = searchParams.get('floor') || searchParams.get('floorName');
     const capacityParam = searchParams.get('capacity');
-    
+    const tableIdParam = searchParams.get('tableId');
+
     if (tableParam) {
       setSelectedTable({
+        id: tableIdParam || null,
         name: tableParam,
-        floor: floorParam,
+        floor: floorParam || null,
         capacity: capacityParam
       });
       setOrderType('dine-in'); // Force dine-in when table is selected
@@ -1256,7 +1259,7 @@ function RestaurantPOSContent() {
       const floorName = selectedTable.floor;
       const matchedRule = pricingRules.find(rule =>
         (rule.tableMappings || []).some(m =>
-          floorName.toLowerCase().includes(m.toLowerCase())
+          floorName.toLowerCase().trim() === m.toLowerCase().trim()
         )
       );
       if (matchedRule) {
@@ -1444,13 +1447,16 @@ function RestaurantPOSContent() {
     setCart(prevCart => prevCart.map(item => {
       // Find the original menu item to get pricingRules overrides
       const menuItem = menuItems.find(m => m.id === item.id || m._id === item._id);
-      const basePrice = item.basePrice ?? item.price;
+      // Resolve true base price: prefer stored basePrice, then _originalPrice, then menu item's price, then cart price
+      const basePrice = item.basePrice ?? item._originalPrice ?? menuItem?.price ?? item.price;
       let newPrice = basePrice;
       if (activePricingRuleId) {
-        // Check per-item override from menu item's pricingRules
-        const perItemPrice = menuItem?.pricingRules?.[activePricingRuleId];
-        if (typeof perItemPrice === 'number') {
-          newPrice = perItemPrice;
+        // Check per-item override from menu item's pricingRules (handle both number and string)
+        const perItemPrice = menuItem?.pricingRules?.[activePricingRuleId]
+          ?? item?.pricingRules?.[activePricingRuleId];
+        const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
+        if (!isNaN(parsed) && parsed >= 0) {
+          newPrice = parsed;
         } else {
           // Apply default markup from rule
           const rule = pricingRules.find(r => r.id === activePricingRuleId);
@@ -1469,7 +1475,7 @@ function RestaurantPOSContent() {
       };
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePricingRuleId, multiPricingEnabled]);
+  }, [activePricingRuleId, multiPricingEnabled, menuItems]);
 
   // Apply display prices to filtered items for rendering
   const filteredItems = multiPricingEnabled && activePricingRuleId
@@ -1485,13 +1491,13 @@ function RestaurantPOSContent() {
       setOrderSuccess(null);
     }
 
-    // Multi-tier pricing: override base price if no variant is selected
+    // Multi-tier pricing: always preserve the true base price and set rule-adjusted price
     let item = itemRaw;
     if (multiPricingEnabled && activePricingRuleId && !itemRaw?.selectedVariant) {
       const adjustedPrice = getItemDisplayPrice(itemRaw);
-      if (adjustedPrice !== itemRaw.price) {
-        item = { ...itemRaw, price: adjustedPrice, basePrice: itemRaw.price, appliedPricingRuleId: activePricingRuleId };
-      }
+      // Use _originalPrice (set by filteredItems mapping) or existing basePrice as the true base
+      const trueBasePrice = itemRaw._originalPrice ?? itemRaw.basePrice ?? itemRaw.price;
+      item = { ...itemRaw, price: adjustedPrice, basePrice: trueBasePrice, appliedPricingRuleId: activePricingRuleId };
     }
 
     setCart(prevCart => {
@@ -1623,8 +1629,23 @@ function RestaurantPOSContent() {
 
   const getTotalAmount = () => {
     const total = cart.reduce((sum, item) => {
-      const base = (item?.selectedVariant?.price)
-        ?? (typeof item?.price === 'number' ? item.price : 0);
+      let base;
+      if (item?.selectedVariant?.price != null) {
+        base = item.selectedVariant.price;
+      } else if (multiPricingEnabled && activePricingRuleId) {
+        // Check per-item pricing override
+        const perItemPrice = item?.pricingRules?.[activePricingRuleId];
+        const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
+        if (!isNaN(parsed) && parsed >= 0) {
+          base = parsed;
+        } else {
+          // No per-item price for this rule — use original base price
+          base = typeof item?.basePrice === 'number' ? item.basePrice
+            : typeof item?.price === 'number' ? item.price : 0;
+        }
+      } else {
+        base = typeof item?.price === 'number' ? item.price : 0;
+      }
       const extras = Array.isArray(item?.selectedCustomizations)
         ? item.selectedCustomizations.reduce((s, c) => s + (c?.price || 0), 0)
         : (typeof item?.customizationPrice === 'number' ? item.customizationPrice : 0);
@@ -6234,6 +6255,7 @@ function RestaurantPOSContent() {
                 error={error}
                 getTotalAmount={getTotalAmount}
                 tableNumber={tableNumber}
+                selectedTable={selectedTable}
                 customerName={customerName}
                 customerMobile={customerMobile}
                 orderLookup={orderLookup}
@@ -6251,7 +6273,7 @@ function RestaurantPOSContent() {
                     prefetchTables(selectedRestaurant.id);
                   }
                 }}
-                onTakeOrder={(tbl) => {
+                onTakeOrder={(tbl, tableInfo) => {
                   // Clear previous order data when taking order from a new table
                   setCart([]);
                   setCurrentOrder(null);
@@ -6263,6 +6285,15 @@ function RestaurantPOSContent() {
                   setOrderSuccess(null);
                   setError('');
                   setTableNumber(tbl);
+                  // Set selectedTable with floor info for multi-tier pricing auto-selection
+                  if (tableInfo?.floor) {
+                    setSelectedTable({
+                      id: tableInfo.id || null,
+                      name: tbl,
+                      floor: tableInfo.floor,
+                      capacity: tableInfo.capacity || null
+                    });
+                  }
                   // Track that user came from tables view
                   setReturnToView('tables');
                   // Update URL with from=tables for back navigation (use pushState for back button support)
@@ -6378,6 +6409,7 @@ function RestaurantPOSContent() {
             error={error}
             getTotalAmount={getTotalAmount}
             tableNumber={tableNumber}
+            selectedTable={selectedTable}
             customerName={customerName}
             customerMobile={customerMobile}
             orderLookup={orderLookup}
@@ -6453,6 +6485,7 @@ function RestaurantPOSContent() {
                     error={error}
                     getTotalAmount={getTotalAmount}
                     tableNumber={tableNumber}
+                    selectedTable={selectedTable}
                     customerName={customerName}
                     customerMobile={customerMobile}
                     orderLookup={orderLookup}

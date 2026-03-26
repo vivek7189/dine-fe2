@@ -392,7 +392,7 @@ const BulkMenuUpload = ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 10000, // Higher than navigation (1000)
+      zIndex: 10002, // Higher than sidebar (10000)
       padding: '20px',
       backdropFilter: 'blur(4px)'
     }}>

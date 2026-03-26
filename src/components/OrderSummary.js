@@ -59,6 +59,7 @@ const OrderSummary = ({
   error,
   getTotalAmount,
   tableNumber,
+  selectedTable,
   customerName,
   customerMobile,
   orderLookup,
@@ -224,9 +225,25 @@ const OrderSummary = ({
   // Compute unit price for an item considering variant and selected customizations
   // Uses item.price (which reflects the active pricing rule) over item.basePrice
   const getItemUnitPrice = (cartItem) => {
-    const unitPrice = (cartItem?.selectedVariant?.price)
-      ?? (typeof cartItem?.price === 'number' ? cartItem.price : undefined)
-      ?? (typeof cartItem?.basePrice === 'number' ? cartItem.basePrice : 0);
+    let unitPrice;
+    if (cartItem?.selectedVariant?.price != null) {
+      unitPrice = cartItem.selectedVariant.price;
+    } else if (multiPricingEnabled && activePricingRuleId) {
+      // Check per-item pricing rule override (cart item carries pricingRules from menu item)
+      const perItemPrice = cartItem?.pricingRules?.[activePricingRuleId];
+      const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
+      if (!isNaN(parsed) && parsed >= 0) {
+        unitPrice = parsed;
+      } else {
+        // No per-item price for this rule — use original base price
+        unitPrice = typeof cartItem?.basePrice === 'number' ? cartItem.basePrice
+          : typeof cartItem?.price === 'number' ? cartItem.price : 0;
+      }
+    } else {
+      // No multi-pricing — use price as-is
+      unitPrice = typeof cartItem?.price === 'number' ? cartItem.price
+        : typeof cartItem?.basePrice === 'number' ? cartItem.basePrice : 0;
+    }
     const extras = Array.isArray(cartItem?.selectedCustomizations)
       ? cartItem.selectedCustomizations.reduce((sum, c) => sum + (c?.price || 0), 0)
       : (typeof cartItem?.customizationPrice === 'number' ? cartItem.customizationPrice : 0);
@@ -679,6 +696,9 @@ const OrderSummary = ({
           
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px' }}>
             {/* Order Type Selector - Text Based */}
+            {(() => {
+              const hasTable = !!(tableNumber || selectedTable?.name);
+              return (
             <div style={{ display: 'flex', gap: isMobile ? '3px' : '4px' }}>
               <button
                 onClick={() => setOrderType('dine-in')}
@@ -700,7 +720,8 @@ const OrderSummary = ({
                 {isMobile ? 'DINE IN' : t('dashboard.dineIn')}
               </button>
               <button
-                onClick={() => setOrderType('takeaway')}
+                onClick={() => { if (!hasTable) setOrderType('takeaway'); }}
+                disabled={hasTable}
                 style={{
                   backgroundColor: orderType === 'takeaway' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
                   color: 'white',
@@ -709,17 +730,19 @@ const OrderSummary = ({
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',
                   fontWeight: '700',
-                  cursor: 'pointer',
+                  cursor: hasTable ? 'not-allowed' : 'pointer',
+                  opacity: hasTable ? 0.4 : 1,
                   backdropFilter: 'blur(10px)',
                   boxShadow: orderType === 'takeaway' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
                   whiteSpace: 'nowrap'
                 }}
-                title="Takeaway"
+                title={hasTable ? 'Remove table to switch to Takeaway' : 'Takeaway'}
               >
                 {isMobile ? 'TAKEAWAY' : t('dashboard.takeaway')}
               </button>
               <button
-                onClick={() => setOrderType('delivery')}
+                onClick={() => { if (!hasTable) setOrderType('delivery'); }}
+                disabled={hasTable}
                 style={{
                   backgroundColor: orderType === 'delivery' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
                   color: 'white',
@@ -728,16 +751,19 @@ const OrderSummary = ({
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',
                   fontWeight: '700',
-                  cursor: 'pointer',
+                  cursor: hasTable ? 'not-allowed' : 'pointer',
+                  opacity: hasTable ? 0.4 : 1,
                   backdropFilter: 'blur(10px)',
                   boxShadow: orderType === 'delivery' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
                   whiteSpace: 'nowrap'
                 }}
-                title="Delivery"
+                title={hasTable ? 'Remove table to switch to Delivery' : 'Delivery'}
               >
                 {isMobile ? 'DELIVERY' : 'Delivery'}
               </button>
             </div>
+              );
+            })()}
             
             {/* QR Code Button - Temporarily hidden
             {!isMobile && (
@@ -790,8 +816,8 @@ const OrderSummary = ({
         </div>
       </div>
 
-      {/* Multi-Pricing Area Selector — only for Dine-In when multi-pricing enabled */}
-      {multiPricingEnabled && orderType === 'dine-in' && (() => {
+      {/* Multi-Pricing Area Selector — only for Dine-In when multi-pricing enabled, hidden when table auto-selects */}
+      {multiPricingEnabled && orderType === 'dine-in' && !autoSelectedRule && (() => {
         // Show loading skeleton while pricing rules are loading
         if (pricingRulesLoading && pricingRules.length === 0) {
           return (
@@ -942,6 +968,20 @@ const OrderSummary = ({
             )}
           </div>
         );
+      })()}
+
+      {/* Lock notification when table auto-selects pricing rule */}
+      {autoSelectedRule && selectedTable?.floor && activePricingRuleId && (() => {
+        const activeRule = pricingRules.find(r => r.id === activePricingRuleId);
+        return activeRule ? (
+          <div style={{
+            padding: '6px 12px', backgroundColor: '#eff6ff', borderBottom: '1px solid #dbeafe',
+            fontSize: '11px', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '4px'
+          }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1a4 4 0 0 0-4 4v3H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm2 7H6V5a2 2 0 1 1 4 0v3z" fill="currentColor"/></svg>
+            <span>{activeRule.name} — {selectedTable.floor}</span>
+          </div>
+        ) : null;
       })()}
 
       {/* Active Table Indicator - Compact & Professional */}

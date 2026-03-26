@@ -155,14 +155,14 @@ export default function DashboardTablesPanel({
     }
   };
 
-  const handleTakeOrderGuarded = (table) => {
+  const handleTakeOrderGuarded = (table, floorName) => {
     const status = table.status?.toLowerCase();
     if (status === 'out-of-service') {
-      setOutOfServiceModal({ open: true, table });
+      setOutOfServiceModal({ open: true, table, floorName });
       return;
     }
     if (sliderOpen) handleSliderClose();
-    if (onTakeOrder) onTakeOrder(table.name || table.number);
+    if (onTakeOrder) onTakeOrder(table.name || table.number, { id: table.id, floor: floorName, capacity: table.capacity });
   };
 
   const closeSlider = () => {
@@ -855,7 +855,7 @@ export default function DashboardTablesPanel({
                       {isAvailable ? (
                         <button
                           className="btn-action"
-                          onClick={() => handleTakeOrderGuarded(t)}
+                          onClick={() => handleTakeOrderGuarded(t, group.info?.name)}
                           style={{
                             width: '100%',
                             padding: '8px 12px',
@@ -910,7 +910,7 @@ export default function DashboardTablesPanel({
                             className="btn-action"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleTakeOrderGuarded(t);
+                              handleTakeOrderGuarded(t, group.info?.name);
                             }}
                             style={{
                               flex: 1,
@@ -1025,7 +1025,7 @@ export default function DashboardTablesPanel({
                               if (t.currentOrderId) {
                                 router.push(`/dashboard?orderId=${t.currentOrderId}&mode=edit&from=tables`);
                               } else {
-                                handleTakeOrderGuarded(t);
+                                handleTakeOrderGuarded(t, group.info?.name);
                               }
                             }}
                             style={{
@@ -1147,8 +1147,9 @@ export default function DashboardTablesPanel({
               <button
                 onClick={() => {
                   const tbl = outOfServiceModal.table;
-                  setOutOfServiceModal({ open: false, table: null });
-                  if (tbl) handleTakeOrderGuarded({ ...tbl, status: 'available' });
+                  const flName = outOfServiceModal.floorName;
+                  setOutOfServiceModal({ open: false, table: null, floorName: null });
+                  if (tbl) handleTakeOrderGuarded({ ...tbl, status: 'available' }, flName);
                 }}
                 style={{
                   flex: 1,

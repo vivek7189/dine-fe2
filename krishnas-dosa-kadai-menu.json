@@ -1,0 +1,2773 @@
+{
+  "menuItems": [
+    {
+      "name": "Idly (2)",
+      "shortCode": "BF1",
+      "price": 50,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 48,
+        "rule_takeaway": 42
+      }
+    },
+    {
+      "name": "Idly (4)",
+      "shortCode": "BF2",
+      "price": 90,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 92,
+        "rule_takeaway": 80
+      }
+    },
+    {
+      "name": "Sambar Idly (2)",
+      "shortCode": "BF3",
+      "price": 85,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 80,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Ghee Sambar Idly (2)",
+      "shortCode": "BF4",
+      "price": 93,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 85,
+        "rule_takeaway": 83
+      }
+    },
+    {
+      "name": "Ghee Podi Idly (2)",
+      "shortCode": "BF5",
+      "price": 85,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 85,
+        "rule_takeaway": 76
+      }
+    },
+    {
+      "name": "Poori (2)",
+      "shortCode": "BF6",
+      "price": 90,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Idiyappam(3pc)",
+      "shortCode": "BF7",
+      "price": 76,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 75,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Ven Pongal",
+      "shortCode": "BF8",
+      "price": 85,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 80,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Rava Kichidi",
+      "shortCode": "BF9",
+      "price": 75,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 65,
+        "rule_takeaway": 65
+      }
+    },
+    {
+      "name": "Upma",
+      "shortCode": "BF10",
+      "price": 70,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 65,
+        "rule_takeaway": 65
+      }
+    },
+    {
+      "name": "Upma Pesarattu",
+      "shortCode": "BF11",
+      "price": 95,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 90
+      }
+    },
+    {
+      "name": "Medu Vada(1)",
+      "shortCode": "BF12",
+      "price": 32,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 30,
+        "rule_takeaway": 28
+      }
+    },
+    {
+      "name": "Sambar Vada(1)",
+      "shortCode": "BF13",
+      "price": 39,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 42,
+        "rule_takeaway": 39
+      }
+    },
+    {
+      "name": "Sambar Vada(2)",
+      "shortCode": "BF14",
+      "price": 90,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 84,
+        "rule_takeaway": 78
+      }
+    },
+    {
+      "name": "Curd Vada(1pc)",
+      "shortCode": "BF15",
+      "price": 56,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 52,
+        "rule_takeaway": 47
+      }
+    },
+    {
+      "name": "Curd Vada(2pc)",
+      "shortCode": "BF16",
+      "price": 112,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 104,
+        "rule_takeaway": 94
+      }
+    },
+    {
+      "name": "Vadacurry",
+      "shortCode": "BF17",
+      "price": 70,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 65,
+        "rule_takeaway": 60
+      }
+    },
+    {
+      "name": "Mini Tiffin",
+      "shortCode": "BF18",
+      "price": 143,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 109,
+        "rule_takeaway": 89
+      }
+    },
+    {
+      "name": "Spl.Mini Tiffin",
+      "shortCode": "BF19",
+      "price": 162,
+      "category": "Break Fast",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {}
+    },
+    {
+      "name": "Tea",
+      "shortCode": "HB1",
+      "price": 50,
+      "category": "Hot Beverages",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 30,
+        "rule_takeaway": 27
+      }
+    },
+    {
+      "name": "Milk",
+      "shortCode": "HB2",
+      "price": 44,
+      "category": "Hot Beverages",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 30,
+        "rule_takeaway": 22
+      }
+    },
+    {
+      "name": "Coffee",
+      "shortCode": "HB3",
+      "price": 60,
+      "category": "Hot Beverages",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 35,
+        "rule_takeaway": 32
+      }
+    },
+    {
+      "name": "Boost",
+      "shortCode": "HB4",
+      "price": 60,
+      "category": "Hot Beverages",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 35,
+        "rule_takeaway": 32
+      }
+    },
+    {
+      "name": "Ragi Dosa",
+      "shortCode": "HD1",
+      "price": 92,
+      "category": "Healthy Dosa's",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Kambu Dosa",
+      "shortCode": "HD2",
+      "price": 92,
+      "category": "Healthy Dosa's",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Butter Dosa",
+      "shortCode": "HD3",
+      "price": 92,
+      "category": "Healthy Dosa's",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Carrot Dosa",
+      "shortCode": "HD4",
+      "price": 92,
+      "category": "Healthy Dosa's",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Mini Idly",
+      "shortCode": "FV1",
+      "price": 85,
+      "category": "Favourites",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 80
+      }
+    },
+    {
+      "name": "Chapathi (2)",
+      "shortCode": "FV2",
+      "price": 89,
+      "category": "Favourites",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 82
+      }
+    },
+    {
+      "name": "Parota (2)",
+      "shortCode": "FV3",
+      "price": 89,
+      "category": "Favourites",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 82
+      }
+    },
+    {
+      "name": "Chola Poori",
+      "shortCode": "FV4",
+      "price": 100,
+      "category": "Favourites",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 110,
+        "rule_takeaway": 95
+      }
+    },
+    {
+      "name": "South Indian Thali (limited)",
+      "shortCode": "ML1",
+      "price": 143,
+      "category": "Meals",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 133
+      }
+    },
+    {
+      "name": "Mini Meals",
+      "shortCode": "ML2",
+      "price": 143,
+      "category": "Meals",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 133
+      }
+    },
+    {
+      "name": "Spl. South Indian Thali",
+      "shortCode": "ML3",
+      "price": 199,
+      "category": "Meals",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 209,
+        "rule_takeaway": 176
+      }
+    },
+    {
+      "name": "North Indian Meals",
+      "shortCode": "ML4",
+      "price": 299,
+      "category": "Meals",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {}
+    },
+    {
+      "name": "Uthappam",
+      "shortCode": "DV1",
+      "price": 85,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 93,
+        "rule_takeaway": 78
+      }
+    },
+    {
+      "name": "Plain Dosa",
+      "shortCode": "DV2",
+      "price": 85,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 93,
+        "rule_takeaway": 78
+      }
+    },
+    {
+      "name": "Pesarattu",
+      "shortCode": "DV3",
+      "price": 85,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 93,
+        "rule_takeaway": 78
+      }
+    },
+    {
+      "name": "Rava Dosa",
+      "shortCode": "DV4",
+      "price": 85,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 93,
+        "rule_takeaway": 78
+      }
+    },
+    {
+      "name": "Podi Dosa",
+      "shortCode": "DV5",
+      "price": 95,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 103,
+        "rule_takeaway": 88
+      }
+    },
+    {
+      "name": "Onion Rava Dosa",
+      "shortCode": "DV6",
+      "price": 95,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 103,
+        "rule_takeaway": 88
+      }
+    },
+    {
+      "name": "Ghee Ravva Dosa",
+      "shortCode": "DV7",
+      "price": 102,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 110,
+        "rule_takeaway": 95
+      }
+    },
+    {
+      "name": "Rava Masala Dosa",
+      "shortCode": "DV8",
+      "price": 102,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 103,
+        "rule_takeaway": 95
+      }
+    },
+    {
+      "name": "Podi Uthappam",
+      "shortCode": "DV9",
+      "price": 97,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 105,
+        "rule_takeaway": 90
+      }
+    },
+    {
+      "name": "Onion Dosa",
+      "shortCode": "DV10",
+      "price": 98,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 106,
+        "rule_takeaway": 91
+      }
+    },
+    {
+      "name": "Onion Uthappam",
+      "shortCode": "DV11",
+      "price": 98,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 106,
+        "rule_takeaway": 91
+      }
+    },
+    {
+      "name": "Paper Roast Dosa",
+      "shortCode": "DV12",
+      "price": 100,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 104,
+        "rule_takeaway": 93
+      }
+    },
+    {
+      "name": "Masala Dosa",
+      "shortCode": "DV13",
+      "price": 100,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 108,
+        "rule_takeaway": 93
+      }
+    },
+    {
+      "name": "Onion Pesarattu",
+      "shortCode": "DV14",
+      "price": 100,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 108,
+        "rule_takeaway": 93
+      }
+    },
+    {
+      "name": "Paper Roast Masala Dosa",
+      "shortCode": "DV15",
+      "price": 105,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 113,
+        "rule_takeaway": 98
+      }
+    },
+    {
+      "name": "Onion Rava Masala Dosa",
+      "shortCode": "DV16",
+      "price": 105,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 113,
+        "rule_takeaway": 98
+      }
+    },
+    {
+      "name": "Podi Onion Uthappam",
+      "shortCode": "DV17",
+      "price": 105,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 113,
+        "rule_takeaway": 98
+      }
+    },
+    {
+      "name": "Podi Onion Dosa",
+      "shortCode": "DV18",
+      "price": 108,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 116,
+        "rule_takeaway": 101
+      }
+    },
+    {
+      "name": "Ghee Roast Dosa",
+      "shortCode": "DV19",
+      "price": 127,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 135,
+        "rule_takeaway": 120
+      }
+    },
+    {
+      "name": "Ghee Rava Masala Dosa",
+      "shortCode": "DV20",
+      "price": 127,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 135,
+        "rule_takeaway": 120
+      }
+    },
+    {
+      "name": "Ghee Podi Dosa",
+      "shortCode": "DV21",
+      "price": 132,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 140,
+        "rule_takeaway": 125
+      }
+    },
+    {
+      "name": "Ghee Roast Masala Dosa",
+      "shortCode": "DV22",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Podi Masala Dosa",
+      "shortCode": "DV23",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Onion Dosa",
+      "shortCode": "DV24",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Onion Podi Dosa",
+      "shortCode": "DV25",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Onion Pesarattu",
+      "shortCode": "DV26",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Onion Podi Utappam",
+      "shortCode": "DV27",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Podi Onion Pesarattu",
+      "shortCode": "DV28",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Podi Onion Dosa",
+      "shortCode": "DV29",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Cashewnut Rava Dosa",
+      "shortCode": "DV30",
+      "price": 137,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Ghee Podi Onion Rava Masala Dosa",
+      "shortCode": "DV31",
+      "price": 142,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 135
+      }
+    },
+    {
+      "name": "Ghee Podi Onion Masala Dosa",
+      "shortCode": "DV32",
+      "price": 142,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 135
+      }
+    },
+    {
+      "name": "Ghee Kharam Dosa",
+      "shortCode": "DV33",
+      "price": 142,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 135
+      }
+    },
+    {
+      "name": "Ghee Kharam Onion Dosa",
+      "shortCode": "DV34",
+      "price": 142,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 135
+      }
+    },
+    {
+      "name": "Ghee Kharam Onion Pesarattu",
+      "shortCode": "DV35",
+      "price": 142,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 135
+      }
+    },
+    {
+      "name": "Ghee Podi Onion Ravva Dosa",
+      "shortCode": "DV36",
+      "price": 142,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 135
+      }
+    },
+    {
+      "name": "Set Dosa With Vadacurry",
+      "shortCode": "DV37",
+      "price": 135,
+      "category": "Dosa Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 145,
+        "rule_takeaway": 129
+      }
+    },
+    {
+      "name": "Sambar Rice",
+      "shortCode": "QL1",
+      "price": 94,
+      "category": "Quick Lunch",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 95,
+        "rule_takeaway": 81
+      }
+    },
+    {
+      "name": "Curd Rice",
+      "shortCode": "QL2",
+      "price": 94,
+      "category": "Quick Lunch",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 95,
+        "rule_takeaway": 81
+      }
+    },
+    {
+      "name": "Rice Of The Day",
+      "shortCode": "QL3",
+      "price": 94,
+      "category": "Quick Lunch",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 95,
+        "rule_takeaway": 81
+      }
+    },
+    {
+      "name": "Veg Pulav",
+      "shortCode": "QL4",
+      "price": 105,
+      "category": "Quick Lunch",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 115,
+        "rule_takeaway": 95
+      }
+    },
+    {
+      "name": "Sweet Corn Samosa (2)",
+      "shortCode": "ES1",
+      "price": 28,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 26
+      }
+    },
+    {
+      "name": "Bonda (3)",
+      "shortCode": "ES2",
+      "price": 55,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 46
+      }
+    },
+    {
+      "name": "Keera Vada (2)",
+      "shortCode": "ES3",
+      "price": 48,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 46
+      }
+    },
+    {
+      "name": "Onion Bajji (2)",
+      "shortCode": "ES4",
+      "price": 38,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 35
+      }
+    },
+    {
+      "name": "Banana Bajji (2)",
+      "shortCode": "ES5",
+      "price": 38,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 35
+      }
+    },
+    {
+      "name": "Medu Vada (2)",
+      "shortCode": "ES6",
+      "price": 58,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 56
+      }
+    },
+    {
+      "name": "Sweet Corn Spring Roll (2)",
+      "shortCode": "ES7",
+      "price": 42,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 40
+      }
+    },
+    {
+      "name": "Andra Punugulu",
+      "shortCode": "ES8",
+      "price": 64,
+      "category": "Evening Special",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 60
+      }
+    },
+    {
+      "name": "Tomato Soup",
+      "shortCode": "SP1",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Sweet Corn Soup",
+      "shortCode": "SP2",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Mushroom Soup",
+      "shortCode": "SP3",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Veg Soup",
+      "shortCode": "SP4",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Veg Clear Soup",
+      "shortCode": "SP5",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Baby Corn Soup",
+      "shortCode": "SP6",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Lemon Coriander Soup",
+      "shortCode": "SP7",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Manchow Soup",
+      "shortCode": "SP8",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 110,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Hot & Sour Soup",
+      "shortCode": "SP9",
+      "price": 80,
+      "category": "Soups",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 110,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Veg Biryani",
+      "shortCode": "BR1",
+      "price": 180,
+      "category": "Biryani (Dum Biryani)",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 190,
+        "rule_takeaway": 170
+      }
+    },
+    {
+      "name": "Mushroom Biryani",
+      "shortCode": "BR2",
+      "price": 190,
+      "category": "Biryani (Dum Biryani)",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Paneer Biryani",
+      "shortCode": "BR3",
+      "price": 200,
+      "category": "Biryani (Dum Biryani)",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 215,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Kebab Biryani",
+      "shortCode": "BR4",
+      "price": 210,
+      "category": "Biryani (Dum Biryani)",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 200
+      }
+    },
+    {
+      "name": "Mixed Biryani",
+      "shortCode": "BR5",
+      "price": 235,
+      "category": "Biryani (Dum Biryani)",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 235,
+        "rule_takeaway": 225
+      }
+    },
+    {
+      "name": "Mix Veg Paratha",
+      "shortCode": "PR1",
+      "price": 80,
+      "category": "Paratha Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 99,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Garlic Paratha",
+      "shortCode": "PR2",
+      "price": 80,
+      "category": "Paratha Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 99,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Aloo Paratha",
+      "shortCode": "PR3",
+      "price": 80,
+      "category": "Paratha Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 99,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Methi Paratha",
+      "shortCode": "PR4",
+      "price": 80,
+      "category": "Paratha Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 99,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Paneer Paratha",
+      "shortCode": "PR5",
+      "price": 85,
+      "category": "Paratha Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 109,
+        "rule_takeaway": 80
+      }
+    },
+    {
+      "name": "Spl. Paratha",
+      "shortCode": "PR6",
+      "price": 85,
+      "category": "Paratha Varieties",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 109,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Chilli Parotta",
+      "shortCode": "ST1",
+      "price": 190,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Gobi/Mushroom/Paneer - 65",
+      "shortCode": "ST2",
+      "price": 200,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Chilli Gobi",
+      "shortCode": "ST3",
+      "price": 190,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Chinese Fry Parotta",
+      "shortCode": "ST4",
+      "price": 200,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Gobi/Mushroom/Paneer - Manch.",
+      "shortCode": "ST5",
+      "price": 200,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Baby Corn Manchurian",
+      "shortCode": "ST6",
+      "price": 200,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Chilli Mushroom",
+      "shortCode": "ST7",
+      "price": 200,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Chilli Baby Corn",
+      "shortCode": "ST8",
+      "price": 200,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Golden Fry Baby Corn",
+      "shortCode": "ST9",
+      "price": 220,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Crispy Corn",
+      "shortCode": "ST10",
+      "price": 55,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 52
+      }
+    },
+    {
+      "name": "Mushroom Pepper Fry",
+      "shortCode": "ST11",
+      "price": 220,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Baby Corn Pepper Fry",
+      "shortCode": "ST12",
+      "price": 220,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 130,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Paneer Satay",
+      "shortCode": "ST13",
+      "price": 220,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Chilli Paneer",
+      "shortCode": "ST14",
+      "price": 220,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Paneer Pepper Fry",
+      "shortCode": "ST15",
+      "price": 220,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Dragon Mushroom",
+      "shortCode": "ST16",
+      "price": 220,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Paneer Honey",
+      "shortCode": "ST17",
+      "price": 235,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 245,
+        "rule_takeaway": 225
+      }
+    },
+    {
+      "name": "Dragon Paneer",
+      "shortCode": "ST18",
+      "price": 235,
+      "category": "Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 245,
+        "rule_takeaway": 225
+      }
+    },
+    {
+      "name": "Veg Kabab",
+      "shortCode": "TS1",
+      "price": 200,
+      "category": "Tandoori Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Mushroom Tikka",
+      "shortCode": "TS2",
+      "price": 200,
+      "category": "Tandoori Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Paneer Tikka",
+      "shortCode": "TS3",
+      "price": 220,
+      "category": "Tandoori Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Malai Paneer Tikka",
+      "shortCode": "TS4",
+      "price": 235,
+      "category": "Tandoori Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 245,
+        "rule_takeaway": 225
+      }
+    },
+    {
+      "name": "Reshmi Paneer Tikka",
+      "shortCode": "TS5",
+      "price": 230,
+      "category": "Tandoori Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 220
+      }
+    },
+    {
+      "name": "Kaju Paneer Tikka",
+      "shortCode": "TS6",
+      "price": 235,
+      "category": "Tandoori Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 245,
+        "rule_takeaway": 225
+      }
+    },
+    {
+      "name": "Hariyali Paneer Tikka",
+      "shortCode": "TS7",
+      "price": 230,
+      "category": "Tandoori Starters",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 220
+      }
+    },
+    {
+      "name": "Pulka",
+      "shortCode": "IB1",
+      "price": 25,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 30,
+        "rule_takeaway": 25
+      }
+    },
+    {
+      "name": "Naan",
+      "shortCode": "IB2",
+      "price": 55,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 60,
+        "rule_takeaway": 50
+      }
+    },
+    {
+      "name": "Plain Roti",
+      "shortCode": "IB3",
+      "price": 55,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 60,
+        "rule_takeaway": 50
+      }
+    },
+    {
+      "name": "Plain Kulcha",
+      "shortCode": "IB4",
+      "price": 55,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 60,
+        "rule_takeaway": 55
+      }
+    },
+    {
+      "name": "Butter Naan",
+      "shortCode": "IB5",
+      "price": 65,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 70,
+        "rule_takeaway": 60
+      }
+    },
+    {
+      "name": "Butter Roti",
+      "shortCode": "IB6",
+      "price": 65,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 70,
+        "rule_takeaway": 60
+      }
+    },
+    {
+      "name": "Methi Roti",
+      "shortCode": "IB7",
+      "price": 65,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 70,
+        "rule_takeaway": 60
+      }
+    },
+    {
+      "name": "Masala Kulcha",
+      "shortCode": "IB8",
+      "price": 70,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 80,
+        "rule_takeaway": 65
+      }
+    },
+    {
+      "name": "Stuffed Naan",
+      "shortCode": "IB9",
+      "price": 75,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 70
+      }
+    },
+    {
+      "name": "Garlic Naan",
+      "shortCode": "IB10",
+      "price": 80,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 80
+      }
+    },
+    {
+      "name": "Paneer Kulcha",
+      "shortCode": "IB11",
+      "price": 90,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Wheat Kulcha",
+      "shortCode": "IB12",
+      "price": 85,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 95,
+        "rule_takeaway": 85
+      }
+    },
+    {
+      "name": "Cheese Paneer Kulcha",
+      "shortCode": "IB13",
+      "price": 95,
+      "category": "Indian Breads",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 90
+      }
+    },
+    {
+      "name": "Veg Fried Rice",
+      "shortCode": "CR1",
+      "price": 180,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 170
+      }
+    },
+    {
+      "name": "Veg Noodles",
+      "shortCode": "CR2",
+      "price": 180,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 170
+      }
+    },
+    {
+      "name": "Gobi Fried Rice",
+      "shortCode": "CR3",
+      "price": 190,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Schezwan Fried Rice",
+      "shortCode": "CR4",
+      "price": 190,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Mushroom Fried Rice",
+      "shortCode": "CR5",
+      "price": 190,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Schezwan Noodles",
+      "shortCode": "CR6",
+      "price": 190,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Mushroom Noodles",
+      "shortCode": "CR7",
+      "price": 190,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Baby Corn Fried Rice",
+      "shortCode": "CR8",
+      "price": 190,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Schezwan Mushroom Fried Rice",
+      "shortCode": "CR9",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Schezwan Mushroom Noodles",
+      "shortCode": "CR10",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Schezwan Gobi Fried Rice",
+      "shortCode": "CR11",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Schezwan Gobi Noodles",
+      "shortCode": "CR12",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Paneer Fried Rice",
+      "shortCode": "CR13",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Paneer Noodles",
+      "shortCode": "CR14",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Gobi/mushroom/paneer - 65 Fried Rice",
+      "shortCode": "CR15",
+      "price": 220,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Gobi/mushroom/paneer - 65 Noodles",
+      "shortCode": "CR16",
+      "price": 220,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Manchurian Fried Rice",
+      "shortCode": "CR17",
+      "price": 220,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Schezwan Paneer Fried Rice",
+      "shortCode": "CR18",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Schezwan Paneer Noodles",
+      "shortCode": "CR19",
+      "price": 200,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Mixed Fried Rice - Veg",
+      "shortCode": "CR20",
+      "price": 220,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Mixed Noodles - Veg",
+      "shortCode": "CR21",
+      "price": 220,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Schezwan Mixed Fried Rice",
+      "shortCode": "CR22",
+      "price": 220,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Schezwan Mixed Noodles",
+      "shortCode": "CR23",
+      "price": 220,
+      "category": "Chinese Rice & Noodles",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 240,
+        "rule_takeaway": 210
+      }
+    },
+    {
+      "name": "Jeera Rice",
+      "shortCode": "PL1",
+      "price": 120,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Ghee Rice",
+      "shortCode": "PL2",
+      "price": 120,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Green Peas Pulav",
+      "shortCode": "PL3",
+      "price": 130,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 120
+      }
+    },
+    {
+      "name": "Mushroom Pulav",
+      "shortCode": "PL4",
+      "price": 130,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 165,
+        "rule_takeaway": 120
+      }
+    },
+    {
+      "name": "Baby Corn Pulav",
+      "shortCode": "PL5",
+      "price": 130,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 165,
+        "rule_takeaway": 120
+      }
+    },
+    {
+      "name": "Sweet Corn Pulav",
+      "shortCode": "PL6",
+      "price": 130,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 165,
+        "rule_takeaway": 120
+      }
+    },
+    {
+      "name": "Paneer Pulav",
+      "shortCode": "PL7",
+      "price": 140,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 185,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Cashewnut Pulav",
+      "shortCode": "PL8",
+      "price": 140,
+      "category": "Pulav",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 185,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Dal Fry",
+      "shortCode": "NG1",
+      "price": 180,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 190,
+        "rule_takeaway": 170
+      }
+    },
+    {
+      "name": "Dal Tadka",
+      "shortCode": "NG2",
+      "price": 190,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Veg Kadai",
+      "shortCode": "NG3",
+      "price": 190,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Green Peas Masala",
+      "shortCode": "NG4",
+      "price": 190,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Mix Veg Gravy",
+      "shortCode": "NG5",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Aloo Mutter",
+      "shortCode": "NG6",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 200
+      }
+    },
+    {
+      "name": "Mushroom Masala",
+      "shortCode": "NG7",
+      "price": 190,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Baby Corn Masala",
+      "shortCode": "NG8",
+      "price": 190,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Methi Chamman",
+      "shortCode": "NG9",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Paneer Butter Masala",
+      "shortCode": "NG10",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Mushroom Chettinad",
+      "shortCode": "NG11",
+      "price": 190,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 210,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Mushroom Kadai Gravy",
+      "shortCode": "NG12",
+      "price": 190,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 180
+      }
+    },
+    {
+      "name": "Mushroom Punjab Gravy",
+      "shortCode": "NG13",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 200,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Paneer Tikka Masala",
+      "shortCode": "NG14",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Kadai Paneer",
+      "shortCode": "NG15",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Navaratna Kurama",
+      "shortCode": "NG16",
+      "price": 210,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 200
+      }
+    },
+    {
+      "name": "Mutter Paneer",
+      "shortCode": "NG17",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Tawa Paneer Masala",
+      "shortCode": "NG18",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Paneer Chettinad",
+      "shortCode": "NG19",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Palak Paneer",
+      "shortCode": "NG20",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Shahi Paneer Masala",
+      "shortCode": "NG21",
+      "price": 200,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 220,
+        "rule_takeaway": 190
+      }
+    },
+    {
+      "name": "Paneer Punjabi Gravy",
+      "shortCode": "NG22",
+      "price": 210,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 200
+      }
+    },
+    {
+      "name": "Malai Kofta",
+      "shortCode": "NG23",
+      "price": 210,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 200
+      }
+    },
+    {
+      "name": "Paneer Kaju Masala",
+      "shortCode": "NG24",
+      "price": 210,
+      "category": "North Indian Gravy",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 230,
+        "rule_takeaway": 200
+      }
+    },
+    {
+      "name": "Vanilla Milk Shake",
+      "shortCode": "MS1",
+      "price": 110,
+      "category": "Milk Shakes",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 135,
+        "rule_takeaway": 100
+      }
+    },
+    {
+      "name": "Strawberry Milk Shake",
+      "shortCode": "MS2",
+      "price": 110,
+      "category": "Milk Shakes",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 130,
+        "rule_takeaway": 100
+      }
+    },
+    {
+      "name": "Apple Milk Shake",
+      "shortCode": "MS3",
+      "price": 120,
+      "category": "Milk Shakes",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 135,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Chocolate Milk Shake",
+      "shortCode": "MS4",
+      "price": 120,
+      "category": "Milk Shakes",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Butterscotch Milk Shake",
+      "shortCode": "MS5",
+      "price": 120,
+      "category": "Milk Shakes",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Pista Milk Shake",
+      "shortCode": "MS6",
+      "price": 120,
+      "category": "Milk Shakes",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Mango Milk Shake",
+      "shortCode": "MS7",
+      "price": 120,
+      "category": "Milk Shakes",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 150,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Water Bottle",
+      "shortCode": "FJ1",
+      "price": 65,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_takeaway": 65
+      }
+    },
+    {
+      "name": "Lemon Juice",
+      "shortCode": "FJ2",
+      "price": 65,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 65,
+        "rule_takeaway": 55
+      }
+    },
+    {
+      "name": "Butter Milk",
+      "shortCode": "FJ3",
+      "price": 65,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 65,
+        "rule_takeaway": 55
+      }
+    },
+    {
+      "name": "Watermelon Juice",
+      "shortCode": "FJ4",
+      "price": 70,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 80,
+        "rule_takeaway": 60
+      }
+    },
+    {
+      "name": "Lime Mint",
+      "shortCode": "FJ5",
+      "price": 70,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 70,
+        "rule_takeaway": 60
+      }
+    },
+    {
+      "name": "Lassi",
+      "shortCode": "FJ6",
+      "price": 80,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 80,
+        "rule_takeaway": 70
+      }
+    },
+    {
+      "name": "Lime Soda (sweet / Salt)",
+      "shortCode": "FJ7",
+      "price": 85,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 85,
+        "rule_takeaway": 75
+      }
+    },
+    {
+      "name": "Grape Juice",
+      "shortCode": "FJ8",
+      "price": 90,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 80
+      }
+    },
+    {
+      "name": "Muskmelon Juice",
+      "shortCode": "FJ9",
+      "price": 90,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 80
+      }
+    },
+    {
+      "name": "Pineapple Juice",
+      "shortCode": "FJ10",
+      "price": 90,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 90,
+        "rule_takeaway": 80
+      }
+    },
+    {
+      "name": "Sweet Lime Juice",
+      "shortCode": "FJ11",
+      "price": 105,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 109,
+        "rule_takeaway": 95
+      }
+    },
+    {
+      "name": "Sweet Lime Plain",
+      "shortCode": "FJ12",
+      "price": 120,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 120,
+        "rule_takeaway": 110
+      }
+    },
+    {
+      "name": "Fig Juice",
+      "shortCode": "FJ13",
+      "price": 100,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 100,
+        "rule_takeaway": 90
+      }
+    },
+    {
+      "name": "Apple Juice",
+      "shortCode": "FJ14",
+      "price": 105,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 105,
+        "rule_takeaway": 95
+      }
+    },
+    {
+      "name": "Apple Plain",
+      "shortCode": "FJ15",
+      "price": 115,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 115,
+        "rule_takeaway": 105
+      }
+    },
+    {
+      "name": "Orange Juice",
+      "shortCode": "FJ16",
+      "price": 110,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 110,
+        "rule_takeaway": 100
+      }
+    },
+    {
+      "name": "Orange Juice Plain",
+      "shortCode": "FJ17",
+      "price": 135,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 135,
+        "rule_takeaway": 125
+      }
+    },
+    {
+      "name": "Pomegranate Juice",
+      "shortCode": "FJ18",
+      "price": 125,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 125,
+        "rule_takeaway": 115
+      }
+    },
+    {
+      "name": "Pomegranate Juice (plain)",
+      "shortCode": "FJ19",
+      "price": 160,
+      "category": "Fresh Juices",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 160,
+        "rule_takeaway": 150
+      }
+    },
+    {
+      "name": "Gulabjamun (2)",
+      "shortCode": "DS1",
+      "price": 55,
+      "category": "Desserts",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 65,
+        "rule_takeaway": 50
+      }
+    },
+    {
+      "name": "Kesar - 250grms",
+      "shortCode": "DS2",
+      "price": 70,
+      "category": "Desserts",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 70,
+        "rule_takeaway": 65
+      }
+    },
+    {
+      "name": "Junnu",
+      "shortCode": "DS3",
+      "price": 135,
+      "category": "Desserts",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 130,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Apricot",
+      "shortCode": "DS4",
+      "price": 145,
+      "category": "Desserts",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 140,
+        "rule_takeaway": 140
+      }
+    },
+    {
+      "name": "Strawberry Falooda",
+      "shortCode": "FL1",
+      "price": 130,
+      "category": "Falooda",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 155,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Chocolate Falooda",
+      "shortCode": "FL2",
+      "price": 130,
+      "category": "Falooda",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 155,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Fruit Falooda",
+      "shortCode": "FL3",
+      "price": 130,
+      "category": "Falooda",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 165,
+        "rule_takeaway": 130
+      }
+    },
+    {
+      "name": "Malai Falooda",
+      "shortCode": "FL4",
+      "price": 140,
+      "category": "Falooda",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 165,
+        "rule_takeaway": 140
+      }
+    },
+    {
+      "name": "Spl Falooda",
+      "shortCode": "FL5",
+      "price": 140,
+      "category": "Falooda",
+      "isVeg": true,
+      "description": "",
+      "pricingRules": {
+        "rule_ac_dining": 175,
+        "rule_takeaway": 140
+      }
+    }
+  ]
+}

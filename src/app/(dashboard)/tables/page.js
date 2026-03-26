@@ -482,7 +482,7 @@ const TableManagement = () => {
     switch (action) {
       case 'take-order': {
         const floor = floors.find(f => (f.tables || []).some(t => t.id === table.id));
-        router.push(`/dashboard?tableId=${table.id}&tableNo=${encodeURIComponent(table.name)}&floorId=${floor?.id}`);
+        router.push(`/dashboard?tableId=${table.id}&tableNo=${encodeURIComponent(table.name)}&floorId=${floor?.id}&floorName=${encodeURIComponent(floor?.name || '')}`);
         break;
       }
       case 'book-table': {

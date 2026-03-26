@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useLoading } from '../../../contexts/LoadingContext';
 import BulkMenuUpload from '../../../components/BulkMenuUpload';
@@ -429,7 +430,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
           backgroundColor: '#ffffff',
           borderRadius: '14px',
           boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.04)',
-          zIndex: 10000,
+          zIndex: 10002,
           marginTop: '8px',
           minWidth: '220px',
           padding: '6px',
@@ -1181,7 +1182,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           right: 0,
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 10000,
+          zIndex: 10002,
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
@@ -1630,6 +1631,7 @@ const MenuManagement = () => {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
   const [activePricingRules, setActivePricingRules] = useState([]);
+  const [pricingRulesExpanded, setPricingRulesExpanded] = useState(true);
 
   // Mobile detection with client-side hydration safety
   useEffect(() => {
@@ -1862,7 +1864,7 @@ const MenuManagement = () => {
         const mp = response?.settings?.multiPricing;
         if (mp?.enabled) {
           setMultiPricingEnabled(true);
-          setActivePricingRules((mp.rules || []).filter(r => r.isActive));
+          setActivePricingRules(mp.rules || []);
         } else {
           setMultiPricingEnabled(false);
           setActivePricingRules([]);
@@ -1928,9 +1930,11 @@ const MenuManagement = () => {
       if (editingItem) {
         // Update existing item
         await apiClient.updateMenuItem(editingItem.id, itemData, currentRestaurant?.id);
-        setMenuItems(items => items.map(item => 
+        setMenuItems(items => items.map(item =>
           item.id === editingItem.id ? { ...itemData, id: editingItem.id } : item
         ));
+        setSuccessMessage(`"${formData.name}" updated successfully`);
+        setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         // Add new item
         // Ensure the category exists in backend before saving item
@@ -1978,7 +1982,7 @@ const MenuManagement = () => {
         }
         
         // Show success notification
-        setSuccessMessage(`Menu item "${formData.name}" added successfully!`);
+        setSuccessMessage(`"${formData.name}" added to menu`);
         setTimeout(() => setSuccessMessage(''), 3000);
 
       resetForm();
@@ -2727,7 +2731,7 @@ const MenuManagement = () => {
           </div>
 
           {/* Action pills row */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
             {[
               { icon: <FaCloudUploadAlt size={14} />, label: 'Upload', onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2' },
               { icon: <FaCamera size={13} />, label: 'Photo', onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7' },
@@ -2799,40 +2803,41 @@ const MenuManagement = () => {
           {/* Search */}
           <div style={{
             position: 'relative',
-            width: '220px',
+            width: '260px',
             flexShrink: 0
           }}>
             <FaSearch style={{
               position: 'absolute',
-              left: '12px',
+              left: '14px',
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#ef4444',
-              fontSize: '12px'
+              fontSize: '13px'
             }} />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search dishes, codes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '7px 12px 7px 32px',
-                border: 'none',
-                borderRadius: '20px',
+                padding: '9px 14px 9px 36px',
+                border: '1.5px solid #e5e7eb',
+                borderRadius: '10px',
                 fontSize: '13px',
-                backgroundColor: '#f3f4f6',
+                backgroundColor: '#fff',
                 transition: 'all 0.2s ease',
                 outline: 'none',
-                color: '#1f2937'
+                color: '#1f2937',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
               }}
               onFocus={(e) => {
-                e.target.style.backgroundColor = '#fef2f2';
-                e.target.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.15)';
+                e.target.style.borderColor = '#ef4444';
+                e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
               }}
               onBlur={(e) => {
-                e.target.style.backgroundColor = '#f3f4f6';
-                e.target.style.boxShadow = 'none';
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
               }}
             />
           </div>
@@ -2918,9 +2923,17 @@ const MenuManagement = () => {
           </div>
         )}
 
-        {/* Success Message */}
+        {/* Success Toast */}
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+          <div style={{
+            position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '12px 20px', borderRadius: '12px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: 'white', fontSize: '14px', fontWeight: 600,
+            boxShadow: '0 8px 30px rgba(16,185,129,0.3)',
+            animation: 'slideInRight 0.3s ease-out'
+          }}>
             <FaCheckCircle size={16} />
             {successMessage}
           </div>
@@ -3484,15 +3497,17 @@ const MenuManagement = () => {
 
 
       {/* Add/Edit Form Modal */}
-      {showAddForm && (
-        <div style={{
+      {showAddForm && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={(el) => { if (el) el.scrollTop = 0; }}
+          style={{
           position: 'fixed',
           inset: 0,
           backgroundColor: 'rgba(0,0,0,0.7)',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
-          zIndex: 10000,
+          zIndex: 10002,
           padding: '20px',
           overflowY: 'auto'
         }}>
@@ -3721,49 +3736,134 @@ const MenuManagement = () => {
                   />
                 </div>
 
-                {/* Multi-Tier Pricing Rules */}
-                {multiPricingEnabled && activePricingRules.length > 0 && (
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                      Pricing by Rule
-                    </label>
-                    <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '10px', marginTop: 0 }}>
-                      Set specific prices per rule. Leave blank to use the base price or the rule&apos;s default markup.
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px' }}>
-                      {activePricingRules.map(rule => (
-                        <div key={rule.id}>
-                          <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '3px' }}>{rule.name}</label>
-                          <input
-                            type="number"
-                            placeholder={formData.price ? `Base: ${formData.price}` : '—'}
-                            value={formData.pricingRules[rule.id] ?? ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setFormData(prev => ({
-                                ...prev,
-                                pricingRules: {
-                                  ...prev.pricingRules,
-                                  [rule.id]: val === '' ? undefined : val
-                                }
-                              }));
-                            }}
-                            min="0"
-                            step="0.01"
-                            style={{
-                              width: '100%', padding: '8px 10px', borderRadius: '6px',
-                              border: '1px solid #e5e7eb', fontSize: '13px', boxSizing: 'border-box',
-                              backgroundColor: 'white'
-                            }}
-                          />
-                        </div>
-                      ))}
+                {/* Multi-Tier Pricing Rules — Grouped by Channel */}
+                {multiPricingEnabled && activePricingRules.length > 0 && (() => {
+                  const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
+                  const DELIVERY_NAMES = ['delivery'];
+                  const dineInRules = activePricingRules.filter(r => {
+                    const name = (r.name || '').toLowerCase().trim();
+                    return r.isActive && !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name);
+                  });
+                  const takeawayRule = activePricingRules.find(r =>
+                    r.isActive && TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim())
+                  );
+                  const deliveryRule = activePricingRules.find(r =>
+                    r.isActive && DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim())
+                  );
+
+                  const renderRuleInput = (rule) => {
+                    const savedPrice = formData.pricingRules[rule.id];
+                    const hasCustomPrice = savedPrice !== undefined && savedPrice !== '' && savedPrice !== null;
+                    const displayValue = hasCustomPrice ? savedPrice : '';
+                    return (
+                      <div key={rule.id}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>
+                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+                          {rule.name}
+                        </label>
+                        <input
+                          type="number"
+                          placeholder={formData.price ? `${formData.price}` : '0'}
+                          value={displayValue}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricingRules: {
+                                ...prev.pricingRules,
+                                [rule.id]: val === '' ? undefined : val
+                              }
+                            }));
+                          }}
+                          min="0"
+                          step="0.01"
+                          style={{
+                            width: '100%', padding: '7px 10px', borderRadius: '6px',
+                            border: hasCustomPrice ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                            fontSize: '13px', boxSizing: 'border-box',
+                            backgroundColor: hasCustomPrice ? '#f0fdf4' : 'white',
+                            fontWeight: hasCustomPrice ? '600' : '400',
+                            color: hasCustomPrice ? '#166534' : '#374151'
+                          }}
+                          onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = hasCustomPrice ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
+                        />
+                      </div>
+                    );
+                  };
+
+                  if (dineInRules.length === 0 && !takeawayRule && !deliveryRule) return null;
+
+                  return (
+                  <div style={{ gridColumn: '1 / -1', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                    <div
+                      onClick={() => setPricingRulesExpanded(!pricingRulesExpanded)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 14px', cursor: 'pointer', userSelect: 'none',
+                        backgroundColor: '#f8fafc',
+                        borderBottom: pricingRulesExpanded ? '1px solid #e2e8f0' : 'none',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Pricing by Channel</span>
+                        <span style={{ fontSize: '11px', color: '#94a3b8', backgroundColor: '#f1f5f9', padding: '1px 8px', borderRadius: '10px' }}>
+                          {dineInRules.length + (takeawayRule ? 1 : 0) + (deliveryRule ? 1 : 0)}
+                        </span>
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: pricingRulesExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', color: '#94a3b8' }}>
+                        <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </div>
+                    {pricingRulesExpanded && (
+                      <div style={{ padding: '10px 14px' }}>
+                        {/* DINE-IN group */}
+                        {dineInRules.length > 0 && (
+                          <div style={{ marginBottom: takeawayRule || deliveryRule ? '14px' : '0' }}>
+                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                              🍽️ Dine-In
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', paddingLeft: '10px', borderLeft: '2px solid #e2e8f0' }}>
+                              {dineInRules.map(rule => renderRuleInput(rule))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TAKEAWAY */}
+                        {takeawayRule && (
+                          <div style={{ marginBottom: deliveryRule ? '14px' : '0' }}>
+                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                              🥡 Takeaway
+                            </div>
+                            <div style={{ paddingLeft: '10px', borderLeft: '2px solid #e2e8f0', maxWidth: '160px' }}>
+                              {renderRuleInput(takeawayRule)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* DELIVERY */}
+                        {deliveryRule && (
+                          <div>
+                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                              🛵 Delivery
+                            </div>
+                            <div style={{ paddingLeft: '10px', borderLeft: '2px solid #e2e8f0', maxWidth: '160px' }}>
+                              {renderRuleInput(deliveryRule)}
+                            </div>
+                          </div>
+                        )}
+
+                        <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '10px', marginBottom: '0' }}>
+                          Empty fields use the base price ({formData.price || '0'})
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Category */}
-                <div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <CategoryDropdown
                     label="Category *"
                     value={formData.category}
@@ -4373,7 +4473,7 @@ const MenuManagement = () => {
                   disabled={processing}
                   style={{
                     padding: '10px 28px',
-                    background: processing ? '#d1d5db' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    background: processing ? 'linear-gradient(135deg, #f87171, #ef4444)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
                     fontSize: '13px',
                     fontWeight: '600',
@@ -4382,37 +4482,50 @@ const MenuManagement = () => {
                     cursor: processing ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
                     boxShadow: processing ? 'none' : '0 4px 12px rgba(0,0,0,0.15)',
-                    width: window.innerWidth <= 768 ? '100%' : 'auto'
+                    width: window.innerWidth <= 768 ? '100%' : 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    opacity: processing ? 0.85 : 1
                   }}
                 >
-                  {processing ? 'Processing...' : editingItem ? 'Update ' + btype.item : 'Add ' + btype.item}
+                  {processing && <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} />}
+                  {processing ? (editingItem ? 'Updating...' : 'Adding...') : editingItem ? 'Update ' + btype.item : 'Add ' + btype.item}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Bulk Upload Modal */}
-      <BulkMenuUpload
-        isOpen={showBulkUpload}
-        onClose={() => setShowBulkUpload(false)}
-        restaurantId={currentRestaurant?.id}
-        onMenuItemsAdded={handleMenuItemsAdded}
-        currentMenuItems={menuItems}
-      />
+      {/* Bulk Upload Modal — portal to render above sidebar */}
+      {typeof document !== 'undefined' && createPortal(
+        <BulkMenuUpload
+          isOpen={showBulkUpload}
+          onClose={() => setShowBulkUpload(false)}
+          restaurantId={currentRestaurant?.id}
+          onMenuItemsAdded={handleMenuItemsAdded}
+          currentMenuItems={menuItems}
+        />,
+        document.body
+      )}
 
-      {/* QR Code Modal */}
-      <QRCodeModal
-        isOpen={showQRCodeModal}
-        onClose={() => setShowQRCodeModal(false)}
-        restaurantId={currentRestaurant?.id}
-        restaurantName={currentRestaurant?.name}
-        restaurant={currentRestaurant}
-      />
+      {/* QR Code Modal — portal to render above sidebar */}
+      {typeof document !== 'undefined' && createPortal(
+        <QRCodeModal
+          isOpen={showQRCodeModal}
+          onClose={() => setShowQRCodeModal(false)}
+          restaurantId={currentRestaurant?.id}
+          restaurantName={currentRestaurant?.name}
+          restaurant={currentRestaurant}
+        />,
+        document.body
+      )}
 
-      {/* Bulk Delete Confirmation Modal */}
-      {showBulkDeleteConfirm && (
+      {/* Bulk Delete Confirmation Modal — portal to render above sidebar */}
+      {showBulkDeleteConfirm && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           top: 0,
@@ -4423,7 +4536,7 @@ const MenuManagement = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 10000,
+          zIndex: 10002,
           padding: '20px'
         }}>
           <div style={{
@@ -4543,7 +4656,8 @@ const MenuManagement = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Hidden Camera Input */}
@@ -4569,7 +4683,7 @@ const MenuManagement = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 10000, // Higher than navigation (1000)
+          zIndex: 10002, // Higher than navigation (1000)
           padding: '20px'
         }}>
           <div style={{
@@ -4769,6 +4883,16 @@ const MenuManagement = () => {
           }
           to {
             transform: rotate(360deg);
+          }
+        }
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
           }
         }
       `}</style>
