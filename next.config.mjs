@@ -109,6 +109,12 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
+      // Blog slug update: 2024 → 2026
+      {
+        source: '/blog/why-qr-code-menus-are-essential-in-2024',
+        destination: '/blog/why-qr-code-menus-are-essential-in-2026',
+        permanent: true,
+      },
     ];
   },
   // Rewrites: serve static HTML blog posts at both /blog/slug and /blog/slug.html

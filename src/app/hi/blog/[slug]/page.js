@@ -21,7 +21,7 @@ const hindiToEnglishMap = {
   'menu-card-kaise-banaye': 'how-to-create-online-menu-restaurant',
   'restaurant-inventory-management-hindi': 'ultimate-guide-restaurant-inventory-management',
   'restaurant-profit-kaise-badhaye': 'how-to-increase-restaurant-revenue',
-  'qr-menu-kaise-banaye-free': 'why-qr-code-menus-are-essential-in-2024',
+  'qr-menu-kaise-banaye-free': 'why-qr-code-menus-are-essential-in-2026',
   'lpg-gas-shortage-restaurant-crisis-2026': 'lpg-gas-crisis-restaurants-india-2026',
   'mithai-dukan-kaise-khole': 'how-to-start-sweet-shop-india',
   'dhaba-business-kaise-shuru-kare': 'how-to-start-dhaba-business-india',

@@ -387,7 +387,19 @@ export default function sitemap() {
     priority: 0.7,
   }));
 
-  // TOTAL: ~168 pages (72 non-blog + 27 dynamic blogs + 69 static HTML blogs)
+  // Hindi blog posts that failed indexing — add to sitemap for stronger signals (3)
+  const hindiBlogPosts = [
+    'dhaba-business-kaise-shuru-kare',
+    'food-truck-business-kaise-shuru-kare',
+    'restaurant-loyalty-program-hindi',
+  ].map((slug) => ({
+    url: `${baseUrl}/hi/blog/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'monthly',
+    priority: 0.65,
+  }));
+
+  // TOTAL: ~171 pages (72 non-blog + 27 dynamic blogs + 69 static HTML blogs + 3 Hindi blogs)
   // All URLs in sitemap point to pages with REAL content
   // See SEO-AUDIT.md for full change log
 
@@ -409,5 +421,6 @@ export default function sitemap() {
     ...productPages,
     ...blogPostsDynamic,
     ...blogPostsHTML,
+    ...hindiBlogPosts,
   ];
 }

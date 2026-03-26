@@ -6,59 +6,49 @@ import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus } from 'react-icons
 const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
 
 const inputStyle = {
-  width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e5e7eb',
-  fontSize: '15px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box'
+  width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb',
+  fontSize: '13px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
+  backgroundColor: '#fafafa'
 };
 
-const labelStyle = { display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '14px', color: '#374151' };
+const labelStyle = { display: 'block', marginBottom: '4px', fontWeight: 600, fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em' };
 
-const fieldWrap = { marginBottom: '16px' };
+const fieldWrap = { marginBottom: '12px' };
 
 const primaryBtn = {
-  padding: '14px 28px', backgroundColor: '#059669', color: 'white', border: 'none',
-  borderRadius: '12px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex',
-  alignItems: 'center', gap: '8px', transition: 'background-color 0.2s'
+  padding: '10px 22px', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none',
+  borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex',
+  alignItems: 'center', gap: '6px', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(5,150,105,0.3)'
 };
 
 const secondaryBtn = {
-  padding: '10px 20px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none',
-  borderRadius: '10px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'inline-flex',
+  padding: '10px 18px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none',
+  borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex',
   alignItems: 'center', gap: '6px', transition: 'background-color 0.2s'
 };
 
 const dangerBtn = {
-  padding: '8px 12px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none',
-  borderRadius: '8px', fontSize: '13px', cursor: 'pointer', display: 'inline-flex',
+  padding: '6px 10px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none',
+  borderRadius: '6px', fontSize: '12px', cursor: 'pointer', display: 'inline-flex',
   alignItems: 'center', gap: '4px'
 };
 
-const headerStyle = {
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid #f3f4f6'
-};
-
-const closeBtnStyle = {
-  background: 'none', border: 'none', fontSize: '20px', color: '#9ca3af',
-  cursor: 'pointer', padding: '4px', borderRadius: '8px', display: 'flex',
-  alignItems: 'center', justifyContent: 'center'
-};
-
 const footerStyle = {
-  display: 'flex', justifyContent: 'flex-end', gap: '12px',
-  marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f3f4f6'
+  display: 'flex', justifyContent: 'flex-end', gap: '10px',
+  marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f3f4f6'
 };
 
 const rowStyle = {
-  display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '10px',
-  padding: '12px', backgroundColor: '#f9fafb', borderRadius: '12px'
+  display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px',
+  padding: '10px', backgroundColor: '#f9fafb', borderRadius: '10px'
 };
 
 function FocusInput({ style, ...props }) {
   return (
     <input
       style={style || inputStyle}
-      onFocus={e => { e.target.style.borderColor = '#059669'; }}
-      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; }}
+      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.backgroundColor = '#fff'; }}
+      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
       {...props}
     />
   );
@@ -67,9 +57,9 @@ function FocusInput({ style, ...props }) {
 function FocusTextarea({ style, ...props }) {
   return (
     <textarea
-      style={{ ...(style || inputStyle), minHeight: '80px', resize: 'vertical' }}
-      onFocus={e => { e.target.style.borderColor = '#059669'; }}
-      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; }}
+      style={{ ...(style || inputStyle), minHeight: '60px', resize: 'vertical' }}
+      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.backgroundColor = '#fff'; }}
+      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
       {...props}
     />
   );
@@ -79,8 +69,8 @@ function FocusSelect({ style, children, ...props }) {
   return (
     <select
       style={{ ...(style || inputStyle), cursor: 'pointer', appearance: 'auto' }}
-      onFocus={e => { e.target.style.borderColor = '#059669'; }}
-      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; }}
+      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.backgroundColor = '#fff'; }}
+      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
       {...props}
     >
       {children}
@@ -92,12 +82,27 @@ function ModalShell({ show, onClose, title, children, getModalStyles, getModalCo
   if (!show) return null;
   return (
     <div style={getModalStyles()} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={getModalContentStyles()}>
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#111827' }}>{title}</h2>
-          <button style={closeBtnStyle} onClick={onClose}><FaTimes /></button>
+      <div style={{ ...getModalContentStyles(), padding: 0, overflow: 'hidden' }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+          padding: '16px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'white' }}>{title}</h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+              cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)',
+            }}
+          >
+            <FaTimes size={14} />
+          </button>
         </div>
-        {children}
+        <div style={{ padding: '20px' }}>
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -1241,6 +1241,41 @@ function RestaurantPOSContent() {
     }
   }, [selectedTable, multiPricingEnabled, pricingRules]);
 
+  // Auto-select pricing rule when order type changes (takeaway/delivery → match rule by name)
+  useEffect(() => {
+    if (!multiPricingEnabled || pricingRules.length === 0) return;
+    if (orderType === 'takeaway') {
+      const takeawayRule = pricingRules.find(r =>
+        ['takeaway', 'take away', 'take-away'].includes((r.name || '').toLowerCase().trim())
+      );
+      if (takeawayRule) {
+        setActivePricingRuleId(takeawayRule.id);
+        setAutoSelectedRule(true);
+      } else {
+        // No takeaway rule defined — use base price
+        setActivePricingRuleId(null);
+        setAutoSelectedRule(false);
+      }
+    } else if (orderType === 'delivery') {
+      const deliveryRule = pricingRules.find(r =>
+        (r.name || '').toLowerCase().trim() === 'delivery'
+      );
+      if (deliveryRule) {
+        setActivePricingRuleId(deliveryRule.id);
+        setAutoSelectedRule(true);
+      } else {
+        setActivePricingRuleId(null);
+        setAutoSelectedRule(false);
+      }
+    } else if (orderType === 'dine-in' && !selectedTable?.floor) {
+      // Switching back to dine-in without a table — clear auto and let user pick area
+      setAutoSelectedRule(false);
+      // Keep current rule selection if any, or clear to base
+      if (autoSelectedRule) setActivePricingRuleId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderType, multiPricingEnabled, pricingRules]);
+
   // Handle view parameter from URL (for view state persistence)
   useEffect(() => {
     const viewParam = searchParams.get('view');

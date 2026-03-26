@@ -788,95 +788,135 @@ const OrderSummary = ({
         </div>
       </div>
 
-      {/* Multi-Pricing Rule Selector Sub-Header */}
-      {multiPricingEnabled && pricingRules.length > 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-          padding: isMobile ? '6px 10px' : '8px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: isMobile ? '4px' : '6px',
-          flexWrap: 'nowrap',
-          overflow: 'auto',
-          borderBottom: '1px solid rgba(109,40,217,0.3)',
-          flexShrink: 0,
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-        }}>
-          {(() => {
-            const allOptions = [{ id: null, name: 'Dine-In' }, ...pricingRules];
-            const showAsButtons = allOptions.slice(0, 4);
-            const showInDropdown = allOptions.length > 4 ? allOptions.slice(4) : [];
-            return (
-              <>
-                {showAsButtons.map(rule => {
-                  const isActive = rule.id === null ? !activePricingRuleId : activePricingRuleId === rule.id;
-                  return (
-                    <button
-                      key={rule.id || 'base'}
-                      onClick={() => {
-                        if (!autoSelectedRule) {
-                          setActivePricingRuleId(rule.id);
-                          if (rule.id === null) setAutoSelectedRule(false);
-                        }
-                      }}
-                      style={{
-                        backgroundColor: isActive ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.1)',
-                        color: 'white',
-                        border: isActive ? '2px solid white' : '1px solid rgba(255,255,255,0.25)',
-                        borderRadius: isMobile ? '4px' : '6px',
-                        padding: isMobile ? '4px 8px' : '5px 12px',
-                        fontSize: isMobile ? '9px' : '10px',
-                        fontWeight: '700',
-                        cursor: autoSelectedRule ? 'default' : 'pointer',
-                        opacity: autoSelectedRule && !isActive ? 0.5 : 1,
-                        backdropFilter: 'blur(10px)',
-                        boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {rule.name}
-                      {autoSelectedRule && isActive && (
-                        <span style={{ fontSize: '8px', marginLeft: '3px', opacity: 0.7 }}>(auto)</span>
-                      )}
-                    </button>
-                  );
-                })}
-                {showInDropdown.length > 0 && (
-                  <select
-                    value={showInDropdown.some(r => r.id === activePricingRuleId) ? activePricingRuleId : ''}
-                    onChange={(e) => {
-                      if (!autoSelectedRule && e.target.value) {
-                        setActivePricingRuleId(e.target.value);
-                      }
-                    }}
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.15)',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: '6px',
-                      padding: '4px 6px',
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      cursor: autoSelectedRule ? 'default' : 'pointer',
-                      backdropFilter: 'blur(10px)',
-                      flexShrink: 0,
-                    }}
-                    disabled={autoSelectedRule}
-                  >
-                    <option value="" style={{ color: '#333' }}>More...</option>
-                    {showInDropdown.map(rule => (
-                      <option key={rule.id} value={rule.id} style={{ color: '#333' }}>{rule.name}</option>
-                    ))}
-                  </select>
-                )}
-              </>
-            );
-          })()}
-        </div>
-      )}
+      {/* Multi-Pricing Area Selector — only for Dine-In when multi-pricing enabled */}
+      {multiPricingEnabled && pricingRules.length > 0 && orderType === 'dine-in' && (() => {
+        // Filter out rules that duplicate order types (Dine-In, Takeaway, Delivery)
+        const skipNames = ['dine-in', 'dinein', 'dine in', 'takeaway', 'take away', 'delivery'];
+        const areaRules = pricingRules.filter(r =>
+          !skipNames.includes((r.name || '').toLowerCase().trim())
+        );
+        if (areaRules.length === 0) return null;
+
+        const hasSelection = areaRules.some(r => r.id === activePricingRuleId);
+        const needsSelection = !autoSelectedRule && !hasSelection && !tableNumber;
+
+        const showAsButtons = areaRules.slice(0, 4);
+        const showInDropdown = areaRules.length > 4 ? areaRules.slice(4) : [];
+
+        return (
+          <div style={{
+            background: needsSelection
+              ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
+              : autoSelectedRule
+                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                : '#f8fafc',
+            padding: isMobile ? '8px 10px' : '8px 16px',
+            display: 'flex', alignItems: 'center', gap: isMobile ? '5px' : '8px',
+            flexWrap: 'nowrap', overflow: 'auto',
+            borderBottom: '1px solid ' + (needsSelection ? '#f59e0b' : autoSelectedRule ? '#059669' : '#e5e7eb'),
+            flexShrink: 0, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
+            transition: 'all 0.3s',
+          }}>
+            {/* Label */}
+            <span style={{
+              fontSize: isMobile ? '9px' : '10px', fontWeight: 700,
+              color: needsSelection || autoSelectedRule ? 'white' : '#6b7280',
+              whiteSpace: 'nowrap', flexShrink: 0,
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+              opacity: 0.9,
+            }}>
+              {autoSelectedRule ? 'Area' : needsSelection ? 'Select Area' : 'Area'}
+            </span>
+
+            {/* Divider */}
+            <div style={{
+              width: '1px', height: '20px', flexShrink: 0,
+              background: needsSelection || autoSelectedRule ? 'rgba(255,255,255,0.3)' : '#d1d5db',
+            }} />
+
+            {/* Area buttons */}
+            {showAsButtons.map(rule => {
+              const isActive = activePricingRuleId === rule.id;
+              const isDark = needsSelection || autoSelectedRule;
+              return (
+                <button
+                  key={rule.id}
+                  onClick={() => {
+                    if (!autoSelectedRule) {
+                      setActivePricingRuleId(rule.id);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: isActive
+                      ? (isDark ? 'rgba(255,255,255,0.9)' : '#1f2937')
+                      : (isDark ? 'rgba(255,255,255,0.15)' : 'white'),
+                    color: isActive
+                      ? (isDark ? '#1f2937' : 'white')
+                      : (isDark ? 'white' : '#4b5563'),
+                    border: isActive
+                      ? 'none'
+                      : ('1px solid ' + (isDark ? 'rgba(255,255,255,0.3)' : '#e5e7eb')),
+                    borderRadius: '20px',
+                    padding: isMobile ? '5px 10px' : '5px 14px',
+                    fontSize: isMobile ? '10px' : '11px',
+                    fontWeight: isActive ? '800' : '600',
+                    cursor: autoSelectedRule ? 'default' : 'pointer',
+                    opacity: autoSelectedRule && !isActive ? 0.5 : 1,
+                    boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                    whiteSpace: 'nowrap', flexShrink: 0,
+                    transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                  }}
+                >
+                  {rule.name}
+                  {autoSelectedRule && isActive && (
+                    <span style={{
+                      fontSize: '8px', opacity: 0.7,
+                      background: isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.3)',
+                      padding: '1px 5px', borderRadius: '8px',
+                    }}>auto</span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Overflow dropdown */}
+            {showInDropdown.length > 0 && (
+              <select
+                value={showInDropdown.some(r => r.id === activePricingRuleId) ? activePricingRuleId : ''}
+                onChange={(e) => {
+                  if (!autoSelectedRule && e.target.value) {
+                    setActivePricingRuleId(e.target.value);
+                  }
+                }}
+                style={{
+                  backgroundColor: needsSelection || autoSelectedRule ? 'rgba(255,255,255,0.2)' : 'white',
+                  color: needsSelection || autoSelectedRule ? 'white' : '#374151',
+                  border: '1px solid ' + (needsSelection || autoSelectedRule ? 'rgba(255,255,255,0.3)' : '#e5e7eb'),
+                  borderRadius: '20px', padding: '4px 8px',
+                  fontSize: '11px', fontWeight: '600',
+                  cursor: autoSelectedRule ? 'default' : 'pointer',
+                  flexShrink: 0, outline: 'none',
+                }}
+                disabled={autoSelectedRule}
+              >
+                <option value="" style={{ color: '#333' }}>More...</option>
+                {showInDropdown.map(rule => (
+                  <option key={rule.id} value={rule.id} style={{ color: '#333' }}>{rule.name}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Pulsing dot when needs selection */}
+            {needsSelection && (
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'white',
+                flexShrink: 0, animation: 'pulse 1.5s infinite',
+              }} />
+            )}
+          </div>
+        );
+      })()}
 
       {/* Active Table Indicator - Compact & Professional */}
       {tableNumber && (

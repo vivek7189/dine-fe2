@@ -1380,6 +1380,6 @@ export const hindiBlogPostContent = {
       { question: 'QR menu कितनी बार update कर सकते हैं?', answer: 'जितनी बार चाहें! QR code same रहेगा, menu content real-time update होगा। Price बदलना हो, item add/remove करना हो — 2 मिनट में हो जाएगा। Reprint की ज़रूरत नहीं।' },
       { question: 'अगर customer का phone पुराना है तो QR menu काम करेगा?', answer: 'हाँ, 2018 के बाद के almost सभी phones में built-in QR scanner है। बहुत पुराने phones के लिए Google Lens या free QR scanner app use कर सकते हैं। साथ में 2-3 paper menus भी रखें backup के लिए।' },
     ],
-    englishEquivalent: 'why-qr-code-menus-are-essential-in-2024',
+    englishEquivalent: 'why-qr-code-menus-are-essential-in-2026',
   },
 };

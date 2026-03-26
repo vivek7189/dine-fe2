@@ -515,6 +515,16 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
   const [saving, setSaving] = useState(false);
   const [showZonePricing, setShowZonePricing] = useState(false);
   const [floors, setFloors] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [showFloorManager, setShowFloorManager] = useState(false);
+  const [newFloorName, setNewFloorName] = useState('');
+  const [addingFloor, setAddingFloor] = useState(false);
+  const [addingTableForFloor, setAddingTableForFloor] = useState(null);
+  const [newTableData, setNewTableData] = useState({ name: '', capacity: 4 });
+  const [addingTable, setAddingTable] = useState(false);
+  const [deletingTableId, setDeletingTableId] = useState(null);
+  const [deletingTableName, setDeletingTableName] = useState('');
+  const [deleteTableReason, setDeleteTableReason] = useState('');
   const { formatCurrency } = useCurrency();
 
   const DEFAULT_RULES = [
@@ -539,7 +549,9 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
       try {
         const floorsResponse = await apiClient.getFloors(restaurantId);
         setFloors(floorsResponse?.floors || floorsResponse || []);
-      } catch { setFloors([]); }
+        const tablesResponse = await apiClient.getTables(restaurantId);
+        setTables(tablesResponse?.tables || []);
+      } catch { setFloors([]); setTables([]); }
     } catch (error) {
       console.error('Failed to load pricing settings:', error);
     } finally {
@@ -558,6 +570,76 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
       alert('Failed to save pricing settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Floor & Table management helpers
+  const getTablesForFloor = (floorName) => tables.filter(t => t.floor === floorName);
+
+  const handleAddFloor = async () => {
+    if (!newFloorName.trim() || !selectedRestaurant?.id) return;
+    setAddingFloor(true);
+    try {
+      const response = await apiClient.createFloor(selectedRestaurant.id, {
+        name: newFloorName.trim(),
+        areaChargeType: 'none',
+        areaChargeValue: 0,
+      });
+      setFloors(prev => [...prev, { ...response.floor, tables: [] }]);
+      setNewFloorName('');
+    } catch (err) {
+      alert('Failed to add floor: ' + err.message);
+    } finally {
+      setAddingFloor(false);
+    }
+  };
+
+  const handleDeleteFloor = async (floorId, floorName) => {
+    const floorTables = getTablesForFloor(floorName);
+    const msg = floorTables.length > 0
+      ? `Delete "${floorName}" and its ${floorTables.length} table(s)? This cannot be undone.`
+      : `Delete floor "${floorName}"? This cannot be undone.`;
+    if (!confirm(msg)) return;
+    try {
+      await apiClient.deleteFloor(floorId, { restaurantId: selectedRestaurant.id });
+      setFloors(prev => prev.filter(f => f.id !== floorId));
+      setTables(prev => prev.filter(t => t.floor !== floorName));
+    } catch (err) {
+      alert('Failed to delete floor: ' + err.message);
+    }
+  };
+
+  const handleAddTable = async (floorId, floorName) => {
+    if (!newTableData.name.trim() || !selectedRestaurant?.id) return;
+    setAddingTable(true);
+    try {
+      const response = await apiClient.createTable(selectedRestaurant.id, {
+        name: newTableData.name.trim(),
+        capacity: parseInt(newTableData.capacity) || 4,
+        type: 'regular',
+        floor: floorName,
+        status: 'available',
+      });
+      setTables(prev => [...prev, response.table]);
+      setNewTableData({ name: '', capacity: 4 });
+      setAddingTableForFloor(null);
+    } catch (err) {
+      alert('Failed to add table: ' + err.message);
+    } finally {
+      setAddingTable(false);
+    }
+  };
+
+  const confirmDeleteTable = async () => {
+    if (!deleteTableReason.trim() || !deletingTableId) return;
+    try {
+      await apiClient.deleteTable(deletingTableId, selectedRestaurant?.id);
+      setTables(prev => prev.filter(t => (t._id || t.id) !== deletingTableId));
+      setDeletingTableId(null);
+      setDeletingTableName('');
+      setDeleteTableReason('');
+    } catch (err) {
+      alert('Failed to delete table: ' + err.message);
     }
   };
 
@@ -682,6 +764,299 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
 
       {selectedRestaurant && !loading && (
         <div>
+          {/* ── Floors & Tables Overview ── */}
+          <div style={{ marginBottom: '24px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showFloorManager ? '16px' : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaLayerGroup size={14} color="white" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937', margin: 0 }}>Floors & Tables</h3>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0 0' }}>
+                    {floors.length} floor{floors.length !== 1 ? 's' : ''} · {tables.length} table{tables.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFloorManager(!showFloorManager)}
+                style={{
+                  padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  border: '1px solid #d1d5db', background: showFloorManager ? '#1f2937' : 'white',
+                  color: showFloorManager ? 'white' : '#374151', cursor: 'pointer', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: '5px'
+                }}
+              >
+                <FaChair size={11} />
+                {showFloorManager ? 'Close' : 'Manage'}
+              </button>
+            </div>
+
+            {showFloorManager && (
+              <div>
+                {/* Add Floor Row */}
+                <div style={{
+                  display: 'flex', gap: '8px', marginBottom: '16px', padding: '12px',
+                  background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb'
+                }}>
+                  <input
+                    type="text"
+                    value={newFloorName}
+                    onChange={e => setNewFloorName(e.target.value)}
+                    placeholder="New floor name (e.g. Terrace, AC Hall)"
+                    onKeyDown={e => e.key === 'Enter' && handleAddFloor()}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db',
+                      fontSize: '13px', outline: 'none'
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#6366f1'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                  <button
+                    onClick={handleAddFloor}
+                    disabled={!newFloorName.trim() || addingFloor}
+                    style={{
+                      padding: '8px 16px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                      border: 'none', background: newFloorName.trim() ? '#3b82f6' : '#e5e7eb',
+                      color: newFloorName.trim() ? 'white' : '#9ca3af', cursor: newFloorName.trim() ? 'pointer' : 'default',
+                      display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <FaPlus size={10} />
+                    {addingFloor ? 'Adding...' : 'Add Floor'}
+                  </button>
+                </div>
+
+                {/* Floor Cards */}
+                {floors.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px 20px', color: '#9ca3af' }}>
+                    <FaLayerGroup size={28} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '13px', margin: 0 }}>No floors yet. Add your first floor above.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {floors.map(floor => {
+                      const floorTables = getTablesForFloor(floor.name);
+                      const isAddingHere = addingTableForFloor === floor.id;
+                      return (
+                        <div key={floor.id} style={{
+                          background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb',
+                          overflow: 'hidden'
+                        }}>
+                          {/* Floor Header */}
+                          <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '10px 14px', borderBottom: '1px solid #f3f4f6'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <FaBuilding size={12} color="#6366f1" />
+                              <span style={{ fontWeight: 600, fontSize: '13px', color: '#1f2937' }}>{floor.name}</span>
+                              <span style={{
+                                fontSize: '11px', background: '#f3f4f6', color: '#6b7280',
+                                padding: '2px 8px', borderRadius: '10px', fontWeight: 500
+                              }}>
+                                {floorTables.length} table{floorTables.length !== 1 ? 's' : ''}
+                              </span>
+                              {floor.areaChargeType && floor.areaChargeType !== 'none' && (
+                                <span style={{
+                                  fontSize: '10px', background: '#ede9fe', color: '#7c3aed',
+                                  padding: '2px 6px', borderRadius: '8px', fontWeight: 600
+                                }}>
+                                  {floor.areaChargeType === 'percentage' ? `+${floor.areaChargeValue}%` : `+${formatCurrency(floor.areaChargeValue)}`}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <button
+                                onClick={() => {
+                                  setAddingTableForFloor(isAddingHere ? null : floor.id);
+                                  setNewTableData({ name: '', capacity: 4 });
+                                }}
+                                style={{
+                                  padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                                  border: '1px solid #d1d5db', background: isAddingHere ? '#f3f4f6' : 'white',
+                                  color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                                }}
+                              >
+                                <FaPlus size={9} />
+                                Table
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFloor(floor.id, floor.name)}
+                                style={{
+                                  padding: '4px 6px', borderRadius: '6px', border: '1px solid #fee2e2',
+                                  background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                                }}
+                                title="Delete floor"
+                              >
+                                <FaTrash size={11} color="#ef4444" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Tables */}
+                          <div style={{ padding: '10px 14px' }}>
+                            {floorTables.length === 0 ? (
+                              <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0, fontStyle: 'italic' }}>No tables on this floor</p>
+                            ) : (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {floorTables.map(table => (
+                                  <div key={table._id || table.id} style={{
+                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                    padding: '4px 8px', borderRadius: '6px', fontSize: '12px',
+                                    background: '#f9fafb', border: '1px solid #e5e7eb', color: '#374151'
+                                  }}>
+                                    <FaChair size={9} color="#9ca3af" />
+                                    <span style={{ fontWeight: 500 }}>{table.name}</span>
+                                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>({table.capacity})</span>
+                                    <button
+                                      onClick={() => {
+                                        setDeletingTableId(table._id || table.id);
+                                        setDeletingTableName(table.name);
+                                        setDeleteTableReason('');
+                                      }}
+                                      style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        padding: '0 2px', display: 'flex', alignItems: 'center',
+                                        opacity: 0.4, transition: 'opacity 0.15s'
+                                      }}
+                                      onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                      onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+                                      title="Delete table"
+                                    >
+                                      <FaTimes size={9} color="#ef4444" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Inline Add Table Form */}
+                            {isAddingHere && (
+                              <div style={{
+                                display: 'flex', gap: '6px', marginTop: '10px', padding: '10px',
+                                background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb', alignItems: 'center'
+                              }}>
+                                <input
+                                  type="text"
+                                  value={newTableData.name}
+                                  onChange={e => setNewTableData(p => ({ ...p, name: e.target.value }))}
+                                  placeholder="Table name (e.g. T1)"
+                                  onKeyDown={e => e.key === 'Enter' && handleAddTable(floor.id, floor.name)}
+                                  style={{
+                                    flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db',
+                                    fontSize: '12px', outline: 'none', minWidth: 0
+                                  }}
+                                  onFocus={e => e.target.style.borderColor = '#6366f1'}
+                                  onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                                  autoFocus
+                                />
+                                <input
+                                  type="number"
+                                  value={newTableData.capacity}
+                                  onChange={e => setNewTableData(p => ({ ...p, capacity: e.target.value }))}
+                                  min="1"
+                                  style={{
+                                    width: '60px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db',
+                                    fontSize: '12px', outline: 'none', textAlign: 'center'
+                                  }}
+                                  title="Capacity"
+                                />
+                                <button
+                                  onClick={() => handleAddTable(floor.id, floor.name)}
+                                  disabled={!newTableData.name.trim() || addingTable}
+                                  style={{
+                                    padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                                    border: 'none', background: newTableData.name.trim() ? '#3b82f6' : '#e5e7eb',
+                                    color: newTableData.name.trim() ? 'white' : '#9ca3af',
+                                    cursor: newTableData.name.trim() ? 'pointer' : 'default', whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {addingTable ? '...' : 'Add'}
+                                </button>
+                                <button
+                                  onClick={() => setAddingTableForFloor(null)}
+                                  style={{
+                                    padding: '6px', borderRadius: '6px', border: '1px solid #e5e7eb',
+                                    background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                                  }}
+                                >
+                                  <FaTimes size={10} color="#6b7280" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Delete Table Reason Modal */}
+          {deletingTableId && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.4)', zIndex: 9999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+              onClick={() => { setDeletingTableId(null); setDeleteTableReason(''); }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  background: 'white', borderRadius: '14px', padding: '24px', width: '380px',
+                  maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+                }}
+              >
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', margin: '0 0 4px 0' }}>
+                  Delete Table "{deletingTableName}"?
+                </h3>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 14px 0' }}>
+                  Please provide a reason for removing this table.
+                </p>
+                <textarea
+                  value={deleteTableReason}
+                  onChange={e => setDeleteTableReason(e.target.value)}
+                  placeholder="e.g. Table damaged, area restructured, duplicate entry..."
+                  rows={3}
+                  autoFocus
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                    fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box',
+                    fontFamily: 'inherit'
+                  }}
+                  onFocus={e => e.target.style.borderColor = '#ef4444'}
+                  onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                />
+                <div style={{ display: 'flex', gap: '8px', marginTop: '14px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setDeletingTableId(null); setDeleteTableReason(''); }}
+                    style={{
+                      padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500,
+                      border: '1px solid #d1d5db', background: 'white', color: '#374151', cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteTable}
+                    disabled={!deleteTableReason.trim()}
+                    style={{
+                      padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                      border: 'none', background: deleteTableReason.trim() ? '#ef4444' : '#fca5a5',
+                      color: 'white', cursor: deleteTableReason.trim() ? 'pointer' : 'default'
+                    }}
+                  >
+                    Delete Table
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Multi-Tier Pricing Section ── */}
           <div style={{ marginBottom: '32px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <div style={{ marginBottom: '16px' }}>
