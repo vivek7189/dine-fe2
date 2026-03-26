@@ -1274,6 +1274,18 @@ class ApiClient {
     return this.request(`/api/inventory/${restaurantId}/dashboard`);
   }
 
+  async getInventoryTransactions(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/inventory/${restaurantId}/transactions${queryString}`);
+  }
+
+  async getInventoryUsageSummary(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/inventory/${restaurantId}/usage-summary${queryString}`);
+  }
+
   // Suppliers Management endpoints
   async getSuppliers(restaurantId) {
     return this.request(`/api/suppliers/${restaurantId}`);

@@ -90,6 +90,14 @@ export default function useInventory() {
   const [supplierReturns, setSupplierReturns] = useState([]);
   const [stockTransfers, setStockTransfers] = useState([]);
 
+  // Usage tab state
+  const [usageTransactions, setUsageTransactions] = useState([]);
+  const [usageSummary, setUsageSummary] = useState([]);
+  const [usagePeriod, setUsagePeriod] = useState('today');
+  const [usageStartDate, setUsageStartDate] = useState('');
+  const [usageEndDate, setUsageEndDate] = useState('');
+  const [loadingUsage, setLoadingUsage] = useState(false);
+
   // Voice and AI states
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -133,6 +141,34 @@ export default function useInventory() {
       setLoadingSuggestions(false);
     }
   }, [currentRestaurant]);
+
+  const loadUsageData = useCallback(async (periodOverride) => {
+    if (!currentRestaurant) return;
+    try {
+      setLoadingUsage(true);
+      const period = periodOverride || usagePeriod;
+      const params = { period };
+      if (period === 'custom' && usageStartDate && usageEndDate) {
+        params.startDate = usageStartDate;
+        params.endDate = usageEndDate;
+      }
+
+      const [txResult, summaryResult] = await Promise.allSettled([
+        apiClient.getInventoryTransactions(currentRestaurant.id, {
+          ...(period === 'today' ? { date: new Date().toISOString().split('T')[0] } : {}),
+          limit: 100,
+        }),
+        apiClient.getInventoryUsageSummary(currentRestaurant.id, params),
+      ]);
+
+      setUsageTransactions(txResult.status === 'fulfilled' ? (txResult.value.transactions || []) : []);
+      setUsageSummary(summaryResult.status === 'fulfilled' ? (summaryResult.value.summary || []) : []);
+    } catch (error) {
+      console.error('Error loading usage data:', error);
+    } finally {
+      setLoadingUsage(false);
+    }
+  }, [currentRestaurant, usagePeriod, usageStartDate, usageEndDate]);
 
   const loadSCMData = useCallback(async () => {
     if (!currentRestaurant) return;
@@ -229,6 +265,12 @@ export default function useInventory() {
   useEffect(() => {
     if (currentRestaurant && activeTab) loadSCMData();
   }, [activeTab, currentRestaurant, loadSCMData]);
+
+  useEffect(() => {
+    if (currentRestaurant && activeTab === 'usage') {
+      loadUsageData();
+    }
+  }, [activeTab, currentRestaurant]);
 
   useEffect(() => {
     if (success) {
@@ -723,6 +765,9 @@ export default function useInventory() {
     grns, purchaseRequisitions, supplierInvoices, supplierPerformance,
     aiReorderSuggestions, wastePredictions, wasteSummary,
     supplierReturns, stockTransfers, sortedItems, filteredItems,
+    usageTransactions, usageSummary, usagePeriod, setUsagePeriod,
+    usageStartDate, setUsageStartDate, usageEndDate, setUsageEndDate,
+    loadingUsage, loadUsageData,
 
     // Voice / AI
     isListeningVoice, voiceTranscript, voiceError, processingVoice,

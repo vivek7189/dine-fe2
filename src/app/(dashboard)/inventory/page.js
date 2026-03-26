@@ -1,11 +1,12 @@
 'use client';
 
-import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useInventory from './hooks/useInventory';
 import DashboardTab from './components/DashboardTab';
 import StockTab from './components/StockTab';
 import RecipesTab from './components/RecipesTab';
+import UsageTab from './components/UsageTab';
 import ProcurementTab from './components/ProcurementTab';
 import InsightsTab from './components/InsightsTab';
 import InventoryModals from './components/InventoryModals';
@@ -14,6 +15,7 @@ const tabs = [
   { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
   { id: 'stock', name: 'Stock', icon: FaBoxes },
   { id: 'recipes', name: 'Recipes', icon: FaClipboardList },
+  { id: 'usage', name: 'Usage', icon: FaHistory },
   { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
   { id: 'insights', name: 'AI Insights', icon: FaChartLine },
 ];
@@ -187,6 +189,23 @@ export default function InventoryManagement() {
             formatCurrency={formatCurrency}
             setShowAddRecipeModal={inventory.setShowAddRecipeModal}
             handleDeleteRecipe={inventory.handleDeleteRecipe}
+          />
+        )}
+
+        {activeTab === 'usage' && (
+          <UsageTab
+            usageTransactions={inventory.usageTransactions}
+            usageSummary={inventory.usageSummary}
+            usagePeriod={inventory.usagePeriod}
+            setUsagePeriod={inventory.setUsagePeriod}
+            usageStartDate={inventory.usageStartDate}
+            setUsageStartDate={inventory.setUsageStartDate}
+            usageEndDate={inventory.usageEndDate}
+            setUsageEndDate={inventory.setUsageEndDate}
+            loadUsageData={inventory.loadUsageData}
+            loadingUsage={inventory.loadingUsage}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
           />
         )}
 
