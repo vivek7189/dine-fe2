@@ -101,6 +101,7 @@ function RestaurantPOSContent() {
   // Multi-tier pricing state
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
   const [pricingRules, setPricingRules] = useState([]);
+  const [pricingRulesLoading, setPricingRulesLoading] = useState(false);
   const [activePricingRuleId, setActivePricingRuleId] = useState(null);
   const [autoSelectedRule, setAutoSelectedRule] = useState(false);
 
@@ -707,7 +708,21 @@ function RestaurantPOSContent() {
             if (cachedData.tablesData) setTablesData(cachedData.tablesData);
             // Hide loading immediately to show cached data
             setLoading(false);
-            
+
+            // Load pricing rules immediately (don't wait for background refresh)
+            setPricingRulesLoading(true);
+            apiClient.getPricingSettings(restaurant.id).then(pricingResponse => {
+              const mp = pricingResponse?.settings?.multiPricing;
+              if (mp?.enabled) {
+                setMultiPricingEnabled(true);
+                setPricingRules((mp.rules || []).filter(r => r.isActive));
+              } else {
+                setMultiPricingEnabled(false);
+                setPricingRules([]);
+                setActivePricingRuleId(null);
+              }
+            }).catch(() => {}).finally(() => setPricingRulesLoading(false));
+
             // Show background loading indicator
             setBackgroundLoading(true);
             // Dispatch event for navigation to show loading
@@ -841,6 +856,20 @@ function RestaurantPOSContent() {
           setCachedDashboardData(restaurant.id, dataToCache);
           // Also persist to IndexedDB for deeper offline support
           setCachedData(`dashboard_${restaurant.id}`, dataToCache).catch(() => {});
+
+          // Load multi-pricing rules immediately (non-cached path)
+          try {
+            const pricingResponse = await apiClient.getPricingSettings(restaurant.id);
+            const mp = pricingResponse?.settings?.multiPricing;
+            if (mp?.enabled) {
+              setMultiPricingEnabled(true);
+              setPricingRules((mp.rules || []).filter(r => r.isActive));
+            } else {
+              setMultiPricingEnabled(false);
+              setPricingRules([]);
+              setActivePricingRuleId(null);
+            }
+          } catch { /* ignore */ }
 
         console.log('✅ Restaurant data loaded successfully');
         }
@@ -1400,6 +1429,39 @@ function RestaurantPOSContent() {
     return item.price;
   }, [multiPricingEnabled, activePricingRuleId, pricingRules]);
 
+  // Re-price cart items when pricing rule changes
+  useEffect(() => {
+    if (!multiPricingEnabled || cart.length === 0) return;
+    setCart(prevCart => prevCart.map(item => {
+      // Find the original menu item to get pricingRules overrides
+      const menuItem = menuItems.find(m => m.id === item.id || m._id === item._id);
+      const basePrice = item.basePrice ?? item.price;
+      let newPrice = basePrice;
+      if (activePricingRuleId) {
+        // Check per-item override from menu item's pricingRules
+        const perItemPrice = menuItem?.pricingRules?.[activePricingRuleId];
+        if (typeof perItemPrice === 'number') {
+          newPrice = perItemPrice;
+        } else {
+          // Apply default markup from rule
+          const rule = pricingRules.find(r => r.id === activePricingRuleId);
+          if (rule?.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) {
+            newPrice = Math.round(basePrice * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
+          } else if (rule?.defaultMarkupType === 'flat' && rule.defaultMarkupValue) {
+            newPrice = Math.round((basePrice + rule.defaultMarkupValue) * 100) / 100;
+          }
+        }
+      }
+      return {
+        ...item,
+        price: newPrice,
+        basePrice: basePrice,
+        appliedPricingRuleId: activePricingRuleId || null,
+      };
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePricingRuleId, multiPricingEnabled]);
+
   // Apply display prices to filtered items for rendering
   const filteredItems = multiPricingEnabled && activePricingRuleId
     ? filteredItemsBase.map(item => {
@@ -1553,7 +1615,6 @@ function RestaurantPOSContent() {
   const getTotalAmount = () => {
     const total = cart.reduce((sum, item) => {
       const base = (item?.selectedVariant?.price)
-        ?? (typeof item?.basePrice === 'number' ? item.basePrice : undefined)
         ?? (typeof item?.price === 'number' ? item.price : 0);
       const extras = Array.isArray(item?.selectedCustomizations)
         ? item.selectedCustomizations.reduce((s, c) => s + (c?.price || 0), 0)
@@ -6336,6 +6397,7 @@ function RestaurantPOSContent() {
             onCustomerDataChange={setCustomerData}
             multiPricingEnabled={multiPricingEnabled}
             pricingRules={pricingRules}
+            pricingRulesLoading={pricingRulesLoading}
             activePricingRuleId={activePricingRuleId}
             setActivePricingRuleId={setActivePricingRuleId}
             autoSelectedRule={autoSelectedRule}
@@ -6409,6 +6471,7 @@ function RestaurantPOSContent() {
                     onCustomerDataChange={setCustomerData}
                     multiPricingEnabled={multiPricingEnabled}
                     pricingRules={pricingRules}
+                    pricingRulesLoading={pricingRulesLoading}
                     activePricingRuleId={activePricingRuleId}
                     setActivePricingRuleId={setActivePricingRuleId}
                     autoSelectedRule={autoSelectedRule}
