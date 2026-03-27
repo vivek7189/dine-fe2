@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus } from 'react-icons/fa';
+import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch } from 'react-icons/fa';
 
 const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
 
@@ -961,6 +961,337 @@ function AddTransferModal(props) {
   );
 }
 
+// ─── Quick Order Logger Modal ─────────────────────────────────────────────────
+function QuickOrderModal(props) {
+  const {
+    showQuickOrderModal, setShowQuickOrderModal,
+    quickOrderMode, setQuickOrderMode,
+    quickOrderText, setQuickOrderText,
+    quickOrderParsedItems, setQuickOrderParsedItems,
+    quickOrderSource, setQuickOrderSource,
+    quickOrderParsing, quickOrderConfirming,
+    quickOrderManualItems, setQuickOrderManualItems,
+    menuItems,
+    handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
+    getModalStyles, getModalContentStyles, isMobile
+  } = props;
+
+  const [menuSearch, setMenuSearch] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+
+  const modes = [
+    { id: 'manual', label: 'Manual' },
+    { id: 'text', label: 'Paste Text' },
+    { id: 'image', label: 'Upload Photo' },
+  ];
+
+  const sources = ['zomato', 'swiggy', 'whatsapp', 'phone', 'walk-in', 'other'];
+
+  const filteredMenuItems = (menuItems || []).filter(item =>
+    item.name?.toLowerCase().includes(menuSearch.toLowerCase())
+  );
+
+  const addManualItem = (item) => {
+    const existing = quickOrderManualItems.find(i => i.menuItemId === item.id || i.menuItemId === item._id);
+    if (existing) {
+      setQuickOrderManualItems(quickOrderManualItems.map(i =>
+        (i.menuItemId === item.id || i.menuItemId === item._id) ? { ...i, quantity: i.quantity + 1 } : i
+      ));
+    } else {
+      setQuickOrderManualItems([...quickOrderManualItems, {
+        menuItemId: item.id || item._id,
+        name: item.name,
+        price: item.price || 0,
+        quantity: 1,
+      }]);
+    }
+  };
+
+  const updateManualQty = (menuItemId, delta) => {
+    setQuickOrderManualItems(quickOrderManualItems.map(i => {
+      if (i.menuItemId === menuItemId) {
+        const newQty = Math.max(0, i.quantity + delta);
+        return { ...i, quantity: newQty };
+      }
+      return i;
+    }).filter(i => i.quantity > 0));
+  };
+
+  const removeManualItem = (menuItemId) => {
+    setQuickOrderManualItems(quickOrderManualItems.filter(i => i.menuItemId !== menuItemId));
+  };
+
+  const updateParsedQty = (index, value) => {
+    const updated = [...quickOrderParsedItems];
+    updated[index] = { ...updated[index], quantity: Math.max(0, value) };
+    setQuickOrderParsedItems(updated);
+  };
+
+  const removeParsedItem = (index) => {
+    setQuickOrderParsedItems(quickOrderParsedItems.filter((_, i) => i !== index));
+  };
+
+  const validItemCount = quickOrderMode === 'manual'
+    ? quickOrderManualItems.filter(i => i.quantity > 0).length
+    : quickOrderParsedItems.filter(i => i.menuItemId && i.quantity > 0).length;
+
+  const pillStyle = (active) => ({
+    padding: '8px 16px', borderRadius: '20px', border: 'none',
+    backgroundColor: active ? '#059669' : '#f3f4f6',
+    color: active ? 'white' : '#6b7280',
+    fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+    transition: 'all 0.2s',
+  });
+
+  const sourceChipStyle = (active) => ({
+    padding: '6px 14px', borderRadius: '16px', border: 'none',
+    backgroundColor: active ? '#059669' : '#f3f4f6',
+    color: active ? 'white' : '#6b7280',
+    fontWeight: 600, fontSize: '12px', cursor: 'pointer',
+    textTransform: 'capitalize', transition: 'all 0.2s',
+  });
+
+  return (
+    <ModalShell show={showQuickOrderModal} onClose={() => setShowQuickOrderModal(false)} title="Log External Order"
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+
+      {/* Mode Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {modes.map(m => (
+          <button key={m.id} style={pillStyle(quickOrderMode === m.id)}
+            onClick={() => setQuickOrderMode(m.id)}>
+            {m.id === 'manual' && <FaClipboardList style={{ marginRight: '4px' }} size={11} />}
+            {m.id === 'text' && <FaSearch style={{ marginRight: '4px' }} size={11} />}
+            {m.id === 'image' && <FaImage style={{ marginRight: '4px' }} size={11} />}
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Manual Mode */}
+      {quickOrderMode === 'manual' && (
+        <div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={labelStyle}>Search Menu Items</label>
+            <FocusInput value={menuSearch} onChange={e => setMenuSearch(e.target.value)}
+              placeholder="Type to search menu items..." />
+          </div>
+          {menuSearch.trim() && (
+            <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '12px', border: '1px solid #e5e7eb', borderRadius: '10px' }}>
+              {filteredMenuItems.length === 0 && (
+                <p style={{ textAlign: 'center', color: '#9ca3af', padding: '16px', fontSize: '13px' }}>No items found</p>
+              )}
+              {filteredMenuItems.map(item => (
+                <div key={item.id || item._id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 12px', borderBottom: '1px solid #f3f4f6',
+                }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>{item.name}</span>
+                    {item.price > 0 && (
+                      <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px' }}>
+                        {item.price}
+                      </span>
+                    )}
+                  </div>
+                  <button style={{ ...secondaryBtn, padding: '6px 12px', fontSize: '12px' }}
+                    onClick={() => addManualItem(item)}>
+                    <FaPlus size={10} /> Add
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Added items */}
+          {quickOrderManualItems.length > 0 && (
+            <div style={{ marginBottom: '12px' }}>
+              <label style={labelStyle}>Added Items ({quickOrderManualItems.length})</label>
+              {quickOrderManualItems.map(item => (
+                <div key={item.menuItemId} style={rowStyle}>
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: '13px', color: '#111827' }}>{item.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button onClick={() => updateManualQty(item.menuItemId, -1)} style={{
+                      width: '28px', height: '28px', borderRadius: '8px', border: 'none',
+                      backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}><FaMinus size={10} /></button>
+                    <span style={{ fontWeight: 700, fontSize: '14px', minWidth: '24px', textAlign: 'center' }}>
+                      {item.quantity}
+                    </span>
+                    <button onClick={() => updateManualQty(item.menuItemId, 1)} style={{
+                      width: '28px', height: '28px', borderRadius: '8px', border: 'none',
+                      backgroundColor: '#d1fae5', color: '#059669', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}><FaPlus size={10} /></button>
+                    <button style={dangerBtn} onClick={() => removeManualItem(item.menuItemId)}>
+                      <FaTrash size={10} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {quickOrderManualItems.length === 0 && (
+            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px', fontSize: '13px' }}>
+              Search and add menu items above
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Text Mode */}
+      {quickOrderMode === 'text' && (
+        <div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={labelStyle}>Paste Order Text</label>
+            <FocusTextarea
+              style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
+              value={quickOrderText}
+              onChange={e => setQuickOrderText(e.target.value)}
+              placeholder="Paste orders here... e.g. '10 cardamom tea, 5 black coffee' or paste a WhatsApp/Zomato order"
+            />
+          </div>
+          <button
+            style={{ ...primaryBtn, opacity: (!quickOrderText.trim() || quickOrderParsing) ? 0.5 : 1, marginBottom: '16px' }}
+            disabled={!quickOrderText.trim() || quickOrderParsing}
+            onClick={handleParseQuickOrderText}
+          >
+            {quickOrderParsing ? (
+              <>
+                <div style={{
+                  width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)',
+                  borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite',
+                }} />
+                Parsing...
+              </>
+            ) : (
+              <><FaSearch size={12} /> Parse with AI</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Image Mode */}
+      {quickOrderMode === 'image' && (
+        <div>
+          <div style={{
+            marginBottom: '12px', padding: '24px', border: '2px dashed #d1d5db',
+            borderRadius: '12px', textAlign: 'center', backgroundColor: '#f9fafb',
+            cursor: 'pointer', transition: 'all 0.2s',
+          }}
+            onClick={() => document.getElementById('quick-order-image-input')?.click()}
+          >
+            <FaImage size={28} style={{ color: '#9ca3af', marginBottom: '8px' }} />
+            <p style={{ color: '#6b7280', fontSize: '13px', margin: 0 }}>
+              {imageFile ? imageFile.name : 'Click to upload a photo of the order'}
+            </p>
+            <input
+              id="quick-order-image-input"
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => { if (e.target.files[0]) setImageFile(e.target.files[0]); }}
+            />
+          </div>
+          <button
+            style={{ ...primaryBtn, opacity: (!imageFile || quickOrderParsing) ? 0.5 : 1, marginBottom: '16px' }}
+            disabled={!imageFile || quickOrderParsing}
+            onClick={() => { if (imageFile) handleParseQuickOrderImage(imageFile); }}
+          >
+            {quickOrderParsing ? (
+              <>
+                <div style={{
+                  width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)',
+                  borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite',
+                }} />
+                Extracting...
+              </>
+            ) : (
+              <><FaImage size={12} /> Extract Items</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Parsed Items Review (text & image modes) */}
+      {(quickOrderMode === 'text' || quickOrderMode === 'image') && quickOrderParsedItems.length > 0 && (
+        <div style={{ marginBottom: '12px' }}>
+          <label style={labelStyle}>Parsed Items ({quickOrderParsedItems.length})</label>
+          {quickOrderParsedItems.map((item, index) => {
+            const isUnmatched = !item.menuItemId;
+            const isFuzzy = item.matchType === 'fuzzy';
+            return (
+              <div key={index} style={{
+                ...rowStyle,
+                backgroundColor: isUnmatched ? '#fef2f2' : rowStyle.backgroundColor,
+                border: isUnmatched ? '1px solid #fecaca' : 'none',
+              }}>
+                <span style={{ flex: 1, fontWeight: 600, fontSize: '13px', color: isUnmatched ? '#dc2626' : '#111827' }}>
+                  {item.name || item.parsedName || 'Unknown'}
+                </span>
+                <FocusInput
+                  style={{ ...inputStyle, width: '60px', textAlign: 'center', padding: '6px' }}
+                  type="number" min="0"
+                  value={item.quantity}
+                  onChange={e => updateParsedQty(index, parseInt(e.target.value) || 0)}
+                />
+                {item.menuItemId && !isFuzzy && (
+                  <FaCheckCircle size={14} style={{ color: '#10b981', flexShrink: 0 }} title="Exact match" />
+                )}
+                {item.menuItemId && isFuzzy && (
+                  <FaExclamationTriangle size={14} style={{ color: '#f59e0b', flexShrink: 0 }} title="Fuzzy match" />
+                )}
+                {isUnmatched && (
+                  <FaTimes size={14} style={{ color: '#ef4444', flexShrink: 0 }} title="Unmatched" />
+                )}
+                <button style={dangerBtn} onClick={() => removeParsedItem(index)}>
+                  <FaTrash size={10} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Source Selector */}
+      <div style={{ marginBottom: '16px' }}>
+        <label style={labelStyle}>Order Source</label>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {sources.map(s => (
+            <button key={s} style={sourceChipStyle(quickOrderSource === s)}
+              onClick={() => setQuickOrderSource(s)}>
+              {s === 'walk-in' ? 'Walk-in' : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={footerStyle}>
+        <button style={secondaryBtn} onClick={() => setShowQuickOrderModal(false)}>Cancel</button>
+        <button
+          style={{ ...primaryBtn, opacity: (validItemCount === 0 || quickOrderConfirming) ? 0.5 : 1 }}
+          disabled={validItemCount === 0 || quickOrderConfirming}
+          onClick={handleConfirmQuickOrder}
+        >
+          {quickOrderConfirming ? (
+            <>
+              <div style={{
+                width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)',
+                borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite',
+              }} />
+              Confirming...
+            </>
+          ) : (
+            <><FaCheckCircle size={12} /> Confirm & Deduct Inventory</>
+          )}
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
 // ─── Main Export ─────────────────────────────────────────────────────────────
 export default function InventoryModals(props) {
   return (
@@ -975,6 +1306,7 @@ export default function InventoryModals(props) {
       <AddInvoiceModal {...props} />
       <AddReturnModal {...props} />
       <AddTransferModal {...props} />
+      <QuickOrderModal {...props} />
     </>
   );
 }

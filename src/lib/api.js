@@ -1286,6 +1286,23 @@ class ApiClient {
     return this.request(`/api/inventory/${restaurantId}/usage-summary${queryString}`);
   }
 
+  async parseQuickOrder(restaurantId, payload) {
+    if (payload instanceof FormData) {
+      return this.upload(`/api/inventory/${restaurantId}/quick-order`, payload);
+    }
+    return this.request(`/api/inventory/${restaurantId}/quick-order`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmQuickOrder(restaurantId, items, source, notes = '') {
+    return this.request(`/api/inventory/${restaurantId}/quick-order`, {
+      method: 'POST',
+      body: JSON.stringify({ mode: 'confirm', items, source, notes }),
+    });
+  }
+
   // Suppliers Management endpoints
   async getSuppliers(restaurantId) {
     return this.request(`/api/suppliers/${restaurantId}`);

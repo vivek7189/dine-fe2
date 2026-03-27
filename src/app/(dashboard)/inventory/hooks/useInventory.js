@@ -113,6 +113,17 @@ export default function useInventory() {
   // Quick stock adjustment
   const [quickStockItems, setQuickStockItems] = useState([]);
 
+  // Quick order logger
+  const [showQuickOrderModal, setShowQuickOrderModal] = useState(false);
+  const [quickOrderMode, setQuickOrderMode] = useState('manual');
+  const [quickOrderText, setQuickOrderText] = useState('');
+  const [quickOrderParsedItems, setQuickOrderParsedItems] = useState([]);
+  const [quickOrderSource, setQuickOrderSource] = useState('zomato');
+  const [quickOrderParsing, setQuickOrderParsing] = useState(false);
+  const [quickOrderConfirming, setQuickOrderConfirming] = useState(false);
+  const [quickOrderManualItems, setQuickOrderManualItems] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+
   // Load restaurant context
   const loadRestaurantContext = async () => {
     try {
@@ -236,6 +247,12 @@ export default function useInventory() {
           console.warn(`Failed to load data at index ${index}:`, result.reason);
         }
       });
+
+      // Load menu items for quick order
+      try {
+        const menuRes = await apiClient.getMenu(currentRestaurant.id);
+        setMenuItems((menuRes.items || menuRes.menuItems || []).filter(i => i.status === 'active'));
+      } catch (e) { console.error('Failed to load menu items:', e); }
     } catch (error) {
       console.error('Error loading inventory data:', error);
       setError('Failed to load inventory data');
@@ -414,6 +431,77 @@ export default function useInventory() {
       console.error('Error updating stock:', error);
       setError(error.message || 'Failed to update stock');
     } finally { setLoading(false); }
+  };
+
+  // Quick order handlers
+  const handleParseQuickOrderText = async () => {
+    if (!currentRestaurant || !quickOrderText.trim()) return;
+    try {
+      setQuickOrderParsing(true);
+      setError(null);
+      const result = await apiClient.parseQuickOrder(currentRestaurant.id, {
+        mode: 'parse', subMode: 'text', text: quickOrderText,
+      });
+      setQuickOrderParsedItems(result.parsedItems || []);
+      if (result.unmatchedNames?.length > 0) {
+        setSuccess(`Parsed! ${result.totalMatched} matched, ${result.totalUnmatched} unmatched.`);
+      } else {
+        setSuccess(`Parsed ${result.totalMatched} item(s) successfully!`);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to parse text');
+    } finally {
+      setQuickOrderParsing(false);
+    }
+  };
+
+  const handleParseQuickOrderImage = async (file) => {
+    if (!currentRestaurant || !file) return;
+    try {
+      setQuickOrderParsing(true);
+      setError(null);
+      const fd = new FormData();
+      fd.append('image', file);
+      fd.append('mode', 'parse');
+      fd.append('subMode', 'image');
+      const result = await apiClient.parseQuickOrder(currentRestaurant.id, fd);
+      setQuickOrderParsedItems(result.parsedItems || []);
+      if (result.totalMatched > 0) {
+        setSuccess(`Extracted ${result.totalMatched} item(s) from image!`);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to extract from image');
+    } finally {
+      setQuickOrderParsing(false);
+    }
+  };
+
+  const handleConfirmQuickOrder = async () => {
+    if (!currentRestaurant) return;
+    const items = quickOrderMode === 'manual'
+      ? quickOrderManualItems.filter(i => i.quantity > 0)
+      : quickOrderParsedItems.filter(i => i.menuItemId && i.quantity > 0);
+    if (items.length === 0) {
+      setError('No valid items to log');
+      return;
+    }
+    try {
+      setQuickOrderConfirming(true);
+      setError(null);
+      const result = await apiClient.confirmQuickOrder(currentRestaurant.id, items, quickOrderSource);
+      setShowQuickOrderModal(false);
+      setQuickOrderText('');
+      setQuickOrderParsedItems([]);
+      setQuickOrderManualItems([]);
+      setQuickOrderMode('manual');
+      setSuccess(result.message || `Order logged! ${items.length} item(s) deducted from inventory.`);
+      // Refresh inventory data
+      if (typeof loadInventoryData === 'function') loadInventoryData();
+    } catch (err) {
+      setError(err.message || 'Failed to confirm order');
+    } finally {
+      setQuickOrderConfirming(false);
+    }
   };
 
   // Supplier handlers
@@ -752,6 +840,14 @@ export default function useInventory() {
     showAddRequisitionModal, setShowAddRequisitionModal, showAddInvoiceModal, setShowAddInvoiceModal,
     showAddReturnModal, setShowAddReturnModal, showAddTransferModal, setShowAddTransferModal,
     showQuickStockModal, setShowQuickStockModal, editingItem,
+    showQuickOrderModal, setShowQuickOrderModal,
+    quickOrderMode, setQuickOrderMode,
+    quickOrderText, setQuickOrderText,
+    quickOrderParsedItems, setQuickOrderParsedItems,
+    quickOrderSource, setQuickOrderSource,
+    quickOrderParsing, quickOrderConfirming,
+    quickOrderManualItems, setQuickOrderManualItems,
+    menuItems,
 
     // Form data
     formData, setFormData, supplierFormData, setSupplierFormData,
@@ -785,6 +881,7 @@ export default function useInventory() {
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
     startVoiceListeningPO, generateReport, handleInvoiceOCR,
     loadInventoryData, loadSCMData,
+    handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
 
     // Helpers
     getStatusColor, getOrderStatusColor, getModalStyles, getModalContentStyles,

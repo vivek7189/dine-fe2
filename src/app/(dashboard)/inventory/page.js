@@ -74,6 +74,21 @@ export default function InventoryManagement() {
               Smart inventory management
             </p>
           </div>
+          <button
+            onClick={() => inventory.setShowQuickOrderModal(true)}
+            style={{
+              padding: '10px 18px',
+              background: 'linear-gradient(135deg, #059669, #10b981)',
+              color: 'white', border: 'none', borderRadius: '10px',
+              fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <FaClipboardList size={14} />
+            Log External Order
+          </button>
         </div>
 
         {/* Toast Messages */}
