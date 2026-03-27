@@ -213,6 +213,7 @@ export default function InventoryManagement() {
             getStatusColor={inventory.getStatusColor}
             dashboardStats={inventory.dashboardStats}
             inventoryItems={inventory.inventoryItems}
+            todayUsageSummary={inventory.todayUsageSummary}
           />
         )}
 

@@ -104,6 +104,9 @@ export default function useInventory() {
   const [usageEndDate, setUsageEndDate] = useState('');
   const [loadingUsage, setLoadingUsage] = useState(false);
 
+  // Today's usage for stock tab
+  const [todayUsageSummary, setTodayUsageSummary] = useState([]);
+
   // Voice and AI states
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -340,6 +343,15 @@ export default function useInventory() {
       loadUsageData();
     }
   }, [activeTab, currentRestaurant]);
+
+  // Load today's usage summary for stock tab
+  useEffect(() => {
+    if (currentRestaurant && (activeTab === 'stock' || !activeTab)) {
+      apiClient.getInventoryUsageSummary(currentRestaurant.id, { period: 'today' })
+        .then(res => setTodayUsageSummary(res.summary || []))
+        .catch(() => setTodayUsageSummary([]));
+    }
+  }, [currentRestaurant, activeTab]);
 
   useEffect(() => {
     if (success) {
@@ -1007,7 +1019,7 @@ export default function useInventory() {
     grns, purchaseRequisitions, supplierInvoices, supplierPerformance,
     aiReorderSuggestions, wastePredictions, wasteSummary,
     supplierReturns, stockTransfers, sortedItems, filteredItems,
-    usageTransactions, usageSummary, usagePeriod, setUsagePeriod,
+    usageTransactions, usageSummary, todayUsageSummary, usagePeriod, setUsagePeriod,
     usageStartDate, setUsageStartDate, usageEndDate, setUsageEndDate,
     loadingUsage, loadUsageData,
 

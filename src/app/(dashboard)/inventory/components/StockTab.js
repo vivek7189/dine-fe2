@@ -1,24 +1,35 @@
 'use client';
 
-import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle, FaFireAlt } from 'react-icons/fa';
 
 export default function StockTab({
   sortedItems, categories, searchTerm, setSearchTerm, selectedCategory, setSelectedCategory,
   sortBy, setSortBy, sortOrder, setSortOrder,
   isMobile, formatCurrency,
   setShowAddModal, handleEditItem, handleDeleteItem,
-  getStatusColor, dashboardStats, inventoryItems,
+  getStatusColor, dashboardStats, inventoryItems, todayUsageSummary = [],
 }) {
   const getStockBarColor = (current, min, max) => {
     const ratio = max > 0 ? current / max : 0;
     if (current <= min || ratio < 0.2) return '#ef4444';
     if (ratio < 0.5) return '#f59e0b';
-    return '#059669';
+    return '#10b981';
   };
 
   const getStockBarWidth = (current, max) => {
     if (!max || max <= 0) return 0;
     return Math.min((current / max) * 100, 100);
+  };
+
+  // Build today's usage lookup by item ID/name
+  const todayUsageMap = {};
+  todayUsageSummary.forEach(u => {
+    const key = u.itemId || u.inventoryItemId || u.inventoryItemName;
+    if (key) todayUsageMap[key] = u;
+  });
+
+  const getItemTodayUsage = (item) => {
+    return todayUsageMap[item._id] || todayUsageMap[item.id] || todayUsageMap[item.name] || null;
   };
 
   const lowStockCount = dashboardStats?.lowStockItems ?? inventoryItems?.filter(i => i.currentStock <= i.minStock).length ?? 0;
@@ -156,17 +167,19 @@ export default function StockTab({
           {sortedItems.map(item => {
             const barColor = getStockBarColor(item.currentStock, item.minStock, item.maxStock);
             const barWidth = getStockBarWidth(item.currentStock, item.maxStock);
+            const usage = getItemTodayUsage(item);
+            const consumed = usage?.totalQuantityConsumed || 0;
             return (
               <div key={item._id || item.id} style={{
                 background: '#fff', borderRadius: 10, border: '1px solid #e5e7eb',
-                padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 14px',
               }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: getStatusColor?.(item.status) || barColor,
-                }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                    background: getStatusColor?.(item.status) || barColor,
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.name}
                     </span>
@@ -177,28 +190,44 @@ export default function StockTab({
                       {item.category}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ flex: 1, height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ width: `${barWidth}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.3s' }} />
-                    </div>
-                    <span style={{ fontSize: 12, color: '#374151', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      {item.currentStock} {item.unit}
-                    </span>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button onClick={() => handleEditItem(item)} style={{
+                      padding: 6, border: '1px solid #e5e7eb', borderRadius: 6,
+                      background: '#fff', cursor: 'pointer', display: 'flex',
+                    }}>
+                      <FaEdit size={13} color="#6b7280" />
+                    </button>
+                    <button onClick={() => handleDeleteItem(item._id || item.id)} style={{
+                      padding: 6, border: '1px solid #fee2e2', borderRadius: 6,
+                      background: '#fff', cursor: 'pointer', display: 'flex',
+                    }}>
+                      <FaTrash size={12} color="#ef4444" />
+                    </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button onClick={() => handleEditItem(item)} style={{
-                    padding: 6, border: '1px solid #e5e7eb', borderRadius: 6,
-                    background: '#fff', cursor: 'pointer', display: 'flex',
-                  }}>
-                    <FaEdit size={13} color="#6b7280" />
-                  </button>
-                  <button onClick={() => handleDeleteItem(item._id || item.id)} style={{
-                    padding: 6, border: '1px solid #fee2e2', borderRadius: 6,
-                    background: '#fff', cursor: 'pointer', display: 'flex',
-                  }}>
-                    <FaTrash size={12} color="#ef4444" />
-                  </button>
+                {/* Stock bar with labels */}
+                <div style={{ marginLeft: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: barColor }}>
+                      {item.currentStock} {item.unit}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#9ca3af' }}>of {item.maxStock} {item.unit}</span>
+                  </div>
+                  <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                    <div style={{
+                      width: `${barWidth}%`, height: '100%',
+                      background: `linear-gradient(90deg, ${barColor}dd, ${barColor})`,
+                      borderRadius: 4, transition: 'width 0.3s',
+                    }} />
+                  </div>
+                  {consumed > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <FaFireAlt size={10} color="#f59e0b" />
+                      <span style={{ fontSize: 11, color: '#92400e', fontWeight: 500 }}>
+                        {consumed} {item.unit} used today
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -213,8 +242,9 @@ export default function StockTab({
                 <th style={{ ...thStyle, width: 36 }}></th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Name</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Category</th>
-                <th style={{ ...thStyle, textAlign: 'left', minWidth: 160 }}>Stock</th>
+                <th style={{ ...thStyle, textAlign: 'left', minWidth: 220 }}>Stock Level</th>
                 <th style={thStyle}>Min / Max</th>
+                <th style={thStyle}>Today&apos;s Usage</th>
                 <th style={thStyle}>Cost</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Supplier</th>
                 <th style={{ ...thStyle, width: 90 }}>Actions</th>
@@ -224,6 +254,10 @@ export default function StockTab({
               {sortedItems.map((item, idx) => {
                 const barColor = getStockBarColor(item.currentStock, item.minStock, item.maxStock);
                 const barWidth = getStockBarWidth(item.currentStock, item.maxStock);
+                const usage = getItemTodayUsage(item);
+                const consumed = usage?.totalQuantityConsumed || 0;
+                const stockPercent = item.maxStock > 0 ? Math.round((item.currentStock / item.maxStock) * 100) : 0;
+
                 return (
                   <tr key={item._id || item.id} style={{
                     borderBottom: idx < sortedItems.length - 1 ? '1px solid #f3f4f6' : 'none',
@@ -236,6 +270,7 @@ export default function StockTab({
                       <div style={{
                         width: 10, height: 10, borderRadius: '50%', margin: '0 auto',
                         background: getStatusColor?.(item.status) || barColor,
+                        boxShadow: `0 0 0 3px ${(getStatusColor?.(item.status) || barColor)}22`,
                       }} />
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 600, color: '#111827' }}>{item.name}</td>
@@ -247,21 +282,49 @@ export default function StockTab({
                         {item.category}
                       </span>
                     </td>
+                    {/* Enhanced Stock Column */}
                     <td style={tdStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 7, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: barColor }}>
+                            {item.currentStock} {item.unit}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>
+                            {stockPercent}%
+                          </span>
+                        </div>
+                        <div style={{
+                          height: 8, background: '#f3f4f6', borderRadius: 4,
+                          overflow: 'hidden', position: 'relative',
+                        }}>
                           <div style={{
-                            width: `${barWidth}%`, height: '100%', background: barColor,
-                            borderRadius: 4, transition: 'width 0.3s',
+                            width: `${barWidth}%`, height: '100%',
+                            background: `linear-gradient(90deg, ${barColor}cc, ${barColor})`,
+                            borderRadius: 4, transition: 'width 0.4s ease',
                           }} />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', minWidth: 50 }}>
-                          {item.currentStock} {item.unit}
-                        </span>
+                        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                          capacity: {item.maxStock} {item.unit}
+                        </div>
                       </div>
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
                       {item.minStock} / {item.maxStock}
+                    </td>
+                    {/* Today's Usage Column */}
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      {consumed > 0 ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: '#fef3c7', padding: '3px 10px', borderRadius: 12,
+                        }}>
+                          <FaFireAlt size={10} color="#d97706" />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>
+                            {consumed} {item.unit}
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#d1d5db' }}>—</span>
+                      )}
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center', color: '#374151', fontWeight: 500 }}>
                       {formatCurrency(item.costPerUnit)}
