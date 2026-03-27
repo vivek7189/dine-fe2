@@ -150,9 +150,10 @@ var CustomerDetail = function() {
         paymentMethod: 'cash',
         orderId: entry.orderId
       });
-      // Reload credit data
+      // Reload credit data and customer
       var data = await apiClient.getCustomerCreditHistory(customerId);
       setCreditData(data);
+      await loadCustomer();
     } catch (err) {
       console.error('Error settling credit:', err);
       alert('Failed to settle credit');
@@ -200,6 +201,8 @@ var CustomerDetail = function() {
   var totalSpent = Number(customer.totalSpent || 0);
   var avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
   var redemptionHistory = orderHistory.filter(function(o) { return o.loyaltyPointsRedeemed > 0; });
+
+  var outstandingBalance = creditData.outstandingBalance || customer.outstandingBalance || 0;
 
   var sortedOrders = orderHistory.slice().sort(function(a, b) {
     return new Date(b.orderDate) - new Date(a.orderDate);
@@ -319,7 +322,7 @@ var CustomerDetail = function() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
           gap: '12px'
         }}>
           <div style={{
@@ -358,17 +361,16 @@ var CustomerDetail = function() {
             <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#f59e0b' }}>{currentPoints}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Loyalty Points</p>
           </div>
-          {creditData.outstandingBalance > 0 && (
-            <div style={{
-              backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '22px',
-              textAlign: 'center', position: 'relative', overflow: 'hidden'
-            }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #ef4444, #f87171)' }}></div>
-              <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#ef4444' }}>{formatCurrency(creditData.outstandingBalance)}</p>
-              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</p>
-            </div>
-          )}
+          <div style={{
+            backgroundColor: 'white', borderRadius: '14px',
+            border: outstandingBalance > 0 ? '1px solid #fecaca' : '1px solid #e5e7eb',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '22px',
+            textAlign: 'center', position: 'relative', overflow: 'hidden'
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: outstandingBalance > 0 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #10b981, #34d399)' }}></div>
+            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: outstandingBalance > 0 ? '#ef4444' : '#10b981' }}>{formatCurrency(outstandingBalance)}</p>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</p>
+          </div>
         </div>
       </div>
 
@@ -697,16 +699,21 @@ var CustomerDetail = function() {
                               +{order.loyaltyPointsEarned} pts
                             </p>
                           )}
-                          {/* Partial payment badge */}
+                          {/* Partial payment / outstanding badge */}
                           {order.outstandingAmount > 0 && (
-                            <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                              <span style={{
-                                fontSize: '9px', fontWeight: 700, color: 'white', backgroundColor: '#ef4444',
-                                padding: '1px 6px', borderRadius: '10px'
-                              }}>DUE</span>
-                              <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 700 }}>
-                                {formatCurrency(order.outstandingAmount)}
-                              </span>
+                            <div style={{ marginTop: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
+                                <span style={{
+                                  fontSize: '9px', fontWeight: 700, color: 'white', backgroundColor: '#ef4444',
+                                  padding: '1px 6px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.05em'
+                                }}>DUE</span>
+                                <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>
+                                  {formatCurrency(order.outstandingAmount)}
+                                </span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: '10px', color: '#6b7280', textAlign: 'right' }}>
+                                Paid {formatCurrency((order.finalAmount || order.totalAmount) - order.outstandingAmount)} of {formatCurrency(order.finalAmount || order.totalAmount)}
+                              </p>
                             </div>
                           )}
                         </div>

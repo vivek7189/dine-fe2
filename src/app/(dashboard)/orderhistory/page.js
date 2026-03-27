@@ -175,6 +175,9 @@ const OrderHistory = () => {
   const getStatusStyle = (status, orderFlow, lastStatus, order) => {
     if (order?._isOffline) return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: `Pending Sync (${order.syncStatus || 'queued'})` };
     // syncSource === 'offline' orders now show their real status — separate "Offline" chip is added in the UI
+    if (orderFlow?.isDirectBilling && (order?.paymentStatus === 'partial' || order?.outstandingAmount > 0)) {
+      return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: 'Partial Payment' };
+    }
     if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing Completed' };
     if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Kitchen' };
     if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Completed' };
@@ -853,172 +856,156 @@ const OrderHistory = () => {
     const orderTotal = breakdown.total;
     const subtotal = breakdown.subtotal;
     const modalSourceChip = getOrderSourceChip(order);
+    const roomVal = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber;
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-        <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 border-gray-200">
-          <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
-                </h2>
-                <span 
-                  className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
-                  style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
-                >
-                  {statusStyle.label}
-                </span>
-                {modalSourceChip && (
-                  <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${modalSourceChip.className}`}>
-                    {modalSourceChip.label}
-                  </span>
-                )}
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ zIndex: 10100, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+        <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center">
+                <span className="text-white font-bold text-sm">#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
               </div>
-              <div className="text-sm text-gray-500 flex items-center gap-2">
-                <FaClock className="text-gray-400" /> {formatDate(order.createdAt)}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wide"
+                    style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
+                  >
+                    {statusStyle.label}
+                  </span>
+                  {modalSourceChip && (
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${modalSourceChip.className}`}>
+                      {modalSourceChip.label}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                  <FaClock className="text-[10px]" /> {formatDate(order.createdAt)}
+                </div>
               </div>
             </div>
-            <button 
-              onClick={onClose} 
-              className="p-2.5 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-            >
-              <FaTimes className="text-gray-500 text-lg" />
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <FaTimes className="text-gray-400 text-sm" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-xl border-2 border-blue-200 shadow-sm">
-              <div className="bg-white/60 p-4 rounded-lg border border-blue-200">
-                <div className="text-xs text-gray-600 mb-2 flex items-center gap-2 font-medium uppercase tracking-wide">
-                  <FaUser className="text-blue-600"/> {t('orderHistory.customer')}
-                </div>
-                <div className="font-semibold text-base text-gray-900 mb-1">{order.customerDisplay?.name || 'Walk-in'}</div>
-                <div className="text-sm text-gray-600">{order.customerDisplay?.phone || 'No phone'}</div>
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Info strip */}
+            <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/50">
+              <div className="px-4 py-3">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('orderHistory.customer')}</div>
+                <div className="text-sm font-semibold text-gray-900 truncate">{order.customerDisplay?.name || 'Walk-in'}</div>
+                <div className="text-xs text-gray-400 truncate">{order.customerDisplay?.phone || '—'}</div>
               </div>
-              <div className="bg-white/60 p-4 rounded-lg border border-blue-200">
-                <div className="text-xs text-gray-600 mb-2 flex items-center gap-2 font-medium uppercase tracking-wide">
-                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
-                    <FaBed className="text-blue-600"/>
-                  ) : (
-                    <FaTable className="text-blue-600"/>
-                  )}
-                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? 'Room' : t('orderHistory.table')}
+              <div className="px-4 py-3">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">
+                  {roomVal ? 'Room' : t('orderHistory.table')}
                 </div>
-                <div className="font-semibold text-base text-gray-900 mb-1">
-                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}
+                <div className="text-sm font-semibold text-gray-900">
+                  {roomVal || order.customerDisplay?.tableNumber || order.tableNumber || '—'}
                 </div>
-                <div className="text-sm text-gray-600 capitalize">
-                  {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? 'Hotel Room' : (order.customerDisplay?.floorName || 'No floor')}
+                <div className="text-xs text-gray-400 capitalize truncate">
+                  {roomVal ? 'Hotel Room' : (order.customerDisplay?.floorName || '—')}
                 </div>
               </div>
-              <div className="bg-white/60 p-4 rounded-lg border border-blue-200">
-                <div className="text-xs text-gray-600 mb-2 flex items-center gap-2 font-medium uppercase tracking-wide">
-                  <FaUtensils className="text-blue-600"/> {t('common.category')}
-                </div>
-                <div className="font-semibold text-base text-gray-900 mb-1 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
-                <div className="text-sm text-gray-600 capitalize">{order.paymentMethod || 'Unpaid'}</div>
+              <div className="px-4 py-3">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('common.category')}</div>
+                <div className="text-sm font-semibold text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
+                <div className="text-xs text-gray-400 capitalize">{order.paymentMethod || 'Unpaid'}</div>
               </div>
             </div>
 
-            <div>
-              <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FaReceipt className="text-red-600" /> {t('orderHistory.items')}
-              </h3>
-              <div className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-sm">
-                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-600 text-xs uppercase tracking-wider font-semibold border-b-2 border-gray-200">
-                    <tr>
-                      <th className="px-5 py-4 text-left">{t('common.items')}</th>
-                      <th className="px-5 py-4 text-center">{t('common.quantity')}</th>
-                      <th className="px-5 py-4 text-right">{t('common.price')}</th>
-                      <th className="px-5 py-4 text-right">{t('common.total')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {order.items?.map((item, i) => (
-                      <tr key={i} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-4">
-                          <div className="font-semibold text-gray-900">{item.name}</div>
-                          {item.variant && (
-                            <div className="text-xs text-gray-500 mt-1 bg-gray-100 px-2 py-0.5 rounded inline-block">
-                              {t('orderHistory.variant')}: {item.variant.name}
-                            </div>
-                          )}
-                          {item.addons?.length > 0 && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              + {item.addons.map(a => a.name).join(', ')}
-                            </div>
-                          )}
-                          {item.notes && (
-                            <div className="text-xs text-amber-700 mt-1 italic bg-amber-50 px-2 py-0.5 rounded">
-                              {t('common.notes')}: {item.notes}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-center font-semibold text-gray-700">x{item.quantity}</td>
-                        <td className="px-5 py-4 text-right text-gray-600">{formatCurrency(item.price)}</td>
-                        <td className="px-5 py-4 text-right font-bold text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* Items */}
+            <div className="px-5 py-4">
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('orderHistory.items')}</div>
+              <div className="space-y-0 divide-y divide-gray-50">
+                {order.items?.map((item, i) => (
+                  <div key={i} className="flex items-start justify-between py-2.5">
+                    <div className="flex-1 min-w-0 pr-4">
+                      <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                      {item.variant && (
+                        <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                          {item.variant.name}
+                        </span>
+                      )}
+                      {item.addons?.length > 0 && (
+                        <div className="text-[11px] text-gray-400 mt-0.5">+ {item.addons.map(a => a.name).join(', ')}</div>
+                      )}
+                      {item.notes && (
+                        <div className="text-[11px] text-amber-600 mt-0.5 italic">{item.notes}</div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <span className="text-xs text-gray-400 w-8 text-center">x{item.quantity}</span>
+                      <span className="text-sm font-semibold text-gray-900 w-20 text-right">{formatCurrency(item.total || (item.price * item.quantity))}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
             {order.notes && (
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border-2 border-amber-200 text-sm text-amber-900 shadow-sm">
-                <span className="font-bold">{t('orderHistory.orderNote')}:</span> {order.notes}
+              <div className="mx-5 mb-4 px-3 py-2.5 bg-amber-50 rounded-lg text-xs text-amber-800">
+                <span className="font-semibold">{t('orderHistory.orderNote')}:</span> {order.notes}
               </div>
             )}
-          </div>
 
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-t-2 border-gray-200 p-6">
-            <div className="flex flex-col gap-3 max-w-sm ml-auto bg-white p-5 rounded-xl border-2 border-gray-200 shadow-sm">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span className="font-medium">{t('orderHistory.subtotal')}</span>
-                <span className="font-semibold">{formatCurrency(subtotal)}</span>
+            {/* Billing breakdown */}
+            <div className="mx-5 mb-4 bg-gray-50 rounded-lg p-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>{t('orderHistory.subtotal')}</span>
+                  <span className="font-medium">{formatCurrency(subtotal)}</span>
+                </div>
+                {order.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount</span>
+                    <span className="font-medium">-{formatCurrency(order.discountAmount)}</span>
+                  </div>
+                )}
+                {order.serviceChargeAmount > 0 && (
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Service Charge {order.serviceChargeRate ? `(${order.serviceChargeRate}%)` : ''}</span>
+                    <span className="font-medium">{formatCurrency(order.serviceChargeAmount)}</span>
+                  </div>
+                )}
+                {breakdown.taxAmount > 0 && (
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>{t('orderHistory.tax')}</span>
+                    <span className="font-medium">{formatCurrency(breakdown.taxAmount)}</span>
+                  </div>
+                )}
+                {order.tipAmount > 0 && (
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Tip {order.tipPercentage ? `(${order.tipPercentage}%)` : ''}</span>
+                    <span className="font-medium">{formatCurrency(order.tipAmount)}</span>
+                  </div>
+                )}
+                {order.roundOffAmount != null && order.roundOffAmount !== 0 && (
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>Round-off</span>
+                    <span className="font-medium">{order.roundOffAmount > 0 ? '+' : ''}{formatCurrency(order.roundOffAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-gray-200 mt-1">
+                  <span className="text-base font-bold text-gray-900">{t('orderHistory.total')}</span>
+                  <span className="text-base font-bold text-red-600">{formatCurrency(orderTotal)}</span>
+                </div>
               </div>
-              {order.discountAmount > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span className="font-medium">Discount</span>
-                  <span className="font-semibold">-{formatCurrency(order.discountAmount)}</span>
-                </div>
-              )}
-              {order.serviceChargeAmount > 0 && (
-                <div className="flex justify-between text-sm text-purple-600">
-                  <span className="font-medium">Service Charge {order.serviceChargeRate ? `(${order.serviceChargeRate}%)` : ''}</span>
-                  <span className="font-semibold">{formatCurrency(order.serviceChargeAmount)}</span>
-                </div>
-              )}
-              {breakdown.taxAmount > 0 && (
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span className="font-medium">{t('orderHistory.tax')}</span>
-                  <span className="font-semibold">{formatCurrency(breakdown.taxAmount)}</span>
-                </div>
-              )}
-              {order.tipAmount > 0 && (
-                <div className="flex justify-between text-sm text-amber-600">
-                  <span className="font-medium">Tip {order.tipPercentage ? `(${order.tipPercentage}%)` : ''}</span>
-                  <span className="font-semibold">{formatCurrency(order.tipAmount)}</span>
-                </div>
-              )}
-              {order.roundOffAmount != null && order.roundOffAmount !== 0 && (
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span className="font-medium">Round-off</span>
-                  <span className="font-semibold">{order.roundOffAmount > 0 ? '+' : ''}{formatCurrency(order.roundOffAmount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t-2 border-gray-300 mt-2">
-                <span>{t('orderHistory.total')}</span>
-                <span className="text-red-600">{formatCurrency(orderTotal)}</span>
-              </div>
-              {/* Payment details */}
+
+              {/* Payment info */}
               {order.splitPayments && order.splitPayments.length > 0 && (
-                <div className="pt-2 border-t border-gray-200 mt-1">
-                  <div className="text-xs font-semibold text-gray-500 mb-1">Split Payment</div>
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Split Payment</div>
                   {order.splitPayments.map((sp, i) => (
-                    <div key={i} className="flex justify-between text-xs text-gray-600">
+                    <div key={i} className="flex justify-between text-xs text-gray-500">
                       <span className="capitalize">{sp.method}</span>
                       <span>{formatCurrency(sp.amount)}</span>
                     </div>
@@ -1026,43 +1013,41 @@ const OrderHistory = () => {
                 </div>
               )}
               {order.cashReceived > 0 && (
-                <div className="pt-2 border-t border-gray-200 mt-1 text-xs text-gray-500">
+                <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
                   <div className="flex justify-between"><span>Cash Received</span><span>{formatCurrency(order.cashReceived)}</span></div>
                   {order.changeReturned > 0 && (
-                    <div className="flex justify-between text-green-600"><span>Change Returned</span><span>{formatCurrency(order.changeReturned)}</span></div>
+                    <div className="flex justify-between text-green-600 mt-0.5"><span>Change Returned</span><span>{formatCurrency(order.changeReturned)}</span></div>
                   )}
                 </div>
               )}
               {(order.paidAmount > 0 || order.outstandingAmount > 0) && (
-                <div className="pt-2 border-t border-gray-200 mt-1 text-xs">
-                  <div className="text-xs font-semibold text-gray-500 mb-1">Payment Status</div>
+                <div className="mt-3 pt-3 border-t border-gray-200 text-xs">
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Payment Status</div>
                   {order.paidAmount > 0 && (
                     <div className="flex justify-between text-green-600"><span>Paid</span><span>{formatCurrency(order.paidAmount)}</span></div>
                   )}
                   {order.outstandingAmount > 0 && (
-                    <div className="flex justify-between text-red-600 font-semibold"><span>Outstanding</span><span>{formatCurrency(order.outstandingAmount)}</span></div>
+                    <div className="flex justify-between text-red-600 font-semibold mt-0.5"><span>Outstanding</span><span>{formatCurrency(order.outstandingAmount)}</span></div>
                   )}
                 </div>
               )}
             </div>
-            
-            <div className="mt-6 grid grid-cols-2 gap-3">
-               <button 
-                onClick={onClose}
-                className="px-5 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-              >
-                {t('orderHistory.close')}
-              </button>
-              <button 
-                onClick={() => {
-                    handleEditOrder(order.id);
-                    onClose();
-                }}
-                className="px-5 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all shadow-lg"
-              >
-                {t('orderHistory.editOrder')}
-              </button>
-            </div>
+          </div>
+
+          {/* Footer buttons */}
+          <div className="px-5 py-3 border-t border-gray-100 flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              {t('orderHistory.close')}
+            </button>
+            <button
+              onClick={() => { handleEditOrder(order.id); onClose(); }}
+              className="flex-1 px-4 py-2.5 bg-gray-900 text-white font-medium text-sm rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              {t('orderHistory.editOrder')}
+            </button>
           </div>
         </div>
       </div>
@@ -1879,11 +1864,12 @@ const OrderHistory = () => {
         )}
       </div>
 
-      {selectedOrderForModal && (
-        <OrderDetailsModal 
-          order={selectedOrderForModal} 
-          onClose={() => setSelectedOrderForModal(null)} 
-        />
+      {selectedOrderForModal && typeof document !== 'undefined' && createPortal(
+        <OrderDetailsModal
+          order={selectedOrderForModal}
+          onClose={() => setSelectedOrderForModal(null)}
+        />,
+        document.body
       )}
 
       {selectedOrderForInvoice && (

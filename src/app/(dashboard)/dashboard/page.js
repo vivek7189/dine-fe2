@@ -2447,6 +2447,8 @@ function RestaurantPOSContent() {
           splitPayments: splitPay || null,
           roundOffAmount: roundOff || null,
           partialPayAmount: partialPay || null,
+          paidAmount: partialPay ? Math.round(Number(partialPay) * 100) / 100 : null,
+          outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
           compItems: compData || null,
           voidItems: voidData || null,
           lastUpdatedBy: {
@@ -2479,7 +2481,7 @@ function RestaurantPOSContent() {
               amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
               userId: currentUser.id,
               restaurantId: selectedRestaurant.id,
-              paymentStatus: 'completed'
+              paymentStatus: partialPay ? 'partial' : 'completed'
             };
             await queueOfflineOrder({
               ...updateData,
@@ -2520,7 +2522,7 @@ function RestaurantPOSContent() {
             amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: 'completed'
+            paymentStatus: partialPay ? 'partial' : 'completed'
           });
 
           // Show notification for order completion
@@ -2616,6 +2618,9 @@ function RestaurantPOSContent() {
         changeReturned: changeReturned || null,
         splitPayments: splitPay || null,
         roundOffAmount: roundOff || null,
+        partialPayAmount: partialPay || null,
+        paidAmount: partialPay ? Math.round(Number(partialPay) * 100) / 100 : null,
+        outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
       };
 
         // If split payment, override payment method
@@ -2634,7 +2639,7 @@ function RestaurantPOSContent() {
               amount: paymentAmount,
               userId: currentUser.id,
               restaurantId: selectedRestaurant.id,
-              paymentStatus: 'completed'
+              paymentStatus: partialPay ? 'partial' : 'completed'
             };
             const offlineIdempotencyKey = generateIdempotencyKey();
             await queueOfflineOrder({
@@ -2687,7 +2692,7 @@ function RestaurantPOSContent() {
             amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: 'completed' // Mark payment as completed
+            paymentStatus: partialPay ? 'partial' : 'completed'
           });
           console.log('✅ Cash payment verified:', paymentResult);
       } else if (paymentMethod === 'upi') {
@@ -2697,7 +2702,7 @@ function RestaurantPOSContent() {
             amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: 'completed' // Mark payment as completed
+            paymentStatus: partialPay ? 'partial' : 'completed'
           });
           console.log('✅ UPI payment verified:', paymentResult);
       } else if (paymentMethod === 'card') {
@@ -2707,7 +2712,7 @@ function RestaurantPOSContent() {
             amount: paymentAmount,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
-            paymentStatus: 'completed' // Mark payment as completed
+            paymentStatus: partialPay ? 'partial' : 'completed'
           });
           console.log('✅ Card payment verified:', paymentResult);
         }
@@ -3357,6 +3362,8 @@ function RestaurantPOSContent() {
           splitPayments: splitPay || null,
           roundOffAmount: roundOff || null,
           partialPayAmount: partialPay || null,
+          paidAmount: partialPay ? Math.round(Number(partialPay) * 100) / 100 : null,
+          outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
           compItems: compData || null,
           voidItems: voidData || null,
         };
