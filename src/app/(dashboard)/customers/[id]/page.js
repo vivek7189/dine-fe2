@@ -22,7 +22,9 @@ import {
   FaHistory,
   FaUser,
   FaHandHoldingUsd,
-  FaWallet
+  FaWallet,
+  FaChevronDown,
+  FaChevronUp
 } from 'react-icons/fa';
 
 var CustomerDetail = function() {
@@ -44,6 +46,7 @@ var CustomerDetail = function() {
   var [creditData, setCreditData] = useState({ outstandingBalance: 0, creditHistory: [] });
   var [creditLoading, setCreditLoading] = useState(false);
   var [settlingCredit, setSettlingCredit] = useState(null);
+  var [expandedOrderId, setExpandedOrderId] = useState(null);
 
   useEffect(function() {
     var checkMobile = function() { setIsMobile(window.innerWidth <= 768); };
@@ -193,19 +196,28 @@ var CustomerDetail = function() {
     );
   }
 
+  var parseDate = function(raw) {
+    if (!raw) return null;
+    if (typeof raw.toDate === 'function') return raw.toDate();
+    if (raw._seconds) return new Date(raw._seconds * 1000);
+    var d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   var orderHistory = customer.orderHistory || [];
   var totalPointsEarned = orderHistory.reduce(function(sum, o) { return sum + (o.loyaltyPointsEarned || 0); }, 0);
   var totalPointsRedeemed = orderHistory.reduce(function(sum, o) { return sum + (o.loyaltyPointsRedeemed || 0); }, 0);
   var currentPoints = customer.loyaltyPoints || 0;
-  var totalOrders = customer.totalOrders || orderHistory.length || 0;
-  var totalSpent = Number(customer.totalSpent || 0);
+  var totalOrders = Math.max(customer.totalOrders || 0, orderHistory.length || 0);
+  var computedTotalSpent = orderHistory.reduce(function(sum, o) { return sum + (o.finalAmount || o.totalAmount || 0); }, 0);
+  var totalSpent = Math.max(Number(customer.totalSpent || 0), computedTotalSpent);
   var avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
   var redemptionHistory = orderHistory.filter(function(o) { return o.loyaltyPointsRedeemed > 0; });
 
   var outstandingBalance = creditData.outstandingBalance || customer.outstandingBalance || 0;
 
   var sortedOrders = orderHistory.slice().sort(function(a, b) {
-    return new Date(b.orderDate) - new Date(a.orderDate);
+    return (parseDate(b.orderDate) || new Date(0)) - (parseDate(a.orderDate) || new Date(0));
   });
 
   return (
@@ -285,10 +297,10 @@ var CustomerDetail = function() {
                   </span>
                 )}
               </div>
-              {customer.createdAt && (
+              {(customer.createdAt || customer.dob) && (
                 <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
-                  Customer since {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A'}
-                  {customer.dob ? '  \u00B7  DOB: ' + new Date(customer.dob).toLocaleDateString() : ''}
+                  {customer.createdAt ? 'Customer since ' + (parseDate(customer.createdAt) ? parseDate(customer.createdAt).toLocaleDateString() : 'N/A') : ''}
+                  {customer.dob ? '  \u00B7  DOB: ' + (parseDate(customer.dob) ? parseDate(customer.dob).toLocaleDateString() : 'N/A') : ''}
                 </p>
               )}
             </div>
@@ -437,7 +449,7 @@ var CustomerDetail = function() {
                         <div>
                           <span style={{ fontWeight: '600', color: '#1e293b' }}>{order.orderNumber}</span>
                           <span style={{ color: '#9ca3af', marginLeft: '6px', fontSize: '11px' }}>
-                            {new Date(order.orderDate).toLocaleDateString()}
+                            {parseDate(order.orderDate) ? parseDate(order.orderDate).toLocaleDateString() : ''}
                           </span>
                         </div>
                         <span style={{ fontWeight: '700', color: '#dc2626', fontSize: '12px' }}>
@@ -564,7 +576,7 @@ var CustomerDetail = function() {
                     </div>
                     <div>
                       <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date of Birth</p>
-                      <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>{new Date(customer.dob).toLocaleDateString()}</p>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>{parseDate(customer.dob) ? parseDate(customer.dob).toLocaleDateString() : 'N/A'}</p>
                     </div>
                   </div>
                 )}
@@ -582,15 +594,7 @@ var CustomerDetail = function() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                     <span style={{ color: '#94a3b8' }}>Last Order</span>
                     <span style={{ fontWeight: '600', color: '#1e293b' }}>
-                      {(function() {
-                        var raw = customer.lastOrderDate;
-                        if (!raw) return 'N/A';
-                        var d;
-                        if (typeof raw.toDate === 'function') d = raw.toDate();
-                        else if (raw._seconds) d = new Date(raw._seconds * 1000);
-                        else d = new Date(raw);
-                        return (!d || isNaN(d.getTime())) ? 'N/A' : d.toLocaleDateString();
-                      })()}
+                      {parseDate(customer.lastOrderDate) ? parseDate(customer.lastOrderDate).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 )}

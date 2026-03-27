@@ -44,6 +44,7 @@ import {
   FaTrash,
   FaCloudUploadAlt,
   FaMoneyBillWave,
+  FaWallet,
   FaCreditCard,
   FaMobileAlt,
   FaGlobe,
@@ -74,8 +75,10 @@ const OrderHistory = () => {
   const [isCompactView, setIsCompactView] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('en');
 
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('all');
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [paymentStatusDropdownOpen, setPaymentStatusDropdownOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState(new Set());
   const [selectedOrderForModal, setSelectedOrderForModal] = useState(null);
@@ -275,12 +278,13 @@ const OrderHistory = () => {
   }, [dateFilterMode, customStartDate, customEndDate]);
 
   // Check if any non-default filters are active
-  const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || searchTerm.trim();
+  const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || selectedPaymentStatus !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || searchTerm.trim();
 
   const activeFilterCount = [
     selectedStatus !== 'all',
     selectedOrderType !== 'all',
     selectedPaymentMethod !== 'all',
+    selectedPaymentStatus !== 'all',
     dateFilterMode !== 'today',
     myOrdersOnly,
   ].filter(Boolean).length;
@@ -290,6 +294,7 @@ const OrderHistory = () => {
     setSelectedStatus('all');
     setSelectedOrderType('all');
     setSelectedPaymentMethod('all');
+    setSelectedPaymentStatus('all');
     setDateFilterMode('today');
     setMyOrdersOnly(false);
     setSearchTerm('');
@@ -301,7 +306,7 @@ const OrderHistory = () => {
     if (!restaurantId) return;
 
     // Create cache key based on filters
-    const cacheKey = `${currentPage}_${selectedStatus}_${selectedOrderType}_${myOrdersOnly}_${dateFilterMode}_${selectedPaymentMethod}_${searchTerm.trim()}_${customStartDate}_${customEndDate}`;
+    const cacheKey = `${currentPage}_${selectedStatus}_${selectedOrderType}_${myOrdersOnly}_${dateFilterMode}_${selectedPaymentMethod}_${selectedPaymentStatus}_${searchTerm.trim()}_${customStartDate}_${customEndDate}`;
     
     // Check for cached data first
     if (useCache) {
@@ -332,6 +337,7 @@ const OrderHistory = () => {
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
         orderType: selectedOrderType !== 'all' ? selectedOrderType : undefined,
         paymentMethod: selectedPaymentMethod !== 'all' ? selectedPaymentMethod : undefined,
+        paymentStatus: selectedPaymentStatus !== 'all' ? selectedPaymentStatus : undefined,
         myOrdersOnly: myOrdersOnly ? user?.id : undefined,
         search: searchTerm.trim() || undefined,
         ...dateRange
@@ -410,7 +416,7 @@ const OrderHistory = () => {
       setBackgroundLoading(false);
       window.dispatchEvent(new CustomEvent('orderhistoryBackgroundLoading', { detail: { loading: false } }));
     }
-  }, [restaurantId, currentPage, limit, selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, customStartDate, customEndDate, user?.id, getDateRange]);
+  }, [restaurantId, currentPage, limit, selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate, user?.id, getDateRange]);
 
   useEffect(() => {
     const loadUserAndRestaurant = async () => {
@@ -567,7 +573,7 @@ const OrderHistory = () => {
   }, [restaurantId, fetchOrders]);
 
   // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
-  useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, customStartDate, customEndDate]);
+  useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);
 
   const handleSearch = (e) => { e.preventDefault(); fetchOrders(); };
   const handlePageChange = (newPage) => { if (newPage >= 1 && newPage <= totalPages) setCurrentPage(newPage); };
@@ -1116,6 +1122,15 @@ const OrderHistory = () => {
     { value: 'delivery', label: t('orderHistory.type.delivery') }
   ];
 
+  const paymentStatusOptions = [
+    { value: 'all', label: 'All Payments' },
+    { value: 'paid', label: 'Fully Paid' },
+    { value: 'partial', label: 'Partial Payment' },
+    { value: 'unpaid', label: 'Unpaid' }
+  ];
+
+  const partialPaymentEnabled = restaurant?.billingSettings?.partialPaymentEnabled;
+
   const stats = calculateStats();
 
   return (
@@ -1267,7 +1282,7 @@ const OrderHistory = () => {
               </div>
               <FilterDropdown
                 isOpen={statusDropdownOpen}
-                onToggle={() => { setStatusDropdownOpen(!statusDropdownOpen); setTypeDropdownOpen(false); }}
+                onToggle={() => { setStatusDropdownOpen(!statusDropdownOpen); setTypeDropdownOpen(false); setPaymentStatusDropdownOpen(false); }}
                 selectedValue={selectedStatus}
                 options={statusOptions}
                 onSelect={setSelectedStatus}
@@ -1276,13 +1291,24 @@ const OrderHistory = () => {
               />
               <FilterDropdown
                 isOpen={typeDropdownOpen}
-                onToggle={() => { setTypeDropdownOpen(!typeDropdownOpen); setStatusDropdownOpen(false); }}
+                onToggle={() => { setTypeDropdownOpen(!typeDropdownOpen); setStatusDropdownOpen(false); setPaymentStatusDropdownOpen(false); }}
                 selectedValue={selectedOrderType}
                 options={typeOptions}
                 onSelect={setSelectedOrderType}
                 placeholder="All Types"
                 icon={FaUtensils}
               />
+              {partialPaymentEnabled && (
+                <FilterDropdown
+                  isOpen={paymentStatusDropdownOpen}
+                  onToggle={() => { setPaymentStatusDropdownOpen(!paymentStatusDropdownOpen); setStatusDropdownOpen(false); setTypeDropdownOpen(false); }}
+                  selectedValue={selectedPaymentStatus}
+                  options={paymentStatusOptions}
+                  onSelect={setSelectedPaymentStatus}
+                  placeholder="All Payments"
+                  icon={FaWallet}
+                />
+              )}
               {/* Separator */}
               <div className="hidden sm:block w-px h-5 bg-gray-200" />
               {/* Date quick-filter chips */}
