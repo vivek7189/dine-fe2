@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Pusher from 'pusher-js';
 import apiClient from '../../../lib/api';
@@ -41,7 +42,13 @@ import {
   FaDownload,
   FaPrint,
   FaTrash,
-  FaCloudUploadAlt
+  FaCloudUploadAlt,
+  FaMoneyBillWave,
+  FaCreditCard,
+  FaMobileAlt,
+  FaGlobe,
+  FaCalendarAlt,
+  FaRedo
 } from 'react-icons/fa';
 
 const OrderHistory = () => {
@@ -55,14 +62,18 @@ const OrderHistory = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrderType, setSelectedOrderType] = useState('all');
   const [myOrdersOnly, setMyOrdersOnly] = useState(false);
-  const [todayOrdersOnly, setTodayOrdersOnly] = useState(true);
+  const [dateFilterMode, setDateFilterMode] = useState('today');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
   const [user, setUser] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('en');
-  
+
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -209,11 +220,85 @@ const OrderHistory = () => {
     return null;
   };
 
+  // Date filter options
+  const dateFilterOptions = [
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'last7days', label: 'Last 7 Days' },
+    { value: 'last30days', label: 'Last 30 Days' },
+    { value: 'custom', label: 'Custom' },
+  ];
+
+  // Payment method options
+  const paymentMethodOptions = [
+    { value: 'all', label: 'All Payments' },
+    { value: 'cash', label: 'Cash', icon: '💵' },
+    { value: 'upi', label: 'UPI', icon: '📱' },
+    { value: 'card', label: 'Card', icon: '💳' },
+    { value: 'online', label: 'Online', icon: '🌐' },
+    { value: 'other', label: 'Other', icon: '📋' },
+  ];
+
+  // Convert dateFilterMode to API params
+  const getDateRange = useCallback(() => {
+    const now = new Date();
+    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+
+    switch (dateFilterMode) {
+      case 'today':
+        return { todayOnly: true };
+      case 'yesterday': {
+        const ys = new Date(todayStart); ys.setDate(ys.getDate() - 1);
+        const ye = new Date(ys); ye.setHours(23, 59, 59, 999);
+        return { startDate: ys.toISOString(), endDate: ye.toISOString() };
+      }
+      case 'last7days': {
+        const s = new Date(todayStart); s.setDate(s.getDate() - 6);
+        return { startDate: s.toISOString(), endDate: todayEnd.toISOString() };
+      }
+      case 'last30days': {
+        const s = new Date(todayStart); s.setDate(s.getDate() - 29);
+        return { startDate: s.toISOString(), endDate: todayEnd.toISOString() };
+      }
+      case 'custom':
+        if (customStartDate && customEndDate) {
+          return { startDate: new Date(customStartDate).toISOString(), endDate: new Date(customEndDate + 'T23:59:59.999').toISOString() };
+        }
+        return { todayOnly: true };
+      default:
+        return { todayOnly: true };
+    }
+  }, [dateFilterMode, customStartDate, customEndDate]);
+
+  // Check if any non-default filters are active
+  const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || searchTerm.trim();
+
+  const activeFilterCount = [
+    selectedStatus !== 'all',
+    selectedOrderType !== 'all',
+    selectedPaymentMethod !== 'all',
+    dateFilterMode !== 'today',
+    myOrdersOnly,
+  ].filter(Boolean).length;
+
+  // Reset all filters to defaults
+  const resetAllFilters = useCallback(() => {
+    setSelectedStatus('all');
+    setSelectedOrderType('all');
+    setSelectedPaymentMethod('all');
+    setDateFilterMode('today');
+    setMyOrdersOnly(false);
+    setSearchTerm('');
+    setCustomStartDate('');
+    setCustomEndDate('');
+  }, []);
+
   const fetchOrders = useCallback(async (useCache = true) => {
     if (!restaurantId) return;
-    
+
     // Create cache key based on filters
-    const cacheKey = `${currentPage}_${selectedStatus}_${selectedOrderType}_${myOrdersOnly}_${todayOrdersOnly}_${searchTerm.trim()}`;
+    const cacheKey = `${currentPage}_${selectedStatus}_${selectedOrderType}_${myOrdersOnly}_${dateFilterMode}_${selectedPaymentMethod}_${searchTerm.trim()}_${customStartDate}_${customEndDate}`;
     
     // Check for cached data first
     if (useCache) {
@@ -237,31 +322,37 @@ const OrderHistory = () => {
     
     try {
       setError(null);
+      const dateRange = getDateRange();
       const filters = {
         page: currentPage,
         limit: limit,
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
         orderType: selectedOrderType !== 'all' ? selectedOrderType : undefined,
+        paymentMethod: selectedPaymentMethod !== 'all' ? selectedPaymentMethod : undefined,
         myOrdersOnly: myOrdersOnly ? user?.id : undefined,
         search: searchTerm.trim() || undefined,
-        todayOnly: todayOrdersOnly
+        ...dateRange
       };
       const response = await apiClient.getOrders(restaurantId, filters);
       let filteredOrders = response.orders || [];
-      
+
       filteredOrders.sort((a, b) => {
         let dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt?._seconds ? new Date(a.createdAt._seconds * 1000) : new Date(a.createdAt));
         let dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt?._seconds ? new Date(b.createdAt._seconds * 1000) : new Date(b.createdAt));
         return dateB - dateA;
       });
-      
+
       setOrders(filteredOrders);
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalOrders(response.pagination?.totalOrders || filteredOrders.length);
 
       // Fetch analytics stats for stat cards (server-side, consistent with HQ page)
       try {
-        const analyticsResponse = await apiClient.getAnalytics(restaurantId, 'today');
+        const analyticsOptions = {};
+        if (dateRange.startDate) analyticsOptions.startDate = dateRange.startDate;
+        if (dateRange.endDate) analyticsOptions.endDate = dateRange.endDate;
+        const analyticsPeriod = dateRange.todayOnly ? 'today' : 'custom';
+        const analyticsResponse = await apiClient.getAnalytics(restaurantId, analyticsPeriod, analyticsOptions);
         if (analyticsResponse?.success && analyticsResponse?.analytics) {
           setAnalyticsStats(analyticsResponse.analytics);
         }
@@ -316,7 +407,7 @@ const OrderHistory = () => {
       setBackgroundLoading(false);
       window.dispatchEvent(new CustomEvent('orderhistoryBackgroundLoading', { detail: { loading: false } }));
     }
-  }, [restaurantId, currentPage, limit, selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, todayOrdersOnly, user?.id]);
+  }, [restaurantId, currentPage, limit, selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, customStartDate, customEndDate, user?.id, getDateRange]);
 
   useEffect(() => {
     const loadUserAndRestaurant = async () => {
@@ -473,7 +564,7 @@ const OrderHistory = () => {
   }, [restaurantId, fetchOrders]);
 
   // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
-  useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, todayOrdersOnly]);
+  useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, customStartDate, customEndDate]);
 
   const handleSearch = (e) => { e.preventDefault(); fetchOrders(); };
   const handlePageChange = (newPage) => { if (newPage >= 1 && newPage <= totalPages) setCurrentPage(newPage); };
@@ -724,27 +815,30 @@ const OrderHistory = () => {
         totalRevenue: analyticsStats.totalRevenue || 0,
         totalRevenueWithTax: analyticsStats.totalRevenueWithTax || 0,
         orderCount: analyticsStats.totalOrders || 0,
-        avgOrderValue: analyticsStats.avgOrderValue || 0,
-        completedCount: orders.filter(o => o.status === 'completed').length
+        completedCount: orders.filter(o => o.status === 'completed').length,
+        paymentBreakdown: analyticsStats.paymentBreakdown || {}
       };
     }
 
     // Fallback: client-side calculation from current page (before analytics loads)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const todayOrders = orders.filter(order => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() :
-                       (order.createdAt?._seconds ? new Date(order.createdAt._seconds * 1000) : new Date(order.createdAt));
-      return orderDate >= today && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'saved';
+    const validOrders = orders.filter(order => {
+      return order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'saved';
     });
 
-    const totalRevenue = todayOrders.reduce((sum, order) => sum + calculateOrderTotal(order), 0);
-    const orderCount = todayOrders.length;
-    const avgOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
-    const completedCount = todayOrders.filter(o => o.status === 'completed').length;
+    const totalRevenue = validOrders.reduce((sum, order) => sum + calculateOrderTotal(order), 0);
+    const orderCount = validOrders.length;
+    const completedCount = validOrders.filter(o => o.status === 'completed').length;
 
-    return { totalRevenue, orderCount, avgOrderValue, completedCount };
+    // Client-side payment breakdown fallback
+    const paymentBreakdown = {};
+    validOrders.forEach(order => {
+      const method = (order.paymentMethod || 'cash').toLowerCase();
+      if (!paymentBreakdown[method]) paymentBreakdown[method] = { count: 0, total: 0 };
+      paymentBreakdown[method].count += 1;
+      paymentBreakdown[method].total += calculateOrderTotal(order);
+    });
+
+    return { totalRevenue, orderCount, completedCount, paymentBreakdown };
   };
 
   const OrderDetailsModal = ({ order, onClose }) => {
@@ -918,16 +1012,16 @@ const OrderHistory = () => {
     <div className="relative custom-dropdown">
       <button
         onClick={onToggle}
-        className={`w-full px-3 py-2 text-left bg-white border rounded-lg flex items-center justify-between text-sm font-medium transition-all ${isOpen ? 'border-red-400 ring-1 ring-red-100 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+        className={`w-full px-3 py-1.5 text-left bg-white border rounded-lg flex items-center justify-between text-sm font-medium transition-all whitespace-nowrap ${isOpen ? 'border-red-400 ring-1 ring-red-100 shadow-sm' : selectedValue !== 'all' ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-200 hover:border-gray-300'}`}
       >
-        <div className="flex items-center gap-2 truncate">
-          {Icon && <Icon className="text-gray-400 text-xs" />}
-          <span className="text-gray-700">{options.find(opt => opt.value === selectedValue)?.label || placeholder}</span>
+        <div className="flex items-center gap-1.5 truncate">
+          {Icon && <Icon className="text-gray-400 text-[10px]" />}
+          <span className={selectedValue !== 'all' ? 'text-red-700' : 'text-gray-700'}>{options.find(opt => opt.value === selectedValue)?.label || placeholder}</span>
         </div>
-        <FaChevronDown className={`text-gray-400 text-[10px] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <FaChevronDown className={`text-gray-400 text-[10px] ml-1.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
-        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
+        <div className="absolute z-20 min-w-[180px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-56 overflow-auto">
           {options.map((option) => (
             <button
               key={option.value}
@@ -944,10 +1038,17 @@ const OrderHistory = () => {
 
   if (loading && orders.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <FaSpinner className="animate-spin text-3xl text-red-600 mb-3" />
-          <p className="text-sm text-gray-500">{t('common.loading')}</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full border-[3px] border-gray-200" />
+            <div className="absolute inset-0 w-14 h-14 rounded-full border-[3px] border-transparent border-t-red-500 animate-spin" />
+            <FaReceipt className="absolute inset-0 m-auto text-red-400 text-lg" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-700">Loading orders...</p>
+            <p className="text-xs text-gray-400 mt-0.5">Fetching your data</p>
+          </div>
         </div>
       </div>
     );
@@ -1010,8 +1111,9 @@ const OrderHistory = () => {
             </div>
           </div>
 
-          {/* Summary Stats Cards — extra compact on mobile, 2x2 grid */}
+          {/* Summary Stats Cards — 2x2 on mobile, 4-col on desktop (same as original) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3 pb-2 sm:pb-3">
+            {/* Revenue */}
             <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                 <div className="bg-green-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
@@ -1024,6 +1126,7 @@ const OrderHistory = () => {
                 <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">incl. tax: {formatCurrency(stats.totalRevenueWithTax)}</div>
               )}
             </div>
+            {/* Orders */}
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                 <div className="bg-blue-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
@@ -1033,15 +1136,34 @@ const OrderHistory = () => {
               </div>
               <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.orderCount}</div>
             </div>
+            {/* Payment Breakdown — replaces Avg Value */}
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                 <div className="bg-purple-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
-                  <FaChartLine className="text-white text-xs sm:text-sm" />
+                  <FaCreditCard className="text-white text-xs sm:text-sm" />
                 </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Avg Value</span>
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Payments</span>
               </div>
-              <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{formatCurrency(stats.avgOrderValue)}</div>
+              {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 ? (
+                <div className="space-y-1">
+                  {Object.entries(stats.paymentBreakdown)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .map(([method, data]) => {
+                      const colors = { cash: 'text-emerald-600', upi: 'text-violet-600', card: 'text-sky-600', online: 'text-cyan-600' };
+                      const color = colors[method] || 'text-gray-600';
+                      return (
+                        <div key={method} className="flex items-center justify-between">
+                          <span className={`text-[10px] sm:text-xs font-semibold capitalize ${color}`}>{method}</span>
+                          <span className="text-[10px] sm:text-xs font-bold text-gray-900">{formatCurrency(data.total)} <span className="font-normal text-gray-400 text-[9px]">({data.count})</span></span>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">--</div>
+              )}
             </div>
+            {/* Completed */}
             <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-2 sm:p-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                 <div className="bg-amber-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
@@ -1083,140 +1205,114 @@ const OrderHistory = () => {
             </div>
           )}
 
-          {/* Filters Section — on mobile: search + collapse toggle; filters in expandable panel */}
-          <div className="py-2.5 sm:py-3 border-t border-gray-200">
-            {isMobile ? (
-              <>
-                <div className="flex gap-2 items-stretch">
-                  <div className="flex-1 relative min-w-0">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-                    <input
-                      type="text"
-                      placeholder={t('orderHistory.searchPlaceholder')}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
-                      className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shrink-0 transition-all ${mobileFiltersOpen ? 'border-red-400 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
-                    aria-expanded={mobileFiltersOpen}
-                  >
-                    <FaFilter className="text-sm" />
-                    <FaChevronDown className={`text-xs transition-transform ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-                {mobileFiltersOpen && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                    <FilterDropdown 
-                      isOpen={statusDropdownOpen} 
-                      onToggle={() => setStatusDropdownOpen(!statusDropdownOpen)} 
-                      selectedValue={selectedStatus} 
-                      options={statusOptions} 
-                      onSelect={setSelectedStatus} 
-                      placeholder={t('common.status')} 
-                      icon={FaFilter} 
-                    />
-                    <FilterDropdown 
-                      isOpen={typeDropdownOpen} 
-                      onToggle={() => setTypeDropdownOpen(!typeDropdownOpen)} 
-                      selectedValue={selectedOrderType} 
-                      options={typeOptions} 
-                      onSelect={setSelectedOrderType} 
-                      placeholder={t('common.category')} 
-                      icon={FaUtensils} 
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <label className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all text-sm border ${todayOrdersOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-600 border-gray-200'}`}>
-                        <input 
-                          type="checkbox" 
-                          checked={todayOrdersOnly} 
-                          onChange={(e) => setTodayOrdersOnly(e.target.checked)} 
-                          className="w-3.5 h-3.5 text-red-600 rounded focus:ring-red-500 border-gray-300" 
-                        />
-                        <span className="font-medium">{t('orderHistory.today')}</span>
-                      </label>
-                      <label className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all text-sm border ${myOrdersOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-600 border-gray-200'}`}>
-                        <input 
-                          type="checkbox" 
-                          checked={myOrdersOnly} 
-                          onChange={(e) => setMyOrdersOnly(e.target.checked)} 
-                          className="w-3.5 h-3.5 text-red-600 rounded focus:ring-red-500 border-gray-300" 
-                        />
-                        <span className="font-medium">{t('orderHistory.mine')}</span>
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-                <div className="sm:col-span-4 lg:col-span-5 relative">
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                  <input
-                    type="text"
-                    placeholder={t('orderHistory.searchPlaceholder')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
-                    className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="sm:col-span-3 lg:col-span-2">
-                  <FilterDropdown 
-                    isOpen={statusDropdownOpen} 
-                    onToggle={() => setStatusDropdownOpen(!statusDropdownOpen)} 
-                    selectedValue={selectedStatus} 
-                    options={statusOptions} 
-                    onSelect={setSelectedStatus} 
-                    placeholder={t('common.status')} 
-                    icon={FaFilter} 
-                  />
-                </div>
-                <div className="sm:col-span-3 lg:col-span-2">
-                  <FilterDropdown 
-                    isOpen={typeDropdownOpen} 
-                    onToggle={() => setTypeDropdownOpen(!typeDropdownOpen)} 
-                    selectedValue={selectedOrderType} 
-                    options={typeOptions} 
-                    onSelect={setSelectedOrderType} 
-                    placeholder={t('common.category')} 
-                    icon={FaUtensils} 
-                  />
-                </div>
-                <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-1.5 sm:justify-end">
-                  <label className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium ${todayOrdersOnly ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}>
-                    <input
-                      type="checkbox"
-                      checked={todayOrdersOnly}
-                      onChange={(e) => setTodayOrdersOnly(e.target.checked)}
-                      className="w-3.5 h-3.5 text-red-600 rounded focus:ring-red-500 border-gray-300"
-                    />
-                    {t('orderHistory.today')}
-                  </label>
-                  <label className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium ${myOrdersOnly ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}>
-                    <input
-                      type="checkbox"
-                      checked={myOrdersOnly}
-                      onChange={(e) => setMyOrdersOnly(e.target.checked)}
-                      className="w-3.5 h-3.5 text-red-600 rounded focus:ring-red-500 border-gray-300"
-                    />
-                    {t('orderHistory.mine')}
-                  </label>
-                </div>
+          {/* Filters — All in one line */}
+          <div className="py-2 sm:py-2.5 border-t border-gray-200">
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <div className="relative min-w-0 w-36 sm:w-44 shrink-0">
+                <FaSearch className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                  className="w-full pl-8 pr-2 py-1.5 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all placeholder:text-gray-400"
+                />
               </div>
-            )}
+              <FilterDropdown
+                isOpen={statusDropdownOpen}
+                onToggle={() => { setStatusDropdownOpen(!statusDropdownOpen); setTypeDropdownOpen(false); }}
+                selectedValue={selectedStatus}
+                options={statusOptions}
+                onSelect={setSelectedStatus}
+                placeholder="All Status"
+                icon={FaFilter}
+              />
+              <FilterDropdown
+                isOpen={typeDropdownOpen}
+                onToggle={() => { setTypeDropdownOpen(!typeDropdownOpen); setStatusDropdownOpen(false); }}
+                selectedValue={selectedOrderType}
+                options={typeOptions}
+                onSelect={setSelectedOrderType}
+                placeholder="All Types"
+                icon={FaUtensils}
+              />
+              {/* Separator */}
+              <div className="hidden sm:block w-px h-5 bg-gray-200" />
+              {/* Date quick-filter chips */}
+              {[
+                { value: 'today', label: 'Today' },
+                { value: 'yesterday', label: 'Yesterday' },
+                { value: 'last7days', label: '7D' },
+                { value: 'last30days', label: '30D' },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setDateFilterMode(option.value)}
+                  className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                    dateFilterMode === option.value
+                      ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+              {dateFilterMode === 'custom' && customStartDate && customEndDate && (
+                <span className="px-2 py-1.5 rounded-lg text-xs font-semibold bg-red-500 text-white border border-red-500">
+                  {customStartDate} ~ {customEndDate}
+                </span>
+              )}
+              {/* Calendar icon to open date modal */}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilterModalOpen(true); }}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${dateFilterMode === 'custom' ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:bg-red-50 hover:text-red-500'}`}
+                title="Custom date range"
+              >
+                <FaCalendarAlt className="text-sm" />
+              </button>
+              {/* Separator */}
+              <div className="hidden sm:block w-px h-5 bg-gray-200" />
+              <label className={`hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs font-medium whitespace-nowrap shrink-0 border ${myOrdersOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
+                <input type="checkbox" checked={myOrdersOnly} onChange={(e) => setMyOrdersOnly(e.target.checked)} className="w-3 h-3 text-red-600 rounded focus:ring-red-500 border-gray-300" />
+                Mine
+              </label>
+              {hasActiveFilters && (
+                <button type="button" onClick={resetAllFilters} className="flex items-center gap-1 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200 shrink-0 transition-all" title="Reset all filters">
+                  <FaTimes className="text-[10px]" /> <span className="hidden sm:inline">Clear</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
         
+      {/* Loading indicator bar — shows during filter changes / data fetch */}
+      {(loading || backgroundLoading) && orders.length > 0 && (
+        <div className="relative w-full h-1 bg-gray-100 overflow-hidden z-10">
+          <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500 via-orange-400 to-red-500 rounded-full" style={{ width: '40%', animation: 'loadingSlide 1.2s ease-in-out infinite' }} />
+          <style>{`@keyframes loadingSlide { 0% { left: -40%; } 100% { left: 100%; } }`}</style>
+        </div>
+      )}
+
       {/* Orders List */}
-      <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto">
+      <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto relative">
+        {/* Fetching overlay — semi-transparent with spinner when loading with existing orders */}
+        {(loading || backgroundLoading) && orders.length > 0 && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-start justify-center pt-20" style={{ animation: 'fadeIn 0.15s ease-out' }}>
+            <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-lg border border-gray-200" style={{ animation: 'slideDown 0.2s ease-out' }}>
+              <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm font-medium text-gray-700">Updating orders...</span>
+            </div>
+            <style>{`
+              @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+              @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
+          </div>
+        )}
         <div className="w-full px-3 sm:px-6 lg:px-8">
-          {orders.length === 0 ? (
+          {!loading && orders.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-16 text-center">
               <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
                 <FaSearch className="text-3xl text-gray-400" />
@@ -1842,6 +1938,98 @@ const OrderHistory = () => {
 
       {/* KOT Printer Setup Note */}
       {restaurantId && <KOTPrinterNote restaurantId={restaurantId} />}
+
+      {/* Date Filter Modal — rendered via portal to appear above sidebar */}
+      {filterModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setFilterModalOpen(false)} />
+          {/* Modal */}
+          <div className="relative bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-gray-100 overflow-hidden mx-4" style={{ animation: 'modalSlideIn 0.2s ease-out' }}>
+            {/* Header */}
+            <div className="px-5 py-4 bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FaCalendarAlt className="text-white/90 text-sm" />
+                <h3 className="text-base font-bold text-white">Select Date Range</h3>
+              </div>
+              <button onClick={() => setFilterModalOpen(false)} className="p-1 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-colors"><FaTimes className="text-sm" /></button>
+            </div>
+            {/* Body */}
+            <div className="p-5">
+              {/* Quick Presets */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {[
+                  { value: 'today', label: 'Today', icon: '📅' },
+                  { value: 'yesterday', label: 'Yesterday', icon: '⏪' },
+                  { value: 'last7days', label: 'Last 7 Days', icon: '📆' },
+                  { value: 'last30days', label: 'Last 30 Days', icon: '🗓' },
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => { setDateFilterMode(option.value); setFilterModalOpen(false); }}
+                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                      dateFilterMode === option.value
+                        ? 'bg-red-50 text-red-700 border-red-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-700 border-transparent hover:border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="text-base">{option.icon}</span>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Date Range */}
+              <div className={`rounded-xl border-2 p-4 transition-all ${dateFilterMode === 'custom' ? 'border-red-200 bg-red-50/30' : 'border-gray-100 bg-gray-50'}`}>
+                <button
+                  onClick={() => setDateFilterMode('custom')}
+                  className={`flex items-center gap-2 text-sm font-semibold mb-3 ${dateFilterMode === 'custom' ? 'text-red-700' : 'text-gray-600'}`}
+                >
+                  <FaCalendarAlt className="text-xs" />
+                  Custom Range
+                </button>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1 block">From</label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => { setCustomStartDate(e.target.value); setDateFilterMode('custom'); }}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent bg-white"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1 block">To</label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => { setCustomEndDate(e.target.value); setDateFilterMode('custom'); }}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <button
+                onClick={() => { setDateFilterMode('today'); setCustomStartDate(''); setCustomEndDate(''); setFilterModalOpen(false); }}
+                className="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
+              >
+                Reset to Today
+              </button>
+              <button
+                onClick={() => setFilterModalOpen(false)}
+                className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors shadow-sm"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+          <style>{`@keyframes modalSlideIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }`}</style>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

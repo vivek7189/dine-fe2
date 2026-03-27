@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useInventory from './hooks/useInventory';
@@ -20,10 +22,29 @@ const tabs = [
   { id: 'insights', name: 'AI Insights', icon: FaChartLine },
 ];
 
+const validTabIds = tabs.map(t => t.id);
+
 export default function InventoryManagement() {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const inventory = useInventory();
   const { loading, isMobile, activeTab, setActiveTab, error, setError, success, setSuccess } = inventory;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Read tab from URL on mount
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && validTabIds.includes(urlTab)) {
+      setActiveTab(urlTab);
+    }
+  }, []);
+
+  // Update URL when tab changes
+  const handleTabChange = useCallback((tabId) => {
+    setActiveTab(tabId);
+    const url = tabId === 'dashboard' ? '/inventory' : `/inventory?tab=${tabId}`;
+    router.replace(url, { scroll: false });
+  }, [setActiveTab, router]);
 
   if (loading && !inventory.inventoryItems.length) {
     return (
@@ -137,7 +158,7 @@ export default function InventoryManagement() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 style={{
                   padding: isMobile ? '10px 14px' : '10px 20px',
                   borderRadius: '10px', border: 'none',
@@ -167,7 +188,7 @@ export default function InventoryManagement() {
             formatCurrency={formatCurrency}
             setShowAddModal={inventory.setShowAddModal}
             setShowQuickStockModal={inventory.setShowQuickStockModal}
-            setActiveTab={setActiveTab}
+            setActiveTab={handleTabChange}
             getStatusColor={inventory.getStatusColor}
           />
         )}

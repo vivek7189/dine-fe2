@@ -827,8 +827,11 @@ class ApiClient {
   }
 
   // Analytics endpoints
-  async getAnalytics(restaurantId, period = '7d') {
-    return this.request(`/api/analytics/${restaurantId}?period=${period}`);
+  async getAnalytics(restaurantId, period = '7d', options = {}) {
+    const params = new URLSearchParams({ period });
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    return this.request(`/api/analytics/${restaurantId}?${params.toString()}`);
   }
 
   // Table management endpoints
