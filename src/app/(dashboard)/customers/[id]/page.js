@@ -20,7 +20,9 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaHistory,
-  FaUser
+  FaUser,
+  FaHandHoldingUsd,
+  FaWallet
 } from 'react-icons/fa';
 
 var CustomerDetail = function() {
@@ -39,6 +41,9 @@ var CustomerDetail = function() {
     name: '', phone: '', email: '', city: '', dob: ''
   });
   var [formErrors, setFormErrors] = useState({});
+  var [creditData, setCreditData] = useState({ outstandingBalance: 0, creditHistory: [] });
+  var [creditLoading, setCreditLoading] = useState(false);
+  var [settlingCredit, setSettlingCredit] = useState(null);
 
   useEffect(function() {
     var checkMobile = function() { setIsMobile(window.innerWidth <= 768); };
@@ -49,6 +54,16 @@ var CustomerDetail = function() {
 
   useEffect(function() {
     if (customerId) loadCustomer();
+  }, [customerId]);
+
+  useEffect(function() {
+    if (customerId) {
+      setCreditLoading(true);
+      apiClient.getCustomerCreditHistory(customerId)
+        .then(function(data) { setCreditData(data); })
+        .catch(function() { /* silently ignore if no credit data */ })
+        .finally(function() { setCreditLoading(false); });
+    }
   }, [customerId]);
 
   var loadCustomer = async function() {
@@ -121,6 +136,28 @@ var CustomerDetail = function() {
     } catch (err) {
       console.error('Error deleting customer:', err);
       alert('Failed to delete customer');
+    }
+  };
+
+  var handleSettleCredit = async function(entry) {
+    if (settlingCredit) return;
+    var settleAmount = entry.outstandingAmount;
+    if (!settleAmount || settleAmount <= 0) return;
+    try {
+      setSettlingCredit(entry.orderId);
+      await apiClient.settleCustomerCredit(customerId, {
+        amount: settleAmount,
+        paymentMethod: 'cash',
+        orderId: entry.orderId
+      });
+      // Reload credit data
+      var data = await apiClient.getCustomerCreditHistory(customerId);
+      setCreditData(data);
+    } catch (err) {
+      console.error('Error settling credit:', err);
+      alert('Failed to settle credit');
+    } finally {
+      setSettlingCredit(null);
     }
   };
 
@@ -321,6 +358,17 @@ var CustomerDetail = function() {
             <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#f59e0b' }}>{currentPoints}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Loyalty Points</p>
           </div>
+          {creditData.outstandingBalance > 0 && (
+            <div style={{
+              backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '22px',
+              textAlign: 'center', position: 'relative', overflow: 'hidden'
+            }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #ef4444, #f87171)' }}></div>
+              <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#ef4444' }}>{formatCurrency(creditData.outstandingBalance)}</p>
+              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -393,6 +441,71 @@ var CustomerDetail = function() {
                         <span style={{ fontWeight: '700', color: '#dc2626', fontSize: '12px' }}>
                           -{order.loyaltyPointsRedeemed} pts
                         </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Credit History */}
+            {creditData.creditHistory.length > 0 && (
+              <div style={{
+                backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '20px'
+              }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '700', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #ef4444, #f87171)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaHandHoldingUsd size={13} style={{ color: 'white' }} />
+                  </div>
+                  Credit History (Khata)
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                  {creditData.creditHistory.map(function(entry, index) {
+                    var isSettled = entry.settledAt || entry.outstandingAmount <= 0;
+                    return (
+                      <div key={index} style={{
+                        padding: '10px 12px',
+                        backgroundColor: isSettled ? '#f0fdf4' : '#fef2f2',
+                        borderRadius: '8px',
+                        border: isSettled ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                        fontSize: '13px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: '600', color: '#1e293b' }}>{entry.orderNumber}</span>
+                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                            {new Date(entry.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                          <span style={{ color: '#6b7280' }}>
+                            Paid: {formatCurrency(entry.paidAmount)} / {formatCurrency(entry.totalAmount)}
+                          </span>
+                          {isSettled ? (
+                            <span style={{ color: '#16a34a', fontWeight: '700', fontSize: '11px' }}>Settled</span>
+                          ) : (
+                            <button
+                              onClick={function() { handleSettleCredit(entry); }}
+                              disabled={settlingCredit === entry.orderId}
+                              style={{
+                                padding: '3px 10px',
+                                background: settlingCredit === entry.orderId ? '#d1d5db' : '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                cursor: settlingCredit === entry.orderId ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              {settlingCredit === entry.orderId ? 'Settling...' : 'Settle ' + formatCurrency(entry.outstandingAmount)}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -552,8 +665,26 @@ var CustomerDetail = function() {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <p style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>
-                            {formatCurrency(order.totalAmount)}
+                            {formatCurrency(order.finalAmount || order.totalAmount)}
                           </p>
+                          {/* Billing breakup */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px', marginTop: '2px' }}>
+                            {order.serviceChargeAmount > 0 && (
+                              <span style={{ fontSize: '10px', color: '#7c3aed' }}>
+                                SC: {formatCurrency(order.serviceChargeAmount)}
+                              </span>
+                            )}
+                            {order.tipAmount > 0 && (
+                              <span style={{ fontSize: '10px', color: '#d97706' }}>
+                                Tip: {formatCurrency(order.tipAmount)}
+                              </span>
+                            )}
+                            {order.roundOffAmount != null && order.roundOffAmount !== 0 && (
+                              <span style={{ fontSize: '10px', color: '#9ca3af' }}>
+                                R/O: {order.roundOffAmount > 0 ? '+' : ''}{formatCurrency(order.roundOffAmount)}
+                              </span>
+                            )}
+                          </div>
                           {(order.discountAmount > 0 || order.loyaltyDiscount > 0) && (
                             <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#059669' }}>
                               {order.discountAmount > 0 ? 'Offer: -' + getCurrencySymbol() + order.discountAmount : ''}
@@ -565,6 +696,18 @@ var CustomerDetail = function() {
                             <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
                               +{order.loyaltyPointsEarned} pts
                             </p>
+                          )}
+                          {/* Partial payment badge */}
+                          {order.outstandingAmount > 0 && (
+                            <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                              <span style={{
+                                fontSize: '9px', fontWeight: 700, color: 'white', backgroundColor: '#ef4444',
+                                padding: '1px 6px', borderRadius: '10px'
+                              }}>DUE</span>
+                              <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 700 }}>
+                                {formatCurrency(order.outstandingAmount)}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>

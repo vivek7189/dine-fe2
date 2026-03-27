@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -58,7 +58,14 @@ import {
   FaRobot,
   FaBuilding,
   FaFileInvoice,
-  FaLayerGroup
+  FaLayerGroup,
+  FaHandHoldingUsd,
+  FaConciergeBell,
+  FaDivide,
+  FaGift,
+  FaBan,
+  FaUndo,
+  FaLock
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page
 import dynamic from 'next/dynamic';
@@ -2482,8 +2489,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 const Admin = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { formatCurrency } = useCurrency();
-  const [activeTab, setActiveTab] = useState('settings');
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'settings');
   const [settings, setSettings] = useState(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -2638,6 +2647,7 @@ const Admin = () => {
     { id: 'hotel', name: 'Hotel PMS', icon: FaBuilding, description: 'Hotel property management system', color: '#6366f1' },
     { id: 'invoice', name: 'Invoice & Billing', icon: FaFileInvoice, description: 'Professional invoicing, quotes, and expense tracking', color: '#0ea5e9' },
     { id: 'multiPricing', name: 'Multi-Tier Pricing', icon: FaLayerGroup, description: 'Per-item pricing for AC/Non-AC/Takeaway and custom rules', color: '#8b5cf6' },
+    { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Collect and manage Google Reviews via QR', color: '#ea4335' },
   ];
 
   useEffect(() => {
@@ -2675,6 +2685,68 @@ const Admin = () => {
     }
   };
 
+  // Billing settings state
+  const [billingSettings, setBillingSettings] = useState({
+    serviceChargeEnabled: false,
+    serviceChargeRate: 10,
+    serviceChargeLabel: 'Service Charge',
+    roundOffEnabled: false,
+    roundOffTo: 1,
+    tipsEnabled: false,
+    tipPresets: [5, 10, 15, 20],
+    cashTenderingEnabled: false,
+    denominations: [10, 20, 50, 100, 200, 500, 2000],
+    splitPaymentEnabled: false,
+    partialPaymentEnabled: false,
+    compVoidEnabled: false,
+    compVoidRequiresPin: true,
+    managerPin: '',
+    refundsEnabled: false,
+    refundsRequireApproval: true,
+  });
+  const [billingSaving, setBillingSaving] = useState(false);
+  const [billingMessage, setBillingMessage] = useState({ type: '', text: '' });
+  const [billingLoading, setBillingLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'billing-settings' && selectedRestaurant?.id) {
+      setBillingLoading(true);
+      (async () => {
+        try {
+          const data = await apiClient.getBillingSettings(selectedRestaurant.id);
+          if (data.settings) setBillingSettings(data.settings);
+        } catch (err) {
+          console.error('Failed to load billing settings:', err);
+        } finally {
+          setBillingLoading(false);
+        }
+      })();
+    }
+  }, [activeTab, selectedRestaurant?.id]);
+
+  const handleSaveBillingSettings = async () => {
+    if (!selectedRestaurant?.id) return;
+    setBillingSaving(true);
+    setBillingMessage({ type: '', text: '' });
+    try {
+      const result = await apiClient.updateBillingSettings(selectedRestaurant.id, billingSettings);
+      if (result.settings) setBillingSettings(result.settings);
+      const updated = { ...selectedRestaurant, billingSettings: result.settings || billingSettings };
+      localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
+      setSelectedRestaurant(updated);
+      setBillingMessage({ type: 'success', text: 'Billing settings saved successfully!' });
+    } catch (err) {
+      setBillingMessage({ type: 'error', text: err.message || 'Failed to save billing settings' });
+    } finally {
+      setBillingSaving(false);
+    }
+  };
+
+  const updateBillingSetting = (key, value) => {
+    setBillingSettings(prev => ({ ...prev, [key]: value }));
+    setBillingMessage({ type: '', text: '' });
+  };
+
   const handleSaveDashboardSettings = async () => {
     if (!selectedRestaurant) return;
     setPosSettingsSaving(true);
@@ -2695,6 +2767,7 @@ const Admin = () => {
       { id: 'settings', label: 'General', icon: FaUserCog },
       { id: 'tax', label: 'Tax Management', icon: FaPercentage },
       { id: 'pricing', label: 'Pricing Rules', icon: FaSlidersH },
+      { id: 'billing-settings', label: 'Billing', icon: FaFileInvoice },
       { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
       { id: 'print', label: 'Print Settings', icon: FaPrint },
       { id: 'features', label: 'Features', icon: FaToggleOn },
@@ -7003,6 +7076,303 @@ const Admin = () => {
       )}
 
       {/* Features Toggle Section */}
+      {activeTab === 'billing-settings' && (
+        <div>
+          {/* Compact Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px',
+            maxWidth: '720px',
+            margin: '0 auto 16px'
+          }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b', margin: 0 }}>Billing Settings</h2>
+            <button
+              onClick={handleSaveBillingSettings}
+              disabled={billingSaving || billingLoading}
+              style={{
+                padding: '7px 18px',
+                background: billingSaving ? '#e5e7eb' : '#dc2626',
+                color: billingSaving ? '#9ca3af' : 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '12px',
+                cursor: billingSaving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s'
+              }}
+            >
+              {billingSaving ? <FaSpinner className="animate-spin" size={10} /> : <FaSave size={10} />}
+              {billingSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+
+          {billingMessage.text && (
+            <div style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              marginBottom: '12px',
+              fontSize: '12px',
+              fontWeight: '500',
+              maxWidth: '720px',
+              margin: '0 auto 12px',
+              backgroundColor: billingMessage.type === 'error' ? '#fef2f2' : '#ecfdf5',
+              color: billingMessage.type === 'error' ? '#dc2626' : '#059669',
+              border: `1px solid ${billingMessage.type === 'error' ? '#fecaca' : '#a7f3d0'}`
+            }}>
+              {billingMessage.text}
+            </div>
+          )}
+
+          {billingLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+              <FaSpinner className="animate-spin" size={20} color="#dc2626" />
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#e5e7eb', borderRadius: '10px', overflow: 'hidden', maxWidth: '720px', margin: '0 auto' }}>
+
+              {(() => {
+                const billingFeatures = [
+                  {
+                    key: 'serviceChargeEnabled',
+                    name: 'Service Charge',
+                    desc: 'Auto-add % charge to bills',
+                    icon: FaConciergeBell,
+                    expandedContent: (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                        <div style={{ width: '80px' }}>
+                          <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '3px' }}>Rate %</label>
+                          <input type="number" min="0" max="100" value={billingSettings.serviceChargeRate}
+                            onChange={(e) => updateBillingSetting('serviceChargeRate', Number(e.target.value))}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '100%', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none' }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '3px' }}>Bill label</label>
+                          <input type="text" value={billingSettings.serviceChargeLabel}
+                            onChange={(e) => updateBillingSetting('serviceChargeLabel', e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '100%', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none' }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'roundOffEnabled',
+                    name: 'Round-off',
+                    desc: 'Round final amount',
+                    icon: FaDivide,
+                    expandedContent: (
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                        {[1, 5, 10].map(val => (
+                          <button key={val}
+                            onClick={(e) => { e.stopPropagation(); updateBillingSetting('roundOffTo', val); }}
+                            style={{
+                              padding: '4px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                              border: billingSettings.roundOffTo === val ? '1.5px solid #1e293b' : '1px solid #e5e7eb',
+                              background: billingSettings.roundOffTo === val ? '#1e293b' : 'white',
+                              color: billingSettings.roundOffTo === val ? 'white' : '#64748b'
+                            }}
+                          >{formatCurrency(val)}</button>
+                        ))}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'cashTenderingEnabled',
+                    name: 'Cash Tendering',
+                    desc: 'Change calculation',
+                    icon: FaMoneyBillWave,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Denominations</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {[10, 20, 50, 100, 200, 500, 1000, 2000].map(d => {
+                            const active = billingSettings.denominations.includes(d);
+                            return (
+                              <button key={d}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateBillingSetting('denominations',
+                                    active ? billingSettings.denominations.filter(x => x !== d)
+                                      : [...billingSettings.denominations, d].sort((a, b) => a - b)
+                                  );
+                                }}
+                                style={{
+                                  padding: '3px 10px', borderRadius: '5px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                  border: active ? '1.5px solid #1e293b' : '1px solid #e5e7eb',
+                                  background: active ? '#1e293b' : 'white',
+                                  color: active ? 'white' : '#94a3b8'
+                                }}
+                              >{formatCurrency(d)}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'splitPaymentEnabled',
+                    name: 'Split Payment',
+                    desc: 'Multiple payment methods',
+                    icon: FaCreditCard,
+                    expandedContent: null
+                  },
+                  {
+                    key: 'tipsEnabled',
+                    name: 'Tips',
+                    desc: 'Tracked per staff',
+                    icon: FaHandHoldingUsd,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Tip presets</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {billingSettings.tipPresets.map((preset, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <input type="number" min="1" max="100" value={preset}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  const newPresets = [...billingSettings.tipPresets];
+                                  newPresets[idx] = Number(e.target.value);
+                                  updateBillingSetting('tipPresets', newPresets);
+                                }}
+                                style={{ width: '48px', padding: '4px 6px', border: '1px solid #e5e7eb', borderRadius: '5px', fontSize: '12px', textAlign: 'center', outline: 'none' }}
+                              />
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'partialPaymentEnabled',
+                    name: 'Partial Payment',
+                    desc: 'Khata / credit tracking',
+                    icon: FaReceipt,
+                    expandedContent: null
+                  },
+                  {
+                    key: 'compVoidEnabled',
+                    name: 'Comp / Void',
+                    desc: 'With manager approval',
+                    icon: FaGift,
+                    expandedContent: (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <label onClick={(e) => e.stopPropagation()}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', color: '#374151' }}>
+                          <input type="checkbox" checked={billingSettings.compVoidRequiresPin}
+                            onChange={(e) => updateBillingSetting('compVoidRequiresPin', e.target.checked)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '14px', height: '14px', accentColor: '#dc2626' }}
+                          />
+                          Require manager PIN
+                        </label>
+                        {billingSettings.compVoidRequiresPin && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <FaLock size={9} style={{ color: '#94a3b8' }} />
+                            <input type="password" value={billingSettings.managerPin}
+                              onChange={(e) => updateBillingSetting('managerPin', e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="4-6 digit PIN" maxLength={6}
+                              style={{ width: '120px', padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none', letterSpacing: '3px' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'refundsEnabled',
+                    name: 'Refunds',
+                    desc: 'Full or partial refunds',
+                    icon: FaUndo,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <label onClick={(e) => e.stopPropagation()}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', color: '#374151' }}>
+                          <input type="checkbox" checked={billingSettings.refundsRequireApproval}
+                            onChange={(e) => updateBillingSetting('refundsRequireApproval', e.target.checked)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '14px', height: '14px', accentColor: '#dc2626' }}
+                          />
+                          Require manager approval
+                        </label>
+                      </div>
+                    )
+                  }
+                ];
+
+                return billingFeatures.map((feature) => {
+                  const isEnabled = billingSettings[feature.key];
+                  const IconComp = feature.icon;
+                  return (
+                    <div
+                      key={feature.key}
+                      style={{
+                        backgroundColor: 'white',
+                        padding: '12px 16px',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                      onClick={() => updateBillingSetting(feature.key, !isEnabled)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '8px',
+                          background: isEnabled ? '#1e293b' : '#f1f5f9',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, transition: 'all 0.2s'
+                        }}>
+                          <IconComp size={13} color={isEnabled ? 'white' : '#94a3b8'} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{
+                            fontSize: '13px', fontWeight: 600,
+                            color: isEnabled ? '#1e293b' : '#94a3b8',
+                            transition: 'color 0.2s'
+                          }}>{feature.name}</span>
+                          <span style={{ fontSize: '11px', color: '#b0b8c4', marginLeft: '8px' }}>{feature.desc}</span>
+                        </div>
+                        <div style={{
+                          width: '36px', height: '20px', borderRadius: '10px',
+                          background: isEnabled ? '#dc2626' : '#e2e8f0',
+                          position: 'relative', transition: 'background 0.2s', flexShrink: 0
+                        }}>
+                          <div style={{
+                            width: '16px', height: '16px', borderRadius: '50%',
+                            background: 'white', position: 'absolute', top: '2px',
+                            left: isEnabled ? '18px' : '2px',
+                            transition: 'left 0.2s',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                          }} />
+                        </div>
+                      </div>
+                      {isEnabled && feature.expandedContent && (
+                        <div style={{ marginLeft: '44px', paddingTop: '4px' }}>
+                          {feature.expandedContent}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+
+            </div>
+          )}
+
+          <p style={{ fontSize: '11px', color: '#b0b8c4', marginTop: '12px', maxWidth: '720px', margin: '12px auto 0' }}>
+            Enabled features appear in the POS billing sidebar.
+          </p>
+        </div>
+      )}
+
       {activeTab === 'features' && (
         <div>
           {/* Header */}

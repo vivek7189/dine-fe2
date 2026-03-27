@@ -31,7 +31,15 @@ import {
   FaBed,
   FaStickyNote,
   FaTag,
-  FaInfoCircle
+  FaInfoCircle,
+  FaHandHoldingUsd,
+  FaConciergeBell,
+  FaDivide,
+  FaGift,
+  FaBan,
+  FaWallet,
+  FaChevronDown,
+  FaChevronUp
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -96,6 +104,8 @@ const OrderSummary = ({
   userRole = 'waiter',
   countryCode = 'IN',
   onCustomerDataChange,
+  // Billing feature settings
+  billingSettings = {},
   // Multi-pricing props
   multiPricingEnabled = false,
   pricingRules = [],
@@ -155,6 +165,34 @@ const OrderSummary = ({
   // Manual Discount State (kept local — not part of offer engine)
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
+
+  // Billing features state
+  const [activeBillingPanel, setActiveBillingPanel] = useState(null);
+  const [cashReceived, setCashReceived] = useState('');
+  const [splitPayments, setSplitPayments] = useState([{ method: 'cash', amount: '' }, { method: 'upi', amount: '' }]);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [tipPercentage, setTipPercentage] = useState(null);
+  const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
+  const [roundOffAmount, setRoundOffAmount] = useState(0);
+  const [compVoidItems, setCompVoidItems] = useState([]);
+  const [compVoidType, setCompVoidType] = useState('comp');
+  const [compVoidReason, setCompVoidReason] = useState('');
+  const [managerPin, setManagerPin] = useState('');
+  const [partialPayAmount, setPartialPayAmount] = useState('');
+
+  // Calculate service charge
+  const calcServiceCharge = useCallback((discountedAmount) => {
+    if (!billingSettings.serviceChargeEnabled || !billingSettings.serviceChargeRate) return 0;
+    return Math.round(discountedAmount * billingSettings.serviceChargeRate / 100 * 100) / 100;
+  }, [billingSettings.serviceChargeEnabled, billingSettings.serviceChargeRate]);
+
+  // Calculate round-off
+  const calcRoundOff = useCallback((amount) => {
+    if (!billingSettings.roundOffEnabled) return 0;
+    const roundTo = billingSettings.roundOffTo || 1;
+    const rounded = Math.round(amount / roundTo) * roundTo;
+    return Math.round((rounded - amount) * 100) / 100;
+  }, [billingSettings.roundOffEnabled, billingSettings.roundOffTo]);
 
   // Bubble customerData up to dashboard
   useEffect(() => { onCustomerDataChange?.(customerData); }, [customerData, onCustomerDataChange]);
@@ -267,14 +305,26 @@ const OrderSummary = ({
       // Apply discounts even if tax is disabled
       const subtotal = getTotalAmount();
       const discTotal = offerDiscount + getManualDiscountAmount();
-      setGrandTotal(Math.max(0, subtotal - discTotal));
+      const discountedAmt = Math.max(0, subtotal - discTotal);
+      const sc = calcServiceCharge(discountedAmt);
+      setServiceChargeAmount(sc);
+      const afterTax = discountedAmt + sc;
+      const withTip = afterTax + tipAmount;
+      const ro = calcRoundOff(withTip);
+      setRoundOffAmount(ro);
+      setGrandTotal(withTip + ro);
       return;
     }
 
     const subtotal = getTotalAmount();
     // Apply discounts before tax
     const discTotal = offerDiscount + getManualDiscountAmount();
-    const taxableAmount = Math.max(0, subtotal - discTotal);
+    const discountedAmt = Math.max(0, subtotal - discTotal);
+
+    // Service charge (after discounts, before tax)
+    const sc = calcServiceCharge(discountedAmt);
+    setServiceChargeAmount(sc);
+    const taxableAmount = discountedAmt + sc;
 
     // Calculate tax based on restaurant's tax settings
     const calculatedTaxes = [];
@@ -293,7 +343,6 @@ const OrderSummary = ({
         }
       });
     } else if (taxSettings.defaultTaxRate) {
-      // Fallback to default tax rate
       const taxAmount = taxableAmount * (taxSettings.defaultTaxRate / 100);
       calculatedTaxes.push({
         name: 'GST',
@@ -306,9 +355,15 @@ const OrderSummary = ({
     console.log('Calculated taxes:', calculatedTaxes, 'Total tax:', totalTaxAmount, 'Discount:', discTotal);
     setTaxBreakdown(calculatedTaxes);
     setTotalTax(totalTaxAmount);
-    setGrandTotal(taxableAmount + totalTaxAmount);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount]);
+    // After tax, add tip and round-off
+    const afterTax = taxableAmount + totalTaxAmount;
+    const withTip = afterTax + tipAmount;
+    const ro = calcRoundOff(withTip);
+    setRoundOffAmount(ro);
+    setGrandTotal(withTip + ro);
+
+  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, tipAmount, calcServiceCharge, calcRoundOff]);
   
   // Calculate tax when cart changes
   useEffect(() => {
@@ -320,7 +375,7 @@ const OrderSummary = ({
       setTotalTax(0);
       setGrandTotal(getTotalAmount());
     }
-  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState]);
+  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState, tipAmount, billingSettings]);
 
   // Pre-populate special instructions when editing an existing order
   useEffect(() => {
@@ -552,6 +607,15 @@ const OrderSummary = ({
     if (typeof onProcessOrder === 'function') {
       try {
         // Pass tax data and special instructions to the handler
+        // Determine change for cash tendering
+        const cashReceivedNum = parseFloat(cashReceived) || 0;
+        const changeReturned = cashReceivedNum > 0 ? Math.max(0, cashReceivedNum - grandTotal) : 0;
+
+        // Validate split payments if used
+        const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0)
+          ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }))
+          : null;
+
         const taxData = {
           taxBreakdown,
           totalTax,
@@ -563,6 +627,19 @@ const OrderSummary = ({
           offerDiscount,
           selectedOfferName,
           totalDiscountAmount: offerDiscount + getManualDiscountAmount(),
+          // Billing fields
+          serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
+          serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
+          tipAmount: tipAmount > 0 ? tipAmount : null,
+          tipPercentage: tipPercentage || null,
+          cashReceived: cashReceivedNum > 0 ? cashReceivedNum : null,
+          changeReturned: changeReturned > 0 ? changeReturned : null,
+          splitPayments: validSplitPayments,
+          roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
+          compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
+          voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
+          partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
+          managerPin: managerPin || null,
         };
         const result = await onProcessOrder(taxData);
         console.log('Process order result:', result);
@@ -1991,9 +2068,18 @@ const OrderSummary = ({
                     {totalDiscountAmount > 0 && (
                       <span style={{ color: '#bbf7d0' }}>Discount: -{formatCurrency(totalDiscountAmount)}</span>
                     )}
+                    {serviceChargeAmount > 0 && (
+                      <span>{billingSettings.serviceChargeLabel || 'Service Charge'} ({billingSettings.serviceChargeRate}%): {formatCurrency(serviceChargeAmount)}</span>
+                    )}
                     {taxBreakdown.map((tax, index) => (
                       <span key={index}>{tax.name} ({tax.rate}%): {formatCurrency(tax.amount || 0)}</span>
                     ))}
+                    {tipAmount > 0 && (
+                      <span style={{ color: '#fef08a' }}>Tip: {formatCurrency(tipAmount)}</span>
+                    )}
+                    {roundOffAmount !== 0 && (
+                      <span>Round-off: {roundOffAmount > 0 ? '+' : ''}{formatCurrency(roundOffAmount)}</span>
+                    )}
                   </div>
                 </div>
                 <span style={{ fontSize: '22px', fontWeight: 'bold' }}>{formatCurrency(grandTotal > 0 ? grandTotal : getTotalAmount())}</span>
@@ -2543,6 +2629,528 @@ const OrderSummary = ({
             </div>
           )}
 
+          {/* Billing Features Toolbar */}
+          {(() => {
+            const billingTools = [
+              billingSettings.cashTenderingEnabled && paymentMethod === 'cash' && { id: 'cash', icon: FaMoneyBillWave, label: 'Cash', color: '#10b981' },
+              billingSettings.splitPaymentEnabled && { id: 'split', icon: FaCreditCard, label: 'Split', color: '#3b82f6' },
+              billingSettings.tipsEnabled && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#f59e0b' },
+              billingSettings.partialPaymentEnabled && { id: 'partial', icon: FaWallet, label: 'Partial', color: '#8b5cf6' },
+              billingSettings.compVoidEnabled && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ec4899' },
+              billingSettings.compVoidEnabled && { id: 'void', icon: FaBan, label: 'Void', color: '#6b7280' },
+            ].filter(Boolean);
+
+            if (billingTools.length === 0) return null;
+
+            return (
+              <div style={{ padding: '0 12px 8px 12px' }}>
+                {/* Toolbar icons */}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: activeBillingPanel ? '8px' : 0 }}>
+                  {billingTools.map(tool => {
+                    const isActive = activeBillingPanel === tool.id;
+                    const ToolIcon = tool.icon;
+                    const hasValue = (tool.id === 'cash' && cashReceived) ||
+                      (tool.id === 'tip' && tipAmount > 0) ||
+                      (tool.id === 'split' && splitPayments.some(sp => sp.amount > 0)) ||
+                      (tool.id === 'partial' && parseFloat(partialPayAmount) > 0) ||
+                      ((tool.id === 'comp' || tool.id === 'void') && compVoidItems.length > 0);
+                    return (
+                      <button
+                        key={tool.id}
+                        onClick={() => setActiveBillingPanel(isActive ? null : tool.id)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 4px',
+                          borderRadius: '8px',
+                          border: isActive ? `1.5px solid ${tool.color}` : hasValue ? `1.5px solid ${tool.color}66` : '1px solid #e5e7eb',
+                          background: isActive ? `${tool.color}10` : hasValue ? `${tool.color}08` : 'white',
+                          color: isActive || hasValue ? tool.color : '#9ca3af',
+                          fontSize: '9px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <ToolIcon size={10} />
+                        {tool.label}
+                        {hasValue && <FaCheckCircle size={8} />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Cash Tendering Panel */}
+                {activeBillingPanel === 'cash' && (
+                  <div style={{
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>Cash Tendering</div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
+                      <input
+                        type="number"
+                        placeholder="Cash received"
+                        value={cashReceived}
+                        onChange={(e) => setCashReceived(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 10px',
+                          border: '1.5px solid #86efac',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          outline: 'none',
+                          background: 'white'
+                        }}
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => setCashReceived(String(Math.ceil(grandTotal)))}
+                        style={{
+                          padding: '8px 12px',
+                          background: '#16a34a',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Exact
+                      </button>
+                    </div>
+                    {/* Denomination buttons */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
+                      {(billingSettings.denominations || [100, 200, 500, 1000, 2000]).map(d => (
+                        <button
+                          key={d}
+                          onClick={() => setCashReceived(String(d))}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid #d1d5db',
+                            background: cashReceived === String(d) ? '#dcfce7' : 'white',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            color: '#374151'
+                          }}
+                        >
+                          {formatCurrency(d)}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Change */}
+                    {parseFloat(cashReceived) > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        background: parseFloat(cashReceived) >= grandTotal ? '#dcfce7' : '#fef2f2',
+                        borderRadius: '8px',
+                        fontWeight: 700
+                      }}>
+                        <span style={{ fontSize: '12px', color: '#374151' }}>
+                          {parseFloat(cashReceived) >= grandTotal ? 'Return Change' : 'Insufficient'}
+                        </span>
+                        <span style={{
+                          fontSize: '16px',
+                          color: parseFloat(cashReceived) >= grandTotal ? '#16a34a' : '#dc2626'
+                        }}>
+                          {formatCurrency(Math.max(0, parseFloat(cashReceived) - grandTotal))}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Split Payment Panel */}
+                {activeBillingPanel === 'split' && (
+                  <div style={{
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', marginBottom: '8px' }}>
+                      Split Payment — Total: {formatCurrency(grandTotal)}
+                    </div>
+                    {splitPayments.map((sp, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
+                        <select
+                          value={sp.method}
+                          onChange={(e) => {
+                            const updated = [...splitPayments];
+                            updated[idx].method = e.target.value;
+                            setSplitPayments(updated);
+                          }}
+                          style={{
+                            padding: '6px 8px',
+                            border: '1px solid #93c5fd',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            outline: 'none',
+                            background: 'white',
+                            width: '80px'
+                          }}
+                        >
+                          <option value="cash">Cash</option>
+                          <option value="upi">UPI</option>
+                          <option value="card">Card</option>
+                        </select>
+                        <input
+                          type="number"
+                          placeholder="Amount"
+                          value={sp.amount}
+                          onChange={(e) => {
+                            const updated = [...splitPayments];
+                            updated[idx].amount = e.target.value;
+                            setSplitPayments(updated);
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '6px 10px',
+                            border: '1px solid #93c5fd',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            outline: 'none',
+                            background: 'white'
+                          }}
+                        />
+                        {splitPayments.length > 2 && (
+                          <button
+                            onClick={() => setSplitPayments(splitPayments.filter((_, i) => i !== idx))}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '4px' }}
+                          >
+                            <FaTimes size={10} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <button
+                        onClick={() => setSplitPayments([...splitPayments, { method: 'cash', amount: '' }])}
+                        style={{
+                          fontSize: '10px',
+                          color: '#2563eb',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        + Add Method
+                      </button>
+                      {(() => {
+                        const splitTotal = splitPayments.reduce((sum, sp) => sum + (parseFloat(sp.amount) || 0), 0);
+                        const remaining = Math.round((grandTotal - splitTotal) * 100) / 100;
+                        return (
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: Math.abs(remaining) < 0.01 ? '#16a34a' : '#dc2626'
+                          }}>
+                            {Math.abs(remaining) < 0.01 ? 'Balanced' : `Remaining: ${formatCurrency(remaining)}`}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tip Panel */}
+                {activeBillingPanel === 'tip' && (
+                  <div style={{
+                    background: '#fffbeb',
+                    border: '1px solid #fde68a',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', marginBottom: '8px' }}>Add Tip</div>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      {(billingSettings.tipPresets || [5, 10, 15, 20]).map(pct => {
+                        const isSelected = tipPercentage === pct;
+                        const afterTaxBeforeTip = grandTotal - tipAmount - roundOffAmount;
+                        const tipVal = Math.round(afterTaxBeforeTip * pct / 100 * 100) / 100;
+                        return (
+                          <button
+                            key={pct}
+                            onClick={() => {
+                              if (isSelected) {
+                                setTipAmount(0);
+                                setTipPercentage(null);
+                              } else {
+                                setTipAmount(tipVal);
+                                setTipPercentage(pct);
+                              }
+                            }}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: '8px',
+                              border: isSelected ? '2px solid #f59e0b' : '1px solid #fcd34d',
+                              background: isSelected ? '#fef3c7' : 'white',
+                              fontWeight: isSelected ? 700 : 500,
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              color: '#92400e'
+                            }}
+                          >
+                            {pct}%
+                            <div style={{ fontSize: '9px', color: '#b45309' }}>{formatCurrency(tipVal)}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600 }}>Custom:</span>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={tipAmount > 0 && !tipPercentage ? tipAmount : ''}
+                        onChange={(e) => {
+                          setTipAmount(parseFloat(e.target.value) || 0);
+                          setTipPercentage(null);
+                        }}
+                        style={{
+                          width: '100px',
+                          padding: '6px 10px',
+                          border: '1px solid #fcd34d',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          outline: 'none',
+                          background: 'white'
+                        }}
+                      />
+                      {tipAmount > 0 && (
+                        <button
+                          onClick={() => { setTipAmount(0); setTipPercentage(null); }}
+                          style={{
+                            padding: '4px 10px',
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '6px',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            color: '#dc2626'
+                          }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Partial Payment Panel */}
+                {activeBillingPanel === 'partial' && (
+                  <div style={{
+                    background: '#f5f3ff',
+                    border: '1px solid #ddd6fe',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', marginBottom: '8px' }}>
+                      Partial Payment — Total: {formatCurrency(grandTotal)}
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
+                      <input
+                        type="number"
+                        placeholder="Amount to pay now"
+                        value={partialPayAmount}
+                        onChange={(e) => setPartialPayAmount(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 10px',
+                          border: '1.5px solid #c4b5fd',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          outline: 'none',
+                          background: 'white'
+                        }}
+                        autoFocus
+                      />
+                    </div>
+                    {parseFloat(partialPayAmount) > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        background: '#ede9fe',
+                        borderRadius: '8px',
+                        fontWeight: 700
+                      }}>
+                        <span style={{ fontSize: '12px', color: '#374151' }}>Outstanding (Khata)</span>
+                        <span style={{ fontSize: '16px', color: '#7c3aed' }}>
+                          {formatCurrency(Math.max(0, grandTotal - parseFloat(partialPayAmount)))}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Comp Panel */}
+                {activeBillingPanel === 'comp' && (
+                  <div style={{
+                    background: '#fdf2f8',
+                    border: '1px solid #fbcfe8',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#9d174d', marginBottom: '8px' }}>Comp Items (Free)</div>
+                    <div style={{ maxHeight: '120px', overflowY: 'auto', marginBottom: '8px' }}>
+                      {cart.map((item, idx) => {
+                        const isSelected = compVoidItems.some(cv => cv.index === idx && cv.type === 'comp');
+                        return (
+                          <label key={idx} style={{
+                            display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0',
+                            fontSize: '12px', cursor: 'pointer', color: '#374151'
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                if (isSelected) {
+                                  setCompVoidItems(compVoidItems.filter(cv => !(cv.index === idx && cv.type === 'comp')));
+                                } else {
+                                  setCompVoidItems([...compVoidItems, { index: idx, type: 'comp', name: item.name, quantity: item.quantity, amount: (item.price || 0) * (item.quantity || 1) }]);
+                                }
+                              }}
+                              style={{ accentColor: '#ec4899' }}
+                            />
+                            <span style={{ flex: 1, fontWeight: isSelected ? 700 : 400 }}>{item.name} x{item.quantity}</span>
+                            <span style={{ fontWeight: 600 }}>{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Reason for comp"
+                      value={compVoidReason}
+                      onChange={(e) => setCompVoidReason(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        border: '1px solid #f9a8d4',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        outline: 'none',
+                        background: 'white',
+                        marginBottom: billingSettings.compVoidRequiresPin ? '6px' : 0,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {billingSettings.compVoidRequiresPin && (
+                      <input
+                        type="password"
+                        placeholder="Manager PIN"
+                        value={managerPin}
+                        onChange={(e) => setManagerPin(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          border: '1px solid #f9a8d4',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          outline: 'none',
+                          background: 'white',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Void Panel */}
+                {activeBillingPanel === 'void' && (
+                  <div style={{
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>Void Items (Remove)</div>
+                    <div style={{ maxHeight: '120px', overflowY: 'auto', marginBottom: '8px' }}>
+                      {cart.map((item, idx) => {
+                        const isSelected = compVoidItems.some(cv => cv.index === idx && cv.type === 'void');
+                        return (
+                          <label key={idx} style={{
+                            display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0',
+                            fontSize: '12px', cursor: 'pointer', color: '#374151'
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                if (isSelected) {
+                                  setCompVoidItems(compVoidItems.filter(cv => !(cv.index === idx && cv.type === 'void')));
+                                } else {
+                                  setCompVoidItems([...compVoidItems, { index: idx, type: 'void', name: item.name, quantity: item.quantity, amount: (item.price || 0) * (item.quantity || 1) }]);
+                                }
+                              }}
+                              style={{ accentColor: '#6b7280' }}
+                            />
+                            <span style={{ flex: 1, fontWeight: isSelected ? 700 : 400, textDecoration: isSelected ? 'line-through' : 'none' }}>{item.name} x{item.quantity}</span>
+                            <span style={{ fontWeight: 600 }}>{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Reason for void"
+                      value={compVoidReason}
+                      onChange={(e) => setCompVoidReason(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        outline: 'none',
+                        background: 'white',
+                        marginBottom: billingSettings.compVoidRequiresPin ? '6px' : 0,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {billingSettings.compVoidRequiresPin && (
+                      <input
+                        type="password"
+                        placeholder="Manager PIN"
+                        value={managerPin}
+                        onChange={(e) => setManagerPin(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          outline: 'none',
+                          background: 'white',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Action Buttons */}
           <div style={{ padding: '6px 12px 12px 12px' }}>
           {/* Error Message */}
@@ -2568,13 +3176,18 @@ const OrderSummary = ({
               {!posSettings.hideSaveOrder && <button
                 onClick={() => {
                   if (typeof onSaveOrder === 'function' && !orderBusy) {
-                    // Pass tax data and special instructions to save order
                     const taxData = {
-                      taxBreakdown,
-                      totalTax,
-                      finalAmount: grandTotal,
-                      subtotal: getTotalAmount(),
-                      specialInstructions: specialInstructions.trim() || null
+                      taxBreakdown, totalTax, finalAmount: grandTotal, subtotal: getTotalAmount(),
+                      specialInstructions: specialInstructions.trim() || null,
+                      serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
+                      serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
+                      tipAmount: tipAmount > 0 ? tipAmount : null,
+                      tipPercentage: tipPercentage || null,
+                      roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
+                      compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
+                      voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
+                      partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
+                      managerPin: managerPin || null,
                     };
                     onSaveOrder(taxData);
                   }
@@ -2619,13 +3232,24 @@ const OrderSummary = ({
               <button
                 onClick={() => {
                   if (typeof onPlaceOrder === 'function') {
-                    // Pass tax data and special instructions to place order
+                    const cashReceivedNum = parseFloat(cashReceived) || 0;
+                    const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0)
+                      ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) })) : null;
                     const taxData = {
-                      taxBreakdown,
-                      totalTax,
-                      finalAmount: grandTotal,
-                      subtotal: getTotalAmount(),
-                      specialInstructions: specialInstructions.trim() || null
+                      taxBreakdown, totalTax, finalAmount: grandTotal, subtotal: getTotalAmount(),
+                      specialInstructions: specialInstructions.trim() || null,
+                      serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
+                      serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
+                      tipAmount: tipAmount > 0 ? tipAmount : null,
+                      tipPercentage: tipPercentage || null,
+                      cashReceived: cashReceivedNum > 0 ? cashReceivedNum : null,
+                      changeReturned: cashReceivedNum > grandTotal ? cashReceivedNum - grandTotal : null,
+                      splitPayments: validSplitPayments,
+                      roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
+                      compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
+                      voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
+                      partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
+                      managerPin: managerPin || null,
                     };
                     onPlaceOrder(taxData);
                   }

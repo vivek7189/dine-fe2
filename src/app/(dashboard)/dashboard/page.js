@@ -2362,7 +2362,11 @@ function RestaurantPOSContent() {
     if (cart.length === 0 || !selectedRestaurant?.id) return;
 
     // Extract tax information and special instructions from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0 } = taxData;
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0,
+      serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
+      cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+      partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null
+    } = taxData;
 
     // Check if order is completed and disable action
     if (currentOrder && currentOrder.status === 'completed') {
@@ -2423,7 +2427,7 @@ function RestaurantPOSContent() {
           orderType,
           paymentMethod,
           status: 'completed', // Mark as completed
-          paymentStatus: 'paid', // Mark payment as completed
+          paymentStatus: partialPay ? 'partial' : 'paid', // Mark payment status
           completedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           // Tax information from OrderSummary
@@ -2433,6 +2437,18 @@ function RestaurantPOSContent() {
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
+          // Billing feature fields
+          serviceChargeRate: serviceChargeRate || null,
+          serviceChargeAmount: scAmount || null,
+          tipAmount: tipAmt || null,
+          tipPercentage: tipPct || null,
+          cashReceived: cashReceived || null,
+          changeReturned: changeReturned || null,
+          splitPayments: splitPay || null,
+          roundOffAmount: roundOff || null,
+          partialPayAmount: partialPay || null,
+          compItems: compData || null,
+          voidItems: voidData || null,
           lastUpdatedBy: {
             name: currentUser.name || 'Staff',
             id: currentUser.id,
@@ -2442,10 +2458,15 @@ function RestaurantPOSContent() {
             name: customerName || currentOrder.customerInfo?.name || 'Walk-in Customer',
             phone: customerMobile || currentOrder.customerInfo?.phone || null,
             tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber || null) : null,
-            roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber || null) : null // NEW: Include room number
+            roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber || null) : null
           },
           customerId: customerData?.id || null
         };
+
+        // If split payment, override payment method
+        if (splitPay && splitPay.length > 1) {
+          updateData.paymentMethod = 'split';
+        }
 
         console.log('🔄 Update data for existing order:', updateData);
 
@@ -2585,8 +2606,22 @@ function RestaurantPOSContent() {
         specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
         // Multi-tier pricing rule
-        pricingRuleId: activePricingRuleId || null
+        pricingRuleId: activePricingRuleId || null,
+        // Billing feature fields
+        serviceChargeRate: serviceChargeRate || null,
+        serviceChargeAmount: scAmount || null,
+        tipAmount: tipAmt || null,
+        tipPercentage: tipPct || null,
+        cashReceived: cashReceived || null,
+        changeReturned: changeReturned || null,
+        splitPayments: splitPay || null,
+        roundOffAmount: roundOff || null,
       };
+
+        // If split payment, override payment method
+        if (splitPay && splitPay.length > 1) {
+          orderData.paymentMethod = 'split';
+        }
 
         console.log('🛒 Creating order with data:', orderData);
 
@@ -3151,7 +3186,11 @@ function RestaurantPOSContent() {
     }
 
     // Extract tax information and special instructions from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0 } = taxData;
+    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0,
+      serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
+      cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+      partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null
+    } = taxData;
 
     try {
       setPlacingOrder(true);
@@ -3307,8 +3346,25 @@ function RestaurantPOSContent() {
           notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
           status: 'confirmed', // Place order to kitchen
           // Multi-tier pricing rule
-          pricingRuleId: activePricingRuleId || null
+          pricingRuleId: activePricingRuleId || null,
+          // Billing feature fields
+          serviceChargeRate: serviceChargeRate || null,
+          serviceChargeAmount: scAmount || null,
+          tipAmount: tipAmt || null,
+          tipPercentage: tipPct || null,
+          cashReceived: cashReceived || null,
+          changeReturned: changeReturned || null,
+          splitPayments: splitPay || null,
+          roundOffAmount: roundOff || null,
+          partialPayAmount: partialPay || null,
+          compItems: compData || null,
+          voidItems: voidData || null,
         };
+
+        // If split payment, override payment method
+        if (splitPay && splitPay.length > 1) {
+          orderData.paymentMethod = 'split';
+        }
 
         console.log('Creating order with data:', orderData);
 
@@ -6436,6 +6492,7 @@ function RestaurantPOSContent() {
             userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
             countryCode={selectedRestaurant?.currencySettings?.countryCode || 'IN'}
             onCustomerDataChange={setCustomerData}
+            billingSettings={selectedRestaurant?.billingSettings || {}}
             multiPricingEnabled={multiPricingEnabled}
             pricingRules={pricingRules}
             pricingRulesLoading={pricingRulesLoading}
@@ -6511,6 +6568,7 @@ function RestaurantPOSContent() {
                     userRole={JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'}
                     countryCode={selectedRestaurant?.currencySettings?.countryCode || 'IN'}
                     onCustomerDataChange={setCustomerData}
+                    billingSettings={selectedRestaurant?.billingSettings || {}}
                     multiPricingEnabled={multiPricingEnabled}
                     pricingRules={pricingRules}
                     pricingRulesLoading={pricingRulesLoading}

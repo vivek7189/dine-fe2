@@ -2259,6 +2259,62 @@ class ApiClient {
     });
   }
 
+  // ==================== BILLING SETTINGS ====================
+
+  async getBillingSettings(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/billing-settings`);
+  }
+
+  async updateBillingSettings(restaurantId, settings) {
+    return this.request(`/api/restaurants/${restaurantId}/billing-settings`, {
+      method: 'PUT',
+      body: settings,
+    });
+  }
+
+  async validateManagerPin(restaurantId, pin) {
+    return this.request('/api/billing/validate-manager-pin', {
+      method: 'POST',
+      body: { restaurantId, pin },
+    });
+  }
+
+  async processRefund(orderId, data) {
+    return this.request(`/api/orders/${orderId}/refund`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async recordPartialPayment(orderId, data) {
+    return this.request(`/api/orders/${orderId}/partial-payment`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async compVoidItems(orderId, data) {
+    return this.request(`/api/orders/${orderId}/comp-void`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async getCustomerCreditHistory(customerId) {
+    return this.request(`/api/customers/${customerId}/credit-history`);
+  }
+
+  async settleCustomerCredit(customerId, data) {
+    return this.request(`/api/customers/${customerId}/settle-credit`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async getStaffTips(userId) {
+    return this.request(`/api/staff/${userId}/tips`);
+  }
+
   // Generate restaurant code
   async generateRestaurantCode(restaurantId) {
     return this.request(`/api/restaurants/${restaurantId}/generate-code`, {

@@ -788,12 +788,17 @@ const OrderHistory = () => {
       discountLines.push({ name: 'Loyalty Points', amount: amt });
     }
 
+    // Billing feature amounts
+    const serviceCharge = order.serviceChargeAmount ? parseFloat(order.serviceChargeAmount.toFixed(2)) : 0;
+    const tip = order.tipAmount ? parseFloat(order.tipAmount.toFixed(2)) : 0;
+    const roundOff = order.roundOffAmount ? parseFloat(order.roundOffAmount.toFixed(2)) : 0;
+
     // Use saved finalAmount if available, otherwise calculate
     const total = order.finalAmount && order.finalAmount > 0
       ? parseFloat(order.finalAmount.toFixed(2))
-      : parseFloat((subtotal - discountAmount + taxAmount).toFixed(2));
+      : parseFloat((subtotal - discountAmount + serviceCharge + taxAmount + tip + roundOff).toFixed(2));
 
-    return { subtotal, taxAmount, taxLines, discountAmount, discountLines, total };
+    return { subtotal, taxAmount, taxLines, discountAmount, discountLines, serviceCharge, tip, roundOff, total };
   };
 
   const calculateOrderTotal = (order) => {
@@ -973,16 +978,71 @@ const OrderHistory = () => {
                 <span className="font-medium">{t('orderHistory.subtotal')}</span>
                 <span className="font-semibold">{formatCurrency(subtotal)}</span>
               </div>
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="font-medium">Discount</span>
+                  <span className="font-semibold">-{formatCurrency(order.discountAmount)}</span>
+                </div>
+              )}
+              {order.serviceChargeAmount > 0 && (
+                <div className="flex justify-between text-sm text-purple-600">
+                  <span className="font-medium">Service Charge {order.serviceChargeRate ? `(${order.serviceChargeRate}%)` : ''}</span>
+                  <span className="font-semibold">{formatCurrency(order.serviceChargeAmount)}</span>
+                </div>
+              )}
               {(order.taxAmount > 0 || (parseFloat(orderTotal) - subtotal) > 0.01) && (
                 <div className="flex justify-between text-sm text-gray-600">
                   <span className="font-medium">{t('orderHistory.tax')}</span>
                   <span className="font-semibold">{formatCurrency(order.taxAmount || (parseFloat(orderTotal) - subtotal))}</span>
                 </div>
               )}
+              {order.tipAmount > 0 && (
+                <div className="flex justify-between text-sm text-amber-600">
+                  <span className="font-medium">Tip {order.tipPercentage ? `(${order.tipPercentage}%)` : ''}</span>
+                  <span className="font-semibold">{formatCurrency(order.tipAmount)}</span>
+                </div>
+              )}
+              {order.roundOffAmount != null && order.roundOffAmount !== 0 && (
+                <div className="flex justify-between text-sm text-gray-400">
+                  <span className="font-medium">Round-off</span>
+                  <span className="font-semibold">{order.roundOffAmount > 0 ? '+' : ''}{formatCurrency(order.roundOffAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t-2 border-gray-300 mt-2">
                 <span>{t('orderHistory.total')}</span>
                 <span className="text-red-600">{formatCurrency(orderTotal)}</span>
               </div>
+              {/* Payment details */}
+              {order.splitPayments && order.splitPayments.length > 0 && (
+                <div className="pt-2 border-t border-gray-200 mt-1">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Split Payment</div>
+                  {order.splitPayments.map((sp, i) => (
+                    <div key={i} className="flex justify-between text-xs text-gray-600">
+                      <span className="capitalize">{sp.method}</span>
+                      <span>{formatCurrency(sp.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {order.cashReceived > 0 && (
+                <div className="pt-2 border-t border-gray-200 mt-1 text-xs text-gray-500">
+                  <div className="flex justify-between"><span>Cash Received</span><span>{formatCurrency(order.cashReceived)}</span></div>
+                  {order.changeReturned > 0 && (
+                    <div className="flex justify-between text-green-600"><span>Change Returned</span><span>{formatCurrency(order.changeReturned)}</span></div>
+                  )}
+                </div>
+              )}
+              {(order.paidAmount > 0 || order.outstandingAmount > 0) && (
+                <div className="pt-2 border-t border-gray-200 mt-1 text-xs">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Payment Status</div>
+                  {order.paidAmount > 0 && (
+                    <div className="flex justify-between text-green-600"><span>Paid</span><span>{formatCurrency(order.paidAmount)}</span></div>
+                  )}
+                  {order.outstandingAmount > 0 && (
+                    <div className="flex justify-between text-red-600 font-semibold"><span>Outstanding</span><span>{formatCurrency(order.outstandingAmount)}</span></div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="mt-6 grid grid-cols-2 gap-3">
@@ -1414,12 +1474,33 @@ const OrderHistory = () => {
                                 {breakdown.discountLines?.map((line, i) => (
                                   <div key={`d${i}`} className="text-xs text-green-600">-{line.name} {formatCurrency(line.amount)}</div>
                                 ))}
+                                {breakdown.serviceCharge > 0 && (
+                                  <div className="text-xs text-purple-600">Service Charge {formatCurrency(breakdown.serviceCharge)}</div>
+                                )}
                                 {breakdown.taxLines.map((line, i) => (
                                   <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} {formatCurrency(line.amount)}</div>
                                 ))}
+                                {breakdown.tip > 0 && (
+                                  <div className="text-xs text-amber-600">Tip {formatCurrency(breakdown.tip)}</div>
+                                )}
+                                {breakdown.roundOff !== 0 && (
+                                  <div className="text-xs text-gray-400">Round-off {breakdown.roundOff > 0 ? '+' : ''}{formatCurrency(breakdown.roundOff)}</div>
+                                )}
                               </>
                             )}
                             <span className="font-bold text-lg text-gray-900">{formatCurrency(orderTotal)}</span>
+                            {order.outstandingAmount > 0 && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">PARTIAL</span>
+                                <span className="text-xs text-red-600 font-semibold">Due: {formatCurrency(order.outstandingAmount)}</span>
+                              </div>
+                            )}
+                            {order.paymentStatus === 'partial' && !order.outstandingAmount && order.paidAmount > 0 && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">PARTIAL</span>
+                                <span className="text-xs text-amber-600 font-semibold">Paid: {formatCurrency(order.paidAmount)}</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
@@ -1563,6 +1644,18 @@ const OrderHistory = () => {
                             {breakdown.taxLines?.length > 0 && (
                               <div className="text-xs text-gray-500 mt-0.5">
                                 {formatCurrency(breakdown.subtotal)} + {breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}
+                              </div>
+                            )}
+                            {order.outstandingAmount > 0 && (
+                              <div className="flex items-center justify-end gap-1 mt-1">
+                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">PARTIAL</span>
+                                <span className="text-xs text-red-600 font-semibold">Due: {formatCurrency(order.outstandingAmount)}</span>
+                              </div>
+                            )}
+                            {order.paymentStatus === 'partial' && !order.outstandingAmount && order.paidAmount > 0 && (
+                              <div className="flex items-center justify-end gap-1 mt-1">
+                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">PARTIAL</span>
+                                <span className="text-xs text-amber-600 font-semibold">Paid: {formatCurrency(order.paidAmount)}</span>
                               </div>
                             )}
                           </div>

@@ -11,7 +11,9 @@ import {
   FaBuilding,
   FaEdit,
   FaCheck,
-  FaTimes
+  FaTimes,
+  FaHandHoldingUsd,
+  FaSpinner
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { auth } from '../../../../firebase';
@@ -42,6 +44,10 @@ const Profile = () => {
   // Firebase phone auth state for linking
   const [phoneVerificationId, setPhoneVerificationId] = useState(null);
   const [isFirebasePhoneOTP, setIsFirebasePhoneOTP] = useState(false);
+
+  // Tip earnings state
+  const [tipData, setTipData] = useState(null);
+  const [tipLoading, setTipLoading] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -118,6 +124,17 @@ const Profile = () => {
       loadUserData();
     }
   }, [isClient, router]);
+
+  // Fetch tip earnings when user loads
+  useEffect(() => {
+    if (user?.id) {
+      setTipLoading(true);
+      apiClient.getStaffTips(user.id)
+        .then(data => setTipData(data))
+        .catch(() => setTipData(null))
+        .finally(() => setTipLoading(false));
+    }
+  }, [user?.id]);
 
   const getUserInitials = () => {
     if (user?.name) {
@@ -1289,6 +1306,63 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Tip Earnings Section */}
+      {tipData && tipData.tipEarnings > 0 && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: isMobile ? '20px' : '28px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          border: '1px solid #fef3c7',
+          maxWidth: '800px',
+          margin: '0 auto 24px auto'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <div style={{
+              width: '42px', height: '42px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <FaHandHoldingUsd size={18} color="white" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Tip Earnings</h3>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0 0' }}>
+                Total: <strong style={{ color: '#f59e0b', fontSize: '18px' }}>
+                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tipData.tipEarnings)}
+                </strong>
+              </p>
+            </div>
+          </div>
+          {tipData.tipHistory && tipData.tipHistory.length > 0 && (
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Recent Tips</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {tipData.tipHistory.slice(-10).reverse().map((tip, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', backgroundColor: '#fffbeb', borderRadius: '8px', fontSize: '13px'
+                  }}>
+                    <span style={{ color: '#6b7280' }}>
+                      Order #{tip.orderNumber || tip.orderId?.slice(-6)}
+                      {tip.date && (
+                        <span style={{ marginLeft: '8px', fontSize: '11px', color: '#9ca3af' }}>
+                          {new Date(tip.date?._seconds ? tip.date._seconds * 1000 : tip.date).toLocaleDateString()}
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ fontWeight: 700, color: '#f59e0b' }}>
+                      {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tip.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Invisible reCAPTCHA container for phone verification */}
       <div id="recaptcha-container-profile"></div>
