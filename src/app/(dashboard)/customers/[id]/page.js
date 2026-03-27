@@ -628,100 +628,208 @@ var CustomerDetail = function() {
             {sortedOrders.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {sortedOrders.map(function(order, index) {
+                  var orderId = order.orderId || order.orderNumber || index;
+                  var isExpanded = expandedOrderId === orderId;
+                  var orderDate = parseDate(order.orderDate);
+                  var statusBadge = (function() {
+                    if (order.status === 'completed') return { label: 'Completed', bg: '#dcfce7', color: '#166534' };
+                    if (order.outstandingAmount > 0) return { label: 'Partial', bg: '#fef2f2', color: '#dc2626' };
+                    if (order.status === 'pending') return { label: 'Pending', bg: '#fef9c3', color: '#854d0e' };
+                    if (order.status === 'confirmed') return { label: 'Confirmed', bg: '#dbeafe', color: '#1e40af' };
+                    return null;
+                  })();
                   return (
-                    <div key={index} style={{
-                      padding: '14px 16px',
-                      backgroundColor: index % 2 === 0 ? '#f8fafc' : 'white',
+                    <div key={orderId} style={{
                       borderRadius: '10px',
                       border: '1px solid #f1f5f9',
+                      overflow: 'hidden',
                       transition: 'background-color 0.15s'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>
-                              {order.orderNumber}
-                            </span>
-                            {order.orderTypeLabel && (
-                              <span style={{
-                                padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600',
-                                backgroundColor: order.orderType === 'dine_in' ? '#dbeafe' :
-                                  order.orderType === 'takeaway' ? '#fef3c7' :
-                                  order.orderType === 'delivery' ? '#dcfce7' : '#f3e8ff',
-                                color: order.orderType === 'dine_in' ? '#1e40af' :
-                                  order.orderType === 'takeaway' ? '#92400e' :
-                                  order.orderType === 'delivery' ? '#166534' : '#7e22ce'
-                              }}>
-                                {order.orderTypeLabel}
+                      <div
+                        onClick={function() { setExpandedOrderId(isExpanded ? null : orderId); }}
+                        style={{
+                          padding: '14px 16px',
+                          backgroundColor: index % 2 === 0 ? '#f8fafc' : 'white',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>
+                                {order.dailyOrderId ? '#' + order.dailyOrderId : order.orderNumber}
                               </span>
-                            )}
-                            {order.orderSource === 'crave_app' && (
-                              <span style={{
-                                padding: '2px 8px', borderRadius: '10px', fontSize: '11px',
-                                fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb'
-                              }}>
-                                App
-                              </span>
-                            )}
+                              {statusBadge && (
+                                <span style={{
+                                  padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600',
+                                  backgroundColor: statusBadge.bg, color: statusBadge.color
+                                }}>
+                                  {statusBadge.label}
+                                </span>
+                              )}
+                              {order.orderTypeLabel && (
+                                <span style={{
+                                  padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600',
+                                  backgroundColor: order.orderType === 'dine_in' ? '#dbeafe' :
+                                    order.orderType === 'takeaway' ? '#fef3c7' :
+                                    order.orderType === 'delivery' ? '#dcfce7' : '#f3e8ff',
+                                  color: order.orderType === 'dine_in' ? '#1e40af' :
+                                    order.orderType === 'takeaway' ? '#92400e' :
+                                    order.orderType === 'delivery' ? '#166534' : '#7e22ce'
+                                }}>
+                                  {order.orderTypeLabel}
+                                </span>
+                              )}
+                              {order.orderSource === 'crave_app' && (
+                                <span style={{
+                                  padding: '2px 8px', borderRadius: '10px', fontSize: '11px',
+                                  fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb'
+                                }}>
+                                  App
+                                </span>
+                              )}
+                              {order.orderSource === 'online_order' && (
+                                <span style={{
+                                  padding: '2px 8px', borderRadius: '10px', fontSize: '11px',
+                                  fontWeight: '600', backgroundColor: '#dbeafe', color: '#1d4ed8'
+                                }}>
+                                  Online
+                                </span>
+                              )}
+                            </div>
+                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                              {orderDate ? orderDate.toLocaleDateString() : ''}{orderDate ? ' at ' + orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                              {order.tableNumber ? ' \u00B7 Table ' + order.tableNumber : ''}
+                              {order.itemsCount ? ' \u00B7 ' + order.itemsCount + ' items' : ''}
+                            </p>
                           </div>
-                          <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>
-                            {new Date(order.orderDate).toLocaleDateString()} at {new Date(order.orderDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            {order.tableNumber ? ' \u00B7 Table ' + order.tableNumber : ''}
-                          </p>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <p style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>
+                                {formatCurrency(order.finalAmount || order.totalAmount)}
+                              </p>
+                              {(order.discountAmount > 0 || order.loyaltyDiscount > 0) && (
+                                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#059669' }}>
+                                  {order.discountAmount > 0 ? 'Offer: -' + getCurrencySymbol() + order.discountAmount : ''}
+                                  {order.discountAmount > 0 && order.loyaltyDiscount > 0 ? ' | ' : ''}
+                                  {order.loyaltyDiscount > 0 ? 'Loyalty: -' + getCurrencySymbol() + order.loyaltyDiscount : ''}
+                                </p>
+                              )}
+                              {order.loyaltyPointsEarned > 0 && (
+                                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
+                                  +{order.loyaltyPointsEarned} pts
+                                </p>
+                              )}
+                              {order.outstandingAmount > 0 && (
+                                <div style={{ marginTop: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
+                                    <span style={{
+                                      fontSize: '9px', fontWeight: 700, color: 'white', backgroundColor: '#ef4444',
+                                      padding: '1px 6px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.05em'
+                                    }}>DUE</span>
+                                    <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>
+                                      {formatCurrency(order.outstandingAmount)}
+                                    </span>
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: '10px', color: '#6b7280', textAlign: 'right' }}>
+                                    Paid {formatCurrency((order.finalAmount || order.totalAmount) - order.outstandingAmount)} of {formatCurrency(order.finalAmount || order.totalAmount)}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ paddingTop: '4px', color: '#94a3b8' }}>
+                              {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <p style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>
-                            {formatCurrency(order.finalAmount || order.totalAmount)}
-                          </p>
+                      </div>
+                      {/* Expanded detail section */}
+                      {isExpanded && (
+                        <div style={{
+                          padding: '14px 16px',
+                          backgroundColor: '#f1f5f9',
+                          borderTop: '1px solid #e2e8f0'
+                        }}>
+                          {/* Items list */}
+                          {order.items && order.items.length > 0 ? (
+                            <div style={{ marginBottom: '12px' }}>
+                              <p style={{ margin: '0 0 8px', fontSize: '12px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Items</p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {order.items.map(function(item, i) {
+                                  return (
+                                    <div key={i} style={{
+                                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                      padding: '6px 10px', backgroundColor: 'white', borderRadius: '6px',
+                                      fontSize: '13px'
+                                    }}>
+                                      <span style={{ color: '#1e293b' }}>
+                                        <span style={{ fontWeight: '600' }}>{item.quantity || item.qty || 1}x</span>{' '}
+                                        {item.name || item.itemName || 'Item'}
+                                      </span>
+                                      <span style={{ fontWeight: '600', color: '#475569' }}>
+                                        {formatCurrency(item.price || item.itemTotal || item.amount || 0)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : order.itemsCount ? (
+                            <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#64748b' }}>
+                              {order.itemsCount} items in this order
+                            </p>
+                          ) : null}
                           {/* Billing breakup */}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px', marginTop: '2px' }}>
+                          <div style={{
+                            display: 'flex', flexDirection: 'column', gap: '4px',
+                            padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
+                            fontSize: '13px'
+                          }}>
+                            {order.subTotal > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#64748b' }}>Subtotal</span>
+                                <span style={{ color: '#1e293b' }}>{formatCurrency(order.subTotal)}</span>
+                              </div>
+                            )}
                             {order.serviceChargeAmount > 0 && (
-                              <span style={{ fontSize: '10px', color: '#7c3aed' }}>
-                                SC: {formatCurrency(order.serviceChargeAmount)}
-                              </span>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#7c3aed' }}>Service Charge</span>
+                                <span style={{ color: '#7c3aed' }}>{formatCurrency(order.serviceChargeAmount)}</span>
+                              </div>
+                            )}
+                            {(order.taxAmount > 0 || order.totalTax > 0) && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#64748b' }}>Tax</span>
+                                <span style={{ color: '#1e293b' }}>{formatCurrency(order.taxAmount || order.totalTax)}</span>
+                              </div>
                             )}
                             {order.tipAmount > 0 && (
-                              <span style={{ fontSize: '10px', color: '#d97706' }}>
-                                Tip: {formatCurrency(order.tipAmount)}
-                              </span>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#d97706' }}>Tip</span>
+                                <span style={{ color: '#d97706' }}>{formatCurrency(order.tipAmount)}</span>
+                              </div>
                             )}
                             {order.roundOffAmount != null && order.roundOffAmount !== 0 && (
-                              <span style={{ fontSize: '10px', color: '#9ca3af' }}>
-                                R/O: {order.roundOffAmount > 0 ? '+' : ''}{formatCurrency(order.roundOffAmount)}
-                              </span>
-                            )}
-                          </div>
-                          {(order.discountAmount > 0 || order.loyaltyDiscount > 0) && (
-                            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#059669' }}>
-                              {order.discountAmount > 0 ? 'Offer: -' + getCurrencySymbol() + order.discountAmount : ''}
-                              {order.discountAmount > 0 && order.loyaltyDiscount > 0 ? ' | ' : ''}
-                              {order.loyaltyDiscount > 0 ? 'Loyalty: -' + getCurrencySymbol() + order.loyaltyDiscount : ''}
-                            </p>
-                          )}
-                          {order.loyaltyPointsEarned > 0 && (
-                            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
-                              +{order.loyaltyPointsEarned} pts
-                            </p>
-                          )}
-                          {/* Partial payment / outstanding badge */}
-                          {order.outstandingAmount > 0 && (
-                            <div style={{ marginTop: '4px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
-                                <span style={{
-                                  fontSize: '9px', fontWeight: 700, color: 'white', backgroundColor: '#ef4444',
-                                  padding: '1px 6px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.05em'
-                                }}>DUE</span>
-                                <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>
-                                  {formatCurrency(order.outstandingAmount)}
-                                </span>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#9ca3af' }}>Round Off</span>
+                                <span style={{ color: '#9ca3af' }}>{order.roundOffAmount > 0 ? '+' : ''}{formatCurrency(order.roundOffAmount)}</span>
                               </div>
-                              <p style={{ margin: 0, fontSize: '10px', color: '#6b7280', textAlign: 'right' }}>
-                                Paid {formatCurrency((order.finalAmount || order.totalAmount) - order.outstandingAmount)} of {formatCurrency(order.finalAmount || order.totalAmount)}
-                              </p>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '6px', marginTop: '4px' }}>
+                              <span style={{ fontWeight: '700', color: '#1e293b' }}>Total</span>
+                              <span style={{ fontWeight: '700', color: '#1e293b' }}>{formatCurrency(order.finalAmount || order.totalAmount)}</span>
+                            </div>
+                          </div>
+                          {/* Payment method */}
+                          {order.paymentMethod && (
+                            <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FaWallet size={11} style={{ color: '#94a3b8' }} />
+                              Payment: <span style={{ fontWeight: '600', color: '#475569' }}>{order.paymentMethod}</span>
                             </div>
                           )}
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}

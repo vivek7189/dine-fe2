@@ -85,6 +85,8 @@ const OrderHistory = () => {
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
   const [markCompleteOrderId, setMarkCompleteOrderId] = useState(null);
   const [markCompleteSubmitting, setMarkCompleteSubmitting] = useState(false);
+  const [markPaidOrderId, setMarkPaidOrderId] = useState(null);
+  const [markPaidSubmitting, setMarkPaidSubmitting] = useState(false);
   const [deleteConfirmOrderId, setDeleteConfirmOrderId] = useState(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
@@ -624,6 +626,42 @@ const OrderHistory = () => {
     }
   };
 
+  const handleMarkPaid = (orderId) => { setMarkPaidOrderId(orderId); };
+
+  const executeMarkPaid = async (orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    setMarkPaidSubmitting(true);
+    try {
+      const outstanding = order.outstandingAmount || 0;
+      const finalAmt = order.finalAmount || order.totalAmount || 0;
+      await apiClient.updateOrder(order.id, {
+        paidAmount: Math.round(finalAmt * 100) / 100,
+        outstandingAmount: 0,
+        paymentStatus: 'paid',
+      });
+      if (order.customerId) {
+        try {
+          await apiClient.settleCustomerCredit(order.customerId, {
+            amount: outstanding,
+            paymentMethod: 'cash',
+            orderId: order.id
+          });
+        } catch (e) { console.error('Customer credit settle error:', e); }
+      }
+      setOrders(prev => prev.map(o =>
+        o.id === order.id ? { ...o, paidAmount: finalAmt, outstandingAmount: 0, paymentStatus: 'paid' } : o
+      ));
+      setMarkPaidOrderId(null);
+      setTimeout(() => fetchOrders(false), 500);
+    } catch (error) {
+      console.error('Error marking as paid:', error);
+      alert('Failed to mark as paid: ' + (error.message || 'Unknown error'));
+    } finally {
+      setMarkPaidSubmitting(false);
+    }
+  };
+
   const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit&from=orderhistory`);
 
   const handleDeleteOrder = (orderId) => {
@@ -1048,6 +1086,14 @@ const OrderHistory = () => {
             >
               {t('orderHistory.close')}
             </button>
+            {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
+              <button
+                onClick={() => { handleMarkPaid(order.id); onClose(); }}
+                className="flex-1 px-4 py-2.5 bg-amber-500 text-white font-medium text-sm rounded-lg hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <FaWallet /> Mark as Paid
+              </button>
+            )}
             <button
               onClick={() => { handleEditOrder(order.id); onClose(); }}
               className="flex-1 px-4 py-2.5 bg-gray-900 text-white font-medium text-sm rounded-lg hover:bg-gray-800 transition-colors"
@@ -1299,15 +1345,17 @@ const OrderHistory = () => {
                 icon={FaUtensils}
               />
               {partialPaymentEnabled && (
-                <FilterDropdown
-                  isOpen={paymentStatusDropdownOpen}
-                  onToggle={() => { setPaymentStatusDropdownOpen(!paymentStatusDropdownOpen); setStatusDropdownOpen(false); setTypeDropdownOpen(false); }}
-                  selectedValue={selectedPaymentStatus}
-                  options={paymentStatusOptions}
-                  onSelect={setSelectedPaymentStatus}
-                  placeholder="All Payments"
-                  icon={FaWallet}
-                />
+                <button
+                  onClick={() => setSelectedPaymentStatus(selectedPaymentStatus === 'partial' ? 'all' : 'partial')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    selectedPaymentStatus === 'partial'
+                      ? 'bg-amber-50 text-amber-700 border-amber-300 ring-1 ring-amber-100'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <FaWallet className="text-[10px]" />
+                  Partial Payment
+                </button>
               )}
               {/* Separator */}
               <div className="hidden sm:block w-px h-5 bg-gray-200" />
@@ -1516,13 +1564,22 @@ const OrderHistory = () => {
                           </div>
                           <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
-                                <button 
-                                onClick={() => handleMarkCompleted(order.id)} 
-                                className="p-2 text-green-600 bg-green-100 hover:bg-green-200 rounded-lg transition-colors" 
+                                <button
+                                onClick={() => handleMarkCompleted(order.id)}
+                                className="p-2 text-green-600 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
                                 title="Mark Bill Complete"
                                 >
                                 <FaCheckCircle size={12} />
                                 </button>
+                            )}
+                            {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
+                              <button
+                                onClick={() => handleMarkPaid(order.id)}
+                                className="p-2 text-amber-600 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
+                                title="Mark as Fully Paid"
+                              >
+                                <FaWallet size={12} />
+                              </button>
                             )}
                             {/* Invoice button hidden - using unified print flow */}
                             <button
@@ -1771,6 +1828,14 @@ const OrderHistory = () => {
                                 <FaCheckCircle /> Complete
                               </button>
                             )}
+                            {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
+                              <button
+                                onClick={() => handleMarkPaid(order.id)}
+                                className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-all flex items-center gap-1.5"
+                              >
+                                <FaWallet /> Mark Paid
+                              </button>
+                            )}
                             <button
                               onClick={() => handleViewOrder(order)}
                               className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-all flex items-center gap-1.5"
@@ -1975,6 +2040,83 @@ const OrderHistory = () => {
           </div>
         </>
       )}
+
+      {/* Mark as Fully Paid confirmation modal */}
+      {markPaidOrderId && typeof document !== 'undefined' && createPortal((() => {
+        const paidOrder = orders.find(o => o.id === markPaidOrderId);
+        const outstandingAmt = paidOrder?.outstandingAmount || 0;
+        return (
+          <>
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes markPaidBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+              @keyframes markPaidDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+            ` }} />
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4 sm:p-6"
+              style={{ zIndex: 10100, animation: 'markPaidBackdropIn 0.2s ease-out' }}
+              aria-modal="true"
+              role="dialog"
+              aria-labelledby="mark-paid-title"
+            >
+              <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => !markPaidSubmitting && setMarkPaidOrderId(null)}
+              />
+              <div
+                className="relative w-full max-w-[min(90vw,400px)] rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
+                style={{ animation: 'markPaidDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-5 sm:p-6 text-center">
+                  <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                    <FaWallet className="text-amber-600 text-2xl sm:text-3xl" />
+                  </div>
+                  <h2 id="mark-paid-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                    Mark as Fully Paid?
+                  </h2>
+                  <p className="text-sm sm:text-base text-gray-600 mb-2">
+                    This will settle the outstanding balance and mark the order as fully paid.
+                  </p>
+                  {outstandingAmt > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+                      <span className="text-sm text-amber-700">Outstanding: </span>
+                      <span className="text-lg font-bold text-amber-800">{formatCurrency(outstandingAmt)}</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => !markPaidSubmitting && setMarkPaidOrderId(null)}
+                      disabled={markPaidSubmitting}
+                      className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeMarkPaid(markPaidOrderId)}
+                      disabled={markPaidSubmitting}
+                      className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-amber-700 bg-amber-50 border-2 border-amber-200 rounded-xl hover:bg-amber-100 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
+                    >
+                      {markPaidSubmitting ? (
+                        <>
+                          <FaSpinner className="text-lg" style={{ animation: 'spin 1s linear infinite' }} />
+                          Settling…
+                        </>
+                      ) : (
+                        <>
+                          <FaWallet />
+                          Mark as Paid
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })(), document.body)}
 
       {/* Delete order confirmation modal */}
       {deleteConfirmOrderId && (
