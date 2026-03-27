@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch } from 'react-icons/fa';
+import { createPortal } from 'react-dom';
+import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt } from 'react-icons/fa';
 
 const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
 
@@ -43,10 +44,14 @@ const rowStyle = {
   padding: '10px', backgroundColor: '#f9fafb', borderRadius: '10px'
 };
 
-function FocusInput({ style, ...props }) {
+function FocusInput({ style, type, ...props }) {
+  // Convert number inputs to text with decimal keyboard — avoids browser spinner arrows
+  const isNumeric = type === 'number';
   return (
     <input
       style={style || inputStyle}
+      type={isNumeric ? 'text' : (type || 'text')}
+      inputMode={isNumeric ? 'decimal' : undefined}
       onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.backgroundColor = '#fff'; }}
       onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
       {...props}
@@ -79,9 +84,9 @@ function FocusSelect({ style, children, ...props }) {
 }
 
 function ModalShell({ show, onClose, title, children, getModalStyles, getModalContentStyles }) {
-  if (!show) return null;
-  return (
-    <div style={getModalStyles()} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+  if (!show || typeof document === 'undefined') return null;
+  return createPortal(
+    <div style={{ ...getModalStyles(), zIndex: 10002 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ ...getModalContentStyles(), padding: 0, overflow: 'hidden' }}>
         <div style={{
           background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
@@ -104,7 +109,8 @@ function ModalShell({ show, onClose, title, children, getModalStyles, getModalCo
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -317,51 +323,47 @@ function AddPurchaseOrderModal(props) {
   );
 }
 
-// ─── Add Recipe Modal ────────────────────────────────────────────────────────
-function AddRecipeModal(props) {
-  const {
-    showAddRecipeModal, setShowAddRecipeModal,
-    recipeFormData, setRecipeFormData,
-    handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
-    addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
-    inventoryItems, getModalStyles, getModalContentStyles
-  } = props;
+// ─── Recipe Form Body (shared between Add & Edit) ──────────────────────────
+function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
+  addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
+  addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
+  handleGenerateRecipeSteps, generatingSteps }) {
 
   const update = (field, value) => setRecipeFormData({ ...recipeFormData, [field]: value });
 
   return (
-    <ModalShell show={showAddRecipeModal} onClose={() => setShowAddRecipeModal(false)} title="Add Recipe"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
           <label style={labelStyle}>Recipe Name *</label>
           <FocusInput value={recipeFormData.name} onChange={e => update('name', e.target.value)} placeholder="Recipe name" />
         </div>
         <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
           <label style={labelStyle}>Description</label>
-          <FocusTextarea value={recipeFormData.description} onChange={e => update('description', e.target.value)} placeholder="Description" />
+          <FocusTextarea value={recipeFormData.description} onChange={e => update('description', e.target.value)}
+            placeholder="Full recipe description or method" style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Category</label>
-          <FocusInput value={recipeFormData.category} onChange={e => update('category', e.target.value)} placeholder="e.g. Main Course" />
+          <FocusInput value={recipeFormData.category} onChange={e => update('category', e.target.value)} placeholder="e.g. Tea Counter" />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Servings</label>
-          <FocusInput type="number" min="1" value={recipeFormData.servings} onChange={e => update('servings', parseInt(e.target.value) || 1)} />
+          <FocusInput type="number" value={recipeFormData.servings} onChange={e => update('servings', parseInt(e.target.value) || 1)} />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Prep Time (min)</label>
-          <FocusInput type="number" min="0" value={recipeFormData.prepTime} onChange={e => update('prepTime', parseInt(e.target.value) || 0)} />
+          <FocusInput type="number" value={recipeFormData.prepTime} onChange={e => update('prepTime', parseInt(e.target.value) || 0)} />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Cook Time (min)</label>
-          <FocusInput type="number" min="0" value={recipeFormData.cookTime} onChange={e => update('cookTime', parseInt(e.target.value) || 0)} />
+          <FocusInput type="number" value={recipeFormData.cookTime} onChange={e => update('cookTime', parseInt(e.target.value) || 0)} />
         </div>
       </div>
 
       {/* Ingredients */}
-      <div style={{ marginBottom: '16px', marginTop: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+      <div style={{ marginBottom: 16, marginTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <label style={{ ...labelStyle, marginBottom: 0 }}>Ingredients *</label>
           <button style={secondaryBtn} onClick={addRecipeIngredient}><FaPlus /> Add Ingredient</button>
         </div>
@@ -372,7 +374,7 @@ function AddRecipeModal(props) {
               <option value="">Select item</option>
               {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
             </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="0" step="0.1" placeholder="Qty"
+            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder="Qty"
               value={ing.quantity} onChange={e => updateRecipeIngredient(index, 'quantity', parseFloat(e.target.value) || 0)} />
             <FocusSelect style={{ ...inputStyle, flex: 1 }} value={ing.unit}
               onChange={e => updateRecipeIngredient(index, 'unit', e.target.value)}>
@@ -387,20 +389,35 @@ function AddRecipeModal(props) {
       </div>
 
       {/* Instructions */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <label style={{ ...labelStyle, marginBottom: 0 }}>Instructions</label>
-          <button style={secondaryBtn} onClick={addRecipeInstruction}><FaPlus /> Add Step</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {handleGenerateRecipeSteps && recipeFormData.name && (
+              <button
+                style={{ ...secondaryBtn, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff' }}
+                onClick={handleGenerateRecipeSteps}
+                disabled={generatingSteps}
+              >
+                {generatingSteps ? (
+                  <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Generating...</>
+                ) : (
+                  <><FaMagic size={12} /> AI Generate Steps</>
+                )}
+              </button>
+            )}
+            <button style={secondaryBtn} onClick={addRecipeInstruction}><FaPlus /> Add Step</button>
+          </div>
         </div>
         {recipeFormData.instructions.map((inst, index) => (
           <div key={index} style={{ ...rowStyle, alignItems: 'flex-start' }}>
-            <span style={{ fontWeight: 700, color: '#059669', minWidth: '28px', paddingTop: '14px', fontSize: '14px' }}>
+            <span style={{ fontWeight: 700, color: '#059669', minWidth: 28, paddingTop: 14, fontSize: 14 }}>
               {index + 1}.
             </span>
-            <FocusTextarea style={{ ...inputStyle, flex: 1, minHeight: '60px' }} value={inst}
+            <FocusTextarea style={{ ...inputStyle, flex: 1, minHeight: 60 }} value={inst}
               onChange={e => updateRecipeInstruction(index, e.target.value)} placeholder={`Step ${index + 1}`} />
             {recipeFormData.instructions.length > 1 && (
-              <button style={{ ...dangerBtn, marginTop: '10px' }} onClick={() => removeRecipeInstruction(index)}><FaTrash /></button>
+              <button style={{ ...dangerBtn, marginTop: 10 }} onClick={() => removeRecipeInstruction(index)}><FaTrash /></button>
             )}
           </div>
         ))}
@@ -410,11 +427,71 @@ function AddRecipeModal(props) {
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={recipeFormData.notes} onChange={e => update('notes', e.target.value)} placeholder="Additional notes" />
       </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddRecipeModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={handleAddRecipe}><FaSave /> Create Recipe</button>
+    </>
+  );
+}
+
+// ─── Add Recipe Modal (Portal) ──────────────────────────────────────────────
+function AddRecipeModal(props) {
+  const {
+    showAddRecipeModal, setShowAddRecipeModal,
+    recipeFormData, setRecipeFormData,
+    handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
+    addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
+    inventoryItems, isMobile,
+    handleGenerateRecipeSteps, generatingSteps,
+  } = props;
+
+  if (!showAddRecipeModal || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        zIndex: 10002, padding: 20, overflowY: 'auto',
+      }}
+      onClick={e => { if (e.target === e.currentTarget) setShowAddRecipeModal(false); }}
+    >
+      <div style={{
+        backgroundColor: 'white', borderRadius: 14,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+        width: '100%', maxWidth: isMobile ? '500px' : '820px',
+        marginTop: 20, marginBottom: 20,
+      }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+          padding: '16px 20px', borderRadius: '14px 14px 0 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>Add Recipe</h2>
+          <button onClick={() => setShowAddRecipeModal(false)} style={{
+            background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+            cursor: 'pointer', padding: 6, borderRadius: 8, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)',
+          }}>
+            <FaTimes size={14} />
+          </button>
+        </div>
+        <div style={{ padding: 20, maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' }}>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <RecipeFormBody
+            recipeFormData={recipeFormData} setRecipeFormData={setRecipeFormData}
+            inventoryItems={inventoryItems}
+            addRecipeIngredient={addRecipeIngredient} removeRecipeIngredient={removeRecipeIngredient}
+            updateRecipeIngredient={updateRecipeIngredient}
+            addRecipeInstruction={addRecipeInstruction} removeRecipeInstruction={removeRecipeInstruction}
+            updateRecipeInstruction={updateRecipeInstruction}
+            handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
+          />
+          <div style={footerStyle}>
+            <button style={secondaryBtn} onClick={() => setShowAddRecipeModal(false)}>Cancel</button>
+            <button style={primaryBtn} onClick={handleAddRecipe}><FaSave /> Create Recipe</button>
+          </div>
+        </div>
       </div>
-    </ModalShell>
+    </div>,
+    document.body
   );
 }
 
@@ -971,19 +1048,29 @@ function QuickOrderModal(props) {
     quickOrderSource, setQuickOrderSource,
     quickOrderParsing, quickOrderConfirming,
     quickOrderManualItems, setQuickOrderManualItems,
+    quickOrderResult, setQuickOrderResult,
     menuItems,
     handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
-    getModalStyles, getModalContentStyles, isMobile
+    getModalStyles, getModalContentStyles, isMobile, formatCurrency,
   } = props;
 
   const [menuSearch, setMenuSearch] = useState('');
   const [imageFile, setImageFile] = useState(null);
 
   const modes = [
-    { id: 'manual', label: 'Manual' },
-    { id: 'text', label: 'Paste Text' },
-    { id: 'image', label: 'Upload Photo' },
+    { id: 'manual', label: 'Manual', icon: FaKeyboard },
+    { id: 'text', label: 'Paste Text', icon: FaPaste },
+    { id: 'image', label: 'Upload Photo', icon: FaImage },
   ];
+
+  const handleCloseQuickOrder = () => {
+    setShowQuickOrderModal(false);
+    setQuickOrderResult(null);
+    setQuickOrderText('');
+    setQuickOrderParsedItems([]);
+    setQuickOrderManualItems([]);
+    setQuickOrderMode('manual');
+  };
 
   const sources = ['zomato', 'swiggy', 'whatsapp', 'phone', 'walk-in', 'other'];
 
@@ -1036,11 +1123,13 @@ function QuickOrderModal(props) {
     : quickOrderParsedItems.filter(i => i.menuItemId && i.quantity > 0).length;
 
   const pillStyle = (active) => ({
-    padding: '8px 16px', borderRadius: '20px', border: 'none',
-    backgroundColor: active ? '#059669' : '#f3f4f6',
+    padding: '10px 18px', borderRadius: '12px', border: active ? 'none' : '1px solid #e5e7eb',
+    background: active ? 'linear-gradient(135deg, #059669, #10b981)' : '#fff',
     color: active ? 'white' : '#6b7280',
     fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '8px',
+    boxShadow: active ? '0 2px 8px rgba(5,150,105,0.3)' : '0 1px 3px rgba(0,0,0,0.04)',
+    flex: 1, justifyContent: 'center',
   });
 
   const sourceChipStyle = (active) => ({
@@ -1052,20 +1141,139 @@ function QuickOrderModal(props) {
   });
 
   return (
-    <ModalShell show={showQuickOrderModal} onClose={() => setShowQuickOrderModal(false)} title="Log External Order"
+    <ModalShell show={showQuickOrderModal} onClose={handleCloseQuickOrder} title="Log External Order"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
 
+      {/* Deduction Results Screen */}
+      {quickOrderResult ? (
+        <div>
+          {/* Success Header */}
+          <div style={{
+            textAlign: 'center', padding: '20px 16px', marginBottom: '20px',
+            background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', borderRadius: '14px',
+            border: '1px solid #a7f3d0',
+          }}>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #059669, #10b981)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 12px',
+            }}>
+              <FaCheckCircle size={22} color="white" />
+            </div>
+            <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: '#065f46' }}>
+              Order Logged Successfully!
+            </h3>
+            <p style={{ margin: 0, fontSize: '13px', color: '#047857' }}>
+              {quickOrderResult.items.length} item{quickOrderResult.items.length !== 1 ? 's' : ''} processed
+              {quickOrderResult.totalAmount > 0 && ` • Total: ${formatCurrency(quickOrderResult.totalAmount)}`}
+            </p>
+          </div>
+
+          {/* Items Ordered */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FaReceipt size={11} /> Items Ordered
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {quickOrderResult.items.map((item, i) => (
+                <span key={i} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 12px', backgroundColor: '#f0fdf4', borderRadius: '8px',
+                  fontSize: '13px', fontWeight: 600, color: '#065f46', border: '1px solid #bbf7d0',
+                }}>
+                  {item.name} <span style={{ color: '#059669', fontWeight: 700 }}>×{item.quantity}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Inventory Deductions */}
+          {quickOrderResult.deductions.length > 0 ? (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FaArrowDown size={11} /> Inventory Deducted
+              </label>
+              <div style={{
+                border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden',
+              }}>
+                {/* Table Header */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 100px 100px',
+                  padding: '10px 14px', backgroundColor: '#f9fafb',
+                  fontSize: '11px', fontWeight: 700, color: '#9ca3af',
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  borderBottom: '1px solid #e5e7eb',
+                }}>
+                  <span>Ingredient</span>
+                  <span style={{ textAlign: 'right' }}>Deducted</span>
+                  <span style={{ textAlign: 'right' }}>Stock Now</span>
+                </div>
+                {quickOrderResult.deductions.map((d, i) => {
+                  const isLow = d.newStock <= 0;
+                  const isWarning = d.newStock > 0 && d.newStock <= 5;
+                  return (
+                    <div key={i} style={{
+                      display: 'grid', gridTemplateColumns: '1fr 100px 100px',
+                      padding: '10px 14px', alignItems: 'center',
+                      borderBottom: i < quickOrderResult.deductions.length - 1 ? '1px solid #f3f4f6' : 'none',
+                      backgroundColor: isLow ? '#fef2f2' : isWarning ? '#fffbeb' : '#fff',
+                      animation: `slideInUp 0.3s ease-out ${i * 0.05}s both`,
+                    }}>
+                      <div>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                          {d.inventoryItemName}
+                        </span>
+                      </div>
+                      <span style={{
+                        textAlign: 'right', fontSize: '13px', fontWeight: 600, color: '#ef4444',
+                      }}>
+                        -{parseFloat(d.quantityDeducted.toFixed(2))} {d.unit}
+                      </span>
+                      <span style={{
+                        textAlign: 'right', fontSize: '13px', fontWeight: 700,
+                        color: isLow ? '#dc2626' : isWarning ? '#d97706' : '#059669',
+                      }}>
+                        {parseFloat(d.newStock.toFixed(2))} {d.unit}
+                        {isLow && ' ⚠️'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              padding: '16px', backgroundColor: '#fffbeb', borderRadius: '10px',
+              border: '1px solid #fde68a', marginBottom: '16px',
+              fontSize: '13px', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              <FaExclamationTriangle size={14} />
+              No inventory deductions were made. Check if recipes are linked to menu items.
+            </div>
+          )}
+
+          {/* Close Button */}
+          <div style={{ ...footerStyle, justifyContent: 'center' }}>
+            <button style={{ ...primaryBtn, padding: '12px 32px' }} onClick={handleCloseQuickOrder}>
+              Done
+            </button>
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Mode Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        {modes.map(m => (
-          <button key={m.id} style={pillStyle(quickOrderMode === m.id)}
-            onClick={() => setQuickOrderMode(m.id)}>
-            {m.id === 'manual' && <FaClipboardList style={{ marginRight: '4px' }} size={11} />}
-            {m.id === 'text' && <FaSearch style={{ marginRight: '4px' }} size={11} />}
-            {m.id === 'image' && <FaImage style={{ marginRight: '4px' }} size={11} />}
-            {m.label}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        {modes.map(m => {
+          const Icon = m.icon;
+          return (
+            <button key={m.id} style={pillStyle(quickOrderMode === m.id)}
+              onClick={() => setQuickOrderMode(m.id)}>
+              <Icon size={14} />
+              {m.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Manual Mode */}
@@ -1269,7 +1477,7 @@ function QuickOrderModal(props) {
 
       {/* Footer */}
       <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowQuickOrderModal(false)}>Cancel</button>
+        <button style={secondaryBtn} onClick={handleCloseQuickOrder}>Cancel</button>
         <button
           style={{ ...primaryBtn, opacity: (validItemCount === 0 || quickOrderConfirming) ? 0.5 : 1 }}
           disabled={validItemCount === 0 || quickOrderConfirming}
@@ -1288,11 +1496,232 @@ function QuickOrderModal(props) {
           )}
         </button>
       </div>
+      </>
+      )}
     </ModalShell>
   );
 }
 
 // ─── Main Export ─────────────────────────────────────────────────────────────
+// ─── Edit Recipe Modal (Portal) ─────────────────────────────────────────────
+function EditRecipeModal(props) {
+  const {
+    showEditRecipeModal, setShowEditRecipeModal, editingRecipe,
+    recipeFormData, setRecipeFormData,
+    handleUpdateRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
+    addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
+    inventoryItems, isMobile,
+    handleGenerateRecipeSteps, generatingSteps,
+  } = props;
+
+  if (!showEditRecipeModal || !editingRecipe || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        zIndex: 10002, padding: 20, overflowY: 'auto',
+      }}
+      onClick={e => { if (e.target === e.currentTarget) setShowEditRecipeModal(false); }}
+    >
+      <div style={{
+        backgroundColor: 'white', borderRadius: 14,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+        width: '100%', maxWidth: isMobile ? '500px' : '820px',
+        marginTop: 20, marginBottom: 20,
+      }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+          padding: '16px 20px', borderRadius: '14px 14px 0 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>
+            Edit Recipe — {editingRecipe.name}
+          </h2>
+          <button onClick={() => setShowEditRecipeModal(false)} style={{
+            background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+            cursor: 'pointer', padding: 6, borderRadius: 8, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)',
+          }}>
+            <FaTimes size={14} />
+          </button>
+        </div>
+        <div style={{ padding: 20, maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' }}>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <RecipeFormBody
+            recipeFormData={recipeFormData} setRecipeFormData={setRecipeFormData}
+            inventoryItems={inventoryItems}
+            addRecipeIngredient={addRecipeIngredient} removeRecipeIngredient={removeRecipeIngredient}
+            updateRecipeIngredient={updateRecipeIngredient}
+            addRecipeInstruction={addRecipeInstruction} removeRecipeInstruction={removeRecipeInstruction}
+            updateRecipeInstruction={updateRecipeInstruction}
+            handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
+          />
+          <div style={footerStyle}>
+            <button style={secondaryBtn} onClick={() => setShowEditRecipeModal(false)}>Cancel</button>
+            <button style={primaryBtn} onClick={handleUpdateRecipe}><FaSave /> Update Recipe</button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ─── View Recipe Detail Modal (Portal) ──────────────────────────────────────
+function ViewRecipeModal(props) {
+  const { showViewRecipeModal, setShowViewRecipeModal, viewingRecipe, isMobile, formatCurrency, inventoryItems } = props;
+
+  if (!showViewRecipeModal || !viewingRecipe || typeof document === 'undefined') return null;
+
+  const ingredients = viewingRecipe.ingredients || [];
+  const instructions = viewingRecipe.instructions || [];
+
+  const getIngCost = (ing) => {
+    const item = inventoryItems.find(i => i.id === ing.inventoryItemId || i._id === ing.inventoryItemId);
+    return item ? (ing.quantity || 0) * (item.costPerUnit || 0) : 0;
+  };
+  const totalCost = ingredients.reduce((s, i) => s + getIngCost(i), 0);
+  const costPerServing = viewingRecipe.servings > 0 ? totalCost / viewingRecipe.servings : totalCost;
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        zIndex: 10002, padding: 20, overflowY: 'auto',
+      }}
+      onClick={e => { if (e.target === e.currentTarget) setShowViewRecipeModal(false); }}
+    >
+      <div style={{
+        backgroundColor: 'white', borderRadius: 14,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+        width: '100%', maxWidth: isMobile ? '500px' : '700px',
+        marginTop: 20, marginBottom: 20,
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+          padding: '20px 24px', borderRadius: '14px 14px 0 0',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff' }}>{viewingRecipe.name}</h2>
+              {viewingRecipe.category && (
+                <span style={{
+                  display: 'inline-block', marginTop: 8, padding: '3px 12px',
+                  backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 20,
+                  fontSize: 12, fontWeight: 600, color: '#fff', backdropFilter: 'blur(4px)',
+                }}>{viewingRecipe.category}</span>
+              )}
+            </div>
+            <button onClick={() => setShowViewRecipeModal(false)} style={{
+              background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+              cursor: 'pointer', padding: 6, borderRadius: 8, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FaTimes size={16} />
+            </button>
+          </div>
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
+            {viewingRecipe.servings > 0 && (
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#34d399' }} />
+                {viewingRecipe.servings} serving{viewingRecipe.servings !== 1 ? 's' : ''}
+              </span>
+            )}
+            {viewingRecipe.prepTime > 0 && (
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#fbbf24' }} />
+                {viewingRecipe.prepTime}m prep
+              </span>
+            )}
+            {viewingRecipe.cookTime > 0 && (
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#f87171' }} />
+                {viewingRecipe.cookTime}m cook
+              </span>
+            )}
+            <span style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginLeft: 'auto' }}>
+              Cost: {formatCurrency(costPerServing)}/serving
+            </span>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 24 }}>
+          {/* Description */}
+          {viewingRecipe.description && (
+            <div style={{ marginBottom: 20 }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>Description</h4>
+              <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{viewingRecipe.description}</p>
+            </div>
+          )}
+
+          {/* Ingredients */}
+          {ingredients.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <h4 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Ingredients ({ingredients.length})
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 6 }}>
+                {ingredients.map((ing, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                    backgroundColor: '#f9fafb', borderRadius: 8, fontSize: 14,
+                  }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      backgroundColor: '#059669', flexShrink: 0,
+                    }} />
+                    <span style={{ fontWeight: 600, color: '#374151' }}>
+                      {ing.quantity} {ing.unit}
+                    </span>
+                    <span style={{ color: '#6b7280' }}>{ing.inventoryItemName || 'Unknown'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          {instructions.length > 0 && instructions.some(s => s.trim()) && (
+            <div style={{ marginBottom: 20 }}>
+              <h4 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>Instructions</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {instructions.filter(s => s.trim()).map((step, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex', gap: 12, padding: '10px 14px',
+                    backgroundColor: '#f0fdf4', borderRadius: 8, borderLeft: '3px solid #059669',
+                  }}>
+                    <span style={{
+                      fontWeight: 800, color: '#059669', fontSize: 14, minWidth: 22,
+                    }}>{idx + 1}.</span>
+                    <span style={{ fontSize: 14, color: '#374151', lineHeight: 1.5 }}>{step}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {viewingRecipe.notes && (
+            <div style={{
+              padding: '12px 16px', backgroundColor: '#fffbeb', borderRadius: 8,
+              border: '1px solid #fde68a', fontSize: 13, color: '#92400e', lineHeight: 1.5,
+            }}>
+              <strong>Notes:</strong> {viewingRecipe.notes}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function InventoryModals(props) {
   return (
     <>
@@ -1300,6 +1729,8 @@ export default function InventoryModals(props) {
       <AddSupplierModal {...props} />
       <AddPurchaseOrderModal {...props} />
       <AddRecipeModal {...props} />
+      <EditRecipeModal {...props} />
+      <ViewRecipeModal {...props} />
       <QuickStockModal {...props} />
       <AddGRNModal {...props} />
       <AddRequisitionModal {...props} />

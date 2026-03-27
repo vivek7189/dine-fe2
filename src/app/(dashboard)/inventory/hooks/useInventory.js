@@ -5,6 +5,7 @@ import apiClient from '../../../../lib/api';
 
 export default function useInventory() {
   const [loading, setLoading] = useState(true);
+  const hasLoadedOnce = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -31,6 +32,11 @@ export default function useInventory() {
   const [showAddTransferModal, setShowAddTransferModal] = useState(false);
   const [showQuickStockModal, setShowQuickStockModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [showEditRecipeModal, setShowEditRecipeModal] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState(null);
+  const [showViewRecipeModal, setShowViewRecipeModal] = useState(false);
+  const [viewingRecipe, setViewingRecipe] = useState(null);
+  const [generatingSteps, setGeneratingSteps] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -122,16 +128,46 @@ export default function useInventory() {
   const [quickOrderParsing, setQuickOrderParsing] = useState(false);
   const [quickOrderConfirming, setQuickOrderConfirming] = useState(false);
   const [quickOrderManualItems, setQuickOrderManualItems] = useState([]);
+  const [quickOrderResult, setQuickOrderResult] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
 
-  // Load restaurant context
+  // Load restaurant context — same pattern as dashboard, menu, customers, etc.
   const loadRestaurantContext = async () => {
     try {
-      const userData = localStorage.getItem('user');
-      const selectedRestaurantId = localStorage.getItem('selectedRestaurantId');
-      if (userData && selectedRestaurantId) {
-        const user = JSON.parse(userData);
-        setCurrentRestaurant({ id: selectedRestaurantId, ...user });
+      const token = localStorage.getItem('authToken');
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+
+      if (!token || !userData.id) return;
+
+      // Staff members: use assigned restaurant
+      if (userData.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(userData.role)) {
+        setCurrentRestaurant({ id: userData.restaurantId, name: userData.restaurant?.name || 'Restaurant' });
+        return;
+      }
+
+      // Owners/admins: fetch from API, resolve via localStorage > defaultId > first
+      try {
+        const restaurantsResponse = await apiClient.getRestaurants();
+        if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
+          const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
+          const defaultId = restaurantsResponse.defaultRestaurantId;
+          const resolved = restaurantsResponse.restaurants.find(r => r.id === savedRestaurantId) ||
+                          (defaultId ? restaurantsResponse.restaurants.find(r => r.id === defaultId) : null) ||
+                          restaurantsResponse.restaurants[0];
+          localStorage.setItem('selectedRestaurantId', resolved.id);
+          localStorage.setItem('selectedRestaurant', JSON.stringify(resolved));
+          setCurrentRestaurant(resolved);
+        }
+      } catch (apiError) {
+        // Fallback: use localStorage if API fails
+        const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
+        const savedRestaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+        if (savedRestaurantId && savedRestaurant) {
+          setCurrentRestaurant(savedRestaurant);
+        } else {
+          console.error('Error loading restaurant context:', apiError);
+          setError('Failed to load restaurant context');
+        }
       }
     } catch (error) {
       console.error('Error loading restaurant context:', error);
@@ -219,7 +255,8 @@ export default function useInventory() {
   const loadInventoryData = useCallback(async () => {
     if (!currentRestaurant) return;
     try {
-      setLoading(true);
+      // Only show full-page loading on initial load
+      if (!hasLoadedOnce.current) setLoading(true);
       setError(null);
       const filters = {};
       if (searchTerm) filters.search = searchTerm;
@@ -258,6 +295,7 @@ export default function useInventory() {
       setError('Failed to load inventory data');
     } finally {
       setLoading(false);
+      hasLoadedOnce.current = true;
     }
   }, [currentRestaurant, searchTerm, selectedCategory]);
 
@@ -270,6 +308,20 @@ export default function useInventory() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Listen for restaurant changes (e.g. user switches restaurant from admin page)
+  useEffect(() => {
+    const handleRestaurantChange = (event) => {
+      const newId = event.detail?.restaurantId || localStorage.getItem('selectedRestaurantId');
+      const newRestaurant = event.detail?.restaurant || JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+      if (newId && newId !== currentRestaurant?.id) {
+        hasLoadedOnce.current = false;
+        setCurrentRestaurant(newRestaurant || { id: newId });
+      }
+    };
+    window.addEventListener('restaurantChanged', handleRestaurantChange);
+    return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
+  }, [currentRestaurant?.id]);
 
   useEffect(() => {
     if (currentRestaurant) {
@@ -489,13 +541,15 @@ export default function useInventory() {
       setQuickOrderConfirming(true);
       setError(null);
       const result = await apiClient.confirmQuickOrder(currentRestaurant.id, items, quickOrderSource);
-      setShowQuickOrderModal(false);
-      setQuickOrderText('');
-      setQuickOrderParsedItems([]);
-      setQuickOrderManualItems([]);
-      setQuickOrderMode('manual');
-      setSuccess(result.message || `Order logged! ${items.length} item(s) deducted from inventory.`);
-      // Refresh inventory data
+      // Show deduction results in modal instead of closing
+      setQuickOrderResult({
+        orderId: result.orderId,
+        items,
+        deductions: result.deductions || [],
+        totalAmount: result.totalAmount || 0,
+        message: result.message,
+      });
+      // Refresh inventory data in background
       if (typeof loadInventoryData === 'function') loadInventoryData();
     } catch (err) {
       setError(err.message || 'Failed to confirm order');
@@ -642,6 +696,94 @@ export default function useInventory() {
     const newInstructions = [...recipeFormData.instructions];
     newInstructions[index] = value;
     setRecipeFormData({ ...recipeFormData, instructions: newInstructions });
+  };
+
+  const handleEditRecipe = (recipe) => {
+    setEditingRecipe(recipe);
+    setRecipeFormData({
+      name: recipe.name || '',
+      description: recipe.description || '',
+      category: recipe.category || '',
+      servings: recipe.servings || 1,
+      prepTime: recipe.prepTime || 0,
+      cookTime: recipe.cookTime || 0,
+      ingredients: (recipe.ingredients || []).map(ing => ({
+        inventoryItemId: ing.inventoryItemId || '',
+        inventoryItemName: ing.inventoryItemName || '',
+        quantity: ing.quantity || 0,
+        unit: ing.unit || '',
+      })),
+      instructions: recipe.instructions && recipe.instructions.length > 0 ? recipe.instructions : [''],
+      notes: recipe.notes || '',
+    });
+    setShowEditRecipeModal(true);
+  };
+
+  const handleUpdateRecipe = async () => {
+    if (!currentRestaurant || !editingRecipe) return;
+    try {
+      setLoading(true);
+      const updatedIngredients = recipeFormData.ingredients
+        .filter(ing => ing.inventoryItemId)
+        .map(ing => {
+          const item = inventoryItems.find(i => i.id === ing.inventoryItemId);
+          return {
+            ...ing,
+            inventoryItemName: item ? item.name : ing.inventoryItemName,
+          };
+        });
+      const updateData = {
+        ...recipeFormData,
+        ingredients: updatedIngredients,
+        instructions: recipeFormData.instructions.filter(i => i.trim()),
+      };
+      await apiClient.updateRecipe(currentRestaurant.id, editingRecipe.id || editingRecipe._id, updateData);
+      setSuccess('Recipe updated successfully');
+      setShowEditRecipeModal(false);
+      setEditingRecipe(null);
+      loadInventoryData();
+    } catch (error) {
+      console.error('Error updating recipe:', error);
+      setError(error.message || 'Failed to update recipe');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewRecipe = (recipe) => {
+    setViewingRecipe(recipe);
+    setShowViewRecipeModal(true);
+  };
+
+  const handleGenerateRecipeSteps = async () => {
+    if (!currentRestaurant || !recipeFormData.name) return;
+    try {
+      setGeneratingSteps(true);
+      const ingredientList = recipeFormData.ingredients
+        .filter(i => i.inventoryItemId)
+        .map(i => {
+          const item = inventoryItems.find(inv => inv.id === i.inventoryItemId);
+          return `${i.quantity} ${i.unit} ${item?.name || i.inventoryItemName || ''}`;
+        })
+        .join(', ');
+
+      const result = await apiClient.generateRecipeSteps(currentRestaurant.id, {
+        name: recipeFormData.name,
+        category: recipeFormData.category,
+        description: recipeFormData.description,
+        ingredients: ingredientList,
+        servings: recipeFormData.servings,
+      });
+      if (result.steps && result.steps.length > 0) {
+        setRecipeFormData(prev => ({ ...prev, instructions: result.steps }));
+        setSuccess('AI generated recipe steps!');
+      }
+    } catch (error) {
+      console.error('Error generating recipe steps:', error);
+      setError('Failed to generate recipe steps');
+    } finally {
+      setGeneratingSteps(false);
+    }
   };
 
   const handleDeleteRecipe = async (recipeId) => {
@@ -840,6 +982,9 @@ export default function useInventory() {
     showAddRequisitionModal, setShowAddRequisitionModal, showAddInvoiceModal, setShowAddInvoiceModal,
     showAddReturnModal, setShowAddReturnModal, showAddTransferModal, setShowAddTransferModal,
     showQuickStockModal, setShowQuickStockModal, editingItem,
+    showEditRecipeModal, setShowEditRecipeModal, editingRecipe, setEditingRecipe,
+    showViewRecipeModal, setShowViewRecipeModal, viewingRecipe, setViewingRecipe,
+    generatingSteps,
     showQuickOrderModal, setShowQuickOrderModal,
     quickOrderMode, setQuickOrderMode,
     quickOrderText, setQuickOrderText,
@@ -847,6 +992,7 @@ export default function useInventory() {
     quickOrderSource, setQuickOrderSource,
     quickOrderParsing, quickOrderConfirming,
     quickOrderManualItems, setQuickOrderManualItems,
+    quickOrderResult, setQuickOrderResult,
     menuItems,
 
     // Form data
@@ -878,6 +1024,7 @@ export default function useInventory() {
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
     handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction, handleDeleteRecipe,
+    handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps,
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
     startVoiceListeningPO, generateReport, handleInvoiceOCR,
     loadInventoryData, loadSCMData,

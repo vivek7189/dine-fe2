@@ -134,15 +134,20 @@ export default function DashboardTab({
         gap: isMobile ? '10px' : '12px',
       }}>
         {[
-          { label: 'Total Items', value: inventoryItems.length, icon: FaBoxes, color: '#059669', bg: '#ecfdf5' },
-          { label: 'Low Stock', value: lowStockItems.length, icon: FaExclamationTriangle, color: '#ef4444', bg: '#fef2f2', pulse: lowStockItems.length > 0 },
+          { label: 'Total Items', value: inventoryItems.length, icon: FaBoxes, color: '#059669', bg: '#ecfdf5', tab: 'stock' },
+          { label: 'Low Stock', value: lowStockItems.length, icon: FaExclamationTriangle, color: '#ef4444', bg: '#fef2f2', pulse: lowStockItems.length > 0, tab: 'stock' },
           { label: 'Total Value', value: formatCurrency(totalValue), icon: FaWarehouse, color: '#3b82f6', bg: '#eff6ff' },
-          { label: 'Suppliers', value: suppliers.length, icon: FaClipboardList, color: '#8b5cf6', bg: '#f5f3ff' },
+          { label: 'Suppliers', value: suppliers.length, icon: FaClipboardList, color: '#8b5cf6', bg: '#f5f3ff', tab: 'procurement' },
         ].map((stat) => (
-          <div key={stat.label} style={{
-            backgroundColor: 'white', borderRadius: '14px', padding: isMobile ? '14px' : '18px',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6',
-          }}>
+          <div
+            key={stat.label}
+            onClick={stat.tab ? () => setActiveTab(stat.tab) : undefined}
+            style={{
+              backgroundColor: 'white', borderRadius: '14px', padding: isMobile ? '14px' : '18px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6',
+              cursor: stat.tab ? 'pointer' : 'default',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 {stat.label}

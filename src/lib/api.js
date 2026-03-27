@@ -1349,6 +1349,13 @@ class ApiClient {
     });
   }
 
+  async generateRecipeSteps(restaurantId, recipeData) {
+    return this.request(`/api/recipes/${restaurantId}/generate-steps`, {
+      method: 'POST',
+      body: JSON.stringify(recipeData),
+    });
+  }
+
   async deleteRecipe(restaurantId, recipeId) {
     return this.request(`/api/recipes/${restaurantId}/${recipeId}`, {
       method: 'DELETE',

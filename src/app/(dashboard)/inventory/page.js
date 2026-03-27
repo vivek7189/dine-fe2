@@ -203,6 +203,8 @@ export default function InventoryManagement() {
             isMobile={isMobile}
             formatCurrency={formatCurrency}
             setShowAddRecipeModal={inventory.setShowAddRecipeModal}
+            handleEditRecipe={inventory.handleEditRecipe}
+            handleViewRecipe={inventory.handleViewRecipe}
             handleDeleteRecipe={inventory.handleDeleteRecipe}
           />
         )}
