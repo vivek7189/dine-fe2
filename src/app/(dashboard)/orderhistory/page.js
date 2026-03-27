@@ -849,8 +849,9 @@ const OrderHistory = () => {
   const OrderDetailsModal = ({ order, onClose }) => {
     if (!order) return null;
     const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus, order);
-    const orderTotal = calculateOrderTotal(order);
-    const subtotal = order.items?.reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0) || 0;
+    const breakdown = getOrderBreakdown(order);
+    const orderTotal = breakdown.total;
+    const subtotal = breakdown.subtotal;
     const modalSourceChip = getOrderSourceChip(order);
 
     return (
@@ -990,10 +991,10 @@ const OrderHistory = () => {
                   <span className="font-semibold">{formatCurrency(order.serviceChargeAmount)}</span>
                 </div>
               )}
-              {(order.taxAmount > 0 || (parseFloat(orderTotal) - subtotal) > 0.01) && (
+              {breakdown.taxAmount > 0 && (
                 <div className="flex justify-between text-sm text-gray-600">
                   <span className="font-medium">{t('orderHistory.tax')}</span>
-                  <span className="font-semibold">{formatCurrency(order.taxAmount || (parseFloat(orderTotal) - subtotal))}</span>
+                  <span className="font-semibold">{formatCurrency(breakdown.taxAmount)}</span>
                 </div>
               )}
               {order.tipAmount > 0 && (
@@ -1468,7 +1469,7 @@ const OrderHistory = () => {
                         </div>
                         <div className="col-span-6 sm:col-span-2 flex flex-col items-end gap-2">
                           <div className="text-right space-y-0.5">
-                            {(breakdown.taxLines?.length > 0 || breakdown.discountLines?.length > 0) && (
+                            {(breakdown.taxLines?.length > 0 || breakdown.discountLines?.length > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
                               <>
                                 <div className="text-xs text-gray-500">Subtotal {formatCurrency(breakdown.subtotal)}</div>
                                 {breakdown.discountLines?.map((line, i) => (
@@ -1488,7 +1489,7 @@ const OrderHistory = () => {
                                 )}
                               </>
                             )}
-                            <span className="font-bold text-lg text-gray-900">{formatCurrency(orderTotal)}</span>
+                            <span className="font-bold text-lg text-gray-900">{formatCurrency(breakdown.total)}</span>
                             {order.outstandingAmount > 0 && (
                               <div className="flex items-center gap-1 mt-1">
                                 <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">PARTIAL</span>
@@ -1638,12 +1639,16 @@ const OrderHistory = () => {
                           </div>
                           <div className="text-right">
                             <div className="flex items-baseline justify-end gap-2">
-                              <span className="text-xl font-bold text-gray-900">{formatCurrency(orderTotal)}</span>
+                              <span className="text-xl font-bold text-gray-900">{formatCurrency(breakdown.total)}</span>
                               <span className="text-[11px] text-gray-400">{order.paymentMethod || 'Cash'}</span>
                             </div>
-                            {breakdown.taxLines?.length > 0 && (
+                            {(breakdown.taxLines?.length > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
                               <div className="text-xs text-gray-500 mt-0.5">
-                                {formatCurrency(breakdown.subtotal)} + {breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}
+                                {formatCurrency(breakdown.subtotal)}
+                                {breakdown.serviceCharge > 0 && ` + SC ${formatCurrency(breakdown.serviceCharge)}`}
+                                {breakdown.taxLines?.length > 0 && ` + ${breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}`}
+                                {breakdown.tip > 0 && ` + Tip ${formatCurrency(breakdown.tip)}`}
+                                {breakdown.roundOff !== 0 && ` ${breakdown.roundOff > 0 ? '+' : '-'} Round ${formatCurrency(Math.abs(breakdown.roundOff))}`}
                               </div>
                             )}
                             {order.outstandingAmount > 0 && (
