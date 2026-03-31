@@ -38,10 +38,15 @@ export default function useInventory() {
   const [viewingRecipe, setViewingRecipe] = useState(null);
   const [generatingSteps, setGeneratingSteps] = useState(false);
 
+  // Stock history
+  const [showStockHistoryModal, setShowStockHistoryModal] = useState(false);
+  const [stockHistoryItem, setStockHistoryItem] = useState(null);
+  const [stockHistoryData, setStockHistoryData] = useState({ transactions: [], batches: [] });
+
   // Form data
   const [formData, setFormData] = useState({
     name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0,
-    costPerUnit: 0, supplier: '', description: '', barcode: '', expiryDate: '', location: ''
+    costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', location: ''
   });
 
   const [supplierFormData, setSupplierFormData] = useState({
@@ -415,7 +420,7 @@ export default function useInventory() {
       if (response.item) {
         setSuccess('Item added successfully!');
         setShowAddModal(false);
-        setFormData({ name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0, costPerUnit: 0, supplier: '', description: '', barcode: '', expiryDate: '', location: '' });
+        setFormData({ name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0, costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', location: '' });
         loadInventoryData();
       }
     } catch (error) {
@@ -430,7 +435,7 @@ export default function useInventory() {
       name: item.name, category: item.category, unit: item.unit,
       currentStock: item.currentStock, minStock: item.minStock, maxStock: item.maxStock,
       costPerUnit: item.costPerUnit, supplier: item.supplier, description: item.description,
-      barcode: item.barcode, expiryDate: item.expiryDate || '', location: item.location
+      barcode: item.barcode, mfgDate: item.mfgDate || '', expiryDays: item.expiryDays || '', expiryDate: item.expiryDate || '', location: item.location
     });
     setShowEditModal(true);
   };
@@ -464,6 +469,23 @@ export default function useInventory() {
         console.error('Error deleting item:', error);
         setError(error.message || 'Failed to delete item');
       } finally { setLoading(false); }
+    }
+  };
+
+  // View stock history for an item
+  const handleViewHistory = async (item) => {
+    setStockHistoryItem(item);
+    setShowStockHistoryModal(true);
+    setStockHistoryData({ transactions: [], batches: [] });
+    if (!currentRestaurant) return;
+    try {
+      const response = await apiClient.getItemStockHistory(currentRestaurant.id, item.id);
+      setStockHistoryData({
+        transactions: response.transactions || [],
+        batches: response.batches || []
+      });
+    } catch (error) {
+      console.error('Error loading stock history:', error);
     }
   };
 
@@ -996,6 +1018,7 @@ export default function useInventory() {
     showQuickStockModal, setShowQuickStockModal, editingItem,
     showEditRecipeModal, setShowEditRecipeModal, editingRecipe, setEditingRecipe,
     showViewRecipeModal, setShowViewRecipeModal, viewingRecipe, setViewingRecipe,
+    showStockHistoryModal, setShowStockHistoryModal, stockHistoryItem, stockHistoryData,
     generatingSteps,
     showQuickOrderModal, setShowQuickOrderModal,
     quickOrderMode, setQuickOrderMode,
@@ -1031,7 +1054,7 @@ export default function useInventory() {
     quickStockItems, setQuickStockItems,
 
     // Handlers
-    handleAddItem, handleEditItem, handleUpdateItem, handleDeleteItem,
+    handleAddItem, handleEditItem, handleUpdateItem, handleDeleteItem, handleViewHistory,
     handleQuickStockUpdate, handleAddSupplier, handleDeleteSupplier,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
     handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,

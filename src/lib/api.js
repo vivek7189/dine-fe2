@@ -1279,6 +1279,18 @@ class ApiClient {
     });
   }
 
+  async getItemStockBatches(restaurantId, itemId) {
+    return this.request(`/api/inventory/${restaurantId}/${itemId}/batches`);
+  }
+
+  async getItemStockHistory(restaurantId, itemId) {
+    return this.request(`/api/inventory/${restaurantId}/${itemId}/history`);
+  }
+
+  async getInventoryWastage(restaurantId) {
+    return this.request(`/api/inventory/${restaurantId}/wastage`);
+  }
+
   async getInventoryCategories(restaurantId) {
     return this.request(`/api/inventory/${restaurantId}/categories`);
   }

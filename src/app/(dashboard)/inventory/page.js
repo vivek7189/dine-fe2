@@ -214,6 +214,7 @@ export default function InventoryManagement() {
             dashboardStats={inventory.dashboardStats}
             inventoryItems={inventory.inventoryItems}
             todayUsageSummary={inventory.todayUsageSummary}
+            onViewHistory={inventory.handleViewHistory}
           />
         )}
 

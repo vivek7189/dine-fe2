@@ -2,7 +2,7 @@
 
 import {
   FaPlus, FaBoxes, FaExclamationTriangle, FaChartLine,
-  FaWarehouse, FaBolt, FaArrowRight, FaClipboardList
+  FaWarehouse, FaBolt, FaArrowRight, FaClipboardList, FaTrash
 } from 'react-icons/fa';
 
 export default function DashboardTab({
@@ -130,7 +130,7 @@ export default function DashboardTab({
       {/* Stats Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
         gap: isMobile ? '10px' : '12px',
       }}>
         {[
@@ -138,6 +138,7 @@ export default function DashboardTab({
           { label: 'Low Stock', value: lowStockItems.length, icon: FaExclamationTriangle, color: '#ef4444', bg: '#fef2f2', pulse: lowStockItems.length > 0, tab: 'stock' },
           { label: 'Total Value', value: formatCurrency(totalValue), icon: FaWarehouse, color: '#3b82f6', bg: '#eff6ff' },
           { label: 'Suppliers', value: suppliers.length, icon: FaClipboardList, color: '#8b5cf6', bg: '#f5f3ff', tab: 'procurement' },
+          { label: 'Wastage', value: `${dashboardStats?.wastedItemsCount || 0} items`, icon: FaTrash, color: '#d97706', bg: '#fffbeb', subtitle: `${formatCurrency(dashboardStats?.totalWasteValue || 0)} wasted` },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -164,6 +165,11 @@ export default function DashboardTab({
             <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '800', color: '#111827' }}>
               {stat.value}
             </div>
+            {stat.subtitle && (
+              <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500', marginTop: '2px' }}>
+                {stat.subtitle}
+              </div>
+            )}
           </div>
         ))}
       </div>

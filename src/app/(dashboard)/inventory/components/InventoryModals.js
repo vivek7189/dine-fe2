@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt } from 'react-icons/fa';
+import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory } from 'react-icons/fa';
 
 const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
 
@@ -132,7 +132,8 @@ function AddEditItemModal(props) {
   const isEdit = showEditModal && editingItem;
 
   const close = () => { isEdit ? setShowEditModal(false) : setShowAddModal(false); };
-  const update = (field, value) => setFormData({ ...formData, [field]: value });
+  const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+  const updateMulti = (fields) => setFormData(prev => ({ ...prev, ...fields }));
 
   return (
     <ModalShell show={isOpen} onClose={close} title={isEdit ? 'Edit Inventory Item' : 'Add Inventory Item'}
@@ -192,9 +193,65 @@ function AddEditItemModal(props) {
           <FocusInput value={formData.barcode} onChange={e => update('barcode', e.target.value)} placeholder="Barcode" />
         </div>
         <div style={fieldWrap}>
-          <label style={labelStyle}>Expiry Date</label>
-          <FocusInput type="date" value={formData.expiryDate} onChange={e => update('expiryDate', e.target.value)} />
+          <label style={labelStyle}>MFG Date</label>
+          <FocusInput type="date" value={formData.mfgDate} onChange={e => {
+            const mfg = e.target.value;
+            const updates = { mfgDate: mfg };
+            if (mfg && formData.expiryDays) {
+              const d = new Date(mfg);
+              d.setDate(d.getDate() + parseInt(formData.expiryDays));
+              updates.expiryDate = d.toISOString().split('T')[0];
+            }
+            updateMulti(updates);
+          }} />
         </div>
+        <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
+          <label style={labelStyle}>Expiry Method</label>
+          <div style={{ display: 'flex', gap: '0', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+            <button type="button" onClick={() => updateMulti({ expiryDays: '', expiryDate: formData.expiryDate || '' })} style={{
+              flex: 1, padding: '8px 12px', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              backgroundColor: !formData.expiryDays ? '#059669' : '#f9fafb',
+              color: !formData.expiryDays ? 'white' : '#6b7280',
+              transition: 'all 0.15s'
+            }}>
+              Expiry Date
+            </button>
+            <button type="button" onClick={() => updateMulti({ expiryDate: '', expiryDays: formData.expiryDays || '' })} style={{
+              flex: 1, padding: '8px 12px', border: 'none', borderLeft: '1px solid #e5e7eb', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              backgroundColor: formData.expiryDays !== '' ? '#059669' : '#f9fafb',
+              color: formData.expiryDays !== '' ? 'white' : '#6b7280',
+              transition: 'all 0.15s'
+            }}>
+              MFG + Expiry Days
+            </button>
+          </div>
+        </div>
+        {formData.expiryDays !== '' ? (
+          <>
+            <div style={fieldWrap}>
+              <label style={labelStyle}>Expiry Days</label>
+              <FocusInput type="number" min="1" value={formData.expiryDays} onChange={e => {
+                const days = e.target.value;
+                const updates = { expiryDays: days };
+                if (formData.mfgDate && days) {
+                  const d = new Date(formData.mfgDate);
+                  d.setDate(d.getDate() + parseInt(days));
+                  updates.expiryDate = d.toISOString().split('T')[0];
+                }
+                updateMulti(updates);
+              }} placeholder="e.g. 3" />
+            </div>
+            <div style={fieldWrap}>
+              <label style={{ ...labelStyle, color: '#9ca3af' }}>Expiry Date <span style={{ fontSize: '11px', fontWeight: 400 }}>(auto-calculated)</span></label>
+              <FocusInput type="date" value={formData.expiryDate} disabled style={{ backgroundColor: '#f3f4f6', color: '#9ca3af' }} />
+            </div>
+          </>
+        ) : (
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Expiry Date</label>
+            <FocusInput type="date" value={formData.expiryDate} onChange={e => update('expiryDate', e.target.value)} />
+          </div>
+        )}
         <div style={fieldWrap}>
           <label style={labelStyle}>Location</label>
           <FocusInput value={formData.location} onChange={e => update('location', e.target.value)} placeholder="Storage location" />
@@ -1751,6 +1808,168 @@ function ViewRecipeModal(props) {
   );
 }
 
+// ─── Stock History Modal ─────────────────────────────────────────────────────
+function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, stockHistoryItem, stockHistoryData, getModalStyles, getModalContentStyles, formatCurrency }) {
+  const transactions = stockHistoryData?.transactions || [];
+  const batches = stockHistoryData?.batches || [];
+
+  const typeBadge = (type) => {
+    const map = {
+      ADDITION: { bg: '#dcfce7', color: '#166534', label: 'Addition' },
+      DEDUCTION: { bg: '#fef2f2', color: '#991b1b', label: 'Deduction' },
+      ADJUSTMENT: { bg: '#dbeafe', color: '#1e40af', label: 'Adjustment' },
+      MANUAL: { bg: '#f3f4f6', color: '#374151', label: 'Manual' },
+    };
+    const s = map[type] || map.MANUAL;
+    return (
+      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, backgroundColor: s.bg, color: s.color }}>
+        {s.label}
+      </span>
+    );
+  };
+
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const fmtShortDate = (d) => {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const batchStatus = (batch) => {
+    if (batch.remainingQty <= 0) return { label: 'Depleted', bg: '#f3f4f6', color: '#6b7280' };
+    if (batch.expiryDate && new Date(batch.expiryDate) < new Date()) return { label: 'Expired', bg: '#fef2f2', color: '#ef4444' };
+    return { label: 'Active', bg: '#dcfce7', color: '#166534' };
+  };
+
+  const daysToExpiry = (expiryDate) => {
+    if (!expiryDate) return null;
+    const diff = Math.ceil((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
+  return (
+    <ModalShell
+      show={showStockHistoryModal}
+      onClose={() => setShowStockHistoryModal(false)}
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><FaHistory size={14} /> Stock History{stockHistoryItem ? ` — ${stockHistoryItem.name}` : ''}</span>}
+      getModalStyles={getModalStyles}
+      getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button style={secondaryBtn} onClick={() => setShowStockHistoryModal(false)}>Close</button>
+        </div>
+      }
+    >
+      {/* ── Transaction Timeline ── */}
+      <div style={{ marginBottom: '24px' }}>
+        <label style={{ ...labelStyle, fontSize: '13px', marginBottom: '12px' }}>Transaction Timeline</label>
+        {transactions.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af', fontSize: '13px' }}>No stock movements recorded yet.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            {transactions.map((tx, i) => {
+              const isAdd = tx.type === 'ADDITION';
+              const isDeduct = tx.type === 'DEDUCTION';
+              const qtyColor = isDeduct ? '#ef4444' : '#059669';
+              const qtyPrefix = isDeduct ? '' : '+';
+              return (
+                <div key={tx._id || i} style={{
+                  padding: '12px 14px', borderLeft: '3px solid #e5e7eb',
+                  marginLeft: '8px', position: 'relative',
+                  backgroundColor: i === 0 ? '#f0fdf4' : 'transparent',
+                  borderRadius: i === 0 ? '0 8px 8px 0' : '0',
+                }}>
+                  {/* timeline dot */}
+                  <div style={{
+                    position: 'absolute', left: '-7px', top: '16px',
+                    width: '10px', height: '10px', borderRadius: '50%',
+                    backgroundColor: isAdd ? '#059669' : isDeduct ? '#ef4444' : '#3b82f6',
+                    border: '2px solid white', boxShadow: '0 0 0 2px #e5e7eb',
+                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{fmtDate(tx.date || tx.createdAt)}</span>
+                    {typeBadge(tx.type)}
+                    <span style={{ fontWeight: 700, fontSize: '13px', color: qtyColor }}>
+                      {qtyPrefix}{tx.quantity} {tx.unit || stockHistoryItem?.unit || ''}
+                    </span>
+                  </div>
+                  {(tx.previousStock != null && tx.newStock != null) && (
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '2px' }}>
+                      Stock: {tx.previousStock} → {tx.newStock}
+                    </div>
+                  )}
+                  {tx.notes && (
+                    <div style={{ fontSize: '12px', color: '#374151', marginTop: '2px' }}>{tx.notes}</div>
+                  )}
+                  {(tx.performedBy || tx.source) && (
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                      {tx.performedBy ? `By: ${tx.performedBy}` : ''}{tx.performedBy && tx.source ? ' · ' : ''}{tx.source ? `Source: ${tx.source}` : ''}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Active Batches ── */}
+      <div>
+        <label style={{ ...labelStyle, fontSize: '13px', marginBottom: '12px' }}>Batches</label>
+        {batches.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af', fontSize: '13px' }}>No batch data available.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f9fafb', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Batch #</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>MFG Date</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Expiry Date</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Remaining / Original</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Status</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Days to Expiry</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batches.map((batch, i) => {
+                  const status = batchStatus(batch);
+                  const dte = daysToExpiry(batch.expiryDate);
+                  const dteColor = dte === null ? '#9ca3af' : dte <= 0 ? '#ef4444' : dte <= 3 ? '#f59e0b' : '#374151';
+                  return (
+                    <tr key={batch._id || i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 600 }}>{i + 1}</td>
+                      <td style={{ padding: '8px 10px' }}>{fmtShortDate(batch.mfgDate)}</td>
+                      <td style={{ padding: '8px 10px' }}>{fmtShortDate(batch.expiryDate)}</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{ fontWeight: 600 }}>{batch.remainingQty}</span>
+                        <span style={{ color: '#9ca3af' }}> / {batch.originalQty}</span>
+                        <span style={{ color: '#9ca3af', marginLeft: '4px' }}>{batch.unit || stockHistoryItem?.unit || ''}</span>
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, backgroundColor: status.bg, color: status.color }}>
+                          {status.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: dteColor }}>
+                        {dte === null ? '—' : dte <= 0 ? `Expired ${Math.abs(dte)}d ago` : `${dte}d`}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </ModalShell>
+  );
+}
+
 export default function InventoryModals(props) {
   return (
     <>
@@ -1767,6 +1986,7 @@ export default function InventoryModals(props) {
       <AddReturnModal {...props} />
       <AddTransferModal {...props} />
       <QuickOrderModal {...props} />
+      <StockHistoryModal {...props} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle, FaFireAlt } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle, FaFireAlt, FaClock } from 'react-icons/fa';
 
 export default function StockTab({
   sortedItems, categories, searchTerm, setSearchTerm, selectedCategory, setSelectedCategory,
@@ -8,6 +8,7 @@ export default function StockTab({
   isMobile, formatCurrency,
   setShowAddModal, handleEditItem, handleDeleteItem,
   getStatusColor, dashboardStats, inventoryItems, todayUsageSummary = [],
+  onViewHistory,
 }) {
   const getStockBarColor = (current, min, max) => {
     const ratio = max > 0 ? current / max : 0;
@@ -191,6 +192,12 @@ export default function StockTab({
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button onClick={() => onViewHistory?.(item)} style={{
+                      padding: 6, border: '1px solid #dbeafe', borderRadius: 6,
+                      background: '#fff', cursor: 'pointer', display: 'flex',
+                    }} title="History">
+                      <FaClock size={13} color="#4f46e5" />
+                    </button>
                     <button onClick={() => handleEditItem(item)} style={{
                       padding: 6, border: '1px solid #e5e7eb', borderRadius: 6,
                       background: '#fff', cursor: 'pointer', display: 'flex',
@@ -228,6 +235,14 @@ export default function StockTab({
                       </span>
                     </div>
                   )}
+                  {item.wastedQty > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <FaExclamationTriangle size={10} color="#ea580c" />
+                      <span style={{ fontSize: 11, color: '#ea580c', fontWeight: 500 }}>
+                        {item.wastedQty} {item.unit} wasted
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -245,9 +260,10 @@ export default function StockTab({
                 <th style={{ ...thStyle, textAlign: 'left', minWidth: 220 }}>Stock Level</th>
                 <th style={thStyle}>Min / Max</th>
                 <th style={thStyle}>Today&apos;s Usage</th>
+                <th style={thStyle}>Wasted</th>
                 <th style={thStyle}>Cost</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Supplier</th>
-                <th style={{ ...thStyle, width: 90 }}>Actions</th>
+                <th style={{ ...thStyle, width: 120 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -326,6 +342,16 @@ export default function StockTab({
                         <span style={{ fontSize: 12, color: '#d1d5db' }}>—</span>
                       )}
                     </td>
+                    {/* Wasted Column */}
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      {item.wastedQty > 0 ? (
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#ea580c' }}>
+                          {item.wastedQty} {item.unit}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#d1d5db' }}>—</span>
+                      )}
+                    </td>
                     <td style={{ ...tdStyle, textAlign: 'center', color: '#374151', fontWeight: 500 }}>
                       {formatCurrency(item.costPerUnit)}
                     </td>
@@ -334,6 +360,11 @@ export default function StockTab({
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                        <button onClick={() => onViewHistory?.(item)}
+                          style={{ ...actionBtnStyle, borderColor: '#dbeafe' }} title="History"
+                        >
+                          <FaClock size={13} color="#4f46e5" />
+                        </button>
                         <button onClick={() => handleEditItem(item)} style={actionBtnStyle} title="Edit">
                           <FaEdit size={13} color="#6b7280" />
                         </button>

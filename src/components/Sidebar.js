@@ -292,7 +292,12 @@ export default function Sidebar({ isDashboardPage = false }) {
         'invoice': 'invoice'
       };
       const accessKey = accessMap[item.id];
-      return accessKey ? pageAccess[accessKey] : false;
+      if (!accessKey) return false;
+      const accessValue = pageAccess[accessKey];
+      if (typeof accessValue === 'object' && accessValue !== null) {
+        return Object.values(accessValue).some(Boolean);
+      }
+      return !!accessValue;
     }
 
     if (['owner', 'manager', 'waiter'].includes(user.role)) {
