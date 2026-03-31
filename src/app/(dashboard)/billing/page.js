@@ -659,13 +659,33 @@ function BillingContent() {
 
       if (data.success) {
         showNotification('success', 'Payment successful! Your plan has been upgraded.');
-        setTimeout(() => window.location.reload(), 2000);
+        // Immediately update subscription state so UI reflects the new plan
+        const userId = user?.uid || user?.id;
+        if (userId) {
+          try {
+            const subRes = await fetch(`${API_BASE_URL}/api/payments/subscription/${userId}`);
+            const subData = await subRes.json();
+            if (subData.success && subData.subscription) {
+              setCurrentSubscription(subData.subscription);
+              if (subData.subscription.isTrial) {
+                const trial = calculateTrialDays(subData.subscription.trialStartDate || subData.subscription.startDate);
+                setTrialInfo({ ...trial, startDate: subData.subscription.trialStartDate || subData.subscription.startDate });
+              } else {
+                setTrialInfo({ daysLeft: 0, isExpired: false, startDate: null });
+              }
+            }
+          } catch (e) {
+            // Fallback to reload if subscription fetch fails
+            setTimeout(() => window.location.reload(), 2000);
+          }
+        }
       } else {
-        showNotification('error', 'Payment verification failed');
+        console.error('Payment verification failed:', data);
+        showNotification('error', data.error || 'Payment verification failed. Please contact support if money was deducted.');
       }
     } catch (error) {
       console.error('Verification error:', error);
-      showNotification('error', 'Payment verification failed');
+      showNotification('error', 'Payment verification failed. Please contact support if money was deducted.');
     } finally {
       setPaymentProcessing(false);
     }
