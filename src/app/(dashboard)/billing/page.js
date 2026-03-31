@@ -657,8 +657,44 @@ function BillingContent() {
       };
 
       const razorpay = new window.Razorpay(options);
-      razorpay.on('payment.failed', function () {
+      razorpay.on('payment.failed', function (response) {
         showNotification('error', 'Payment failed. Please try again.');
+        // Report failure to backend for email notification
+        fetch(`${API_BASE_URL}/api/payments/report-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'failed',
+            planId: plan.id,
+            amount: plan.price,
+            currency: 'INR',
+            userId: user.uid || user.id,
+            email: user.email || user.phoneNumber || '',
+            phone: user.phoneNumber || '',
+            gateway: 'Razorpay',
+            orderId: orderData.order.id,
+            reason: response?.error?.description || response?.error?.reason || 'Payment failed on Razorpay'
+          })
+        }).catch(() => {});
+      });
+      razorpay.on('payment.cancelled', function () {
+        // Report cancellation
+        fetch(`${API_BASE_URL}/api/payments/report-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'cancelled',
+            planId: plan.id,
+            amount: plan.price,
+            currency: 'INR',
+            userId: user.uid || user.id,
+            email: user.email || user.phoneNumber || '',
+            phone: user.phoneNumber || '',
+            gateway: 'Razorpay',
+            orderId: orderData.order.id,
+            reason: 'User cancelled the payment'
+          })
+        }).catch(() => {});
       });
       razorpay.open();
 
@@ -847,24 +883,35 @@ function BillingContent() {
     currentSubscription.status === 'active';
 
   // Helper: does current subscription match this plan?
+  // Also checks that the plan card is on the correct currency tab
   const checkIsCurrentPlan = (plan) => {
     if (!currentSubscription) return false;
     const subPlanId = (currentSubscription.planId || '').toLowerCase();
     const planId = plan.id.toLowerCase();
+    const subCurrency = (currentSubscription.currency || 'USD').toUpperCase();
 
-    // Direct planId match (e.g., 'spark-monthly' === 'spark-monthly')
-    if (subPlanId === planId) return true;
-
-    // Free trial match: only if subscription is actually a trial
+    // Free trial match: show on both tabs (trial is currency-agnostic)
     if (planId === 'free-trial') {
       return subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free';
     }
 
-    // Spark monthly/yearly both match the "Spark" plan card in international view
-    if (planId === 'spark' && (subPlanId === 'spark' || subPlanId === 'spark-monthly' || subPlanId === 'spark-yearly')) return true;
-    // spark-monthly plan card matches spark-monthly subscription
+    // For paid plans, only show "YOUR PLAN" on the matching currency tab
+    // INR plans (spark-monthly, spark-yearly) → only on INR tab
+    // USD plans (spark, blaze) → only on USD tab
+    const isINRPlan = planId === 'spark-monthly' || planId === 'spark-yearly';
+    const isUSDPlan = planId === 'spark' || planId === 'blaze';
+
+    if (isINRPlan && currency !== 'INR') return false;
+    if (isUSDPlan && currency !== 'USD') return false;
+
+    // Direct planId match (e.g., 'spark-monthly' === 'spark-monthly')
+    if (subPlanId === planId) return true;
+
+    // Spark (USD) matches only USD subscriptions
+    if (planId === 'spark' && subPlanId === 'spark' && subCurrency === 'USD') return true;
+
+    // spark-monthly/spark-yearly only match INR subscriptions
     if (planId === 'spark-monthly' && subPlanId === 'spark-monthly') return true;
-    // spark-yearly plan card matches spark-yearly subscription
     if (planId === 'spark-yearly' && subPlanId === 'spark-yearly') return true;
 
     // Blaze/Flame match
@@ -1213,7 +1260,7 @@ function BillingContent() {
                     </span>
                     {!isTrial && currentSubscription?.amount > 0 && (
                       <span style={{ fontSize: '14px', color: '#ef4444', fontWeight: '600' }}>
-                        {formatCurrency(currentSubscription.amount)}/{currentSubscription?.period || 'month'}
+                        {formatCurrency(currentSubscription.amount, currentSubscription.currency || 'USD')}/{currentSubscription?.period || 'month'}
                       </span>
                     )}
                     {isCancelled && (
