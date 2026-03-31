@@ -129,6 +129,46 @@ function BillingContent() {
     }
   };
 
+  // Sync with Razorpay API — recover missed payments
+  const syncRazorpayPayments = async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/payments/sync-razorpay/${userId}`);
+      const data = await response.json();
+
+      if (data.success && data.synced && data.subscription) {
+        console.log('Razorpay sync recovered payment:', data.payment);
+        showNotification('success', 'Payment recovered! Your plan has been activated.');
+
+        const sub = data.subscription;
+        const subPlanId = (sub.planId || '').toLowerCase();
+        const isTrialPlan = subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free';
+
+        setCurrentSubscription({
+          plan: isTrialPlan ? 'Free Trial' : (sub.planName || sub.planId || 'Unknown Plan'),
+          planId: sub.planId || 'free-trial',
+          status: sub.status || 'active',
+          nextBillingDate: sub.endDate || null,
+          lastPaymentDate: sub.startDate || null,
+          trialStartDate: sub.trialStartDate || sub.startDate || null,
+          trialEndDate: sub.trialEndDate || null,
+          amount: isTrialPlan ? 0 : (sub.amount || 0),
+          currency: sub.currency || 'INR',
+          paymentGateway: sub.paymentGateway || 'razorpay',
+          isTrial: isTrialPlan,
+          cancelledAt: sub.cancelledAt || null,
+          daysRemaining: null, // Will be recalculated on next load
+        });
+
+        if (!isTrialPlan) {
+          setTrialInfo({ daysLeft: 0, isExpired: false, startDate: null });
+        }
+      }
+    } catch (error) {
+      console.error('Razorpay sync error (non-critical):', error);
+      // Silent fail — this is a background recovery mechanism
+    }
+  };
+
   // Indian plans (Razorpay)
   const indianPlanData = {
     INR: [
@@ -295,8 +335,9 @@ function BillingContent() {
                 const data = await response.json();
                 if (data.success && data.subscription) {
                   const sub = data.subscription;
-                  const isTrial = sub.isTrial || sub.planId === 'free-trial' || sub.planName === 'Free Trial' || sub.amount === 0;
-                  const planName = isTrial ? 'Free Trial' : (sub.planName || 'Free Trial');
+                  const subPlanId = (sub.planId || '').toLowerCase();
+                  const isTrial = subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free' || sub.isTrial;
+                  const planName = isTrial ? 'Free Trial' : (sub.planName || sub.planId || 'Unknown Plan');
 
                   setCurrentSubscription({
                     plan: planName,
@@ -312,6 +353,7 @@ function BillingContent() {
                     dodoSubscriptionId: sub.dodoSubscriptionId || null,
                     isTrial,
                     cancelledAt: sub.cancelledAt || null,
+                    daysRemaining: sub.daysRemaining ?? null,
                   });
 
                   if (isTrial) {
@@ -322,6 +364,9 @@ function BillingContent() {
 
                     // Auto-sync for free/trial users with Dodo
                     syncSubscription(userId);
+
+                    // Also try Razorpay sync — recover any missed payments
+                    syncRazorpayPayments(userId);
                   }
                   showNotification('success', 'Billing information loaded!');
                 } else {
@@ -381,20 +426,8 @@ function BillingContent() {
               }
             } catch (error) {
               console.error('Error loading billing information:', error);
-              showNotification('error', 'Error loading billing information');
-              setCurrentSubscription({
-                plan: 'Free Trial',
-                planId: 'free-trial',
-                status: 'active',
-                nextBillingDate: null,
-                lastPaymentDate: null,
-                trialStartDate: new Date().toISOString(),
-                amount: 0,
-                currency: 'USD',
-                paymentGateway: 'dodo',
-                isTrial: true
-              });
-              setTrialInfo({ daysLeft: 30, isExpired: false });
+              showNotification('error', 'Error loading billing information. Please refresh the page.');
+              // Don't set fake trial data — leave as null so UI shows loading/error state
             }
           }
         }
@@ -666,10 +699,29 @@ function BillingContent() {
             const subRes = await fetch(`${API_BASE_URL}/api/payments/subscription/${userId}`);
             const subData = await subRes.json();
             if (subData.success && subData.subscription) {
-              setCurrentSubscription(subData.subscription);
-              if (subData.subscription.isTrial) {
-                const trial = calculateTrialDays(subData.subscription.trialStartDate || subData.subscription.startDate);
-                setTrialInfo({ ...trial, startDate: subData.subscription.trialStartDate || subData.subscription.startDate });
+              const sub = subData.subscription;
+              const subPlanId = (sub.planId || '').toLowerCase();
+              const isTrialPlan = subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free';
+              setCurrentSubscription({
+                plan: isTrialPlan ? 'Free Trial' : (sub.planName || sub.planId || 'Unknown Plan'),
+                planId: sub.planId || 'free-trial',
+                status: sub.status || 'active',
+                nextBillingDate: sub.endDate || null,
+                lastPaymentDate: sub.startDate || null,
+                trialStartDate: sub.trialStartDate || sub.startDate || null,
+                trialEndDate: sub.trialEndDate || null,
+                amount: isTrialPlan ? 0 : (sub.amount || 0),
+                currency: sub.currency || 'INR',
+                paymentGateway: sub.paymentGateway || 'razorpay',
+                isTrial: isTrialPlan,
+                cancelledAt: sub.cancelledAt || null,
+                daysRemaining: sub.daysRemaining ?? null,
+              });
+              if (isTrialPlan) {
+                setTrialInfo({
+                  daysLeft: sub.trialDaysRemaining ?? sub.daysRemaining ?? calculateTrialDays(sub.trialStartDate || sub.startDate).daysLeft,
+                  isExpired: sub.trialIsExpired ?? false,
+                });
               } else {
                 setTrialInfo({ daysLeft: 0, isExpired: false, startDate: null });
               }
@@ -789,7 +841,37 @@ function BillingContent() {
   const availableCurrencies = ['USD', 'INR'];
 
   // Is current subscription a paid plan?
-  const isPaidPlan = currentSubscription && !currentSubscription.isTrial && currentSubscription.planId !== 'free-trial' && currentSubscription.planId !== 'free' && currentSubscription.status === 'active';
+  const isPaidPlan = currentSubscription &&
+    currentSubscription.planId !== 'free-trial' && currentSubscription.planId !== 'free' &&
+    currentSubscription.planId !== 'starter' &&
+    currentSubscription.status === 'active';
+
+  // Helper: does current subscription match this plan?
+  const checkIsCurrentPlan = (plan) => {
+    if (!currentSubscription) return false;
+    const subPlanId = (currentSubscription.planId || '').toLowerCase();
+    const planId = plan.id.toLowerCase();
+
+    // Direct planId match (e.g., 'spark-monthly' === 'spark-monthly')
+    if (subPlanId === planId) return true;
+
+    // Free trial match: only if subscription is actually a trial
+    if (planId === 'free-trial') {
+      return subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free';
+    }
+
+    // Spark monthly/yearly both match the "Spark" plan card in international view
+    if (planId === 'spark' && (subPlanId === 'spark' || subPlanId === 'spark-monthly' || subPlanId === 'spark-yearly')) return true;
+    // spark-monthly plan card matches spark-monthly subscription
+    if (planId === 'spark-monthly' && subPlanId === 'spark-monthly') return true;
+    // spark-yearly plan card matches spark-yearly subscription
+    if (planId === 'spark-yearly' && subPlanId === 'spark-yearly') return true;
+
+    // Blaze/Flame match
+    if (planId === 'blaze' && (subPlanId === 'blaze' || subPlanId === 'flame')) return true;
+
+    return false;
+  };
 
   if (loading) {
     return (
@@ -1046,8 +1128,8 @@ function BillingContent() {
 
       <div style={{ width: '100%', padding: '16px 20px' }}>
 
-        {/* Trial Banner */}
-        {(currentSubscription?.isTrial || currentSubscription?.plan === 'Free Trial') && (
+        {/* Trial Banner — only for actual trial plans */}
+        {(currentSubscription?.planId === 'free-trial' || currentSubscription?.planId === 'starter' || currentSubscription?.planId === 'free') && (
           <div style={{
             backgroundColor: trialInfo.isExpired ? '#fef2f2' : '#f0fdf4',
             border: `1px solid ${trialInfo.isExpired ? '#fecaca' : '#bbf7d0'}`,
@@ -1091,11 +1173,13 @@ function BillingContent() {
 
         {/* Current Plan Banner */}
         {(() => {
-          const displayPlan = currentSubscription?.plan || 'Free Trial';
-          const isTrial = currentSubscription?.isTrial || displayPlan === 'Free Trial' || currentSubscription?.amount === 0;
-          const isBlaze = displayPlan.toLowerCase().includes('blaze') || displayPlan.toLowerCase().includes('flame');
-          const isSpark = displayPlan.toLowerCase().includes('spark') && !isTrial;
+          const subPlanId = (currentSubscription?.planId || 'free-trial').toLowerCase();
+          const isTrial = subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free';
+          const displayPlan = isTrial ? 'Free Trial' : (currentSubscription?.plan || currentSubscription?.planName || subPlanId);
+          const isBlaze = subPlanId.includes('blaze') || subPlanId.includes('flame');
+          const isSpark = subPlanId.includes('spark');
           const isCancelled = currentSubscription?.cancelledAt || currentSubscription?.status === 'cancelled';
+          const isExpired = currentSubscription?.status === 'expired';
 
           return (
             <div style={{
@@ -1118,10 +1202,10 @@ function BillingContent() {
                 </div>
                 <div>
                   <div style={{
-                    fontSize: '11px', color: isTrial ? '#166534' : '#6b7280',
+                    fontSize: '11px', color: isTrial ? '#166534' : isExpired ? '#dc2626' : '#6b7280',
                     marginBottom: '2px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px'
                   }}>
-                    {isTrial ? 'Active Trial' : isCancelled ? 'Cancelled' : 'Current Plan'}
+                    {isTrial ? (trialInfo.isExpired ? 'Trial Expired' : 'Active Trial') : isCancelled ? 'Cancelled' : isExpired ? 'Expired' : 'Current Plan'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '20px', fontWeight: '700', color: isTrial ? '#166534' : '#1f2937' }}>
@@ -1140,10 +1224,31 @@ function BillingContent() {
                         Cancelled
                       </span>
                     )}
-                    {!isTrial && currentSubscription?.nextBillingDate && !isCancelled && (
-                      <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                        Renews {formatDate(currentSubscription.nextBillingDate)}
+                    {isExpired && !isTrial && !isCancelled && (
+                      <span style={{
+                        backgroundColor: '#fecaca', color: '#dc2626', padding: '4px 10px',
+                        borderRadius: '12px', fontSize: '12px', fontWeight: '600',
+                        display: 'flex', alignItems: 'center', gap: '4px'
+                      }}>
+                        <FaExclamationTriangle size={10} /> Expired — Please renew
                       </span>
+                    )}
+                    {!isTrial && currentSubscription?.nextBillingDate && !isCancelled && !isExpired && (
+                      <>
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                          Renews {formatDate(currentSubscription.nextBillingDate)}
+                        </span>
+                        {currentSubscription?.daysRemaining != null && currentSubscription.daysRemaining <= 7 && (
+                          <span style={{
+                            backgroundColor: currentSubscription.daysRemaining <= 3 ? '#ffedd5' : '#fef3c7',
+                            color: currentSubscription.daysRemaining <= 3 ? '#ea580c' : '#92400e',
+                            padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600',
+                            display: 'flex', alignItems: 'center', gap: '4px'
+                          }}>
+                            <FaClock size={10} /> {currentSubscription.daysRemaining} day{currentSubscription.daysRemaining !== 1 ? 's' : ''} left
+                          </span>
+                        )}
+                      </>
                     )}
                     {isTrial && (
                       <span style={{
@@ -1249,6 +1354,124 @@ function BillingContent() {
           </div>
         </div>
 
+        {/* Paid Plan Renewal / Expiration Banner */}
+        {(() => {
+          if (!currentSubscription || currentSubscription.isTrial) return null;
+          const subPlanId = (currentSubscription.planId || '').toLowerCase();
+          if (subPlanId === 'free-trial' || subPlanId === 'starter' || subPlanId === 'free') return null;
+
+          const days = currentSubscription.daysRemaining;
+          const isExpiredPlan = currentSubscription.status === 'expired' || days === 0;
+          const planDisplayName = currentSubscription.plan || currentSubscription.planId;
+          const renewDate = currentSubscription.nextBillingDate ? formatDate(currentSubscription.nextBillingDate) : '';
+
+          // Find matching plan from currentPlans for the Renew Now button
+          const matchingPlan = currentPlans.find(p => checkIsCurrentPlan(p) && p.price > 0);
+
+          if (isExpiredPlan) {
+            return (
+              <div style={{
+                backgroundColor: '#fef2f2', border: '2px solid #fecaca',
+                borderRadius: '12px', padding: '16px 20px', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '50%',
+                    backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaExclamationTriangle size={18} color="#dc2626" />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '700', color: '#dc2626', fontSize: '15px' }}>
+                      Your {planDisplayName} plan has expired!
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#991b1b' }}>
+                      Renew now to keep using all features.
+                    </div>
+                  </div>
+                </div>
+                {matchingPlan && (
+                  <button
+                    onClick={() => handlePayment(matchingPlan)}
+                    disabled={paymentProcessing}
+                    style={{
+                      padding: '10px 24px', borderRadius: '10px', border: 'none',
+                      backgroundColor: '#dc2626', color: 'white', fontWeight: '700',
+                      fontSize: '14px', cursor: 'pointer', display: 'flex',
+                      alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <FaCreditCard size={14} /> Renew Now
+                  </button>
+                )}
+              </div>
+            );
+          }
+
+          if (days != null && days <= 3) {
+            return (
+              <div style={{
+                backgroundColor: '#fff7ed', border: '2px solid #fed7aa',
+                borderRadius: '12px', padding: '14px 20px', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: '12px',
+                animation: 'urgentPulse 2s ease-in-out infinite'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    backgroundColor: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaExclamationTriangle size={16} color="#ea580c" />
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: '700', color: '#ea580c', fontSize: '14px' }}>
+                      Your {planDisplayName} renews in {days} day{days !== 1 ? 's' : ''}
+                    </span>
+                    <span style={{ color: '#9a3412', fontSize: '13px', marginLeft: '6px' }}>
+                      — Payment due soon!
+                    </span>
+                  </div>
+                </div>
+                <div style={{
+                  backgroundColor: '#ea580c', color: 'white', padding: '4px 14px',
+                  borderRadius: '20px', fontSize: '12px', fontWeight: '700'
+                }}>
+                  {days} day{days !== 1 ? 's' : ''} left
+                </div>
+              </div>
+            );
+          }
+
+          if (days != null && days <= 7) {
+            return (
+              <div style={{
+                backgroundColor: '#fffbeb', border: '1px solid #fde68a',
+                borderRadius: '12px', padding: '14px 20px', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <FaClock size={18} color="#d97706" />
+                  <span style={{ fontWeight: '600', color: '#92400e', fontSize: '14px' }}>
+                    Your {planDisplayName} renews in {days} days{renewDate ? ` on ${renewDate}` : ''}
+                  </span>
+                </div>
+                <div style={{
+                  backgroundColor: '#fef3c7', color: '#92400e', padding: '4px 14px',
+                  borderRadius: '20px', fontSize: '12px', fontWeight: '600'
+                }}>
+                  {days} days left
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+
         {/* Plans Grid */}
         <div style={{
           backgroundColor: 'white', borderRadius: '12px', padding: '20px',
@@ -1267,25 +1490,17 @@ function BillingContent() {
             gap: '16px'
           }}>
             {currentPlans.map((plan) => {
-              const currentPlanName = currentSubscription?.plan?.toLowerCase() || '';
-              const currentPlanId = currentSubscription?.planId?.toLowerCase() || '';
-              const planNameLower = plan.name.toLowerCase();
-              const planIdLower = plan.id.toLowerCase();
-
-              const isCurrentPlan =
-                currentSubscription?.plan === plan.name ||
-                ((currentPlanName === 'free trial' || currentPlanName === 'starter' ||
-                  currentPlanId === 'free-trial' || currentPlanId === 'starter' ||
-                  currentSubscription?.amount === 0) && planIdLower.includes('free')) ||
-                (currentPlanName.includes('spark') && planNameLower === 'spark') ||
-                (currentPlanName.includes('blaze') && planNameLower === 'blaze') ||
-                (currentPlanName.includes('flame') && planNameLower === 'blaze');
-
+              const isCurrentPlan = checkIsCurrentPlan(plan);
               const isPopular = plan.popular && !isCurrentPlan;
+
+              // Check if current paid plan is expired (allow renewal)
+              const isPaidExpired = isCurrentPlan && currentSubscription?.status === 'expired' && plan.price > 0;
 
               // Determine button text for upgrade/downgrade
               let buttonText = '';
-              if (isCurrentPlan) {
+              if (isCurrentPlan && isPaidExpired) {
+                buttonText = `Renew — ${currency === 'INR' ? 'Razorpay' : 'Dodo'}`;
+              } else if (isCurrentPlan) {
                 buttonText = plan.price === 0 ? 'Currently Active' : 'Your Plan';
               } else if (plan.price === 0) {
                 buttonText = 'Start Free Trial';
@@ -1378,19 +1593,21 @@ function BillingContent() {
                   </div>
 
                   <button
-                    onClick={() => !isCurrentPlan && handlePayment(plan)}
-                    disabled={isCurrentPlan || paymentProcessing}
+                    onClick={() => (!isCurrentPlan || isPaidExpired) && handlePayment(plan)}
+                    disabled={(isCurrentPlan && !isPaidExpired) || paymentProcessing}
                     style={{
                       width: '100%', padding: '10px', borderRadius: '8px',
-                      border: isCurrentPlan ? '2px solid #10b981' : 'none',
-                      backgroundColor: isCurrentPlan ? '#dcfce7' : isPopular ? '#ef4444' : '#f3f4f6',
-                      color: isCurrentPlan ? '#166534' : isPopular ? 'white' : '#ef4444',
+                      border: isCurrentPlan && !isPaidExpired ? '2px solid #10b981' : 'none',
+                      backgroundColor: isPaidExpired ? '#dc2626' : isCurrentPlan ? '#dcfce7' : isPopular ? '#ef4444' : '#f3f4f6',
+                      color: isPaidExpired ? 'white' : isCurrentPlan ? '#166534' : isPopular ? 'white' : '#ef4444',
                       fontWeight: '600', fontSize: '13px',
-                      cursor: isCurrentPlan ? 'default' : 'pointer', marginBottom: '16px',
+                      cursor: isCurrentPlan && !isPaidExpired ? 'default' : 'pointer', marginBottom: '16px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
                   >
-                    {isCurrentPlan ? (
+                    {isPaidExpired ? (
+                      <><FaCreditCard size={12} /> {buttonText}</>
+                    ) : isCurrentPlan ? (
                       <><FaCheckCircle size={12} /> {buttonText}</>
                     ) : plan.price === 0 ? (
                       <><FaRocket size={12} /> {buttonText}</>
@@ -1455,6 +1672,10 @@ function BillingContent() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes urgentPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.15); }
+          50% { box-shadow: 0 0 0 6px rgba(234, 88, 12, 0.08); }
         }
       `}</style>
     </div>
