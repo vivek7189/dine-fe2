@@ -834,6 +834,16 @@ class ApiClient {
     return this.request(`/api/analytics/${restaurantId}?${params.toString()}`);
   }
 
+  async getDailySummary(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.date) params.append('date', options.date);
+    if (options.period) params.append('period', options.period);
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/daily-summary${qs ? '?' + qs : ''}`);
+  }
+
   // Table management endpoints
   async getTables(restaurantId) {
     return this.request(`/api/tables/${restaurantId}`);
