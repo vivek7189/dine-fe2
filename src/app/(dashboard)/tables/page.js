@@ -368,13 +368,23 @@ const TableManagement = () => {
     } catch (err) { showError(`Failed to edit floor: ${err.message}`); }
   };
 
+  const [deleteFloorConfirm, setDeleteFloorConfirm] = useState(null);
+  const [deletingFloor, setDeletingFloor] = useState(false);
+
   const deleteFloor = async (floorId) => {
-    if (!confirm('Delete this floor and all its tables?')) return;
+    if (!selectedRestaurant?.id) {
+      showError('No restaurant selected');
+      return;
+    }
     try {
-      await apiClient.deleteFloor(floorId, { restaurantId: selectedRestaurant.id });
+      setDeletingFloor(true);
+      await apiClient.deleteFloor(floorId, selectedRestaurant.id);
       setFloors(prev => prev.filter(f => f.id !== floorId));
-      showSuccess('Floor deleted');
+      if (selectedFloorId === floorId) setSelectedFloorId('all');
+      showSuccess('Floor deleted successfully');
+      setDeleteFloorConfirm(null);
     } catch (err) { showError(`Failed to delete floor: ${err.message}`); }
+    finally { setDeletingFloor(false); }
   };
 
   const startEditFloor = (floor) => {
@@ -819,7 +829,7 @@ const TableManagement = () => {
                   {canManageTables && (
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button onClick={() => startEditFloor(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}><FaEdit size={12} /></button>
-                      <button onClick={() => deleteFloor(floor.id)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><FaTrash size={12} /></button>
+                      <button onClick={() => setDeleteFloorConfirm(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><FaTrash size={12} /></button>
                     </div>
                   )}
                 </div>
@@ -1286,6 +1296,62 @@ const TableManagement = () => {
           )}
         </div>
       </div>
+
+      {/* ─── DELETE FLOOR CONFIRMATION MODAL ─── */}
+      {deleteFloorConfirm && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white', padding: '28px', borderRadius: '16px',
+            maxWidth: '400px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto 16px'
+              }}>
+                <FaTrash size={22} color="#ef4444" />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 8px 0' }}>
+                Delete Floor
+              </h3>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+                Delete <strong>{deleteFloorConfirm.name}</strong> and all its tables? This cannot be undone.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setDeleteFloorConfirm(null)}
+                disabled={deletingFloor}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px',
+                  border: '2px solid #e5e7eb', backgroundColor: 'white',
+                  color: '#6b7280', fontWeight: '600', fontSize: '14px', cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteFloor(deleteFloorConfirm.id)}
+                disabled={deletingFloor}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px',
+                  border: 'none', backgroundColor: '#ef4444',
+                  color: 'white', fontWeight: '600', fontSize: '14px',
+                  cursor: deletingFloor ? 'not-allowed' : 'pointer',
+                  opacity: deletingFloor ? 0.7 : 1
+                }}
+              >
+                {deletingFloor ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── ADD TABLE MODAL ─── */}
       {showAddModal && (

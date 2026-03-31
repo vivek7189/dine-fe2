@@ -83,15 +83,16 @@ function FocusSelect({ style, children, ...props }) {
   );
 }
 
-function ModalShell({ show, onClose, title, children, getModalStyles, getModalContentStyles }) {
+function ModalShell({ show, onClose, title, children, footer, getModalStyles, getModalContentStyles }) {
   if (!show || typeof document === 'undefined') return null;
   return createPortal(
     <div style={{ ...getModalStyles(), zIndex: 10002 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ ...getModalContentStyles(), padding: 0, overflow: 'hidden' }}>
+      <div style={{ ...getModalContentStyles(), padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
         <div style={{
           background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
           padding: '16px 20px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
         }}>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'white' }}>{title}</h2>
           <button
@@ -105,9 +106,14 @@ function ModalShell({ show, onClose, title, children, getModalStyles, getModalCo
             <FaTimes size={14} />
           </button>
         </div>
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
           {children}
         </div>
+        {footer && (
+          <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0 }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body
@@ -130,7 +136,15 @@ function AddEditItemModal(props) {
 
   return (
     <ModalShell show={isOpen} onClose={close} title={isEdit ? 'Edit Inventory Item' : 'Add Inventory Item'}
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={close}>Cancel</button>
+          <button style={primaryBtn} onClick={isEdit ? handleUpdateItem : handleAddItem}>
+            <FaSave /> {isEdit ? 'Update Item' : 'Add Item'}
+          </button>
+        </div>
+      }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
           <label style={labelStyle}>Name *</label>
@@ -190,12 +204,6 @@ function AddEditItemModal(props) {
           <FocusTextarea value={formData.description} onChange={e => update('description', e.target.value)} placeholder="Description" />
         </div>
       </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={close}>Cancel</button>
-        <button style={primaryBtn} onClick={isEdit ? handleUpdateItem : handleAddItem}>
-          <FaSave /> {isEdit ? 'Update Item' : 'Add Item'}
-        </button>
-      </div>
     </ModalShell>
   );
 }
@@ -212,7 +220,13 @@ function AddSupplierModal(props) {
 
   return (
     <ModalShell show={showAddSupplierModal} onClose={() => setShowAddSupplierModal(false)} title="Add Supplier"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddSupplierModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={handleAddSupplier}><FaSave /> Add Supplier</button>
+        </div>
+      }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Name *</label>
@@ -251,10 +265,6 @@ function AddSupplierModal(props) {
           <FocusTextarea value={supplierFormData.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes" />
         </div>
       </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddSupplierModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={handleAddSupplier}><FaSave /> Add Supplier</button>
-      </div>
     </ModalShell>
   );
 }
@@ -270,7 +280,13 @@ function AddPurchaseOrderModal(props) {
 
   return (
     <ModalShell show={showAddPurchaseOrderModal} onClose={() => setShowAddPurchaseOrderModal(false)} title="Create Purchase Order"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddPurchaseOrderModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={handleAddPurchaseOrder}><FaSave /> Create Order</button>
+        </div>
+      }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Supplier *</label>
@@ -314,10 +330,6 @@ function AddPurchaseOrderModal(props) {
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={purchaseOrderFormData.notes}
           onChange={e => setPurchaseOrderFormData({ ...purchaseOrderFormData, notes: e.target.value })} placeholder="Order notes" />
-      </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddPurchaseOrderModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={handleAddPurchaseOrder}><FaSave /> Create Order</button>
       </div>
     </ModalShell>
   );
@@ -458,11 +470,14 @@ function AddRecipeModal(props) {
         boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
         width: '100%', maxWidth: isMobile ? '500px' : '820px',
         marginTop: 20, marginBottom: 20,
+        display: 'flex', flexDirection: 'column', maxHeight: '90vh',
+        overflow: 'hidden',
       }}>
         <div style={{
           background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
           padding: '16px 20px', borderRadius: '14px 14px 0 0',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
         }}>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>Add Recipe</h2>
           <button onClick={() => setShowAddRecipeModal(false)} style={{
@@ -473,7 +488,7 @@ function AddRecipeModal(props) {
             <FaTimes size={14} />
           </button>
         </div>
-        <div style={{ padding: 20, maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' }}>
+        <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <RecipeFormBody
             recipeFormData={recipeFormData} setRecipeFormData={setRecipeFormData}
@@ -484,10 +499,10 @@ function AddRecipeModal(props) {
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
           />
-          <div style={footerStyle}>
-            <button style={secondaryBtn} onClick={() => setShowAddRecipeModal(false)}>Cancel</button>
-            <button style={primaryBtn} onClick={handleAddRecipe}><FaSave /> Create Recipe</button>
-          </div>
+        </div>
+        <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddRecipeModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={handleAddRecipe}><FaSave /> Create Recipe</button>
         </div>
       </div>
     </div>,
@@ -530,7 +545,17 @@ function QuickStockModal(props) {
 
   return (
     <ModalShell show={showQuickStockModal} onClose={() => setShowQuickStockModal(false)} title="Quick Stock Update"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => { setShowQuickStockModal(false); setQuickStockItems([]); }}>Cancel</button>
+          <button style={{ ...primaryBtn, opacity: changedCount === 0 ? 0.5 : 1 }}
+            disabled={changedCount === 0}
+            onClick={() => handleQuickStockUpdate(quickStockItems.filter(q => q.adjustment !== 0))}>
+            <FaSave /> Save All Changes {changedCount > 0 && `(${changedCount})`}
+          </button>
+        </div>
+      }>
       <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px', marginTop: '-8px' }}>
         Adjust stock levels for your daily check-in. Changed items are highlighted.
       </p>
@@ -592,15 +617,6 @@ function QuickStockModal(props) {
           );
         })}
       </div>
-
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => { setShowQuickStockModal(false); setQuickStockItems([]); }}>Cancel</button>
-        <button style={{ ...primaryBtn, opacity: changedCount === 0 ? 0.5 : 1 }}
-          disabled={changedCount === 0}
-          onClick={() => handleQuickStockUpdate(quickStockItems.filter(q => q.adjustment !== 0))}>
-          <FaSave /> Save All Changes {changedCount > 0 && `(${changedCount})`}
-        </button>
-      </div>
     </ModalShell>
   );
 }
@@ -626,7 +642,13 @@ function AddGRNModal(props) {
 
   return (
     <ModalShell show={showAddGRNModal} onClose={() => setShowAddGRNModal(false)} title="Add Goods Received Note"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddGRNModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={() => setShowAddGRNModal(false)}><FaSave /> Create GRN</button>
+        </div>
+      }>
       <div style={fieldWrap}>
         <label style={labelStyle}>Purchase Order *</label>
         <FocusSelect value={grnFormData.purchaseOrderId} onChange={e => handlePOChange(e.target.value)}>
@@ -659,10 +681,6 @@ function AddGRNModal(props) {
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={grnFormData.notes || ''} onChange={e => setGrnFormData({ ...grnFormData, notes: e.target.value })} placeholder="Notes" />
-      </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddGRNModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={() => setShowAddGRNModal(false)}><FaSave /> Create GRN</button>
       </div>
     </ModalShell>
   );
@@ -698,7 +716,13 @@ function AddRequisitionModal(props) {
 
   return (
     <ModalShell show={showAddRequisitionModal} onClose={() => setShowAddRequisitionModal(false)} title="Add Purchase Requisition"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddRequisitionModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={() => setShowAddRequisitionModal(false)}><FaSave /> Create Requisition</button>
+        </div>
+      }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Priority</label>
@@ -741,10 +765,6 @@ function AddRequisitionModal(props) {
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={requisitionFormData.notes} onChange={e => setRequisitionFormData({ ...requisitionFormData, notes: e.target.value })} placeholder="Notes" />
       </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddRequisitionModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={() => setShowAddRequisitionModal(false)}><FaSave /> Create Requisition</button>
-      </div>
     </ModalShell>
   );
 }
@@ -782,7 +802,13 @@ function AddInvoiceModal(props) {
 
   return (
     <ModalShell show={showAddInvoiceModal} onClose={() => setShowAddInvoiceModal(false)} title="Add Supplier Invoice"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddInvoiceModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={() => setShowAddInvoiceModal(false)}><FaSave /> Save Invoice</button>
+        </div>
+      }>
 
       <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -847,10 +873,6 @@ function AddInvoiceModal(props) {
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={invoiceFormData.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes" />
       </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddInvoiceModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={() => setShowAddInvoiceModal(false)}><FaSave /> Save Invoice</button>
-      </div>
     </ModalShell>
   );
 }
@@ -888,7 +910,13 @@ function AddReturnModal(props) {
 
   return (
     <ModalShell show={showAddReturnModal} onClose={() => setShowAddReturnModal(false)} title="Add Supplier Return"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddReturnModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={() => setShowAddReturnModal(false)}><FaSave /> Create Return</button>
+        </div>
+      }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Purchase Order</label>
@@ -948,10 +976,6 @@ function AddReturnModal(props) {
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={returnFormData.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes" />
       </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddReturnModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={() => setShowAddReturnModal(false)}><FaSave /> Create Return</button>
-      </div>
     </ModalShell>
   );
 }
@@ -988,7 +1012,13 @@ function AddTransferModal(props) {
 
   return (
     <ModalShell show={showAddTransferModal} onClose={() => setShowAddTransferModal(false)} title="Add Stock Transfer"
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowAddTransferModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={() => setShowAddTransferModal(false)}><FaSave /> Create Transfer</button>
+        </div>
+      }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>From Location *</label>
@@ -1029,10 +1059,6 @@ function AddTransferModal(props) {
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={transferFormData.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes" />
-      </div>
-      <div style={footerStyle}>
-        <button style={secondaryBtn} onClick={() => setShowAddTransferModal(false)}>Cancel</button>
-        <button style={primaryBtn} onClick={() => setShowAddTransferModal(false)}><FaSave /> Create Transfer</button>
       </div>
     </ModalShell>
   );
@@ -1530,11 +1556,14 @@ function EditRecipeModal(props) {
         boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
         width: '100%', maxWidth: isMobile ? '500px' : '820px',
         marginTop: 20, marginBottom: 20,
+        display: 'flex', flexDirection: 'column', maxHeight: '90vh',
+        overflow: 'hidden',
       }}>
         <div style={{
           background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
           padding: '16px 20px', borderRadius: '14px 14px 0 0',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
         }}>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>
             Edit Recipe — {editingRecipe.name}
@@ -1547,7 +1576,7 @@ function EditRecipeModal(props) {
             <FaTimes size={14} />
           </button>
         </div>
-        <div style={{ padding: 20, maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' }}>
+        <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <RecipeFormBody
             recipeFormData={recipeFormData} setRecipeFormData={setRecipeFormData}
@@ -1558,10 +1587,10 @@ function EditRecipeModal(props) {
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
           />
-          <div style={footerStyle}>
-            <button style={secondaryBtn} onClick={() => setShowEditRecipeModal(false)}>Cancel</button>
-            <button style={primaryBtn} onClick={handleUpdateRecipe}><FaSave /> Update Recipe</button>
-          </div>
+        </div>
+        <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button style={secondaryBtn} onClick={() => setShowEditRecipeModal(false)}>Cancel</button>
+          <button style={primaryBtn} onClick={handleUpdateRecipe}><FaSave /> Update Recipe</button>
         </div>
       </div>
     </div>,

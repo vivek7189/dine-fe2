@@ -913,8 +913,8 @@ class ApiClient {
     });
   }
 
-  async deleteFloor(floorId) {
-    return this.request(`/api/floors/${floorId}`, {
+  async deleteFloor(floorId, restaurantId) {
+    return this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {
       method: 'DELETE',
     });
   }

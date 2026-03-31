@@ -2647,7 +2647,7 @@ const Admin = () => {
     { id: 'hotel', name: 'Hotel PMS', icon: FaBuilding, description: 'Hotel property management system', color: '#6366f1' },
     { id: 'invoice', name: 'Invoice & Billing', icon: FaFileInvoice, description: 'Professional invoicing, quotes, and expense tracking', color: '#0ea5e9' },
     { id: 'multiPricing', name: 'Multi-Tier Pricing', icon: FaLayerGroup, description: 'Per-item pricing for AC/Non-AC/Takeaway and custom rules', color: '#8b5cf6' },
-    { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Collect and manage Google Reviews via QR', color: '#ea4335' },
+    // { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Collect and manage Google Reviews via QR', color: '#ea4335' },
   ];
 
   useEffect(() => {
@@ -2780,9 +2780,9 @@ const Admin = () => {
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
       { id: 'offers', label: 'Offers & Discounts', icon: FaTag },
     ]},
-    { label: 'INTEGRATIONS', items: [
-      { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
-    ]},
+    // { label: 'INTEGRATIONS', items: [
+    //   { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
+    // ]},
   ];
   const activeNavItem = navGroups.flatMap(function(g) { return g.items; }).find(function(i) { return i.id === activeTab; });
 
