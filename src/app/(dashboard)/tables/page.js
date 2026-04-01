@@ -260,8 +260,8 @@ const TableManagement = () => {
   }, []);
 
   // ─── Pusher subscription for real-time table/order updates ───
-  const loadFloorsRef = useRef(loadFloorsAndTables);
-  useEffect(() => { loadFloorsRef.current = loadFloorsAndTables; }, [loadFloorsAndTables]);
+  const loadFloorsRef = useRef(null);
+  useEffect(() => { loadFloorsRef.current = loadFloorsAndTables; });
 
   useEffect(() => {
     if (!selectedRestaurant?.id) return;
@@ -285,7 +285,7 @@ const TableManagement = () => {
 
       const debouncedRefresh = () => {
         if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => loadFloorsRef.current(restaurantId, true), 1000);
+        debounceTimer = setTimeout(() => loadFloorsRef.current?.(restaurantId, true), 1000);
       };
 
       const handleEvent = (eventName) => (data) => {
