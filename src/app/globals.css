@@ -446,3 +446,12 @@ textarea:focus {
   background: #dbeafe;
   color: #1e40af;
 }
+
+/* Invoice module animations */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}

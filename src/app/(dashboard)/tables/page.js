@@ -6,6 +6,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import apiClient from '../../../lib/api';
 import { useNotification } from '../../../components/Notification.js';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
+import Pusher from 'pusher-js';
 import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
@@ -258,6 +259,50 @@ const TableManagement = () => {
     window.addEventListener('restaurantChanged', handleRestaurantChange);
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, []);
+
+  // ─── Pusher subscription for real-time table/order updates ───
+  const loadFloorsRef = useRef(loadFloorsAndTables);
+  useEffect(() => { loadFloorsRef.current = loadFloorsAndTables; }, [loadFloorsAndTables]);
+
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+
+    const restaurantId = selectedRestaurant.id;
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
+    });
+
+    const channelName = `restaurant-${restaurantId}`;
+    const channel = pusher.subscribe(channelName);
+
+    console.log(`📡 Tables: Subscribed to '${channelName}'`);
+
+    let debounceTimer = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadFloorsRef.current(restaurantId, true), 1000);
+    };
+
+    const handleEvent = (eventName) => (data) => {
+      console.log(`📡 Tables: Received '${eventName}'`, data);
+      debouncedRefresh();
+    };
+
+    channel.bind('order-created', handleEvent('order-created'));
+    channel.bind('order-updated', handleEvent('order-updated'));
+    channel.bind('order-status-updated', handleEvent('order-status-updated'));
+    channel.bind('order-completed', handleEvent('order-completed'));
+    channel.bind('order-deleted', handleEvent('order-deleted'));
+    channel.bind('table-status-updated', handleEvent('table-status-updated'));
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      console.log(`📡 Tables: Unsubscribing from '${channelName}'`);
+      channel.unbind_all();
+      pusher.unsubscribe(channelName);
+      pusher.disconnect();
+    };
+  }, [selectedRestaurant?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

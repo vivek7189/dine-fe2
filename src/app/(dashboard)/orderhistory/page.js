@@ -558,6 +558,10 @@ const OrderHistory = () => {
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
   }, [restaurantId]);
 
+  // Stable ref for fetchOrders so Pusher doesn't re-subscribe on every render
+  const fetchOrdersRef = useRef(fetchOrders);
+  useEffect(() => { fetchOrdersRef.current = fetchOrders; }, [fetchOrders]);
+
   // Pusher subscription for real-time order updates
   useEffect(() => {
     if (!restaurantId) return;
@@ -573,11 +577,14 @@ const OrderHistory = () => {
 
     console.log(`📡 Pusher: Subscribed to channel '${channelName}'`);
 
-    // Handle order events
+    // Debounce Pusher events — if multiple events arrive within 1s, only fetch once
+    let debounceTimer = null;
     const handleOrderEvent = (eventName, data) => {
       console.log(`📡 Pusher: Received '${eventName}' event:`, data);
-      // Refresh orders list (without cache to get latest data)
-      fetchOrders(false);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchOrdersRef.current(false);
+      }, 1000);
     };
 
     channel.bind('order-created', (data) => handleOrderEvent('order-created', data));
@@ -587,12 +594,13 @@ const OrderHistory = () => {
 
     // Cleanup on unmount
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       console.log(`📡 Pusher: Unsubscribing from channel '${channelName}'`);
       channel.unbind_all();
       pusher.unsubscribe(channelName);
       pusher.disconnect();
     };
-  }, [restaurantId, fetchOrders]);
+  }, [restaurantId]); // Only re-subscribe when restaurant changes
 
   // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
   useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaChair, FaClock, FaUserFriends, FaUtensils, FaTools, FaBan, FaPrint, FaPlus, FaEllipsisH, FaCreditCard, FaExchangeAlt, FaTrash, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
@@ -50,7 +50,9 @@ export default function DashboardTablesPanel({
   taxSettings,
   menuItems,
   printSettings,
-  onRefreshTables // Callback to refresh tables data after billing
+  onRefreshTables, // Callback to refresh tables data after billing
+  recentlyUpdatedTableId, // Table ID that just had an order action (for highlight animation)
+  onClearRecentlyUpdated // Callback to clear the highlight
 }) {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -67,6 +69,23 @@ export default function DashboardTablesPanel({
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Ref for the recently updated table card
+  const updatedTableRef = useRef(null);
+
+  // Auto-clear the recently updated table highlight after 3 seconds, and scroll into view
+  useEffect(() => {
+    if (recentlyUpdatedTableId) {
+      // Scroll the highlighted table into view
+      if (updatedTableRef.current) {
+        updatedTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const timeout = setTimeout(() => {
+        if (onClearRecentlyUpdated) onClearRecentlyUpdated();
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [recentlyUpdatedTableId, onClearRecentlyUpdated]);
 
   // Table Actions Modal state
   const [actionsModal, setActionsModal] = useState({ open: false, table: null, order: null, loading: false });
@@ -597,6 +616,30 @@ export default function DashboardTablesPanel({
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.7; transform: scale(1.1); }
         }
+        @keyframes tableSpinRing {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes tablePulseOverlay {
+          0%, 100% { opacity: 0.55; }
+          50% { opacity: 0.35; }
+        }
+        .table-card-updated {
+          position: relative;
+          pointer-events: none;
+        }
+        .table-card-updated > * {
+          opacity: 0.3;
+        }
+        .table-card-updated::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: rgba(254, 242, 242, 0.6);
+          animation: tablePulseOverlay 1.8s ease-in-out infinite;
+          z-index: 10;
+        }
         .table-card {
           transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -685,10 +728,13 @@ export default function DashboardTablesPanel({
               const isCleaning = status === 'cleaning';
               const isOutOfService = status === 'out-of-service';
 
+              const isRecentlyUpdated = recentlyUpdatedTableId && t.id === recentlyUpdatedTableId;
+
               return (
-                <div 
+                <div
                   key={t.id || tIdx}
-                  className="table-card"
+                  ref={isRecentlyUpdated ? updatedTableRef : undefined}
+                  className={`table-card${isRecentlyUpdated ? ' table-card-updated' : ''}`}
                   style={{
                     background: config.bg, // Light background color based on status
                     borderRadius: '12px',
@@ -732,6 +778,28 @@ export default function DashboardTablesPanel({
                          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
                       </rect>
                     </svg>
+                  )}
+
+                  {/* Updating spinner overlay */}
+                  {isRecentlyUpdated && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 20,
+                      pointerEvents: 'none',
+                    }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        border: '3px solid #fecaca',
+                        borderTopColor: '#ef4444',
+                        animation: 'tableSpinRing 0.8s linear infinite',
+                      }} />
+                    </div>
                   )}
 
                   <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column' }}>

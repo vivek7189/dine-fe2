@@ -78,12 +78,12 @@ export default function RootLayout({ children }) {
         </LoadingProvider>
         <Analytics />
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
-        <script
+        {/* <script
           src="https://fixflow-fe.vercel.app/sdk.js"
           data-api-key="ff_9938c164292e9424678ed4d33e9ed7b672d18a648e81cb9903304fbe46849916"
           data-api-url="https://fixflow-be.vercel.app/api/events"
           async
-        ></script>
+        ></script> */}
       </body>
     </html>
   )

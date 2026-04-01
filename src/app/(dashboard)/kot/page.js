@@ -226,17 +226,24 @@ const KitchenOrderTicket = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // ─── Refs for Pusher ───
-  const initialDataLoadedRef = useRef(false);
-  const pusherRef = useRef(null);
-  const channelRef = useRef(null);
+  // ─── Refs for stable callbacks ───
   const loadKotDataRef = useRef(loadKotData);
+  useEffect(() => { loadKotDataRef.current = loadKotData; }, [loadKotData]);
 
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+
+  // ─── Initial Data Load ───
+  const initialLoadDone = useRef(false);
   useEffect(() => {
-    loadKotDataRef.current = loadKotData;
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+    loadKotData(true, true);
   }, [loadKotData]);
 
-  const getRestaurantIdForPusher = useCallback(() => {
+  // ─── Pusher Subscription (same pattern as orderhistory) ───
+  const [pusherRestaurantId, setPusherRestaurantId] = useState(() => {
+    if (typeof window === 'undefined') return null;
     const userData = localStorage.getItem('user');
     if (!userData) return null;
     const user = JSON.parse(userData);
@@ -244,74 +251,69 @@ const KitchenOrderTicket = () => {
       return user.restaurantId;
     }
     return localStorage.getItem('selectedRestaurantId') || null;
-  }, []);
+  });
 
-  const setupPusher = useCallback((restaurantId) => {
-    if (channelRef.current) channelRef.current.unbind_all();
-    if (pusherRef.current) {
-      if (channelRef.current) pusherRef.current.unsubscribe(channelRef.current.name);
-      pusherRef.current.disconnect();
-    }
+  useEffect(() => {
+    if (!pusherRestaurantId) return;
 
-    if (!restaurantId) {
-      setIsPollingActive(false);
-      return;
-    }
-
-    pusherRef.current = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
     });
 
-    const channelName = `restaurant-${restaurantId}`;
-    channelRef.current = pusherRef.current.subscribe(channelName);
+    const channelName = `restaurant-${pusherRestaurantId}`;
+    const channel = pusher.subscribe(channelName);
     setIsPollingActive(true);
 
+    console.log(`📡 KOT Pusher: Subscribed to '${channelName}'`);
+
+    // Debounce — if multiple events arrive within 1s, only fetch once
+    let debounceTimer = null;
     const handleOrderEvent = (eventName, data) => {
+      console.log(`📡 KOT Pusher: Received '${eventName}'`, data);
       setPollCount(prev => prev + 1);
-      loadKotDataRef.current(false, false);
-      // Play new order sound
-      if (eventName === 'order-created' && soundEnabled) {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadKotDataRef.current(false, false);
+      }, 1000);
+      // Play sound for new orders (uses ref to avoid stale closure)
+      if (eventName === 'order-created' && soundEnabledRef.current) {
         playSound('newOrder');
       }
     };
 
-    channelRef.current.bind('order-created', (data) => handleOrderEvent('order-created', data));
-    channelRef.current.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
-    channelRef.current.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
-    channelRef.current.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
-  }, [soundEnabled]);
-
-  // ─── Initial Load ───
-  useEffect(() => {
-    if (initialDataLoadedRef.current) return;
-    initialDataLoadedRef.current = true;
-    loadKotData(true, true);
-    const restaurantId = getRestaurantIdForPusher();
-    setupPusher(restaurantId);
+    channel.bind('order-created', (data) => handleOrderEvent('order-created', data));
+    channel.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
+    channel.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
+    channel.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
 
     return () => {
-      if (channelRef.current) channelRef.current.unbind_all();
-      if (pusherRef.current) {
-        if (channelRef.current) pusherRef.current.unsubscribe(channelRef.current.name);
-        pusherRef.current.disconnect();
-      }
+      if (debounceTimer) clearTimeout(debounceTimer);
+      console.log(`📡 KOT Pusher: Unsubscribing from '${channelName}'`);
+      channel.unbind_all();
+      pusher.unsubscribe(channelName);
+      pusher.disconnect();
       setIsPollingActive(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pusherRestaurantId]);
 
   // ─── Restaurant Change ───
   useEffect(() => {
     const handleRestaurantChange = (event) => {
-      initialDataLoadedRef.current = false;
+      initialLoadDone.current = false;
       loadKotData(true, true);
-      const newRestaurantId = event.detail?.restaurantId || localStorage.getItem('selectedRestaurantId');
-      if (newRestaurantId) setupPusher(newRestaurantId);
+      const newId = event.detail?.restaurantId || localStorage.getItem('selectedRestaurantId');
+      if (newId) setPusherRestaurantId(newId);
     };
     window.addEventListener('restaurantChanged', handleRestaurantChange);
     return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setupPusher]);
+  }, [loadKotData]);
+
+  // Also set pusherRestaurantId once currentRestaurant loads (for owner/admin first visit)
+  useEffect(() => {
+    if (currentRestaurant?.id && !pusherRestaurantId) {
+      setPusherRestaurantId(currentRestaurant.id);
+    }
+  }, [currentRestaurant, pusherRestaurantId]);
 
   // ─── Cleanup on unmount ───
   useEffect(() => {
@@ -609,8 +611,8 @@ const KitchenOrderTicket = () => {
     .sort((a, b) => {
       const aTime = new Date(a.kotTime || a.createdAt || a.timestamp).getTime();
       const bTime = new Date(b.kotTime || b.createdAt || b.timestamp).getTime();
-      // Active tabs: oldest first (FIFO), Done: newest first
-      return selectedTab === 'done' ? bTime - aTime : aTime - bTime;
+      // Newest first across all tabs — new orders appear on top
+      return bTime - aTime;
     });
 
   // Tab counts
@@ -818,19 +820,25 @@ const KitchenOrderTicket = () => {
 
               <button
                 onClick={() => loadKotData(false)}
+                disabled={refreshing}
                 style={{
-                  padding: isClient && isMobile ? '7px' : '9px',
+                  padding: isClient && isMobile ? '7px 10px' : '8px 14px',
                   borderRadius: '8px',
                   border: 'none',
-                  cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  cursor: refreshing ? 'not-allowed' : 'pointer',
+                  background: refreshing ? '#f87171' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: 'white',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)'
+                  gap: '6px',
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)',
+                  fontSize: isClient && isMobile ? '11px' : '13px',
+                  fontWeight: '600',
+                  opacity: refreshing ? 0.8 : 1,
                 }}
-                title="Refresh"
+                title="Refresh orders"
               >
-                <FaSync size={isClient && isMobile ? 11 : 13} className={refreshing ? 'animate-spin' : ''} />
+                <FaSync size={isClient && isMobile ? 11 : 12} className={refreshing ? 'animate-spin' : ''} />
+                {!isMobile && (refreshing ? 'Refreshing...' : 'Refresh')}
               </button>
             </div>
           </div>
@@ -943,6 +951,8 @@ const KitchenOrderTicket = () => {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)',
                       transition: 'all 0.3s ease',
                       position: 'relative',
+                      display: 'flex',
+                      flexDirection: 'column',
                       opacity: (isUpdating || isDeleting) ? 0.5 : isTransitioning ? 0.85 : 1,
                       transform: isTransitioning ? 'scale(0.97)' : 'scale(1)'
                     }}
@@ -1081,7 +1091,7 @@ const KitchenOrderTicket = () => {
                     </div>
 
                     {/* Items */}
-                    <div style={{ padding: '4px 16px 12px' }}>
+                    <div style={{ padding: '4px 16px 12px', flex: 1 }}>
                       <div style={{
                         fontSize: '10px', fontWeight: '600', color: '#b0b0b0',
                         textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'
@@ -1157,6 +1167,7 @@ const KitchenOrderTicket = () => {
                     {/* Action Footer */}
                     <div style={{
                       padding: '8px 16px 12px',
+                      marginTop: 'auto',
                       display: 'flex',
                       gap: '8px',
                       alignItems: 'center'

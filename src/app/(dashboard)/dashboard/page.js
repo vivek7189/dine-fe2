@@ -80,6 +80,7 @@ function RestaurantPOSContent() {
   const [returnToView, setReturnToView] = useState(null); // Track where to return after order action (null | 'tables' | 'orderhistory')
   const [orderLoadingPartial, setOrderLoadingPartial] = useState(false); // Partial loading for order details (no full page reload)
   const [tablesData, setTablesData] = useState({ floors: [], tables: [] });
+  const [recentlyUpdatedTableId, setRecentlyUpdatedTableId] = useState(null);
   const [tablesRefreshing, setTablesRefreshing] = useState(false);
   
   // Ref to track if initial data has been loaded (prevents duplicate calls)
@@ -1195,7 +1196,7 @@ function RestaurantPOSContent() {
   const updateTableStatus = async (tableId, status, orderId = null) => {
     try {
       console.log(`🪑 Updating table ${tableId} status to ${status} with orderId: ${orderId}`);
-      const result = await apiClient.updateTableStatus(tableId, status, orderId);
+      const result = await apiClient.updateTableStatus(tableId, status, orderId, selectedRestaurant?.id);
       console.log('✅ Table status update successful:', result);
       
       // Update local tables state
@@ -1679,6 +1680,10 @@ function RestaurantPOSContent() {
     }
   }, [viewMode, selectedRestaurant?.id, prefetchTables]);
 
+  // Stable ref for prefetchTables so Pusher doesn't re-subscribe on every render
+  const prefetchTablesRef = useRef(prefetchTables);
+  useEffect(() => { prefetchTablesRef.current = prefetchTables; }, [prefetchTables]);
+
   // Pusher subscription for real-time table status updates
   useEffect(() => {
     if (!selectedRestaurant?.id) return;
@@ -1696,35 +1701,36 @@ function RestaurantPOSContent() {
 
     console.log(`📡 Dashboard: Subscribed to Pusher channel '${channelName}' for table updates`);
 
-    // Handle table status updates
-    const handleTableUpdate = (data) => {
-      console.log('📡 Dashboard: Received table-status-updated event:', data);
-      // Refresh tables data when table status changes
-      prefetchTables(restaurantId);
+    // Debounce rapid Pusher events (e.g., bulk status changes)
+    let debounceTimer = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => prefetchTablesRef.current(restaurantId), 1000);
     };
 
-    // Handle order completion (which affects table status)
-    const handleOrderStatusUpdate = (data) => {
-      console.log('📡 Dashboard: Received order-status-updated event:', data);
-      // If order is completed, refresh tables to update status
-      if (data?.status === 'completed' || data?.order?.status === 'completed') {
-        prefetchTables(restaurantId);
-      }
+    // Any order or table event should refresh table statuses
+    const handleEvent = (eventName) => (data) => {
+      console.log(`📡 Dashboard: Received '${eventName}' event:`, data);
+      debouncedRefresh();
     };
 
-    // Bind to events
-    channel.bind('table-status-updated', handleTableUpdate);
-    channel.bind('order-status-updated', handleOrderStatusUpdate);
-    channel.bind('order-completed', handleOrderStatusUpdate);
+    // Bind to all relevant events
+    channel.bind('order-created', handleEvent('order-created'));
+    channel.bind('order-updated', handleEvent('order-updated'));
+    channel.bind('order-status-updated', handleEvent('order-status-updated'));
+    channel.bind('order-completed', handleEvent('order-completed'));
+    channel.bind('order-deleted', handleEvent('order-deleted'));
+    channel.bind('table-status-updated', handleEvent('table-status-updated'));
 
     // Cleanup on unmount
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       console.log(`📡 Dashboard: Unsubscribing from channel '${channelName}'`);
       channel.unbind_all();
       pusher.unsubscribe(channelName);
       pusher.disconnect();
     };
-  }, [selectedRestaurant?.id, prefetchTables]);
+  }, [selectedRestaurant?.id]); // Only re-subscribe when restaurant changes
 
   // Reset UI state for fresh order
   const handleFreshOrder = () => {
@@ -2679,7 +2685,7 @@ function RestaurantPOSContent() {
 
       // Update table status if table is selected
       if (selectedTable && selectedTable.id) {
-        await apiClient.updateTableStatus(selectedTable.id, 'occupied', orderId);
+        await apiClient.updateTableStatus(selectedTable.id, 'occupied', orderId, selectedRestaurant?.id);
       }
 
       // Process payment based on method (use finalAmount which includes tax)
@@ -3598,7 +3604,7 @@ function RestaurantPOSContent() {
     }
     if (selectedTable && selectedTable.id) {
       // Release table
-      apiClient.updateTableStatus(selectedTable.id, 'available');
+      apiClient.updateTableStatus(selectedTable.id, 'available', null, selectedRestaurant?.id);
       setSelectedTable(null);
     }
     // Reset return tracking
@@ -3638,6 +3644,10 @@ function RestaurantPOSContent() {
     // When returnToView is null (edit mode), stay on orders view
     if (returnToView === 'tables') {
       // User explicitly came from tables view - return to tables
+      // Highlight the table that just had an order action
+      if (selectedTable?.id) {
+        setRecentlyUpdatedTableId(selectedTable.id);
+      }
       switchView('tables', true);
       prefetchTables(selectedRestaurant?.id);
       clearCart({ keepOrderSuccess, preserveUrl: true });
@@ -6290,6 +6300,8 @@ function RestaurantPOSContent() {
                 tables={tablesData.tables}
                 isRefreshing={tablesRefreshing}
                 selectedRestaurant={selectedRestaurant}
+                recentlyUpdatedTableId={recentlyUpdatedTableId}
+                onClearRecentlyUpdated={() => setRecentlyUpdatedTableId(null)}
                 cart={cart}
                 setCart={setCart}
                 orderType={orderType}

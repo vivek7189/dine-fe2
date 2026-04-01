@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Pusher from 'pusher-js';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
+const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
 
 // KOT Receipt Component - Styled for 80mm thermal printer
 const KOTReceipt = ({ order, restaurantName, onPrint, isPrinting }) => {
@@ -523,25 +526,54 @@ const PrintKOTContent = () => {
       setIsPolling(false);
     } else {
       fetchPendingOrders(); // Fetch immediately
-      pollingIntervalRef.current = setInterval(fetchPendingOrders, 5000);
+      pollingIntervalRef.current = setInterval(fetchPendingOrders, 60000); // 60s fallback
       setIsPolling(true);
     }
   }, [isPolling, fetchPendingOrders]);
 
-  // Auto-start polling on mount
+  // Pusher real-time subscription + 60s fallback poll (instead of 5s)
   useEffect(() => {
     if (!restaurantId) return;
 
     // Initial fetch
     fetchPendingOrders();
 
-    // Start polling
-    pollingIntervalRef.current = setInterval(fetchPendingOrders, 5000);
+    // Start 60-second fallback poll (safety net in case Pusher misses events)
+    pollingIntervalRef.current = setInterval(fetchPendingOrders, 60000);
     setIsPolling(true);
+
+    // Subscribe to Pusher for real-time order notifications
+    let pusher;
+    let channel;
+    try {
+      pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+      const channelName = `restaurant-${restaurantId}`;
+      channel = pusher.subscribe(channelName);
+
+      // Fetch immediately when a new order arrives (real-time, no polling delay)
+      const handleOrderEvent = () => {
+        fetchPendingOrders();
+      };
+
+      channel.bind('order-created', handleOrderEvent);
+      channel.bind('order-status-updated', handleOrderEvent);
+      channel.bind('order-updated', handleOrderEvent);
+
+      console.log(`📡 KOT Printer: Subscribed to Pusher channel '${channelName}'`);
+    } catch (err) {
+      console.error('Pusher connection failed, relying on 60s polling:', err);
+    }
 
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
+      }
+      if (channel) {
+        channel.unbind_all();
+      }
+      if (pusher) {
+        pusher.unsubscribe(`restaurant-${restaurantId}`);
+        pusher.disconnect();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

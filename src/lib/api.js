@@ -7,6 +7,66 @@ class ApiClient {
     this.baseURL = API_BASE_URL;
     this.isRefreshing = false;
     this.refreshQueue = [];
+
+    // In-memory cache for GET requests (survives navigation, dies on page refresh)
+    this._cache = new Map();
+    // Track in-flight requests to prevent duplicate concurrent calls
+    this._inflight = new Map();
+  }
+
+  /**
+   * Cached GET request — returns cached data if available and not expired.
+   * Deduplicates concurrent requests to the same endpoint.
+   * @param {string} endpoint - API endpoint
+   * @param {number} ttlMs - Cache TTL in milliseconds (default: 5 min)
+   * @returns {Promise<any>} - API response data
+   */
+  async cachedGet(endpoint, ttlMs = 5 * 60 * 1000) {
+    // Check in-memory cache
+    const cached = this._cache.get(endpoint);
+    if (cached && (Date.now() - cached.timestamp) < ttlMs) {
+      return cached.data;
+    }
+
+    // Deduplicate: if same request is already in-flight, wait for it
+    if (this._inflight.has(endpoint)) {
+      return this._inflight.get(endpoint);
+    }
+
+    // Make the request and cache it
+    const promise = this.request(endpoint)
+      .then(data => {
+        this._cache.set(endpoint, { data, timestamp: Date.now() });
+        this._inflight.delete(endpoint);
+        return data;
+      })
+      .catch(err => {
+        this._inflight.delete(endpoint);
+        throw err;
+      });
+
+    this._inflight.set(endpoint, promise);
+    return promise;
+  }
+
+  /**
+   * Invalidate cache entries matching a prefix (e.g., after a write operation)
+   * @param {string} prefix - URL prefix to match (e.g., '/api/menus/')
+   */
+  invalidateCache(prefix) {
+    for (const key of this._cache.keys()) {
+      if (key.startsWith(prefix) || key.includes(prefix)) {
+        this._cache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Clear all cached data (e.g., on restaurant switch or logout)
+   */
+  clearAllCache() {
+    this._cache.clear();
+    this._inflight.clear();
   }
 
   // Process queued requests after token refresh
@@ -428,6 +488,9 @@ class ApiClient {
     this.isRefreshing = false;
     this.refreshQueue = [];
 
+    // Clear API cache
+    this.clearAllCache();
+
     console.log('🚪 Force logout completed - all auth data cleared');
   }
 
@@ -566,7 +629,7 @@ class ApiClient {
 
   // Restaurant endpoints
   async getRestaurants() {
-    return this.request('/api/restaurants');
+    return this.cachedGet('/api/restaurants', 10 * 60 * 1000); // 10 min — rarely changes
   }
 
   // Public Directory
@@ -584,10 +647,12 @@ class ApiClient {
   }
 
   async updateRestaurant(restaurantId, updateData) {
-    return this.request(`/api/restaurants/${restaurantId}`, {
+    const result = await this.request(`/api/restaurants/${restaurantId}`, {
       method: 'PATCH',
       body: updateData,
     });
+    this.invalidateCache('/api/restaurants');
+    return result;
   }
 
   async deleteRestaurant(restaurantId) {
@@ -599,43 +664,63 @@ class ApiClient {
   // Menu endpoints
   async getMenu(restaurantId, category = null) {
     const query = category ? `?category=${category}` : '';
-    return this.request(`/api/menus/${restaurantId}${query}`);
+    return this.cachedGet(`/api/menus/${restaurantId}${query}`, 5 * 60 * 1000); // 5 min
   }
 
   async createMenuItem(restaurantId, menuItemData) {
-    return this.request(`/api/menus/${restaurantId}`, {
+    const result = await this.request(`/api/menus/${restaurantId}`, {
       method: 'POST',
       body: menuItemData,
     });
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    this.invalidateCache(`/api/categories/${restaurantId}`);
+    return result;
   }
 
   async updateMenuItem(itemId, updateData, restaurantId) {
     const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
-    return this.request(`/api/menus/item/${itemId}${query}`, {
+    const result = await this.request(`/api/menus/item/${itemId}${query}`, {
       method: 'PATCH',
       body: updateData,
     });
+    if (restaurantId) {
+      this.invalidateCache(`/api/menus/${restaurantId}`);
+      this.invalidateCache(`/api/categories/${restaurantId}`);
+    }
+    return result;
   }
 
   async deleteMenuItem(itemId, restaurantId) {
     const query = restaurantId ? `?restaurantId=${restaurantId}` : '';
-    return this.request(`/api/menus/item/${itemId}${query}`, {
+    const result = await this.request(`/api/menus/item/${itemId}${query}`, {
       method: 'DELETE',
     });
+    if (restaurantId) {
+      this.invalidateCache(`/api/menus/${restaurantId}`);
+      this.invalidateCache(`/api/categories/${restaurantId}`);
+    }
+    return result;
   }
 
   async bulkDeleteMenuItems(restaurantId) {
-    return this.request(`/api/menus/${restaurantId}/bulk-delete`, {
+    const result = await this.request(`/api/menus/${restaurantId}/bulk-delete`, {
       method: 'DELETE',
     });
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    this.invalidateCache(`/api/categories/${restaurantId}`);
+    return result;
   }
 
   async markMenuItemAsFavorite(restaurantId, itemId) {
-    return this.post(`/api/menus/${restaurantId}/item/${itemId}/favorite`);
+    const result = await this.post(`/api/menus/${restaurantId}/item/${itemId}/favorite`);
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    return result;
   }
 
   async unmarkMenuItemAsFavorite(restaurantId, itemId) {
-    return this.delete(`/api/menus/${restaurantId}/item/${itemId}/favorite`);
+    const result = await this.delete(`/api/menus/${restaurantId}/item/${itemId}/favorite`);
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    return result;
   }
 
   // Bulk menu upload endpoints
@@ -672,10 +757,13 @@ class ApiClient {
     if (categories && Array.isArray(categories) && categories.length > 0) {
       body.categories = categories;
     }
-    return this.request(`/api/menus/bulk-save/${restaurantId}`, {
+    const result = await this.request(`/api/menus/bulk-save/${restaurantId}`, {
       method: 'POST',
       body,
     });
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    this.invalidateCache(`/api/categories/${restaurantId}`);
+    return result;
   }
 
   async getUploadStatus(restaurantId) {
@@ -801,29 +889,33 @@ class ApiClient {
 
   // Category Management APIs
   async getCategories(restaurantId) {
-    return this.request(`/api/categories/${restaurantId}`, {
-      method: 'GET',
-    });
+    return this.cachedGet(`/api/categories/${restaurantId}`, 10 * 60 * 1000); // 10 min
   }
 
   async createCategory(restaurantId, categoryData) {
-    return this.request(`/api/categories/${restaurantId}`, {
+    const result = await this.request(`/api/categories/${restaurantId}`, {
       method: 'POST',
       body: categoryData,
     });
+    this.invalidateCache(`/api/categories/${restaurantId}`);
+    return result;
   }
 
   async updateCategory(restaurantId, categoryId, categoryData) {
-    return this.request(`/api/categories/${restaurantId}/${categoryId}`, {
+    const result = await this.request(`/api/categories/${restaurantId}/${categoryId}`, {
       method: 'PATCH',
       body: categoryData,
     });
+    this.invalidateCache(`/api/categories/${restaurantId}`);
+    return result;
   }
 
   async deleteCategory(restaurantId, categoryId) {
-    return this.request(`/api/categories/${restaurantId}/${categoryId}`, {
+    const result = await this.request(`/api/categories/${restaurantId}/${categoryId}`, {
       method: 'DELETE',
     });
+    this.invalidateCache(`/api/categories/${restaurantId}`);
+    return result;
   }
 
   // Analytics endpoints
@@ -895,28 +987,35 @@ class ApiClient {
   }
 
   // Floor management endpoints
+  // NOT cached — floors contain table statuses which change with every order
   async getFloors(restaurantId) {
     return this.request(`/api/floors/${restaurantId}`);
   }
 
   async createFloor(restaurantId, floorData) {
-    return this.request(`/api/floors/${restaurantId}`, {
+    const result = await this.request(`/api/floors/${restaurantId}`, {
       method: 'POST',
       body: floorData,
     });
+    this.invalidateCache(`/api/floors/${restaurantId}`);
+    return result;
   }
 
   async updateFloor(floorId, updateData) {
-    return this.request(`/api/floors/${floorId}`, {
+    const result = await this.request(`/api/floors/${floorId}`, {
       method: 'PATCH',
       body: updateData,
     });
+    this.invalidateCache('/api/floors/');
+    return result;
   }
 
   async deleteFloor(floorId, restaurantId) {
-    return this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {
+    const result = await this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {
       method: 'DELETE',
     });
+    this.invalidateCache('/api/floors/');
+    return result;
   }
 
   // Table booking endpoints
@@ -1292,7 +1391,7 @@ class ApiClient {
   }
 
   async getInventoryCategories(restaurantId) {
-    return this.request(`/api/inventory/${restaurantId}/categories`);
+    return this.cachedGet(`/api/inventory/${restaurantId}/categories`, 10 * 60 * 1000); // 10 min
   }
 
   async getInventoryDashboard(restaurantId) {
@@ -1330,7 +1429,7 @@ class ApiClient {
 
   // Suppliers Management endpoints
   async getSuppliers(restaurantId) {
-    return this.request(`/api/suppliers/${restaurantId}`);
+    return this.cachedGet(`/api/suppliers/${restaurantId}`, 10 * 60 * 1000); // 10 min
   }
 
   async createSupplier(restaurantId, supplierData) {
@@ -1664,14 +1763,16 @@ class ApiClient {
 
   // Tax Management endpoints
   async getTaxSettings(restaurantId) {
-    return this.request(`/api/admin/tax/${restaurantId}`);
+    return this.cachedGet(`/api/admin/tax/${restaurantId}`, 30 * 60 * 1000); // 30 min — rarely changes
   }
 
   async updateTaxSettings(restaurantId, taxSettings) {
-    return this.request(`/api/admin/tax/${restaurantId}`, {
+    const result = await this.request(`/api/admin/tax/${restaurantId}`, {
       method: 'PUT',
       body: { taxSettings },
     });
+    this.invalidateCache(`/api/admin/tax/${restaurantId}`);
+    return result;
   }
 
   async calculateTax(restaurantId, items, subtotal) {
@@ -1683,26 +1784,30 @@ class ApiClient {
 
   // Currency Settings endpoints
   async getCurrencySettings(restaurantId) {
-    return this.request(`/api/admin/currency/${restaurantId}`);
+    return this.cachedGet(`/api/admin/currency/${restaurantId}`, 60 * 60 * 1000); // 1 hour — almost never changes
   }
 
   async updateCurrencySettings(restaurantId, currencySettings) {
-    return this.request(`/api/admin/currency/${restaurantId}`, {
+    const result = await this.request(`/api/admin/currency/${restaurantId}`, {
       method: 'PUT',
       body: { currencySettings },
     });
+    this.invalidateCache(`/api/admin/currency/${restaurantId}`);
+    return result;
   }
 
   // Print Settings endpoints
   async getPrintSettings(restaurantId) {
-    return this.request(`/api/admin/print-settings/${restaurantId}`);
+    return this.cachedGet(`/api/admin/print-settings/${restaurantId}`, 30 * 60 * 1000); // 30 min
   }
 
   async updatePrintSettings(restaurantId, printSettings) {
-    return this.request(`/api/admin/print-settings/${restaurantId}`, {
+    const result = await this.request(`/api/admin/print-settings/${restaurantId}`, {
       method: 'PUT',
       body: { printSettings },
     });
+    this.invalidateCache(`/api/admin/print-settings/${restaurantId}`);
+    return result;
   }
 
   // Manual print request - sends print to KOT Printer app via Pusher
@@ -2270,15 +2375,17 @@ class ApiClient {
 
   // Get pricing settings
   async getPricingSettings(restaurantId) {
-    return this.request(`/api/restaurants/${restaurantId}/pricing-settings`);
+    return this.cachedGet(`/api/restaurants/${restaurantId}/pricing-settings`, 30 * 60 * 1000); // 30 min
   }
 
   // Update pricing settings
   async updatePricingSettings(restaurantId, settings) {
-    return this.request(`/api/restaurants/${restaurantId}/pricing-settings`, {
+    const result = await this.request(`/api/restaurants/${restaurantId}/pricing-settings`, {
       method: 'PUT',
       body: settings,
     });
+    this.invalidateCache(`/api/restaurants/${restaurantId}/pricing-settings`);
+    return result;
   }
 
   // ==================== BILLING SETTINGS ====================
@@ -2519,6 +2626,114 @@ class ApiClient {
   async getAIUsage() {
     return this.request('/api/ai/usage');
   }
+
+  // ─── Books (Accounting) ──────────────────────────────────────────────────
+  async getBooksOverview(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/books/${restaurantId}/overview${q ? `?${q}` : ''}`);
+  }
+  async getBooksRevenue(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/books/${restaurantId}/revenue${q ? `?${q}` : ''}`);
+  }
+  async getBooksCogs(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/books/${restaurantId}/cogs${q ? `?${q}` : ''}`);
+  }
+  async getBooksExpenses(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/books/${restaurantId}/expenses${q ? `?${q}` : ''}`);
+  }
+  async createBooksExpense(restaurantId, data) {
+    return this.request(`/api/books/${restaurantId}/expenses`, { method: 'POST', body: JSON.stringify(data) });
+  }
+  async updateBooksExpense(restaurantId, expenseId, data) {
+    return this.request(`/api/books/${restaurantId}/expenses/${expenseId}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+  async deleteBooksExpense(restaurantId, expenseId) {
+    return this.request(`/api/books/${restaurantId}/expenses/${expenseId}`, { method: 'DELETE' });
+  }
+  async getBooksSupplierDues(restaurantId) {
+    return this.request(`/api/books/${restaurantId}/supplier-dues`);
+  }
+  async getBooksPnl(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/books/${restaurantId}/pnl${q ? `?${q}` : ''}`);
+  }
+
+  // ─── Invoice Module ─────────────────────────────────────────────────────
+  // Helper: invoice endpoints return { success, data } — unwrap to match what page code expects
+  _invUnwrap(promise) {
+    return promise.then(r => (r && typeof r.success === 'boolean' && 'data' in r) ? r.data : r);
+  }
+
+  // Organization
+  getInvoiceOrg() { return this._invUnwrap(this.request('/api/invoice/organizations')); }
+  updateInvoiceOrg(data) { return this._invUnwrap(this.request('/api/invoice/organizations', { method: 'PATCH', body: data })); }
+
+  // Settings
+  getInvoiceSettings() { return this._invUnwrap(this.request('/api/invoice/settings')); }
+  updateInvoiceSettings(data) { return this._invUnwrap(this.request('/api/invoice/settings', { method: 'PATCH', body: data })); }
+
+  // Customers
+  getInvoiceCustomers(query = '') { return this._invUnwrap(this.request(`/api/invoice/customers${query ? `?${query}` : ''}`)); }
+  getInvoiceCustomer(id) { return this._invUnwrap(this.request(`/api/invoice/customers/${id}`)); }
+  getInvoiceDineopenCustomers(restaurantId) { return this._invUnwrap(this.request(`/api/invoice/customers/dineopen?restaurantId=${restaurantId}`)); }
+  createInvoiceCustomer(data) { return this._invUnwrap(this.request('/api/invoice/customers', { method: 'POST', body: data })); }
+  updateInvoiceCustomer(id, data) { return this._invUnwrap(this.request(`/api/invoice/customers/${id}`, { method: 'PATCH', body: data })); }
+  deleteInvoiceCustomer(id) { return this._invUnwrap(this.request(`/api/invoice/customers/${id}`, { method: 'DELETE' })); }
+
+  // Items
+  getInvoiceItems(query = '') { return this._invUnwrap(this.request(`/api/invoice/items${query ? `?${query}` : ''}`)); }
+  getInvoiceItem(id) { return this._invUnwrap(this.request(`/api/invoice/items/${id}`)); }
+  createInvoiceItem(data) { return this._invUnwrap(this.request('/api/invoice/items', { method: 'POST', body: data })); }
+  updateInvoiceItem(id, data) { return this._invUnwrap(this.request(`/api/invoice/items/${id}`, { method: 'PATCH', body: data })); }
+  deleteInvoiceItem(id) { return this._invUnwrap(this.request(`/api/invoice/items/${id}`, { method: 'DELETE' })); }
+
+  // Invoices
+  getInvoices(query = '') { return this._invUnwrap(this.request(`/api/invoice/invoices${query ? `?${query}` : ''}`)); }
+  getInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}`)); }
+  getNextInvoiceNumber() { return this._invUnwrap(this.request('/api/invoice/invoices/next-number')); }
+  createInvoice(data) { return this._invUnwrap(this.request('/api/invoice/invoices', { method: 'POST', body: data })); }
+  sendInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}/send`, { method: 'POST' })); }
+  voidInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}/void`, { method: 'POST' })); }
+  deleteInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}`, { method: 'DELETE' })); }
+
+  // Quotes
+  getInvoiceQuotes(query = '') { return this._invUnwrap(this.request(`/api/invoice/quotes${query ? `?${query}` : ''}`)); }
+  getInvoiceQuote(id) { return this._invUnwrap(this.request(`/api/invoice/quotes/${id}`)); }
+  getNextQuoteNumber() { return this._invUnwrap(this.request('/api/invoice/quotes/next-number')); }
+  createInvoiceQuote(data) { return this._invUnwrap(this.request('/api/invoice/quotes', { method: 'POST', body: data })); }
+  sendInvoiceQuote(id) { return this._invUnwrap(this.request(`/api/invoice/quotes/${id}/send`, { method: 'POST' })); }
+  acceptInvoiceQuote(id) { return this._invUnwrap(this.request(`/api/invoice/quotes/${id}/accept`, { method: 'POST' })); }
+  declineInvoiceQuote(id) { return this._invUnwrap(this.request(`/api/invoice/quotes/${id}/decline`, { method: 'POST' })); }
+  convertQuoteToInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/quotes/${id}/convert`, { method: 'POST' })); }
+  deleteInvoiceQuote(id) { return this._invUnwrap(this.request(`/api/invoice/quotes/${id}`, { method: 'DELETE' })); }
+
+  // Challans
+  getInvoiceChallans(query = '') { return this._invUnwrap(this.request(`/api/invoice/challans${query ? `?${query}` : ''}`)); }
+  getInvoiceChallan(id) { return this._invUnwrap(this.request(`/api/invoice/challans/${id}`)); }
+  getNextChallanNumber() { return this._invUnwrap(this.request('/api/invoice/challans/next-number')); }
+  createInvoiceChallan(data) { return this._invUnwrap(this.request('/api/invoice/challans', { method: 'POST', body: data })); }
+  updateInvoiceChallan(id, data) { return this._invUnwrap(this.request(`/api/invoice/challans/${id}`, { method: 'PATCH', body: data })); }
+  deleteInvoiceChallan(id) { return this._invUnwrap(this.request(`/api/invoice/challans/${id}`, { method: 'DELETE' })); }
+
+  // Payments
+  getInvoicePayments() { return this._invUnwrap(this.request('/api/invoice/payments')); }
+  createInvoicePayment(data) { return this._invUnwrap(this.request('/api/invoice/payments', { method: 'POST', body: data })); }
+
+  // Expenses
+  getInvoiceExpenses(query = '') { return this._invUnwrap(this.request(`/api/invoice/expenses${query ? `?${query}` : ''}`)); }
+  createInvoiceExpense(data) { return this._invUnwrap(this.request('/api/invoice/expenses', { method: 'POST', body: data })); }
+
+  // Reports
+  getInvoiceReportReceivables() { return this._invUnwrap(this.request('/api/invoice/reports/receivables')); }
+  getInvoiceReportSales() { return this._invUnwrap(this.request('/api/invoice/reports/sales')); }
+  getInvoiceReportExpenses() { return this._invUnwrap(this.request('/api/invoice/reports/expenses')); }
+
+  // AI
+  getInvoiceExpenseCategories() { return this._invUnwrap(this.request('/api/invoice/ai/expense-categories')); }
+  invoiceAIChat(data) { return this._invUnwrap(this.request('/api/invoice/ai/chat', { method: 'POST', body: data })); }
 }
 
 const apiClient = new ApiClient();
