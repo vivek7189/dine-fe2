@@ -1,31 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory } from 'react-icons/fa';
+import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck } from 'react-icons/fa';
 
 const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
 
 const inputStyle = {
-  width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb',
-  fontSize: '13px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
-  backgroundColor: '#fafafa'
+  width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1.5px solid #e8ecf1',
+  fontSize: '14px', outline: 'none', transition: 'all 0.2s', boxSizing: 'border-box',
+  backgroundColor: '#fff', color: '#1f2937'
 };
 
-const labelStyle = { display: 'block', marginBottom: '4px', fontWeight: 600, fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em' };
+const labelStyle = { display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '12px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' };
 
-const fieldWrap = { marginBottom: '12px' };
+const fieldWrap = { marginBottom: '14px' };
 
 const primaryBtn = {
-  padding: '10px 22px', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none',
+  padding: '11px 24px', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none',
   borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex',
   alignItems: 'center', gap: '6px', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(5,150,105,0.3)'
 };
 
 const secondaryBtn = {
-  padding: '10px 18px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none',
+  padding: '11px 20px', backgroundColor: '#f1f5f9', color: '#374151', border: '1px solid #e2e8f0',
   borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex',
-  alignItems: 'center', gap: '6px', transition: 'background-color 0.2s'
+  alignItems: 'center', gap: '6px', transition: 'all 0.2s'
 };
 
 const dangerBtn = {
@@ -44,16 +44,119 @@ const rowStyle = {
   padding: '10px', backgroundColor: '#f9fafb', borderRadius: '10px'
 };
 
+// ─── Custom Dropdown Select ─────────────────────────────────────────────────
+function CustomSelect({ value, onChange, options, placeholder = 'Select...' }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  useEffect(() => {
+    if (open && searchRef.current) searchRef.current.focus();
+  }, [open]);
+
+  const filtered = options.filter(o => {
+    const label = typeof o === 'string' ? o : o.label;
+    return label.toLowerCase().includes(search.toLowerCase());
+  });
+
+  const selectedLabel = (() => {
+    if (!value) return null;
+    const found = options.find(o => (typeof o === 'string' ? o : o.value) === value);
+    return found ? (typeof found === 'string' ? found : found.label) : value;
+  })();
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setSearch(''); }}
+        style={{
+          ...inputStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          cursor: 'pointer', textAlign: 'left', padding: '11px 14px',
+          borderColor: open ? '#059669' : '#e8ecf1',
+          boxShadow: open ? '0 0 0 3px rgba(5,150,105,0.08)' : 'none',
+        }}
+      >
+        <span style={{ color: selectedLabel ? '#1f2937' : '#94a3b8', fontWeight: selectedLabel ? 500 : 400 }}>
+          {selectedLabel || placeholder}
+        </span>
+        <FaChevronDown size={10} style={{ color: '#94a3b8', transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+          backgroundColor: 'white', borderRadius: '12px', border: '1.5px solid #e8ecf1',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden',
+          maxHeight: '220px', display: 'flex', flexDirection: 'column',
+        }}>
+          {options.length > 5 && (
+            <div style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
+              <input
+                ref={searchRef}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search..."
+                style={{
+                  width: '100%', padding: '7px 10px', border: '1.5px solid #e8ecf1', borderRadius: '8px',
+                  fontSize: '13px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc',
+                }}
+                onFocus={e => { e.target.style.borderColor = '#059669'; }}
+                onBlur={e => { e.target.style.borderColor = '#e8ecf1'; }}
+              />
+            </div>
+          )}
+          <div style={{ overflowY: 'auto', maxHeight: '180px' }}>
+            {filtered.length === 0 && (
+              <div style={{ padding: '12px 14px', color: '#94a3b8', fontSize: '13px', textAlign: 'center' }}>No options</div>
+            )}
+            {filtered.map((o, i) => {
+              const val = typeof o === 'string' ? o : o.value;
+              const label = typeof o === 'string' ? o : o.label;
+              const isSelected = val === value;
+              return (
+                <button
+                  key={val + i}
+                  type="button"
+                  onClick={() => { onChange(val); setOpen(false); }}
+                  style={{
+                    width: '100%', padding: '10px 14px', border: 'none', textAlign: 'left',
+                    backgroundColor: isSelected ? '#ecfdf5' : 'transparent', cursor: 'pointer',
+                    fontSize: '13px', fontWeight: isSelected ? 600 : 400,
+                    color: isSelected ? '#059669' : '#374151',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    transition: 'background-color 0.1s',
+                  }}
+                  onMouseEnter={e => { if (!isSelected) e.target.style.backgroundColor = '#f8fafc'; }}
+                  onMouseLeave={e => { if (!isSelected) e.target.style.backgroundColor = 'transparent'; }}
+                >
+                  {label}
+                  {isSelected && <FaCheck size={11} style={{ color: '#059669' }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FocusInput({ style, type, ...props }) {
-  // Convert number inputs to text with decimal keyboard — avoids browser spinner arrows
   const isNumeric = type === 'number';
   return (
     <input
       style={style || inputStyle}
       type={isNumeric ? 'text' : (type || 'text')}
       inputMode={isNumeric ? 'decimal' : undefined}
-      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.backgroundColor = '#fff'; }}
-      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.08)'; }}
+      onBlur={e => { e.target.style.borderColor = '#e8ecf1'; e.target.style.boxShadow = 'none'; }}
       {...props}
     />
   );
@@ -63,8 +166,8 @@ function FocusTextarea({ style, ...props }) {
   return (
     <textarea
       style={{ ...(style || inputStyle), minHeight: '60px', resize: 'vertical' }}
-      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.backgroundColor = '#fff'; }}
-      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.08)'; }}
+      onBlur={e => { e.target.style.borderColor = '#e8ecf1'; e.target.style.boxShadow = 'none'; }}
       {...props}
     />
   );
@@ -74,8 +177,8 @@ function FocusSelect({ style, children, ...props }) {
   return (
     <select
       style={{ ...(style || inputStyle), cursor: 'pointer', appearance: 'auto' }}
-      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.backgroundColor = '#fff'; }}
-      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+      onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.08)'; }}
+      onBlur={e => { e.target.style.borderColor = '#e8ecf1'; e.target.style.boxShadow = 'none'; }}
       {...props}
     >
       {children}
@@ -86,37 +189,51 @@ function FocusSelect({ style, children, ...props }) {
 function ModalShell({ show, onClose, title, children, footer, getModalStyles, getModalContentStyles }) {
   if (!show || typeof document === 'undefined') return null;
   return createPortal(
-    <div style={{ ...getModalStyles(), zIndex: 10002 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ ...getModalContentStyles(), padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+    <div style={{ ...getModalStyles(), zIndex: 10002, backdropFilter: 'blur(4px)' }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ ...getModalContentStyles(), padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-          padding: '16px 20px',
+          background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+          padding: '18px 22px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           flexShrink: 0,
         }}>
-          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'white' }}>{title}</h2>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'white', letterSpacing: '-0.01em' }}>{title}</h2>
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
-              cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)',
+              background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
+              cursor: 'pointer', padding: '7px', borderRadius: '8px', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s',
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
           >
-            <FaTimes size={14} />
+            <FaTimes size={13} />
           </button>
         </div>
-        <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+        <div style={{ padding: '22px', overflowY: 'auto', flex: 1, backgroundColor: '#fafcfe' }}>
           {children}
         </div>
         {footer && (
-          <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0 }}>
+          <div style={{ padding: '16px 22px', borderTop: '1px solid #e8ecf1', backgroundColor: 'white', flexShrink: 0 }}>
             {footer}
           </div>
         )}
       </div>
     </div>,
     document.body
+  );
+}
+
+// ─── Section Header ─────────────────────────────────────────────────────────
+function SectionHeader({ icon, title }) {
+  return (
+    <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 2px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+      <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: 'linear-gradient(135deg, #059669, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {icon}
+      </div>
+      <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</span>
+    </div>
   );
 }
 
@@ -135,6 +252,10 @@ function AddEditItemModal(props) {
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
   const updateMulti = (fields) => setFormData(prev => ({ ...prev, ...fields }));
 
+  const categoryOptions = categories.map(c => ({ value: c.name || c, label: c.name || c }));
+  const unitOptions = units.map(u => ({ value: u, label: u }));
+  const supplierOptions = suppliers.map(s => ({ value: s.name || s.id, label: s.name }));
+
   return (
     <ModalShell show={isOpen} onClose={close} title={isEdit ? 'Edit Inventory Item' : 'Add Inventory Item'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
@@ -146,58 +267,57 @@ function AddEditItemModal(props) {
           </button>
         </div>
       }>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
+        {/* Basic Info */}
+        <SectionHeader icon={<FaBoxes size={10} color="white" />} title="Basic Info" />
         <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
           <label style={labelStyle}>Name *</label>
-          <FocusInput value={formData.name} onChange={e => update('name', e.target.value)} placeholder="Item name" />
+          <FocusInput value={formData.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Tomatoes, Olive Oil, Flour" />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Category</label>
-          <FocusSelect value={formData.category} onChange={e => update('category', e.target.value)}>
-            <option value="">Select category</option>
-            {categories.map(c => <option key={c.id || c.name || c} value={c.name || c}>{c.name || c}</option>)}
-          </FocusSelect>
+          <CustomSelect value={formData.category} onChange={v => update('category', v)} options={categoryOptions} placeholder="Select category" />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Unit</label>
-          <FocusSelect value={formData.unit} onChange={e => update('unit', e.target.value)}>
-            <option value="">Select unit</option>
-            {units.map(u => <option key={u} value={u}>{u}</option>)}
-          </FocusSelect>
+          <CustomSelect value={formData.unit} onChange={v => update('unit', v)} options={unitOptions} placeholder="Select unit" />
         </div>
+
+        {/* Stock & Pricing */}
+        <SectionHeader icon={<FaClipboardList size={10} color="white" />} title="Stock & Pricing" />
         <div style={fieldWrap}>
           <label style={labelStyle}>Current Stock</label>
           <FocusInput type="number" value={formData.currentStock} onChange={e => update('currentStock', parseFloat(e.target.value) || 0)} />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Min Stock</label>
-          <FocusInput type="number" value={formData.minStock} onChange={e => update('minStock', parseFloat(e.target.value) || 0)} />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Max Stock</label>
-          <FocusInput type="number" value={formData.maxStock} onChange={e => update('maxStock', parseFloat(e.target.value) || 0)} />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Cost Per Unit</label>
           <FocusInput type="number" step="0.01" value={formData.costPerUnit} onChange={e => update('costPerUnit', parseFloat(e.target.value) || 0)} />
         </div>
         <div style={fieldWrap}>
+          <label style={labelStyle}>Min Stock</label>
+          <FocusInput type="number" value={formData.minStock} onChange={e => update('minStock', parseFloat(e.target.value) || 0)} placeholder="Low stock alert" />
+        </div>
+        <div style={fieldWrap}>
+          <label style={labelStyle}>Max Stock</label>
+          <FocusInput type="number" value={formData.maxStock} onChange={e => update('maxStock', parseFloat(e.target.value) || 0)} placeholder="Maximum capacity" />
+        </div>
+
+        {/* Supplier & Tracking */}
+        <SectionHeader icon={<FaReceipt size={10} color="white" />} title="Tracking" />
+        <div style={fieldWrap}>
           <label style={labelStyle}>Supplier</label>
-          <FocusSelect value={formData.supplier} onChange={e => update('supplier', e.target.value)}>
-            <option value="">Select supplier</option>
-            {suppliers.map(s => <option key={s.id} value={s.name || s.id}>{s.name}</option>)}
-          </FocusSelect>
+          <CustomSelect value={formData.supplier} onChange={v => update('supplier', v)} options={supplierOptions} placeholder="Select supplier" />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Barcode</label>
-          <FocusInput value={formData.barcode} onChange={e => update('barcode', e.target.value)} placeholder="Barcode" />
+          <FocusInput value={formData.barcode} onChange={e => update('barcode', e.target.value)} placeholder="Scan or enter barcode" />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>MFG Date</label>
           <FocusInput type="date" value={formData.mfgDate} onChange={e => {
             const mfg = e.target.value;
             const updates = { mfgDate: mfg };
-            if (mfg && formData.expiryDays) {
+            if (mfg && formData.expiryDays && formData.expiryMethod === 'days') {
               const d = new Date(mfg);
               d.setDate(d.getDate() + parseInt(formData.expiryDays));
               updates.expiryDate = d.toISOString().split('T')[0];
@@ -205,60 +325,46 @@ function AddEditItemModal(props) {
             updateMulti(updates);
           }} />
         </div>
-        <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
-          <label style={labelStyle}>Expiry Method</label>
-          <div style={{ display: 'flex', gap: '0', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-            <button type="button" onClick={() => updateMulti({ expiryDays: '', expiryDate: formData.expiryDate || '' })} style={{
-              flex: 1, padding: '8px 12px', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              backgroundColor: !formData.expiryDays ? '#059669' : '#f9fafb',
-              color: !formData.expiryDays ? 'white' : '#6b7280',
-              transition: 'all 0.15s'
+        <div style={fieldWrap}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={labelStyle}>{formData.expiryMethod === 'days' ? 'Expiry Days' : 'Expiry Date'}</span>
+            <button type="button" onClick={() => {
+              if (formData.expiryMethod === 'days') {
+                updateMulti({ expiryMethod: 'date', expiryDays: '', expiryDate: '' });
+              } else {
+                updateMulti({ expiryMethod: 'days', expiryDays: '', expiryDate: '' });
+              }
+            }} style={{
+              background: 'none', border: 'none', color: '#059669', fontSize: '11px', fontWeight: 600,
+              cursor: 'pointer', padding: 0
             }}>
-              Expiry Date
-            </button>
-            <button type="button" onClick={() => updateMulti({ expiryDate: '', expiryDays: formData.expiryDays || '' })} style={{
-              flex: 1, padding: '8px 12px', border: 'none', borderLeft: '1px solid #e5e7eb', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              backgroundColor: formData.expiryDays !== '' ? '#059669' : '#f9fafb',
-              color: formData.expiryDays !== '' ? 'white' : '#6b7280',
-              transition: 'all 0.15s'
-            }}>
-              MFG + Expiry Days
+              Use {formData.expiryMethod === 'days' ? 'date' : 'days'} instead
             </button>
           </div>
-        </div>
-        {formData.expiryDays !== '' ? (
-          <>
-            <div style={fieldWrap}>
-              <label style={labelStyle}>Expiry Days</label>
-              <FocusInput type="number" min="1" value={formData.expiryDays} onChange={e => {
-                const days = e.target.value;
-                const updates = { expiryDays: days };
-                if (formData.mfgDate && days) {
-                  const d = new Date(formData.mfgDate);
-                  d.setDate(d.getDate() + parseInt(days));
-                  updates.expiryDate = d.toISOString().split('T')[0];
-                }
-                updateMulti(updates);
-              }} placeholder="e.g. 3" />
-            </div>
-            <div style={fieldWrap}>
-              <label style={{ ...labelStyle, color: '#9ca3af' }}>Expiry Date <span style={{ fontSize: '11px', fontWeight: 400 }}>(auto-calculated)</span></label>
-              <FocusInput type="date" value={formData.expiryDate} disabled style={{ backgroundColor: '#f3f4f6', color: '#9ca3af' }} />
-            </div>
-          </>
-        ) : (
-          <div style={fieldWrap}>
-            <label style={labelStyle}>Expiry Date</label>
+          {formData.expiryMethod === 'days' ? (
+            <FocusInput type="number" min="1" value={formData.expiryDays} onChange={e => {
+              const days = e.target.value;
+              const updates = { expiryDays: days };
+              if (formData.mfgDate && days) {
+                const d = new Date(formData.mfgDate);
+                d.setDate(d.getDate() + parseInt(days));
+                updates.expiryDate = d.toISOString().split('T')[0];
+              } else {
+                updates.expiryDate = '';
+              }
+              updateMulti(updates);
+            }} placeholder="e.g. 3" />
+          ) : (
             <FocusInput type="date" value={formData.expiryDate} onChange={e => update('expiryDate', e.target.value)} />
-          </div>
-        )}
+          )}
+        </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Location</label>
-          <FocusInput value={formData.location} onChange={e => update('location', e.target.value)} placeholder="Storage location" />
+          <FocusInput value={formData.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Walk-in cooler, Shelf A" />
         </div>
         <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
           <label style={labelStyle}>Description</label>
-          <FocusTextarea value={formData.description} onChange={e => update('description', e.target.value)} placeholder="Description" />
+          <FocusTextarea value={formData.description} onChange={e => update('description', e.target.value)} placeholder="Optional notes about this item" />
         </div>
       </div>
     </ModalShell>

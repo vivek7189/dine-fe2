@@ -46,7 +46,7 @@ export default function useInventory() {
   // Form data
   const [formData, setFormData] = useState({
     name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0,
-    costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', location: ''
+    costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', expiryMethod: 'days', location: ''
   });
 
   const [supplierFormData, setSupplierFormData] = useState({
@@ -420,7 +420,7 @@ export default function useInventory() {
       if (response.item) {
         setSuccess('Item added successfully!');
         setShowAddModal(false);
-        setFormData({ name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0, costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', location: '' });
+        setFormData({ name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0, costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', expiryMethod: 'days', location: '' });
         loadInventoryData();
       }
     } catch (error) {
@@ -435,7 +435,8 @@ export default function useInventory() {
       name: item.name, category: item.category, unit: item.unit,
       currentStock: item.currentStock, minStock: item.minStock, maxStock: item.maxStock,
       costPerUnit: item.costPerUnit, supplier: item.supplier, description: item.description,
-      barcode: item.barcode, mfgDate: item.mfgDate || '', expiryDays: item.expiryDays || '', expiryDate: item.expiryDate || '', location: item.location
+      barcode: item.barcode, mfgDate: item.mfgDate || '', expiryDays: item.expiryDays || '', expiryDate: item.expiryDate || '',
+      expiryMethod: item.expiryDays ? 'days' : (item.expiryDate ? 'date' : 'days'), location: item.location
     });
     setShowEditModal(true);
   };
