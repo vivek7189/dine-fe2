@@ -982,12 +982,14 @@ export const getAvailableLanguages = () => [
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' }
 ];
 
-export default {
+const i18n = {
   t,
   getCurrentLanguage,
   setLanguage,
   getAvailableLanguages
 };
+
+export default i18n;
 
 
 

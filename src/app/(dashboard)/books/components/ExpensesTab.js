@@ -189,7 +189,7 @@ export default function ExpensesTab({
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '28px 16px', color: '#9ca3af', fontSize: '13px' }}>
-              No expenses found. Click "Add Expense" to get started.
+              No expenses found. Click &ldquo;Add Expense&rdquo; to get started.
             </div>
           )}
         </div>
