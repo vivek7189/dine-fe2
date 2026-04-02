@@ -950,6 +950,47 @@ export const blogPosts = [
     isStatic: true,
     staticPath: '/blog/what-is-restaurant-operating-system.html'
   },
+  // April 2026 blogs - New content based on GSC keyword gap analysis
+  {
+    slug: 'ondc-for-restaurants-india-guide',
+    title: 'ONDC for Restaurants India: How to Register & Cut Delivery Commissions by 80%',
+    excerpt: 'Complete guide to ONDC for Indian restaurants. Learn how to register, reduce 25-30% Swiggy/Zomato commissions to 3-5%, and get more direct orders in 2026.',
+    date: '2026-04-02',
+    category: 'Online Ordering',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/ondc-for-restaurants-india-guide.html'
+  },
+  {
+    slug: 'restaurant-profit-margin-increase-guide',
+    title: 'Restaurant Profit Margins India: 12 Data-Backed Ways to Improve in 2026',
+    excerpt: 'Average restaurant profit margin in India is just 5-12%. See real P&L breakdowns, understand why margins are thin, and discover 12 proven strategies to increase profitability.',
+    date: '2026-04-02',
+    category: 'Finance',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/restaurant-profit-margin-increase-guide.html'
+  },
+  {
+    slug: 'upi-digital-payments-restaurant-setup-guide',
+    title: 'UPI Payment Setup for Restaurants India: Complete 2026 Guide',
+    excerpt: 'How to set up UPI, QR code payments & digital billing at your restaurant. Static vs dynamic QR, POS integration, reconciliation tips & save 2-3 hours daily on payment tracking.',
+    date: '2026-04-02',
+    category: 'Technology',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/upi-digital-payments-restaurant-setup-guide.html'
+  },
+  {
+    slug: 'restaurant-staff-retention-management-india',
+    title: 'Restaurant Staff Retention India: How to Fix the 73% Turnover Crisis',
+    excerpt: 'India\'s restaurant industry loses 73% of staff annually. Learn proven retention strategies — scheduling, pay structure, training, culture — that reduce turnover by 40% and save ₹2-5 lakh/year.',
+    date: '2026-04-02',
+    category: 'Staff Management',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-staff-retention-management-india.html'
+  },
 ];
 
 // Blog post content - for static generation

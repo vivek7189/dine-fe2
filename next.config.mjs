@@ -190,6 +190,10 @@ const nextConfig = {
       'restaurant-technology-trends-2026',
       'swiggy-zomato-commission-calculator-guide',
       'what-is-restaurant-operating-system',
+      'ondc-for-restaurants-india-guide',
+      'restaurant-profit-margin-increase-guide',
+      'upi-digital-payments-restaurant-setup-guide',
+      'restaurant-staff-retention-management-india',
     ];
 
     // Hindi static blog slugs (served as raw HTML files in public/hi/blog/)
