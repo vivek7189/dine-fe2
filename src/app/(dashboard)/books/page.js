@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useBooks from './hooks/useBooks';
 import OverviewTab from './components/OverviewTab';
@@ -10,6 +10,9 @@ import RevenueTab from './components/RevenueTab';
 import ExpensesTab from './components/ExpensesTab';
 import SupplierDuesTab from './components/SupplierDuesTab';
 import ProfitLossTab from './components/ProfitLossTab';
+import PayrollTab from './components/PayrollTab';
+import GSTReportsTab from './components/GSTReportsTab';
+import LedgerTab from './components/LedgerTab';
 import BooksModals from './components/BooksModals';
 
 const tabs = [
@@ -17,7 +20,10 @@ const tabs = [
   { id: 'revenue', name: 'Revenue', icon: FaMoneyBillWave },
   { id: 'expenses', name: 'Expenses', icon: FaReceipt },
   { id: 'supplier-dues', name: 'Payables', icon: FaTruck },
-  { id: 'pnl', name: 'Profit & Loss', icon: FaBalanceScale },
+  { id: 'pnl', name: 'P&L', icon: FaBalanceScale },
+  { id: 'payroll', name: 'Payroll', icon: FaUsers },
+  { id: 'gst', name: 'GST Reports', icon: FaFileInvoice },
+  { id: 'ledger', name: 'Ledger', icon: FaListAlt },
 ];
 
 const validTabIds = tabs.map(t => t.id);
@@ -135,6 +141,37 @@ export default function BooksPage() {
         {activeTab === 'expenses' && <ExpensesTab {...books} formatCurrency={formatCurrency} />}
         {activeTab === 'supplier-dues' && <SupplierDuesTab {...books} formatCurrency={formatCurrency} />}
         {activeTab === 'pnl' && <ProfitLossTab {...books} formatCurrency={formatCurrency} />}
+        {activeTab === 'payroll' && (
+          <PayrollTab
+            payrollConfig={books.payrollConfig}
+            payrollRuns={books.payrollRuns}
+            loadingPayroll={books.loadingPayroll}
+            isMobile={books.isMobile}
+            formatCurrency={formatCurrency}
+            staffList={books.staffList}
+            onSaveConfig={books.handleSavePayrollConfig}
+            onDeleteConfig={books.handleDeletePayrollConfig}
+            onGenerateRun={books.handleGeneratePayrollRun}
+            onUpdateRun={books.handleUpdatePayrollRun}
+            onViewSlips={books.handleViewPaySlips}
+          />
+        )}
+        {activeTab === 'gst' && (
+          <GSTReportsTab
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
+            isMobile={books.isMobile}
+            formatCurrency={formatCurrency}
+          />
+        )}
+        {activeTab === 'ledger' && (
+          <LedgerTab
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
+            isMobile={books.isMobile}
+            formatCurrency={formatCurrency}
+          />
+        )}
       </div>
 
       {/* Modals */}

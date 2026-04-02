@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { FaMoneyBillWave, FaCreditCard, FaUtensils, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Cell } from 'recharts';
 
@@ -27,7 +28,29 @@ function CustomTooltip({ active, payload, label, formatCurrency }) {
   );
 }
 
+function groupBreakdown(dailyBreakdown, view) {
+  if (!dailyBreakdown || view === 'daily') return dailyBreakdown;
+  const map = {};
+  dailyBreakdown.forEach(day => {
+    const d = new Date(day.date);
+    let key;
+    if (view === 'weekly') {
+      const startOfYear = new Date(d.getFullYear(), 0, 1);
+      const weekNum = Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+      key = `W${String(weekNum).padStart(2, '0')} ${d.getFullYear()}`;
+    } else {
+      key = d.toLocaleString('en-IN', { month: 'short', year: 'numeric' });
+    }
+    if (!map[key]) map[key] = { date: key, orders: 0, revenue: 0, tax: 0 };
+    map[key].orders += day.orders || 0;
+    map[key].revenue += day.revenue || 0;
+    map[key].tax += day.tax || 0;
+  });
+  return Object.values(map);
+}
+
 export default function RevenueTab({ revenueData, loadingRevenue, isMobile, formatCurrency }) {
+  const [breakdownView, setBreakdownView] = useState('daily');
   if (loadingRevenue && !revenueData) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
@@ -155,10 +178,25 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
         </div>
       </div>
 
-      {/* Daily Breakdown Table */}
+      {/* Breakdown Table */}
       {dailyBreakdown?.length > 0 && (
         <div style={cardStyle}>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', marginBottom: '16px' }}>Daily Breakdown</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937' }}>
+              {breakdownView === 'daily' ? 'Daily' : breakdownView === 'weekly' ? 'Weekly' : 'Monthly'} Breakdown
+            </div>
+            <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '2px' }}>
+              {['daily', 'weekly', 'monthly'].map(v => (
+                <button key={v} onClick={() => setBreakdownView(v)} style={{
+                  padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '11px', fontWeight: 600,
+                  cursor: 'pointer', textTransform: 'capitalize',
+                  backgroundColor: breakdownView === v ? 'white' : 'transparent',
+                  color: breakdownView === v ? '#2563eb' : '#64748b',
+                  boxShadow: breakdownView === v ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                }}>{v}</button>
+              ))}
+            </div>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
@@ -169,10 +207,10 @@ export default function RevenueTab({ revenueData, loadingRevenue, isMobile, form
                 </tr>
               </thead>
               <tbody>
-                {dailyBreakdown.map((day, i) => (
+                {groupBreakdown(dailyBreakdown, breakdownView).map((day, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '10px 12px', fontWeight: 600, color: '#374151' }}>
-                      {new Date(day.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      {breakdownView === 'daily' ? new Date(day.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : day.date}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', color: '#374151' }}>{day.orders || 0}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{formatCurrency(day.revenue || 0)}</td>

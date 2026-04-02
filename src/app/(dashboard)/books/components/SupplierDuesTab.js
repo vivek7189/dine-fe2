@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { FaTruck, FaChevronDown, FaChevronUp, FaFileInvoice, FaExclamationTriangle } from 'react-icons/fa';
+import { FaTruck, FaChevronDown, FaChevronUp, FaFileInvoice, FaExclamationTriangle, FaMoneyBillWave } from 'react-icons/fa';
+import PaymentRecordModal from './PaymentRecordModal';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -29,8 +30,9 @@ function getStatusBadge(status) {
   );
 }
 
-export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues, isMobile, formatCurrency }) {
+export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues, isMobile, formatCurrency, handleRecordSupplierPayment }) {
   const [expandedSupplier, setExpandedSupplier] = useState(null);
+  const [paymentInvoice, setPaymentInvoice] = useState(null);
 
   if (loadingSupplierDues && !supplierDuesData) {
     return (
@@ -145,6 +147,18 @@ export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues,
                               {inv.ageDays}d overdue
                             </span>
                           )}
+                          {inv.paymentStatus !== 'paid' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setPaymentInvoice(inv); }}
+                              style={{
+                                padding: '5px 10px', borderRadius: '6px', border: '1px solid #a7f3d0',
+                                backgroundColor: '#ecfdf5', color: '#059669', fontSize: '10px', fontWeight: 700,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <FaMoneyBillWave size={9} /> Pay
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -163,6 +177,13 @@ export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues,
           </div>
         </div>
       )}
+      {/* Payment Modal */}
+      <PaymentRecordModal
+        invoice={paymentInvoice}
+        onClose={() => setPaymentInvoice(null)}
+        onSubmit={handleRecordSupplierPayment}
+        formatCurrency={formatCurrency}
+      />
     </div>
   );
 }

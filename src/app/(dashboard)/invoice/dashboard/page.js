@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import apiClient from '../../../../lib/api';
 import Card from '../components/ui/Card';
 import Tabs from '../components/ui/Tabs';
@@ -44,6 +45,7 @@ function formatCurrency(amount) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [orgName, setOrgName] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [receivables, setReceivables] = useState(null);
@@ -171,7 +173,7 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
-              <Button size="sm" icon={HiPlus}>
+              <Button size="sm" icon={HiPlus} onClick={() => router.push('/invoice/invoices/new')}>
                 New
               </Button>
             </div>

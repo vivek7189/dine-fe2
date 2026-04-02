@@ -173,23 +173,59 @@ export default function ProfitLossTab({ pnlData, loadingPnl, isMobile, formatCur
         </div>
       </div>
 
-      {/* Visual Comparison */}
+      {/* Visual Comparison — Current vs Previous */}
       <div style={cardStyle}>
-        <div style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', marginBottom: '16px' }}>Visual Breakdown</div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={[{ name: 'Current Period', Revenue: revenue || 0, COGS: cogs || 0, Expenses: expenses || 0, Profit: netProfit || 0 }]} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', marginBottom: '16px' }}>Current vs Previous Period</div>
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={[
+            { name: 'Revenue', Current: revenue || 0, Previous: pnlData?.previousPeriod?.revenue || 0 },
+            { name: 'Expenses', Current: expenses || 0, Previous: pnlData?.previousPeriod?.expenses || 0 },
+            { name: 'Net Profit', Current: netProfit || 0, Previous: pnlData?.previousPeriod?.netProfit || 0 },
+          ]} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} />
             <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} width={50} />
             <Tooltip formatter={(value) => formatCurrency(value)} />
             <Legend wrapperStyle={{ fontSize: '12px' }} />
-            <Bar dataKey="Revenue" fill="#059669" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="COGS" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Profit" fill="#2563eb" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Current" fill="#2563eb" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Previous" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Period Comparison Summary */}
+      {pnlData?.previousPeriod && (
+        <div style={cardStyle}>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', marginBottom: '16px' }}>Period Comparison</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', maxWidth: '500px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                  {['Metric', 'Current', 'Previous', 'Change'].map(h => (
+                    <th key={h} style={{ textAlign: h === 'Metric' ? 'left' : 'right', padding: '10px 12px', fontWeight: 600, color: '#6b7280', fontSize: '11px', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: 'Revenue', current: revenue, prev: pnlData.previousPeriod.revenue, change: revenueChange },
+                  { label: 'Expenses', current: expenses, prev: pnlData.previousPeriod.expenses },
+                  { label: 'Net Profit', current: netProfit, prev: pnlData.previousPeriod.netProfit, change: profitChange },
+                ].map(row => (
+                  <tr key={row.label} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 600, color: '#374151' }}>{row.label}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{formatCurrency(row.current || 0)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#6b7280' }}>{formatCurrency(row.prev || 0)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: (row.change || 0) >= 0 ? '#059669' : '#dc2626' }}>
+                      {row.change !== undefined ? `${row.change >= 0 ? '+' : ''}${row.change}%` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

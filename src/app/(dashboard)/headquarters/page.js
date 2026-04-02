@@ -184,7 +184,7 @@ export function HeadquartersContent({ embedded = false }) {
     }
     return [];
   });
-  const [dateRange, setDateRange] = useState({ preset: '7d', startDate: '', endDate: '' });
+  const [dateRange, setDateRange] = useState({ preset: 'today', startDate: '', endDate: '' });
   const [staffFilters, setStaffFilters] = useState({ role: '', status: '', search: '' });
   const [menuFilters, setMenuFilters] = useState({ category: '', search: '' });
   const [inventoryFilters, setInventoryFilters] = useState({ stockStatus: '', category: '', search: '' });
@@ -443,9 +443,14 @@ export function HeadquartersContent({ embedded = false }) {
     }
   };
 
+  // Refs to prevent duplicate fetches on mount
+  const filtersInitialized = useRef(false);
+  const initialLoadDone = useRef(false);
+
   // P0: Dashboard + Analytics — fire in parallel as soon as authorized
   useEffect(() => {
     if (!authorized) return;
+    filtersInitialized.current = true;
     loadDashboard();
     loadAnalytics();
   }, [authorized]);
@@ -459,9 +464,6 @@ export function HeadquartersContent({ embedded = false }) {
     }, 2000); // Load 2s after page renders
     return () => clearTimeout(timer);
   }, [authorized]);
-
-  // Track initial load to prevent duplicate fetch on mount
-  const initialLoadDone = useRef(false);
 
   // Tab change — only loads non-overview tabs (overview already loaded above)
   useEffect(() => {
@@ -480,7 +482,6 @@ export function HeadquartersContent({ embedded = false }) {
   }, [activeTab]);
 
   // Reload on filter/date change (only after initial load)
-  const filtersInitialized = useRef(false);
   useEffect(() => {
     if (!authorized) return;
     if (!filtersInitialized.current) { filtersInitialized.current = true; return; }

@@ -2661,6 +2661,63 @@ class ApiClient {
     return this.request(`/api/books/${restaurantId}/pnl${q ? `?${q}` : ''}`);
   }
 
+  // ─── Payroll ────────────────────────────────────────────────────────────
+  async getPayrollConfig(restaurantId) {
+    return this.request(`/api/payroll/${restaurantId}/config`);
+  }
+  async updatePayrollConfig(restaurantId, data) {
+    return this.request(`/api/payroll/${restaurantId}/config`, { method: 'POST', body: data });
+  }
+  async deletePayrollConfig(restaurantId, configId) {
+    return this.request(`/api/payroll/${restaurantId}/config/${configId}`, { method: 'DELETE' });
+  }
+  async getPayrollRuns(restaurantId) {
+    return this.request(`/api/payroll/${restaurantId}/runs`);
+  }
+  async generatePayrollRun(restaurantId, data) {
+    return this.request(`/api/payroll/${restaurantId}/runs`, { method: 'POST', body: data });
+  }
+  async updatePayrollRun(restaurantId, runId, data) {
+    return this.request(`/api/payroll/${restaurantId}/runs/${runId}`, { method: 'PATCH', body: data });
+  }
+  async getPaySlips(restaurantId, runId) {
+    return this.request(`/api/payroll/${restaurantId}/runs/${runId}/slips`);
+  }
+
+  // ─── GST Reports ──────────────────────────────────────────────────────
+  async getGSTR1(restaurantId, month) {
+    return this.request(`/api/gst/${restaurantId}/gstr1?month=${month}`);
+  }
+  async getGSTR3B(restaurantId, month) {
+    return this.request(`/api/gst/${restaurantId}/gstr3b?month=${month}`);
+  }
+  async getHSNSummary(restaurantId, month) {
+    return this.request(`/api/gst/${restaurantId}/hsn-summary?month=${month}`);
+  }
+  async exportGSTReport(restaurantId, type, month) {
+    return this.request(`/api/gst/${restaurantId}/export/${type}?month=${month}`, { responseType: 'text' });
+  }
+
+  // ─── Ledger ────────────────────────────────────────────────────────────
+  async getLedgerAccounts(restaurantId) {
+    return this.request(`/api/ledger/${restaurantId}/accounts`);
+  }
+  async getLedgerEntries(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/ledger/${restaurantId}/entries${q ? `?${q}` : ''}`);
+  }
+  async createJournalEntry(restaurantId, data) {
+    return this.request(`/api/ledger/${restaurantId}/entries`, { method: 'POST', body: data });
+  }
+  async getTrialBalance(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/ledger/${restaurantId}/trial-balance${q ? `?${q}` : ''}`);
+  }
+  async getLedgerSummary(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/ledger/${restaurantId}/summary${q ? `?${q}` : ''}`);
+  }
+
   // ─── Invoice Module ─────────────────────────────────────────────────────
   // Helper: invoice endpoints return { success, data } — unwrap to match what page code expects
   _invUnwrap(promise) {

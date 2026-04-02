@@ -53,6 +53,9 @@ export default function useBooks() {
   const [expensesSummary, setExpensesSummary] = useState({ total: 0, byCategory: {}, count: 0 });
   const [supplierDuesData, setSupplierDuesData] = useState(null);
   const [pnlData, setPnlData] = useState(null);
+  const [payrollConfig, setPayrollConfig] = useState([]);
+  const [payrollRuns, setPayrollRuns] = useState([]);
+  const [staffList, setStaffList] = useState([]);
 
   // Loading states
   const [loadingOverview, setLoadingOverview] = useState(false);
@@ -60,6 +63,7 @@ export default function useBooks() {
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [loadingSupplierDues, setLoadingSupplierDues] = useState(false);
   const [loadingPnl, setLoadingPnl] = useState(false);
+  const [loadingPayroll, setLoadingPayroll] = useState(false);
 
   // Modal states
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
@@ -153,6 +157,70 @@ export default function useBooks() {
     setLoadingPnl(false);
   }, [restaurantId, getParams]);
 
+  // Payroll functions
+  const fetchPayroll = useCallback(async () => {
+    if (!restaurantId) return;
+    setLoadingPayroll(true);
+    try {
+      const [configRes, runsRes, staffRes] = await Promise.all([
+        apiClient.getPayrollConfig(restaurantId),
+        apiClient.getPayrollRuns(restaurantId),
+        apiClient.getStaff(restaurantId).catch(() => ({ staff: [] })),
+      ]);
+      setPayrollConfig(configRes?.configs || []);
+      setPayrollRuns(runsRes?.runs || []);
+      setStaffList(staffRes?.staff || staffRes || []);
+    } catch (err) { console.error('Payroll fetch error:', err); }
+    setLoadingPayroll(false);
+  }, [restaurantId]);
+
+  const handleSavePayrollConfig = async (data) => {
+    try {
+      await apiClient.updatePayrollConfig(restaurantId, data);
+      setSuccess('Salary config saved');
+      fetchPayroll();
+    } catch (err) { setError('Failed to save salary config'); }
+  };
+
+  const handleDeletePayrollConfig = async (configId) => {
+    try {
+      await apiClient.deletePayrollConfig(restaurantId, configId);
+      setSuccess('Salary config deleted');
+      fetchPayroll();
+    } catch (err) { setError('Failed to delete config'); }
+  };
+
+  const handleGeneratePayrollRun = async (month) => {
+    try {
+      await apiClient.generatePayrollRun(restaurantId, { month });
+      setSuccess(`Payroll generated for ${month}`);
+      fetchPayroll();
+    } catch (err) { setError(err?.message || 'Failed to generate payroll run'); }
+  };
+
+  const handleUpdatePayrollRun = async (runId, status) => {
+    try {
+      await apiClient.updatePayrollRun(restaurantId, runId, { status });
+      setSuccess(`Payroll run ${status}`);
+      fetchPayroll();
+    } catch (err) { setError('Failed to update payroll run'); }
+  };
+
+  const handleViewPaySlips = async (runId) => {
+    try {
+      return await apiClient.getPaySlips(restaurantId, runId);
+    } catch (err) { setError('Failed to fetch pay slips'); return null; }
+  };
+
+  // Supplier payment recording
+  const handleRecordSupplierPayment = async (invoiceId, paymentData) => {
+    try {
+      await apiClient.updateSupplierInvoice(restaurantId, invoiceId, paymentData);
+      setSuccess('Payment recorded');
+      fetchSupplierDues();
+    } catch (err) { setError('Failed to record payment'); }
+  };
+
   // Load overview on mount
   useEffect(() => { fetchOverview(); }, [fetchOverview]);
 
@@ -163,6 +231,7 @@ export default function useBooks() {
     else if (activeTab === 'expenses') fetchExpenses();
     else if (activeTab === 'supplier-dues') fetchSupplierDues();
     else if (activeTab === 'pnl') fetchPnl();
+    else if (activeTab === 'payroll') fetchPayroll();
   }, [activeTab, period, customStart, customEnd]);
 
   // Expense CRUD
@@ -240,13 +309,18 @@ export default function useBooks() {
     isMobile, error, setError, success, setSuccess,
     overviewData, revenueData, cogsData, expensesList, expensesSummary,
     supplierDuesData, pnlData,
+    payrollConfig, payrollRuns, staffList, loadingPayroll,
     loadingOverview, loadingRevenue, loadingExpenses, loadingSupplierDues, loadingPnl,
     showAddExpenseModal, setShowAddExpenseModal, editingExpense, setEditingExpense,
     expenseFormData, setExpenseFormData,
     expenseCategoryFilter, setExpenseCategoryFilter,
     handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleEditExpense,
-    fetchOverview, fetchRevenue, fetchExpenses, fetchSupplierDues, fetchPnl,
+    handleSavePayrollConfig, handleDeletePayrollConfig,
+    handleGeneratePayrollRun, handleUpdatePayrollRun, handleViewPaySlips,
+    handleRecordSupplierPayment,
+    fetchOverview, fetchRevenue, fetchExpenses, fetchSupplierDues, fetchPnl, fetchPayroll,
     getModalStyles, getModalContentStyles,
+    restaurantId, apiClient,
     EXPENSE_CATEGORIES, PAYMENT_METHODS, PERIODS,
   };
 }
