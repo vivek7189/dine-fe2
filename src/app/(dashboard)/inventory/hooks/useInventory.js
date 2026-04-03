@@ -461,6 +461,11 @@ export default function useInventory() {
 
   const handleDeleteItem = async (itemId) => {
     if (!currentRestaurant) return;
+    const item = inventoryItems.find(i => (i._id || i.id) === itemId);
+    if (item?.linkedMenuItemId) {
+      alert(`This inventory item is linked to menu item "${item.linkedMenuItemName || item.name}". To delete it, first disable stock tracking on the menu item in the Menu page.`);
+      return;
+    }
     if (confirm('Are you sure you want to delete this item?')) {
       try {
         setLoading(true); setError(null);

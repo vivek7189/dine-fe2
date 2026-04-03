@@ -360,6 +360,11 @@ function BarPOSContent() {
       showNotification('Select or open a tab first', 'error');
       return;
     }
+    // Block out-of-stock items
+    if (menuItem.isAvailable === false) {
+      showNotification(`"${menuItem.name}" is out of stock`, 'error');
+      return;
+    }
     const tab = currentTabs.find(t => t.id === currentTabId);
     if (!tab) return;
 
@@ -376,7 +381,12 @@ function BarPOSContent() {
         name: menuItem.name,
         price: menuItem.price,
         quantity: 1,
-        notes: ''
+        notes: '',
+        // Bar-specific fields for receipt display
+        spiritCategory: menuItem.spiritCategory || null,
+        abv: menuItem.abv || null,
+        servingUnit: menuItem.servingUnit || null,
+        bottleSize: menuItem.bottleSize || null,
       }];
     }
 
@@ -618,9 +628,10 @@ function BarPOSContent() {
   const printBill = (tab, subtotal, taxBreakdown, totalTax, discounts = {}) => {
     const currencySymbol = getCurrencySymbol();
     const items = tab.items || [];
-    const itemsHtml = items.map(item =>
-      `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g, '&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(item.price * item.quantity).toFixed(2)}</td></tr>`
-    ).join('');
+    const itemsHtml = items.map(item => {
+      const sub = [item.spiritCategory, item.abv ? `${item.abv}% ABV` : null, item.bottleSize, item.servingUnit].filter(Boolean).join(' · ');
+      return `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g, '&lt;')}${sub ? `<div style="font-size:9px;color:#6b7280;">${sub}</div>` : ''}</td><td style="text-align:center;padding:2px 4px;">${item.quantity}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(item.price * item.quantity).toFixed(2)}</td></tr>`;
+    }).join('');
     const taxHtml = (taxBreakdown || []).map(tax =>
       `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`
     ).join('');
@@ -1350,6 +1361,12 @@ function BarPOSContent() {
                         <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {item.name}
                         </div>
+                        {(() => {
+                          const parts = [item.spiritCategory, item.abv ? `${item.abv}%` : null, item.bottleSize, item.servingUnit].filter(Boolean);
+                          return parts.length > 0 ? (
+                            <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '1px' }}>{parts.join(' · ')}</div>
+                          ) : null;
+                        })()}
                         <div style={{ fontSize: '11px', color: '#9ca3af' }}>
                           {formatCurrency(item.price)} ea.
                         </div>

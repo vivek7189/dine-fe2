@@ -199,6 +199,14 @@ export default function StockTab({
                     }}>
                       {item.category}
                     </span>
+                    {item.linkedMenuItemId && (
+                      <span style={{
+                        fontSize: 10, background: '#eff6ff', color: '#2563eb',
+                        padding: '1px 6px', borderRadius: 4, flexShrink: 0, fontWeight: 600,
+                      }}>
+                        🔗 Menu
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button onClick={() => onViewHistory?.(item)} style={{
@@ -298,7 +306,19 @@ export default function StockTab({
                         boxShadow: `0 0 0 3px ${(getStatusColor?.(item.status) || barColor)}22`,
                       }} />
                     </td>
-                    <td style={{ ...tdStyle, fontWeight: 600, color: '#111827' }}>{item.name}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600, color: '#111827' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {item.name}
+                        {item.linkedMenuItemId && (
+                          <span style={{
+                            fontSize: 10, background: '#eff6ff', color: '#2563eb',
+                            padding: '1px 6px', borderRadius: 4, fontWeight: 600, whiteSpace: 'nowrap',
+                          }}>
+                            🔗 Menu
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td style={tdStyle}>
                       <span style={{
                         fontSize: 12, background: '#f3f4f6', color: '#374151',

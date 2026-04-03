@@ -126,6 +126,19 @@ const OrderSummary = ({
   };
   const bLabels = billingLabels[businessType] || billingLabels.restaurant;
 
+  const getItemSubline = (item) => {
+    const parts = [];
+    if (item.spiritCategory) parts.push(item.spiritCategory);
+    if (item.abv) parts.push(`${item.abv}% ABV`);
+    if (item.bottleSize) parts.push(item.bottleSize);
+    if (item.servingUnit && item.servingUnit !== item.bottleSize) parts.push(item.servingUnit);
+    if (item.weight) parts.push(item.weight);
+    if (item.unit) parts.push(`per ${item.unit}`);
+    if (item.servingSize) parts.push(item.servingSize);
+    if (item.scoopOptions) parts.push(`${item.scoopOptions} scoop${item.scoopOptions > 1 ? 's' : ''}`);
+    return parts;
+  };
+
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder;
   // True when editing a loaded saved order (disable save button, keep place order text normal)
@@ -1515,7 +1528,15 @@ const OrderSummary = ({
                       <tbody>
                         {(invoice?.items || orderSuccess?.kotData?.items || []).map((item, idx) => (
                           <tr key={idx} style={{ borderBottom: '1px solid #dcfce7' }}>
-                            <td style={{ padding: '3px 6px' }}>{item.name}</td>
+                            <td style={{ padding: '3px 6px', textAlign: 'left' }}>
+                              {item.name}
+                              {(() => {
+                                const subParts = getItemSubline(item);
+                                return subParts.length > 0 ? (
+                                  <div style={{ fontSize: '9px', color: '#6b7280' }}>{subParts.join(' · ')}</div>
+                                ) : null;
+                              })()}
+                            </td>
                             <td style={{ padding: '3px 6px', textAlign: 'center' }}>{item.quantity || 1}</td>
                             <td style={{ padding: '3px 6px', textAlign: 'right' }}>{formatCurrency((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1))}</td>
                           </tr>
@@ -1618,7 +1639,18 @@ const OrderSummary = ({
                       invoicePrintWindowRef.current = win;
                       const billItems = invoice?.items || orderSuccess?.kotData?.items || [];
                       const currencySymbol = getCurrencySymbol();
-                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
+                      const getSublineHtml = (item) => {
+                        const parts = [];
+                        if (item.spiritCategory) parts.push(item.spiritCategory);
+                        if (item.abv) parts.push(`${item.abv}% ABV`);
+                        if (item.bottleSize) parts.push(item.bottleSize);
+                        if (item.servingUnit && item.servingUnit !== item.bottleSize) parts.push(item.servingUnit);
+                        if (item.weight) parts.push(item.weight);
+                        if (item.unit) parts.push(`/${item.unit}`);
+                        if (item.servingSize) parts.push(item.servingSize);
+                        return parts.length > 0 ? `<div style="font-size:9px;color:#6b7280;">${parts.join(' · ')}</div>` : '';
+                      };
+                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
                       const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
                       const printTotalDiscount = (invoice?.totalDiscount || 0) || ((invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0));
                       const discountHtml = printTotalDiscount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Discount${invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span><span>-${currencySymbol}${printTotalDiscount.toFixed(2)}</span></div>` : '';
@@ -1910,6 +1942,20 @@ const OrderSummary = ({
                         </span>
                       )}
                     </h4>
+                    {/* Business-type details */}
+                    {(() => {
+                      const subParts = getItemSubline(item);
+                      return subParts.length > 0 ? (
+                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>
+                          {subParts.join(' · ')}
+                        </div>
+                      ) : null;
+                    })()}
+                    {item.isStockManaged && typeof item.stockQuantity === 'number' && item.stockQuantity > 0 && item.stockQuantity <= (item.lowStockThreshold || 5) && (
+                      <span style={{ fontSize: '9px', fontWeight: '600', color: '#92400e', backgroundColor: '#fef3c7', padding: '1px 4px', borderRadius: '3px', border: '1px solid #fde68a', marginLeft: '4px', display: 'inline-block', marginTop: '2px' }}>
+                        ⚠️ {item.stockQuantity} left
+                      </span>
+                    )}
                     {/* Variant and toppings sub-content */}
                     {(item?.selectedVariant || (Array.isArray(item?.selectedCustomizations) && item.selectedCustomizations.length > 0)) && (
                       <div style={{ margin: '2px 0 4px 0', color: '#6b7280' }}>

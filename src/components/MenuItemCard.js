@@ -37,6 +37,7 @@ const MenuItemCard = ({
   
   // Handle card click - if needs customization, open modal; otherwise add directly
   const handleCardClick = (e) => {
+    if (isOutOfStock) return;
     if (needsCustomization && onItemClick) {
       e.stopPropagation();
       onItemClick(item);
@@ -46,7 +47,19 @@ const MenuItemCard = ({
   };
   
   // Hooks must be called at the top level, before any conditional returns
-  const isOutOfStock = item.isAvailable === false;
+  const isStockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
+  const isOutOfStock = item.isAvailable === false || (isStockManaged && item.stockQuantity === 0);
+  const isLowStock = isStockManaged && item.stockQuantity > 0 && item.stockQuantity <= (item.lowStockThreshold || 5);
+
+  const getExpiryStatus = (expiryDate) => {
+    if (!expiryDate) return null;
+    const days = Math.ceil((new Date(expiryDate) - new Date()) / 86400000);
+    if (days < 0) return 'expired';
+    if (days <= 2) return 'expiring-soon';
+    if (days <= 7) return 'expiring-week';
+    return null;
+  };
+  const expiryStatus = getExpiryStatus(item.expiryDate);
   const [showOutOfStockLabel, setShowOutOfStockLabel] = useState(false);
 
   // Image URL - memoized to prevent unnecessary recalculations
@@ -229,8 +242,33 @@ const MenuItemCard = ({
             }}>
               {getDisplayPrice()}
             </span>
+            {/* Stock/Expiry badges */}
+            {(isLowStock || expiryStatus) && (
+              <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
+                {isLowStock && (
+                  <span style={{
+                    fontSize: '8px', fontWeight: '700',
+                    padding: '1px 4px', borderRadius: '3px',
+                    backgroundColor: '#fef3c7', color: '#92400e',
+                    border: '1px solid #fde68a'
+                  }}>
+                    {item.stockQuantity} left
+                  </span>
+                )}
+                {expiryStatus && (
+                  <span style={{
+                    fontSize: '8px', fontWeight: '700',
+                    padding: '1px 4px', borderRadius: '3px',
+                    backgroundColor: expiryStatus === 'expired' ? '#fee2e2' : '#fef3c7',
+                    color: expiryStatus === 'expired' ? '#dc2626' : '#92400e'
+                  }}>
+                    {expiryStatus === 'expired' ? 'EXPIRED' : expiryStatus === 'expiring-soon' ? 'Exp Soon' : 'Exp 7d'}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          
+
           {/* Add Button - Hidden if needs customization */}
           {!needsCustomization && (
           <div style={{
@@ -569,17 +607,44 @@ const MenuItemCard = ({
             marginTop: '2px'
           }}>
             {/* Price */}
-            <span style={{
-              fontSize: isMobile ? '15px' : '16px',
-              color: '#ffffff',
-              fontWeight: '800',
-              lineHeight: 1,
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.6)',
-              letterSpacing: '0.3px'
-            }}>
-              {getDisplayPrice()}
-            </span>
-            
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{
+                fontSize: isMobile ? '15px' : '16px',
+                color: '#ffffff',
+                fontWeight: '800',
+                lineHeight: 1,
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.6)',
+                letterSpacing: '0.3px'
+              }}>
+                {getDisplayPrice()}
+              </span>
+              {/* Stock/Expiry badges */}
+              {(isLowStock || expiryStatus) && (
+                <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
+                  {isLowStock && (
+                    <span style={{
+                      fontSize: '8px', fontWeight: '700',
+                      padding: '1px 4px', borderRadius: '3px',
+                      backgroundColor: '#fef3c7', color: '#92400e',
+                      border: '1px solid #fde68a'
+                    }}>
+                      {item.stockQuantity} left
+                    </span>
+                  )}
+                  {expiryStatus && (
+                    <span style={{
+                      fontSize: '8px', fontWeight: '700',
+                      padding: '1px 4px', borderRadius: '3px',
+                      backgroundColor: expiryStatus === 'expired' ? '#fee2e2' : '#fef3c7',
+                      color: expiryStatus === 'expired' ? '#dc2626' : '#92400e'
+                    }}>
+                      {expiryStatus === 'expired' ? 'EXPIRED' : expiryStatus === 'expiring-soon' ? 'Exp Soon' : 'Exp 7d'}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Add Button - Hidden if needs customization */}
             {!needsCustomization && (
             <div style={{
@@ -948,15 +1013,42 @@ const MenuItemCard = ({
         marginTop: '8px'
       }}>
         {/* Price - Compact */}
-        <span style={{
-          fontSize: isMobile ? '14px' : '15px',
-          color: '#ef4444',
-          fontWeight: '700',
-          lineHeight: 1
-        }}>
-          {getDisplayPrice()}
-        </span>
-        
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{
+            fontSize: isMobile ? '14px' : '15px',
+            color: '#ef4444',
+            fontWeight: '700',
+            lineHeight: 1
+          }}>
+            {getDisplayPrice()}
+          </span>
+          {/* Stock/Expiry badges */}
+          {(isLowStock || expiryStatus) && (
+            <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
+              {isLowStock && (
+                <span style={{
+                  fontSize: '8px', fontWeight: '700',
+                  padding: '1px 4px', borderRadius: '3px',
+                  backgroundColor: '#fef3c7', color: '#92400e',
+                  border: '1px solid #fde68a'
+                }}>
+                  {item.stockQuantity} left
+                </span>
+              )}
+              {expiryStatus && (
+                <span style={{
+                  fontSize: '8px', fontWeight: '700',
+                  padding: '1px 4px', borderRadius: '3px',
+                  backgroundColor: expiryStatus === 'expired' ? '#fee2e2' : '#fef3c7',
+                  color: expiryStatus === 'expired' ? '#dc2626' : '#92400e'
+                }}>
+                  {expiryStatus === 'expired' ? 'EXPIRED' : expiryStatus === 'expiring-soon' ? 'Exp Soon' : 'Exp 7d'}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Add Button - Compact - Hidden if needs customization */}
         {!needsCustomization && (
         <div style={{
@@ -1071,6 +1163,9 @@ const MemoizedMenuItemCard = memo(MenuItemCard, (prevProps, nextProps) => {
     prevProps.item.name === nextProps.item.name &&
     prevProps.item.price === nextProps.item.price &&
     prevProps.item.isAvailable === nextProps.item.isAvailable &&
+    prevProps.item.stockQuantity === nextProps.item.stockQuantity &&
+    prevProps.item.isStockManaged === nextProps.item.isStockManaged &&
+    prevProps.item.expiryDate === nextProps.item.expiryDate &&
     prevProps.item.isFavorite === nextProps.item.isFavorite &&
     prevProps.quantityInCart === nextProps.quantityInCart &&
     prevProps.isMobile === nextProps.isMobile &&

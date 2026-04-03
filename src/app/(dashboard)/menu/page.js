@@ -487,8 +487,24 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, getCategoryEmoji, onItemClick }) => {
-  const { formatCurrency } = useCurrency();
+const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp }) => {
+  const { formatCurrency: formatCurrencyHook } = useCurrency();
+  const formatCurrency = formatCurrencyProp || formatCurrencyHook;
+
+  // Stock & expiry computed values
+  const isStockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
+  const isLowStock = isStockManaged && item.stockQuantity > 0 && item.stockQuantity <= (item.lowStockThreshold || 5);
+  const isOutOfStock = item.isAvailable === false || (isStockManaged && item.stockQuantity === 0);
+
+  const getExpiryStatus = (expiryDate) => {
+    if (!expiryDate) return null;
+    const days = Math.ceil((new Date(expiryDate) - new Date()) / 86400000);
+    if (days < 0) return 'expired';
+    if (days <= 2) return 'expiring-soon';
+    if (days <= 7) return 'expiring-week';
+    return null;
+  };
+  const expiryStatus = getExpiryStatus(item.expiryDate);
 
   return (
     <div 
@@ -499,7 +515,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
         overflow: 'hidden',
         transition: 'all 0.3s ease',
-        opacity: !item.isAvailable ? 0.6 : 1,
+        opacity: isOutOfStock ? 0.5 : 1,
         position: 'relative',
         minHeight: '200px',
         cursor: 'pointer',
@@ -743,6 +759,60 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
           </div>
         )}
 
+        {/* Stock & Expiry Badges */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+          {isStockManaged && (
+            <span style={{
+              fontSize: '10px', fontWeight: '600',
+              padding: '2px 6px', borderRadius: '4px',
+              backgroundColor: item.stockQuantity === 0 ? '#fee2e2' : isLowStock ? '#fef3c7' : '#dcfce7',
+              color: item.stockQuantity === 0 ? '#dc2626' : isLowStock ? '#92400e' : '#166534',
+              border: `1px solid ${item.stockQuantity === 0 ? '#fca5a5' : isLowStock ? '#fde68a' : '#86efac'}`
+            }}>
+              {item.stockQuantity === 0 ? '🚫 Out of Stock' : isLowStock ? `⚠️ ${item.stockQuantity} left` : `📦 ${item.stockQuantity} in stock`}
+            </span>
+          )}
+          {expiryStatus && (
+            <span style={{
+              fontSize: '10px', fontWeight: '600',
+              padding: '2px 6px', borderRadius: '4px',
+              backgroundColor: expiryStatus === 'expired' ? '#fee2e2' : expiryStatus === 'expiring-soon' ? '#fef3c7' : '#fff7ed',
+              color: expiryStatus === 'expired' ? '#dc2626' : expiryStatus === 'expiring-soon' ? '#92400e' : '#c2410c',
+              border: `1px solid ${expiryStatus === 'expired' ? '#fca5a5' : expiryStatus === 'expiring-soon' ? '#fde68a' : '#fed7aa'}`
+            }}>
+              {expiryStatus === 'expired' ? '❌ EXPIRED' : expiryStatus === 'expiring-soon' ? '⏰ Exp Soon' : '📅 Exp 7d'}
+            </span>
+          )}
+        </div>
+
+        {/* Channel Pricing */}
+        {multiPricingEnabled && activePricingRules?.length > 0 && item.pricingRules && Object.keys(item.pricingRules).length > 0 && (() => {
+          const DINEIN_NAMES = ['dine-in', 'dine in', 'dinein'];
+          const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
+          const DELIVERY_NAMES = ['delivery'];
+          const channelChips = activePricingRules
+            .filter(rule => {
+              const n = (rule.name || '').toLowerCase().trim();
+              return DINEIN_NAMES.includes(n) || TAKEAWAY_NAMES.includes(n) || DELIVERY_NAMES.includes(n);
+            })
+            .filter(rule => typeof item.pricingRules[rule.id] === 'number')
+            .map(rule => {
+              const n = (rule.name || '').toLowerCase().trim();
+              const icon = DINEIN_NAMES.includes(n) ? '🍽️' : TAKEAWAY_NAMES.includes(n) ? '🥡' : '🛵';
+              return { icon, price: item.pricingRules[rule.id], id: rule.id };
+            });
+          if (channelChips.length === 0) return null;
+          return (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+              {channelChips.map(chip => (
+                <span key={chip.id} style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f0fdf4', color: '#166534' }}>
+                  {chip.icon} {formatCurrency(chip.price)}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Price and Actions */}
         <div style={{
           display: 'flex',
@@ -765,6 +835,29 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
             display: 'flex',
             gap: '8px'
           }}>
+          {/* Eye/View button */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onItemClick(item); }}
+            style={{
+              padding: '8px',
+              background: '#f3f4f6',
+              color: '#374151',
+              border: '1px solid #e5e7eb',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.color = '#1d4ed8'; e.currentTarget.style.borderColor = '#93c5fd'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#374151'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
+            title="View details"
+          >
+            <FaEye size={12} />
+          </button>
           {onToggleFavorite && (
             <button
               type="button"
@@ -949,6 +1042,21 @@ const getCategoryColor = (category, opacity = 1) => {
 const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, getCategoryEmoji }) => {
   const { formatCurrency } = useCurrency();
 
+  // Stock & expiry computed values
+  const isStockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
+  const isLowStock = isStockManaged && item.stockQuantity > 0 && item.stockQuantity <= (item.lowStockThreshold || 5);
+  const isOutOfStock = item.isAvailable === false || (isStockManaged && item.stockQuantity === 0);
+
+  const getExpiryStatus = (expiryDate) => {
+    if (!expiryDate) return null;
+    const days = Math.ceil((new Date(expiryDate) - new Date()) / 86400000);
+    if (days < 0) return 'expired';
+    if (days <= 2) return 'expiring-soon';
+    if (days <= 7) return 'expiring-week';
+    return null;
+  };
+  const expiryStatus = getExpiryStatus(item.expiryDate);
+
   return (
     <div style={{
       display: 'flex',
@@ -956,7 +1064,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
       padding: '12px',
       borderBottom: '1px solid #e5e7eb',
       backgroundColor: item.isAvailable ? '#ffffff' : '#f9fafb',
-      opacity: item.isAvailable ? 1 : 0.6,
+      opacity: isOutOfStock ? 0.5 : 1,
       transition: 'all 0.2s ease'
     }}>
       {/* Top Row - Icon, Name, Price */}
@@ -1059,7 +1167,35 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
         {formatCurrency(item.price)}
         </div>
       </div>
-      
+
+      {/* Stock & Expiry Badges */}
+      {(isStockManaged || expiryStatus) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px', paddingLeft: '68px' }}>
+          {isStockManaged && (
+            <span style={{
+              fontSize: '9px', fontWeight: '600',
+              padding: '1px 5px', borderRadius: '4px',
+              backgroundColor: item.stockQuantity === 0 ? '#fee2e2' : isLowStock ? '#fef3c7' : '#dcfce7',
+              color: item.stockQuantity === 0 ? '#dc2626' : isLowStock ? '#92400e' : '#166534',
+              border: `1px solid ${item.stockQuantity === 0 ? '#fca5a5' : isLowStock ? '#fde68a' : '#86efac'}`
+            }}>
+              {item.stockQuantity === 0 ? '🚫 Out of Stock' : isLowStock ? `⚠️ ${item.stockQuantity} left` : `📦 ${item.stockQuantity} in stock`}
+            </span>
+          )}
+          {expiryStatus && (
+            <span style={{
+              fontSize: '9px', fontWeight: '600',
+              padding: '1px 5px', borderRadius: '4px',
+              backgroundColor: expiryStatus === 'expired' ? '#fee2e2' : expiryStatus === 'expiring-soon' ? '#fef3c7' : '#fff7ed',
+              color: expiryStatus === 'expired' ? '#dc2626' : expiryStatus === 'expiring-soon' ? '#92400e' : '#c2410c',
+              border: `1px solid ${expiryStatus === 'expired' ? '#fca5a5' : expiryStatus === 'expiring-soon' ? '#fde68a' : '#fed7aa'}`
+            }}>
+              {expiryStatus === 'expired' ? '❌ EXPIRED' : expiryStatus === 'expiring-soon' ? '⏰ Exp Soon' : '📅 Exp 7d'}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Bottom Row - Actions */}
       <div style={{
         display: 'flex',
@@ -1166,8 +1302,9 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
 };
 
 // Item Detail Modal Component
-const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji }) => {
-  const { formatCurrency } = useCurrency();
+const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp }) => {
+  const { formatCurrency: formatCurrencyHook } = useCurrency();
+  const formatCurrency = formatCurrencyProp || formatCurrencyHook;
   if (!isOpen || !item) return null;
   const category = categories.find(c => c.id === item.category);
 
@@ -1391,6 +1528,167 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
             </div>
           </div>
 
+          {/* Channel Prices */}
+          {multiPricingEnabled && activePricingRules?.length > 0 && item.pricingRules && Object.keys(item.pricingRules).length > 0 && (
+            <div style={{ padding: '0 24px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
+                Channel Prices
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {activePricingRules.map(rule => {
+                  const price = item.pricingRules[rule.id];
+                  if (typeof price !== 'number') return null;
+                  const n = (rule.name || '').toLowerCase().trim();
+                  const isDineIn = ['dine-in', 'dine in', 'dinein'].includes(n);
+                  const isTakeaway = ['takeaway', 'take away', 'take-away'].includes(n);
+                  const isDelivery = n === 'delivery';
+                  const icon = isDineIn ? '🍽️' : isTakeaway ? '🥡' : isDelivery ? '🛵' : '📍';
+                  return (
+                    <div key={rule.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', color: '#6b7280' }}>{icon} {rule.name}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#166534' }}>
+                        {formatCurrency(price)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Bar Details */}
+          {(item.spiritCategory || item.abv || item.bottleSize || item.servingUnit || item.ingredients) && (
+            <div style={{ padding: '0 24px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
+                🍸 Bar Details
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {item.spiritCategory && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Spirit Category</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.spiritCategory}</span>
+                  </div>
+                )}
+                {item.abv && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>ABV</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.abv}%</span>
+                  </div>
+                )}
+                {item.bottleSize && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Bottle Size</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.bottleSize}</span>
+                  </div>
+                )}
+                {item.servingUnit && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Serving Unit</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.servingUnit}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Bakery Details */}
+          {(item.unit || item.weight || item.shelfLife || item.mfgDate || item.expiryDate) && (
+            <div style={{ padding: '0 24px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
+                🧁 Bakery Details
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {item.unit && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Unit</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.unit}</span>
+                  </div>
+                )}
+                {item.weight && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Weight</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.weight}</span>
+                  </div>
+                )}
+                {item.shelfLife && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Shelf Life</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.shelfLife} days</span>
+                  </div>
+                )}
+                {item.mfgDate && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>MFG Date</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{new Date(item.mfgDate).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {item.expiryDate && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Expiry Date</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{new Date(item.expiryDate).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Ice Cream Details */}
+          {(item.servingSize || item.scoopOptions) && (
+            <div style={{ padding: '0 24px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
+                🍦 Ice Cream Details
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {item.servingSize && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Serving Size</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.servingSize}</span>
+                  </div>
+                )}
+                {item.scoopOptions && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Max Scoops</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.scoopOptions}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Variants */}
+          {item.variants && item.variants.length > 0 && (
+            <div style={{ padding: '0 24px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
+                Variants ({item.variants.length})
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {item.variants.map((v, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>{v.name}</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{formatCurrency(v.price)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Customizations */}
+          {item.customizations && item.customizations.length > 0 && (
+            <div style={{ padding: '0 24px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
+                Customizations ({item.customizations.length})
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {item.customizations.map((c, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>{c.name}</span>
+                    {c.price > 0 && <span style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>+{formatCurrency(c.price)}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div style={{
             padding: '16px 24px 24px 24px',
@@ -1607,6 +1905,8 @@ const MenuManagement = () => {
     tempImages: [],
     isAvailable: true,
     stockQuantity: null,
+    isStockManaged: false,
+    lowStockThreshold: 5,
     variants: [],
     customizations: [],
     generateRecipe: true,
@@ -2147,6 +2447,8 @@ const MenuManagement = () => {
       images: item.images || [],
       isAvailable: item.isAvailable !== false,
       stockQuantity: item.stockQuantity || null,
+      isStockManaged: item.isStockManaged || false,
+      lowStockThreshold: item.lowStockThreshold ?? 5,
       variants: item.variants || [],
       customizations: item.customizations || [],
       spiritCategory: item.spiritCategory || '',
@@ -2320,6 +2622,8 @@ const MenuManagement = () => {
       tempImages: [],
       isAvailable: true,
       stockQuantity: null,
+      isStockManaged: false,
+      lowStockThreshold: 5,
       variants: [],
       customizations: [],
       generateRecipe: true,
@@ -3171,6 +3475,9 @@ const MenuManagement = () => {
                   onToggleFavorite={handleToggleFavorite}
                   getCategoryEmoji={getCategoryEmoji}
                   onItemClick={handleItemClick}
+                  multiPricingEnabled={multiPricingEnabled}
+                  activePricingRules={activePricingRules}
+                  formatCurrency={formatCurrency}
                 />
                 </div>
               ))}
@@ -3299,15 +3606,35 @@ const MenuManagement = () => {
                       {category?.emoji ? `${category.emoji} ` : ''}{category?.name || '—'}
                     </span>
                     {/* Price */}
-                    <span style={{
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      color: '#0f172a',
-                      textAlign: 'right',
-                      fontVariantNumeric: 'tabular-nums'
-                    }}>
-                      {formatCurrency(item.price)}
-                    </span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        color: '#0f172a',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {formatCurrency(item.price)}
+                      </span>
+                      {multiPricingEnabled && activePricingRules?.length > 0 && item.pricingRules && Object.keys(item.pricingRules).length > 0 && (() => {
+                        const DN = ['dine-in', 'dine in', 'dinein'];
+                        const TN = ['takeaway', 'take away', 'take-away'];
+                        const DL = ['delivery'];
+                        const chips = activePricingRules
+                          .filter(rule => { const n = (rule.name || '').toLowerCase().trim(); return DN.includes(n) || TN.includes(n) || DL.includes(n); })
+                          .filter(rule => typeof item.pricingRules[rule.id] === 'number')
+                          .map(rule => { const n = (rule.name || '').toLowerCase().trim(); return { icon: DN.includes(n) ? '🍽️' : TN.includes(n) ? '🥡' : '🛵', price: item.pricingRules[rule.id], id: rule.id }; });
+                        if (chips.length === 0) return null;
+                        return (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '2px', justifyContent: 'flex-end' }}>
+                            {chips.map(c => (
+                              <span key={c.id} style={{ fontSize: '9px', fontWeight: '600', padding: '1px 4px', borderRadius: '3px', backgroundColor: '#f0fdf4', color: '#166534' }}>
+                                {c.icon} {formatCurrency(c.price)}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
                     {/* Actions */}
                     <div style={{
                       display: 'flex',
@@ -4140,6 +4467,55 @@ const MenuManagement = () => {
                     <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px', marginBottom: 0 }}>Use Customizations below for toppings (sprinkles, sauces, etc.)</p>
                   </div>
                 )}
+
+                {/* Stock Tracking */}
+                <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: '#f0f9ff', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: formData.isStockManaged ? '12px' : '0' }}>
+                    <input
+                      type="checkbox"
+                      id="isStockManaged"
+                      checked={formData.isStockManaged || false}
+                      onChange={(e) => setFormData(prev => ({...prev, isStockManaged: e.target.checked}))}
+                      style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <label htmlFor="isStockManaged" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#0c4a6e', cursor: 'pointer' }}>
+                        📦 Track Stock Count
+                      </label>
+                      <p style={{ fontSize: '11px', color: '#0369a1', margin: '2px 0 0 0' }}>
+                        Synced with Inventory — auto-deducts on orders
+                      </p>
+                    </div>
+                  </div>
+                  {formData.isStockManaged && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                          {isBarMode ? 'Bottles in Stock' : isBakeryMode ? 'Units in Stock' : isIceCreamMode ? 'Servings in Stock' : 'Stock Quantity'}
+                        </label>
+                        <input
+                          type="number"
+                          value={formData.stockQuantity ?? ''}
+                          onChange={(e) => setFormData(prev => ({...prev, stockQuantity: e.target.value === '' ? null : parseInt(e.target.value)}))}
+                          placeholder="e.g., 10"
+                          min="0"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Low Stock Alert At</label>
+                        <input
+                          type="number"
+                          value={formData.lowStockThreshold ?? 5}
+                          onChange={(e) => setFormData(prev => ({...prev, lowStockThreshold: parseInt(e.target.value) || 5}))}
+                          placeholder="e.g., 5"
+                          min="1"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
 
               {/* Food Type — compact inline pills */}
               <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -5002,6 +5378,9 @@ const MenuManagement = () => {
         onDelete={handleDelete}
         onToggleAvailability={handleToggleAvailability}
         getCategoryEmoji={getCategoryEmoji}
+        multiPricingEnabled={multiPricingEnabled}
+        activePricingRules={activePricingRules}
+        formatCurrency={formatCurrency}
       />
     </div>
   );

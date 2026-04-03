@@ -1515,6 +1515,20 @@ function RestaurantPOSContent() {
     : filteredItemsBase;
 
   const addToCart = (itemRaw) => {
+    // Block out-of-stock items
+    if (itemRaw?.isAvailable === false) {
+      setNotification({ type: 'error', title: 'Out of Stock', message: `"${itemRaw.name}" is currently out of stock`, show: true });
+      return;
+    }
+    // Check stock limit if stock managed
+    if (itemRaw?.isStockManaged && typeof itemRaw?.stockQuantity === 'number') {
+      const currentInCart = getItemQuantityInCart(itemRaw.id);
+      if (currentInCart >= itemRaw.stockQuantity) {
+        setNotification({ type: 'error', title: 'Stock Limit', message: `Only ${itemRaw.stockQuantity} "${itemRaw.name}" in stock`, show: true });
+        return;
+      }
+    }
+
     // Hide success message when adding new items
     if (orderSuccess?.show) {
       setOrderSuccess(null);
