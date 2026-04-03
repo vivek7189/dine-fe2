@@ -559,11 +559,7 @@ class ApiClient {
     if (!user) return '/login';
 
     // All authenticated users land on home page (role-based dashboard)
-    if (user.role === 'owner' || user.role === 'customer' || user.role === 'staff') {
-      return '/home';
-    }
-
-    return '/login';
+    return '/home';
   }
 
   // Auth endpoints
