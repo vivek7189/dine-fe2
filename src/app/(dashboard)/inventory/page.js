@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle } from 'react-icons/fa';
+import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useInventory from './hooks/useInventory';
 import useWaste from './hooks/useWaste';
@@ -15,6 +15,7 @@ import InsightsTab from './components/InsightsTab';
 import WasteTab from './components/WasteTab';
 import InventoryModals from './components/InventoryModals';
 import WasteModals from './components/WasteModals';
+import SmartImportModal from './components/SmartImportModal';
 
 const tabs = [
   { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
@@ -31,6 +32,7 @@ const validTabIds = tabs.map(t => t.id);
 export default function InventoryManagement() {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const inventory = useInventory();
+  const [showSmartImport, setShowSmartImport] = useState(false);
   const waste = useWaste(inventory.currentRestaurant, inventory.inventoryItems);
   const { loading, isMobile, activeTab, setActiveTab, error: invError, setError: setInvError, success: invSuccess, setSuccess: setInvSuccess } = inventory;
   const error = invError || waste.error;
@@ -111,21 +113,38 @@ export default function InventoryManagement() {
               Smart inventory management
             </p>
           </div>
-          <button
-            onClick={() => inventory.setShowQuickOrderModal(true)}
-            style={{
-              padding: '10px 18px',
-              background: 'linear-gradient(135deg, #059669, #10b981)',
-              color: 'white', border: 'none', borderRadius: '10px',
-              fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
-              transition: 'all 0.15s',
-            }}
-          >
-            <FaClipboardList size={14} />
-            Log External Order
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setShowSmartImport(true)}
+              style={{
+                padding: '10px 18px',
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                color: 'white', border: 'none', borderRadius: '10px',
+                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <FaMagic size={14} />
+              Smart Import
+            </button>
+            <button
+              onClick={() => inventory.setShowQuickOrderModal(true)}
+              style={{
+                padding: '10px 18px',
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                color: 'white', border: 'none', borderRadius: '10px',
+                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <FaClipboardList size={14} />
+              Log External Order
+            </button>
+          </div>
         </div>
 
         {/* Toast Messages */}
@@ -331,6 +350,12 @@ export default function InventoryManagement() {
       {/* All Modals */}
       <InventoryModals {...inventory} formatCurrency={formatCurrency} />
       <WasteModals waste={waste} inventoryItems={inventory.inventoryItems} recipes={inventory.recipes} formatCurrency={formatCurrency} />
+      <SmartImportModal
+        isOpen={showSmartImport}
+        onClose={() => setShowSmartImport(false)}
+        restaurantId={inventory.currentRestaurant?.id}
+        onSuccess={() => inventory.loadInventoryData()}
+      />
     </div>
   );
 }

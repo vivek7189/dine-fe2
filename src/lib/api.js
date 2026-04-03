@@ -1427,6 +1427,24 @@ class ApiClient {
     });
   }
 
+  // Smart Import endpoints
+  async smartImportParse(restaurantId, payload) {
+    if (payload instanceof FormData) {
+      return this.upload(`/api/inventory/${restaurantId}/smart-import/parse`, payload);
+    }
+    return this.request(`/api/inventory/${restaurantId}/smart-import/parse`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async smartImportConfirm(restaurantId, data) {
+    return this.request(`/api/inventory/${restaurantId}/smart-import/confirm`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Waste Tracking endpoints
   async createWasteEntry(restaurantId, data) {
     return this.request(`/api/inventory/${restaurantId}/waste-entries`, {
