@@ -2075,7 +2075,7 @@ export function HeadquartersContent({ embedded = false }) {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <RestaurantSelector />
+          {(dashboardData?.restaurants?.length || 0) > 1 && <RestaurantSelector />}
           <DatePicker />
 
           {/* AI Insights Button */}
