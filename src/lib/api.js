@@ -1427,6 +1427,80 @@ class ApiClient {
     });
   }
 
+  // Waste Tracking endpoints
+  async createWasteEntry(restaurantId, data) {
+    return this.request(`/api/inventory/${restaurantId}/waste-entries`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getWasteEntries(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/inventory/${restaurantId}/waste-entries${queryString}`);
+  }
+
+  async createStockAudit(restaurantId, data) {
+    return this.request(`/api/inventory/${restaurantId}/stock-audits`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getStockAudits(restaurantId) {
+    return this.request(`/api/inventory/${restaurantId}/stock-audits`);
+  }
+
+  async createProductionEntry(restaurantId, data) {
+    return this.request(`/api/inventory/${restaurantId}/production-entries`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async closeProductionEntry(restaurantId, entryId, data) {
+    return this.request(`/api/inventory/${restaurantId}/production-entries/${entryId}/close`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getProductionEntries(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/inventory/${restaurantId}/production-entries${queryString}`);
+  }
+
+  async getExpiryAlerts(restaurantId, days = 7) {
+    return this.request(`/api/inventory/${restaurantId}/expiry-alerts?days=${days}`);
+  }
+
+  async getWasteSummary(restaurantId) {
+    return this.request(`/api/inventory/${restaurantId}/waste-summary`);
+  }
+
+  async markExpiredWaste(restaurantId, batchId) {
+    return this.request(`/api/inventory/${restaurantId}/mark-expired-waste`, {
+      method: 'POST',
+      body: JSON.stringify({ batchId }),
+    });
+  }
+
+  async analyzeLeftovers(restaurantId, text) {
+    return this.request(`/api/inventory/${restaurantId}/analyze-leftovers`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  }
+
+  async confirmLeftoverWaste(restaurantId, items) {
+    return this.request(`/api/inventory/${restaurantId}/confirm-leftover-waste`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    });
+  }
+
   // Suppliers Management endpoints
   async getSuppliers(restaurantId) {
     return this.cachedGet(`/api/suppliers/${restaurantId}`, 10 * 60 * 1000); // 10 min

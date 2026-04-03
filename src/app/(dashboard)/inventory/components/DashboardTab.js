@@ -1,16 +1,19 @@
 'use client';
 
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FaPlus, FaBoxes, FaExclamationTriangle, FaChartLine,
-  FaWarehouse, FaBolt, FaArrowRight, FaClipboardList, FaTrash
+  FaWarehouse, FaBolt, FaArrowRight, FaClipboardList, FaTrash, FaTimes, FaClock
 } from 'react-icons/fa';
 
 export default function DashboardTab({
   inventoryItems, dashboardStats, suppliers, purchaseOrders,
   isMobile, formatCurrency,
   setShowAddModal, setShowQuickStockModal, setActiveTab,
-  getStatusColor
+  getStatusColor, onLogWaste
 }) {
+  const [showAlertModal, setShowAlertModal] = useState(false);
   const lowStockItems = inventoryItems.filter(
     item => item.currentStock <= item.minStock
   );
@@ -61,7 +64,7 @@ export default function DashboardTab({
       {/* Alert Banner */}
       {alertCount > 0 && (
         <div
-          onClick={() => setActiveTab('stock')}
+          onClick={() => setShowAlertModal(true)}
           style={{
             background: 'linear-gradient(135deg, #ef4444, #dc2626)',
             borderRadius: '14px',
@@ -96,7 +99,7 @@ export default function DashboardTab({
       {/* Quick Actions */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
         gap: isMobile ? '10px' : '12px',
       }}>
         {[
@@ -104,6 +107,7 @@ export default function DashboardTab({
           { label: 'Quick Stock', icon: FaBolt, gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)', action: () => setShowQuickStockModal(true) },
           { label: 'View Stock', icon: FaWarehouse, gradient: 'linear-gradient(135deg, #3b82f6, #60a5fa)', action: () => setActiveTab('stock') },
           { label: 'AI Insights', icon: FaChartLine, gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', action: () => setActiveTab('insights') },
+          { label: 'Log Waste', icon: FaTrash, gradient: 'linear-gradient(135deg, #ef4444, #f87171)', action: onLogWaste },
         ].map((btn) => (
           <button
             key={btn.label}
@@ -306,6 +310,194 @@ export default function DashboardTab({
           </div>
         )}
       </div>
+
+      {/* Attention Needed Modal */}
+      {showAlertModal && typeof document !== 'undefined' && createPortal(
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 10002, backdropFilter: 'blur(4px)'
+        }} onClick={e => { if (e.target === e.currentTarget) setShowAlertModal(false); }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '16px', width: '90%', maxWidth: '700px',
+            maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)'
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              padding: '18px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaExclamationTriangle size={14} /> Attention Needed
+              </h2>
+              <button onClick={() => setShowAlertModal(false)} style={{
+                background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
+                cursor: 'pointer', padding: '7px', borderRadius: '8px', display: 'flex',
+              }}>
+                <FaTimes size={13} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, backgroundColor: '#fafcfe' }}>
+              {/* Low Stock Items */}
+              {lowStockItems.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    fontSize: '13px', fontWeight: 700, color: '#dc2626', marginBottom: '10px',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    <FaExclamationTriangle size={12} /> Low Stock ({lowStockItems.length})
+                  </div>
+                  <div style={{ borderRadius: '12px', border: '1px solid #fecaca', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#fef2f2' }}>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Item</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Current</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Min Stock</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lowStockItems.map(item => (
+                          <tr key={item.id} style={{ borderTop: '1px solid #fee2e2' }}>
+                            <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#1f2937' }}>
+                              {item.name}
+                              <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>{item.category}</div>
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#ef4444' }}>
+                              {item.currentStock} {item.unit}
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>
+                              {item.minStock} {item.unit}
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '10px 12px' }}>
+                              <button onClick={() => { setShowAlertModal(false); setShowQuickStockModal(true); }} style={{
+                                padding: '5px 12px', borderRadius: '8px', border: 'none',
+                                backgroundColor: '#059669', color: 'white', fontSize: '11px',
+                                fontWeight: 700, cursor: 'pointer',
+                              }}>
+                                +Stock
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Expired Items */}
+              {expiredItems.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    fontSize: '13px', fontWeight: 700, color: '#991b1b', marginBottom: '10px',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    <FaTrash size={12} /> Expired ({expiredItems.length})
+                  </div>
+                  <div style={{ borderRadius: '12px', border: '1px solid #fecaca', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#fef2f2' }}>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Item</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Stock</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Expired</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {expiredItems.map(item => (
+                          <tr key={item.id} style={{ borderTop: '1px solid #fee2e2' }}>
+                            <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#1f2937' }}>{item.name}</td>
+                            <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', color: '#ef4444', fontWeight: 600 }}>
+                              {item.currentStock} {item.unit}
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '12px', color: '#991b1b' }}>
+                              {new Date(item.expiryDate).toLocaleDateString()}
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#dc2626' }}>
+                              {formatCurrency(item.currentStock * (item.costPerUnit || 0))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Expiring Soon Items */}
+              {expiringItems.length > 0 && (
+                <div>
+                  <div style={{
+                    fontSize: '13px', fontWeight: 700, color: '#d97706', marginBottom: '10px',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    <FaClock size={12} /> Expiring Soon ({expiringItems.length})
+                  </div>
+                  <div style={{ borderRadius: '12px', border: '1px solid #fef3c7', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#fffbeb' }}>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Item</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Stock</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Expires</th>
+                          <th style={{ textAlign: 'center', padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Days Left</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {expiringItems.map(item => {
+                          const daysLeft = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={item.id} style={{ borderTop: '1px solid #fef3c7' }}>
+                              <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#1f2937' }}>{item.name}</td>
+                              <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>
+                                {item.currentStock} {item.unit}
+                              </td>
+                              <td style={{ textAlign: 'center', padding: '10px 12px', fontSize: '12px', color: '#92400e' }}>
+                                {new Date(item.expiryDate).toLocaleDateString()}
+                              </td>
+                              <td style={{ textAlign: 'center', padding: '10px 12px' }}>
+                                <span style={{
+                                  padding: '3px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 700,
+                                  backgroundColor: daysLeft <= 2 ? '#fef2f2' : '#fffbeb',
+                                  color: daysLeft <= 2 ? '#dc2626' : '#d97706',
+                                }}>
+                                  {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '14px 22px', borderTop: '1px solid #e8ecf1', backgroundColor: 'white', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setShowAlertModal(false)} style={{
+                padding: '10px 18px', backgroundColor: '#f1f5f9', color: '#374151', border: '1px solid #e2e8f0',
+                borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              }}>Close</button>
+              <button onClick={() => { setShowAlertModal(false); setActiveTab('stock'); }} style={{
+                padding: '10px 18px', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none',
+                borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <FaWarehouse size={12} /> Go to Stock Tab
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <style>{`
         @keyframes pulse {

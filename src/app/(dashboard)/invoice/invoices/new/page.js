@@ -129,8 +129,8 @@ function SearchableSelect({ label, required, placeholder, options, value, onChan
   );
 }
 
-// Item row search dropdown
-function ItemSearchSelect({ items, value, onSelect }) {
+// Item row search dropdown with free-text support
+function ItemSearchSelect({ items, value, onSelect, onCustomItem }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
@@ -138,16 +138,42 @@ function ItemSearchSelect({ items, value, onSelect }) {
   useEffect(() => {
     function handleClickOutside(e) {
       if (ref.current && !ref.current.contains(e.target)) {
+        // If dropdown closes with typed text that doesn't match any item, treat as custom
+        if (open && search.trim() && !items.some(i => i.name.toLowerCase() === search.trim().toLowerCase())) {
+          onCustomItem(search.trim());
+        }
         setOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [open, search, items, onCustomItem]);
 
   const filtered = items.filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase())
   );
+  const hasExactMatch = search.trim() && items.some(i => i.name.toLowerCase() === search.trim().toLowerCase());
+  const showCustomOption = search.trim().length > 0 && !hasExactMatch;
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filtered.length === 1) {
+        // Exact or single match — select it
+        onSelect(filtered[0]);
+        setOpen(false);
+        setSearch('');
+      } else if (showCustomOption) {
+        // No exact match — add as custom item
+        onCustomItem(search.trim());
+        setOpen(false);
+        setSearch('');
+      }
+    }
+    if (e.key === 'Escape') {
+      setOpen(false);
+    }
+  }
 
   return (
     <div className="relative flex-1" ref={ref}>
@@ -162,31 +188,47 @@ function ItemSearchSelect({ items, value, onSelect }) {
         }}
         onFocus={() => {
           setOpen(true);
-          setSearch('');
+          setSearch(value || '');
         }}
+        onKeyDown={handleKeyDown}
       />
       {open && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          {filtered.length === 0 ? (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+          {filtered.map((item) => (
+            <button
+              key={item._id || item.id}
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer transition-colors text-gray-700"
+              onClick={() => {
+                onSelect(item);
+                setOpen(false);
+                setSearch('');
+              }}
+            >
+              <div className="flex justify-between">
+                <span>{item.name}</span>
+                <span className="text-gray-400">{formatCurrency(item.sellingPrice || item.rate || item.price || 0)}</span>
+              </div>
+            </button>
+          ))}
+          {showCustomOption && (
+            <button
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 cursor-pointer transition-colors border-t border-gray-100"
+              onClick={() => {
+                onCustomItem(search.trim());
+                setOpen(false);
+                setSearch('');
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <HiPlus className="h-3.5 w-3.5 text-green-600" />
+                <span className="text-green-700 font-medium">Add &quot;{search.trim()}&quot; as custom item</span>
+              </div>
+            </button>
+          )}
+          {filtered.length === 0 && !showCustomOption && (
             <div className="px-3 py-2 text-sm text-gray-400">No items found</div>
-          ) : (
-            filtered.map((item) => (
-              <button
-                key={item._id || item.id}
-                type="button"
-                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer transition-colors text-gray-700"
-                onClick={() => {
-                  onSelect(item);
-                  setOpen(false);
-                  setSearch('');
-                }}
-              >
-                <div className="flex justify-between">
-                  <span>{item.name}</span>
-                  <span className="text-gray-400">{formatCurrency(item.sellingPrice || item.rate || item.price || 0)}</span>
-                </div>
-              </button>
-            ))
           )}
         </div>
       )}
@@ -236,36 +278,41 @@ export default function NewInvoicePage() {
 
   useEffect(() => {
     async function loadData() {
+      // Load customers and items independently so one failure doesn't block the other
+      let allCustomers = [];
       try {
-        const [custData, itemsData] = await Promise.all([
-          apiClient.getInvoiceCustomers(),
-          apiClient.getInvoiceItems(),
-        ]);
-        let allCustomers = custData.customers || custData || [];
-        setItemsList(itemsData.items || itemsData || []);
-
-        // Also fetch DineOpen restaurant customers if restaurantId is available
-        const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') : null;
-        if (restaurantId) {
-          try {
-            const res = await apiClient.get(`/api/invoice/customers/dineopen?restaurantId=${restaurantId}`);
-            const dineData = res?.data ?? res;
-            const dineCustomers = (dineData.customers || dineData || []).map(c => ({
-              ...c,
-              _source: 'dineopen',
-            }));
-            // Merge, avoiding duplicates by phone
-            const existingPhones = new Set(allCustomers.map(c => c.phone || c.mobile).filter(Boolean));
-            const newDineCustomers = dineCustomers.filter(c => !existingPhones.has(c.phone));
-            allCustomers = [...allCustomers, ...newDineCustomers];
-          } catch {
-            // DineOpen customers unavailable, continue with invoice customers only
-          }
-        }
-        setCustomers(allCustomers);
+        const custData = await apiClient.getInvoiceCustomers();
+        allCustomers = custData.customers || custData || [];
       } catch (err) {
-        showToast('Failed to load data', 'error');
+        console.error('Failed to load invoice customers:', err);
       }
+
+      try {
+        const itemsData = await apiClient.getInvoiceItems();
+        const items = itemsData.items || itemsData || [];
+        setItemsList(items);
+      } catch (err) {
+        console.error('Failed to load invoice items:', err);
+      }
+
+      // Also fetch DineOpen restaurant customers if restaurantId is available
+      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') : null;
+      if (restaurantId) {
+        try {
+          const dineData = await apiClient.getInvoiceDineopenCustomers(restaurantId);
+          const dineCustomers = (dineData.customers || dineData || []).map(c => ({
+            ...c,
+            _source: 'dineopen',
+          }));
+          // Merge, avoiding duplicates by phone
+          const existingPhones = new Set(allCustomers.map(c => c.phone || c.mobile).filter(Boolean));
+          const newDineCustomers = dineCustomers.filter(c => !existingPhones.has(c.phone));
+          allCustomers = [...allCustomers, ...newDineCustomers];
+        } catch {
+          // DineOpen customers unavailable, continue with invoice customers only
+        }
+      }
+      setCustomers(allCustomers);
       setLoadingData(false);
     }
 
@@ -334,6 +381,35 @@ export default function NewInvoicePage() {
           }
         : item
     ));
+  }
+
+  async function handleCustomItem(lineId, customName) {
+    // Update line item immediately with the custom name
+    setLineItems(prev => prev.map((item) =>
+      item.id === lineId
+        ? { ...item, itemId: '', name: customName, rate: item.rate || 0, tax: item.tax || 0 }
+        : item
+    ));
+
+    // Also create the item in the system so it's available next time
+    try {
+      const newItem = await apiClient.createInvoiceItem({ name: customName, type: 'goods' });
+      const createdItem = newItem.item || newItem;
+      const createdId = createdItem._id || createdItem.id;
+      if (createdId) {
+        // Update itemsList so it appears in dropdowns for other line items
+        setItemsList(prev => [...prev, createdItem]);
+        // Update the line item's itemId to link it
+        setLineItems(prev => prev.map((item) =>
+          item.id === lineId && item.name === customName
+            ? { ...item, itemId: createdId }
+            : item
+        ));
+      }
+    } catch (err) {
+      console.error('Failed to auto-create item:', err);
+      // Item still works as free-text, just won't be saved to items DB
+    }
   }
 
   function validate() {
@@ -508,9 +584,9 @@ export default function NewInvoicePage() {
 
           {/* Item Table */}
           <div className="mt-8">
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg overflow-visible">
               {/* Table Header */}
-              <div className="grid grid-cols-12 gap-0 bg-gray-50 border-b border-gray-200">
+              <div className="grid grid-cols-12 gap-0 bg-gray-50 border-b border-gray-200 rounded-t-lg">
                 <div className="col-span-5 px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Item Details
                 </div>
@@ -537,6 +613,7 @@ export default function NewInvoicePage() {
                       items={itemsList}
                       value={item.name}
                       onSelect={(selected) => handleItemSelect(item.id, selected)}
+                      onCustomItem={(name) => handleCustomItem(item.id, name)}
                     />
                   </div>
                   <div className="col-span-2 px-3 py-2">

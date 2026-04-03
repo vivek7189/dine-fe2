@@ -1948,8 +1948,8 @@ function RestaurantPOSContent() {
           
           // Set customer info if available
           if (order.customerInfo) {
-            setCustomerName(order.customerInfo.name || '');
-            setCustomerMobile(order.customerInfo.phone || '');
+            setCustomerName(String(order.customerInfo.name || ''));
+            setCustomerMobile(String(order.customerInfo.phone || ''));
           }
           
         // Show appropriate notification based on mode
@@ -2360,6 +2360,16 @@ function RestaurantPOSContent() {
 
   const handleOrderLookup = async (e) => {
     if (e.key === 'Enter' && orderLookup.trim()) {
+      // Clear edit-mode URL params when manually searching for a different order
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('orderId') || url.searchParams.has('mode')) {
+          url.searchParams.delete('orderId');
+          url.searchParams.delete('mode');
+          url.searchParams.delete('from');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
       await triggerOrderLookup(orderLookup.trim());
     }
   };
@@ -6374,7 +6384,9 @@ function RestaurantPOSContent() {
                   // Update URL with from=tables for back navigation (use pushState for back button support)
                   if (typeof window !== 'undefined') {
                     const url = new URL(window.location.href);
-                    url.searchParams.delete('view'); // orders is default, remove for clean URL
+                    url.searchParams.delete('view');
+                    url.searchParams.delete('orderId');
+                    url.searchParams.delete('mode');
                     url.searchParams.set('from', 'tables');
                     window.history.pushState({ view: 'orders', from: 'tables' }, '', url.toString());
                   }
@@ -6393,7 +6405,8 @@ function RestaurantPOSContent() {
                   // Update URL with from=tables for back navigation (use pushState for back button support)
                   if (typeof window !== 'undefined') {
                     const url = new URL(window.location.href);
-                    url.searchParams.delete('view'); // orders is default, remove for clean URL
+                    url.searchParams.delete('view');
+                    url.searchParams.delete('mode'); // Clear edit mode if lingering
                     url.searchParams.set('from', 'tables');
                     if (orderId) {
                       url.searchParams.set('orderId', orderId);
@@ -7370,6 +7383,14 @@ function RestaurantPOSContent() {
           onClearCart={clearCart}
           onSearchOrder={async (orderId) => {
             if (orderId && selectedRestaurant?.id) {
+              // Clear edit-mode URL params when searching via chatbot
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('orderId');
+                url.searchParams.delete('mode');
+                url.searchParams.delete('from');
+                window.history.replaceState({}, '', url.toString());
+              }
               setOrderLookup(orderId.toString());
               await triggerOrderLookup(orderId.toString());
             }

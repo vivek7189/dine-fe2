@@ -269,6 +269,7 @@ export default function useInventory() {
       const filters = {};
       if (searchTerm) filters.search = searchTerm;
       if (selectedCategory !== 'all') filters.category = selectedCategory;
+      filters.wasteDays = 0; // today's waste only
 
       const results = await Promise.allSettled([
         apiClient.getInventoryItems(currentRestaurant.id, filters),
@@ -500,10 +501,14 @@ export default function useInventory() {
         if (update.adjustment !== 0) {
           const item = inventoryItems.find(i => i.id === update.itemId);
           if (item) {
-            await apiClient.updateInventoryItem(currentRestaurant.id, update.itemId, {
+            const updateData = {
               ...item,
               currentStock: Math.max(0, item.currentStock + update.adjustment)
-            });
+            };
+            // Include batch info if provided
+            if (update.mfgDate) updateData.mfgDate = update.mfgDate;
+            if (update.expiryDays) updateData.expiryDays = update.expiryDays;
+            await apiClient.updateInventoryItem(currentRestaurant.id, update.itemId, updateData);
             updatedCount++;
           }
         }

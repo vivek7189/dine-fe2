@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { FaPlus, FaTrash, FaClock, FaUtensils, FaUsers, FaSearch, FaEdit, FaEye, FaLeaf, FaCoffee, FaFlask } from 'react-icons/fa';
+import dynamic from 'next/dynamic';
+const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
 const categoryColors = {
   'Tea Counter': { bg: '#fef3c7', color: '#92400e', icon: FaLeaf, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
@@ -76,6 +78,12 @@ export default function RecipesTab({
         >
           <FaPlus size={13} /> Add Recipe
         </button>
+        <InventoryDownloadPDFButton
+          reportType="recipes"
+          data={{ recipes }}
+          org={{}}
+          filename="recipes-report.pdf"
+        />
       </div>
 
       {/* Search & Category Filter */}

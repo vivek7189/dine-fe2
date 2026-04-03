@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import apiClient from '../../../../lib/api';
 import { useToast } from '../contexts/InvoiceToastContext';
 import PageHeader from '../components/layout/PageHeader';
@@ -9,9 +10,16 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Button from '../components/ui/Button';
-import { HiCheck } from 'react-icons/hi';
+import { HiCheck, HiEye } from 'react-icons/hi';
 import useInvoiceAI from '../hooks/useInvoiceAI';
 import SparkleIcon from '../components/ai/SparkleIcon';
+import { InvoicePDF } from '../components/pdf/InvoicePDF';
+import { sampleInvoiceData, sampleOrg } from '../components/pdf/sampleData';
+
+const PDFViewer = dynamic(
+  () => import('@react-pdf/renderer').then(mod => mod.PDFViewer),
+  { ssr: false, loading: () => <div className="w-full h-[500px] bg-gray-100 rounded-lg animate-pulse flex items-center justify-center"><span className="text-gray-400 text-sm">Loading preview...</span></div> }
+);
 
 const settingsTabs = [
   { key: 'general', label: 'General' },
@@ -38,17 +46,20 @@ const taxTypeOptions = [
 ];
 
 const templateOptions = [
-  { key: 'standard', name: 'Standard', description: 'Clean, professional layout' },
-  { key: 'spreadsheet', name: 'Spreadsheet', description: 'Table-heavy, data-focused' },
-  { key: 'continental', name: 'Continental', description: 'Elegant European style' },
-  { key: 'compact', name: 'Compact', description: 'Space-efficient minimal design' },
+  { key: 'standard', name: 'Standard', description: 'Clean professional layout' },
+  { key: 'modern', name: 'Modern', description: 'Minimal, no borders' },
+  { key: 'bold', name: 'Bold', description: 'Typewriter ledger style' },
+  { key: 'elegant', name: 'Elegant', description: 'Accent bar, centered header' },
+  { key: 'spreadsheet', name: 'Spreadsheet', description: 'Dense data-focused table' },
+  { key: 'compact', name: 'Compact', description: 'Receipt-style minimal' },
+  { key: 'classic', name: 'Classic', description: 'Traditional warm style' },
+  { key: 'creative', name: 'Creative', description: 'Asymmetric modern design' },
 ];
 
 function TemplateThumbnail({ templateKey, bg, label, font }) {
   const b = bg || '#ffffff';
   const l = label || '#6b7280';
   const f = font || '#111827';
-  // Create muted variants by mixing with background
   const withAlpha = (color, alpha) => color + Math.round(alpha * 255).toString(16).padStart(2, '0');
   const fMuted = withAlpha(f, 0.15);
   const fLight = withAlpha(f, 0.08);
@@ -64,34 +75,26 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
   const txt = (size, color, weight) => ({ fontSize: size || '3.5px', color: color || f, fontWeight: weight || 400, whiteSpace: 'nowrap', overflow: 'hidden' });
   const lbl = (size) => ({ fontSize: size || '2.8px', color: l, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' });
 
-  // Standard — Classic professional invoice
+  const items3 = [['Butter Chicken', '2', '350', '700'], ['Naan', '4', '60', '240'], ['Dal Makhani', '1', '280', '280']];
+
+  // Standard
   if (templateKey === 'standard') {
     return (
       <div style={base}>
-        {/* Header: Logo area + INVOICE */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
           <div>
-            <div style={{ width: '16px', height: '16px', borderRadius: '3px', backgroundColor: lMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3px' }}>
-              <div style={{ width: '8px', height: '2px', borderRadius: '1px', backgroundColor: l }} />
-            </div>
-            <div style={txt('4.5px', f, 700)}>Acme Restaurant</div>
-            <div style={txt('2.5px', fMuted)}>123 Main Street, City</div>
+            <div style={txt('4.5px', f, 700)}>Acme Corp</div>
+            <div style={txt('2.5px', fMuted)}>123 Main Street</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={txt('6px', l, 800)}>INVOICE</div>
             <div style={txt('2.5px', fMuted)}>#INV-001</div>
-            <div style={txt('2.5px', fMuted)}>01 Apr 2026</div>
           </div>
         </div>
-
-        {/* Bill To */}
-        <div style={{ marginBottom: '8px' }}>
+        <div style={{ marginBottom: '6px' }}>
           <div style={lbl()}>Bill To</div>
           <div style={txt('3.5px', f, 600)}>John Doe</div>
-          <div style={txt('2.5px', fMuted)}>456 Oak Avenue</div>
         </div>
-
-        {/* Items Table */}
         <div style={{ marginBottom: '6px', flex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', gap: '2px', padding: '3px 2px', backgroundColor: lLight, borderRadius: '2px', marginBottom: '2px' }}>
             <div style={lbl('2.5px')}>Item</div>
@@ -99,11 +102,7 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
             <div style={{ ...lbl('2.5px'), textAlign: 'right' }}>Rate</div>
             <div style={{ ...lbl('2.5px'), textAlign: 'right' }}>Amt</div>
           </div>
-          {[
-            ['Butter Chicken', '2', '350', '700'],
-            ['Naan', '4', '60', '240'],
-            ['Dal Makhani', '1', '280', '280'],
-          ].map(([item, qty, rate, amt], i) => (
+          {items3.map(([item, qty, rate, amt], i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', gap: '2px', padding: '2.5px 2px', borderBottom: `0.5px solid ${fLight}` }}>
               <div style={txt('3px', f, 500)}>{item}</div>
               <div style={{ ...txt('3px', fMuted), textAlign: 'right' }}>{qty}</div>
@@ -112,21 +111,13 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
             </div>
           ))}
         </div>
-
-        {/* Totals */}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ width: '55%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5px 0' }}>
-              <span style={txt('2.8px', fMuted)}>Subtotal</span>
-              <span style={txt('2.8px', f)}>1,220</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5px 0' }}>
-              <span style={txt('2.8px', fMuted)}>GST (5%)</span>
-              <span style={txt('2.8px', f)}>61</span>
+              <span style={txt('2.8px', fMuted)}>Subtotal</span><span style={txt('2.8px', f)}>1,220</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2.5px 0', borderTop: `1px solid ${l}`, marginTop: '2px' }}>
-              <span style={txt('3.5px', l, 700)}>Total</span>
-              <span style={txt('3.5px', f, 800)}>₹1,281</span>
+              <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,281</span>
             </div>
           </div>
         </div>
@@ -134,44 +125,134 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
     );
   }
 
-  // Spreadsheet — Table-focused dense layout
+  // Modern — No borders, pill badge
+  if (templateKey === 'modern') {
+    return (
+      <div style={base}>
+        <div style={{ marginBottom: '8px' }}>
+          <div style={txt('5px', f, 800)}>Acme Corp</div>
+          <div style={{ display: 'inline-block', padding: '1.5px 4px', backgroundColor: withAlpha(l, 0.15), borderRadius: '3px', marginTop: '3px' }}>
+            <span style={txt('2.8px', l, 700)}>INV-001</span>
+          </div>
+        </div>
+        <div style={{ marginBottom: '6px' }}>
+          <div style={lbl()}>Bill To</div>
+          <div style={txt('3.2px', f, 600)}>John Doe</div>
+        </div>
+        <div style={{ flex: 1, marginBottom: '4px' }}>
+          {items3.map(([item, qty, , amt], i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 2px', backgroundColor: i % 2 === 0 ? 'transparent' : withAlpha(f, 0.03), borderRadius: '2px' }}>
+              <span style={txt('3px', f, 500)}>{item} x{qty}</span>
+              <span style={txt('3px', f, 600)}>{amt}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ width: '50%', padding: '3px 4px', backgroundColor: withAlpha(l, 0.08), borderRadius: '3px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,281</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Bold — Courier, full grid
+  if (templateKey === 'bold') {
+    return (
+      <div style={{ ...base, fontFamily: 'monospace', padding: '8px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '6px', paddingBottom: '4px', borderBottom: `2px solid ${f}` }}>
+          <div style={txt('6px', f, 900)}>INVOICE</div>
+          <div style={txt('2.5px', fMuted)}>#INV-001 | 01 Apr 2026</div>
+        </div>
+        <div style={{ marginBottom: '5px' }}>
+          <div style={txt('3px', f, 700)}>Acme Corp</div>
+          <div style={{ ...lbl('2.2px'), marginTop: '3px' }}>Bill To:</div>
+          <div style={txt('3px', f, 600)}>John Doe</div>
+        </div>
+        <div style={{ flex: 1, marginBottom: '4px', border: `1px solid ${f}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr', padding: '2px', backgroundColor: l }}>
+            <div style={txt('2.5px', b, 700)}>Item</div>
+            <div style={{ ...txt('2.5px', b, 700), textAlign: 'right' }}>Qty</div>
+            <div style={{ ...txt('2.5px', b, 700), textAlign: 'right' }}>Amt</div>
+          </div>
+          {items3.map(([item, qty, , amt], i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr', padding: '2px', borderBottom: `0.5px solid ${fMuted}` }}>
+              <div style={txt('2.5px', f, 500)}>{item}</div>
+              <div style={{ ...txt('2.5px', fMuted), textAlign: 'right' }}>{qty}</div>
+              <div style={{ ...txt('2.5px', f, 600), textAlign: 'right' }}>{amt}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ border: `1px solid ${f}`, padding: '2px 3px', display: 'flex', gap: '6px' }}>
+            <span style={txt('3px', f, 700)}>TOTAL</span><span style={txt('3px', f, 900)}>₹1,281</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Elegant — Accent sidebar
+  if (templateKey === 'elegant') {
+    return (
+      <div style={{ ...base, flexDirection: 'row', padding: 0, gap: 0 }}>
+        <div style={{ width: '5px', backgroundColor: l, borderRadius: '6px 0 0 6px', flexShrink: 0 }} />
+        <div style={{ flex: 1, padding: '10px 10px 10px 8px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ textAlign: 'center', marginBottom: '6px', paddingBottom: '4px', borderBottom: `0.5px solid ${lMuted}` }}>
+            <div style={txt('5px', f, 800)}>Acme Corp</div>
+            <div style={txt('2px', fMuted)}>Fine Dining & Catering</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <div><div style={lbl('2.5px')}>Invoice To</div><div style={txt('3px', f, 600)}>John Doe</div></div>
+            <div style={{ textAlign: 'right' }}><div style={lbl('2.5px')}>Invoice #</div><div style={txt('3px', f, 600)}>INV-001</div></div>
+          </div>
+          <div style={{ flex: 1, marginBottom: '4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', padding: '2.5px 3px', borderTop: `1px solid ${l}`, borderBottom: `1px solid ${l}` }}>
+              <div style={lbl('2.5px')}>Description</div>
+              <div style={{ ...lbl('2.5px'), textAlign: 'center' }}>Qty</div>
+              <div style={{ ...lbl('2.5px'), textAlign: 'right' }}>Amount</div>
+            </div>
+            {items3.map(([item, qty, , amt], i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', padding: '2.5px 3px', borderBottom: `0.5px solid ${fLight}` }}>
+                <div style={txt('3px', f, 500)}>{item}</div>
+                <div style={{ ...txt('3px', fMuted), textAlign: 'center' }}>{qty}</div>
+                <div style={{ ...txt('3px', f, 600), textAlign: 'right' }}>{amt}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ width: '50%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px', borderTop: `1.5px solid ${l}` }}>
+                <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,281</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Spreadsheet — Dense 6-col
   if (templateKey === 'spreadsheet') {
     return (
       <div style={base}>
-        {/* Full-width colored header bar */}
         <div style={{ backgroundColor: l, borderRadius: '2px', padding: '4px 5px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={txt('5px', b, 800)}>INVOICE</div>
           <div style={txt('2.5px', withAlpha(b, 0.7))}>#INV-001</div>
         </div>
-
-        {/* From / To side by side */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-          <div>
-            <div style={lbl('2.5px')}>From</div>
-            <div style={txt('3.2px', f, 600)}>Acme Restaurant</div>
-            <div style={txt('2.3px', fMuted)}>GSTIN: 07AAA0000A1Z5</div>
-          </div>
-          <div>
-            <div style={lbl('2.5px')}>Bill To</div>
-            <div style={txt('3.2px', f, 600)}>John Doe</div>
-            <div style={txt('2.3px', fMuted)}>Ph: 9876543210</div>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+          <div><div style={lbl('2.5px')}>From</div><div style={txt('3px', f, 600)}>Acme Corp</div></div>
+          <div><div style={lbl('2.5px')}>Bill To</div><div style={txt('3px', f, 600)}>John Doe</div></div>
         </div>
-
-        {/* Dense table */}
         <div style={{ flex: 1, marginBottom: '4px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '0.5fr 2.5fr 0.8fr 1fr 1fr 1.2fr', gap: '1px', padding: '2.5px 2px', backgroundColor: l, borderRadius: '2px 2px 0 0' }}>
-            {['#', 'Item', 'Qty', 'Rate', 'Tax', 'Amount'].map(h => (
+            {['#', 'Item', 'Qty', 'Rate', 'Tax', 'Amt'].map(h => (
               <div key={h} style={{ fontSize: '2.3px', color: b, fontWeight: 700, textAlign: h === 'Item' ? 'left' : 'right' }}>{h}</div>
             ))}
           </div>
-          {[
-            ['1', 'Butter Chicken', '2', '350', '35', '735'],
-            ['2', 'Naan Basket', '4', '60', '12', '252'],
-            ['3', 'Dal Makhani', '1', '280', '14', '294'],
-            ['4', 'Lassi', '2', '80', '8', '168'],
-            ['5', 'Gulab Jamun', '2', '90', '9', '189'],
-          ].map(([sno, item, qty, rate, tax, amt], i) => (
+          {[['1', 'Butter Chicken', '2', '350', '35', '735'], ['2', 'Naan', '4', '60', '12', '252'], ['3', 'Dal Makhani', '1', '280', '14', '294']].map(([sno, item, qty, rate, tax, amt], i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '0.5fr 2.5fr 0.8fr 1fr 1fr 1.2fr', gap: '1px', padding: '2px', borderBottom: `0.5px solid ${fLight}`, backgroundColor: i % 2 === 0 ? 'transparent' : lLight }}>
               <div style={{ ...txt('2.5px', fMuted), textAlign: 'right' }}>{sno}</div>
               <div style={txt('2.5px', f, 500)}>{item}</div>
@@ -182,17 +263,10 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
             </div>
           ))}
         </div>
-
-        {/* Footer totals — right-aligned */}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ width: '50%', borderTop: `1px solid ${l}`, paddingTop: '2px' }}>
-            {[['Subtotal', '1,540'], ['CGST', '39'], ['SGST', '39']].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0' }}>
-                <span style={txt('2.5px', fMuted)}>{k}</span><span style={txt('2.5px', f)}>{v}</span>
-              </div>
-            ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', backgroundColor: lLight, borderRadius: '1px', marginTop: '1px', paddingLeft: '2px', paddingRight: '2px' }}>
-              <span style={txt('3px', l, 700)}>Total</span><span style={txt('3px', f, 800)}>₹1,618</span>
+          <div style={{ width: '50%', padding: '2px', backgroundColor: lLight, borderRadius: '1px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={txt('3px', l, 700)}>Total</span><span style={txt('3px', f, 800)}>₹1,281</span>
             </div>
           </div>
         </div>
@@ -200,132 +274,120 @@ function TemplateThumbnail({ templateKey, bg, label, font }) {
     );
   }
 
-  // Continental — Elegant with accent sidebar
-  if (templateKey === 'continental') {
+  // Compact — Receipt style
+  if (templateKey === 'compact') {
     return (
-      <div style={{ ...base, flexDirection: 'row', padding: 0, gap: 0 }}>
-        {/* Accent sidebar */}
-        <div style={{ width: '6px', backgroundColor: l, borderRadius: '6px 0 0 6px', flexShrink: 0 }} />
-        <div style={{ flex: 1, padding: '10px 10px 10px 8px', display: 'flex', flexDirection: 'column' }}>
-          {/* Centered header */}
-          <div style={{ textAlign: 'center', marginBottom: '8px', paddingBottom: '5px', borderBottom: `0.5px solid ${lMuted}` }}>
-            <div style={txt('5px', f, 800)}>Acme Restaurant</div>
-            <div style={txt('2.2px', fMuted)}>Fine Dining & Catering</div>
-            <div style={{ ...txt('2px', fMuted), marginTop: '1px' }}>123 Main Street • +91 98765 43210</div>
-          </div>
-
-          {/* Invoice details row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <div>
-              <div style={lbl('2.5px')}>Invoice To</div>
-              <div style={txt('3.2px', f, 600)}>John Doe</div>
-              <div style={txt('2.2px', fMuted)}>456 Oak Avenue</div>
+      <div style={{ ...base, padding: '8px' }}>
+        <div style={{ backgroundColor: lLight, borderRadius: '3px', padding: '5px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={txt('4px', f, 700)}>Acme Corp</div>
+          <div style={{ ...txt('3px', l, 700), backgroundColor: withAlpha(l, 0.15), padding: '1.5px 3px', borderRadius: '1.5px' }}>INV-001</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', paddingBottom: '4px', borderBottom: `0.5px solid ${fLight}` }}>
+          <div><div style={lbl('2.2px')}>Bill To</div><div style={txt('3px', f, 600)}>John Doe</div></div>
+          <div style={{ textAlign: 'right' }}><div style={lbl('2.2px')}>Date</div><div style={txt('3px', f)}>01 Apr 2026</div></div>
+        </div>
+        <div style={{ flex: 1, marginBottom: '4px' }}>
+          {[['Butter Chicken x2', '700'], ['Naan x4', '240'], ['Dal Makhani x1', '280']].map(([item, amt], i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: i < 2 ? `0.3px solid ${fLight}` : 'none' }}>
+              <span style={txt('2.8px', f, 500)}>{item}</span><span style={txt('2.8px', f, 600)}>{amt}</span>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={lbl('2.5px')}>Invoice #</div>
-              <div style={txt('3.2px', f, 600)}>INV-001</div>
-              <div style={txt('2.2px', fMuted)}>01 Apr 2026</div>
-            </div>
-          </div>
-
-          {/* Elegant table with borders */}
-          <div style={{ flex: 1, marginBottom: '5px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', gap: '2px', padding: '2.5px 3px', borderTop: `1px solid ${l}`, borderBottom: `1px solid ${l}` }}>
-              <div style={lbl('2.5px')}>Description</div>
-              <div style={{ ...lbl('2.5px'), textAlign: 'center' }}>Qty</div>
-              <div style={{ ...lbl('2.5px'), textAlign: 'right' }}>Amount</div>
-            </div>
-            {[
-              ['Butter Chicken', '2', '700'],
-              ['Naan', '4', '240'],
-              ['Dal Makhani', '1', '280'],
-            ].map(([item, qty, amt], i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', gap: '2px', padding: '2.5px 3px', borderBottom: `0.5px solid ${fLight}` }}>
-                <div style={txt('3px', f, 500)}>{item}</div>
-                <div style={{ ...txt('3px', fMuted), textAlign: 'center' }}>{qty}</div>
-                <div style={{ ...txt('3px', f, 600), textAlign: 'right' }}>{amt}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Totals with elegant styling */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <div style={{ width: '50%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5px 3px' }}>
-                <span style={txt('2.8px', fMuted)}>Subtotal</span><span style={txt('2.8px', f)}>1,220</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5px 3px' }}>
-                <span style={txt('2.8px', fMuted)}>Tax</span><span style={txt('2.8px', f)}>61</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px', borderTop: `1.5px solid ${l}`, marginTop: '2px' }}>
-                <span style={txt('3.5px', l, 700)}>Grand Total</span>
-                <span style={txt('3.5px', f, 800)}>₹1,281</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer note */}
-          <div style={{ marginTop: '4px', paddingTop: '3px', borderTop: `0.5px solid ${fLight}` }}>
-            <div style={txt('2px', fMuted, 500)}>Thank you for your business!</div>
+          ))}
+        </div>
+        <div style={{ borderTop: `1px solid ${l}`, paddingTop: '3px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2.5px 4px', backgroundColor: lLight, borderRadius: '2px' }}>
+            <span style={txt('3.5px', l, 700)}>Total</span><span style={txt('3.5px', f, 800)}>₹1,220</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // Compact — Modern minimal with bold header
+  // Classic — Bordered boxes, warm
+  if (templateKey === 'classic') {
+    return (
+      <div style={base}>
+        <div style={{ padding: '4px 5px', backgroundColor: withAlpha(l, 0.12), borderRadius: '3px', marginBottom: '6px', textAlign: 'center' }}>
+          <div style={txt('5px', f, 800)}>Acme Corp</div>
+          <div style={txt('2px', fMuted)}>123 Main Street | +91 98765</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '6px' }}>
+          <div style={{ border: `0.5px solid ${lMuted}`, borderRadius: '2px', padding: '3px' }}>
+            <div style={lbl('2.2px')}>Bill To</div>
+            <div style={txt('3px', f, 600)}>John Doe</div>
+          </div>
+          <div style={{ border: `0.5px solid ${lMuted}`, borderRadius: '2px', padding: '3px' }}>
+            <div style={lbl('2.2px')}>Invoice #</div>
+            <div style={txt('3px', f, 600)}>INV-001</div>
+            <div style={txt('2px', fMuted)}>01 Apr 2026</div>
+          </div>
+        </div>
+        <div style={{ flex: 1, marginBottom: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', padding: '2.5px 2px', backgroundColor: l, borderRadius: '2px 2px 0 0' }}>
+            <div style={txt('2.5px', b, 700)}>Item</div>
+            <div style={{ ...txt('2.5px', b, 700), textAlign: 'right' }}>Qty</div>
+            <div style={{ ...txt('2.5px', b, 700), textAlign: 'right' }}>Amount</div>
+          </div>
+          {items3.map(([item, qty, , amt], i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', padding: '2px', borderBottom: `0.5px solid ${fLight}` }}>
+              <div style={txt('2.5px', f, 500)}>{item}</div>
+              <div style={{ ...txt('2.5px', fMuted), textAlign: 'right' }}>{qty}</div>
+              <div style={{ ...txt('2.5px', f, 600), textAlign: 'right' }}>{amt}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ width: '50%', border: `0.5px solid ${lMuted}`, borderRadius: '2px', padding: '2px 3px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={txt('3px', l, 700)}>Total</span><span style={txt('3px', f, 800)}>₹1,281</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Creative — Decorative circle, asymmetric
   return (
-    <div style={{ ...base, padding: '8px' }}>
-      {/* Bold header with background */}
-      <div style={{ backgroundColor: lLight, borderRadius: '3px', padding: '5px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ ...base, position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '-8px', right: '-8px', width: '30px', height: '30px', borderRadius: '50%', backgroundColor: withAlpha(l, 0.15) }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
         <div>
-          <div style={txt('4px', f, 700)}>Acme Restaurant</div>
-          <div style={txt('2px', fMuted)}>GSTIN: 07AAA0000A1Z5</div>
+          <div style={txt('4px', f, 700)}>Acme Corp</div>
+          <div style={txt('2px', fMuted)}>hello@acme.co</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ ...txt('3px', l, 700), backgroundColor: withAlpha(l, 0.15), padding: '1.5px 3px', borderRadius: '1.5px', display: 'inline-block' }}>INV-001</div>
-          <div style={{ ...txt('2px', fMuted), marginTop: '1px' }}>01/04/2026</div>
+          <div style={txt('7px', f, 800)}>INVOICE</div>
+          <div style={txt('2.5px', l)}>INV-001</div>
         </div>
       </div>
-
-      {/* Compact bill-to */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', paddingBottom: '4px', borderBottom: `0.5px solid ${fLight}` }}>
+      <div style={{ height: '2.5px', backgroundColor: l, marginBottom: '6px' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
         <div>
-          <div style={lbl('2.2px')}>Bill To</div>
+          <div style={{ ...lbl('2.2px'), borderBottom: `1px solid ${l}`, paddingBottom: '2px', marginBottom: '3px' }}>From</div>
+          <div style={txt('3px', f, 600)}>Acme Corp</div>
+        </div>
+        <div>
+          <div style={{ ...lbl('2.2px'), borderBottom: `1px solid ${l}`, paddingBottom: '2px', marginBottom: '3px' }}>Bill To</div>
           <div style={txt('3px', f, 600)}>John Doe</div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={lbl('2.2px')}>Date</div>
-          <div style={txt('3px', f)}>01 Apr 2026</div>
-        </div>
       </div>
-
-      {/* Compact items — no grid header, just rows */}
       <div style={{ flex: 1, marginBottom: '4px' }}>
-        {[
-          ['Butter Chicken ×2', '700'],
-          ['Naan ×4', '240'],
-          ['Dal Makhani ×1', '280'],
-          ['Lassi ×2', '160'],
-        ].map(([item, amt], i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: i < 3 ? `0.3px solid ${fLight}` : 'none' }}>
-            <span style={txt('2.8px', f, 500)}>{item}</span>
-            <span style={txt('2.8px', f, 600)}>{amt}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', padding: '2.5px 2px', borderBottom: `0.5px solid ${withAlpha(l, 0.4)}` }}>
+          <div style={lbl('2.5px')}>Description</div>
+          <div style={{ ...lbl('2.5px'), textAlign: 'right' }}>Qty</div>
+          <div style={{ ...lbl('2.5px'), textAlign: 'right' }}>Amount</div>
+        </div>
+        {items3.map(([item, qty, , amt], i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.2fr', padding: '2.5px 2px', borderBottom: `0.5px solid ${withAlpha(l, 0.15)}` }}>
+            <div style={txt('3px', f, 500)}>{item}</div>
+            <div style={{ ...txt('3px', fMuted), textAlign: 'right' }}>{qty}</div>
+            <div style={{ ...txt('3px', f, 600), textAlign: 'right' }}>{amt}</div>
           </div>
         ))}
       </div>
-
-      {/* Compact totals */}
-      <div style={{ borderTop: `1px solid ${l}`, paddingTop: '3px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0' }}>
-          <span style={txt('2.5px', fMuted)}>Subtotal</span><span style={txt('2.5px', f)}>1,380</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0' }}>
-          <span style={txt('2.5px', fMuted)}>GST</span><span style={txt('2.5px', f)}>69</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2.5px 4px', backgroundColor: lLight, borderRadius: '2px', marginTop: '2px' }}>
-          <span style={txt('3.5px', l, 700)}>Total</span>
-          <span style={txt('3.5px', f, 800)}>₹1,449</span>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ padding: '3px 5px', backgroundColor: l, borderRadius: '2px', display: 'flex', gap: '8px' }}>
+          <span style={txt('3.5px', b, 700)}>Total</span><span style={txt('3.5px', b, 800)}>₹1,281</span>
         </div>
       </div>
     </div>
@@ -882,8 +944,9 @@ export default function SettingsPage() {
               )}
             </Card>
 
-            <Card title="PDF Template">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Template Selection */}
+            <Card title="Choose Template">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {templateOptions.map((tmpl) => (
                   <button
                     key={tmpl.key}
@@ -894,14 +957,13 @@ export default function SettingsPage() {
                         selectedTemplate: tmpl.key,
                       }))
                     }
-                    className={`relative p-4 rounded-lg border-2 transition-all text-left cursor-pointer ${
+                    className={`relative p-3 rounded-lg border-2 transition-all text-left cursor-pointer ${
                       templateSettings.selectedTemplate === tmpl.key
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
-                    {/* Template Preview */}
-                    <div className="mb-3">
+                    <div className="mb-2">
                       <TemplateThumbnail
                         templateKey={tmpl.key}
                         bg={templateSettings.pdfBackgroundColor}
@@ -909,10 +971,10 @@ export default function SettingsPage() {
                         font={templateSettings.pdfFontColor}
                       />
                     </div>
-                    <h4 className="text-sm font-medium text-gray-900">{tmpl.name}</h4>
-                    <p className="text-xs text-gray-500 mt-0.5">{tmpl.description}</p>
+                    <h4 className="text-xs font-semibold text-gray-900">{tmpl.name}</h4>
+                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">{tmpl.description}</p>
                     {templateSettings.selectedTemplate === tmpl.key && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                      <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
                         <HiCheck className="h-3 w-3 text-white" />
                       </div>
                     )}
@@ -921,105 +983,95 @@ export default function SettingsPage() {
               </div>
             </Card>
 
-            <Card title="PDF Colors">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Background Color
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={templateSettings.pdfBackgroundColor}
-                      onChange={(e) =>
-                        setTemplateSettings((prev) => ({
-                          ...prev,
-                          pdfBackgroundColor: e.target.value,
-                        }))
-                      }
-                      className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
-                    />
-                    <input
-                      type="text"
-                      value={templateSettings.pdfBackgroundColor}
-                      onChange={(e) =>
-                        setTemplateSettings((prev) => ({
-                          ...prev,
-                          pdfBackgroundColor: e.target.value,
-                        }))
-                      }
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
-                      maxLength={7}
-                    />
+            {/* Colors + Preview side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Colors */}
+              <Card title="PDF Colors">
+                <div className="space-y-4">
+                  {[
+                    { key: 'pdfBackgroundColor', label: 'Background Color' },
+                    { key: 'pdfLabelColor', label: 'Label / Accent Color' },
+                    { key: 'pdfFontColor', label: 'Font Color' },
+                  ].map(({ key, label: colorLabel }) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{colorLabel}</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={templateSettings[key]}
+                          onChange={(e) => setTemplateSettings((prev) => ({ ...prev, [key]: e.target.value }))}
+                          className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
+                        />
+                        <input
+                          type="text"
+                          value={templateSettings[key]}
+                          onChange={(e) => setTemplateSettings((prev) => ({ ...prev, [key]: e.target.value }))}
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
+                          maxLength={7}
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Quick color presets */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-2">Quick Accent Presets</label>
+                    <div className="flex flex-wrap gap-2">
+                      {presetColors.map((color) => (
+                        <button
+                          key={color.hex}
+                          type="button"
+                          onClick={() => setTemplateSettings((prev) => ({ ...prev, pdfLabelColor: color.hex }))}
+                          className={`w-8 h-8 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${
+                            templateSettings.pdfLabelColor === color.hex ? 'border-gray-900 scale-110' : 'border-gray-200'
+                          }`}
+                          style={{ backgroundColor: color.hex }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Label Color
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={templateSettings.pdfLabelColor}
-                      onChange={(e) =>
-                        setTemplateSettings((prev) => ({
-                          ...prev,
-                          pdfLabelColor: e.target.value,
-                        }))
-                      }
-                      className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
-                    />
-                    <input
-                      type="text"
-                      value={templateSettings.pdfLabelColor}
-                      onChange={(e) =>
-                        setTemplateSettings((prev) => ({
-                          ...prev,
-                          pdfLabelColor: e.target.value,
-                        }))
-                      }
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
-                      maxLength={7}
-                    />
-                  </div>
+
+                <div className="mt-6 flex justify-end">
+                  <Button loading={templateSaving} onClick={saveTemplateSettings}>
+                    Save Template Settings
+                  </Button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Font Color
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={templateSettings.pdfFontColor}
-                      onChange={(e) =>
-                        setTemplateSettings((prev) => ({
-                          ...prev,
-                          pdfFontColor: e.target.value,
-                        }))
-                      }
-                      className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
-                    />
-                    <input
-                      type="text"
-                      value={templateSettings.pdfFontColor}
-                      onChange={(e) =>
-                        setTemplateSettings((prev) => ({
-                          ...prev,
-                          pdfFontColor: e.target.value,
-                        }))
-                      }
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
-                      maxLength={7}
-                    />
-                  </div>
+              </Card>
+
+              {/* Live Preview */}
+              <Card title={
+                <div className="flex items-center gap-2">
+                  <HiEye className="h-4 w-4 text-gray-400" />
+                  <span>Live Preview</span>
                 </div>
-              </div>
-              <div className="mt-6 flex justify-end">
-                <Button loading={templateSaving} onClick={saveTemplateSettings}>
-                  Save
-                </Button>
-              </div>
-            </Card>
+              }>
+                <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                  <PDFViewer
+                    width="100%"
+                    height={500}
+                    showToolbar={false}
+                    style={{ border: 'none' }}
+                  >
+                    <InvoicePDF
+                      data={sampleInvoiceData}
+                      type="invoice"
+                      org={sampleOrg}
+                      colors={{
+                        background: templateSettings.pdfBackgroundColor,
+                        label: templateSettings.pdfLabelColor,
+                        font: templateSettings.pdfFontColor,
+                      }}
+                      template={templateSettings.selectedTemplate}
+                    />
+                  </PDFViewer>
+                </div>
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  Preview uses sample data. Your actual invoices will use your business details.
+                </p>
+              </Card>
+            </div>
           </div>
         )}
       </div>

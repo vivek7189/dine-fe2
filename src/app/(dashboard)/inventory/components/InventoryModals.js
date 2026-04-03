@@ -683,6 +683,7 @@ function QuickStockModal(props) {
   } = props;
 
   const [filter, setFilter] = useState('');
+  const [batchInfo, setBatchInfo] = useState({}); // { [itemId]: { mfgDate, expiryDays } }
 
   const getAdjustment = (itemId) => {
     const entry = quickStockItems.find(q => q.itemId === itemId);
@@ -692,13 +693,26 @@ function QuickStockModal(props) {
   const setAdjustment = (itemId, adjustment) => {
     const existing = quickStockItems.filter(q => q.itemId !== itemId);
     if (adjustment !== 0) {
-      existing.push({ itemId, adjustment });
+      existing.push({ itemId, adjustment, ...(batchInfo[itemId] || {}) });
     }
     setQuickStockItems(existing);
   };
 
   const adjustBy = (itemId, delta) => {
-    setAdjustment(itemId, getAdjustment(itemId) + delta);
+    const newAdj = getAdjustment(itemId) + delta;
+    setAdjustment(itemId, newAdj);
+  };
+
+  const updateBatchInfo = (itemId, field, value) => {
+    const updated = { ...batchInfo, [itemId]: { ...(batchInfo[itemId] || {}), [field]: value } };
+    setBatchInfo(updated);
+    // Also update in quickStockItems if already has adjustment
+    const adj = getAdjustment(itemId);
+    if (adj !== 0) {
+      const existing = quickStockItems.filter(q => q.itemId !== itemId);
+      existing.push({ itemId, adjustment: adj, ...updated[itemId] });
+      setQuickStockItems(existing);
+    }
   };
 
   const changedCount = quickStockItems.filter(q => q.adjustment !== 0).length;
@@ -706,15 +720,21 @@ function QuickStockModal(props) {
     item.name?.toLowerCase().includes(filter.toLowerCase())
   );
 
+  const handleClose = () => {
+    setShowQuickStockModal(false);
+    setQuickStockItems([]);
+    setBatchInfo({});
+  };
+
   return (
-    <ModalShell show={showQuickStockModal} onClose={() => setShowQuickStockModal(false)} title="Quick Stock Update"
+    <ModalShell show={showQuickStockModal} onClose={handleClose} title="Quick Stock Update"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => { setShowQuickStockModal(false); setQuickStockItems([]); }}>Cancel</button>
+          <button style={secondaryBtn} onClick={handleClose}>Cancel</button>
           <button style={{ ...primaryBtn, opacity: changedCount === 0 ? 0.5 : 1 }}
             disabled={changedCount === 0}
-            onClick={() => handleQuickStockUpdate(quickStockItems.filter(q => q.adjustment !== 0))}>
+            onClick={() => { handleQuickStockUpdate(quickStockItems.filter(q => q.adjustment !== 0)); setBatchInfo({}); }}>
             <FaSave /> Save All Changes {changedCount > 0 && `(${changedCount})`}
           </button>
         </div>
@@ -735,47 +755,90 @@ function QuickStockModal(props) {
           const adj = getAdjustment(item.id);
           const hasChange = adj !== 0;
           const newStock = Math.max(0, (item.currentStock || 0) + adj);
+          const info = batchInfo[item.id] || {};
           return (
             <div key={item.id} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '12px 16px', borderRadius: '12px', marginBottom: '8px',
+              borderRadius: '12px', marginBottom: '8px',
               backgroundColor: hasChange ? '#ecfdf5' : '#f9fafb',
               border: hasChange ? '1px solid #a7f3d0' : '1px solid transparent',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s', overflow: 'hidden',
             }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: '14px', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {item.name}
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                  Current: {item.currentStock || 0} {item.unit || ''}
-                  {hasChange && (
-                    <span style={{ color: '#059669', fontWeight: 600, marginLeft: '8px' }}>
-                      New: {newStock} {item.unit || ''}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 16px',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.name}
                     </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                    Current: {item.currentStock || 0} {item.unit || ''}
+                    {hasChange && (
+                      <span style={{ color: '#059669', fontWeight: 600, marginLeft: '8px' }}>
+                        New: {newStock} {item.unit || ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <button onClick={() => adjustBy(item.id, -1)} style={{
+                    width: '36px', height: '36px', borderRadius: '10px', border: 'none',
+                    backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
+                  }}><FaMinus /></button>
+                  <input type="number" value={adj} onChange={e => setAdjustment(item.id, parseInt(e.target.value) || 0)}
+                    style={{
+                      width: '60px', textAlign: 'center', padding: '8px 4px', borderRadius: '8px',
+                      border: '1px solid #e5e7eb', fontSize: '14px', fontWeight: 600, outline: 'none'
+                    }}
+                    onFocus={e => { e.target.style.borderColor = '#059669'; }}
+                    onBlur={e => { e.target.style.borderColor = '#e5e7eb'; }}
+                  />
+                  <button onClick={() => adjustBy(item.id, 1)} style={{
+                    width: '36px', height: '36px', borderRadius: '10px', border: 'none',
+                    backgroundColor: '#d1fae5', color: '#059669', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
+                  }}><FaPlus /></button>
+                </div>
+              </div>
+              {/* Batch info row — mfg date & expiry days (always visible when adding stock) */}
+              {adj > 0 && (
+                <div style={{
+                  padding: '8px 16px 12px', borderTop: '1px solid #e5e7eb',
+                  display: 'flex', gap: '12px', alignItems: 'center', backgroundColor: '#f0fdf4',
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Mfg Date</label>
+                    <input type="date" value={info.mfgDate || ''}
+                      onChange={e => updateBatchInfo(item.id, 'mfgDate', e.target.value)}
+                      style={{
+                        width: '100%', padding: '6px 8px', borderRadius: '8px',
+                        border: '1px solid #d1d5db', fontSize: '12px', outline: 'none', marginTop: '2px',
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Expiry (days)</label>
+                    <input type="number" value={info.expiryDays || ''} placeholder="e.g. 30"
+                      onChange={e => updateBatchInfo(item.id, 'expiryDays', parseInt(e.target.value) || '')}
+                      style={{
+                        width: '100%', padding: '6px 8px', borderRadius: '8px',
+                        border: '1px solid #d1d5db', fontSize: '12px', outline: 'none', marginTop: '2px',
+                      }}
+                    />
+                  </div>
+                  {info.mfgDate && info.expiryDays && (
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Expires On</label>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#dc2626', marginTop: '6px' }}>
+                        {new Date(new Date(info.mfgDate).getTime() + info.expiryDays * 86400000).toLocaleDateString()}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                <button onClick={() => adjustBy(item.id, -1)} style={{
-                  width: '36px', height: '36px', borderRadius: '10px', border: 'none',
-                  backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
-                }}><FaMinus /></button>
-                <input type="number" value={adj} onChange={e => setAdjustment(item.id, parseInt(e.target.value) || 0)}
-                  style={{
-                    width: '60px', textAlign: 'center', padding: '8px 4px', borderRadius: '8px',
-                    border: '1px solid #e5e7eb', fontSize: '14px', fontWeight: 600, outline: 'none'
-                  }}
-                  onFocus={e => { e.target.style.borderColor = '#059669'; }}
-                  onBlur={e => { e.target.style.borderColor = '#e5e7eb'; }}
-                />
-                <button onClick={() => adjustBy(item.id, 1)} style={{
-                  width: '36px', height: '36px', borderRadius: '10px', border: 'none',
-                  backgroundColor: '#d1fae5', color: '#059669', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
-                }}><FaPlus /></button>
-              </div>
+              )}
             </div>
           );
         })}

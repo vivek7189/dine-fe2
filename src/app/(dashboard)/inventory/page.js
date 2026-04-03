@@ -2,16 +2,19 @@
 
 import { useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory } from 'react-icons/fa';
+import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useInventory from './hooks/useInventory';
+import useWaste from './hooks/useWaste';
 import DashboardTab from './components/DashboardTab';
 import StockTab from './components/StockTab';
 import RecipesTab from './components/RecipesTab';
 import UsageTab from './components/UsageTab';
 import ProcurementTab from './components/ProcurementTab';
 import InsightsTab from './components/InsightsTab';
+import WasteTab from './components/WasteTab';
 import InventoryModals from './components/InventoryModals';
+import WasteModals from './components/WasteModals';
 
 const tabs = [
   { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
@@ -20,6 +23,7 @@ const tabs = [
   { id: 'usage', name: 'Usage', icon: FaHistory },
   { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
   { id: 'insights', name: 'AI Insights', icon: FaChartLine },
+  { id: 'waste', name: 'Waste', icon: FaRecycle },
 ];
 
 const validTabIds = tabs.map(t => t.id);
@@ -27,7 +31,12 @@ const validTabIds = tabs.map(t => t.id);
 export default function InventoryManagement() {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const inventory = useInventory();
-  const { loading, isMobile, activeTab, setActiveTab, error, setError, success, setSuccess } = inventory;
+  const waste = useWaste(inventory.currentRestaurant, inventory.inventoryItems);
+  const { loading, isMobile, activeTab, setActiveTab, error: invError, setError: setInvError, success: invSuccess, setSuccess: setInvSuccess } = inventory;
+  const error = invError || waste.error;
+  const setError = invError ? setInvError : (v) => {};
+  const success = invSuccess || waste.success;
+  const setSuccess = invSuccess ? setInvSuccess : (v) => {};
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -38,6 +47,13 @@ export default function InventoryManagement() {
       setActiveTab(urlTab);
     }
   }, []);
+
+  // Load waste data when waste tab is active
+  useEffect(() => {
+    if (activeTab === 'waste' && inventory.currentRestaurant) {
+      waste.loadWasteData();
+    }
+  }, [activeTab, inventory.currentRestaurant]);
 
   // Update URL when tab changes
   const handleTabChange = useCallback((tabId) => {
@@ -190,6 +206,7 @@ export default function InventoryManagement() {
             setShowQuickStockModal={inventory.setShowQuickStockModal}
             setActiveTab={handleTabChange}
             getStatusColor={inventory.getStatusColor}
+            onLogWaste={() => waste.setShowQuickWasteModal(true)}
           />
         )}
 
@@ -300,10 +317,20 @@ export default function InventoryManagement() {
             setReportData={inventory.setReportData}
           />
         )}
+
+        {activeTab === 'waste' && (
+          <WasteTab
+            waste={waste}
+            inventoryItems={inventory.inventoryItems}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
+          />
+        )}
       </div>
 
       {/* All Modals */}
       <InventoryModals {...inventory} formatCurrency={formatCurrency} />
+      <WasteModals waste={waste} inventoryItems={inventory.inventoryItems} recipes={inventory.recipes} formatCurrency={formatCurrency} />
     </div>
   );
 }

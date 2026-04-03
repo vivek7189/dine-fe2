@@ -48,7 +48,7 @@ export default function ItemsPage() {
       if (searchDebounced) params.set('search', searchDebounced);
       if (typeFilter !== 'all') params.set('type', typeFilter);
       const qs = params.toString();
-      const data = await apiClient.getInvoiceItems(qs ? `?${qs}` : '');
+      const data = await apiClient.getInvoiceItems(qs || '');
       setItems(data.items || data || []);
     } catch {
       setItems([]);

@@ -2368,11 +2368,11 @@ const OrderSummary = ({
 
                 {/* Validation states */}
                 {(() => {
-                  const mobileDigits = (customerMobile || '').replace(/\D/g, '');
+                  const mobileDigits = String(customerMobile || '').replace(/\D/g, '');
                   const isValidMobile = mobileDigits.length >= getPhoneMinLength(countryCode);
-                  const isValidName = (customerName || '').trim().length > 3;
-                  const isValidTable = (tableNumber || '').trim().length > 0 && /\d/.test(tableNumber);
-                  const isValidRoom = (manualRoomNumber || '').trim().length > 0 && /\d/.test(manualRoomNumber);
+                  const isValidName = String(customerName || '').trim().length > 3;
+                  const isValidTable = String(tableNumber || '').trim().length > 0 && /\d/.test(String(tableNumber));
+                  const isValidRoom = String(manualRoomNumber || '').trim().length > 0 && /\d/.test(String(manualRoomNumber));
                   const isValidLocation = locationType === 'room' ? isValidRoom : isValidTable;
                   
                   return (

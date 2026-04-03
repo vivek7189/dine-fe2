@@ -1,6 +1,8 @@
 'use client';
 
 import { FaSearch, FaPlus, FaEdit, FaTrash, FaSortAmountDown, FaSortAmountUp, FaBoxes, FaExclamationTriangle, FaCheckCircle, FaFireAlt, FaClock } from 'react-icons/fa';
+import dynamic from 'next/dynamic';
+const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
 export default function StockTab({
   sortedItems, categories, searchTerm, setSearchTerm, selectedCategory, setSelectedCategory,
@@ -134,6 +136,13 @@ export default function StockTab({
         >
           <FaPlus size={12} /> Add Item
         </button>
+
+        <InventoryDownloadPDFButton
+          reportType="stock"
+          data={{ items: sortedItems, stats: dashboardStats }}
+          org={{}}
+          filename="stock-report.pdf"
+        />
       </div>
 
       {/* Table / List */}
@@ -239,7 +248,7 @@ export default function StockTab({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                       <FaExclamationTriangle size={10} color="#ea580c" />
                       <span style={{ fontSize: 11, color: '#ea580c', fontWeight: 500 }}>
-                        {item.wastedQty} {item.unit} wasted
+                        {item.wastedQty} {item.unit} wasted today{item.wastedValue > 0 ? ` · ${formatCurrency(item.wastedValue)}` : ''}
                       </span>
                     </div>
                   )}
@@ -260,7 +269,7 @@ export default function StockTab({
                 <th style={{ ...thStyle, textAlign: 'left', minWidth: 220 }}>Stock Level</th>
                 <th style={thStyle}>Min / Max</th>
                 <th style={thStyle}>Today&apos;s Usage</th>
-                <th style={thStyle}>Wasted</th>
+                <th style={thStyle}>Today&apos;s Waste</th>
                 <th style={thStyle}>Cost</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Supplier</th>
                 <th style={{ ...thStyle, width: 120 }}>Actions</th>
@@ -342,12 +351,19 @@ export default function StockTab({
                         <span style={{ fontSize: 12, color: '#d1d5db' }}>—</span>
                       )}
                     </td>
-                    {/* Wasted Column */}
+                    {/* Wasted Column (dynamic days) */}
                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                       {item.wastedQty > 0 ? (
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#ea580c' }}>
-                          {item.wastedQty} {item.unit}
-                        </span>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#ea580c' }}>
+                            {item.wastedQty} {item.unit}
+                          </div>
+                          {item.wastedValue > 0 && (
+                            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>
+                              {formatCurrency(item.wastedValue)}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span style={{ fontSize: 12, color: '#d1d5db' }}>—</span>
                       )}

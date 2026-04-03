@@ -991,6 +991,26 @@ export const blogPosts = [
     isStatic: true,
     staticPath: '/blog/restaurant-staff-retention-management-india.html'
   },
+  {
+    slug: 'best-pos-system-food-truck-india',
+    title: 'Best POS System for Food Trucks in India 2026: Top 7 Compared',
+    excerpt: 'Complete guide to choosing the best POS system for food trucks in India. Compare 7 top options — features, offline mode, pricing, and why mobile-first billing matters for food truck owners.',
+    date: '2026-04-02',
+    category: 'POS Systems',
+    categoryColor: '#f59e0b',
+    isStatic: true,
+    staticPath: '/blog/best-pos-system-food-truck-india.html'
+  },
+  {
+    slug: 'restaurant-whatsapp-marketing-india-guide',
+    title: 'Restaurant WhatsApp Marketing India: 10 Strategies + Templates',
+    excerpt: 'Learn 10 proven WhatsApp marketing strategies for Indian restaurants with ready-to-use message templates. Build customer loyalty, drive repeat orders, and boost revenue using WhatsApp Business.',
+    date: '2026-04-02',
+    category: 'Marketing',
+    categoryColor: '#25d366',
+    isStatic: true,
+    staticPath: '/blog/restaurant-whatsapp-marketing-india-guide.html'
+  },
 ];
 
 // Blog post content - for static generation

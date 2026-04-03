@@ -52,12 +52,14 @@ export default function QuoteDetailPage() {
 
   const [quote, setQuote] = useState(null);
   const [orgData, setOrgData] = useState({});
+  const [pdfSettings, setPdfSettings] = useState({ template: 'standard', colors: {} });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchQuote();
     fetchOrg();
+    fetchPdfSettings();
   }, [quoteId]);
 
   async function fetchOrg() {
@@ -65,6 +67,13 @@ export default function QuoteDetailPage() {
       const org = await apiClient.getInvoiceOrg();
       setOrgData(org || {});
     } catch { /* ignore */ }
+  }
+
+  async function fetchPdfSettings() {
+    try {
+      const s = await apiClient.getInvoiceSettings();
+      setPdfSettings({ template: s.pdfTemplate || 'standard', colors: s.pdfColors || {} });
+    } catch { /* use defaults */ }
   }
 
   async function fetchQuote() {
@@ -275,7 +284,7 @@ export default function QuoteDetailPage() {
         }
         actions={
           <div className="flex items-center gap-2">
-            <DownloadPDFButton data={quote} type="quote" org={orgData} />
+            <DownloadPDFButton data={quote} type="quote" org={orgData} colors={pdfSettings.colors} template={pdfSettings.template} />
             {renderActions()}
           </div>
         }

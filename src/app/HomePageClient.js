@@ -2220,6 +2220,34 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+      {/* Floating WhatsApp Button */}
+      <a
+        href="https://wa.me/919528632779?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS!"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp"
+        style={{
+          position: 'fixed',
+          bottom: '28px',
+          right: '28px',
+          zIndex: 9999,
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          background: '#25D366',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 14px rgba(37, 211, 102, 0.4)',
+          cursor: 'pointer',
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          textDecoration: 'none',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(37, 211, 102, 0.5)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(37, 211, 102, 0.4)'; }}
+      >
+        <FaWhatsapp size={32} color="#fff" />
+      </a>
     </main>
 
   );

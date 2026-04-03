@@ -194,6 +194,8 @@ const nextConfig = {
       'restaurant-profit-margin-increase-guide',
       'upi-digital-payments-restaurant-setup-guide',
       'restaurant-staff-retention-management-india',
+      'best-pos-system-food-truck-india',
+      'restaurant-whatsapp-marketing-india-guide',
     ];
 
     // Hindi static blog slugs (served as raw HTML files in public/hi/blog/)

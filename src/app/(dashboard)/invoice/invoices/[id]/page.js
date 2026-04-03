@@ -62,6 +62,7 @@ export default function InvoiceDetailPage() {
 
   const [invoice, setInvoice] = useState(null);
   const [orgData, setOrgData] = useState({});
+  const [pdfSettings, setPdfSettings] = useState({ template: 'standard', colors: {} });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -79,6 +80,7 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     fetchInvoice();
     fetchOrg();
+    fetchPdfSettings();
   }, [invoiceId]);
 
   async function fetchOrg() {
@@ -86,6 +88,13 @@ export default function InvoiceDetailPage() {
       const org = await apiClient.getInvoiceOrg();
       setOrgData(org || {});
     } catch { /* ignore */ }
+  }
+
+  async function fetchPdfSettings() {
+    try {
+      const s = await apiClient.getInvoiceSettings();
+      setPdfSettings({ template: s.pdfTemplate || 'standard', colors: s.pdfColors || {} });
+    } catch { /* use defaults */ }
   }
 
   async function fetchInvoice() {
@@ -286,7 +295,7 @@ export default function InvoiceDetailPage() {
         }
         actions={
           <div className="flex items-center gap-2">
-            <DownloadPDFButton data={invoice} type="invoice" org={orgData} />
+            <DownloadPDFButton data={invoice} type="invoice" org={orgData} colors={pdfSettings.colors} template={pdfSettings.template} />
             {renderActions()}
           </div>
         }

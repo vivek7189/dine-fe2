@@ -47,6 +47,7 @@ export default function ChallanDetailPage() {
   const { showToast } = useToast();
   const [challan, setChallan] = useState(null);
   const [orgData, setOrgData] = useState({});
+  const [pdfSettings, setPdfSettings] = useState({ template: 'standard', colors: {} });
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -55,6 +56,7 @@ export default function ChallanDetailPage() {
   useEffect(() => {
     fetchChallan();
     fetchOrg();
+    fetchPdfSettings();
   }, [params.id]);
 
   async function fetchOrg() {
@@ -62,6 +64,13 @@ export default function ChallanDetailPage() {
       const org = await apiClient.getInvoiceOrg();
       setOrgData(org || {});
     } catch { /* ignore */ }
+  }
+
+  async function fetchPdfSettings() {
+    try {
+      const s = await apiClient.getInvoiceSettings();
+      setPdfSettings({ template: s.pdfTemplate || 'standard', colors: s.pdfColors || {} });
+    } catch { /* use defaults */ }
   }
 
   async function fetchChallan() {
@@ -164,7 +173,7 @@ export default function ChallanDetailPage() {
         }
         actions={
           <div className="flex items-center gap-2">
-            {challan && <DownloadPDFButton data={challan} type="challan" org={orgData} />}
+            {challan && <DownloadPDFButton data={challan} type="challan" org={orgData} colors={pdfSettings.colors} template={pdfSettings.template} />}
             {isSent && (
               <Button
                 variant="outline"

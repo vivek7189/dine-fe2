@@ -6,14 +6,14 @@ import { InvoicePDF } from './InvoicePDF';
 import Button from '../ui/Button';
 import { HiDownload } from 'react-icons/hi';
 
-export default function DownloadPDFButton({ data, type = 'invoice', org = {}, colors = {}, className }) {
+export default function DownloadPDFButton({ data, type = 'invoice', org = {}, colors = {}, template = 'standard', className }) {
   const [generating, setGenerating] = useState(false);
 
   async function handleDownload() {
     setGenerating(true);
     try {
       const blob = await pdf(
-        <InvoicePDF data={data} type={type} org={org} colors={colors} />
+        <InvoicePDF data={data} type={type} org={org} colors={colors} template={template} />
       ).toBlob();
       const numberField = type === 'quote' ? data.quoteNumber : type === 'challan' ? data.challanNumber : data.invoiceNumber;
       const filename = `${numberField || type}.pdf`;
