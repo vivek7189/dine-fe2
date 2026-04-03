@@ -1626,12 +1626,27 @@ const MenuManagement = () => {
     servingSize: '',
     scoopOptions: '',
     // Multi-tier pricing
-    pricingRules: {}
+    pricingRules: {},
+    // Channel prices (always visible)
+    dineInPrice: '',
+    takeawayPrice: '',
+    deliveryPrice: '',
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
   const [activePricingRules, setActivePricingRules] = useState([]);
   const [pricingRulesExpanded, setPricingRulesExpanded] = useState(true);
+
+  // Name matching constants for channel rules
+  const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
+  const DELIVERY_NAMES = ['delivery'];
+  const DINEIN_NAMES = ['dine-in', 'dine in', 'dinein'];
+
+  // Resolve channel rule IDs from active pricing rules
+  const findRuleByChannel = useCallback((channel) => {
+    const names = channel === 'dineIn' ? DINEIN_NAMES : channel === 'takeaway' ? TAKEAWAY_NAMES : DELIVERY_NAMES;
+    return activePricingRules.find(r => r.isActive && names.includes((r.name || '').toLowerCase().trim()));
+  }, [activePricingRules]);
 
   // Mobile detection with client-side hydration safety
   useEffect(() => {
@@ -1907,9 +1922,46 @@ const MenuManagement = () => {
         description: c.description || ''
       }));
 
+      // Check if any channel prices are set
+      const dineInVal = parseFloat(formData.dineInPrice);
+      const takeawayVal = parseFloat(formData.takeawayPrice);
+      const deliveryVal = parseFloat(formData.deliveryPrice);
+      const hasChannelPrice = (!isNaN(dineInVal) && dineInVal >= 0) || (!isNaN(takeawayVal) && takeawayVal >= 0) || (!isNaN(deliveryVal) && deliveryVal >= 0);
+
+      // Auto-enable multi-pricing if channel prices are set but not enabled
+      let currentRules = [...activePricingRules];
+      if (hasChannelPrice && !multiPricingEnabled) {
+        try {
+          const pricingRes = await apiClient.getPricingSettings(currentRestaurant.id);
+          const existing = pricingRes?.settings?.multiPricing;
+          currentRules = existing?.rules || [];
+
+          // Create default channel rules if missing
+          const DEFAULT_CHANNEL_RULES = [
+            { id: 'rule_dine_in', name: 'Dine-In', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 0 },
+            { id: 'rule_takeaway', name: 'Takeaway', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 1 },
+            { id: 'rule_delivery', name: 'Delivery', type: 'fixed', defaultMarkupType: 'none', defaultMarkupValue: 0, tableMappings: [], isActive: true, order: 2 },
+          ];
+          for (const def of DEFAULT_CHANNEL_RULES) {
+            const names = def.name === 'Dine-In' ? DINEIN_NAMES : def.name === 'Takeaway' ? TAKEAWAY_NAMES : DELIVERY_NAMES;
+            const exists = currentRules.some(r => names.includes((r.name || '').toLowerCase().trim()));
+            if (!exists) currentRules.push(def);
+          }
+
+          await apiClient.updatePricingSettings(currentRestaurant.id, {
+            multiPricing: { enabled: true, rules: currentRules }
+          });
+          setMultiPricingEnabled(true);
+          setActivePricingRules(currentRules);
+        } catch (pricingError) {
+          console.error('Failed to auto-enable multi-pricing:', pricingError);
+        }
+      }
+
       // Clean up pricing rules — only keep numeric values
       const cleanedPricingRules = {};
-      if (multiPricingEnabled && formData.pricingRules) {
+      // Merge extra zone rules (AC, Non-AC, etc.)
+      if (formData.pricingRules) {
         for (const [ruleId, val] of Object.entries(formData.pricingRules)) {
           const parsed = parseFloat(val);
           if (!isNaN(parsed) && parsed >= 0) {
@@ -1917,6 +1969,15 @@ const MenuManagement = () => {
           }
         }
       }
+
+      // Map channel prices to rule IDs
+      const rulesToSearch = currentRules.length > 0 ? currentRules : activePricingRules;
+      const dineInRule = rulesToSearch.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
+      const takeawayRule = rulesToSearch.find(r => TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim()));
+      const deliveryRule = rulesToSearch.find(r => DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim()));
+      if (dineInRule && !isNaN(dineInVal) && dineInVal >= 0) cleanedPricingRules[dineInRule.id] = dineInVal;
+      if (takeawayRule && !isNaN(takeawayVal) && takeawayVal >= 0) cleanedPricingRules[takeawayRule.id] = takeawayVal;
+      if (deliveryRule && !isNaN(deliveryVal) && deliveryVal >= 0) cleanedPricingRules[deliveryRule.id] = deliveryVal;
 
       const itemData = {
         ...formData,
@@ -2100,7 +2161,20 @@ const MenuManagement = () => {
       expiryDate: item.expiryDate || '',
       servingSize: item.servingSize || '',
       scoopOptions: item.scoopOptions?.toString() || '',
-      pricingRules: item.pricingRules || {}
+      pricingRules: item.pricingRules || {},
+      // Pre-populate channel prices from pricing rules
+      dineInPrice: (() => {
+        const rule = activePricingRules.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
+        return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
+      })(),
+      takeawayPrice: (() => {
+        const rule = activePricingRules.find(r => TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim()));
+        return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
+      })(),
+      deliveryPrice: (() => {
+        const rule = activePricingRules.find(r => DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim()));
+        return rule && item.pricingRules?.[rule.id] != null ? String(item.pricingRules[rule.id]) : '';
+      })(),
     });
     setEditingItem(item);
     setShowAddForm(true);
@@ -2261,7 +2335,10 @@ const MenuManagement = () => {
       expiryDate: '',
       servingSize: '',
       scoopOptions: '',
-      pricingRules: {}
+      pricingRules: {},
+      dineInPrice: '',
+      takeawayPrice: '',
+      deliveryPrice: ''
     });
     setEditingItem(null);
     setShowAddForm(false);
@@ -3736,131 +3813,149 @@ const MenuManagement = () => {
                   />
                 </div>
 
-                {/* Multi-Tier Pricing Rules — Grouped by Channel */}
-                {multiPricingEnabled && activePricingRules.length > 0 && (() => {
-                  const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
-                  const DELIVERY_NAMES = ['delivery'];
-                  const dineInRules = activePricingRules.filter(r => {
-                    const name = (r.name || '').toLowerCase().trim();
-                    return r.isActive && !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name);
-                  });
-                  const takeawayRule = activePricingRules.find(r =>
-                    r.isActive && TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim())
-                  );
-                  const deliveryRule = activePricingRules.find(r =>
-                    r.isActive && DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim())
-                  );
+                {/* Channel & Zone Prices — Tree Layout */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>
+                    Channel Prices <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '12px' }}>(optional)</span>
+                  </label>
 
-                  const renderRuleInput = (rule) => {
-                    const savedPrice = formData.pricingRules[rule.id];
-                    const hasCustomPrice = savedPrice !== undefined && savedPrice !== '' && savedPrice !== null;
-                    const displayValue = hasCustomPrice ? savedPrice : '';
+                  {/* Dine-In */}
+                  {(() => {
+                    const hasDineIn = formData.dineInPrice !== '' && formData.dineInPrice !== undefined;
                     return (
-                      <div key={rule.id}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>
-                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-                          {rule.name}
-                        </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🍽️</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Dine-In</span>
                         <input
                           type="number"
-                          placeholder={formData.price ? `${formData.price}` : '0'}
-                          value={displayValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setFormData(prev => ({
-                              ...prev,
-                              pricingRules: {
-                                ...prev.pricingRules,
-                                [rule.id]: val === '' ? undefined : val
-                              }
-                            }));
-                          }}
-                          min="0"
-                          step="0.01"
+                          placeholder={formData.price ? `₹${formData.price}` : '₹0'}
+                          value={formData.dineInPrice}
+                          onChange={(e) => setFormData(prev => ({ ...prev, dineInPrice: e.target.value }))}
+                          min="0" step="0.01"
                           style={{
-                            width: '100%', padding: '7px 10px', borderRadius: '6px',
-                            border: hasCustomPrice ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                            flex: 1, maxWidth: '140px', padding: '7px 10px', borderRadius: '6px',
+                            border: hasDineIn ? '1.5px solid #10b981' : '1px solid #e2e8f0',
                             fontSize: '13px', boxSizing: 'border-box',
-                            backgroundColor: hasCustomPrice ? '#f0fdf4' : 'white',
-                            fontWeight: hasCustomPrice ? '600' : '400',
-                            color: hasCustomPrice ? '#166534' : '#374151'
+                            backgroundColor: hasDineIn ? '#f0fdf4' : 'white',
+                            fontWeight: hasDineIn ? '600' : '400',
+                            color: hasDineIn ? '#166534' : '#374151'
                           }}
                           onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = hasCustomPrice ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
+                          onBlur={(e) => { e.target.style.borderColor = hasDineIn ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
                         />
                       </div>
                     );
-                  };
+                  })()}
 
-                  if (dineInRules.length === 0 && !takeawayRule && !deliveryRule) return null;
-
-                  return (
-                  <div style={{ gridColumn: '1 / -1', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                    <div
-                      onClick={() => setPricingRulesExpanded(!pricingRulesExpanded)}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 14px', cursor: 'pointer', userSelect: 'none',
-                        backgroundColor: '#f8fafc',
-                        borderBottom: pricingRulesExpanded ? '1px solid #e2e8f0' : 'none',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Pricing by Channel</span>
-                        <span style={{ fontSize: '11px', color: '#94a3b8', backgroundColor: '#f1f5f9', padding: '1px 8px', borderRadius: '10px' }}>
-                          {dineInRules.length + (takeawayRule ? 1 : 0) + (deliveryRule ? 1 : 0)}
-                        </span>
+                  {/* Zone children — indented tree under Dine-In */}
+                  {multiPricingEnabled && activePricingRules.length > 0 && (() => {
+                    const extraRules = activePricingRules.filter(r => {
+                      const name = (r.name || '').toLowerCase().trim();
+                      return r.isActive && !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name) && !DINEIN_NAMES.includes(name);
+                    });
+                    if (extraRules.length === 0) return null;
+                    const inheritedPrice = formData.dineInPrice || formData.price || '';
+                    return (
+                      <div style={{ marginLeft: '30px', borderLeft: '2px solid #e2e8f0', paddingLeft: '14px', marginBottom: '6px', paddingTop: '2px' }}>
+                        {extraRules.map((rule, idx) => {
+                          const savedPrice = formData.pricingRules[rule.id];
+                          const hasCustom = savedPrice !== undefined && savedPrice !== '' && savedPrice !== null;
+                          const isLast = idx === extraRules.length - 1;
+                          return (
+                            <div key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isLast ? '0' : '4px', position: 'relative' }}>
+                              <span style={{ position: 'absolute', left: '-15px', top: '50%', width: '12px', height: '1px', backgroundColor: '#e2e8f0' }} />
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: hasCustom ? '#10b981' : '#cbd5e1', flexShrink: 0 }} />
+                              <span style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', width: '80px', flexShrink: 0 }}>{rule.name}</span>
+                              <input
+                                type="number"
+                                placeholder={inheritedPrice ? `₹${inheritedPrice}` : '₹0'}
+                                value={hasCustom ? savedPrice : ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setFormData(prev => ({ ...prev, pricingRules: { ...prev.pricingRules, [rule.id]: val === '' ? undefined : val } }));
+                                }}
+                                min="0" step="0.01"
+                                style={{
+                                  flex: 1, maxWidth: '120px', padding: '5px 8px', borderRadius: '5px',
+                                  border: hasCustom ? '1.5px solid #10b981' : '1px dashed #d1d5db',
+                                  fontSize: '12px', boxSizing: 'border-box',
+                                  backgroundColor: hasCustom ? '#f0fdf4' : '#fafafa',
+                                  fontWeight: hasCustom ? '600' : '400',
+                                  fontStyle: hasCustom ? 'normal' : 'italic',
+                                  color: hasCustom ? '#166534' : '#94a3b8'
+                                }}
+                                onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; e.target.style.fontStyle = 'normal'; }}
+                                onBlur={(e) => { e.target.style.borderColor = hasCustom ? '#10b981' : '#d1d5db'; e.target.style.boxShadow = 'none'; if (!hasCustom) e.target.style.fontStyle = 'italic'; }}
+                              />
+                              {!hasCustom && <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>inherited</span>}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: pricingRulesExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', color: '#94a3b8' }}>
-                        <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    {pricingRulesExpanded && (
-                      <div style={{ padding: '10px 14px' }}>
-                        {/* DINE-IN group */}
-                        {dineInRules.length > 0 && (
-                          <div style={{ marginBottom: takeawayRule || deliveryRule ? '14px' : '0' }}>
-                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                              🍽️ Dine-In
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', paddingLeft: '10px', borderLeft: '2px solid #e2e8f0' }}>
-                              {dineInRules.map(rule => renderRuleInput(rule))}
-                            </div>
-                          </div>
-                        )}
+                    );
+                  })()}
 
-                        {/* TAKEAWAY */}
-                        {takeawayRule && (
-                          <div style={{ marginBottom: deliveryRule ? '14px' : '0' }}>
-                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                              🥡 Takeaway
-                            </div>
-                            <div style={{ paddingLeft: '10px', borderLeft: '2px solid #e2e8f0', maxWidth: '160px' }}>
-                              {renderRuleInput(takeawayRule)}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* DELIVERY */}
-                        {deliveryRule && (
-                          <div>
-                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                              🛵 Delivery
-                            </div>
-                            <div style={{ paddingLeft: '10px', borderLeft: '2px solid #e2e8f0', maxWidth: '160px' }}>
-                              {renderRuleInput(deliveryRule)}
-                            </div>
-                          </div>
-                        )}
-
-                        <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '10px', marginBottom: '0' }}>
-                          Empty fields use the base price ({formData.price || '0'})
-                        </p>
+                  {/* Takeaway */}
+                  {(() => {
+                    const hasTakeaway = formData.takeawayPrice !== '' && formData.takeawayPrice !== undefined;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', marginTop: '6px' }}>
+                        <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🥡</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Takeaway</span>
+                        <input
+                          type="number"
+                          placeholder={formData.price ? `₹${formData.price}` : '₹0'}
+                          value={formData.takeawayPrice}
+                          onChange={(e) => setFormData(prev => ({ ...prev, takeawayPrice: e.target.value }))}
+                          min="0" step="0.01"
+                          style={{
+                            flex: 1, maxWidth: '140px', padding: '7px 10px', borderRadius: '6px',
+                            border: hasTakeaway ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                            fontSize: '13px', boxSizing: 'border-box',
+                            backgroundColor: hasTakeaway ? '#f0fdf4' : 'white',
+                            fontWeight: hasTakeaway ? '600' : '400',
+                            color: hasTakeaway ? '#166534' : '#374151'
+                          }}
+                          onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = hasTakeaway ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
+                        />
                       </div>
-                    )}
-                  </div>
-                  );
-                })()}
+                    );
+                  })()}
+
+                  {/* Delivery */}
+                  {(() => {
+                    const hasDelivery = formData.deliveryPrice !== '' && formData.deliveryPrice !== undefined;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🛵</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Delivery</span>
+                        <input
+                          type="number"
+                          placeholder={formData.price ? `₹${formData.price}` : '₹0'}
+                          value={formData.deliveryPrice}
+                          onChange={(e) => setFormData(prev => ({ ...prev, deliveryPrice: e.target.value }))}
+                          min="0" step="0.01"
+                          style={{
+                            flex: 1, maxWidth: '140px', padding: '7px 10px', borderRadius: '6px',
+                            border: hasDelivery ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                            fontSize: '13px', boxSizing: 'border-box',
+                            backgroundColor: hasDelivery ? '#f0fdf4' : 'white',
+                            fontWeight: hasDelivery ? '600' : '400',
+                            color: hasDelivery ? '#166534' : '#374151'
+                          }}
+                          onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = hasDelivery ? '#10b981' : '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
+                        />
+                      </div>
+                    );
+                  })()}
+
+                  <p style={{ fontSize: '11px', color: '#94a3b8', margin: '8px 0 0' }}>
+                    Empty zones inherit Dine-In price. Empty channels use base price.{' '}
+                    <span onClick={() => router.push('/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>Admin → Pricing Rules</span>
+                  </p>
+                </div>
 
                 {/* Category */}
                 <div style={{ gridColumn: '1 / -1' }}>

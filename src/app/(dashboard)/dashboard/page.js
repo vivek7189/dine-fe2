@@ -106,6 +106,14 @@ function RestaurantPOSContent() {
   const [activePricingRuleId, setActivePricingRuleId] = useState(null);
   const [autoSelectedRule, setAutoSelectedRule] = useState(false);
 
+  // Channel name constants for pricing rule identification
+  const DINEIN_NAMES = ['dine-in', 'dine in', 'dinein'];
+  const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
+  const DELIVERY_NAMES = ['delivery'];
+  const CHANNEL_NAMES = [...DINEIN_NAMES, ...TAKEAWAY_NAMES, ...DELIVERY_NAMES];
+  const isZoneRule = (rule) => !CHANNEL_NAMES.includes((rule?.name || '').toLowerCase().trim());
+  const findDineInRule = (rules) => (rules || []).find(r => r.isActive && DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
+
   // API state
   const [menuItems, setMenuItems] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
@@ -1427,12 +1435,19 @@ function RestaurantPOSContent() {
   // Multi-tier pricing: resolve display price for an item
   const getItemDisplayPrice = useCallback((item) => {
     if (!multiPricingEnabled || !activePricingRuleId) return item.price;
-    // Per-item override
+    // Priority 1: Per-item override for this exact rule
     if (item.pricingRules && typeof item.pricingRules[activePricingRuleId] === 'number') {
       return item.pricingRules[activePricingRuleId];
     }
-    // Rule default markup
+    // Priority 2: Zone rules inherit from Dine-In per-item price
     const rule = pricingRules.find(r => r.id === activePricingRuleId);
+    if (rule && isZoneRule(rule)) {
+      const diRule = findDineInRule(pricingRules);
+      if (diRule && item.pricingRules && typeof item.pricingRules[diRule.id] === 'number') {
+        return item.pricingRules[diRule.id];
+      }
+    }
+    // Priority 3: Rule default markup
     if (rule?.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) {
       return Math.round(item.price * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
     }
@@ -1452,19 +1467,32 @@ function RestaurantPOSContent() {
       const basePrice = item.basePrice ?? item._originalPrice ?? menuItem?.price ?? item.price;
       let newPrice = basePrice;
       if (activePricingRuleId) {
-        // Check per-item override from menu item's pricingRules (handle both number and string)
+        // Priority 1: Check per-item override from menu item's pricingRules (handle both number and string)
         const perItemPrice = menuItem?.pricingRules?.[activePricingRuleId]
           ?? item?.pricingRules?.[activePricingRuleId];
         const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
         if (!isNaN(parsed) && parsed >= 0) {
           newPrice = parsed;
         } else {
-          // Apply default markup from rule
           const rule = pricingRules.find(r => r.id === activePricingRuleId);
-          if (rule?.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) {
-            newPrice = Math.round(basePrice * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
-          } else if (rule?.defaultMarkupType === 'flat' && rule.defaultMarkupValue) {
-            newPrice = Math.round((basePrice + rule.defaultMarkupValue) * 100) / 100;
+          // Priority 2: Zone rules inherit from Dine-In per-item price
+          if (rule && isZoneRule(rule)) {
+            const diRule = findDineInRule(pricingRules);
+            if (diRule) {
+              const diPrice = menuItem?.pricingRules?.[diRule.id] ?? item?.pricingRules?.[diRule.id];
+              const diParsed = diPrice != null ? Number(diPrice) : NaN;
+              if (!isNaN(diParsed) && diParsed >= 0) {
+                newPrice = diParsed;
+              }
+            }
+          }
+          // Priority 3: Apply default markup from rule
+          if (newPrice === basePrice) {
+            if (rule?.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) {
+              newPrice = Math.round(basePrice * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
+            } else if (rule?.defaultMarkupType === 'flat' && rule.defaultMarkupValue) {
+              newPrice = Math.round((basePrice + rule.defaultMarkupValue) * 100) / 100;
+            }
           }
         }
       }
