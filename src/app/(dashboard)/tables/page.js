@@ -83,6 +83,7 @@ const TableManagement = () => {
 
   const scrollContainerRef = useRef(null);
   const canManageTables = ['owner', 'admin', 'manager'].includes(userRole);
+  const canResetTables = ['owner', 'admin'].includes(userRole) || (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').pageAccess?.resetTables; } catch { return false; } })();
 
   // Timer tick to keep elapsed times updated (every 60s)
   const [, setTick] = useState(0);
@@ -299,6 +300,7 @@ const TableManagement = () => {
       channel.bind('order-completed', handleEvent('order-completed'));
       channel.bind('order-deleted', handleEvent('order-deleted'));
       channel.bind('table-status-updated', handleEvent('table-status-updated'));
+      channel.bind('tables-reset', handleEvent('tables-reset'));
     });
 
     return () => {
@@ -388,6 +390,30 @@ const TableManagement = () => {
     } catch (err) {
       console.error('Error loading floors and tables:', err);
       setError('Failed to load tables');
+    }
+  };
+
+  // ── Reset all tables ──────────────────────────────────
+  const handleResetAllTables = async () => {
+    const allTables = floors.flatMap(f => f.tables || []);
+    const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
+    if (occupiedCount === 0) {
+      showWarning('All tables are already available.');
+      return;
+    }
+    if (!window.confirm(`Free ${occupiedCount} occupied table(s)? This will mark them as available.`)) return;
+    try {
+      await apiClient.resetAllTables(selectedRestaurant.id);
+      setFloors(prev => prev.map(floor => ({
+        ...floor,
+        tables: floor.tables?.map(t =>
+          t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
+        ),
+      })));
+      showSuccess(`${occupiedCount} table(s) reset to available.`);
+      loadFloorsAndTables(selectedRestaurant.id, true);
+    } catch (err) {
+      showError(err.message || 'Failed to reset tables');
     }
   };
 
@@ -767,6 +793,15 @@ const TableManagement = () => {
             }}>
               <FaCalendarAlt size={12} /> Book
             </button>
+            {canResetTables && (
+              <button onClick={handleResetAllTables} style={{
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: 'none', color: 'white',
+                fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
+              }}>
+                <FaTools size={11} /> Reset All
+              </button>
+            )}
             {canManageTables && (
               <button onClick={() => setShowAddModal(true)} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',

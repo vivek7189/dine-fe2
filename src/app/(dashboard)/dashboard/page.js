@@ -52,7 +52,8 @@ import {
   FaMicrophoneSlash,
   FaStop,
   FaBed,
-  FaThList
+  FaThList,
+  FaTools
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
@@ -5101,6 +5102,53 @@ function RestaurantPOSContent() {
               <FaChair size={12} />
               {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
             </button>
+
+            {/* Reset Tables (only in tables view, owner/admin only) */}
+            {viewMode === 'tables' && ['owner', 'admin'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) && (
+              <button
+                onClick={async () => {
+                  const allTables = tablesData.tables || tablesData.floors?.flatMap(f => f.tables || []) || [];
+                  const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
+                  if (occupiedCount === 0) return;
+                  if (!window.confirm(`Free ${occupiedCount} occupied table(s)? This will mark them as available.`)) return;
+                  try {
+                    await apiClient.resetAllTables(selectedRestaurant.id);
+                    setTablesData(prev => ({
+                      ...prev,
+                      floors: prev.floors.map(floor => ({
+                        ...floor,
+                        tables: floor.tables?.map(t =>
+                          t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
+                        ),
+                      })),
+                      tables: prev.tables.map(t =>
+                        t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
+                      ),
+                    }));
+                  } catch (err) {
+                    alert(err.message || 'Failed to reset tables');
+                  }
+                }}
+                style={{
+                  height: '36px',
+                  padding: '0 12px',
+                  background: 'transparent',
+                  color: '#ef4444',
+                  border: '1.5px solid #ef4444',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <FaTools size={10} />
+                Reset
+              </button>
+            )}
 
             {/* Spacer */}
             <div style={{ flex: 1 }} />

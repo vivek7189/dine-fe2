@@ -423,12 +423,24 @@ class ApiClient {
     }
   }
 
+  // Sync auth data from cookies to localStorage (for cross-tab support)
+  syncAuthFromCookies() {
+    if (typeof window === 'undefined') return false;
+    // getToken() and getUser() already check cookies first and sync to localStorage
+    const token = this.getToken();
+    const user = this.getUser();
+    return !!(token && user);
+  }
+
   // Authentication utilities
   isAuthenticated() {
     if (typeof window === 'undefined') return false;
+    // First check localStorage (fast path)
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('user');
-    return !!(token && user);
+    if (token && user) return true;
+    // Fallback: check cookies and sync to localStorage (cross-tab support)
+    return this.syncAuthFromCookies();
   }
 
   // Validate token with backend - returns true if valid, false if expired/invalid
@@ -948,6 +960,12 @@ class ApiClient {
     return this.request(`/api/tables/${restaurantId}/bulk`, {
       method: 'POST',
       body: bulkData,
+    });
+  }
+
+  async resetAllTables(restaurantId) {
+    return this.request(`/api/tables/${restaurantId}/reset-all`, {
+      method: 'POST',
     });
   }
 
@@ -2882,4 +2900,11 @@ class ApiClient {
 }
 
 const apiClient = new ApiClient();
+
+// Auto-sync auth from cookies to localStorage on module load (cross-tab support)
+// This ensures localStorage has auth data before any page checks it directly
+if (typeof window !== 'undefined') {
+  apiClient.syncAuthFromCookies();
+}
+
 export default apiClient;

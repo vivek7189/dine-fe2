@@ -100,9 +100,9 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) { router.push('/login'); return; }
-    const parsed = JSON.parse(userData);
+    // Use apiClient to check auth (checks cookies + localStorage for cross-tab support)
+    if (!apiClient.isAuthenticated()) { router.push('/login'); return; }
+    const parsed = apiClient.getUser();
     setUser(parsed);
     const cachedAccess = localStorage.getItem('navPageAccess');
     if (cachedAccess) setPageAccess(JSON.parse(cachedAccess));

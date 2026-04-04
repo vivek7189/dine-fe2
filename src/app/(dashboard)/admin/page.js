@@ -2534,7 +2534,8 @@ const Admin = () => {
       inventory: false,
       kot: false,
       admin: false,
-      invoice: false
+      invoice: false,
+      resetTables: false
     }
   });
   const [showPassword, setShowPassword] = useState({});
@@ -3239,7 +3240,8 @@ const Admin = () => {
           inventory: false,
           kot: false,
           admin: false,
-          invoice: false
+          invoice: false,
+          resetTables: false
         }
       });
       setShowAddStaffModal(false);
@@ -4292,7 +4294,8 @@ const Admin = () => {
                             { key: 'inventory', label: 'Inventory', icon: '📦' },
                             { key: 'kot', label: 'KOT', icon: '👨‍🍳' },
                             { key: 'admin', label: 'Admin', icon: '⚙️' },
-                            { key: 'invoice', label: 'Invoice', icon: '🧾' }
+                            { key: 'invoice', label: 'Invoice', icon: '🧾' },
+                            { key: 'resetTables', label: 'Reset All Tables', icon: '🔄' }
                           ].map(({ key, label, icon }) => {
                             const isInventory = key === 'inventory';
                             const hasAccess = isInventory
@@ -5442,7 +5445,8 @@ const Admin = () => {
                     { key: 'inventory', label: t('nav.inventory'), icon: '📦' },
                     { key: 'kot', label: t('nav.kot'), icon: '👨‍🍳' },
                     { key: 'admin', label: t('nav.admin'), icon: '⚙️' },
-                    { key: 'invoice', label: 'Invoice', icon: '🧾' }
+                    { key: 'invoice', label: 'Invoice', icon: '🧾' },
+                    { key: 'resetTables', label: 'Reset All Tables', icon: '🔄' }
                   ].map(({ key, label, icon }) => {
                     const isInventory = key === 'inventory';
                     const isChecked = isInventory
