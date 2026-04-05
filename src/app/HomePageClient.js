@@ -138,8 +138,10 @@ export default function LandingPage() {
       name: "Spark",
       type: "spark",
       price: currency === 'INR' ? '₹300' : currency === 'GBP' ? '£8' : '$9.99',
+      regularPrice: currency === 'INR' ? '₹999' : currency === 'GBP' ? '£24' : '$29.99',
+      discount: currency === 'INR' ? 70 : currency === 'GBP' ? 67 : 67,
       period: 'per month',
-      subPrice: currency === 'INR' ? 'Perfect for small restaurants' : 'For growing restaurants',
+      subPrice: 'For any restaurant',
       features: ["AI Agent (Voice & Chat)", "QR Code Digital Menu", "Complete POS System", "Unlimited Tables", "Real-time Kitchen Display", "Up to 3 Locations"],
       button: "Start Free Trial",
       popular: true
@@ -148,6 +150,8 @@ export default function LandingPage() {
       name: "Blaze",
       type: "blaze",
       price: currency === 'INR' ? '₹2,500' : currency === 'GBP' ? '£72' : '$89',
+      regularPrice: currency === 'INR' ? '₹7,500' : currency === 'GBP' ? '£199' : '$249',
+      discount: currency === 'INR' ? 67 : currency === 'GBP' ? 64 : 64,
       period: 'per month',
       subPrice: 'For restaurant chains',
       features: ["Everything in Spark", "Unlimited Locations", "Chain Dashboard", "Cross-location Analytics", "Centralized Menu Management", "Priority 24/7 Support"],
@@ -439,10 +443,10 @@ export default function LandingPage() {
               Demo
             </button>
 
-            <Link href="/blog" style={{ 
-              fontSize: '15px', 
-              fontWeight: '600', 
-              color: '#111827', 
+            <Link href="/blog" style={{
+              fontSize: '15px',
+              fontWeight: '600',
+              color: '#111827',
               textDecoration: 'none',
               padding: '8px 12px',
               borderRadius: '8px',
@@ -452,6 +456,21 @@ export default function LandingPage() {
             onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
             >
               Blog
+            </Link>
+
+            <Link href="/pricing" style={{
+              fontSize: '15px',
+              fontWeight: '600',
+              color: '#111827',
+              textDecoration: 'none',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
+            onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
+            >
+              Pricing
             </Link>
             </div>
           )}
@@ -1710,12 +1729,23 @@ export default function LandingPage() {
                 e.currentTarget.style.boxShadow = 'none';
               }}>
                 {plan.popular && <div style={{ position: 'absolute', top: '-12px', right: '40px', background: 'linear-gradient(135deg, #111827 0%, #374151 100%)', color: 'white', fontSize: '12px', fontWeight: '700', padding: '6px 16px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)' }}>MOST POPULAR</div>}
+                {plan.discount && (
+                  <div style={{ display: 'inline-block', backgroundColor: plan.popular ? 'rgba(16,185,129,0.2)' : '#dcfce7', color: plan.popular ? '#6ee7b7' : '#16a34a', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', marginBottom: '12px' }}>
+                    SAVE {plan.discount}% — Limited Offer
+                  </div>
+                )}
                 <h3 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>{plan.name}</h3>
+                {plan.regularPrice && (
+                  <div style={{ marginBottom: '4px' }}>
+                    <span style={{ fontSize: '20px', fontWeight: '600', opacity: 0.5, textDecoration: 'line-through' }}>{plan.regularPrice}</span>
+                  </div>
+                )}
                 <div style={{ fontSize: '48px', fontWeight: '900', marginBottom: '4px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                   {plan.price}
                   <span style={{ fontSize: '16px', fontWeight: '500', opacity: 0.7 }}>/{plan.period.replace('per ', '')}</span>
                 </div>
-                <p style={{ opacity: 0.7, marginBottom: '32px', fontSize: '15px' }}>{plan.subPrice}</p>
+                <p style={{ opacity: 0.7, marginBottom: '8px', fontSize: '15px' }}>{plan.subPrice}</p>
+                <p style={{ fontSize: '12px', color: plan.popular ? '#6ee7b7' : '#16a34a', fontWeight: '600', marginBottom: '24px' }}>Lock this price forever. Pay once, keep your account active until you start. No recurring billing.</p>
                 <button
                   onClick={handleLogin}
                   style={{
