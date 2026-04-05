@@ -84,6 +84,74 @@ const isDateValid = (offer) => {
   return true;
 };
 
+/**
+ * Compute ms until the next schedule transition (offer activates or deactivates).
+ * Returns null if no scheduled offers exist.
+ */
+const getNextScheduleTransition = (offers) => {
+  const now = new Date();
+  const currentDay = now.getDay();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  let minMs = null;
+
+  for (const offer of offers) {
+    // Time-based schedule transitions
+    if (offer.schedule?.type === 'recurring') {
+      const days = offer.schedule.days || [];
+      const [startH, startM] = (offer.schedule.startTime || '00:00').split(':').map(Number);
+      const [endH, endM] = (offer.schedule.endTime || '23:59').split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      if (days.includes(currentDay)) {
+        if (currentMinutes < startMinutes) {
+          // Before window today — transition at startTime
+          const ms = (startMinutes - currentMinutes) * 60000 - (now.getSeconds() * 1000);
+          if (minMs === null || ms < minMs) minMs = ms;
+        } else if (currentMinutes < endMinutes) {
+          // Inside window — transition at endTime
+          const ms = (endMinutes - currentMinutes) * 60000 - (now.getSeconds() * 1000);
+          if (minMs === null || ms < minMs) minMs = ms;
+        }
+        // After window today — check next scheduled day below
+      }
+
+      // Find next scheduled day's startTime
+      if (!days.includes(currentDay) || currentMinutes >= endMinutes) {
+        for (let i = 1; i <= 7; i++) {
+          const nextDay = (currentDay + i) % 7;
+          if (days.includes(nextDay)) {
+            const msToMidnight = ((24 * 60) - currentMinutes) * 60000 - (now.getSeconds() * 1000);
+            const msFromMidnight = (i - 1) * 24 * 60 * 60000 + startMinutes * 60000;
+            const ms = msToMidnight + msFromMidnight;
+            if (minMs === null || ms < minMs) minMs = ms;
+            break;
+          }
+        }
+      }
+    }
+
+    // Date-based transitions
+    if (offer.validFrom) {
+      const from = new Date(offer.validFrom);
+      if (from > now) {
+        const ms = from.getTime() - now.getTime();
+        if (minMs === null || ms < minMs) minMs = ms;
+      }
+    }
+    if (offer.validUntil) {
+      const until = new Date(offer.validUntil);
+      until.setHours(23, 59, 59, 999);
+      if (until > now) {
+        const ms = until.getTime() - now.getTime();
+        if (minMs === null || ms < minMs) minMs = ms;
+      }
+    }
+  }
+
+  return minMs;
+};
+
 const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = null, taxSettings = null }) => {
   const [allOffers, setAllOffers] = useState([]);
   const [offerSettings, setOfferSettings] = useState({
@@ -91,12 +159,23 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     allowMultipleOffers: false,
     maxOffersAllowed: 1,
   });
+  const [loyaltySettings, setLoyaltySettings] = useState({
+    enabled: false,
+    earnPerAmount: 100,
+    pointsEarned: 4,
+    redemptionRate: 100,
+    maxRedemptionPercent: 20,
+    earnPointsOnRedemption: false,
+    earnOnFullAmount: false,
+  });
   const [selectedOfferId, setSelectedOfferIdInternal] = useState(null);
+  const [selectedOfferIds, setSelectedOfferIdsInternal] = useState([]);
   const [offerDiscount, setOfferDiscount] = useState(0);
   const [selectedOfferName, setSelectedOfferName] = useState('');
   const [isLoadingOffers, setIsLoadingOffers] = useState(false);
   const [autoApplied, setAutoApplied] = useState(false);
   const [firstOrderOfferRejected, setFirstOrderOfferRejected] = useState(false);
+  const [scheduleCheckKey, setScheduleCheckKey] = useState(0);
 
   const wasManuallySelectedRef = useRef(false);
   const prevRestaurantIdRef = useRef(null);
@@ -127,11 +206,14 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
         const offers = (offersResponse.offers || offersResponse || []).filter(o => o.isActive !== false);
         setAllOffers(offers);
 
-        // Load offer settings
+        // Load offer + loyalty settings
         try {
           const settingsRes = await apiClient.getCustomerAppSettings(restaurantId);
           if (settingsRes?.settings?.offerSettings) {
             setOfferSettings(settingsRes.settings.offerSettings);
+          }
+          if (settingsRes?.settings?.loyaltySettings) {
+            setLoyaltySettings(prev => ({ ...prev, ...settingsRes.settings.loyaltySettings }));
           }
         } catch (e) {
           // Ignore settings load failure
@@ -169,6 +251,17 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     refetchOffers();
   }, [restaurantId, customerInfo?.isFirstOrder]);
 
+  // Smart schedule timer — sets a precise timeout for the next schedule transition
+  useEffect(() => {
+    if (allOffers.length === 0) return;
+    const msToNext = getNextScheduleTransition(allOffers);
+    if (!msToNext || msToNext <= 0) return;
+    // Cap at 1 hour to handle edge cases (page left open overnight)
+    const timeout = Math.min(msToNext + 1000, 3600000);
+    const timer = setTimeout(() => setScheduleCheckKey(prev => prev + 1), timeout);
+    return () => clearTimeout(timer);
+  }, [allOffers, scheduleCheckKey]);
+
   // Compute applicable offers (filtered by schedule, date, minOrder, firstOrder, scope)
   const applicableOffers = useMemo(() => {
     if (!allOffers.length) return [];
@@ -202,10 +295,29 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
       return true;
     });
-  }, [allOffers, subtotal, cart, customerInfo]);
+  }, [allOffers, subtotal, cart, customerInfo, scheduleCheckKey]);
 
-  // Update discount when selectedOfferId or subtotal changes
+  // Update discount when selected offers or subtotal changes
   useEffect(() => {
+    // Multi-offer mode
+    if (offerSettings.allowMultipleOffers && selectedOfferIds.length > 0) {
+      let totalDisc = 0;
+      const names = [];
+      for (const oid of selectedOfferIds) {
+        const offer = allOffers.find(o => (o.id || o._id) === oid);
+        if (offer) {
+          totalDisc += calculateDiscountForOffer(offer, subtotal, cart);
+          names.push(offer.name);
+        }
+      }
+      // Cap combined discount at subtotal
+      totalDisc = Math.min(totalDisc, subtotal);
+      setOfferDiscount(Math.round(totalDisc * 100) / 100);
+      setSelectedOfferName(names.join(', '));
+      return;
+    }
+
+    // Single offer mode
     if (!selectedOfferId) {
       setOfferDiscount(0);
       setSelectedOfferName('');
@@ -222,7 +334,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     setSelectedOfferName(offer.name);
     const disc = calculateDiscountForOffer(offer, subtotal, cart);
     setOfferDiscount(disc);
-  }, [selectedOfferId, subtotal, cart, allOffers]);
+  }, [selectedOfferId, selectedOfferIds, subtotal, cart, allOffers, offerSettings.allowMultipleOffers]);
 
   // Auto-apply best offer
   useEffect(() => {
@@ -274,8 +386,9 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
   // Clear offers when cart is empty
   useEffect(() => {
-    if (cart.length === 0 && selectedOfferId) {
+    if (cart.length === 0 && (selectedOfferId || selectedOfferIds.length > 0)) {
       setSelectedOfferIdInternal(null);
+      setSelectedOfferIdsInternal([]);
       setOfferDiscount(0);
       setSelectedOfferName('');
       setAutoApplied(false);
@@ -283,7 +396,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     }
   }, [cart.length]);
 
-  // Manual selection handler
+  // Manual selection handler (single offer)
   const setSelectedOfferId = useCallback((offerId) => {
     if (offerId) {
       wasManuallySelectedRef.current = true;
@@ -295,9 +408,36 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     setFirstOrderOfferRejected(false);
   }, []);
 
+  // Toggle offer in multi-select mode
+  const toggleOffer = useCallback((offerId) => {
+    wasManuallySelectedRef.current = true;
+    setAutoApplied(false);
+    setFirstOrderOfferRejected(false);
+    setSelectedOfferIdsInternal(prev => {
+      if (prev.includes(offerId)) {
+        const next = prev.filter(id => id !== offerId);
+        // Also sync single-offer state
+        if (next.length === 0) {
+          setSelectedOfferIdInternal(null);
+          wasManuallySelectedRef.current = false;
+        } else {
+          setSelectedOfferIdInternal(next[0]);
+        }
+        return next;
+      }
+      // Check max offers cap
+      const max = offerSettings.maxOffersAllowed || 1;
+      if (prev.length >= max) return prev;
+      const next = [...prev, offerId];
+      setSelectedOfferIdInternal(next[0]);
+      return next;
+    });
+  }, [offerSettings.maxOffersAllowed]);
+
   // Reset
   const resetOffers = useCallback(() => {
     setSelectedOfferIdInternal(null);
+    setSelectedOfferIdsInternal([]);
     setOfferDiscount(0);
     setSelectedOfferName('');
     setAutoApplied(false);
@@ -309,6 +449,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     applicableOffers,
     selectedOfferId,
     setSelectedOfferId,
+    selectedOfferIds,
+    toggleOffer,
     offerDiscount,
     selectedOfferName,
     resetOffers,
@@ -316,6 +458,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     autoApplied,
     firstOrderOfferRejected,
     offerSettings,
+    loyaltySettings,
     calculateDiscountForOffer,
   };
 };

@@ -11,7 +11,7 @@ import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
-  FaLayerGroup, FaConciergeBell, FaArrowRight
+  FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner
 } from 'react-icons/fa';
 
 const TableManagement = () => {
@@ -51,6 +51,7 @@ const TableManagement = () => {
   const [addMode, setAddMode] = useState('single');
   const [bookingStep, setBookingStep] = useState(1);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false); // loading for add/edit table, floor, reset, status change
   const [hoveredTableId, setHoveredTableId] = useState(null);
 
   // Dropdown state
@@ -402,6 +403,7 @@ const TableManagement = () => {
       return;
     }
     if (!window.confirm(`Free ${occupiedCount} occupied table(s)? This will mark them as available.`)) return;
+    setActionLoading(true);
     try {
       await apiClient.resetAllTables(selectedRestaurant.id);
       setFloors(prev => prev.map(floor => ({
@@ -414,12 +416,13 @@ const TableManagement = () => {
       loadFloorsAndTables(selectedRestaurant.id, true);
     } catch (err) {
       showError(err.message || 'Failed to reset tables');
-    }
+    } finally { setActionLoading(false); }
   };
 
   // ── CRUD operations ────────────────────────────────────
   const addFloor = async () => {
     if (!newFloor.name.trim() || !selectedRestaurant) return;
+    setActionLoading(true);
     try {
       const response = await apiClient.createFloor(selectedRestaurant.id, {
         name: newFloor.name.trim(), description: newFloor.description.trim() || null,
@@ -431,10 +434,12 @@ const TableManagement = () => {
       setShowAddFloor(false);
       showSuccess('Floor added successfully!');
     } catch (err) { showError(`Failed to add floor: ${err.message}`); }
+    finally { setActionLoading(false); }
   };
 
   const editFloor = async () => {
     if (!editingFloor || !newFloor.name.trim() || !selectedRestaurant) return;
+    setActionLoading(true);
     try {
       await apiClient.updateFloor(editingFloor.id, {
         name: newFloor.name.trim(), description: newFloor.description.trim() || null,
@@ -446,6 +451,7 @@ const TableManagement = () => {
       setEditingFloor(null); setShowEditFloor(false);
       showSuccess('Floor updated successfully!');
     } catch (err) { showError(`Failed to edit floor: ${err.message}`); }
+    finally { setActionLoading(false); }
   };
 
   const [deleteFloorConfirm, setDeleteFloorConfirm] = useState(null);
@@ -475,9 +481,10 @@ const TableManagement = () => {
 
   const addTable = async () => {
     if (!newTable.name.trim() || !selectedFloorForTable || !selectedRestaurant) return;
+    setActionLoading(true);
     try {
       const selectedFloor = floors.find(f => f.id === selectedFloorForTable);
-      if (!selectedFloor) { showError('Floor not found'); return; }
+      if (!selectedFloor) { showError('Floor not found'); setActionLoading(false); return; }
       const response = await apiClient.createTable(selectedRestaurant.id, {
         name: newTable.name.trim(), capacity: parseInt(newTable.capacity),
         type: newTable.type, floor: selectedFloor.name, status: 'available'
@@ -487,6 +494,7 @@ const TableManagement = () => {
       setSelectedFloorForTable(null); setShowAddModal(false);
       showSuccess('Table added!');
     } catch (err) { showError(`Failed to add table: ${err.message}`); }
+    finally { setActionLoading(false); }
   };
 
   const bulkAddTables = async () => {
@@ -497,9 +505,10 @@ const TableManagement = () => {
     if (isNaN(from) || isNaN(to)) { showError('From and To must be numbers'); return; }
     if (from > to) { showError('From must be ≤ To'); return; }
     if (to - from > 100) { showError('Max 100 tables at once'); return; }
+    setActionLoading(true);
     try {
       const selectedFloor = floors.find(f => f.id === selectedFloorForTable);
-      if (!selectedFloor) { showError('Floor not found'); return; }
+      if (!selectedFloor) { showError('Floor not found'); setActionLoading(false); return; }
       const response = await apiClient.bulkCreateTables(selectedRestaurant.id, {
         floor: selectedFloor.name, fromNumber: from, toNumber: to, capacity: parseInt(bulkTableData.capacity)
       });
@@ -510,9 +519,11 @@ const TableManagement = () => {
       setSelectedFloorForTable(null); setShowAddModal(false);
       showSuccess(`Created ${response.created} tables${response.skipped > 0 ? ` (${response.skipped} skipped)` : ''}`);
     } catch (err) { showError(`Failed: ${err.message}`); }
+    finally { setActionLoading(false); }
   };
 
   const updateTableStatus = async (tableId, newStatus, additionalData = {}) => {
+    setActionLoading(true);
     try {
       await apiClient.updateTableStatus(tableId, newStatus, additionalData.orderId, selectedRestaurant?.id);
       setFloors(prev => prev.map(floor => ({
@@ -529,6 +540,7 @@ const TableManagement = () => {
       setTableStatusesForDate(prev => ({ ...prev, [tableId]: newStatus }));
       setActiveDropdown(null);
     } catch (err) { showError(`Failed: ${err.message}`); }
+    finally { setActionLoading(false); }
   };
 
   const deleteTable = async (tableId) => {
@@ -1391,7 +1403,7 @@ const TableManagement = () => {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px'
+          alignItems: 'center', justifyContent: 'center', zIndex: 10002, padding: '20px'
         }}>
           <div style={{
             backgroundColor: 'white', padding: '28px', borderRadius: '16px',
@@ -1444,7 +1456,7 @@ const TableManagement = () => {
 
       {/* ─── ADD TABLE MODAL ─── */}
       {showAddModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setShowAddModal(false)}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setShowAddModal(false)}>
           <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '480px', maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '24px 24px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -1479,11 +1491,12 @@ const TableManagement = () => {
                   <input value={newTable.name} onChange={e => setNewTable(p => ({ ...p, name: e.target.value }))} placeholder="e.g. T1, VIP 1" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Capacity</label>
                   <input type="number" value={newTable.capacity} onChange={e => setNewTable(p => ({ ...p, capacity: e.target.value }))} min={1} max={20} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '20px', outline: 'none', boxSizing: 'border-box' }} />
-                  <button onClick={addTable} disabled={!newTable.name.trim() || !selectedFloorForTable} style={{
+                  <button onClick={addTable} disabled={actionLoading || !newTable.name.trim() || !selectedFloorForTable} style={{
                     width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer',
-                    background: newTable.name.trim() && selectedFloorForTable ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#e2e8f0',
-                    color: newTable.name.trim() && selectedFloorForTable ? 'white' : '#9ca3af',
-                  }}>Add Table</button>
+                    background: newTable.name.trim() && selectedFloorForTable && !actionLoading ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#e2e8f0',
+                    color: newTable.name.trim() && selectedFloorForTable && !actionLoading ? 'white' : '#9ca3af',
+                    opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> Adding...</> : 'Add Table'}</button>
                 </>
               ) : (
                 <>
@@ -1504,11 +1517,12 @@ const TableManagement = () => {
                       Will create <strong style={{ color: '#1f2937' }}>{parseInt(bulkTableData.toNumber) - parseInt(bulkTableData.fromNumber) + 1}</strong> tables ({bulkTableData.fromNumber} – {bulkTableData.toNumber})
                     </div>
                   )}
-                  <button onClick={bulkAddTables} disabled={!bulkTableData.fromNumber || !bulkTableData.toNumber || !selectedFloorForTable} style={{
+                  <button onClick={bulkAddTables} disabled={actionLoading || !bulkTableData.fromNumber || !bulkTableData.toNumber || !selectedFloorForTable} style={{
                     width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer',
-                    background: bulkTableData.fromNumber && bulkTableData.toNumber && selectedFloorForTable ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#e2e8f0',
-                    color: bulkTableData.fromNumber && bulkTableData.toNumber && selectedFloorForTable ? 'white' : '#9ca3af',
-                  }}>Create Tables</button>
+                    background: bulkTableData.fromNumber && bulkTableData.toNumber && selectedFloorForTable && !actionLoading ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#e2e8f0',
+                    color: bulkTableData.fromNumber && bulkTableData.toNumber && selectedFloorForTable && !actionLoading ? 'white' : '#9ca3af',
+                    opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> Creating...</> : 'Create Tables'}</button>
                 </>
               )}
             </div>
@@ -1518,7 +1532,7 @@ const TableManagement = () => {
 
       {/* ─── ADD/EDIT FLOOR MODAL ─── */}
       {(showAddFloor || showEditFloor) && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowAddFloor(false); setShowEditFloor(false); }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowAddFloor(false); setShowEditFloor(false); }}>
           <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '420px', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -1538,11 +1552,12 @@ const TableManagement = () => {
               {newFloor.areaChargeType !== 'none' && (
                 <input type="number" value={newFloor.areaChargeValue} onChange={e => setNewFloor(p => ({ ...p, areaChargeValue: e.target.value }))} placeholder={newFloor.areaChargeType === 'percentage' ? 'e.g. 10' : 'e.g. 50'} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
               )}
-              <button onClick={showEditFloor ? editFloor : addFloor} disabled={!newFloor.name.trim()} style={{
+              <button onClick={showEditFloor ? editFloor : addFloor} disabled={actionLoading || !newFloor.name.trim()} style={{
                 width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer', marginTop: '8px',
-                background: newFloor.name.trim() ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
-                color: newFloor.name.trim() ? 'white' : '#9ca3af',
-              }}>{showEditFloor ? 'Update Floor' : 'Add Floor'}</button>
+                background: newFloor.name.trim() && !actionLoading ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
+                color: newFloor.name.trim() && !actionLoading ? 'white' : '#9ca3af',
+                opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> {showEditFloor ? 'Updating...' : 'Adding...'}</> : (showEditFloor ? 'Update Floor' : 'Add Floor')}</button>
             </div>
           </div>
         </div>
@@ -1569,7 +1584,7 @@ const TableManagement = () => {
         const hasTimeConflict = selectedTable && bookingConflicts[selectedTable.id]?.length > 0;
 
         return (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowBookingForm(false); setBookingStep(1); }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowBookingForm(false); setBookingStep(1); }}>
           <div style={{
             backgroundColor: 'white', borderRadius: '24px', boxShadow: '0 24px 80px rgba(0,0,0,0.18)',
             width: '100%', maxWidth: '680px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -1862,6 +1877,16 @@ const TableManagement = () => {
         </div>
         );
       })()}
+
+      {/* Action loading overlay */}
+      {actionLoading && !showAddModal && !showAddFloor && !showEditFloor && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(2px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '20px 32px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <FaSpinner size={18} className="animate-spin" color="#ef4444" />
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Updating...</span>
+          </div>
+        </div>
+      )}
 
       <NotificationContainer />
     </div>

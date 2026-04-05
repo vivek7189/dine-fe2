@@ -63,6 +63,7 @@ import {
   FaConciergeBell,
   FaDivide,
   FaGift,
+  FaStar,
   FaBan,
   FaUndo,
   FaLock
@@ -72,6 +73,7 @@ import dynamic from 'next/dynamic';
 import GoogleReviews from '../../../components/GoogleReviews';
 
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
+const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 
 // Tax Management Component
@@ -1052,7 +1054,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
           {deletingTableId && (
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-              background: 'rgba(0,0,0,0.4)', zIndex: 9999,
+              background: 'rgba(0,0,0,0.4)', zIndex: 10002,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
               onClick={() => { setDeletingTableId(null); setDeleteTableReason(''); }}
@@ -2780,6 +2782,7 @@ const Admin = () => {
     { label: 'OPERATIONS', items: [
       { id: 'order-management', label: 'Order Management', icon: FaReceipt },
       { id: 'offers', label: 'Offers & Discounts', icon: FaTag },
+      { id: 'loyalty', label: 'Loyalty Program', icon: FaStar },
     ]},
     // { label: 'INTEGRATIONS', items: [
     //   { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
@@ -7927,6 +7930,60 @@ const Admin = () => {
           overflow: 'hidden'
         }}>
           <OffersManagement embedded={true} restaurantId={selectedRestaurant?.id} restaurants={restaurants} />
+        </div>
+      )}
+
+      {/* Loyalty Program Section */}
+      {activeTab === 'loyalty' && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          border: '1px solid #f1f5f9',
+          overflow: 'hidden',
+          padding: '24px'
+        }}>
+          {/* Restaurant Selector */}
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Restaurant
+            </p>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {restaurants.map((restaurant) => (
+                <button
+                  key={restaurant.id}
+                  onClick={() => setSelectedRestaurant(restaurant)}
+                  style={{
+                    background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
+                    color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
+                    padding: '10px 18px',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fef2f2',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <FaStore size={14} />
+                  {restaurant.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {selectedRestaurant ? (
+            <CustomerAppSettings key={selectedRestaurant.id} embedded={true} restaurantId={selectedRestaurant.id} section="loyalty" />
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
+              <FaStar size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+              <p style={{ fontSize: '16px', margin: 0 }}>Please select a restaurant to manage loyalty settings</p>
+            </div>
+          )}
         </div>
       )}
 

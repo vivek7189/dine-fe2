@@ -9,6 +9,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   // Compress static assets for better performance
   compress: true,

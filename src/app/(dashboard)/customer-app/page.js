@@ -566,7 +566,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           padding: '16px 24px',
           borderRadius: '12px',
           boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4)',
-          zIndex: 9999,
+          zIndex: 10002,
           display: 'flex',
           alignItems: 'center',
           gap: '10px',

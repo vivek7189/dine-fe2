@@ -2422,6 +2422,7 @@ function RestaurantPOSContent() {
 
     // Extract tax information and special instructions from taxData passed by OrderSummary
     const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0,
+      redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null
@@ -2510,6 +2511,16 @@ function RestaurantPOSContent() {
           outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
           compItems: compData || null,
           voidItems: voidData || null,
+          // Discount/offer fields
+          offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
+          manualDiscount: manualDiscount || 0,
+          discountAmount: offerDiscountAmt || 0,
+          offerDiscount: offerDiscountAmt || 0,
+          totalDiscountAmount: discountTotal || 0,
+          selectedOfferName: offerName || null,
+          // Loyalty fields
+          redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+          loyaltyDiscount: loyaltyDiscAmt || 0,
           lastUpdatedBy: {
             name: currentUser.name || 'Staff',
             id: currentUser.id,
@@ -2660,8 +2671,15 @@ function RestaurantPOSContent() {
         taxAmount: totalTax,
         finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
         // Discount fields
-        offerIds: offerIds,
-        manualDiscount: manualDiscount,
+        offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
+        manualDiscount: manualDiscount || 0,
+        discountAmount: offerDiscountAmt || 0,
+        offerDiscount: offerDiscountAmt || 0,
+        totalDiscountAmount: discountTotal || 0,
+        selectedOfferName: offerName || null,
+        // Loyalty fields
+        redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+        loyaltyDiscount: loyaltyDiscAmt || 0,
         customerPhone: customerMobile || null,
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
@@ -3251,6 +3269,7 @@ function RestaurantPOSContent() {
 
     // Extract tax information and special instructions from taxData passed by OrderSummary
     const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null, specialInstructions = null, offerIds = [], manualDiscount = 0, offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '', totalDiscountAmount: discountTotal = 0,
+      redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null
@@ -3402,8 +3421,9 @@ function RestaurantPOSContent() {
           taxAmount: totalTax,
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
           // Discount fields
-          offerIds: offerIds,
-          manualDiscount: manualDiscount,
+          offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
+          manualDiscount: manualDiscount || 0,
+          redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
           customerPhone: customerMobile || null,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
@@ -4350,7 +4370,7 @@ function RestaurantPOSContent() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 10002,
           backdropFilter: 'blur(2px)'
         }}>
           <div style={{ textAlign: 'center' }}>

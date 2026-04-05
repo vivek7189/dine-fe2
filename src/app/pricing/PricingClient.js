@@ -11,9 +11,9 @@ export default function PricingClient() {
   const [billingCycle, setBillingCycle] = useState('monthly');
 
   const prices = {
-    USD: { spark: 9.99, blaze: 89, symbol: '$' },
-    GBP: { spark: 8, blaze: 72, symbol: '£' },
-    INR: { spark: 300, blaze: 2500, symbol: '₹' },
+    USD: { spark: 9.99, sparkRegular: 29.99, blaze: 89, blazeRegular: 249, symbol: '$' },
+    GBP: { spark: 8, sparkRegular: 24, blaze: 72, blazeRegular: 199, symbol: '£' },
+    INR: { spark: 300, sparkRegular: 999, blaze: 2500, blazeRegular: 7500, symbol: '₹' },
   };
 
   const currentPrice = prices[currency];
@@ -23,6 +23,7 @@ export default function PricingClient() {
       name: 'Spark',
       description: 'For growing restaurants',
       price: currentPrice.spark,
+      regularPrice: currentPrice.sparkRegular,
       features: [
         { name: 'AI Agent (Voice & Chat)', included: true },
         { name: 'Unlimited Menu Items', included: true },
@@ -42,6 +43,7 @@ export default function PricingClient() {
       name: 'Blaze',
       description: 'For restaurant chains',
       price: currentPrice.blaze,
+      regularPrice: currentPrice.blazeRegular,
       features: [
         { name: 'Everything in Spark', included: true },
         { name: 'AI Agent: 5,000 Credits', included: true },
@@ -77,9 +79,18 @@ export default function PricingClient() {
           <h1 style={{ fontSize: '42px', fontWeight: '800', color: '#111827', marginBottom: '16px' }}>
             Simple, Transparent Pricing
           </h1>
-          <p style={{ fontSize: '20px', color: '#6b7280', maxWidth: '600px', margin: '0 auto 32px' }}>
+          <p style={{ fontSize: '20px', color: '#6b7280', maxWidth: '600px', margin: '0 auto 24px' }}>
             No hidden fees. No transaction charges. Just powerful restaurant software at affordable prices.
           </p>
+
+          {/* Launch Pricing Banner */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', backgroundColor: '#fef3c7', border: '1px solid #fbbf24', borderRadius: '12px', padding: '12px 24px', marginBottom: '32px' }}>
+            <span style={{ fontSize: '20px' }}>&#127881;</span>
+            <div style={{ textAlign: 'left' }}>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#92400e' }}>Launch Pricing — Lock It Forever</span>
+              <p style={{ fontSize: '12px', color: '#a16207', margin: '2px 0 0' }}>Sign up now and keep today's price forever. Prices will increase after launch.</p>
+            </div>
+          </div>
 
           {/* Currency & Billing Toggle */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
@@ -127,13 +138,22 @@ export default function PricingClient() {
                   </div>
                 )}
 
+                {/* Discount badge */}
+                <div style={{ display: 'inline-block', backgroundColor: '#dcfce7', color: '#16a34a', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', marginBottom: '12px' }}>
+                  SAVE {Math.round((1 - plan.price / plan.regularPrice) * 100)}% — Launch Offer
+                </div>
+
                 <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>{plan.name}</h2>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>{plan.description}</p>
 
-                <div style={{ marginBottom: '24px' }}>
+                <div style={{ marginBottom: '8px' }}>
+                  <span style={{ fontSize: '22px', fontWeight: '600', color: '#9ca3af', textDecoration: 'line-through', marginRight: '8px' }}>{currentPrice.symbol}{plan.regularPrice}</span>
+                </div>
+                <div style={{ marginBottom: '8px' }}>
                   <span style={{ fontSize: '48px', fontWeight: '800', color: '#111827' }}>{currentPrice.symbol}{plan.price}</span>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>/month</span>
                 </div>
+                <p style={{ fontSize: '12px', color: '#16a34a', fontWeight: '600', marginBottom: '24px' }}>Lock this price forever when you sign up today</p>
 
                 <Link
                   href="https://dineopen.com/login"
@@ -200,14 +220,17 @@ export default function PricingClient() {
         {/* CTA */}
         <div style={{ padding: '60px 20px', textAlign: 'center' }}>
           <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#111827', marginBottom: '16px' }}>
-            Ready to Get Started?
+            Lock In Launch Pricing Today
           </h2>
-          <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '32px' }}>
+          <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '12px' }}>
             Join 500+ restaurants already using DineOpen. Free 30-day trial, no credit card required.
+          </p>
+          <p style={{ fontSize: '15px', color: '#92400e', fontWeight: '600', marginBottom: '32px' }}>
+            Prices will increase after launch. Sign up now to keep today's rate forever.
           </p>
           <Link
             href="https://dineopen.com/login"
-            style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}
+            style={{ display: 'inline-block', padding: '16px 40px', backgroundColor: '#ef4444', color: 'white', borderRadius: '12px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', boxShadow: '0 4px 14px rgba(239,68,68,0.4)' }}
           >
             Start Your Free Trial →
           </Link>

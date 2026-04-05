@@ -152,7 +152,11 @@ export const useNotification = () => {
     const id = Date.now() + Math.random();
     const notification = { id, message, type, duration };
 
-    setNotifications(prev => [...prev, notification]);
+    setNotifications(prev => {
+      // Prevent duplicate: skip if same message+type already showing
+      if (prev.some(n => n.message === message && n.type === type)) return prev;
+      return [...prev, notification];
+    });
     return id;
   };
 
@@ -177,7 +181,7 @@ export const useNotification = () => {
   };
 
   const NotificationContainer = () => (
-    <div style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
+    <div style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 10003 }}>
       {notifications.map(notification => (
         <Notification
           key={notification.id}

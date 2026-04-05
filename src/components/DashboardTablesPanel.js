@@ -1172,7 +1172,7 @@ export default function DashboardTablesPanel({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999
+          zIndex: 10002
         }}>
           <div style={{
             background: '#fff',
@@ -1424,7 +1424,7 @@ export default function DashboardTablesPanel({
             height: sliderMinimized ? '60px' : '100vh',
             background: '#ffffff',
             boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
-            zIndex: 9999,
+            zIndex: 10002,
             display: 'flex',
             flexDirection: 'column',
             animation: sliderMinimized ? 'slideUpBottom 0.3s ease' : 'slideInRight 0.3s ease',

@@ -746,7 +746,7 @@ const Customers = () => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
-              {t('customers.orderHistory.title')} - {selectedCustomer?.name || selectedCustomer?.phone || t('customers.form.customer')}
+              {t('customers.orderHistory.title')} - {selectedCustomer?.name || (typeof selectedCustomer?.phone === 'string' ? selectedCustomer.phone : '') || t('customers.form.customer')}
             </h2>
             <button
               onClick={() => {
@@ -1200,26 +1200,26 @@ const Customers = () => {
                           fontSize: isMobile ? '14px' : '16px',
                           fontWeight: '600'
                         }}>
-                          {(customer.name || customer.phone || 'C').charAt(0).toUpperCase()}
+                          {(customer.name || (typeof customer.phone === 'string' ? customer.phone : '') || 'C').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <h3 style={{ margin: 0, fontSize: isMobile ? '14px' : '15px', fontWeight: '600', color: '#1f2937' }}>
                             {customer.name || t('customers.unnamed')}
                           </h3>
                           <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
-                            {customer.phone && (
+                            {typeof customer.phone === 'string' && customer.phone && (
                               <span style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
                                 <FaPhone size={isMobile ? 8 : 10} />
                                 {customer.phone}
                               </span>
                             )}
-                            {customer.email && (
+                            {typeof customer.email === 'string' && customer.email && (
                               <span style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
                                 <FaEnvelope size={isMobile ? 8 : 10} />
                                 {customer.email}
                               </span>
                             )}
-                            {customer.city && (
+                            {typeof customer.city === 'string' && customer.city && (
                               <span style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
                                 <FaMapMarkerAlt size={isMobile ? 8 : 10} />
                                 {customer.city}

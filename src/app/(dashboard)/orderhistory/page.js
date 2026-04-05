@@ -2614,7 +2614,7 @@ const OrderHistory = () => {
 
       {/* Date Filter Modal — rendered via portal to appear above sidebar */}
       {filterModalOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 z-[10002] flex items-center justify-center">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setFilterModalOpen(false)} />
           {/* Modal */}

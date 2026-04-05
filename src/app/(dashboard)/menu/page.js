@@ -3032,7 +3032,7 @@ const MenuManagement = () => {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 9999,
+          zIndex: 10002,
           background: 'linear-gradient(90deg, #ef4444, #dc2626)',
           height: '3px',
           display: 'flex',
@@ -3307,7 +3307,7 @@ const MenuManagement = () => {
         {/* Success Toast */}
         {successMessage && (
           <div style={{
-            position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+            position: 'fixed', top: '24px', right: '24px', zIndex: 10002,
             display: 'flex', alignItems: 'center', gap: '10px',
             padding: '12px 20px', borderRadius: '12px',
             background: 'linear-gradient(135deg, #10b981, #059669)',

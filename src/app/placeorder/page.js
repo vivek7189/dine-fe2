@@ -322,8 +322,72 @@ const PlaceOrderContent = () => {
     loadData();
   }, [restaurantId]);
 
-  // Compute applicable offers - filter out first-order-only offers for returning customers
+  // Schedule validation helpers
+  const isScheduleValid = (offer) => {
+    if (!offer.schedule || offer.schedule.type !== 'recurring') return true;
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const scheduleDays = offer.schedule.days || [];
+    const startTime = offer.schedule.startTime || '00:00';
+    const endTime = offer.schedule.endTime || '23:59';
+    return scheduleDays.includes(currentDay) && currentTime >= startTime && currentTime <= endTime;
+  };
+
+  const [scheduleCheckKey, setScheduleCheckKey] = useState(0);
+
+  // Smart schedule timer — precise timeout for next schedule transition
+  useEffect(() => {
+    if (offers.length === 0) return;
+    const hasScheduled = offers.some(o => o.schedule?.type === 'recurring');
+    if (!hasScheduled) return;
+
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    let minMs = null;
+
+    for (const offer of offers) {
+      if (offer.schedule?.type === 'recurring') {
+        const days = offer.schedule.days || [];
+        const [startH, startM] = (offer.schedule.startTime || '00:00').split(':').map(Number);
+        const [endH, endM] = (offer.schedule.endTime || '23:59').split(':').map(Number);
+        const startMin = startH * 60 + startM;
+        const endMin = endH * 60 + endM;
+
+        if (days.includes(currentDay)) {
+          if (currentMinutes < startMin) {
+            const ms = (startMin - currentMinutes) * 60000 - (now.getSeconds() * 1000);
+            if (minMs === null || ms < minMs) minMs = ms;
+          } else if (currentMinutes < endMin) {
+            const ms = (endMin - currentMinutes) * 60000 - (now.getSeconds() * 1000);
+            if (minMs === null || ms < minMs) minMs = ms;
+          }
+        }
+        if (!days.includes(currentDay) || currentMinutes >= endMin) {
+          for (let i = 1; i <= 7; i++) {
+            const nextDay = (currentDay + i) % 7;
+            if (days.includes(nextDay)) {
+              const msToMidnight = ((24 * 60) - currentMinutes) * 60000 - (now.getSeconds() * 1000);
+              const msFromMidnight = (i - 1) * 24 * 60 * 60000 + startMin * 60000;
+              const ms = msToMidnight + msFromMidnight;
+              if (minMs === null || ms < minMs) minMs = ms;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!minMs || minMs <= 0) return;
+    const timeout = Math.min(minMs + 1000, 3600000);
+    const timer = setTimeout(() => setScheduleCheckKey(prev => prev + 1), timeout);
+    return () => clearTimeout(timer);
+  }, [offers, scheduleCheckKey]);
+
+  // Compute applicable offers - filter by schedule, first-order, etc.
   const applicableOffers = offers.filter(offer => {
+    if (!isScheduleValid(offer)) return false;
     if (offer.isFirstOrderOnly && customerData && customerData.isFirstOrder === false) {
       return false;
     }
@@ -420,32 +484,47 @@ const PlaceOrderContent = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // Calculate offer discount (supports multiple offers)
+  // Calculate offer discount (supports multiple offers, scope-aware)
   const getOfferDiscount = () => {
     if (!selectedOffers || selectedOffers.length === 0) return 0;
     const subtotal = getCartSubtotal();
     let totalDiscount = 0;
 
     for (const offer of selectedOffers) {
-      // Check minimum order
-      if (subtotal < (offer.minOrderValue || 0)) continue;
+      // Calculate applicable subtotal based on scope
+      let applicableSubtotal = subtotal;
+      if (offer.scope === 'category' && offer.targetCategories?.length) {
+        applicableSubtotal = cart.reduce((sum, item) => {
+          if (offer.targetCategories.some(c => c.toLowerCase() === (item.category || '').toLowerCase())) {
+            return sum + (item.price * item.quantity);
+          }
+          return sum;
+        }, 0);
+      } else if (offer.scope === 'item' && offer.targetItems?.length) {
+        applicableSubtotal = cart.reduce((sum, item) => {
+          if (offer.targetItems.includes(item.id)) {
+            return sum + (item.price * item.quantity);
+          }
+          return sum;
+        }, 0);
+      }
 
-      // Check first order only
+      if (applicableSubtotal < (offer.minOrderValue || 0)) continue;
       if (offer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) continue;
 
       let discount = 0;
       if (offer.discountType === 'percentage') {
-        discount = (subtotal * offer.discountValue) / 100;
+        discount = (applicableSubtotal * offer.discountValue) / 100;
         if (offer.maxDiscount && discount > offer.maxDiscount) {
           discount = offer.maxDiscount;
         }
       } else {
-        discount = offer.discountValue;
+        discount = Math.min(offer.discountValue, applicableSubtotal);
       }
       totalDiscount += discount;
     }
 
-    return Math.min(totalDiscount, subtotal);
+    return Math.round(Math.min(totalDiscount, subtotal) * 100) / 100;
   };
 
   // Calculate loyalty discount

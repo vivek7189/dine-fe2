@@ -171,13 +171,19 @@ const OrderSummary = ({
 
   // Offer Engine Hook
   const {
-    applicableOffers, selectedOfferId, setSelectedOfferId, offerDiscount,
-    selectedOfferName, resetOffers, autoApplied, firstOrderOfferRejected
+    applicableOffers, selectedOfferId, setSelectedOfferId,
+    selectedOfferIds, toggleOffer,
+    offerDiscount, selectedOfferName, resetOffers,
+    autoApplied, firstOrderOfferRejected,
+    offerSettings, loyaltySettings,
   } = useOfferEngine({ restaurantId, cart, subtotal: getTotalAmount(), customerInfo: customerData, taxSettings });
 
   // Manual Discount State (kept local — not part of offer engine)
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
+
+  // Loyalty Points Redemption State
+  const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
 
   // Billing features state
   const [activeBillingPanel, setActiveBillingPanel] = useState(null);
@@ -209,6 +215,9 @@ const OrderSummary = ({
 
   // Bubble customerData up to dashboard
   useEffect(() => { onCustomerDataChange?.(customerData); }, [customerData, onCustomerDataChange]);
+
+  // Reset loyalty redemption when customer changes
+  useEffect(() => { setRedeemLoyaltyPoints(0); }, [customerData?.id]);
 
   // Auto-fill customer name when found
   useEffect(() => {
@@ -263,8 +272,31 @@ const OrderSummary = ({
     return Math.min(val, subtotal);
   }, [manualDiscountValue, manualDiscountTypeState, getTotalAmount]);
 
+  // Loyalty discount calculation
+  const getLoyaltyDiscountAmount = useCallback(() => {
+    if (!loyaltySettings?.enabled || !redeemLoyaltyPoints || redeemLoyaltyPoints <= 0) return 0;
+    const redemptionRate = loyaltySettings.redemptionRate || 100;
+    return Math.round((redeemLoyaltyPoints / redemptionRate) * 100) / 100;
+  }, [redeemLoyaltyPoints, loyaltySettings]);
+
+  // Loyalty points to earn on this order
+  const getLoyaltyPointsToEarn = useCallback(() => {
+    if (!loyaltySettings?.enabled) return 0;
+    const earnPerAmount = loyaltySettings.earnPerAmount || 100;
+    const pointsRate = loyaltySettings.pointsEarned || 4;
+    const subtotal = getTotalAmount();
+    const discTotal = offerDiscount + getManualDiscountAmount();
+    const loyaltyDisc = getLoyaltyDiscountAmount();
+    // If redeeming and not allowed to earn, return 0
+    if (redeemLoyaltyPoints > 0 && !loyaltySettings.earnPointsOnRedemption) return 0;
+    const eligibleAmount = loyaltySettings.earnOnFullAmount
+      ? Math.max(0, subtotal - discTotal)
+      : Math.max(0, subtotal - discTotal - loyaltyDisc);
+    return Math.floor(eligibleAmount / earnPerAmount) * pointsRate;
+  }, [loyaltySettings, getTotalAmount, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, redeemLoyaltyPoints]);
+
   // Total discount for display
-  const totalDiscountAmount = offerDiscount + getManualDiscountAmount();
+  const totalDiscountAmount = offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount();
 
   // Discount settings from taxSettings
   const discountSettings = taxSettings?.discountSettings || {};
@@ -317,7 +349,8 @@ const OrderSummary = ({
       setTotalTax(0);
       // Apply discounts even if tax is disabled
       const subtotal = getTotalAmount();
-      const discTotal = offerDiscount + getManualDiscountAmount();
+      const loyaltyDiscAmt = getLoyaltyDiscountAmount();
+      const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt;
       const discountedAmt = Math.max(0, subtotal - discTotal);
       const sc = calcServiceCharge(discountedAmt);
       setServiceChargeAmount(sc);
@@ -330,8 +363,9 @@ const OrderSummary = ({
     }
 
     const subtotal = getTotalAmount();
-    // Apply discounts before tax
-    const discTotal = offerDiscount + getManualDiscountAmount();
+    // Apply discounts before tax (offers + manual + loyalty)
+    const loyaltyDiscAmt = getLoyaltyDiscountAmount();
+    const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt;
     const discountedAmt = Math.max(0, subtotal - discTotal);
 
     // Service charge (after discounts, before tax)
@@ -376,7 +410,7 @@ const OrderSummary = ({
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, tipAmount, calcServiceCharge, calcRoundOff]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, tipAmount, calcServiceCharge, calcRoundOff]);
   
   // Calculate tax when cart changes
   useEffect(() => {
@@ -388,7 +422,7 @@ const OrderSummary = ({
       setTotalTax(0);
       setGrandTotal(getTotalAmount());
     }
-  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState, tipAmount, billingSettings]);
+  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState, redeemLoyaltyPoints, tipAmount, billingSettings]);
 
   // Pre-populate special instructions when editing an existing order
   useEffect(() => {
@@ -629,17 +663,24 @@ const OrderSummary = ({
           ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }))
           : null;
 
+        const allOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
+          ? selectedOfferIds
+          : (selectedOfferId ? [selectedOfferId] : []);
+
         const taxData = {
           taxBreakdown,
           totalTax,
           finalAmount: grandTotal,
           subtotal: getTotalAmount(),
           specialInstructions: specialInstructions.trim() || null,
-          offerIds: selectedOfferId ? [selectedOfferId] : [],
+          offerIds: allOfferIds,
           manualDiscount: getManualDiscountAmount(),
           offerDiscount,
           selectedOfferName,
-          totalDiscountAmount: offerDiscount + getManualDiscountAmount(),
+          totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
+          // Loyalty fields
+          redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
+          loyaltyDiscount: getLoyaltyDiscountAmount(),
           // Billing fields
           serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
           serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
@@ -1549,10 +1590,22 @@ const OrderSummary = ({
                         <span>Subtotal:</span>
                         <span>{formatCurrency(invoice?.subtotal || 0)}</span>
                       </div>
-                      {((invoice?.totalDiscount || 0) > 0 || (invoice?.discountAmount || 0) > 0 || (invoice?.manualDiscount || 0) > 0) && (
+                      {(invoice?.discountAmount || 0) > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#16a34a' }}>
-                          <span>Discount{invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span>
-                          <span>-{formatCurrency(invoice?.totalDiscount || ((invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0)))}</span>
+                          <span>Offer{invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span>
+                          <span>-{formatCurrency(invoice.discountAmount)}</span>
+                        </div>
+                      )}
+                      {(invoice?.manualDiscount || 0) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#16a34a' }}>
+                          <span>Manual Discount:</span>
+                          <span>-{formatCurrency(invoice.manualDiscount)}</span>
+                        </div>
+                      )}
+                      {(invoice?.loyaltyDiscount || 0) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#7c3aed' }}>
+                          <span>Loyalty Points:</span>
+                          <span>-{formatCurrency(invoice.loyaltyDiscount)}</span>
                         </div>
                       )}
                       {invoice?.taxBreakdown?.map((tax, idx) => (
@@ -1652,8 +1705,11 @@ const OrderSummary = ({
                       };
                       const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
                       const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
-                      const printTotalDiscount = (invoice?.totalDiscount || 0) || ((invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0));
-                      const discountHtml = printTotalDiscount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Discount${invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span><span>-${currencySymbol}${printTotalDiscount.toFixed(2)}</span></div>` : '';
+                      const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0);
+                      const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Offer${invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
+                      const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Manual Discount:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
+                      const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#7c3aed;"><span>Loyalty Points:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
+                      const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml;
                       const serviceChargeHtml = (invoice?.serviceChargeAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Service Charge${invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${currencySymbol}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
                       const tipHtml = (invoice?.tipAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Tip${invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${currencySymbol}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
                       const roundOffHtml = (invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Round Off:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${currencySymbol}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
@@ -2209,30 +2265,43 @@ const OrderSummary = ({
                   {/* Discount controls inline */}
                   {discountEnabled && (
                     <>
+                      {/* Offer Chips */}
                       {applicableOffers.length > 0 && (
-                        <select
-                          value={selectedOfferId || ''}
-                          onChange={(e) => {
-                            const offerId = e.target.value;
-                            setSelectedOfferId(offerId || null);
-                          }}
-                          style={{
-                            flex: '0 1 auto', maxWidth: '130px', padding: '4px 4px', borderRadius: '5px',
-                            border: autoApplied ? '1px solid #86efac' : '1px solid #e9d5ff',
-                            backgroundColor: autoApplied ? '#f0fdf4' : '#f5f3ff',
-                            fontSize: '10px', fontWeight: '600', color: autoApplied ? '#16a34a' : '#6d28d9', cursor: 'pointer'
-                          }}
-                        >
-                          <option value="">{autoApplied ? '✓ Auto' : `Offers (${applicableOffers.length})`}</option>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: '1 1 auto' }}>
                           {applicableOffers.map(offer => {
+                            const oid = offer.id || offer._id;
+                            const isMulti = offerSettings?.allowMultipleOffers;
+                            const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
                             const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
                             return (
-                              <option key={offer.id || offer._id} value={offer.id || offer._id}>
-                                {offer.name} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : formatCurrency(offer.discountValue)}{saves > 0 ? ` · -${formatCurrency(saves)}` : ''})
-                              </option>
+                              <button
+                                key={oid}
+                                onClick={() => {
+                                  if (isMulti) {
+                                    toggleOffer(oid);
+                                  } else {
+                                    setSelectedOfferId(isSelected ? null : oid);
+                                  }
+                                }}
+                                style={{
+                                  padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                                  border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e5e7eb',
+                                  background: isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff',
+                                  color: isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280',
+                                  cursor: 'pointer', whiteSpace: 'nowrap',
+                                  display: 'flex', alignItems: 'center', gap: '3px',
+                                  transition: 'all 0.15s'
+                                }}
+                              >
+                                {isSelected && <FaCheckCircle size={8} />}
+                                <FaTag size={7} />
+                                {offer.name}
+                                {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
+                                {isSelected && autoApplied && <span style={{ fontSize: '8px' }}>Auto</span>}
+                              </button>
                             );
                           })}
-                        </select>
+                        </div>
                       )}
                       {firstOrderOfferRejected && (
                         <span style={{ fontSize: '9px', color: '#dc2626', whiteSpace: 'nowrap' }}>Not first order</span>
@@ -2263,7 +2332,7 @@ const OrderSummary = ({
                               setManualDiscountValue(e.target.value);
                             }}
                             style={{
-                              width: '110px', flex: '1 1 110px', minWidth: '80px', padding: '4px 6px', borderRadius: '5px',
+                              width: '80px', flex: '0 1 80px', minWidth: '60px', padding: '4px 6px', borderRadius: '5px',
                               border: '1px solid #e5e7eb', fontSize: '11px', color: '#1f2937'
                             }}
                           />
@@ -2275,7 +2344,7 @@ const OrderSummary = ({
                             -{formatCurrency(totalDiscountAmount)}
                           </span>
                           <button
-                            onClick={() => { setManualDiscountValue(''); resetOffers(); }}
+                            onClick={() => { setManualDiscountValue(''); setRedeemLoyaltyPoints(0); resetOffers(); }}
                             style={{
                               width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
                               border: '1px solid #fecaca', backgroundColor: '#fee2e2',
@@ -2411,6 +2480,56 @@ const OrderSummary = ({
                     )}
                   </div>
                 </div>
+
+                {/* Loyalty Points Redemption */}
+                {loyaltySettings?.enabled && customerData?.loyaltyPoints > 0 && cart.length > 0 && (
+                  <div style={{
+                    padding: '6px 8px', borderRadius: '6px', marginBottom: '4px',
+                    background: 'linear-gradient(135deg, #faf5ff, #f3e8ff)',
+                    border: '1px solid #e9d5ff'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <FaGift size={9} /> Loyalty Points
+                        <span style={{ fontWeight: 400, color: '#9333ea' }}>({customerData.loyaltyPoints} pts)</span>
+                      </span>
+                      {getLoyaltyDiscountAmount() > 0 && (
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed' }}>
+                          -{formatCurrency(getLoyaltyDiscountAmount())}
+                        </span>
+                      )}
+                    </div>
+                    {(() => {
+                      const redemptionRate = loyaltySettings.redemptionRate || 100;
+                      const maxPct = loyaltySettings.maxRedemptionPercent || 20;
+                      const afterOtherDisc = Math.max(0, getTotalAmount() - offerDiscount - getManualDiscountAmount());
+                      const maxDiscByPct = (afterOtherDisc * maxPct) / 100;
+                      const maxPointsByPct = Math.floor(maxDiscByPct * redemptionRate);
+                      const maxRedeemable = Math.min(customerData.loyaltyPoints, maxPointsByPct);
+                      return maxRedeemable > 0 ? (
+                        <div>
+                          <input
+                            type="range" min="0" max={maxRedeemable} step={1}
+                            value={Math.min(redeemLoyaltyPoints, maxRedeemable)}
+                            onChange={(e) => setRedeemLoyaltyPoints(Number(e.target.value))}
+                            style={{ width: '100%', height: '4px', accentColor: '#7c3aed' }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#6b21a8', marginTop: '2px' }}>
+                            <span>Redeem: {redeemLoyaltyPoints} pts</span>
+                            <span>Max: {maxRedeemable} pts ({maxPct}%)</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '9px', color: '#9333ea' }}>Add items to redeem points</div>
+                      );
+                    })()}
+                    {getLoyaltyPointsToEarn() > 0 && (
+                      <div style={{ fontSize: '9px', color: '#16a34a', marginTop: '3px', fontWeight: 600 }}>
+                        You'll earn +{getLoyaltyPointsToEarn()} pts on this order
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Validation states */}
                 {(() => {
@@ -3284,9 +3403,18 @@ const OrderSummary = ({
               {!posSettings.hideSaveOrder && <button
                 onClick={() => {
                   if (typeof onSaveOrder === 'function' && !orderBusy) {
+                    const saveOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
+                      ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : []);
                     const taxData = {
                       taxBreakdown, totalTax, finalAmount: grandTotal, subtotal: getTotalAmount(),
                       specialInstructions: specialInstructions.trim() || null,
+                      offerIds: saveOfferIds,
+                      manualDiscount: getManualDiscountAmount(),
+                      offerDiscount,
+                      selectedOfferName,
+                      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
+                      redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
+                      loyaltyDiscount: getLoyaltyDiscountAmount(),
                       serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
                       serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
                       tipAmount: tipAmount > 0 ? tipAmount : null,
@@ -3343,9 +3471,18 @@ const OrderSummary = ({
                     const cashReceivedNum = parseFloat(cashReceived) || 0;
                     const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0)
                       ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) })) : null;
+                    const placeOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
+                      ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : []);
                     const taxData = {
                       taxBreakdown, totalTax, finalAmount: grandTotal, subtotal: getTotalAmount(),
                       specialInstructions: specialInstructions.trim() || null,
+                      offerIds: placeOfferIds,
+                      manualDiscount: getManualDiscountAmount(),
+                      offerDiscount,
+                      selectedOfferName,
+                      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
+                      redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
+                      loyaltyDiscount: getLoyaltyDiscountAmount(),
                       serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
                       serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
                       tipAmount: tipAmount > 0 ? tipAmount : null,
