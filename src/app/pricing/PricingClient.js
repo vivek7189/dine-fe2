@@ -88,7 +88,7 @@ export default function PricingClient() {
             <span style={{ fontSize: '20px' }}>&#127881;</span>
             <div style={{ textAlign: 'left' }}>
               <span style={{ fontSize: '14px', fontWeight: '700', color: '#92400e' }}>Launch Pricing — Lock It Forever</span>
-              <p style={{ fontSize: '12px', color: '#a16207', margin: '2px 0 0' }}>Sign up now and keep today's price forever. Prices will increase after launch.</p>
+              <p style={{ fontSize: '12px', color: '#a16207', margin: '2px 0 0' }}>Sign up now and keep today&apos;s price forever. Prices will increase after launch.</p>
             </div>
           </div>
 
@@ -226,7 +226,7 @@ export default function PricingClient() {
             Join 500+ restaurants already using DineOpen. Free 30-day trial, no credit card required.
           </p>
           <p style={{ fontSize: '15px', color: '#92400e', fontWeight: '600', marginBottom: '32px' }}>
-            Prices will increase after launch. Sign up now to keep today's rate forever.
+            Prices will increase after launch. Sign up now to keep today&apos;s rate forever.
           </p>
           <Link
             href="https://dineopen.com/login"
