@@ -224,7 +224,7 @@ const OrderSummary = ({
     if (customerData?.name && !customerName?.trim()) {
       onCustomerNameChange?.(customerData.name);
     }
-  }, [customerData]);
+  }, [customerData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
@@ -592,6 +592,7 @@ const OrderSummary = ({
   };
 
   // Force recalculation when cart items change (for edit mode)
+  const cartKey = cart.map(item => `${item.id}-${item.quantity}-${item.price}`).join(',');
   useEffect(() => {
     if (cart.length > 0) {
       console.log('🔄 Cart items changed, forcing tax recalculation');
@@ -600,7 +601,7 @@ const OrderSummary = ({
         calculateTax();
       }, 100);
     }
-  }, [cart.map(item => `${item.id}-${item.quantity}-${item.price}`).join(',')]);
+  }, [cartKey]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Debug logging
   console.log('OrderSummary orderSuccess:', orderSuccess);
@@ -2525,7 +2526,7 @@ const OrderSummary = ({
                     })()}
                     {getLoyaltyPointsToEarn() > 0 && (
                       <div style={{ fontSize: '9px', color: '#16a34a', marginTop: '3px', fontWeight: 600 }}>
-                        You'll earn +{getLoyaltyPointsToEarn()} pts on this order
+                        You&apos;ll earn +{getLoyaltyPointsToEarn()} pts on this order
                       </div>
                     )}
                   </div>
