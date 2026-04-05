@@ -9,7 +9,8 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // 'standalone' for Docker/GCP builds, default for Vercel
+  ...(process.env.BUILD_STANDALONE === 'true' && { output: 'standalone' }),
   reactStrictMode: true,
   // Compress static assets for better performance
   compress: true,
