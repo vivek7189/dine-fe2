@@ -7,6 +7,7 @@ import { t } from '../lib/i18n';
 import { useCurrency } from '../contexts/CurrencyContext';
 import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup';
 import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngine';
+import { getBillPrintCSS, getKOTPrintCSS } from '../utils/printFontSizes';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 import {
@@ -1525,7 +1526,7 @@ const OrderSummary = ({
                       const tableOrRoom = k.roomNumber ? `Room: ${k.roomNumber}` : (k.tableNumber ? `Table: ${k.tableNumber}` : '');
                       const totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
                       const specialInstructionsHtml = k.specialInstructions ? `<div class="divider">--------------------------------</div><div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${(k.specialInstructions || '').replace(/</g,'&lt;')}</div></div>` : '';
-                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .kot-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .kot-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .kot-info{margin:8px 0;} .kot-info div{margin:2px 0;} .item{margin:6px 0;} .item-main{display:flex;} .item-qty{width:30px;font-weight:bold;} .item-name{font-weight:bold;} .item-detail{margin-left:30px;font-size:11px;} .item-note{margin-left:30px;font-size:11px;font-style:italic;} .kot-footer{text-align:center;margin-top:8px;font-weight:bold;} .special-instructions{margin:8px 0;padding:6px;border:1px dashed #000;text-align:center;} .special-instructions strong{display:block;margin-bottom:4px;} .special-instructions div{text-align:left;}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>Time:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>Customer:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>Waiter:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
+                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>Time:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>Customer:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>Waiter:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
                       const newPw = window.open('', '_blank', 'width=400,height=600');
                       if (newPw) {
                         kotPrintWindowRef.current = newPw;
@@ -1704,8 +1705,8 @@ const OrderSummary = ({
                         if (item.servingSize) parts.push(item.servingSize);
                         return parts.length > 0 ? `<div style="font-size:9px;color:#6b7280;">${parts.join(' · ')}</div>` : '';
                       };
-                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
-                      const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
+                      const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
+                      const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
                       const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0);
                       const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Offer${invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
                       const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Manual Discount:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
@@ -1718,7 +1719,7 @@ const OrderSummary = ({
                       const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Cash Received:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Change:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
                       const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">Partial Payment:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Paid:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>Outstanding:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
                       const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',Courier,monospace;margin:16px;font-size:12px;line-height:1.4;max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:16px;font-weight:bold;text-transform:uppercase;} .bill-title{font-size:14px;font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:11px;} .bill-info div{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:11px;} td{font-size:11px;} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:11px;}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
@@ -2263,99 +2264,95 @@ const OrderSummary = ({
                   gap: '5px',
                   marginBottom: '6px'
                 }}>
-                  {/* Discount controls inline */}
-                  {discountEnabled && (
+                  {/* Offer Chips — always show if applicable (independent of manual discount setting) */}
+                  {applicableOffers.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: '1 1 auto' }}>
+                      {applicableOffers.map(offer => {
+                        const oid = offer.id || offer._id;
+                        const isMulti = offerSettings?.allowMultipleOffers;
+                        const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
+                        const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                        return (
+                          <button
+                            key={oid}
+                            onClick={() => {
+                              if (isMulti) {
+                                toggleOffer(oid);
+                              } else {
+                                setSelectedOfferId(isSelected ? null : oid);
+                              }
+                            }}
+                            style={{
+                              padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                              border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e5e7eb',
+                              background: isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff',
+                              color: isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280',
+                              cursor: 'pointer', whiteSpace: 'nowrap',
+                              display: 'flex', alignItems: 'center', gap: '3px',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            {isSelected && <FaCheckCircle size={8} />}
+                            <FaTag size={7} />
+                            {offer.name}
+                            {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
+                            {isSelected && autoApplied && <span style={{ fontSize: '8px' }}>Auto</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {firstOrderOfferRejected && (
+                    <span style={{ fontSize: '9px', color: '#dc2626', whiteSpace: 'nowrap' }}>Not first order</span>
+                  )}
+                  {/* Manual discount controls — only when discount is enabled */}
+                  {canEditManualDiscount && (
                     <>
-                      {/* Offer Chips */}
-                      {applicableOffers.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: '1 1 auto' }}>
-                          {applicableOffers.map(offer => {
-                            const oid = offer.id || offer._id;
-                            const isMulti = offerSettings?.allowMultipleOffers;
-                            const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
-                            const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
-                            return (
-                              <button
-                                key={oid}
-                                onClick={() => {
-                                  if (isMulti) {
-                                    toggleOffer(oid);
-                                  } else {
-                                    setSelectedOfferId(isSelected ? null : oid);
-                                  }
-                                }}
-                                style={{
-                                  padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
-                                  border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e5e7eb',
-                                  background: isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff',
-                                  color: isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280',
-                                  cursor: 'pointer', whiteSpace: 'nowrap',
-                                  display: 'flex', alignItems: 'center', gap: '3px',
-                                  transition: 'all 0.15s'
-                                }}
-                              >
-                                {isSelected && <FaCheckCircle size={8} />}
-                                <FaTag size={7} />
-                                {offer.name}
-                                {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
-                                {isSelected && autoApplied && <span style={{ fontSize: '8px' }}>Auto</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {firstOrderOfferRejected && (
-                        <span style={{ fontSize: '9px', color: '#dc2626', whiteSpace: 'nowrap' }}>Not first order</span>
-                      )}
-                      {canEditManualDiscount && (
-                        <>
-                          <button
-                            onClick={() => setManualDiscountTypeState(prev => prev === 'flat' ? 'percentage' : 'flat')}
-                            style={{
-                              width: '24px', height: '24px', borderRadius: '5px', flexShrink: 0,
-                              border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6',
-                              fontWeight: '700', fontSize: '11px', color: '#374151',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
-                            }}
-                          >
-                            {manualDiscountTypeState === 'percentage' ? '%' : getCurrencySymbol()}
-                          </button>
-                          <input
-                            type="number"
-                            placeholder="Discount"
-                            value={manualDiscountValue}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              const maxPct = discountSettings.maxDiscountPercent || 100;
-                              const maxAmt = discountSettings.maxDiscountAmount;
-                              if (manualDiscountTypeState === 'percentage' && val > maxPct) return;
-                              if (manualDiscountTypeState === 'flat' && maxAmt && val > maxAmt) return;
-                              setManualDiscountValue(e.target.value);
-                            }}
-                            style={{
-                              width: '80px', flex: '0 1 80px', minWidth: '60px', padding: '4px 6px', borderRadius: '5px',
-                              border: '1px solid #e5e7eb', fontSize: '11px', color: '#1f2937'
-                            }}
-                          />
-                        </>
-                      )}
-                      {totalDiscountAmount > 0 && (
-                        <>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
-                            -{formatCurrency(totalDiscountAmount)}
-                          </span>
-                          <button
-                            onClick={() => { setManualDiscountValue(''); setRedeemLoyaltyPoints(0); resetOffers(); }}
-                            style={{
-                              width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
-                              border: '1px solid #fecaca', backgroundColor: '#fee2e2',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
-                            }}
-                          >
-                            <FaTimes size={7} style={{ color: '#dc2626' }} />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => setManualDiscountTypeState(prev => prev === 'flat' ? 'percentage' : 'flat')}
+                        style={{
+                          width: '24px', height: '24px', borderRadius: '5px', flexShrink: 0,
+                          border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6',
+                          fontWeight: '700', fontSize: '11px', color: '#374151',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
+                        }}
+                      >
+                        {manualDiscountTypeState === 'percentage' ? '%' : getCurrencySymbol()}
+                      </button>
+                      <input
+                        type="number"
+                        placeholder="Discount"
+                        value={manualDiscountValue}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const maxPct = discountSettings.maxDiscountPercent || 100;
+                          const maxAmt = discountSettings.maxDiscountAmount;
+                          if (manualDiscountTypeState === 'percentage' && val > maxPct) return;
+                          if (manualDiscountTypeState === 'flat' && maxAmt && val > maxAmt) return;
+                          setManualDiscountValue(e.target.value);
+                        }}
+                        style={{
+                          width: '80px', flex: '0 1 80px', minWidth: '60px', padding: '4px 6px', borderRadius: '5px',
+                          border: '1px solid #e5e7eb', fontSize: '11px', color: '#1f2937'
+                        }}
+                      />
+                    </>
+                  )}
+                  {totalDiscountAmount > 0 && (
+                    <>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                        -{formatCurrency(totalDiscountAmount)}
+                      </span>
+                      <button
+                        onClick={() => { setManualDiscountValue(''); setRedeemLoyaltyPoints(0); resetOffers(); }}
+                        style={{
+                          width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                          border: '1px solid #fecaca', backgroundColor: '#fee2e2',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
+                        }}
+                      >
+                        <FaTimes size={7} style={{ color: '#dc2626' }} />
+                      </button>
                     </>
                   )}
 

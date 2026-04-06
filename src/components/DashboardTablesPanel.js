@@ -6,6 +6,7 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { getBillPrintCSS } from '../utils/printFontSizes';
 
 export default function DashboardTablesPanel({
   floors = [],
@@ -413,16 +414,16 @@ export default function DashboardTablesPanel({
     const currencySymbol = getCurrencySymbol();
     const itemsHtml = items.map(item =>
       `<tr>
-        <td style="text-align:left;padding:2px 4px;">${(item.name || '').replace(/</g, '&lt;')}</td>
-        <td style="text-align:center;padding:2px 4px;">${item.quantity || 1}</td>
-        <td style="text-align:right;padding:2px 4px;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
+        <td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td>
+        <td style="text-align:center;">${item.quantity || 1}</td>
+        <td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
       </tr>`
     ).join('');
 
     const taxHtml = taxBreakdown.map(tax =>
       `<tr>
-        <td colspan="2" style="text-align:left;padding:2px 4px;">${tax.name} (${tax.rate}%)</td>
-        <td style="text-align:right;padding:2px 4px;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td>
+        <td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td>
+        <td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td>
       </tr>`
     ).join('');
 
@@ -430,22 +431,7 @@ export default function DashboardTablesPanel({
 <html>
 <head>
   <title>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</title>
-  <style>
-    @page { size: 80mm auto; margin: 0; }
-    body { font-family: 'Courier New', Courier, monospace; margin: 16px; font-size: 12px; line-height: 1.4; max-width: 80mm; }
-    .bill-header { text-align: center; margin-bottom: 8px; }
-    .restaurant-name { font-size: 16px; font-weight: bold; text-transform: uppercase; }
-    .bill-title { font-size: 14px; font-weight: bold; margin-top: 4px; }
-    .divider { text-align: center; margin: 6px 0; }
-    .bill-info { margin: 8px 0; font-size: 11px; }
-    .bill-info div { display: flex; justify-content: space-between; margin: 2px 0; }
-    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-    th { text-align: left; border-bottom: 1px dashed #000; padding: 4px; font-size: 11px; }
-    td { font-size: 11px; }
-    .total-section { border-top: 1px dashed #000; margin-top: 8px; padding-top: 4px; }
-    .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 4px; }
-    .bill-footer { margin-top: 12px; text-align: center; font-size: 11px; }
-  </style>
+  <style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style>
 </head>
 <body>
   <div class="bill-header">

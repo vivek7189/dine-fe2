@@ -76,6 +76,7 @@ const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false })
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 import { FEATURE_OPS, OP_LABELS } from '@/lib/permissions';
+import { getPrintFontSizes } from '../../../utils/printFontSizes';
 
 // Tax Management Component
 const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
@@ -2025,7 +2026,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     usePusherForKOT: false,
     // Future reserved
     autoPrintOnOnlineOrder: false,
-    autoPrintOnTableCall: false
+    autoPrintOnTableCall: false,
+    // Bill print font size
+    billFontSize: 'medium',
+    billFontScale: 100
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2230,19 +2234,160 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <FaSpinner className="spin" size={24} style={{ color: '#ef4444' }} />
-          <p style={{ color: '#6b7280', marginTop: '12px' }}>Loading settings...</p>
+          <p style={{ color: '#6b7280', marginTop: '12px' }}>Loading print settings...</p>
         </div>
       ) : selectedRestaurant ? (
         <>
-          {/* Dashboard Settings */}
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Dashboard Settings
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {settingsConfig.filter(s => s.section === 'main').map((setting) => (
-                <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
-              ))}
+          {/* Two-column layout: Settings left, Font preview right */}
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            {/* LEFT COLUMN — Toggle Settings */}
+            <div style={{ flex: '1', minWidth: '320px' }}>
+              {/* Dashboard Settings */}
+              <div style={{ marginBottom: '20px' }}>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Dashboard Settings
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {settingsConfig.filter(s => s.section === 'main').map((setting) => (
+                    <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN — Bill Font Scale + Live Preview */}
+            <div style={{ flex: '1', minWidth: '320px', position: 'sticky', top: '20px' }}>
+              <div style={{
+                border: '1px solid #e5e7eb',
+                borderRadius: '16px',
+                padding: '20px',
+                backgroundColor: '#fafafa'
+              }}>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Bill Print Font Size
+                </p>
+                <p style={{ color: '#9ca3af', margin: '0 0 16px 0', fontSize: '12px' }}>
+                  Drag the slider to set font size for printed bills &amp; KOT receipts.
+                </p>
+
+                {/* Scale slider */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Small</span>
+                    <span style={{
+                      fontSize: '15px', fontWeight: '700', color: '#111827',
+                      background: '#f3f4f6', borderRadius: '8px', padding: '4px 12px'
+                    }}>
+                      {printSettings.billFontScale || 100}%
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Large</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="150"
+                    step="5"
+                    value={printSettings.billFontScale || 100}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setPrintSettings(prev => ({ ...prev, billFontScale: val }));
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '6px',
+                      borderRadius: '3px',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.billFontScale || 100) - 50) * 100 / 100}%, #e5e7eb ${((printSettings.billFontScale || 100) - 50) * 100 / 100}%, #e5e7eb 100%)`,
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>50%</span>
+                    <button
+                      onClick={() => setPrintSettings(prev => ({ ...prev, billFontScale: 100 }))}
+                      style={{
+                        fontSize: '10px', color: '#ef4444', background: 'none', border: 'none',
+                        cursor: 'pointer', fontWeight: '600', padding: 0, textDecoration: 'underline'
+                      }}
+                    >
+                      Reset to default (100%)
+                    </button>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>150%</span>
+                  </div>
+                </div>
+
+                {/* Live preview */}
+                <div style={{
+                  maxHeight: '480px',
+                  overflowY: 'auto',
+                  borderRadius: '8px'
+                }}>
+                  <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Live Preview (80mm receipt)
+                  </p>
+                  {(() => {
+                    const f = getPrintFontSizes(printSettings.billFontScale || 100);
+                    const rName = selectedRestaurant?.name || 'My Restaurant';
+                    return (
+                      <div style={{
+                        fontFamily: "'Courier New', Courier, monospace",
+                        maxWidth: '80mm',
+                        margin: '0 auto',
+                        backgroundColor: 'white',
+                        padding: '16px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        fontSize: f.body,
+                        lineHeight: f.lineHeight,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                      }}>
+                        <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                          <div style={{ fontSize: f.restaurantName, fontWeight: 'bold', textTransform: 'uppercase' }}>{rName}</div>
+                          <div style={{ fontSize: f.billTitle, fontWeight: 'bold', marginTop: '4px' }}>--- BILL ---</div>
+                        </div>
+                        <div style={{ textAlign: 'center', margin: '6px 0', color: '#9ca3af', fontSize: f.info }}>- - - - - - - - - - - - - - - -</div>
+                        <div style={{ margin: '8px 0', fontSize: f.info }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Bill#:</span><span><strong>1042</strong></span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Date:</span><span>06 Apr 2026 2:30 PM</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Table:</span><span>T-5</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Payment:</span><span>CASH</span></div>
+                        </div>
+                        <div style={{ textAlign: 'center', margin: '6px 0', color: '#9ca3af', fontSize: f.info }}>- - - - - - - - - - - - - - - -</div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', margin: '8px 0' }}>
+                          <thead>
+                            <tr>
+                              <th style={{ textAlign: 'left', borderBottom: '1px dashed #000', padding: '4px', fontSize: f.th }}>Item</th>
+                              <th style={{ textAlign: 'center', borderBottom: '1px dashed #000', padding: '4px', fontSize: f.th }}>Qty</th>
+                              <th style={{ textAlign: 'right', borderBottom: '1px dashed #000', padding: '4px', fontSize: f.th }}>Amt</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr><td style={{ fontSize: f.td, padding: f.tdPadding }}>Butter Chicken</td><td style={{ textAlign: 'center', fontSize: f.td, padding: f.tdPadding }}>1</td><td style={{ textAlign: 'right', fontSize: f.td, padding: f.tdPadding }}>₹320.00</td></tr>
+                            <tr><td style={{ fontSize: f.td, padding: f.tdPadding }}>Garlic Naan</td><td style={{ textAlign: 'center', fontSize: f.td, padding: f.tdPadding }}>2</td><td style={{ textAlign: 'right', fontSize: f.td, padding: f.tdPadding }}>₹90.00</td></tr>
+                            <tr><td style={{ fontSize: f.td, padding: f.tdPadding }}>Masala Dosa</td><td style={{ textAlign: 'center', fontSize: f.td, padding: f.tdPadding }}>1</td><td style={{ textAlign: 'right', fontSize: f.td, padding: f.tdPadding }}>₹120.00</td></tr>
+                          </tbody>
+                        </table>
+                        <div style={{ borderTop: '1px dashed #000', marginTop: '8px', paddingTop: '4px', fontSize: f.totalSection }}>
+                          <div style={{ fontSize: f.info, margin: '8px 0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Subtotal:</span><span>₹530.00</span></div>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: f.info }}><span>GST (5%)</span><span>₹26.50</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: f.totalRow, marginTop: '4px' }}>
+                            <span>TOTAL:</span><span>₹556.50</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'center', margin: '6px 0', color: '#9ca3af', fontSize: f.info }}>=  =  =  =  =  =  =  =  =  =  =</div>
+                        <div style={{ marginTop: '12px', textAlign: 'center', fontSize: f.footer }}>
+                          <p style={{ margin: '0 0 4px 0' }}>Thank you for dining with us!</p>
+                          <p style={{ fontSize: f.poweredBy, margin: 0, opacity: 0.6 }}>Powered by DineOpen</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
           </div>
 

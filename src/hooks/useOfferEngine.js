@@ -79,6 +79,7 @@ const isDateValid = (offer) => {
   }
   if (offer.validUntil) {
     const until = new Date(offer.validUntil);
+    until.setHours(23, 59, 59, 999); // Include the entire last day
     if (now > until) return false;
   }
   return true;
