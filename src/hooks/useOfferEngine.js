@@ -267,7 +267,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   const applicableOffers = useMemo(() => {
     if (!allOffers.length) return [];
 
-    return allOffers.filter(offer => {
+    const result = allOffers.filter(offer => {
       // Schedule check (happy hour, recurring)
       if (!isScheduleValid(offer)) return false;
 
@@ -296,6 +296,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
       return true;
     });
+    return result;
   }, [allOffers, subtotal, cart, customerInfo, scheduleCheckKey]);
 
   // Update discount when selected offers or subtotal changes
