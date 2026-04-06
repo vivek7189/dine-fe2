@@ -13,6 +13,7 @@ import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import { getCachedMenuData, setCachedMenuData } from '../../../utils/dashboardCache';
+import { canPerform } from '../../../lib/permissions';
 import { 
   FaPlus, 
   FaEdit,
@@ -906,7 +907,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               <FaStar size={12} />
             </button>
           )}
-          <button
+          {onEdit && <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -936,9 +937,9 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               }}
             >
               <FaEdit size={12} />
-          </button>
-            
-          <button
+          </button>}
+
+          {onToggleAvailability && <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -947,8 +948,8 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               }}
               style={{
                 padding: '8px',
-                background: item.isAvailable 
-                  ? 'linear-gradient(135deg, #f97316, #ea580c)' 
+                background: item.isAvailable
+                  ? 'linear-gradient(135deg, #f97316, #ea580c)'
                   : 'linear-gradient(135deg, #22c55e, #16a34a)',
                 color: 'white',
                 border: 'none',
@@ -958,8 +959,8 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: item.isAvailable 
-                  ? '0 2px 4px rgba(249, 115, 22, 0.2)' 
+                boxShadow: item.isAvailable
+                  ? '0 2px 4px rgba(249, 115, 22, 0.2)'
                   : '0 2px 4px rgba(34, 197, 94, 0.2)'
               }}
               onMouseEnter={(e) => {
@@ -981,9 +982,9 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
             title={item.isAvailable ? 'Mark as Out of Stock' : 'Mark as Available'}
           >
               {item.isAvailable ? <FaMinus size={12} /> : <FaCheck size={12} />}
-          </button>
-            
-          <button
+          </button>}
+
+          {onDelete && <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -1013,7 +1014,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               }}
             >
               <FaTrash size={12} />
-          </button>
+          </button>}
           </div>
         </div>
       </div>
@@ -1227,7 +1228,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
             <FaHeart size={12} fill={item.isFavorite ? 'white' : 'none'} />
           </button>
         )}
-        <button
+        {onEdit && <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
@@ -1249,8 +1250,8 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
           title="Edit"
         >
           <FaEdit size={10} />
-        </button>
-        <button
+        </button>}
+        {onToggleAvailability && <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
@@ -1272,8 +1273,8 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
           title={item.isAvailable ? 'Mark as Out of Stock' : 'Mark as Available'}
         >
           {item.isAvailable ? <FaMinus size={10} /> : <FaCheck size={10} />}
-        </button>
-        <button
+        </button>}
+        {onDelete && <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
@@ -1295,7 +1296,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
           title="Delete"
         >
           <FaTrash size={10} />
-        </button>
+        </button>}
       </div>
     </div>
   );
@@ -1690,13 +1691,13 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           )}
 
           {/* Actions */}
-          <div style={{
+          {(onEdit || onToggleAvailability || onDelete) && <div style={{
             padding: '16px 24px 24px 24px',
             borderTop: '1px solid #e5e7eb',
             display: 'flex',
             gap: '12px'
           }}>
-            <button
+            {onEdit && <button
               onClick={() => {
                 onEdit(item);
                 onClose();
@@ -1729,15 +1730,15 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
             >
               <FaEdit size={12} />
               Edit Item
-            </button>
-            <button
+            </button>}
+            {onToggleAvailability && <button
               onClick={() => {
                 onToggleAvailability(item.id, item.isAvailable);
                 onClose();
               }}
               style={{
                 padding: '12px 16px',
-                background: item.isAvailable 
+                background: item.isAvailable
                   ? 'linear-gradient(135deg, #f97316, #ea580c)'
                   : 'linear-gradient(135deg, #22c55e, #16a34a)',
                 color: 'white',
@@ -1752,8 +1753,8 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 justifyContent: 'center',
                 gap: '8px',
                 minWidth: '120px',
-                boxShadow: item.isAvailable 
-                  ? '0 2px 4px rgba(249, 115, 22, 0.2)' 
+                boxShadow: item.isAvailable
+                  ? '0 2px 4px rgba(249, 115, 22, 0.2)'
                   : '0 2px 4px rgba(34, 197, 94, 0.2)'
               }}
               onMouseEnter={(e) => {
@@ -1775,8 +1776,8 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
             >
               {item.isAvailable ? <FaMinus size={12} /> : <FaCheck size={12} />}
               {item.isAvailable ? 'Mark Out' : 'Mark Available'}
-            </button>
-            <button
+            </button>}
+            {onDelete && <button
               onClick={() => {
                 onDelete(item.id);
                 onClose();
@@ -1809,8 +1810,8 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
             >
               <FaTrash size={12} />
               Delete
-            </button>
-          </div>
+            </button>}
+          </div>}
         </div>
       </div>
 
@@ -1893,6 +1894,15 @@ const MenuManagement = () => {
   const [photoError, setPhotoError] = useState('');
   const [photoSuccess, setPhotoSuccess] = useState(false);
   const cameraInputRef = useRef(null);
+
+  // Permission gating
+  const menuUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+  const menuPageAccess = menuUserData.pageAccess;
+  const canAddMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'add');
+  const canEditMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'update');
+  const canDeleteMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'delete');
+  const canMarkOutOfStock = canPerform(menuUserData, menuPageAccess, 'menu', 'markOutOfStock');
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -2806,6 +2816,8 @@ const MenuManagement = () => {
     // Reload menu data when new items are added (including categories)
     if (currentRestaurant) {
       await loadMenuData(currentRestaurant.id, false); // Force fresh fetch to get new categories
+      // Clear hasDefaultMenu so the "Sample Menu" banner hides immediately
+      setCurrentRestaurant(prev => prev ? { ...prev, hasDefaultMenu: false } : prev);
     }
   };
 
@@ -3087,6 +3099,7 @@ const MenuManagement = () => {
               </p>
             </div>
             {/* Primary CTA */}
+            {canAddMenuItem && (
             <button
               onClick={() => setShowAddForm(true)}
               style={{
@@ -3109,6 +3122,7 @@ const MenuManagement = () => {
             >
               <FaPlus size={11} /> {btype.add}
             </button>
+            )}
           </div>
 
           {/* Action pills row */}
@@ -3407,6 +3421,7 @@ const MenuManagement = () => {
                     <FaCloudUploadAlt size={14} />
                     Upload Menu (AI)
                   </button>
+                  {canAddMenuItem && (
                   <button
                     onClick={() => setShowAddForm(true)}
                     style={{
@@ -3429,6 +3444,7 @@ const MenuManagement = () => {
                     <FaPlus size={12} />
                     Add Manually
                   </button>
+                  )}
                 </div>
               </div>
             )}
@@ -3469,9 +3485,9 @@ const MenuManagement = () => {
                   <MenuItemCard
                   item={item}
                   categories={categories}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggleAvailability={handleToggleAvailability}
+                  onEdit={canEditMenuItem ? handleEdit : undefined}
+                  onDelete={canDeleteMenuItem ? handleDelete : undefined}
+                  onToggleAvailability={canMarkOutOfStock ? handleToggleAvailability : undefined}
                   onToggleFavorite={handleToggleFavorite}
                   getCategoryEmoji={getCategoryEmoji}
                   onItemClick={handleItemClick}
@@ -3644,10 +3660,10 @@ const MenuManagement = () => {
                     }}>
                       {[
                         { icon: <FaStar size={11} />, color: item.isFavorite ? '#f59e0b' : '#cbd5e1', hoverColor: '#f59e0b', title: 'Favorite', handler: (e) => { e.stopPropagation(); handleToggleFavorite(item); } },
-                        { icon: <FaEdit size={11} />, color: '#94a3b8', hoverColor: '#3b82f6', title: 'Edit', handler: (e) => { e.stopPropagation(); handleEdit(item); } },
-                        { icon: <FaMinus size={11} />, color: '#94a3b8', hoverColor: '#f59e0b', title: item.isAvailable ? 'Mark unavailable' : 'Mark available', handler: (e) => { e.stopPropagation(); handleToggleAvailability(item); } },
-                        { icon: <FaTrash size={11} />, color: '#94a3b8', hoverColor: '#ef4444', title: 'Delete', handler: (e) => { e.stopPropagation(); handleDelete(item.id); } },
-                      ].map((action, i) => (
+                        canEditMenuItem && { icon: <FaEdit size={11} />, color: '#94a3b8', hoverColor: '#3b82f6', title: 'Edit', handler: (e) => { e.stopPropagation(); handleEdit(item); } },
+                        canMarkOutOfStock && { icon: <FaMinus size={11} />, color: '#94a3b8', hoverColor: '#f59e0b', title: item.isAvailable ? 'Mark unavailable' : 'Mark available', handler: (e) => { e.stopPropagation(); handleToggleAvailability(item); } },
+                        canDeleteMenuItem && { icon: <FaTrash size={11} />, color: '#94a3b8', hoverColor: '#ef4444', title: 'Delete', handler: (e) => { e.stopPropagation(); handleDelete(item.id); } },
+                      ].filter(Boolean).map((action, i) => (
                         <button
                           key={i}
                           onClick={action.handler}
@@ -3849,7 +3865,7 @@ const MenuManagement = () => {
                     </div>
 
                     {/* Manual Add Card */}
-                    <div
+                    {canAddMenuItem && <div
                       onClick={() => setShowAddForm(true)}
                       style={{
                         padding: '24px 20px',
@@ -3890,7 +3906,7 @@ const MenuManagement = () => {
                       <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.4', margin: 0 }}>
                         Add items one by one with full details, images and pricing
                       </p>
-                    </div>
+                    </div>}
                   </div>
                 </>
               )}
@@ -5374,9 +5390,9 @@ const MenuManagement = () => {
         categories={categories}
         isOpen={showItemModal}
         onClose={handleCloseModal}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggleAvailability={handleToggleAvailability}
+        onEdit={canEditMenuItem ? handleEdit : undefined}
+        onDelete={canDeleteMenuItem ? handleDelete : undefined}
+        onToggleAvailability={canMarkOutOfStock ? handleToggleAvailability : undefined}
         getCategoryEmoji={getCategoryEmoji}
         multiPricingEnabled={multiPricingEnabled}
         activePricingRules={activePricingRules}

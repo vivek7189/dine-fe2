@@ -1,15 +1,71 @@
+// Granular feature permission utilities
+// Shared between admin page and all feature pages
+
+export const FEATURE_OPS = {
+  inventory: ['read', 'add', 'update', 'delete'],
+  menu: ['read', 'add', 'update', 'delete', 'markOutOfStock'],
+  orders: ['read', 'update', 'cancel', 'refund', 'completeBill'],
+  tables: ['read', 'add', 'update', 'delete', 'reset'],
+  customers: ['read', 'add', 'update', 'delete'],
+  offers: ['read', 'add', 'update', 'delete']
+};
+
+export const OP_LABELS = {
+  read: 'View',
+  add: 'Add',
+  update: 'Edit',
+  delete: 'Delete',
+  markOutOfStock: 'Out of Stock',
+  cancel: 'Cancel',
+  refund: 'Refund',
+  completeBill: 'Complete Bill',
+  reset: 'Reset All'
+};
+
 /**
- * Resolve inventory permissions from pageAccess.
- * Handles both legacy boolean format and new granular object format.
- *
- * @param {Object} pageAccess - Staff member's pageAccess object
- * @returns {{ read: boolean, add: boolean, update: boolean, delete: boolean }}
+ * Resolve permissions for a feature from pageAccess.
+ * Handles boolean (legacy) and object (granular) formats.
  */
-export function resolveInventoryPermissions(pageAccess) {
-  const inv = pageAccess?.inventory;
-  if (typeof inv === 'object' && inv !== null) {
-    return { read: !!inv.read, add: !!inv.add, update: !!inv.update, delete: !!inv.delete };
+export function resolveFeaturePermissions(pageAccess, feature) {
+  const ops = FEATURE_OPS[feature] || ['read', 'add', 'update', 'delete'];
+  const val = pageAccess?.[feature];
+  if (typeof val === 'object' && val !== null) {
+    const result = {};
+    for (const op of ops) result[op] = !!val[op];
+    return result;
   }
-  const val = !!inv;
-  return { read: val, add: val, update: val, delete: val };
+  const boolVal = !!val;
+  const result = {};
+  for (const op of ops) result[op] = boolVal;
+  return result;
+}
+
+/**
+ * Check if a user can perform a specific operation on a feature.
+ * Owner/admin always can. Manager allowed by default if no explicit restriction.
+ */
+export function canPerform(user, pageAccess, feature, operation) {
+  const role = user?.role?.toLowerCase();
+  if (role === 'owner' || role === 'admin') return true;
+
+  // Legacy standalone boolean fallbacks
+  if (feature === 'orders' && operation === 'completeBill' && pageAccess?.completeBill !== undefined) {
+    return !!pageAccess.completeBill;
+  }
+  if (feature === 'tables' && operation === 'reset' && pageAccess?.resetTables !== undefined) {
+    return !!pageAccess.resetTables;
+  }
+
+  const perms = resolveFeaturePermissions(pageAccess, feature);
+  if (perms[operation]) return true;
+
+  // Manager fallback: if feature key not present at all, allow
+  if (role === 'manager' && pageAccess?.[feature] === undefined) return true;
+
+  return false;
+}
+
+// Backward-compatible alias
+export function resolveInventoryPermissions(pageAccess) {
+  return resolveFeaturePermissions(pageAccess, 'inventory');
 }

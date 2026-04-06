@@ -6,6 +6,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import apiClient from '../../../lib/api';
 import { useNotification } from '../../../components/Notification.js';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
+import { canPerform } from '../../../lib/permissions';
 import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
@@ -83,8 +84,13 @@ const TableManagement = () => {
   const [loadingBookings, setLoadingBookings] = useState(false);
 
   const scrollContainerRef = useRef(null);
-  const canManageTables = ['owner', 'admin', 'manager'].includes(userRole);
-  const canResetTables = ['owner', 'admin'].includes(userRole) || (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').pageAccess?.resetTables; } catch { return false; } })();
+  const userData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+  const userPageAccess = userData.pageAccess;
+  const canAddTable = canPerform(userData, userPageAccess, 'tables', 'add');
+  const canEditTable = canPerform(userData, userPageAccess, 'tables', 'update');
+  const canDeleteTable = canPerform(userData, userPageAccess, 'tables', 'delete');
+  const canResetTables = canPerform(userData, userPageAccess, 'tables', 'reset');
+  const canManageTables = canAddTable || canEditTable || canDeleteTable;
 
   // Timer tick to keep elapsed times updated (every 60s)
   const [, setTick] = useState(0);
@@ -814,7 +820,7 @@ const TableManagement = () => {
                 <FaTools size={11} /> Reset All
               </button>
             )}
-            {canManageTables && (
+            {canAddTable && (
               <button onClick={() => setShowAddModal(true)} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
                 background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', color: 'white',
@@ -882,7 +888,7 @@ const TableManagement = () => {
               </button>
             );
           })}
-          {canManageTables && (
+          {canAddTable && (
             <button onClick={() => setShowAddFloor(true)} style={{
               padding: '7px 16px', borderRadius: '24px', border: '1px dashed #d1d5db', backgroundColor: 'transparent',
               color: '#9ca3af', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
@@ -927,10 +933,10 @@ const TableManagement = () => {
                     )}
                     <span style={{ fontSize: '12px', color: '#9ca3af' }}>{tables.length} tables</span>
                   </div>
-                  {canManageTables && (
+                  {(canEditTable || canDeleteTable) && (
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => startEditFloor(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}><FaEdit size={12} /></button>
-                      <button onClick={() => setDeleteFloorConfirm(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><FaTrash size={12} /></button>
+                      {canEditTable && <button onClick={() => startEditFloor(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}><FaEdit size={12} /></button>}
+                      {canDeleteTable && <button onClick={() => setDeleteFloorConfirm(floor)} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><FaTrash size={12} /></button>}
                     </div>
                   )}
                 </div>
@@ -942,7 +948,7 @@ const TableManagement = () => {
                   <FaChair size={36} color="#d1d5db" style={{ marginBottom: '12px' }} />
                   <div style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '6px' }}>No tables yet</div>
                   <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Add tables to this floor to get started</div>
-                  {canManageTables && (
+                  {canAddTable && (
                     <button onClick={() => { setSelectedFloorForTable(floor.id); setShowAddModal(true); }} style={{
                       padding: '10px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
                       border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
@@ -1213,7 +1219,7 @@ const TableManagement = () => {
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#f59e0b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5' }}>
                                     <FaCalendarAlt size={12} /> Book
                                   </button>
-                                  {canManageTables && (
+                                  {canEditTable && (
                                     <>
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('out-of-service', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#8b5cf6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
                                         <FaBan size={12} /> Service
@@ -1221,10 +1227,12 @@ const TableManagement = () => {
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
                                         <FaTools size={12} /> Clean
                                       </button>
+                                    </>
+                                  )}
+                                  {canDeleteTable && (
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
                                         <FaTrash size={12} /> Delete
                                       </button>
-                                    </>
                                   )}
                                 </>
                               )}
@@ -1248,7 +1256,7 @@ const TableManagement = () => {
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
                                     <FaCheck size={12} /> Free
                                   </button>
-                                  {canManageTables && (
+                                  {canDeleteTable && (
                                     <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
                                       <FaTrash size={12} /> Delete
                                     </button>

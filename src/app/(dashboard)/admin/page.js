@@ -75,6 +75,7 @@ import GoogleReviews from '../../../components/GoogleReviews';
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
+import { FEATURE_OPS, OP_LABELS } from '@/lib/permissions';
 
 // Tax Management Component
 const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
@@ -2537,7 +2538,8 @@ const Admin = () => {
       kot: false,
       admin: false,
       invoice: false,
-      resetTables: false
+      customers: false,
+      offers: false
     }
   });
   const [showPassword, setShowPassword] = useState({});
@@ -3253,7 +3255,8 @@ const Admin = () => {
           kot: false,
           admin: false,
           invoice: false,
-          resetTables: false
+          customers: false,
+          offers: false
         }
       });
       setShowAddStaffModal(false);
@@ -4356,16 +4359,18 @@ const Admin = () => {
                             { key: 'kot', label: 'KOT', icon: '👨‍🍳' },
                             { key: 'admin', label: 'Admin', icon: '⚙️' },
                             { key: 'invoice', label: 'Invoice', icon: '🧾' },
-                            { key: 'resetTables', label: 'Reset All Tables', icon: '🔄' }
+                            { key: 'customers', label: 'Customers', icon: '👥' },
+                            { key: 'offers', label: 'Offers', icon: '🏷️' },
+                            { key: 'orders', label: 'Orders', icon: '🧾' }
                           ].map(({ key, label, icon }) => {
-                            const isInventory = key === 'inventory';
-                            const hasAccess = isInventory
-                              ? (typeof member.pageAccess[key] === 'object'
+                            const hasGranular = !!FEATURE_OPS[key];
+                            const hasAccess = hasGranular
+                              ? (typeof member.pageAccess?.[key] === 'object'
                                 ? Object.values(member.pageAccess[key]).some(Boolean)
-                                : !!member.pageAccess[key])
-                              : !!member.pageAccess[key];
+                                : !!member.pageAccess?.[key])
+                              : !!member.pageAccess?.[key];
                             return (
-                              <div key={key} style={{ gridColumn: isInventory && typeof member.pageAccess[key] === 'object' ? '1 / -1' : undefined }}>
+                              <div key={key} style={{ gridColumn: hasGranular && typeof member.pageAccess?.[key] === 'object' ? '1 / -1' : undefined }}>
                                 <div style={{
                                   display: 'flex',
                                   alignItems: 'center',
@@ -4389,7 +4394,7 @@ const Admin = () => {
                                     <FaTimes size={8} style={{ color: '#dc2626' }} />
                                   )}
                                 </div>
-                                {isInventory && typeof member.pageAccess[key] === 'object' && (
+                                {hasGranular && typeof member.pageAccess?.[key] === 'object' && (
                                   <div style={{
                                     display: 'flex',
                                     flexWrap: 'wrap',
@@ -4397,22 +4402,17 @@ const Admin = () => {
                                     marginTop: '6px',
                                     marginLeft: '8px'
                                   }}>
-                                    {[
-                                      { subKey: 'read', subLabel: 'View' },
-                                      { subKey: 'add', subLabel: 'Add' },
-                                      { subKey: 'update', subLabel: 'Update' },
-                                      { subKey: 'delete', subLabel: 'Delete' }
-                                    ].map(({ subKey, subLabel }) => (
-                                      <span key={subKey} style={{
+                                    {FEATURE_OPS[key].map(op => (
+                                      <span key={op} style={{
                                         fontSize: '10px',
                                         fontWeight: '500',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
-                                        backgroundColor: member.pageAccess[key][subKey] ? '#dcfce7' : '#fef2f2',
-                                        color: member.pageAccess[key][subKey] ? '#166534' : '#dc2626',
-                                        border: `1px solid ${member.pageAccess[key][subKey] ? '#bbf7d0' : '#fca5a5'}`
+                                        backgroundColor: member.pageAccess[key][op] ? '#dcfce7' : '#fef2f2',
+                                        color: member.pageAccess[key][op] ? '#166534' : '#dc2626',
+                                        border: `1px solid ${member.pageAccess[key][op] ? '#bbf7d0' : '#fca5a5'}`
                                       }}>
-                                        {subLabel}: {member.pageAccess[key][subKey] ? 'Yes' : 'No'}
+                                        {OP_LABELS[op] || op}: {member.pageAccess[key][op] ? 'Yes' : 'No'}
                                       </span>
                                     ))}
                                   </div>
@@ -5479,18 +5479,18 @@ const Admin = () => {
 
               {/* Page Access Controls */}
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151', 
-                  marginBottom: '12px' 
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '12px'
                 }}>
                   Page Access Permissions
                 </label>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(2, 1fr)', 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
                   gap: '12px',
                   padding: '16px',
                   backgroundColor: '#f9fafb',
@@ -5507,16 +5507,18 @@ const Admin = () => {
                     { key: 'kot', label: t('nav.kot'), icon: '👨‍🍳' },
                     { key: 'admin', label: t('nav.admin'), icon: '⚙️' },
                     { key: 'invoice', label: 'Invoice', icon: '🧾' },
-                    { key: 'resetTables', label: 'Reset All Tables', icon: '🔄' }
+                    { key: 'customers', label: 'Customers', icon: '👥' },
+                    { key: 'offers', label: 'Offers', icon: '🏷️' },
+                    { key: 'orders', label: 'Orders', icon: '🧾' }
                   ].map(({ key, label, icon }) => {
-                    const isInventory = key === 'inventory';
-                    const isChecked = isInventory
-                      ? (typeof newStaff.pageAccess.inventory === 'object'
-                        ? Object.values(newStaff.pageAccess.inventory).some(Boolean)
-                        : !!newStaff.pageAccess.inventory)
+                    const hasGranular = !!FEATURE_OPS[key];
+                    const isChecked = hasGranular
+                      ? (typeof newStaff.pageAccess[key] === 'object'
+                        ? Object.values(newStaff.pageAccess[key]).some(Boolean)
+                        : !!newStaff.pageAccess[key])
                       : !!newStaff.pageAccess[key];
                     return (
-                      <div key={key} style={{ gridColumn: isInventory && isChecked ? '1 / -1' : undefined }}>
+                      <div key={key} style={{ gridColumn: hasGranular && isChecked ? '1 / -1' : undefined }}>
                         <label style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -5532,14 +5534,15 @@ const Admin = () => {
                             type="checkbox"
                             checked={isChecked}
                             onChange={(e) => {
-                              if (isInventory) {
+                              if (hasGranular) {
+                                const ops = FEATURE_OPS[key];
+                                const allEnabled = {};
+                                ops.forEach(op => allEnabled[op] = true);
                                 setNewStaff({
                                   ...newStaff,
                                   pageAccess: {
                                     ...newStaff.pageAccess,
-                                    inventory: e.target.checked
-                                      ? { read: true, add: true, update: true, delete: true }
-                                      : false
+                                    [key]: e.target.checked ? allEnabled : false
                                   }
                                 });
                               } else {
@@ -5563,10 +5566,10 @@ const Admin = () => {
                             {label}
                           </span>
                         </label>
-                        {isInventory && typeof newStaff.pageAccess.inventory === 'object' && (
+                        {hasGranular && typeof newStaff.pageAccess[key] === 'object' && (
                           <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(2, 1fr)',
+                            display: 'flex',
+                            flexWrap: 'wrap',
                             gap: '8px',
                             marginTop: '8px',
                             marginLeft: '16px',
@@ -5575,37 +5578,32 @@ const Admin = () => {
                             borderRadius: '8px',
                             border: '1px solid #bbf7d0'
                           }}>
-                            {[
-                              { subKey: 'read', subLabel: 'View' },
-                              { subKey: 'add', subLabel: 'Add' },
-                              { subKey: 'update', subLabel: 'Update' },
-                              { subKey: 'delete', subLabel: 'Delete' }
-                            ].map(({ subKey, subLabel }) => (
-                              <label key={subKey} style={{
+                            {FEATURE_OPS[key].map(op => (
+                              <label key={op} style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px',
                                 cursor: 'pointer',
                                 padding: '6px 8px',
                                 borderRadius: '6px',
-                                backgroundColor: newStaff.pageAccess.inventory[subKey] ? '#dcfce7' : 'white',
-                                border: `1px solid ${newStaff.pageAccess.inventory[subKey] ? '#10b981' : '#e5e7eb'}`,
+                                backgroundColor: newStaff.pageAccess[key][op] ? '#dcfce7' : 'white',
+                                border: `1px solid ${newStaff.pageAccess[key][op] ? '#10b981' : '#e5e7eb'}`,
                                 transition: 'all 0.2s'
                               }}>
                                 <input
                                   type="checkbox"
-                                  checked={!!newStaff.pageAccess.inventory[subKey]}
+                                  checked={!!newStaff.pageAccess[key][op]}
                                   onChange={(e) => {
-                                    const updatedInventory = {
-                                      ...newStaff.pageAccess.inventory,
-                                      [subKey]: e.target.checked
+                                    const updated = {
+                                      ...newStaff.pageAccess[key],
+                                      [op]: e.target.checked
                                     };
-                                    const anyChecked = Object.values(updatedInventory).some(Boolean);
+                                    const anyChecked = Object.values(updated).some(Boolean);
                                     setNewStaff({
                                       ...newStaff,
                                       pageAccess: {
                                         ...newStaff.pageAccess,
-                                        inventory: anyChecked ? updatedInventory : false
+                                        [key]: anyChecked ? updated : false
                                       }
                                     });
                                   }}
@@ -5614,9 +5612,9 @@ const Admin = () => {
                                 <span style={{
                                   fontSize: '12px',
                                   fontWeight: '500',
-                                  color: newStaff.pageAccess.inventory[subKey] ? '#059669' : '#374151'
+                                  color: newStaff.pageAccess[key][op] ? '#059669' : '#374151'
                                 }}>
-                                  {subLabel}
+                                  {OP_LABELS[op] || op}
                                 </span>
                               </label>
                             ))}

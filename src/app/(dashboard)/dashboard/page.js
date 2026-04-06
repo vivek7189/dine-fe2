@@ -64,6 +64,7 @@ import RAGInitializer from '../../../components/RAGInitializer';
 import { getCachedDashboardData, setCachedDashboardData } from '../../../utils/dashboardCache';
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
+import { canPerform } from '../../../lib/permissions';
 
 function RestaurantPOSContent() {
   const searchParams = useSearchParams();
@@ -72,6 +73,10 @@ function RestaurantPOSContent() {
 
   // Offline sync engine
   const { pendingCount, isOnline, isSyncing, lastSyncEvent, networkTransition, clearTransition, manualSync, queueOfflineOrder, generateIdempotencyKey } = useSyncEngine(apiClient);
+
+  // Permission gating
+  const dashUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+  const canCompleteBill = canPerform(dashUserData, dashUserData.pageAccess, 'orders', 'completeBill');
 
   // Core state
   const [selectedCategory, setSelectedCategory] = useState('all-items');
@@ -7003,6 +7008,7 @@ function RestaurantPOSContent() {
                   </div>
                 </div>
 
+                {canCompleteBill && (
                 <button
                   onClick={() => {
                     setShowMobileCart(false);
@@ -7041,6 +7047,7 @@ function RestaurantPOSContent() {
                     </>
                   )}
                 </button>
+                )}
               </div>
             )}
           </div>

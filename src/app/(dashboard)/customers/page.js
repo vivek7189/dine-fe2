@@ -8,6 +8,7 @@ import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedCustomersData, setCachedCustomersData } from '../../../utils/dashboardCache';
+import { canPerform } from '../../../lib/permissions';
 import { 
   FaUsers, 
   FaPlus, 
@@ -333,6 +334,13 @@ const Customers = () => {
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [engagementTab, setEngagementTab] = useState('customers'); // 'customers' | 'offers' | 'loyalty' | 'your-app'
+
+  // Permission gating
+  const custUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+  const custPageAccess = custUserData.pageAccess;
+  const canAddCustomer = canPerform(custUserData, custPageAccess, 'customers', 'add');
+  const canEditCustomer = canPerform(custUserData, custPageAccess, 'customers', 'update');
+  const canDeleteCustomer = canPerform(custUserData, custPageAccess, 'customers', 'delete');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -993,7 +1001,7 @@ const Customers = () => {
               )}
             </div>
 
-            {engagementTab === 'customers' && (
+            {engagementTab === 'customers' && canAddCustomer && (
             <button
               onClick={() => setShowAddModal(true)}
               style={{
@@ -1309,6 +1317,7 @@ const Customers = () => {
                         <FaHistory size={12} />
                         {!isMobile && t('customers.actions.history')}
                       </button>
+                      {canEditCustomer && (
                       <button
                         onClick={() => handleEdit(customer)}
                         style={{
@@ -1327,6 +1336,8 @@ const Customers = () => {
                         <FaEdit size={12} />
                         {!isMobile && t('customers.actions.edit')}
                       </button>
+                      )}
+                      {canDeleteCustomer && (
                       <button
                         onClick={() => handleDelete(customer)}
                         style={{
@@ -1345,6 +1356,7 @@ const Customers = () => {
                         <FaTrash size={12} />
                         {!isMobile && t('customers.actions.delete')}
                       </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1358,7 +1370,7 @@ const Customers = () => {
                 <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', color: '#9ca3af', marginBottom: isMobile ? '16px' : '24px' }}>
                   {searchTerm ? t('customers.trySearch') : t('customers.startAdding')}
                 </p>
-                {!searchTerm && (
+                {!searchTerm && canAddCustomer && (
                   <button
                     onClick={() => setShowAddModal(true)}
                     style={{
