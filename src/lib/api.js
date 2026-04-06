@@ -1354,6 +1354,46 @@ class ApiClient {
     return this.request(`/api/google-reviews/review-link/${restaurantId}${params}`);
   }
 
+  async getGoogleAuthUrl(restaurantId) {
+    return this.request(`/api/google-reviews/auth/url/${restaurantId}`);
+  }
+
+  async disconnectGoogleAccount(restaurantId) {
+    return this.request(`/api/google-reviews/auth/disconnect/${restaurantId}`, {
+      method: 'POST',
+    });
+  }
+
+  async getGoogleAuthStatus(restaurantId) {
+    return this.request(`/api/google-reviews/auth/status/${restaurantId}`);
+  }
+
+  async getGoogleReviews(restaurantId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/google-reviews/reviews/${restaurantId}${queryString}`);
+  }
+
+  async replyToGoogleReview(restaurantId, reviewId, comment) {
+    return this.request(`/api/google-reviews/reviews/${restaurantId}/${reviewId}/reply`, {
+      method: 'POST',
+      body: { comment },
+    });
+  }
+
+  async deleteGoogleReviewReply(restaurantId, reviewId) {
+    return this.request(`/api/google-reviews/reviews/${restaurantId}/${reviewId}/reply`, {
+      method: 'DELETE',
+    });
+  }
+
+  async generateGoogleReviewReply(restaurantId, data) {
+    return this.request(`/api/google-reviews/reviews/${restaurantId}/generate-reply`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
   async deleteOrder(orderId, reason) {
     return this.request(`/api/orders/${orderId}`, {
       method: 'DELETE',

@@ -2565,6 +2565,15 @@ const Admin = () => {
   const [businessType, setBusinessType] = useState('restaurant');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Toast notification state
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
+  // Full-screen saving overlay state
+  const [generalSaving, setGeneralSaving] = useState(false);
+
   // PIN settings state
   const [pinStatus, setPinStatus] = useState({ pinEnabled: false, pinUpdatedAt: null });
   const [pinFormMode, setPinFormMode] = useState('idle'); // 'idle', 'set', 'change', 'disable'
@@ -2650,7 +2659,7 @@ const Admin = () => {
     { id: 'hotel', name: 'Hotel PMS', icon: FaBuilding, description: 'Hotel property management system', color: '#6366f1' },
     { id: 'invoice', name: 'Invoice & Billing', icon: FaFileInvoice, description: 'Professional invoicing, quotes, and expense tracking', color: '#0ea5e9' },
     { id: 'multiPricing', name: 'Multi-Tier Pricing', icon: FaLayerGroup, description: 'Per-item pricing for AC/Non-AC/Takeaway and custom rules', color: '#8b5cf6' },
-    // { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Collect and manage Google Reviews via QR', color: '#ea4335' },
+    { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Manage, reply & collect Google Reviews', color: '#ea4335' },
   ];
 
   useEffect(() => {
@@ -2784,9 +2793,9 @@ const Admin = () => {
       { id: 'offers', label: 'Offers & Discounts', icon: FaTag },
       { id: 'loyalty', label: 'Loyalty Program', icon: FaStar },
     ]},
-    // { label: 'INTEGRATIONS', items: [
-    //   { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
-    // ]},
+    { label: 'INTEGRATIONS', items: [
+      { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
+    ]},
   ];
   const activeNavItem = navGroups.flatMap(function(g) { return g.items; }).find(function(i) { return i.id === activeTab; });
 
@@ -3581,6 +3590,55 @@ const Admin = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      {/* Full-screen saving overlay */}
+      {generalSaving && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+          backdropFilter: 'blur(2px)'
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '16px', padding: '32px 40px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)'
+          }}>
+            <FaSpinner size={28} color="#ef4444" style={{ animation: 'spin 1s linear infinite' }} />
+            <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>Saving settings...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast.show && (
+        <div style={{
+          position: 'fixed', top: '24px', right: '24px', zIndex: 10000,
+          backgroundColor: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+          borderRadius: '12px', padding: '14px 20px',
+          display: 'flex', alignItems: 'center', gap: '10px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+          animation: 'slideIn 0.3s ease-out',
+          maxWidth: '400px'
+        }}>
+          {toast.type === 'error'
+            ? <FaTimes size={14} color="#ef4444" />
+            : <FaCheck size={14} color="#22c55e" />
+          }
+          <span style={{
+            fontSize: '14px', fontWeight: 600,
+            color: toast.type === 'error' ? '#dc2626' : '#16a34a'
+          }}>
+            {toast.message}
+          </span>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+      `}</style>
+
       <div style={{ padding: isClient && isMobile ? '16px' : '24px' }}>
 
         {/* Mobile Header + Dropdown */}
@@ -6379,7 +6437,9 @@ const Admin = () => {
 
             {/* Save Button */}
             <button
+              disabled={generalSaving}
               onClick={async function() {
+                setGeneralSaving(true);
                 try {
                   // 1. Save preferences to backend (persists across logins)
                   await apiClient.updateUserPreferences({
@@ -6407,11 +6467,13 @@ const Admin = () => {
                     detail: { restaurant: selectedRestaurant, restaurantId: selectedRestaurant?.id }
                   }));
 
-                  // 5. Brief visual feedback
-                  alert('Settings saved successfully!');
+                  // 5. Toast notification
+                  showToast('Settings saved successfully!');
                 } catch (err) {
                   console.error('Failed to save preferences:', err);
-                  alert('Failed to save. Please try again.');
+                  showToast('Failed to save. Please try again.', 'error');
+                } finally {
+                  setGeneralSaving(false);
                 }
               }}
               style={{
@@ -6423,7 +6485,8 @@ const Admin = () => {
                 border: 'none',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 color: 'white',
-                cursor: 'pointer',
+                cursor: generalSaving ? 'not-allowed' : 'pointer',
+                opacity: generalSaving ? 0.7 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -6432,8 +6495,8 @@ const Admin = () => {
                 boxShadow: '0 2px 8px rgba(239,68,68,0.3)'
               }}
             >
-              <FaSave size={13} />
-              Save & Apply
+              {generalSaving ? <FaSpinner size={13} className="spin" /> : <FaSave size={13} />}
+              {generalSaving ? 'Saving...' : 'Save & Apply'}
             </button>
           </div>
 
@@ -7877,10 +7940,10 @@ const Admin = () => {
                       });
                       setRestaurants(prev => prev.map(r => r.id === selectedRestaurant.id ? { ...r, orderSettings: { ...(r.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : r));
                       setSelectedRestaurant(prev => prev && prev.id === selectedRestaurant.id ? { ...prev, orderSettings: { ...(prev.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : prev);
-                      alert('Saved.');
+                      showToast('Settings saved successfully!');
                     } catch (err) {
                       console.error(err);
-                      alert('Failed to save. Please try again.');
+                      showToast('Failed to save. Please try again.', 'error');
                     } finally {
                       setOrderManagementSaving(false);
                     }
