@@ -15,7 +15,52 @@
 // Each entry: [keywords[], filename]
 // More specific multi-word keywords should come before generic single-word ones.
 const KEYWORD_MAP = [
+  // === Specific Thalis (before generic thali) ===
+  [['egg thali', 'egg-thali', 'dim thali'], 'egg-thali.jpg'],
+  [['fish thali', 'fish-thali', 'machli thali', 'meen thali'], 'fish-thali.jpg'],
+  [['chicken thali', 'chicken-thali', 'murgh thali'], 'chicken-thali.jpg'],
+  [['mutton thali', 'mutton-thali', 'gosht thali', 'lamb thali'], 'mutton-thali.jpg'],
+  [['veg thali', 'veg-thali', 'vegetarian thali', 'vegetable thali'], 'veg-thali.jpg'],
+  [['paneer thali', 'paneer-thali'], 'paneer-thali.jpg'],
+  [['special thali', 'spl thali', 'deluxe thali'], 'special-thali.jpg'],
+
+  // === Specific Biryanis (before generic biryani) ===
+  [['chicken biryani', 'chicken-biryani', 'murgh biryani'], 'chicken-biryani.jpg'],
+  [['mutton biryani', 'mutton-biryani', 'gosht biryani', 'lamb biryani'], 'mutton-biryani.jpg'],
+  [['egg biryani', 'egg-biryani', 'anda biryani', 'dim biryani'], 'egg-biryani.jpg'],
+  [['veg biryani', 'veg-biryani', 'vegetable biryani', 'subz biryani'], 'veg-biryani.jpg'],
+  [['fish biryani', 'fish-biryani', 'meen biryani'], 'fish-biryani.jpg'],
+  [['prawn biryani', 'prawn-biryani', 'shrimp biryani', 'jhinga biryani'], 'prawn-biryani.jpg'],
+
+  // === Specific Fried Rice (before generic) ===
+  [['chicken fried rice', 'chicken-fried-rice'], 'chicken-fried-rice.jpg'],
+  [['egg fried rice', 'egg-fried-rice'], 'egg-fried-rice.jpg'],
+  [['paneer fried rice', 'paneer-fried-rice', 'veg fried rice'], 'paneer-fried-rice.jpg'],
+  [['chilli garlic rice', 'chilli-garlic-rice'], 'chilli-garlic-rice.jpg'],
+  [['manchurian rice', 'manchurian-rice'], 'manchurian-rice.jpg'],
+
+  // === Specific Noodles (before generic) ===
+  [['chicken noodles', 'chicken-noodles', 'chicken chow mein'], 'chicken-noodles.jpg'],
+  [['egg noodles', 'egg-noodles', 'egg chow mein'], 'egg-noodles.jpg'],
+  [['veg noodles', 'veg-noodles', 'vegetable noodles'], 'veg-noodles.jpg'],
+
+  // === Specific Manchurian (before generic) ===
+  [['gobi manchurian', 'gobi-manchurian', 'cauliflower manchurian'], 'gobi-manchurian.jpg'],
+  [['paneer manchurian', 'paneer-manchurian'], 'paneer-manchurian.jpg'],
+  [['chicken manchurian', 'chicken-manchurian'], 'manchurian.jpeg'],
+
   // === Indian Main Course (specific first) ===
+  [['chicken 65', 'chicken-65'], 'chicken-65.jpg'],
+  [['chicken lollipop', 'chicken-lollipop'], 'chicken-lollipop.jpg'],
+  [['fish tikka', 'fish-tikka'], 'fish-tikka.jpg'],
+  [['egg bhurji', 'egg-bhurji', 'anda bhurji'], 'egg-bhurji.jpg'],
+  [['kadhai chicken', 'kadai chicken', 'karahi chicken'], 'chicken-curry.jpeg'],
+  [['paneer tikka masala', 'paneer-tikka-masala'], 'paneer-tikka.jpeg'],
+  [['butter paneer', 'butter-paneer'], 'paneer-curry.jpeg'],
+  [['szechuan chicken', 'szechwan chicken'], 'szechuan-chicken.jpg'],
+  [['crispy chicken', 'crispy-chicken'], 'fried-chicken.jpeg'],
+  [['gobi 65', 'gobi-65', 'cauliflower 65'], 'gobi-65.jpg'],
+  [['mushroom 65', 'mushroom-65'], 'mushroom-65.jpg'],
   [['biryani', 'biriyani', 'briyani', 'biriani'], 'biryani.jpeg'],
   [['butter chicken', 'murgh makhani'], 'butter-chicken.jpeg'],
   [['tandoori chicken', 'tanduri chicken'], 'tandoori-chicken.jpeg'],
@@ -165,6 +210,17 @@ const KEYWORD_MAP = [
   [['dhokla'], 'dhokla.jpeg'],
   [['khandvi'], 'khandvi.jpeg'],
   [['dabeli'], 'dabeli.jpeg'],
+  [['paneer pakora', 'paneer-pakora'], 'paneer-pakora.jpg'],
+  [['onion pakora', 'onion-pakora', 'pyaaz pakora'], 'onion-pakora.jpg'],
+  [['aloo bonda', 'aloo-bonda', 'potato bonda', 'bonda'], 'aloo-bonda.jpg'],
+  [['masala peanut', 'masala-peanut', 'spicy peanut'], 'masala-peanut.jpg'],
+  [['papdi chaat', 'papdi-chaat'], 'papdi-chaat.jpg'],
+  [['ragda pattice', 'ragda-pattice', 'ragda patties'], 'ragda-pattice.jpg'],
+  [['kachori'], 'kachori.jpg'],
+  [['mirchi bajji', 'mirchi-bajji', 'mirchi pakora', 'chilli bajji'], 'mirchi-bajji.jpg'],
+  [['gobi 65', 'gobi-65', 'cauliflower 65'], 'gobi-65.jpg'],
+  [['paneer popcorn', 'paneer-popcorn'], 'paneer-popcorn.jpg'],
+  [['mushroom 65', 'mushroom-65'], 'mushroom-65.jpg'],
   [['tandoori platter', 'sizzler', 'mixed platter', 'non veg platter'], 'tandoori-platter.jpeg'],
   [['salt pepper'], 'salt-pepper.jpeg'],
 
@@ -184,8 +240,16 @@ const KEYWORD_MAP = [
   [['plain rice', 'steamed rice', 'bhaat'], 'plain-rice.jpeg'],
 
   // === Breads ===
+  [['cheese naan', 'cheese-naan'], 'garlic-naan.jpeg'],
+  [['keema naan', 'keema-naan'], 'keema-naan.jpg'],
+  [['plain naan', 'plain-naan'], 'butter-naan.jpeg'],
   [['garlic naan', 'garlic bread naan'], 'garlic-naan.jpeg'],
-  [['stuffed paratha', 'aloo paratha', 'gobi paratha', 'paneer paratha'], 'stuffed-paratha.jpeg'],
+  [['aloo paratha', 'aloo-paratha'], 'stuffed-paratha.jpeg'],
+  [['gobi paratha', 'gobi-paratha'], 'stuffed-paratha.jpeg'],
+  [['paneer paratha', 'paneer-paratha'], 'paneer-paratha.jpg'],
+  [['egg paratha', 'egg-paratha', 'anda paratha'], 'stuffed-paratha.jpeg'],
+  [['tandoori paratha', 'tandoori-paratha'], 'laccha-paratha.jpeg'],
+  [['stuffed paratha'], 'stuffed-paratha.jpeg'],
   [['lachha paratha', 'laccha paratha', 'lachha'], 'laccha-paratha.jpeg'],
   [['rumali roti', 'roomali'], 'rumali-roti.jpeg'],
   [['kulcha', 'amritsari'], 'kulcha.jpeg'],
@@ -198,13 +262,25 @@ const KEYWORD_MAP = [
   // === Sides & Soups ===
   [['raita', 'boondi raita', 'cucumber raita'], 'raita.jpeg'],
   [['salad', 'caesar', 'greek salad'], 'salad.jpeg'],
-  [['chutney', 'mint chutney', 'pudina chutney'], 'chutney.jpeg'],
+  [['chutney'], 'chutney.jpeg'],
   [['pickle', 'achaar', 'achar'], 'pickle.jpeg'],
   [['papad', 'papadum', 'poppadom'], 'papad.jpeg'],
   [['dal shorba', 'dal soup'], 'dal-soup.jpeg'],
   [['manchow soup'], 'manchow-soup.jpeg'],
   [['cream of mushroom', 'cream soup'], 'cream-soup.jpeg'],
   [['soup', 'shorba', 'tomato soup', 'broth'], 'soup.jpeg'],
+
+  // === Specific Sandwiches (before generic) ===
+  [['chicken sandwich', 'chicken-sandwich'], 'sandwich.jpeg'],
+  [['veg sandwich', 'veg-sandwich', 'vegetable sandwich'], 'sandwich.jpeg'],
+  [['paneer sandwich', 'paneer-sandwich'], 'paneer-sandwich.jpg'],
+  [['club sandwich', 'club-sandwich'], 'sandwich.jpeg'],
+  [['cheese sandwich', 'cheese-sandwich', 'grilled cheese'], 'sandwich.jpeg'],
+
+  // === Specific Burgers (before generic) ===
+  [['veg burger', 'veg-burger', 'veggie burger'], 'burgers.jpeg'],
+  [['chicken burger', 'chicken-burger'], 'burgers.jpeg'],
+  [['cheese burger', 'cheese-burger', 'cheeseburger'], 'burgers.jpeg'],
 
   // === Pizza & Italian ===
   [['pizza', 'margherita', 'pepperoni pizza'], 'pizza.jpeg'],
@@ -219,8 +295,7 @@ const KEYWORD_MAP = [
   [['mac cheese', 'mac and cheese', 'macaroni cheese'], 'mac-cheese.jpeg'],
 
   // === Fast Food / Western ===
-  [['burger', 'hamburger', 'cheeseburger'], 'burgers.jpeg'],
-  [['club sandwich'], 'sandwich.jpeg'],
+  [['burger', 'hamburger'], 'burgers.jpeg'],
   [['sandwich', 'grilled sandwich', 'panini'], 'sandwich.jpeg'],
   [['wrap', 'tortilla', 'burrito', 'shawarma', 'kathi roll', 'frankie'], 'wrap.jpeg'],
   [['french fries', 'fries', 'finger chips'], 'fries.jpeg'],
@@ -246,6 +321,12 @@ const KEYWORD_MAP = [
   [['crab', 'lobster'], 'crab.jpeg'],
   [['fish'], 'fish-fry.jpeg'],
 
+  // === Specific Chutneys/Sides ===
+  [['green chutney', 'green-chutney', 'mint chutney', 'pudina chutney'], 'chutney.jpeg'],
+  [['tomato chutney', 'tomato-chutney', 'red chutney'], 'chutney.jpeg'],
+  [['coconut chutney', 'coconut-chutney'], 'chutney.jpeg'],
+  [['onion salad', 'onion-salad'], 'salad.jpeg'],
+
   // === Hot Beverages ===
   [['masala chai', 'adrak chai', 'ginger tea'], 'tea.jpeg'],
   [['filter coffee', 'south indian coffee'], 'filter-coffee.jpeg'],
@@ -260,6 +341,20 @@ const KEYWORD_MAP = [
   [['coffee'], 'coffee.jpeg'],
 
   // === Cold Beverages ===
+  [['chocolate shake', 'chocolate-shake', 'chocolate milkshake'], 'chocolate-shake.jpg'],
+  [['strawberry shake', 'strawberry-shake', 'strawberry milkshake'], 'strawberry-shake.jpg'],
+  [['banana shake', 'banana-shake', 'banana milkshake'], 'banana-shake.jpg'],
+  [['oreo shake', 'oreo-shake', 'oreo milkshake', 'cookies shake'], 'oreo-shake.jpg'],
+  [['green smoothie', 'green-smoothie', 'kale smoothie', 'spinach smoothie'], 'green-smoothie.jpg'],
+  [['fruit punch', 'fruit-punch'], 'fruit-punch.jpg'],
+  [['blue lagoon', 'blue-lagoon', 'blue curacao'], 'blue-lagoon.jpg'],
+  [['mint lemonade', 'mint-lemonade', 'mint lime'], 'mint-lemonade.jpg'],
+  [['sweet lime soda', 'sweet-lime-soda', 'lime soda'], 'sweet-lime-soda.jpg'],
+  [['orange juice', 'orange-juice'], 'orange-juice.jpg'],
+  [['pomegranate juice', 'pomegranate-juice', 'anaar juice'], 'pomegranate-juice.jpg'],
+  [['pineapple juice', 'pineapple-juice'], 'pineapple-juice.jpg'],
+  [['tender coconut', 'tender-coconut'], 'tender-coconut.jpg'],
+  [['badam milk', 'badam-milk', 'almond milk', 'kesar milk'], 'badam-milk.jpg'],
   [['mango lassi'], 'lassi.jpeg'],
   [['lassi', 'sweet lassi', 'salted lassi'], 'lassi.jpeg'],
   [['mango shake', 'mango smoothie'], 'mango-shake.jpeg'],
@@ -322,6 +417,34 @@ const KEYWORD_MAP = [
   [['soan papdi'], 'soan-papdi.jpeg'],
   [['peda'], 'peda.jpeg'],
 
+  // === Specific Desserts ===
+  [['gajar halwa', 'gajar-halwa', 'carrot halwa'], 'gajar-halwa.jpg'],
+  [['moong dal halwa', 'moong-dal-halwa'], 'halwa.jpeg'],
+  [['gulab jamun ice cream', 'gulab-jamun-icecream'], 'gulab-jamun-icecream.jpg'],
+  [['shahi tukda', 'shahi-tukda', 'shahi tukra'], 'pudding.jpeg'],
+  [['double ka meetha', 'double-ka-meetha'], 'pudding.jpeg'],
+  [['fruit custard', 'fruit-custard'], 'pudding.jpeg'],
+  [['fruit salad', 'fruit-salad', 'fresh fruit'], 'salad.jpeg'],
+  [['falooda', 'falooda-icecream'], 'falooda.jpg'],
+
+  // === Specific Ice Cream ===
+  [['vanilla ice cream', 'vanilla-icecream', 'vanilla icecream'], 'vanilla-icecream.jpg'],
+  [['chocolate ice cream', 'chocolate-icecream', 'chocolate icecream'], 'chocolate-icecream.jpg'],
+  [['strawberry ice cream', 'strawberry-icecream', 'strawberry icecream'], 'strawberry-icecream.jpg'],
+  [['mango ice cream', 'mango-icecream', 'mango icecream'], 'mango-icecream.jpg'],
+  [['butterscotch ice cream', 'butterscotch-icecream', 'butterscotch icecream'], 'butterscotch-icecream.jpg'],
+  [['ice cream sundae', 'icecream-sundae', 'sundae'], 'icecream-sundae.jpg'],
+  [['banana split', 'banana-split'], 'banana-split.jpg'],
+  [['frozen yogurt', 'frozen-yogurt', 'froyo'], 'frozen-yogurt.jpg'],
+
+  // === Specific Cakes ===
+  [['chocolate cake', 'chocolate-cake'], 'chocolate-cake.jpg'],
+  [['red velvet cake', 'red-velvet-cake', 'red velvet'], 'red-velvet-cake.jpg'],
+  [['black forest cake', 'black-forest-cake', 'black forest'], 'black-forest-cake.jpg'],
+  [['fruit cake', 'fruit-cake', 'mixed fruit cake'], 'fruit-cake.jpg'],
+  [['pineapple cake', 'pineapple-cake'], 'pineapple-cake.jpg'],
+  [['vanilla cake', 'vanilla-cake'], 'vanilla-cake.jpg'],
+
   // === Western Desserts ===
   [['cheesecake'], 'cheesecake.jpeg'],
   [['creme brulee'], 'creme-brulee.jpeg'],
@@ -344,6 +467,15 @@ const KEYWORD_MAP = [
   [['croissant'], 'croissant.jpeg'],
 
   // === Bakery ===
+  [['eclair', 'chocolate eclair'], 'eclair.jpg'],
+  [['macaron', 'macaroon'], 'macaron.jpg'],
+  [['swiss roll', 'swiss-roll'], 'swiss-roll.jpg'],
+  [['cheese puff', 'cheese-puff'], 'cheese-puff.jpg'],
+  [['veg puff', 'veg-puff', 'vegetable puff'], 'veg-puff.jpg'],
+  [['chicken puff', 'chicken-puff'], 'chicken-puff.jpg'],
+  [['rusk'], 'rusk.jpg'],
+  [['biscotti'], 'biscotti.jpg'],
+  [['bread butter', 'bread-butter', 'bread and butter'], 'bread-butter.jpg'],
   [['cinnamon roll'], 'cinnamon-roll.jpeg'],
   [['bread loaf', 'bread'], 'bread-loaf.jpeg'],
   [['puff', 'puff pastry', 'patties'], 'puff.jpeg'],
