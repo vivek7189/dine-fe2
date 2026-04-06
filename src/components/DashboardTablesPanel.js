@@ -431,7 +431,7 @@ export default function DashboardTablesPanel({
 <html>
 <head>
   <title>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</title>
-  <style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style>
+  <style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style>
 </head>
 <body>
   <div class="bill-header">

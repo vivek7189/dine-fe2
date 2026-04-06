@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaShoppingCart, FaPlus, FaMinus, FaTrash, FaSpinner, FaLock, FaTimes, FaChevronLeft, FaChevronRight, FaChair, FaHotel } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import UpiPaymentModal from '../../../components/UpiPaymentModal';
 import dynamic from 'next/dynamic';
 
 // Dynamically load the bistro book menu (CSS 3D)
@@ -43,6 +44,9 @@ const PlaceOrderBistroContent = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [verificationId, setVerificationId] = useState(null);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [customerAppSettings, setCustomerAppSettings] = useState(null);
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [upiOrderAmount, setUpiOrderAmount] = useState(0);
   const [currentSheet, setCurrentSheet] = useState(0); // two categories per sheet
 
   const restaurantId = searchParams.get('restaurant') || 'default';
@@ -63,6 +67,16 @@ const PlaceOrderBistroContent = () => {
           setMenu(response.menu);
           const uniqueCategories = [...new Set(response.menu.map((i) => i.category).filter(Boolean))];
           setCategories(uniqueCategories);
+
+          // Load customer app settings for UPI payment
+          try {
+            const settingsResponse = await apiClient.getPublicCustomerAppSettings(restaurantId);
+            if (settingsResponse?.settings) {
+              setCustomerAppSettings(settingsResponse.settings);
+            }
+          } catch (e) {
+            console.warn('Failed to load customer app settings:', e);
+          }
         } else {
           throw new Error('Invalid API response format');
         }
@@ -206,8 +220,17 @@ const PlaceOrderBistroContent = () => {
         otp: 'verified',
         verificationId: firebaseUid,
       };
+      const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
+      const orderTotal = getCartTotal();
+
       await apiClient.placePublicOrder(restaurantId, orderData);
-      setSuccess('Order placed successfully! Your order will be prepared shortly.');
+
+      if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
+        setUpiOrderAmount(orderTotal);
+        setShowUpiModal(true);
+      } else {
+        setSuccess('Order placed successfully! Your order will be prepared shortly.');
+      }
       setCart([]);
       setCustomerInfo({ phone: '', seatNumber: customerInfo.seatNumber, name: '' });
       setShowOtpModal(false);
@@ -911,6 +934,19 @@ const PlaceOrderBistroContent = () => {
       )}
 
       <div id="recaptcha-container" style={{ display: 'none' }}></div>
+
+      <UpiPaymentModal
+        isOpen={showUpiModal}
+        onClose={() => {
+          setShowUpiModal(false);
+          setSuccess('Order placed successfully!');
+        }}
+        amount={upiOrderAmount}
+        restaurantName={restaurant?.name}
+        upiId={customerAppSettings?.paymentSettings?.upiId}
+        upiQrCodeUrl={customerAppSettings?.paymentSettings?.upiQrCodeUrl}
+        upiDisplayName={customerAppSettings?.paymentSettings?.upiDisplayName}
+      />
 
       <style jsx>{`
         @keyframes spin {

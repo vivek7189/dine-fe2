@@ -95,6 +95,12 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       earnPointsOnRedemption: false,
       earnOnFullAmount: false,
     },
+    paymentSettings: {
+      upiEnabled: false,
+      upiId: '',
+      upiQrCodeUrl: '',
+      upiDisplayName: '',
+    },
     branding: {
       primaryColor: '#ef4444',
       textColor: '#ffffff',
@@ -272,6 +278,39 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       }
     }));
     setLogoPreview(null);
+  };
+
+  const [uploadingUpiQr, setUploadingUpiQr] = useState(false);
+
+  const handleUpiQrUpload = async (file) => {
+    if (!file) return;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File too large. Maximum file size is 5MB.');
+      return;
+    }
+    setUploadingUpiQr(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await apiClient.uploadImage(formData);
+      if (response.imageUrl) {
+        setSettings(prev => ({
+          ...prev,
+          paymentSettings: { ...prev.paymentSettings, upiQrCodeUrl: response.imageUrl }
+        }));
+        showNotification('UPI QR code uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading UPI QR:', error);
+      alert('Failed to upload QR code. Please try again.');
+    } finally {
+      setUploadingUpiQr(false);
+    }
   };
 
   // Toast notification helper
@@ -1386,6 +1425,185 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               Print this QR code and place it at tables or entrance for customers to scan and order online
             </p>
           </div>
+        </div>
+
+        {/* UPI Payment Settings Section */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '16px' : '24px',
+          marginTop: isMobile ? '12px' : '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden'
+        }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaMobileAlt color="#6366f1" />
+            UPI Payment Settings
+          </h2>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px' }}>
+            Enable UPI payment option for customers. When enabled, customers will see a payment screen with your QR code after placing an order.
+          </p>
+
+          <Toggle
+            value={settings.paymentSettings?.upiEnabled || false}
+            onChange={(v) => setSettings(prev => ({
+              ...prev,
+              paymentSettings: { ...prev.paymentSettings, upiEnabled: v }
+            }))}
+            label="Enable UPI Payment"
+          />
+
+          {settings.paymentSettings?.upiEnabled && (
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* UPI ID */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  UPI ID
+                </label>
+                <input
+                  type="text"
+                  value={settings.paymentSettings?.upiId || ''}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    paymentSettings: { ...prev.paymentSettings, upiId: e.target.value }
+                  }))}
+                  placeholder="yourrestaurant@paytm"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                  Enter your UPI ID (e.g., name@paytm, name@upi, 9876543210@ybl)
+                </p>
+              </div>
+
+              {/* Display Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Display Name (shown to customers)
+                </label>
+                <input
+                  type="text"
+                  value={settings.paymentSettings?.upiDisplayName || ''}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    paymentSettings: { ...prev.paymentSettings, upiDisplayName: e.target.value }
+                  }))}
+                  placeholder={restaurantName || 'Your Restaurant Name'}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* QR Code Upload */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  UPI QR Code Image
+                </label>
+                {settings.paymentSettings?.upiQrCodeUrl ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '12px',
+                      border: '2px solid #e5e7eb',
+                    }}>
+                      <img
+                        src={settings.paymentSettings.upiQrCodeUrl}
+                        alt="UPI QR Code"
+                        style={{ width: '180px', height: '180px', objectFit: 'contain', display: 'block' }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => setSettings(prev => ({
+                        ...prev,
+                        paymentSettings: { ...prev.paymentSettings, upiQrCodeUrl: '' }
+                      }))}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <FaTimes size={12} /> Remove QR Code
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => !uploadingUpiQr && document.getElementById('upiQrUpload').click()}
+                    style={{
+                      border: '2px dashed #d1d5db',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      textAlign: 'center',
+                      cursor: uploadingUpiQr ? 'not-allowed' : 'pointer',
+                      backgroundColor: '#f9fafb',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <input
+                      id="upiQrUpload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/webp"
+                      onChange={(e) => handleUpiQrUpload(e.target.files[0])}
+                      style={{ display: 'none' }}
+                    />
+                    {uploadingUpiQr ? (
+                      <FaSpinner style={{ fontSize: '24px', color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <FaCloudUploadAlt style={{ fontSize: '32px', color: '#9ca3af' }} />
+                    )}
+                    <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#6b7280' }}>
+                      {uploadingUpiQr ? 'Uploading...' : 'Click to upload your UPI QR code image'}
+                    </p>
+                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9ca3af' }}>
+                      JPEG, PNG, WebP - Max 5MB
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Preview */}
+              <div style={{
+                padding: '16px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '12px',
+                border: '1px solid #bae6fd',
+              }}>
+                <p style={{ margin: '0 0 4px', fontSize: '12px', fontWeight: '600', color: '#0369a1' }}>
+                  How it works for customers:
+                </p>
+                <ul style={{ margin: '0', paddingLeft: '16px', fontSize: '12px', color: '#374151', lineHeight: '1.8' }}>
+                  <li>Customer places order normally</li>
+                  <li>After order confirmation, payment screen appears</li>
+                  <li>Customer can scan QR code or tap &quot;Pay via UPI App&quot;</li>
+                  <li>UPI app opens with pre-filled amount and your UPI ID</li>
+                  <li>Customer can also choose &quot;Pay Later&quot; to skip</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Branding Section - Full Width */}

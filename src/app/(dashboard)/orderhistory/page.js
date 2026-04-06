@@ -11,6 +11,7 @@ import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import { getAllOfflineOrders } from '../../../lib/offlineDb';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS } from '../../../utils/printFontSizes';
+import OrderSummary from '../../../components/OrderSummary';
 import {
   FaSearch,
   FaChevronLeft,
@@ -104,8 +105,13 @@ const OrderHistory = () => {
   const [expandedOrders, setExpandedOrders] = useState(new Set());
   const [selectedOrderForModal, setSelectedOrderForModal] = useState(null);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
-  const [markCompleteOrderId, setMarkCompleteOrderId] = useState(null);
-  const [markCompleteSubmitting, setMarkCompleteSubmitting] = useState(false);
+  const [billingModalOrder, setBillingModalOrder] = useState(null);
+  const [billingModalCart, setBillingModalCart] = useState([]);
+  const [billingModalPaymentMethod, setBillingModalPaymentMethod] = useState('cash');
+  const [billingModalProcessing, setBillingModalProcessing] = useState(false);
+  const [billingCustomerName, setBillingCustomerName] = useState('');
+  const [billingCustomerMobile, setBillingCustomerMobile] = useState('');
+  const [billingTableNumber, setBillingTableNumber] = useState('');
   const [markPaidOrderId, setMarkPaidOrderId] = useState(null);
   const [markPaidSubmitting, setMarkPaidSubmitting] = useState(false);
   const [deleteConfirmOrderId, setDeleteConfirmOrderId] = useState(null);
@@ -635,23 +641,132 @@ const OrderHistory = () => {
   };
 
   const handleMarkCompleted = (orderId) => {
-    setMarkCompleteOrderId(orderId);
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const cartItems = (order.items || []).map(item => ({
+      id: item.menuItemId || item.id,
+      name: item.name,
+      price: item.price || 0,
+      quantity: item.quantity || 1,
+      selectedVariant: item.selectedVariant,
+      selectedCustomizations: item.selectedCustomizations,
+      basePrice: item.basePrice || item.price || 0,
+      cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
+    }));
+
+    setBillingModalCart(cartItems);
+    setBillingModalPaymentMethod(order.paymentMethod || 'cash');
+    setBillingCustomerName(order.customerInfo?.name || '');
+    setBillingCustomerMobile(order.customerInfo?.phone || '');
+    setBillingTableNumber(order.tableNumber || '');
+    setBillingModalOrder(order);
   };
 
-  const executeMarkComplete = async (orderId) => {
-    setMarkCompleteSubmitting(true);
+  const closeBillingModal = () => {
+    setBillingModalOrder(null);
+    setBillingModalCart([]);
+    setBillingModalProcessing(false);
+    setBillingCustomerName('');
+    setBillingCustomerMobile('');
+    setBillingTableNumber('');
+  };
+
+  const getBillingModalTotalAmount = () => {
+    return billingModalCart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const handleBillingProcessOrder = async (taxData = {}) => {
+    if (!billingModalOrder || !restaurantId || billingModalProcessing) return;
+
+    setBillingModalProcessing(true);
+    const order = billingModalOrder;
+
+    const {
+      taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null,
+      serviceChargeAmount, serviceChargeRate, tipAmount, tipPercentage,
+      cashReceived, changeReturned, splitPayments, roundOffAmount,
+      compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
+      offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
+    } = taxData;
+
     try {
-      await apiClient.updateOrderStatus(orderId, 'completed');
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const paymentAmount = finalAmount || order.finalAmount || order.totalAmount || getBillingModalTotalAmount();
+      const isPartialPayment = partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
+
+      const updateData = {
+        status: 'completed',
+        paymentStatus: isPartialPayment ? 'partial' : 'paid',
+        paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...(taxBreakdown.length > 0 && {
+          totalAmount: subtotal || getBillingModalTotalAmount(),
+          taxBreakdown,
+          taxAmount: totalTax,
+          finalAmount,
+        }),
+        ...(serviceChargeAmount > 0 && { serviceChargeAmount, serviceChargeRate }),
+        ...(tipAmount > 0 && { tipAmount, tipPercentage }),
+        ...(cashReceived > 0 && { cashReceived, changeReturned }),
+        ...(splitPayments && { splitPayments }),
+        ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
+        ...(compItems && { compItems }),
+        ...(voidItems && { voidItems }),
+        ...(isPartialPayment && {
+          partialPayAmount,
+          paidAmount: partialPayAmount,
+          outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
+        }),
+        ...(manualDiscount > 0 && { manualDiscount }),
+        ...(offerDiscount > 0 && { offerDiscount, offerIds, selectedOfferName }),
+        ...(totalDiscountAmount > 0 && { totalDiscountAmount }),
+        ...(specialInstructions && { specialInstructions }),
+        tableNumber: billingTableNumber || order.tableNumber || null,
+        customerInfo: {
+          name: billingCustomerName || order.customerInfo?.name || '',
+          phone: billingCustomerMobile || order.customerInfo?.phone || null,
+          tableNumber: billingTableNumber || order.tableNumber || null,
+        },
+        lastUpdatedBy: {
+          name: currentUser.name || 'Staff',
+          id: currentUser.id,
+          role: currentUser.role || 'waiter',
+        },
+      };
+
+      await apiClient.updateOrder(order.id, updateData);
+
+      await apiClient.verifyPayment({
+        orderId: order.id,
+        paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
+        amount: isPartialPayment ? partialPayAmount : paymentAmount,
+        userId: currentUser.id,
+        restaurantId,
+        paymentStatus: isPartialPayment ? 'partial' : 'completed',
+      });
+
+      if (printSettings?.manualPrintEnabled === false) {
+        try {
+          await apiClient.requestManualPrint(order.id, 'bill');
+        } catch (printError) {
+          console.error('Auto-print failed:', printError);
+        }
+      }
+
       setOrders(prevOrders => prevOrders.map(o =>
-        o.id === orderId ? { ...o, status: 'completed' } : o
+        o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
       ));
-      setMarkCompleteOrderId(null);
+      closeBillingModal();
       setTimeout(() => fetchOrders(false), 500);
+
+      return { orderId: order.id };
     } catch (error) {
-      console.error('Error marking as completed:', error);
-      alert(t('common.error') + ': ' + (error.message || 'Failed to complete order'));
+      console.error('Billing error:', error);
+      alert('Billing failed: ' + (error.message || 'Unknown error'));
     } finally {
-      setMarkCompleteSubmitting(false);
+      setBillingModalProcessing(false);
     }
   };
 
@@ -760,7 +875,7 @@ const OrderHistory = () => {
       const itemsHtml = items.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${symbol}${((item.price || item.total/(item.quantity||1) || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
       const taxHtml = taxBreakdownArr.map(t => `<tr><td colspan="2" style="text-align:left;">${(t.name || 'Tax').replace(/</g,'&lt;')}${t.rate != null ? ` (${t.rate}%)` : ''}</td><td style="text-align:right;">${symbol}${(t.amount || 0).toFixed(2)}</td></tr>`).join('');
 
-      const billContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${orderNum}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style></head><body><div class="bill-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>${bLabels.billLabel}#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>${bLabels.customerLabel}:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>${symbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${symbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+      const billContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${orderNum}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="bill-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>${bLabels.billLabel}#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>${bLabels.customerLabel}:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>${symbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${symbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
 
       const win = window.open('', '_blank', 'width=400,height=600');
       if (win) {
@@ -773,7 +888,7 @@ const OrderHistory = () => {
       // KOT format - matches KOT Printer app's generateKOTHtml
       const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
       const specialInstructions = order.specialInstructions || '';
-      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
 
       const pw = window.open('', '_blank', 'width=400,height=600');
       if (pw) {
@@ -2165,71 +2280,138 @@ const OrderHistory = () => {
         />
       )}
 
-      {/* Mark Bill Complete confirmation modal */}
-      {markCompleteOrderId && (
+      {/* Billing Completion Modal — rendered via portal to sit above sidebar */}
+      {billingModalOrder && typeof document !== 'undefined' && createPortal(
         <>
           <style dangerouslySetInnerHTML={{ __html: `
-            @keyframes markCompleteBackdropIn { from { opacity: 0; } to { opacity: 1; } }
-            @keyframes markCompleteDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+            @keyframes billingBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes billingSlideIn { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
           ` }} />
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
-            style={{ animation: 'markCompleteBackdropIn 0.2s ease-out' }}
-            aria-modal="true"
-            role="dialog"
-            aria-labelledby="mark-complete-title"
+            className="fixed inset-0 z-[10200] flex items-center justify-center p-3"
+            style={{ animation: 'billingBackdropIn 0.2s ease-out' }}
+            onClick={() => !billingModalProcessing && closeBillingModal()}
           >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => !markCompleteSubmitting && setMarkCompleteOrderId(null)}
-            />
-            <div
-              className="relative w-full max-w-[min(90vw,400px)] rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
-              style={{ animation: 'markCompleteDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              className="relative w-full rounded-2xl shadow-2xl bg-white overflow-hidden flex flex-col"
+              style={{
+                maxWidth: '720px',
+                maxHeight: '94vh',
+                animation: 'billingSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                border: '1px solid rgba(0,0,0,0.06)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)'
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-5 sm:p-6 text-center">
-                <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <FaCheckCircle className="text-green-600 text-2xl sm:text-3xl" />
+              {/* Header */}
+              <div style={{
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                padding: '14px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaReceipt size={16} style={{ color: '#ffffff' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                      Complete Billing
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '1px' }}>
+                      Order #{billingModalOrder.dailyOrderId || billingModalOrder.id?.slice(-6) || 'N/A'}
+                      {billingTableNumber ? ` \u00B7 Table ${billingTableNumber}` : ''}
+                      {billingCustomerName ? ` \u00B7 ${billingCustomerName}` : ''}
+                    </div>
+                  </div>
                 </div>
-                <h2 id="mark-complete-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-                  Mark bill complete?
-                </h2>
-                <p className="text-sm sm:text-base text-gray-600 mb-6">
-                  This will mark the order as completed. You can’t undo this.
-                </p>
-                <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-3">
-                  <button
-                    type="button"
-                    onClick={() => !markCompleteSubmitting && setMarkCompleteOrderId(null)}
-                    disabled={markCompleteSubmitting}
-                    className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => executeMarkComplete(markCompleteOrderId)}
-                    disabled={markCompleteSubmitting}
-                    className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-green-700 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
-                  >
-                    {markCompleteSubmitting ? (
-                      <>
-                        <FaSpinner className="text-lg" style={{ animation: 'spin 1s linear infinite' }} />
-                        Completing…
-                      </>
-                    ) : (
-                      <>
-                        <FaCheckCircle />
-                        Mark Bill Complete
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button
+                  onClick={() => !billingModalProcessing && closeBillingModal()}
+                  style={{
+                    width: '32px', height: '32px', borderRadius: '50%', border: 'none',
+                    background: 'rgba(255,255,255,0.2)', color: '#ffffff', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+                >
+                  <FaTimes size={14} />
+                </button>
               </div>
+
+              {/* OrderSummary in billing mode */}
+              {billingModalCart.length > 0 ? (
+                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <OrderSummary
+                    cart={billingModalCart}
+                    setCart={setBillingModalCart}
+                    orderType={billingModalOrder.orderType || 'dine-in'}
+                    setOrderType={() => {}}
+                    paymentMethod={billingModalPaymentMethod}
+                    setPaymentMethod={setBillingModalPaymentMethod}
+                    onClearCart={() => {}}
+                    onProcessOrder={handleBillingProcessOrder}
+                    onSaveOrder={() => {}}
+                    onPlaceOrder={() => {}}
+                    onRemoveFromCart={() => {}}
+                    onAddToCart={() => {}}
+                    onUpdateCartItemQuantity={(cartId, newQty) => {
+                      setBillingModalCart(prev => prev.map(item =>
+                        item.cartId === cartId ? { ...item, quantity: newQty } : item
+                      ).filter(item => item.quantity > 0));
+                    }}
+                    onTableNumberChange={(val) => setBillingTableNumber(val)}
+                    onCustomerNameChange={(val) => setBillingCustomerName(val)}
+                    onCustomerMobileChange={(val) => setBillingCustomerMobile(val)}
+                    processing={billingModalProcessing}
+                    placingOrder={false}
+                    orderSuccess={false}
+                    setOrderSuccess={() => {}}
+                    error={null}
+                    getTotalAmount={getBillingModalTotalAmount}
+                    tableNumber={billingTableNumber}
+                    customerName={billingCustomerName}
+                    customerMobile={billingCustomerMobile}
+                    orderLookup=""
+                    setOrderLookup={() => {}}
+                    currentOrder={billingModalOrder}
+                    setCurrentOrder={() => {}}
+                    onShowQRCode={() => {}}
+                    restaurantId={restaurantId}
+                    restaurantName={restaurant?.name || ''}
+                    taxSettings={restaurant?.taxSettings}
+                    printSettings={printSettings}
+                    menuItems={[]}
+                    onClose={closeBillingModal}
+                    billingMode={true}
+                    billingSettings={restaurant?.billingSettings || {}}
+                    businessType={restaurant?.businessType || 'restaurant'}
+                    countryCode={restaurant?.countryCode || 'IN'}
+                  />
+                </div>
+              ) : (
+                <div style={{ padding: '60px', textAlign: 'center' }}>
+                  <div style={{
+                    width: '64px', height: '64px', margin: '0 auto 20px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaReceipt size={28} style={{ color: '#9ca3af' }} />
+                  </div>
+                  <div style={{ fontSize: '16px', color: '#6b7280', fontWeight: 500 }}>No items found in this order</div>
+                </div>
+              )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* Mark as Fully Paid confirmation modal */}
@@ -2317,7 +2499,7 @@ const OrderHistory = () => {
             @keyframes deleteDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
           ` }} />
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+            className="fixed inset-0 z-[10200] flex items-center justify-center p-4 sm:p-6"
             style={{ animation: 'deleteBackdropIn 0.2s ease-out' }}
             aria-modal="true"
             role="dialog"
@@ -2892,7 +3074,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
       `}} />
 
       {/* Modal Overlay */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10200] flex items-center justify-center p-4 no-print">
         <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 border-gray-200">
           <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white no-print">
             <h2 className="text-2xl font-bold text-gray-900">Invoice #{invoiceNumber}</h2>

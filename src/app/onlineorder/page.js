@@ -9,6 +9,7 @@ import {
   FaCoins, FaChevronRight, FaCheck, FaPercent, FaCrown, FaSignOutAlt
 } from 'react-icons/fa';
 import ImageCarousel from '../../components/ImageCarousel';
+import UpiPaymentModal from '../../components/UpiPaymentModal';
 import apiClient from '../../lib/api.js';
 import { getDisplayImage } from '../../utils/placeholderImages';
 
@@ -201,6 +202,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
   const [currentView, setCurrentView] = useState('menu'); // 'menu', 'checkout', 'profile', 'history'
   const [firebaseUid, setFirebaseUid] = useState(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false); // New: separate login popup
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [upiOrderAmount, setUpiOrderAmount] = useState(0);
   const [sessionRestored, setSessionRestored] = useState(false); // Track if we've checked session
 
   const restaurantId = restaurantIdProp || searchParams.get('restaurant') || 'default';
@@ -923,13 +926,22 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
         successMsg += ` You earned ${response.order.loyaltyPointsEarned} loyalty points!`;
       }
 
-      setSuccess(successMsg);
+      const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
+      const orderTotal = getCartSubtotal();
+
       setCart([]);
       setSelectedOffers([]);
       setRedeemLoyaltyPoints(0);
 
       // Refresh customer data
       await lookupCustomer();
+
+      if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
+        setUpiOrderAmount(orderTotal);
+        setShowUpiModal(true);
+      } else {
+        setSuccess(successMsg);
+      }
 
     } catch (err) {
       console.error('Error placing order:', err);
@@ -3895,6 +3907,20 @@ const CheckoutView = ({
           </>
         )}
       </div>
+
+      {/* UPI Payment Modal */}
+      <UpiPaymentModal
+        isOpen={showUpiModal}
+        onClose={() => {
+          setShowUpiModal(false);
+          setSuccess('Order placed successfully!');
+        }}
+        amount={upiOrderAmount}
+        restaurantName={restaurant?.name}
+        upiId={customerAppSettings?.paymentSettings?.upiId}
+        upiQrCodeUrl={customerAppSettings?.paymentSettings?.upiQrCodeUrl}
+        upiDisplayName={customerAppSettings?.paymentSettings?.upiDisplayName}
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft, FaPhone, FaChair, FaUtensils, FaLeaf, FaDrumstickBite, FaSpinner, FaLock, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import ImageCarousel from '../../../components/ImageCarousel';
 import apiClient from '../../../lib/api.js';
+import UpiPaymentModal from '../../../components/UpiPaymentModal';
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import dynamic from 'next/dynamic';
 
@@ -49,6 +50,9 @@ const PlaceOrderBookContent = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [verificationId, setVerificationId] = useState(null);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [customerAppSettings, setCustomerAppSettings] = useState(null);
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [upiOrderAmount, setUpiOrderAmount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   
@@ -119,6 +123,16 @@ const PlaceOrderBookContent = () => {
             console.log('✅ Loaded restaurant:', response.restaurant.name);
             console.log('✅ Loaded menu items:', response.menu.length);
             console.log('✅ Categories:', uniqueCategories);
+
+            // Load customer app settings for UPI payment
+            try {
+              const settingsResponse = await apiClient.getPublicCustomerAppSettings(restaurantId);
+              if (settingsResponse?.settings) {
+                setCustomerAppSettings(settingsResponse.settings);
+              }
+            } catch (e) {
+              console.warn('Failed to load customer app settings:', e);
+            }
           } else {
             throw new Error('Invalid API response format');
           }
@@ -394,9 +408,17 @@ const PlaceOrderBookContent = () => {
         verificationId: firebaseUid
       };
 
+      const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
+      const orderTotal = getCartTotal();
+
       const response = await apiClient.placePublicOrder(restaurantId, orderData);
-      
-      setSuccess('Order placed successfully! Your order will be prepared shortly.');
+
+      if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
+        setUpiOrderAmount(orderTotal);
+        setShowUpiModal(true);
+      } else {
+        setSuccess('Order placed successfully! Your order will be prepared shortly.');
+      }
       setCart([]);
       setCustomerInfo({ phone: '', seatNumber: customerInfo.seatNumber, name: '' });
       
@@ -1173,6 +1195,19 @@ const PlaceOrderBookContent = () => {
 
       {/* Hidden reCAPTCHA container */}
       <div id="recaptcha-container" style={{ display: 'none' }}></div>
+
+      <UpiPaymentModal
+        isOpen={showUpiModal}
+        onClose={() => {
+          setShowUpiModal(false);
+          setSuccess('Order placed successfully!');
+        }}
+        amount={upiOrderAmount}
+        restaurantName={restaurant?.name}
+        upiId={customerAppSettings?.paymentSettings?.upiId}
+        upiQrCodeUrl={customerAppSettings?.paymentSettings?.upiQrCodeUrl}
+        upiDisplayName={customerAppSettings?.paymentSettings?.upiDisplayName}
+      />
 
       <style jsx>{`
         @keyframes spin {

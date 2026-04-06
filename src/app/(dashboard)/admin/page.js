@@ -76,7 +76,7 @@ const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false })
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
 import { FEATURE_OPS, OP_LABELS } from '@/lib/permissions';
-import { getPrintFontSizes } from '../../../utils/printFontSizes';
+import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS } from '../../../utils/printFontSizes';
 
 // Tax Management Component
 const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
@@ -2027,12 +2027,14 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     // Future reserved
     autoPrintOnOnlineOrder: false,
     autoPrintOnTableCall: false,
-    // Bill print font size
+    // Bill print font size & font
     billFontSize: 'medium',
-    billFontScale: 100
+    billFontScale: 100,
+    billFontFamily: 'default'
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveNotification, setSaveNotification] = useState(null); // { type: 'success'|'error', message }
   const [installerUrls, setInstallerUrls] = useState({ windowsUrl: null, macUrl: null });
   const [installerUrlsLoading, setInstallerUrlsLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -2058,14 +2060,17 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     if (!selectedRestaurant?.id) return;
 
     setSaving(true);
+    setSaveNotification(null);
     try {
       const response = await apiClient.updatePrintSettings(selectedRestaurant.id, printSettings);
       if (response.success) {
-        alert('Print settings saved successfully!');
+        setSaveNotification({ type: 'success', message: 'Print settings saved successfully!' });
+        setTimeout(() => setSaveNotification(null), 3000);
       }
     } catch (error) {
       console.error('Error saving print settings:', error);
-      alert('Error saving print settings');
+      setSaveNotification({ type: 'error', message: 'Failed to save print settings. Please try again.' });
+      setTimeout(() => setSaveNotification(null), 4000);
     } finally {
       setSaving(false);
     }
@@ -2238,10 +2243,65 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
         </div>
       ) : selectedRestaurant ? (
         <>
-          {/* Two-column layout: Settings left, Font preview right */}
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            {/* LEFT COLUMN — Toggle Settings */}
-            <div style={{ flex: '1', minWidth: '320px' }}>
+          {/* Saving overlay */}
+          {saving && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(255,255,255,0.6)', zIndex: 9998,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(2px)'
+            }}>
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                background: 'white', padding: '32px 48px', borderRadius: '16px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+              }}>
+                <FaSpinner className="spin" size={28} style={{ color: '#ef4444' }} />
+                <p style={{ fontSize: '15px', fontWeight: '600', color: '#374151', margin: 0 }}>Saving print settings...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Toast notification */}
+          {saveNotification && (
+            <div style={{
+              padding: '12px 18px', borderRadius: '10px', marginBottom: '16px',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              fontSize: '13px', fontWeight: '600',
+              backgroundColor: saveNotification.type === 'success' ? '#f0fdf4' : '#fef2f2',
+              color: saveNotification.type === 'success' ? '#166534' : '#991b1b',
+              border: `1px solid ${saveNotification.type === 'success' ? '#bbf7d0' : '#fecaca'}`
+            }}>
+              {saveNotification.type === 'success' ? <FaCheck size={14} /> : <FaTimes size={14} />}
+              {saveNotification.message}
+            </div>
+          )}
+
+          {/* Save Button (top) */}
+          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={savePrintSettings}
+              disabled={saving}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                padding: '12px 24px',
+                background: saving ? '#d1d5db' : '#111827',
+                color: 'white', border: 'none', borderRadius: '10px',
+                fontSize: '14px', fontWeight: 600,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving ? 'none' : '0 4px 14px rgba(236,72,153,0.35)',
+                transition: 'all 0.2s', maxWidth: '300px'
+              }}
+            >
+              {saving ? <><FaSpinner className="spin" size={16} /> Saving...</> : <><FaSave size={16} /> Save Print Settings</>}
+            </button>
+          </div>
+
+          {/* Two-column layout: All settings left, Font preview right */}
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+            {/* LEFT COLUMN — All Settings */}
+            <div style={{ flex: '1', minWidth: '340px', maxWidth: '640px' }}>
+
               {/* Dashboard Settings */}
               <div style={{ marginBottom: '20px' }}>
                 <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -2253,7 +2313,9 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   ))}
                 </div>
               </div>
+
             </div>
+            {/* /LEFT COLUMN end */}
 
             {/* RIGHT COLUMN — Bill Font Scale + Live Preview */}
             <div style={{ flex: '1', minWidth: '320px', position: 'sticky', top: '20px' }}>
@@ -2318,6 +2380,54 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   </div>
                 </div>
 
+                {/* Font Family Picker */}
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0' }}>
+                    Bill Font Family
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    {PRINT_FONTS.map((font) => {
+                      const isSelected = (printSettings.billFontFamily || 'default') === font.id;
+                      return (
+                        <button
+                          key={font.id}
+                          onClick={() => setPrintSettings(prev => ({ ...prev, billFontFamily: font.id }))}
+                          style={{
+                            padding: '8px 10px',
+                            border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            background: isSelected ? '#f9fafb' : 'white',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.15s',
+                            position: 'relative'
+                          }}
+                        >
+                          <span style={{
+                            fontFamily: font.family,
+                            fontSize: '13px',
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected ? '#111827' : '#374151',
+                            display: 'block',
+                            lineHeight: '1.3'
+                          }}>
+                            {font.label}
+                          </span>
+                          <span style={{
+                            fontFamily: font.family,
+                            fontSize: '10px',
+                            color: '#9ca3af',
+                            display: 'block',
+                            marginTop: '2px'
+                          }}>
+                            ₹530.00 — Butter Chicken
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Live preview */}
                 <div style={{
                   maxHeight: '480px',
@@ -2329,10 +2439,11 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   </p>
                   {(() => {
                     const f = getPrintFontSizes(printSettings.billFontScale || 100);
+                    const ff = getPrintFontFamily(printSettings.billFontFamily);
                     const rName = selectedRestaurant?.name || 'My Restaurant';
                     return (
                       <div style={{
-                        fontFamily: "'Courier New', Courier, monospace",
+                        fontFamily: ff,
                         maxWidth: '80mm',
                         margin: '0 auto',
                         backgroundColor: 'white',
@@ -2389,10 +2500,12 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 </div>
               </div>
             </div>
+          {/* /RIGHT COLUMN end */}
           </div>
+          {/* /Two-column flex end — but we continue left column content below for small screens */}
 
           {/* Auto-Print Settings */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
             <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Auto-Print Triggers (for KOT Printer App)
             </p>
@@ -2404,7 +2517,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
           </div>
 
           {/* Advanced Settings */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
             <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Advanced Settings
             </p>
@@ -2416,7 +2529,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
           </div>
 
           {/* Future Settings */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '24px', maxWidth: '640px' }}>
             <p style={{ fontSize: '13px', fontWeight: '600', color: '#9ca3af', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Coming Soon
             </p>
@@ -2428,7 +2541,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
           </div>
 
           {/* Download KOT Printer App */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '24px', maxWidth: '640px' }}>
             <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Download KOT Printer App
             </p>
@@ -2588,40 +2701,25 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
             )}
           </div>
 
-          {/* Save Button */}
-          <button
-            onClick={savePrintSettings}
-            disabled={saving}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '14px 28px',
-              background: saving ? '#d1d5db' : '#111827',
-              color: 'white',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              boxShadow: saving ? 'none' : '0 4px 14px rgba(236,72,153,0.35)',
-              transition: 'all 0.2s',
-              width: '100%'
-            }}
-          >
-            {saving ? (
-              <>
-                <FaSpinner className="spin" size={16} />
-                Saving...
-              </>
-            ) : (
-              <>
-                <FaSave size={16} />
-                Save Print Settings
-              </>
-            )}
-          </button>
+          {/* Save Button (bottom) */}
+          <div style={{ marginTop: '8px', maxWidth: '640px' }}>
+            <button
+              onClick={savePrintSettings}
+              disabled={saving}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                padding: '14px 28px',
+                background: saving ? '#d1d5db' : '#111827',
+                color: 'white', border: 'none', borderRadius: '10px',
+                fontSize: '14px', fontWeight: 600,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving ? 'none' : '0 4px 14px rgba(236,72,153,0.35)',
+                transition: 'all 0.2s', width: '100%'
+              }}
+            >
+              {saving ? <><FaSpinner className="spin" size={16} /> Saving...</> : <><FaSave size={16} /> Save Print Settings</>}
+            </button>
+          </div>
         </>
       ) : (
         <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
@@ -7927,8 +8025,7 @@ const Admin = () => {
           borderRadius: '16px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           padding: '24px',
-          border: '1px solid #f1f5f9',
-          maxWidth: '600px'
+          border: '1px solid #f1f5f9'
         }}>
           <PrintSettings
             restaurants={restaurants}

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft, FaPhone, FaChair, FaUtensils, FaLeaf, FaDrumstickBite, FaSpinner, FaLock, FaTimes, FaHotel } from 'react-icons/fa';
 import ImageCarousel from '../../components/ImageCarousel';
+import UpiPaymentModal from '../../components/UpiPaymentModal';
 import apiClient from '../../lib/api.js';
 import { getDisplayImage } from '../../utils/placeholderImages';
 
@@ -116,32 +117,53 @@ const PlaceOrderContent = () => {
           }
         }
 
-        // If no theme in URL, check backend for saved theme
+        // If no theme in URL, check localStorage cache first, then backend
         if (restaurant && !theme) {
+          const themeRoutes = {
+            'bistro': '/placeorder/bistro',
+            'cube': '/placeorder/cube',
+            'book': '/placeorder/book',
+            'carousel': '/placeorder/carousel',
+            'classic': '/placeorder/classic',
+          };
+
+          // Check localStorage cache first for instant redirect
+          const cacheKey = `dineopen_theme_${restaurant}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            try {
+              const { themeId, ts } = JSON.parse(cached);
+              // Cache valid for 24 hours
+              if (Date.now() - ts < 24 * 60 * 60 * 1000 && themeId && themeRoutes[themeId]) {
+                const params = new URLSearchParams();
+                params.set('restaurant', restaurant);
+                if (seat) params.set('seat', seat);
+                router.replace(`${themeRoutes[themeId]}?${params.toString()}`);
+                return;
+              }
+            } catch (e) {
+              localStorage.removeItem(cacheKey);
+            }
+          }
+
           const themeResponse = await apiClient.getPublicMenuTheme(restaurant);
-          console.log('Theme response:', themeResponse);
-          
+
           if (themeResponse?.success && themeResponse.themeId && themeResponse.themeId !== 'default') {
+            // Cache the theme for next visit
+            localStorage.setItem(cacheKey, JSON.stringify({ themeId: themeResponse.themeId, ts: Date.now() }));
+
             const params = new URLSearchParams();
             params.set('restaurant', restaurant);
             if (seat) params.set('seat', seat);
-            
-            const themeRoutes = {
-              'bistro': '/placeorder/bistro',
-              'cube': '/placeorder/cube',
-              'book': '/placeorder/book',
-              'carousel': '/placeorder/carousel',
-              'classic': '/placeorder/classic',
-            };
-            
+
             const route = themeRoutes[themeResponse.themeId];
             if (route) {
-              console.log(`Redirecting to ${route} with theme: ${themeResponse.themeId}`);
               router.replace(`${route}?${params.toString()}`);
               return;
             }
           } else {
-            console.log('No custom theme found, using default menu');
+            // Cache "default" to avoid re-fetching
+            localStorage.setItem(cacheKey, JSON.stringify({ themeId: 'default', ts: Date.now() }));
           }
         }
       } catch (error) {
@@ -195,7 +217,9 @@ const PlaceOrderContent = () => {
   const [customerAppSettings, setCustomerAppSettings] = useState(null);
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
   const [customerVerified, setCustomerVerified] = useState(false);
-  
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [upiOrderAmount, setUpiOrderAmount] = useState(0);
+
   // Derived values
   const restaurantId = searchParams.get('restaurant') || 'default';
   const seatNumber = searchParams.get('seat') || '';
@@ -843,7 +867,10 @@ const PlaceOrderContent = () => {
         successMsg += ` You earned ${response.order.loyaltyPointsEarned} loyalty points!`;
       }
 
-      setSuccess(successMsg);
+      // Check if UPI payment is enabled
+      const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
+      const orderTotal = getCartSubtotal();
+
       setCart([]);
       setCustomerInfo({ phone: '', seatNumber: customerInfo.seatNumber, roomNumber: '', name: '' });
       setSelectedOffers([]);
@@ -856,6 +883,13 @@ const PlaceOrderContent = () => {
       setShowCart(false);
       setOtpSent(false);
       setOtp('');
+
+      if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
+        setUpiOrderAmount(orderTotal);
+        setShowUpiModal(true);
+      } else {
+        setSuccess(successMsg);
+      }
 
     } catch (err) {
       console.error('Error placing order:', err);
@@ -1378,6 +1412,20 @@ const PlaceOrderContent = () => {
         </div>
       )}
 
+      {/* UPI Payment Modal */}
+      <UpiPaymentModal
+        isOpen={showUpiModal}
+        onClose={() => {
+          setShowUpiModal(false);
+          setSuccess('Order placed successfully!');
+        }}
+        amount={upiOrderAmount}
+        restaurantName={restaurant?.name}
+        upiId={customerAppSettings?.paymentSettings?.upiId}
+        upiQrCodeUrl={customerAppSettings?.paymentSettings?.upiQrCodeUrl}
+        upiDisplayName={customerAppSettings?.paymentSettings?.upiDisplayName}
+      />
+
       {/* Menu - Always show all categories, scroll to selected */}
       <div style={{ 
         padding: '0 16px',
@@ -1641,9 +1689,10 @@ const PlaceOrderContent = () => {
             </div>
 
             {/* Scrollable Cart Items */}
-            <div style={{ 
-              flex: 1, 
-              overflowY: 'auto', 
+            <div style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
               padding: '0 20px',
               scrollbarWidth: 'thin',
               scrollbarColor: '#cbd5e1 transparent'
@@ -1774,7 +1823,10 @@ const PlaceOrderContent = () => {
                 <div style={{
                 padding: '20px',
                 borderTop: '1px solid #f1f5f9',
-                backgroundColor: '#fafbfc'
+                backgroundColor: '#fafbfc',
+                flexShrink: 0,
+                maxHeight: '50vh',
+                overflowY: 'auto',
               }}>
                 {/* Customer Info */}
                 <div style={{

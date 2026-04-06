@@ -728,13 +728,14 @@ const OrderSummary = ({
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
         background: billingMode
-          ? 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
+          ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
           : 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
         padding: billingMode ? '10px 16px' : '14px 16px',
-        color: 'white',
+        color: billingMode ? '#1e293b' : 'white',
         position: 'relative',
         overflow: 'hidden',
-        flexShrink: 0
+        flexShrink: 0,
+        ...(billingMode && { borderBottom: '1px solid #e2e8f0' })
       }}>
         {/* Background Pattern - hidden in billing mode */}
         {!billingMode && (
@@ -781,14 +782,14 @@ const OrderSummary = ({
             <div style={{
               width: '24px',
               height: '24px',
-              backgroundColor: 'rgba(255,255,255,0.2)',
+              backgroundColor: billingMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.2)',
               borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               backdropFilter: 'blur(10px)'
             }}>
-              <FaShoppingCart size={12} />
+              <FaShoppingCart size={12} style={billingMode ? { color: '#64748b' } : undefined} />
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: isMobile ? '14px' : '13px', fontWeight: 'bold', margin: 0 }}>
@@ -836,9 +837,13 @@ const OrderSummary = ({
               <button
                 onClick={() => setOrderType('dine-in')}
                 style={{
-                  backgroundColor: orderType === 'dine-in' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
-                  color: 'white',
-                  border: orderType === 'dine-in' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
+                  backgroundColor: orderType === 'dine-in'
+                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
+                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
+                  color: billingMode ? '#334155' : 'white',
+                  border: orderType === 'dine-in'
+                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
+                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
                   borderRadius: isMobile ? '4px' : '6px',
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',
@@ -856,9 +861,13 @@ const OrderSummary = ({
                 onClick={() => { if (!hasTable) setOrderType('takeaway'); }}
                 disabled={hasTable}
                 style={{
-                  backgroundColor: orderType === 'takeaway' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
-                  color: 'white',
-                  border: orderType === 'takeaway' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
+                  backgroundColor: orderType === 'takeaway'
+                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
+                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
+                  color: billingMode ? '#334155' : 'white',
+                  border: orderType === 'takeaway'
+                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
+                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
                   borderRadius: isMobile ? '4px' : '6px',
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',
@@ -877,9 +886,13 @@ const OrderSummary = ({
                 onClick={() => { if (!hasTable) setOrderType('delivery'); }}
                 disabled={hasTable}
                 style={{
-                  backgroundColor: orderType === 'delivery' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
-                  color: 'white',
-                  border: orderType === 'delivery' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
+                  backgroundColor: orderType === 'delivery'
+                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
+                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
+                  color: billingMode ? '#334155' : 'white',
+                  border: orderType === 'delivery'
+                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
+                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
                   borderRadius: isMobile ? '4px' : '6px',
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',
@@ -1526,7 +1539,7 @@ const OrderSummary = ({
                       const tableOrRoom = k.roomNumber ? `Room: ${k.roomNumber}` : (k.tableNumber ? `Table: ${k.tableNumber}` : '');
                       const totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
                       const specialInstructionsHtml = k.specialInstructions ? `<div class="divider">--------------------------------</div><div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${(k.specialInstructions || '').replace(/</g,'&lt;')}</div></div>` : '';
-                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>Time:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>Customer:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>Waiter:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
+                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>Time:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>Customer:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>Waiter:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
                       const newPw = window.open('', '_blank', 'width=400,height=600');
                       if (newPw) {
                         kotPrintWindowRef.current = newPw;
@@ -1719,7 +1732,7 @@ const OrderSummary = ({
                       const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Cash Received:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Change:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
                       const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">Partial Payment:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Paid:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>Outstanding:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
                       const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize)}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
