@@ -2653,9 +2653,11 @@ class ApiClient {
 
   // Lookup customer by phone (public) - for loyalty points and customer identification
   async lookupCustomerByPhone(restaurantId, phone, countryCode) {
+    // Always send phone as a trimmed string (backend normalizePhone expects string)
+    const phoneStr = phone === null || phone === undefined ? '' : String(phone).trim();
     return this.request('/api/public/customer/lookup', {
       method: 'POST',
-      body: { restaurantId, phone, countryCode },
+      body: { restaurantId, phone: phoneStr, countryCode },
     });
   }
 

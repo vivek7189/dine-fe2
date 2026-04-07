@@ -516,6 +516,268 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   );
 };
 
+// Payment Settings Component (UPI)
+const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+  const [settings, setSettings] = useState({
+    upiEnabled: false,
+    upiId: '',
+    upiQrCodeUrl: '',
+    upiDisplayName: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  };
+
+  const loadSettings = async (restaurantId) => {
+    if (!restaurantId) return;
+    setLoading(true);
+    try {
+      const response = await apiClient.get(`/api/restaurants/${restaurantId}/customer-app-settings`);
+      const ps = response?.settings?.paymentSettings || {};
+      setSettings({
+        upiEnabled: !!ps.upiEnabled,
+        upiId: ps.upiId || '',
+        upiQrCodeUrl: ps.upiQrCodeUrl || '',
+        upiDisplayName: ps.upiDisplayName || '',
+      });
+    } catch (e) {
+      console.error('Error loading payment settings:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedRestaurant?.id) loadSettings(selectedRestaurant.id);
+  }, [selectedRestaurant?.id]);
+
+  const handleSave = async () => {
+    if (!selectedRestaurant?.id) return;
+    setSaving(true);
+    try {
+      // Merge with existing customer-app-settings to avoid wiping other fields
+      const existing = await apiClient.get(`/api/restaurants/${selectedRestaurant.id}/customer-app-settings`);
+      const merged = {
+        ...(existing?.settings || {}),
+        paymentSettings: {
+          ...(existing?.settings?.paymentSettings || {}),
+          ...settings,
+        },
+      };
+      await apiClient.put(`/api/restaurants/${selectedRestaurant.id}/customer-app-settings`, merged);
+      showToast('Payment settings saved');
+    } catch (e) {
+      console.error('Error saving payment settings:', e);
+      showToast('Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowed.includes(file.type)) { alert('Only JPEG/PNG/WebP images allowed'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return; }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await apiClient.uploadImage(formData);
+      if (res.imageUrl) {
+        setSettings(prev => ({ ...prev, upiQrCodeUrl: res.imageUrl }));
+        showToast('QR uploaded');
+      }
+    } catch (e) {
+      alert('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FaCreditCard color="#6366f1" /> Payment Settings
+          </h2>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0' }}>
+            Enable UPI payment option for customers ordering online. Customers will see your QR + UPI ID after placing an order.
+          </p>
+        </div>
+        <select
+          value={selectedRestaurant?.id || ''}
+          onChange={(e) => {
+            const r = restaurants.find(x => x.id === e.target.value);
+            if (r) setSelectedRestaurant(r);
+          }}
+          style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', minWidth: '220px' }}
+        >
+          <option value="">Select restaurant…</option>
+          {restaurants.map(r => (<option key={r.id} value={r.id}>{r.name}</option>))}
+        </select>
+      </div>
+
+      {!selectedRestaurant ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
+          Please select a restaurant to manage payment settings
+        </div>
+      ) : loading ? (
+        <div style={{ textAlign: 'center', padding: '60px' }}>
+          <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={28} color="#6366f1" />
+        </div>
+      ) : (
+        <div style={{ maxWidth: '640px' }}>
+          {/* Toggle */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '12px',
+            border: '1px solid #e5e7eb', marginBottom: '20px',
+          }}>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: '#111827' }}>Enable UPI Payment</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                Customers will see UPI QR after placing order
+              </div>
+            </div>
+            <button
+              onClick={() => setSettings(prev => ({ ...prev, upiEnabled: !prev.upiEnabled }))}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: settings.upiEnabled ? '#16a34a' : '#9ca3af',
+              }}
+            >
+              {settings.upiEnabled ? <FaToggleOn size={36} /> : <FaToggleOff size={36} />}
+            </button>
+          </div>
+
+          {settings.upiEnabled && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* UPI ID */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                  UPI ID *
+                </label>
+                <input
+                  type="text"
+                  value={settings.upiId}
+                  onChange={(e) => setSettings(prev => ({ ...prev, upiId: e.target.value }))}
+                  placeholder="yourrestaurant@paytm"
+                  style={{
+                    width: '100%', padding: '12px', border: '2px solid #e5e7eb',
+                    borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', fontFamily: 'monospace',
+                  }}
+                />
+                <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                  e.g. name@paytm, name@upi, 9876543210@ybl
+                </p>
+              </div>
+
+              {/* Display Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                  Display Name (shown to customers)
+                </label>
+                <input
+                  type="text"
+                  value={settings.upiDisplayName}
+                  onChange={(e) => setSettings(prev => ({ ...prev, upiDisplayName: e.target.value }))}
+                  placeholder={selectedRestaurant?.name || 'Your Restaurant Name'}
+                  style={{
+                    width: '100%', padding: '12px', border: '2px solid #e5e7eb',
+                    borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* QR Upload */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                  UPI QR Code Image
+                </label>
+                {settings.upiQrCodeUrl ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '12px', border: '2px solid #e5e7eb' }}>
+                      <img src={settings.upiQrCodeUrl} alt="UPI QR" style={{ width: '180px', height: '180px', objectFit: 'contain', display: 'block' }} />
+                    </div>
+                    <button
+                      onClick={() => setSettings(prev => ({ ...prev, upiQrCodeUrl: '' }))}
+                      style={{
+                        padding: '8px 16px', backgroundColor: '#fee2e2', color: '#dc2626',
+                        border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                      }}
+                    >
+                      <FaTimes size={12} /> Remove QR Code
+                    </button>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    padding: '32px', border: '2px dashed #cbd5e1', borderRadius: '12px',
+                    backgroundColor: '#f8fafc', cursor: 'pointer', gap: '8px',
+                  }}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/webp"
+                      onChange={(e) => handleUpload(e.target.files?.[0])}
+                      style={{ display: 'none' }}
+                    />
+                    {uploading ? (
+                      <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={24} color="#6366f1" />
+                    ) : (
+                      <>
+                        <FaDownload size={24} color="#6366f1" />
+                        <span style={{ fontSize: '13px', color: '#374151', fontWeight: 600 }}>Click to upload QR image</span>
+                        <span style={{ fontSize: '11px', color: '#9ca3af' }}>JPEG/PNG/WebP, max 5MB</span>
+                      </>
+                    )}
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Save */}
+          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button
+              onClick={handleSave}
+              disabled={saving || (settings.upiEnabled && !settings.upiId.trim())}
+              style={{
+                padding: '12px 24px', backgroundColor: saving ? '#9ca3af' : '#6366f1',
+                color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px',
+                fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}
+            >
+              {saving ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : <FaSave />}
+              {saving ? 'Saving…' : 'Save Payment Settings'}
+            </button>
+          </div>
+
+          {toast && (
+            <div style={{
+              position: 'fixed', bottom: '24px', right: '24px', padding: '12px 20px',
+              backgroundColor: '#111827', color: '#fff', borderRadius: '10px',
+              fontSize: '13px', fontWeight: 600, zIndex: 9999,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            }}>
+              {toast}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Pricing Management Component (Multi-Tier + Legacy Zone Pricing)
 const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
   const [pricingSettings, setPricingSettings] = useState({
@@ -3026,6 +3288,7 @@ const Admin = () => {
       { id: 'settings', label: 'General', icon: FaUserCog },
       { id: 'tax', label: 'Tax Management', icon: FaPercentage },
       { id: 'pricing', label: 'Pricing Rules', icon: FaSlidersH },
+      { id: 'payments', label: 'Payment Settings', icon: FaCreditCard },
       { id: 'billing-settings', label: 'Billing', icon: FaFileInvoice },
       { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
       { id: 'print', label: 'Print Settings', icon: FaPrint },
@@ -8022,6 +8285,23 @@ const Admin = () => {
           border: '1px solid #f1f5f9'
         }}>
           <ZonePricingManagement
+            restaurants={restaurants}
+            selectedRestaurant={selectedRestaurant}
+            setSelectedRestaurant={setSelectedRestaurant}
+          />
+        </div>
+      )}
+
+      {/* Payment Settings Section */}
+      {activeTab === 'payments' && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          padding: '24px',
+          border: '1px solid #f1f5f9'
+        }}>
+          <PaymentSettings
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}

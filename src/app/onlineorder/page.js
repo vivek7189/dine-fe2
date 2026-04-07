@@ -244,7 +244,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
 
         // Fetch fresh customer data from server
         try {
-          const response = await apiClient.lookupCustomerByPhone(restaurantId, session.phone);
+          const sessionPhone = session.phone ? String(session.phone).trim() : '';
+          if (!sessionPhone) {
+            return;
+          }
+          const response = await apiClient.lookupCustomerByPhone(restaurantId, sessionPhone);
           if (response?.customer) {
             setCustomerData(response.customer);
 
