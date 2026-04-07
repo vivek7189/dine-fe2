@@ -2871,7 +2871,17 @@ const OrderSummary = ({
           {(() => {
             const billingTools = [
               billingSettings.cashTenderingEnabled && paymentMethod === 'cash' && { id: 'cash', icon: FaMoneyBillWave, label: 'Cash', color: '#10b981' },
-              billingSettings.splitPaymentEnabled && { id: 'split', icon: FaCreditCard, label: 'Split', color: '#3b82f6' },
+              billingSettings.splitPaymentEnabled && (() => {
+                // Placement gating:
+                // - billingMode=true  → orderhistory Complete flow → show only if settlementShowOnOrderHistory
+                // - billingMode=false → dashboard summary → show if settlementShowOnDashboard
+                // - If both flags are off (legacy / misconfigured) → fall back to dashboard so the toggle still works.
+                const showDash = billingSettings.settlementShowOnDashboard !== false;
+                const showHist = billingSettings.settlementShowOnOrderHistory === true;
+                const bothOff = !showDash && !showHist;
+                const visible = billingMode ? showHist : (showDash || bothOff);
+                return visible;
+              })() && { id: 'split', icon: FaCreditCard, label: 'Settlement', color: '#3b82f6' },
               billingSettings.tipsEnabled && { id: 'tip', icon: FaHandHoldingUsd, label: 'Tip', color: '#f59e0b' },
               billingSettings.partialPaymentEnabled && { id: 'partial', icon: FaWallet, label: 'Partial', color: '#8b5cf6' },
               billingSettings.compVoidEnabled && { id: 'comp', icon: FaGift, label: 'Comp', color: '#ec4899' },
@@ -3010,7 +3020,7 @@ const OrderSummary = ({
                   </div>
                 )}
 
-                {/* Split Payment Panel */}
+                {/* Settlement Options Panel */}
                 {activeBillingPanel === 'split' && (
                   <div style={{
                     background: '#eff6ff',
@@ -3019,7 +3029,7 @@ const OrderSummary = ({
                     padding: '12px',
                   }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', marginBottom: '8px' }}>
-                      Split Payment — Total: {formatCurrency(grandTotal)}
+                      Settlement Options — Total: {formatCurrency(grandTotal)}
                     </div>
                     {splitPayments.map((sp, idx) => (
                       <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>

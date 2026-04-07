@@ -2954,6 +2954,8 @@ const Admin = () => {
     cashTenderingEnabled: false,
     denominations: [10, 20, 50, 100, 200, 500, 2000],
     splitPaymentEnabled: false,
+    settlementShowOnDashboard: true,
+    settlementShowOnOrderHistory: false,
     partialPaymentEnabled: false,
     compVoidEnabled: false,
     compVoidRequiresPin: true,
@@ -7649,10 +7651,36 @@ const Admin = () => {
                   },
                   {
                     key: 'splitPaymentEnabled',
-                    name: 'Split Payment',
-                    desc: 'Multiple payment methods',
+                    name: 'Settlement Options',
+                    desc: 'Split / multi-method settlement',
                     icon: FaCreditCard,
-                    expandedContent: null
+                    expandedContent: (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <label onClick={(e) => e.stopPropagation()}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', color: '#374151' }}>
+                          <input type="checkbox" checked={billingSettings.settlementShowOnDashboard !== false}
+                            onChange={(e) => updateBillingSetting('settlementShowOnDashboard', e.target.checked)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '14px', height: '14px', accentColor: '#dc2626' }}
+                          />
+                          Show on Dashboard order summary
+                        </label>
+                        <label onClick={(e) => e.stopPropagation()}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', color: '#374151' }}>
+                          <input type="checkbox" checked={billingSettings.settlementShowOnOrderHistory === true}
+                            onChange={(e) => updateBillingSetting('settlementShowOnOrderHistory', e.target.checked)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '14px', height: '14px', accentColor: '#dc2626' }}
+                          />
+                          Show on Order History &rarr; Complete flow
+                        </label>
+                        {!billingSettings.settlementShowOnDashboard && !billingSettings.settlementShowOnOrderHistory && (
+                          <p style={{ fontSize: '11px', color: '#dc2626', margin: 0 }}>
+                            Select at least one placement, otherwise Dashboard will be used by default.
+                          </p>
+                        )}
+                      </div>
+                    )
                   },
                   {
                     key: 'tipsEnabled',

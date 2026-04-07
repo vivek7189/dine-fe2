@@ -118,6 +118,11 @@ const OrderHistory = () => {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  // Cancel order modal state
+  const [cancelModalOrderId, setCancelModalOrderId] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
   const [printSettings, setPrintSettings] = useState(null);
   const [printingOrderId, setPrintingOrderId] = useState(null);
   const [printSuccess, setPrintSuccess] = useState(null);
@@ -627,16 +632,40 @@ const OrderHistory = () => {
     window.print();
   };
 
-  const handleCancelOrder = async (orderId) => {
-    const reason = prompt(t('common.cancel') + ' reason:'); // Ideally translate prompt message too
-    if (reason === null) return;
+  const handleCancelOrder = (orderId) => {
+    setCancelModalOrderId(orderId);
+    setCancelReason('');
+    setCancelError(null);
+  };
+
+  const closeCancelModal = () => {
+    if (cancelSubmitting) return;
+    setCancelModalOrderId(null);
+    setCancelReason('');
+    setCancelError(null);
+  };
+
+  const submitCancelOrder = async () => {
+    if (!cancelModalOrderId) return;
+    const reason = cancelReason.trim();
+    if (!reason) {
+      setCancelError('Please enter a cancellation reason');
+      return;
+    }
+    setCancelSubmitting(true);
+    setCancelError(null);
     try {
-      await apiClient.cancelOrder(orderId, reason);
+      await apiClient.cancelOrder(cancelModalOrderId, reason);
+      setCancelModalOrderId(null);
+      setCancelReason('');
       fetchOrders();
-      alert(t('orderHistory.status.cancelled'));
+      setDeleteSuccess(t('orderHistory.status.cancelled') || 'Order cancelled');
+      setTimeout(() => setDeleteSuccess(null), 4000);
     } catch (error) {
       console.error('Error cancelling:', error);
-      alert(t('common.error') + ': ' + (error.message || 'Unknown error'));
+      setCancelError(error.message || 'Failed to cancel order');
+    } finally {
+      setCancelSubmitting(false);
     }
   };
 
@@ -1912,15 +1941,7 @@ const OrderHistory = () => {
                               <FaEdit size={12} />
                             </button>
                             )}
-                            {order.status !== 'deleted' && (
-                              <button 
-                                onClick={() => handleDeleteOrder(order.id)} 
-                                className="p-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" 
-                                title={t('common.delete') || 'Delete order'}
-                              >
-                                <FaTrash size={12} />
-                              </button>
-                            )}
+                            {/* Delete button hidden by request — use Cancel instead */}
                           </div>
                         </div>
                         <div className="mt-3 pt-3 border-t border-gray-200">
@@ -2173,15 +2194,7 @@ const OrderHistory = () => {
                                 <FaEdit /> {t('orderHistory.edit')}
                               </button>
                             )}
-                            {order.status !== 'deleted' && (
-                              <button
-                                onClick={() => handleDeleteOrder(order.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 transition-all flex items-center gap-1.5"
-                                title={t('common.delete') || 'Delete order'}
-                              >
-                                <FaTrash /> {t('common.delete') || 'Delete'}
-                              </button>
-                            )}
+                            {/* Delete button hidden by request — use Cancel instead */}
                           </div>
                         </div>
                       </div>
@@ -2490,6 +2503,110 @@ const OrderHistory = () => {
           </>
         );
       })(), document.body)}
+
+      {/* Cancel order modal — replaces native prompt() */}
+      {cancelModalOrderId && (
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes cancelBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes cancelDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+          ` }} />
+          <div
+            className="fixed inset-0 z-[10300] flex items-center justify-center p-4 sm:p-6"
+            style={{ animation: 'cancelBackdropIn 0.2s ease-out' }}
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="cancel-order-title"
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={closeCancelModal}
+            />
+            <div
+              className="relative w-full max-w-[min(92vw,460px)] rounded-2xl shadow-2xl border-2 border-gray-200 bg-white overflow-hidden"
+              style={{ animation: 'cancelDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 sm:p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <FaTimesCircle className="text-red-600 text-2xl" />
+                  </div>
+                  <div>
+                    <h2 id="cancel-order-title" className="text-lg sm:text-xl font-bold text-gray-900">
+                      Cancel this order?
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Please provide a reason for cancellation.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  Cancellation reason <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => { setCancelReason(e.target.value); if (cancelError) setCancelError(null); }}
+                  disabled={cancelSubmitting}
+                  rows={3}
+                  autoFocus
+                  placeholder="e.g. Customer changed mind, item unavailable, wrong order…"
+                  className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 resize-none disabled:bg-gray-50"
+                />
+
+                {/* Quick reason chips */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {['Customer changed mind', 'Item unavailable', 'Wrong order', 'Long wait time', 'Duplicate order'].map(r => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => { setCancelReason(r); if (cancelError) setCancelError(null); }}
+                      disabled={cancelSubmitting}
+                      className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-full transition-colors disabled:opacity-60"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+
+                {cancelError && (
+                  <p className="text-sm text-red-600 mt-3">{cancelError}</p>
+                )}
+
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={closeCancelModal}
+                    disabled={cancelSubmitting}
+                    className="min-h-[44px] w-full sm:flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 disabled:opacity-60 transition-all"
+                  >
+                    Keep Order
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitCancelOrder}
+                    disabled={cancelSubmitting || !cancelReason.trim()}
+                    className="min-h-[44px] w-full sm:flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 border-2 border-red-600 rounded-xl hover:bg-red-700 flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
+                  >
+                    {cancelSubmitting ? (
+                      <>
+                        <FaSpinner className="animate-spin" />
+                        Cancelling…
+                      </>
+                    ) : (
+                      <>
+                        <FaTimesCircle />
+                        Cancel Order
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Delete order confirmation modal */}
       {deleteConfirmOrderId && (
