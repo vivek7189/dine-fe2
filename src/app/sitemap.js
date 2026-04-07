@@ -59,6 +59,36 @@ export default function sitemap() {
       priority: 0.85,
     },
     {
+      url: `${baseUrl}/vs/dineopen-vs-toast`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-square`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-clover`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-lightspeed`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-touchbistro`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
       url: `${baseUrl}/vs/dineopen-vs-posist`,
       lastModified: currentDate,
       changeFrequency: 'monthly',
