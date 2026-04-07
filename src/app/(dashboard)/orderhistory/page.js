@@ -112,6 +112,215 @@ const OrderHistory = () => {
   const [billingCustomerName, setBillingCustomerName] = useState('');
   const [billingCustomerMobile, setBillingCustomerMobile] = useState('');
   const [billingTableNumber, setBillingTableNumber] = useState('');
+  // Multi-tier pricing state for billing modal (mirrors dashboard summary)
+  const [billingOrderType, setBillingOrderType] = useState('dine-in');
+  const [billingSelectedTable, setBillingSelectedTable] = useState(null);
+  const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
+  const [pricingRules, setPricingRules] = useState([]);
+  const [pricingRulesLoading, setPricingRulesLoading] = useState(false);
+  const [activePricingRuleId, setActivePricingRuleId] = useState(null);
+  const [autoSelectedRule, setAutoSelectedRule] = useState(false);
+  const [floorsCache, setFloorsCache] = useState([]);
+  const [billingMenuItems, setBillingMenuItems] = useState([]);
+  const userChangedPricingRuleRef = useRef(false);
+  // Tracks whether the user has explicitly clicked a different pricing zone in
+  // the billing modal. We only re-price the cart on USER-driven zone changes —
+  // never on the initial auto-select that runs when the modal opens. This
+  // preserves the committed prices stored on the order.
+
+  // Pricing rule channel-name helpers (kept identical to dashboard for parity)
+  const DINEIN_NAMES = ['dine-in', 'dine in', 'dinein'];
+  const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
+  const DELIVERY_NAMES = ['delivery'];
+  const CHANNEL_NAMES = [...DINEIN_NAMES, ...TAKEAWAY_NAMES, ...DELIVERY_NAMES];
+  const isZoneRule = (rule) => !CHANNEL_NAMES.includes((rule?.name || '').toLowerCase().trim());
+  const findDineInRule = (rules) => (rules || []).find(r => r.isActive && DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
+
+  // Resolve a table number/name to its floor using cached floors
+  const resolveTableFloor = useCallback((val, floors) => {
+    if (!val) return { floor: null, tableId: null };
+    for (const f of (floors || [])) {
+      const tables = f.tables || [];
+      const t = tables.find(tt => String(tt.number) === String(val) || tt.name === val);
+      if (t) return { floor: f.name, tableId: t.id };
+    }
+    return { floor: null, tableId: null };
+  }, []);
+
+  // Load multi-pricing rules + floors + menu items once we have a restaurantId
+  // (these are needed for the billing modal's order-type tabs, area selector,
+  // table-to-floor mapping, and per-item re-pricing on zone change)
+  useEffect(() => {
+    if (!restaurantId) return;
+    setPricingRulesLoading(true);
+    apiClient.getPricingSettings(restaurantId)
+      .then(res => {
+        const mp = res?.settings?.multiPricing;
+        if (mp?.enabled) {
+          setMultiPricingEnabled(true);
+          setPricingRules((mp.rules || []).filter(r => r.isActive));
+        } else {
+          setMultiPricingEnabled(false);
+          setPricingRules([]);
+          setActivePricingRuleId(null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPricingRulesLoading(false));
+
+    apiClient.getFloors(restaurantId)
+      .then(r => setFloorsCache(r?.floors || r || []))
+      .catch(() => {});
+
+    apiClient.getMenu(restaurantId)
+      .then(r => setBillingMenuItems(r?.menuItems || []))
+      .catch(() => {});
+  }, [restaurantId]);
+
+  // Auto-select pricing rule when billingSelectedTable changes (table → floor → rule)
+  useEffect(() => {
+    if (!billingModalOrder) return;
+    if (!multiPricingEnabled || pricingRules.length === 0) return;
+    if (billingSelectedTable?.floor) {
+      const floorName = billingSelectedTable.floor;
+      const matchedRule = pricingRules.find(rule =>
+        (rule.tableMappings || []).some(m =>
+          floorName.toLowerCase().trim() === m.toLowerCase().trim()
+        )
+      );
+      if (matchedRule) {
+        setActivePricingRuleId(matchedRule.id);
+        setAutoSelectedRule(true);
+      } else {
+        setAutoSelectedRule(false);
+      }
+    } else {
+      setAutoSelectedRule(false);
+    }
+  }, [billingSelectedTable, multiPricingEnabled, pricingRules, billingModalOrder]);
+
+  // Auto-select pricing rule when billingOrderType changes (takeaway/delivery/dine-in)
+  useEffect(() => {
+    if (!billingModalOrder) return;
+    if (!multiPricingEnabled || pricingRules.length === 0) return;
+    if (billingOrderType === 'takeaway') {
+      const takeawayRule = pricingRules.find(r =>
+        TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim())
+      );
+      if (takeawayRule) {
+        setActivePricingRuleId(takeawayRule.id);
+        setAutoSelectedRule(true);
+      } else {
+        setActivePricingRuleId(null);
+        setAutoSelectedRule(false);
+      }
+    } else if (billingOrderType === 'delivery') {
+      const deliveryRule = pricingRules.find(r =>
+        (r.name || '').toLowerCase().trim() === 'delivery'
+      );
+      if (deliveryRule) {
+        setActivePricingRuleId(deliveryRule.id);
+        setAutoSelectedRule(true);
+      } else {
+        setActivePricingRuleId(null);
+        setAutoSelectedRule(false);
+      }
+    } else if (billingOrderType === 'dine-in') {
+      if (!billingSelectedTable?.floor) {
+        setAutoSelectedRule(false);
+        const skipNames = ['dine-in', 'dinein', 'dine in', 'takeaway', 'take away', 'delivery'];
+        const areaRules = pricingRules.filter(r =>
+          !skipNames.includes((r.name || '').toLowerCase().trim())
+        );
+        if (areaRules.length > 0) {
+          setActivePricingRuleId(areaRules[0].id);
+        } else {
+          setActivePricingRuleId(null);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billingOrderType, multiPricingEnabled, pricingRules, billingModalOrder]);
+
+  // User-driven setters that arm re-pricing
+  const handleUserSetBillingOrderType = useCallback((newType) => {
+    userChangedPricingRuleRef.current = true;
+    setBillingOrderType(newType);
+  }, []);
+  const handleUserSetActivePricingRule = useCallback((newId) => {
+    userChangedPricingRuleRef.current = true;
+    setActivePricingRuleId(newId);
+  }, []);
+
+  // Re-price billing modal cart when active pricing rule changes
+  // Strategy: keep committed DB prices by default; only re-price when the user
+  // actively changes the zone / order type. We run TWO effects:
+  //   (1) HYDRATION — once menu loads, copy pricingRules from menu item onto
+  //       each cart item so OrderSummary.getItemUnitPrice() can look them up.
+  //       Does NOT change item.price.
+  //   (2) RE-PRICING — only runs when userChangedPricingRuleRef is armed.
+  //       Updates item.price using the cart item's own pricingRules map.
+
+  // (1) Hydrate pricingRules from menu onto cart items (one-time per cart)
+  useEffect(() => {
+    if (!billingModalOrder || billingMenuItems.length === 0) return;
+    setBillingModalCart(prev => {
+      if (prev.length === 0) return prev;
+      let changed = false;
+      const next = prev.map(item => {
+        if (item.pricingRules && Object.keys(item.pricingRules).length > 0) return item;
+        const m =
+          billingMenuItems.find(mi =>
+            (item.id && (mi.id === item.id || mi._id === item.id)) ||
+            (item._id && (mi._id === item._id || mi.id === item._id))
+          ) ||
+          (item.name ? billingMenuItems.find(mi => mi.name === item.name) : null);
+        if (!m || !m.pricingRules) return item;
+        changed = true;
+        return {
+          ...item,
+          pricingRules: m.pricingRules,
+          basePrice: item.basePrice ?? m.price,
+        };
+      });
+      return changed ? next : prev;
+    });
+  }, [billingMenuItems, billingModalOrder]);
+
+  // (2) Re-price cart items when the user changes the active pricing rule
+  useEffect(() => {
+    if (!billingModalOrder) return;
+    if (!userChangedPricingRuleRef.current) return;
+    if (!multiPricingEnabled) return;
+    setBillingModalCart(prev => prev.map(item => {
+      const basePrice = item.basePrice ?? item._originalPrice ?? item.price;
+      let newPrice = basePrice;
+      if (activePricingRuleId) {
+        const perItemPrice = item?.pricingRules?.[activePricingRuleId];
+        const parsed = perItemPrice != null ? Number(perItemPrice) : NaN;
+        if (!isNaN(parsed) && parsed >= 0) {
+          newPrice = parsed;
+        } else {
+          const rule = pricingRules.find(r => r.id === activePricingRuleId);
+          if (rule && isZoneRule(rule)) {
+            const diRule = findDineInRule(pricingRules);
+            const diPrice = diRule ? item?.pricingRules?.[diRule.id] : undefined;
+            const diParsed = diPrice != null ? Number(diPrice) : NaN;
+            if (!isNaN(diParsed) && diParsed >= 0) newPrice = diParsed;
+          }
+          if (newPrice === basePrice) {
+            if (rule?.defaultMarkupType === 'percentage' && rule.defaultMarkupValue) {
+              newPrice = Math.round(basePrice * (1 + rule.defaultMarkupValue / 100) * 100) / 100;
+            } else if (rule?.defaultMarkupType === 'flat' && rule.defaultMarkupValue) {
+              newPrice = Math.round((basePrice + rule.defaultMarkupValue) * 100) / 100;
+            }
+          }
+        }
+      }
+      return { ...item, price: newPrice, basePrice, appliedPricingRuleId: activePricingRuleId || null };
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePricingRuleId, multiPricingEnabled, billingModalOrder]);
   const [markPaidOrderId, setMarkPaidOrderId] = useState(null);
   const [markPaidSubmitting, setMarkPaidSubmitting] = useState(false);
   const [deleteConfirmOrderId, setDeleteConfirmOrderId] = useState(null);
@@ -678,9 +887,12 @@ const OrderHistory = () => {
       name: item.name,
       price: item.price || 0,
       quantity: item.quantity || 1,
-      selectedVariant: item.selectedVariant,
+      selectedVariant: item.selectedVariant || item.variant || (item.variantName ? { name: item.variantName, price: item.price } : undefined),
+      variantName: item.variantName,
       selectedCustomizations: item.selectedCustomizations,
       basePrice: item.basePrice || item.price || 0,
+      _originalPrice: item.basePrice || item.price || 0,
+      pricingRules: item.pricingRules || undefined,
       cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
     }));
 
@@ -688,17 +900,31 @@ const OrderHistory = () => {
     setBillingModalPaymentMethod(order.paymentMethod || 'cash');
     setBillingCustomerName(order.customerInfo?.name || '');
     setBillingCustomerMobile(order.customerInfo?.phone || '');
-    setBillingTableNumber(order.tableNumber || '');
+    const initialTable = order.tableNumber || '';
+    setBillingTableNumber(initialTable);
+    setBillingOrderType(order.orderType || (initialTable ? 'dine-in' : 'dine-in'));
+    if (initialTable) {
+      const { floor, tableId } = resolveTableFloor(initialTable, floorsCache);
+      setBillingSelectedTable({ id: tableId, name: initialTable, number: initialTable, floor });
+    } else {
+      setBillingSelectedTable(null);
+    }
+    userChangedPricingRuleRef.current = false;
     setBillingModalOrder(order);
   };
 
   const closeBillingModal = () => {
+    userChangedPricingRuleRef.current = false;
     setBillingModalOrder(null);
     setBillingModalCart([]);
     setBillingModalProcessing(false);
     setBillingCustomerName('');
     setBillingCustomerMobile('');
     setBillingTableNumber('');
+    setBillingOrderType('dine-in');
+    setBillingSelectedTable(null);
+    setActivePricingRuleId(null);
+    setAutoSelectedRule(false);
   };
 
   const getBillingModalTotalAmount = () => {
@@ -2365,8 +2591,16 @@ const OrderHistory = () => {
                   <OrderSummary
                     cart={billingModalCart}
                     setCart={setBillingModalCart}
-                    orderType={billingModalOrder.orderType || 'dine-in'}
-                    setOrderType={() => {}}
+                    orderType={billingOrderType}
+                    setOrderType={handleUserSetBillingOrderType}
+                    selectedTable={billingSelectedTable}
+                    multiPricingEnabled={multiPricingEnabled}
+                    pricingRules={pricingRules}
+                    pricingRulesLoading={pricingRulesLoading}
+                    activePricingRuleId={activePricingRuleId}
+                    setActivePricingRuleId={handleUserSetActivePricingRule}
+                    autoSelectedRule={autoSelectedRule}
+                    setAutoSelectedRule={setAutoSelectedRule}
                     paymentMethod={billingModalPaymentMethod}
                     setPaymentMethod={setBillingModalPaymentMethod}
                     onClearCart={() => {}}
@@ -2380,7 +2614,17 @@ const OrderHistory = () => {
                         item.cartId === cartId ? { ...item, quantity: newQty } : item
                       ).filter(item => item.quantity > 0));
                     }}
-                    onTableNumberChange={(val) => setBillingTableNumber(val)}
+                    onTableNumberChange={(val) => {
+                      userChangedPricingRuleRef.current = true;
+                      setBillingTableNumber(val);
+                      if (!val) {
+                        setBillingSelectedTable(null);
+                        return;
+                      }
+                      const { floor, tableId } = resolveTableFloor(val, floorsCache);
+                      setBillingSelectedTable({ id: tableId, name: val, number: val, floor });
+                      if (floor) setBillingOrderType('dine-in');
+                    }}
                     onCustomerNameChange={(val) => setBillingCustomerName(val)}
                     onCustomerMobileChange={(val) => setBillingCustomerMobile(val)}
                     processing={billingModalProcessing}
@@ -2401,7 +2645,7 @@ const OrderHistory = () => {
                     restaurantName={restaurant?.name || ''}
                     taxSettings={restaurant?.taxSettings}
                     printSettings={printSettings}
-                    menuItems={[]}
+                    menuItems={billingMenuItems}
                     onClose={closeBillingModal}
                     billingMode={true}
                     billingSettings={restaurant?.billingSettings || {}}
