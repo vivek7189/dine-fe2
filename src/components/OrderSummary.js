@@ -633,21 +633,32 @@ const OrderSummary = ({
 
   const generateInvoice = async (orderId) => {
     try {
-      console.log('Generating invoice for order ID:', orderId);
-      const response = await apiClient.generateInvoice(orderId);
-      console.log('Invoice generation response:', response);
-      if (response.success) {
-        console.log('Invoice generated successfully:', response.invoice);
-        setInvoice(response.invoice);
+      console.log('Fetching unified bill render for order ID:', orderId);
+      // Use the unified render endpoint (/api/bill/render) so the on-screen
+      // bill summary is sourced from the SAME payload the android + electron
+      // printers consume. This guarantees pixel/data parity between what the
+      // user sees on screen and what the thermal printer prints.
+      const response = await apiClient.getBillRender(restaurantId, orderId);
+      if (response && response.success) {
+        // `response.invoice` is the legacy-compatible flat shape (same fields
+        // as the old POST /api/invoice/generate response), so existing JSX
+        // that reads `invoice.restaurantName`, `invoice.grandTotal`, etc.
+        // works unchanged.
+        setInvoice(response.invoice || response.bill);
         setShowInvoicePermanently(true);
-        console.log('Invoice will remain visible permanently');
+
+        // Persist the invoice doc in the background (for reports / history /
+        // invoiceId on the order). Non-blocking — the UI already has what it
+        // needs from the render endpoint.
+        apiClient.generateInvoice(orderId).catch((err) =>
+          console.warn('Invoice persistence (non-blocking):', err),
+        );
         return true;
-      } else {
-        console.error('Invoice generation failed:', response);
-        return false;
       }
+      console.error('Bill render fetch failed:', response);
+      return false;
     } catch (error) {
-      console.error('Error generating invoice:', error);
+      console.error('Error fetching bill render:', error);
       return false;
     }
   };

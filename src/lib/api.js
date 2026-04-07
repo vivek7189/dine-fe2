@@ -1987,6 +1987,18 @@ class ApiClient {
     });
   }
 
+  // Unified "ready-to-print" bill payload (restaurant + bill + printSettings
+  // + labels). Single source of truth shared between web bill summary, the
+  // electron KOT printer, and the android KOT printer so all three render
+  // identical bills. Public endpoint, scope-checked by restaurantId.
+  async getBillRender(restaurantId, orderId) {
+    return this.request(`/api/bill/render/${restaurantId}/${orderId}`);
+  }
+
+  async getKOTRender(restaurantId, orderId) {
+    return this.request(`/api/kot/render/${restaurantId}/${orderId}`);
+  }
+
   async getInvoice(invoiceId) {
     return this.request(`/api/invoice/${invoiceId}`);
   }

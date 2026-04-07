@@ -3132,9 +3132,32 @@ const KOTPrinterNote = ({ restaurantId }) => {
 
 // Invoice Modal Component
 const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrderTotal, formatDate }) => {
+  // Fetch unified bill render payload so on-screen invoice matches exactly
+  // what android/electron thermal printers show — same endpoint, same fields,
+  // same labels, same totals. Falls back to local computation on failure.
+  const [billRender, setBillRender] = useState(null);
+  useEffect(() => {
+    if (!order?.id || !order?.restaurantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.getBillRender(order.restaurantId, order.id);
+        if (!cancelled && res?.success && res.bill) setBillRender(res);
+      } catch (err) {
+        console.warn('Bill render fetch (falling back to local compute):', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [order?.id, order?.restaurantId]);
+
   if (!order) return null;
 
-  const btype = restaurant?.businessType || 'restaurant';
+  // Prefer server-assembled render payload when available, fall back to local.
+  const b = billRender?.bill;
+  const serverLabels = billRender?.labels;
+  const serverRestaurant = billRender?.restaurant;
+
+  const btype = (serverRestaurant || restaurant)?.businessType || 'restaurant';
   const invoiceLabels = {
     restaurant: { title: 'INVOICE', billTo: 'Bill To', itemCol: 'Item', footer: 'Thank you for your business!' },
     bar: { title: 'BAR TAB', billTo: 'Guest', itemCol: 'Drink / Item', footer: 'Thank you for visiting! Cheers!' },
@@ -3143,15 +3166,15 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
     cafe: { title: 'RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thanks for stopping by! See you soon.' },
     qsr: { title: 'ORDER RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thank you! Visit again.' }
   };
-  const iLabels = invoiceLabels[btype] || invoiceLabels.restaurant;
-  const orderTotal = calculateOrderTotal(order);
-  const subtotal = order.items?.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0) || 0;
-  const taxAmount = order.taxAmount || Math.max(0, orderTotal - subtotal);
-  const offerDiscount = order.discountAmount || 0;
-  const manualDiscountAmt = order.manualDiscount || 0;
-  const loyaltyDiscountAmt = order.loyaltyDiscount || 0;
-  const totalDiscount = offerDiscount + manualDiscountAmt + loyaltyDiscountAmt;
-  const invoiceNumber = order.dailyOrderId || order.orderNumber || (order.id ? order.id.slice(-4).toUpperCase() : 'N/A');
+  const iLabels = serverLabels || invoiceLabels[btype] || invoiceLabels.restaurant;
+  const orderTotal = b?.grandTotal ?? calculateOrderTotal(order);
+  const subtotal = b?.subtotal ?? (order.items?.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0) || 0);
+  const taxAmount = b?.totalTax ?? b?.taxAmount ?? order.taxAmount ?? Math.max(0, orderTotal - subtotal);
+  const offerDiscount = b?.discountAmount ?? order.discountAmount ?? 0;
+  const manualDiscountAmt = b?.manualDiscount ?? order.manualDiscount ?? 0;
+  const loyaltyDiscountAmt = b?.loyaltyDiscount ?? order.loyaltyDiscount ?? 0;
+  const totalDiscount = b?.totalDiscount ?? (offerDiscount + manualDiscountAmt + loyaltyDiscountAmt);
+  const invoiceNumber = b?.dailyOrderId || order.dailyOrderId || order.orderNumber || (order.id ? order.id.slice(-4).toUpperCase() : 'N/A');
   
   return (
     <>
