@@ -33,7 +33,9 @@ import {
   FaTag,
   FaMobileAlt,
   FaGift,
-  FaArrowRight
+  FaArrowRight,
+  FaLayerGroup,
+  FaEllipsisH
 } from 'react-icons/fa';
 
 // Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
@@ -341,6 +343,19 @@ const Customers = () => {
   const canAddCustomer = canPerform(custUserData, custPageAccess, 'customers', 'add');
   const canEditCustomer = canPerform(custUserData, custPageAccess, 'customers', 'update');
   const canDeleteCustomer = canPerform(custUserData, custPageAccess, 'customers', 'delete');
+
+  // Customer Groups state
+  const GROUP_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280'];
+  const [groups, setGroups] = useState([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [activeGroupId, setActiveGroupId] = useState(null);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [groupForm, setGroupForm] = useState({ name: '', description: '', color: GROUP_COLORS[0], icon: '' });
+  const [groupSaving, setGroupSaving] = useState(false);
+  const [groupMenuOpenId, setGroupMenuOpenId] = useState(null);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState([]);
+  const [showAddToGroupMenu, setShowAddToGroupMenu] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);

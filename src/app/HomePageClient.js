@@ -997,27 +997,6 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Trust Indicators */}
-            <div style={{ 
-            display: 'flex',
-            justifyContent: 'center',
-            gap: isMobile ? '24px' : '48px',
-            flexWrap: 'wrap',
-            animation: 'fade-in 0.8s ease-out 0.5s backwards'
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '900', color: '#111827' }}>500+</div>
-              <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>Restaurants</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '900', color: '#111827' }}>50K+</div>
-              <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>Orders/Month</div>
-                      </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '900', color: '#111827' }}>4.9★</div>
-              <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>Customer Rating</div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1757,38 +1736,52 @@ export default function LandingPage() {
             }}>
               {[
                 { key: 'monthly', label: 'Monthly' },
-                { key: 'annual', label: 'Annual — Save 17% 🎉', highlight: true }
+                { key: 'annual', label: 'Annual', badge: 'Save 17%' }
               ].map((opt) => {
                 const active = billingCycle === opt.key;
-                const isAnnual = opt.highlight;
                 return (
                   <button
                     key={opt.key}
                     onClick={() => setBillingCycle(opt.key)}
                     style={{
-                      padding: '10px 20px',
-                      borderRadius: '8px',
+                      position: 'relative',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
                       border: 'none',
-                      background: isAnnual
-                        ? (active
-                            ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
-                            : 'linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%)')
-                        : (active ? 'white' : 'transparent'),
-                      color: isAnnual ? 'white' : (active ? '#111827' : '#6b7280'),
-                      fontWeight: isAnnual ? '800' : '700',
+                      background: active
+                        ? 'linear-gradient(135deg, #111827 0%, #374151 100%)'
+                        : 'transparent',
+                      color: active ? 'white' : '#6b7280',
+                      fontWeight: '700',
                       fontSize: '14px',
                       cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      boxShadow: isAnnual
-                        ? (active
-                            ? '0 8px 24px rgba(16,185,129,0.55), 0 0 0 3px rgba(16,185,129,0.2)'
-                            : '0 6px 20px rgba(239,68,68,0.45)')
-                        : (active ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'),
-                      transform: isAnnual && active ? 'scale(1.08)' : 'scale(1)',
-                      animation: isAnnual && !active ? 'pulse-glow 2s ease-in-out infinite' : 'none'
+                      transition: 'all 0.25s ease',
+                      boxShadow: active
+                        ? '0 6px 18px rgba(17,24,39,0.25), 0 0 0 3px rgba(17,24,39,0.06)'
+                        : 'none',
+                      transform: active ? 'scale(1.04)' : 'scale(1)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}
                   >
                     {opt.label}
+                    {opt.badge && (
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        padding: '3px 8px',
+                        borderRadius: '20px',
+                        background: active
+                          ? 'linear-gradient(135deg, #34d399 0%, #10b981 100%)'
+                          : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                        color: 'white',
+                        letterSpacing: '0.3px',
+                        boxShadow: active ? '0 2px 8px rgba(16,185,129,0.4)' : '0 2px 6px rgba(245,158,11,0.3)'
+                      }}>
+                        {opt.badge}
+                      </span>
+                    )}
                   </button>
                 );
               })}
