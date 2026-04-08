@@ -40,6 +40,7 @@ export default function LandingPage() {
   const [demoSuccess, setDemoSuccess] = useState(false);
   const [demoError, setDemoError] = useState('');
   const [currency, setCurrency] = useState('USD');
+  const [billingCycle, setBillingCycle] = useState('monthly');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   
   useEffect(() => {
@@ -133,29 +134,62 @@ export default function LandingPage() {
   const currencySymbols = { USD: '$', GBP: '£', INR: '₹' };
   const currencyNames = { USD: 'USD', GBP: 'GBP', INR: 'INR' };
 
+  const priceTable = {
+    INR: {
+      symbol: '₹',
+      starter:  { monthly: 400,  annual: 333,  regular: 999 },
+      growth:   { monthly: 899,  annual: 749,  regular: 1999 },
+      pro:      { monthly: 1799, annual: 1499, regular: 3999 },
+    },
+    USD: {
+      symbol: '$',
+      starter:  { monthly: 10, annual: 8,  regular: 29 },
+      growth:   { monthly: 22, annual: 18, regular: 59 },
+      pro:      { monthly: 45, annual: 37, regular: 119 },
+    },
+    GBP: {
+      symbol: '£',
+      starter:  { monthly: 8,  annual: 7,  regular: 24 },
+      growth:   { monthly: 18, annual: 15, regular: 49 },
+      pro:      { monthly: 36, annual: 30, regular: 99 },
+    },
+  };
+  const fmt = (n) => priceTable[currency].symbol + n.toLocaleString('en-IN');
   const plans = [
     {
-      name: "Spark",
-      type: "spark",
-      price: currency === 'INR' ? '₹300' : currency === 'GBP' ? '£8' : '$9.99',
-      regularPrice: currency === 'INR' ? '₹999' : currency === 'GBP' ? '£24' : '$29.99',
-      discount: currency === 'INR' ? 70 : currency === 'GBP' ? 67 : 67,
+      name: "Starter",
+      type: "starter",
+      price: fmt(priceTable[currency].starter[billingCycle]),
+      regularPrice: fmt(priceTable[currency].starter.regular),
+      discount: Math.round((1 - priceTable[currency].starter[billingCycle] / priceTable[currency].starter.regular) * 100),
       period: 'per month',
-      subPrice: 'For any restaurant',
-      features: ["AI Agent (Voice & Chat)", "QR Code Digital Menu", "Complete POS System", "Unlimited Tables", "Real-time Kitchen Display", "Up to 3 Locations"],
-      button: "Start Free Trial",
+      subPrice: 'For single-outlet restaurants',
+      features: ["Complete Cloud POS", "QR Digital Menu & Ordering", "KOT Printing", "Unlimited Tables & Staff", "Basic Inventory & Reports", "1 Outlet"],
+      button: "Get Started",
+      popular: false
+    },
+    {
+      name: "Growth",
+      type: "growth",
+      price: fmt(priceTable[currency].growth[billingCycle]),
+      regularPrice: fmt(priceTable[currency].growth.regular),
+      discount: Math.round((1 - priceTable[currency].growth[billingCycle] / priceTable[currency].growth.regular) * 100),
+      period: 'per month',
+      subPrice: 'For growing restaurants',
+      features: ["Everything in Starter", "AI Voice Ordering 🎤", "AI Menu Generator & Insights", "Captain App + Kitchen Display", "Advanced Inventory & Recipes", "Customer Loyalty & WhatsApp", "Up to 2 Outlets"],
+      button: "Get Started",
       popular: true
     },
     {
-      name: "Blaze",
-      type: "blaze",
-      price: currency === 'INR' ? '₹2,500' : currency === 'GBP' ? '£72' : '$89',
-      regularPrice: currency === 'INR' ? '₹7,500' : currency === 'GBP' ? '£199' : '$249',
-      discount: currency === 'INR' ? 67 : currency === 'GBP' ? 64 : 64,
+      name: "Pro",
+      type: "pro",
+      price: fmt(priceTable[currency].pro[billingCycle]),
+      regularPrice: fmt(priceTable[currency].pro.regular),
+      discount: Math.round((1 - priceTable[currency].pro[billingCycle] / priceTable[currency].pro.regular) * 100),
       period: 'per month',
       subPrice: 'For restaurant chains',
-      features: ["Everything in Spark", "Unlimited Locations", "Chain Dashboard", "Cross-location Analytics", "Centralized Menu Management", "Priority 24/7 Support"],
-      button: "Start Free Trial",
+      features: ["Everything in Growth", "Chain Dashboard & HQ View", "Cross-Outlet Analytics", "Centralized Menu Management", "Priority 24/7 Support", "Up to 5 Outlets"],
+      button: "Get Started",
       popular: false
     }
   ];
@@ -1708,7 +1742,60 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '32px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: '40px'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '4px',
+              background: '#f3f4f6',
+              borderRadius: '12px'
+            }}>
+              {[
+                { key: 'monthly', label: 'Monthly' },
+                { key: 'annual', label: 'Annual — Save 17% 🎉', highlight: true }
+              ].map((opt) => {
+                const active = billingCycle === opt.key;
+                const isAnnual = opt.highlight;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setBillingCycle(opt.key)}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: isAnnual
+                        ? (active
+                            ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+                            : 'linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%)')
+                        : (active ? 'white' : 'transparent'),
+                      color: isAnnual ? 'white' : (active ? '#111827' : '#6b7280'),
+                      fontWeight: isAnnual ? '800' : '700',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      boxShadow: isAnnual
+                        ? (active
+                            ? '0 8px 24px rgba(16,185,129,0.55), 0 0 0 3px rgba(16,185,129,0.2)'
+                            : '0 6px 20px rgba(239,68,68,0.45)')
+                        : (active ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'),
+                      transform: isAnnual && active ? 'scale(1.08)' : 'scale(1)',
+                      animation: isAnnual && !active ? 'pulse-glow 2s ease-in-out infinite' : 'none'
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px' }}>
             {plans.map((plan, i) => (
               <div key={i} style={{
                 padding: '40px',
@@ -1745,7 +1832,8 @@ export default function LandingPage() {
                   <span style={{ fontSize: '16px', fontWeight: '500', opacity: 0.7 }}>/{plan.period.replace('per ', '')}</span>
                 </div>
                 <p style={{ opacity: 0.7, marginBottom: '8px', fontSize: '15px' }}>{plan.subPrice}</p>
-                <p style={{ fontSize: '12px', color: plan.popular ? '#6ee7b7' : '#16a34a', fontWeight: '600', marginBottom: '24px' }}>Lock this price forever. Pay once, keep your account active until you start. No recurring billing.</p>
+                <p style={{ fontSize: '12px', color: plan.popular ? '#6ee7b7' : '#16a34a', fontWeight: '600', marginBottom: '4px' }}>Lock this price forever. Pay once, keep your account active until you start. No recurring billing.</p>
+                <p style={{ fontSize: '12px', color: plan.popular ? 'rgba(255,255,255,0.65)' : '#6b7280', fontWeight: '500', marginBottom: '24px' }}>Start without any credit card • Zero transaction fees</p>
                 <button
                   onClick={handleLogin}
                   style={{

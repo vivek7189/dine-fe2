@@ -35,12 +35,8 @@ export default function USAPOSPage() {
       'DoorDash, Uber Eats, Grubhub ready',
       'Month-to-month billing, no contracts',
     ],
-    restaurants: '10,000+',
-    testimonial: {
-      quote: 'We switched from Square and saved over $5,000 in transaction fees last year. The AI voice ordering has sped up our drive-thru by 30%.',
-      author: 'Mike Johnson',
-      business: 'Burger Barn',
-    },
+    restaurants: 'independent',
+    testimonial: null,
     localKeywords: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami', 'San Francisco', 'Seattle', 'Austin', 'Denver', 'Boston'],
   };
 

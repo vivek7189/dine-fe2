@@ -101,6 +101,12 @@ export default function sitemap() {
       priority: 0.85,
     },
     {
+      url: `${baseUrl}/best-restaurant-pos-usa-2026`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    {
       url: `${baseUrl}/best-restaurant-pos-india`,
       lastModified: currentDate,
       changeFrequency: 'weekly',
@@ -330,6 +336,7 @@ export default function sitemap() {
     'thank-you-restaurant-heroes-2025',
     'why-qr-code-menus-are-essential-in-2024',
     'zero-transaction-fees-restaurant-pos',
+    'i-got-quoted-1200-month-for-toast-heres-what-i-built-instead',
   ].map((slug) => ({
     url: `${baseUrl}/blog/${slug}`,
     lastModified: currentDate,

@@ -250,9 +250,7 @@ const OrderHistory = () => {
       const loginId = staff.loginId || null;
       const staffId = staff.waiterId || staff.id || staff.userId || null;
       const display = hasRealName ? rawName : (phone || loginId || (staffId ? staffId.slice(-6) : null));
-      const roleLabel = staff.role === 'owner' ? 'Owner' : (staff.role === 'admin' ? 'Admin' : 'Staff');
-      const parts = [roleLabel, display].filter(Boolean).join(' · ');
-      return { label: parts, className: 'bg-slate-100 text-slate-700 border-slate-300' };
+      return { label: display, className: 'bg-slate-100 text-slate-700 border-slate-300' };
     }
     // Explicit source or inferred from notes (legacy orders from public online page)
     if (src === 'online_order' || looksLikePublicOnline) return { label: 'Online order', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
