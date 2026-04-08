@@ -14,9 +14,77 @@ import {
   FaGift,
   FaCog,
   FaSave,
+  FaUsers,
+  FaUser,
+  FaGlobe,
+  FaStar,
+  FaLayerGroup,
+  FaExchangeAlt,
+  FaSearch,
+  FaArrowLeft,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+
+// Lightweight searchable multi-select for menu items
+const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'Pick items' }) => {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const filtered = q
+    ? items.filter(it => (it.name || '').toLowerCase().includes(q.toLowerCase()))
+    : items;
+  const selectedItems = items.filter(it => selected.includes(it.id));
+  const toggle = (id) => {
+    const next = selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id];
+    onChange(next);
+  };
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
+        {selectedItems.length === 0 && (
+          <span style={{ fontSize: '11px', color: '#9ca3af' }}>None selected</span>
+        )}
+        {selectedItems.map(it => (
+          <span key={it.id} style={{ padding: '3px 8px', backgroundColor: '#f3f4f6', borderRadius: '12px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {it.name}
+            <button type="button" onClick={() => toggle(it.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#6b7280' }}>
+              <FaTimes size={9} />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div style={{ position: 'relative' }}>
+        <input
+          type="text"
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
+        />
+        {open && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', maxHeight: '180px', overflowY: 'auto', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '10px', fontSize: '12px', color: '#9ca3af' }}>No matches</div>
+            ) : filtered.slice(0, 50).map(it => {
+              const isSel = selected.includes(it.id);
+              return (
+                <label key={it.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer', backgroundColor: isSel ? '#fdf2f8' : 'transparent' }}>
+                  <input type="checkbox" checked={isSel} onChange={() => toggle(it.id)} style={{ accentColor: '#ec4899' }} />
+                  <span style={{ fontSize: '13px', color: '#1f2937' }}>{it.name}</span>
+                  {it._categoryName && <span style={{ fontSize: '10px', color: '#9ca3af' }}>· {it._categoryName}</span>}
+                </label>
+              );
+            })}
+            <div style={{ padding: '6px 10px', borderTop: '1px solid #f3f4f6', textAlign: 'right' }}>
+              <button type="button" onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: '11px', cursor: 'pointer' }}>Close</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = null, restaurants = [] }) => {
   const router = useRouter();
@@ -27,7 +95,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [isMobile, setIsMobile] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [offers, setOffers] = useState([]);
-  const [showModal, setShowModal] = useState(false);
+  const [view, setView] = useState('list'); // 'list' | 'builder'
   const [editingOffer, setEditingOffer] = useState(null);
   const [offerSettings, setOfferSettings] = useState({
     autoApplyBestOffer: false,
@@ -57,9 +125,23 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     bogoConfig: null,
     eventLabel: '',
     targetRestaurants: 'all',
+    // Phase 5 extended fields
+    audience: { type: 'all', groupIds: [], customerIds: [], customerPhones: [] },
+    tiers: [],
+    crossItemBogo: { enabled: false, buyItemIds: [], buyCategoryIds: [], buyQty: 1, getItemIds: [], getQty: 1, maxApplications: null },
+    usageLimitPerCustomer: null,
+    priority: 0,
+    // Internal UI flag: one of 'simple' | 'tiered' | 'bogo_same' | 'bogo_cross'
+    discountMode: 'simple',
   };
 
   const [formData, setFormData] = useState(emptyOffer);
+  const [customerGroups, setCustomerGroups] = useState([]);
+  const [customersList, setCustomersList] = useState([]);
+  const [customersLoaded, setCustomersLoaded] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [menuItems, setMenuItems] = useState([]);
+  const [menuLoaded, setMenuLoaded] = useState(false);
   const [offerErrors, setOfferErrors] = useState({
     maxOffersAllowed: '',
     discountValue: '',
@@ -111,13 +193,15 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
   const loadOffers = async (id) => {
     try {
-      // Load offers and settings in parallel
-      const [offersResponse, settingsResponse] = await Promise.all([
+      // Load offers, settings, and customer groups in parallel
+      const [offersResponse, settingsResponse, groupsResponse] = await Promise.all([
         apiClient.get(`/api/offers/${id}`),
-        apiClient.get(`/api/restaurants/${id}/customer-app-settings`)
+        apiClient.get(`/api/restaurants/${id}/customer-app-settings`),
+        apiClient.request(`/api/customer-groups/${id}`).catch(() => ({ groups: [] })),
       ]);
 
       setOffers(offersResponse.offers || []);
+      setCustomerGroups(groupsResponse?.groups || []);
 
       // Load offer settings
       if (settingsResponse?.settings?.offerSettings) {
@@ -127,6 +211,46 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       console.error('Error loading offers:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const ensureCustomersLoaded = async () => {
+    if (customersLoaded) return;
+    const id = getRestaurantId();
+    if (!id) return;
+    try {
+      const resp = await apiClient.getCustomers(id, 1, 500, '');
+      setCustomersList(resp.customers || []);
+      setCustomersLoaded(true);
+    } catch (e) {
+      console.error('Failed to load customers', e);
+      setCustomersLoaded(true);
+    }
+  };
+
+  const ensureMenuLoaded = async () => {
+    if (menuLoaded) return;
+    const id = getRestaurantId();
+    if (!id) return;
+    try {
+      const resp = await apiClient.getMenu(id);
+      // Flatten: menu may be categories with items, or an items array
+      let items = [];
+      if (Array.isArray(resp?.items)) items = resp.items;
+      else if (Array.isArray(resp?.menu)) {
+        resp.menu.forEach(cat => {
+          if (Array.isArray(cat.items)) items.push(...cat.items.map(it => ({ ...it, _categoryName: cat.name || cat.category })));
+        });
+      } else if (Array.isArray(resp)) {
+        resp.forEach(cat => {
+          if (Array.isArray(cat.items)) items.push(...cat.items.map(it => ({ ...it, _categoryName: cat.name || cat.category })));
+        });
+      }
+      setMenuItems(items);
+      setMenuLoaded(true);
+    } catch (e) {
+      console.error('Failed to load menu', e);
+      setMenuLoaded(true);
     }
   };
 
@@ -171,19 +295,44 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     }
   };
 
+  const inferDiscountMode = (offer) => {
+    if (offer?.crossItemBogo?.enabled) return 'bogo_cross';
+    if (Array.isArray(offer?.tiers) && offer.tiers.length > 0) return 'tiered';
+    if (offer?.promotionType === 'bogo') return 'bogo_same';
+    return 'simple';
+  };
+
   const handleOpenModal = (offer = null) => {
     if (offer) {
       setEditingOffer(offer);
       setFormData({
+        ...emptyOffer,
         ...offer,
         validFrom: offer.validFrom ? new Date(offer.validFrom).toISOString().split('T')[0] : '',
         validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().split('T')[0] : '',
+        audience: offer.audience || { type: offer.isFirstOrderOnly ? 'first_order' : 'all', groupIds: [], customerIds: [], customerPhones: [] },
+        tiers: Array.isArray(offer.tiers) ? offer.tiers : [],
+        crossItemBogo: offer.crossItemBogo || { enabled: false, buyItemIds: [], buyCategoryIds: [], buyQty: 1, getItemIds: [], getQty: 1, maxApplications: null },
+        usageLimitPerCustomer: offer.usageLimitPerCustomer ?? null,
+        priority: offer.priority ?? 0,
+        discountMode: inferDiscountMode(offer),
       });
     } else {
       setEditingOffer(null);
       setFormData(emptyOffer);
     }
-    setShowModal(true);
+    setView('builder');
+    // Warm up lazy caches in background
+    ensureCustomersLoaded();
+    ensureMenuLoaded();
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  const closeBuilder = () => {
+    setEditingOffer(null);
+    setFormData(emptyOffer);
+    setCustomerSearch('');
+    setView('list');
   };
 
   const handleSave = async () => {
@@ -200,13 +349,34 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
     setSaving(true);
     try {
+      // Build payload: strip UI-only flag, normalize sections based on discountMode
+      const { discountMode, ...rest } = formData;
+      const payload = { ...rest };
+      if (discountMode === 'simple') {
+        payload.tiers = [];
+        payload.crossItemBogo = { ...payload.crossItemBogo, enabled: false };
+        if (payload.promotionType === 'bogo') payload.promotionType = 'discount';
+      } else if (discountMode === 'tiered') {
+        payload.crossItemBogo = { ...payload.crossItemBogo, enabled: false };
+        if (payload.promotionType === 'bogo') payload.promotionType = 'discount';
+      } else if (discountMode === 'bogo_same') {
+        payload.tiers = [];
+        payload.crossItemBogo = { ...payload.crossItemBogo, enabled: false };
+        payload.promotionType = 'bogo';
+      } else if (discountMode === 'bogo_cross') {
+        payload.tiers = [];
+        payload.crossItemBogo = { ...payload.crossItemBogo, enabled: true };
+      }
+      // Sync first-order flag with audience for back-compat with older engine bits
+      payload.isFirstOrderOnly = payload.audience?.type === 'first_order';
+
       if (editingOffer) {
-        await apiClient.put(`/api/offers/${currentRestaurantId}/${editingOffer.id}`, formData);
+        await apiClient.put(`/api/offers/${currentRestaurantId}/${editingOffer.id}`, payload);
       } else {
-        await apiClient.post(`/api/offers/${currentRestaurantId}`, formData);
+        await apiClient.post(`/api/offers/${currentRestaurantId}`, payload);
       }
       await loadOffers(currentRestaurantId);
-      setShowModal(false);
+      closeBuilder();
     } catch (error) {
       console.error('Error saving offer:', error);
       alert('Failed to save offer');
@@ -258,6 +428,51 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     return `Rs. ${offer.discountValue} OFF`;
   };
 
+  const getAudienceBadge = (offer) => {
+    const a = offer.audience;
+    if (!a || !a.type || a.type === 'all') return { label: 'Everyone', bg: '#e0f2fe', fg: '#0369a1', icon: <FaGlobe size={10} /> };
+    if (a.type === 'first_order') return { label: 'First order', bg: '#f3e8ff', fg: '#7c3aed', icon: <FaStar size={10} /> };
+    if (a.type === 'groups') {
+      const n = (a.groupIds || []).length;
+      return { label: `${n} group${n !== 1 ? 's' : ''}`, bg: '#fef3c7', fg: '#92400e', icon: <FaUsers size={10} /> };
+    }
+    if (a.type === 'customers') {
+      const n = (a.customerIds || []).length + (a.customerPhones || []).length;
+      return { label: `${n} customer${n !== 1 ? 's' : ''}`, bg: '#dcfce7', fg: '#166534', icon: <FaUser size={10} /> };
+    }
+    return { label: 'Everyone', bg: '#e0f2fe', fg: '#0369a1', icon: <FaGlobe size={10} /> };
+  };
+
+  const getTierSummary = (offer) => {
+    if (!Array.isArray(offer.tiers) || offer.tiers.length === 0) return null;
+    const list = offer.tiers
+      .slice()
+      .sort((a, b) => (a.minSubtotal || 0) - (b.minSubtotal || 0))
+      .map(t => `Rs.${t.minSubtotal || 0}+`)
+      .join(', ');
+    return `${offer.tiers.length} tier${offer.tiers.length !== 1 ? 's' : ''} · ${list}`;
+  };
+
+  // Approximate customer count for audience preview
+  const getAudienceReachEstimate = () => {
+    const a = formData.audience || { type: 'all' };
+    if (a.type === 'all') return 'all customers';
+    if (a.type === 'first_order') return 'first-time customers only';
+    if (a.type === 'groups') {
+      const selected = (a.groupIds || []);
+      const total = selected.reduce((sum, gid) => {
+        const g = customerGroups.find(g => g.id === gid);
+        return sum + (g?.customerCount || 0);
+      }, 0);
+      return `~${total} customer${total !== 1 ? 's' : ''} across ${selected.length} group${selected.length !== 1 ? 's' : ''}`;
+    }
+    if (a.type === 'customers') {
+      const n = (a.customerIds || []).length + (a.customerPhones || []).length;
+      return `${n} specific customer${n !== 1 ? 's' : ''}`;
+    }
+    return '';
+  };
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fef7f0' }}>
@@ -269,6 +484,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   return (
     <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '16px' : '24px' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        {view === 'list' && (
+        <>
         {/* Header */}
         <div style={{
           backgroundColor: 'white',
@@ -526,7 +743,70 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                           fontSize: '12px',
                           fontWeight: '500'
                         }}>
-                          📍 {offer.targetRestaurants.length} restaurant{offer.targetRestaurants.length > 1 ? 's' : ''}
+                          {offer.targetRestaurants.length} restaurant{offer.targetRestaurants.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {(() => {
+                        const ab = getAudienceBadge(offer);
+                        return (
+                          <span style={{
+                            padding: '4px 10px',
+                            backgroundColor: ab.bg,
+                            color: ab.fg,
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}>
+                            {ab.icon}
+                            {ab.label}
+                          </span>
+                        );
+                      })()}
+                      {Array.isArray(offer.tiers) && offer.tiers.length > 0 && (
+                        <span style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#ecfeff',
+                          color: '#0e7490',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}>
+                          <FaLayerGroup size={10} />
+                          {getTierSummary(offer)}
+                        </span>
+                      )}
+                      {offer.crossItemBogo?.enabled && (
+                        <span style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#fef2f2',
+                          color: '#b91c1c',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}>
+                          <FaExchangeAlt size={10} />
+                          Buy {offer.crossItemBogo.buyQty || 1} · Get {offer.crossItemBogo.getQty || 1} free
+                        </span>
+                      )}
+                      {typeof offer.priority === 'number' && offer.priority !== 0 && (
+                        <span style={{
+                          padding: '2px 8px',
+                          backgroundColor: '#f3f4f6',
+                          color: '#4b5563',
+                          borderRadius: '10px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                        }}>
+                          P{offer.priority}
                         </span>
                       )}
                     </div>
@@ -598,42 +878,92 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
             ))}
           </div>
         )}
-      </div>
+        </>
+        )}
 
-      {/* Modal */}
-      {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '16px'
-        }}>
+        {view === 'builder' && (
           <div style={{
             backgroundColor: 'white',
             borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '500px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflow: 'auto'
+            padding: isMobile ? '16px' : '24px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            border: '1px solid #fce7f3',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
-                {editingOffer ? 'Edit Offer' : 'Create Offer'}
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}
-              >
-                <FaTimes size={20} color="#6b7280" />
-              </button>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '24px',
+              gap: '12px',
+              flexWrap: 'wrap',
+              position: 'sticky',
+              top: 0,
+              backgroundColor: 'white',
+              paddingBottom: '12px',
+              borderBottom: '1px solid #f3f4f6',
+              zIndex: 2,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <button
+                  onClick={closeBuilder}
+                  style={{
+                    background: '#f3f4f6',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: '#374151',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                  }}
+                >
+                  <FaArrowLeft size={12} /> Back to offers
+                </button>
+                <h2 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: '600', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {editingOffer ? `Edit Offer${formData.name ? ': ' + formData.name : ''}` : 'Create Offer'}
+                </h2>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={closeBuilder}
+                  style={{
+                    padding: '10px 16px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{
+                    padding: '10px 18px',
+                    backgroundColor: saving ? '#9ca3af' : '#ec4899',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: '600',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
+                  }}
+                >
+                  <FaSave size={12} />
+                  {saving ? 'Saving...' : 'Save Offer'}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -850,41 +1180,213 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 )}
               </div>
 
-              {/* Promotion Type */}
+              {/* Priority */}
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Promotion Type
+                  Priority
                 </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="number"
+                  value={formData.priority ?? 0}
+                  onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value, 10) || 0 }))}
+                  style={{
+                    width: '120px',
+                    padding: '10px 12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="0"
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
+                  Higher priority offers are evaluated first when multiple match
+                </p>
+              </div>
+
+              {/* Discount Mode 4-card picker */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Discount Type
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '8px' }}>
                   {[
-                    { value: 'discount', label: 'Discount' },
-                    { value: 'bogo', label: 'BOGO' },
-                    { value: 'event', label: 'Event' }
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, promotionType: opt.value }))}
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        borderRadius: '8px',
-                        border: formData.promotionType === opt.value ? '2px solid #ec4899' : '2px solid #e5e7eb',
-                        backgroundColor: formData.promotionType === opt.value ? '#fdf2f8' : 'white',
-                        color: formData.promotionType === opt.value ? '#be185d' : '#6b7280',
-                        fontWeight: '600',
-                        fontSize: '13px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                    { value: 'simple', label: 'Simple', desc: 'Flat or %', icon: <FaPercent /> },
+                    { value: 'tiered', label: 'Tiered', desc: 'Spend more, save more', icon: <FaLayerGroup /> },
+                    { value: 'bogo_same', label: 'BOGO', desc: 'Same item', icon: <FaGift /> },
+                    { value: 'bogo_cross', label: 'Cross BOGO', desc: 'Buy X, get Y', icon: <FaExchangeAlt /> },
+                  ].map(opt => {
+                    const selected = formData.discountMode === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          discountMode: opt.value,
+                          promotionType: opt.value === 'bogo_same' ? 'bogo' : (prev.promotionType === 'bogo' ? 'discount' : prev.promotionType),
+                          tiers: opt.value === 'tiered' && (!prev.tiers || prev.tiers.length === 0)
+                            ? [{ minSubtotal: 500, discountType: 'percentage', discountValue: 10 }]
+                            : prev.tiers,
+                          crossItemBogo: opt.value === 'bogo_cross'
+                            ? { ...(prev.crossItemBogo || {}), enabled: true, buyQty: prev.crossItemBogo?.buyQty || 1, getQty: prev.crossItemBogo?.getQty || 1 }
+                            : { ...(prev.crossItemBogo || { buyItemIds: [], getItemIds: [] }), enabled: false },
+                        }))}
+                        style={{
+                          padding: '12px 8px',
+                          borderRadius: '10px',
+                          border: selected ? '2px solid #ec4899' : '2px solid #e5e7eb',
+                          backgroundColor: selected ? '#fdf2f8' : 'white',
+                          color: selected ? '#be185d' : '#6b7280',
+                          fontWeight: 600,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '6px',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <span style={{ fontSize: '18px' }}>{opt.icon}</span>
+                        <span>{opt.label}</span>
+                        <span style={{ fontSize: '10px', fontWeight: 500, color: selected ? '#be185d' : '#9ca3af' }}>{opt.desc}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* BOGO Config */}
-              {formData.promotionType === 'bogo' && (
+              {/* Tiered discount rows */}
+              {formData.discountMode === 'tiered' && (
+                <div style={{ padding: '12px', backgroundColor: '#ecfeff', borderRadius: '8px', border: '1px solid #a5f3fc' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#0e7490', marginBottom: '8px' }}>
+                    Spend Tiers
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(formData.tiers || []).map((tier, idx) => (
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: '#0e7490', marginBottom: '2px' }}>Min Subtotal</label>
+                          <input
+                            type="number"
+                            value={tier.minSubtotal ?? 0}
+                            onChange={(e) => {
+                              const v = parseFloat(e.target.value) || 0;
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, minSubtotal: v } : t) }));
+                            }}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #67e8f9', fontSize: '14px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: '#0e7490', marginBottom: '2px' }}>Type</label>
+                          <select
+                            value={tier.discountType || 'percentage'}
+                            onChange={(e) => setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, discountType: e.target.value } : t) }))}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #67e8f9', fontSize: '14px', boxSizing: 'border-box', backgroundColor: 'white' }}
+                          >
+                            <option value="percentage">%</option>
+                            <option value="flat">Flat</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: '#0e7490', marginBottom: '2px' }}>Value</label>
+                          <input
+                            type="number"
+                            value={tier.discountValue ?? 0}
+                            onChange={(e) => {
+                              const v = parseFloat(e.target.value) || 0;
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, discountValue: v } : t) }));
+                            }}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #67e8f9', fontSize: '14px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, tiers: prev.tiers.filter((_, i) => i !== idx) }))}
+                          style={{ marginTop: '14px', padding: '8px', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Remove tier"
+                        >
+                          <FaTrash color="#dc2626" size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      tiers: [...(prev.tiers || []), { minSubtotal: ((prev.tiers?.slice(-1)?.[0]?.minSubtotal) || 0) + 500, discountType: 'percentage', discountValue: 10 }]
+                    }))}
+                    style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: 'white', border: '1.5px dashed #0e7490', borderRadius: '6px', cursor: 'pointer', color: '#0e7490', fontSize: '12px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <FaPlus size={10} /> Add tier
+                  </button>
+                </div>
+              )}
+
+              {/* Cross-item BOGO config */}
+              {formData.discountMode === 'bogo_cross' && (
+                <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#b91c1c', marginBottom: '8px' }}>
+                    Cross-item BOGO
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Qty</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.crossItemBogo?.buyQty || 1}
+                        onChange={(e) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, buyQty: parseInt(e.target.value, 10) || 1 } }))}
+                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Get Qty (free)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.crossItemBogo?.getQty || 1}
+                        onChange={(e) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, getQty: parseInt(e.target.value, 10) || 1 } }))}
+                        style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Items</label>
+                    <ItemMultiPicker
+                      items={menuItems}
+                      selected={formData.crossItemBogo?.buyItemIds || []}
+                      onChange={(ids) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, buyItemIds: ids } }))}
+                      placeholder="Pick items customer must buy"
+                    />
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Get Items (free)</label>
+                    <ItemMultiPicker
+                      items={menuItems}
+                      selected={formData.crossItemBogo?.getItemIds || []}
+                      onChange={(ids) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, getItemIds: ids } }))}
+                      placeholder="Pick free items"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Max Applications (per order)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.crossItemBogo?.maxApplications || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, maxApplications: e.target.value === '' ? null : (parseInt(e.target.value, 10) || 1) } }))}
+                      placeholder="Unlimited"
+                      style={{ width: '160px', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* BOGO Config (same item) */}
+              {formData.discountMode === 'bogo_same' && (
                 <div style={{ padding: '12px', backgroundColor: '#fdf2f8', borderRadius: '8px', border: '1px solid #fce7f3' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#831843', marginBottom: '8px' }}>
                     BOGO Configuration
@@ -1148,6 +1650,182 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 )}
               </div>
 
+              {/* Audience */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Audience
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '8px' }}>
+                  {[
+                    { value: 'all', label: 'Everyone', icon: <FaGlobe /> },
+                    { value: 'first_order', label: 'First-time', icon: <FaStar /> },
+                    { value: 'groups', label: 'Groups', icon: <FaUsers /> },
+                    { value: 'customers', label: 'Customers', icon: <FaUser /> },
+                  ].map(opt => {
+                    const selected = (formData.audience?.type || 'all') === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          audience: { ...(prev.audience || {}), type: opt.value, groupIds: prev.audience?.groupIds || [], customerIds: prev.audience?.customerIds || [], customerPhones: prev.audience?.customerPhones || [] },
+                          isFirstOrderOnly: opt.value === 'first_order',
+                        }))}
+                        style={{
+                          padding: '12px 8px',
+                          borderRadius: '10px',
+                          border: selected ? '2px solid #ec4899' : '2px solid #e5e7eb',
+                          backgroundColor: selected ? '#fdf2f8' : 'white',
+                          color: selected ? '#be185d' : '#6b7280',
+                          fontWeight: 600,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span style={{ fontSize: '16px' }}>{opt.icon}</span>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Group multi-select */}
+                {formData.audience?.type === 'groups' && (
+                  <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#fefce8', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                    {customerGroups.length === 0 ? (
+                      <p style={{ fontSize: '12px', color: '#92400e', margin: 0 }}>
+                        No customer groups yet. Create groups from the Customers page.
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {customerGroups.map(g => {
+                          const isSel = (formData.audience?.groupIds || []).includes(g.id);
+                          return (
+                            <button
+                              key={g.id}
+                              type="button"
+                              onClick={() => {
+                                const cur = formData.audience?.groupIds || [];
+                                const next = isSel ? cur.filter(x => x !== g.id) : [...cur, g.id];
+                                setFormData(prev => ({ ...prev, audience: { ...prev.audience, groupIds: next } }));
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '20px',
+                                border: isSel ? `2px solid ${g.color || '#ec4899'}` : '1.5px solid #d1d5db',
+                                backgroundColor: isSel ? (g.color ? `${g.color}22` : '#fdf2f8') : 'white',
+                                color: isSel ? (g.color || '#be185d') : '#374151',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}
+                            >
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: g.color || '#ec4899' }} />
+                              {g.name}
+                              <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7 }}>({g.customerCount || 0})</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Customer multi-select */}
+                {formData.audience?.type === 'customers' && (
+                  <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ position: 'relative', marginBottom: '8px' }}>
+                      <input
+                        type="text"
+                        value={typeof customerSearch === 'string' ? customerSearch : ''}
+                        onChange={(e) => setCustomerSearch(String(e.target.value || ''))}
+                        placeholder="Search by name or phone"
+                        style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: '6px', border: '1px solid #bbf7d0', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                      <FaSearch size={12} color="#16a34a" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+                    </div>
+                    {!customersLoaded ? (
+                      <p style={{ fontSize: '12px', color: '#16a34a', margin: 0 }}>Loading customers...</p>
+                    ) : customersList.length === 0 ? (
+                      <p style={{ fontSize: '12px', color: '#16a34a', margin: 0 }}>No customers yet.</p>
+                    ) : (
+                      <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {customersList
+                          .filter(c => {
+                            if (!customerSearch) return true;
+                            const q = customerSearch.toLowerCase();
+                            return (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q);
+                          })
+                          .slice(0, 100)
+                          .map(c => {
+                            const isSel = (formData.audience?.customerIds || []).includes(c.id);
+                            return (
+                              <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', borderRadius: '6px', backgroundColor: isSel ? '#dcfce7' : 'transparent', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSel}
+                                  onChange={() => {
+                                    const cur = formData.audience?.customerIds || [];
+                                    const next = isSel ? cur.filter(x => x !== c.id) : [...cur, c.id];
+                                    setFormData(prev => ({ ...prev, audience: { ...prev.audience, customerIds: next } }));
+                                  }}
+                                  style={{ accentColor: '#16a34a' }}
+                                />
+                                <span style={{ fontSize: '13px', color: '#1f2937', fontWeight: 500 }}>{typeof c.name === 'string' && c.name ? c.name : 'Unnamed'}</span>
+                                <span style={{ fontSize: '11px', color: '#6b7280' }}>{typeof c.phone === 'string' ? c.phone : ''}</span>
+                              </label>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Eligibility preview */}
+              <div style={{ padding: '10px 14px', backgroundColor: '#eef2ff', borderRadius: '8px', border: '1px solid #c7d2fe' }}>
+                <p style={{ fontSize: '12px', color: '#4338ca', margin: 0 }}>
+                  <strong>Reach preview:</strong> This offer will apply to {getAudienceReachEstimate()}.
+                </p>
+              </div>
+
+              {/* Per-customer usage limit */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Max uses per customer
+                </label>
+                <input
+                  type="text"
+                  value={formData.usageLimitPerCustomer ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '' || /^\d+$/.test(v)) {
+                      setFormData(prev => ({ ...prev, usageLimitPerCustomer: v === '' ? null : parseInt(v, 10) }));
+                    }
+                  }}
+                  placeholder="Unlimited"
+                  style={{
+                    width: '160px',
+                    padding: '10px 12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
+                  Limit how many times each customer can redeem this offer
+                </p>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <input
@@ -1182,7 +1860,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={closeBuilder}
                   style={{
                     flex: 1,
                     padding: '14px',
@@ -1215,8 +1893,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

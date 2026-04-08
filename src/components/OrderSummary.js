@@ -177,7 +177,19 @@ const OrderSummary = ({
     offerDiscount, selectedOfferName, resetOffers,
     autoApplied, firstOrderOfferRejected,
     offerSettings, loyaltySettings,
-  } = useOfferEngine({ restaurantId, cart, subtotal: getTotalAmount(), customerInfo: customerData, taxSettings });
+    freeItems,
+  } = useOfferEngine({
+    restaurantId,
+    cart,
+    subtotal: getTotalAmount(),
+    customerInfo: customerData,
+    taxSettings,
+    customerContext: customerData ? {
+      customerId: customerData.id,
+      customerPhone: customerData.phone,
+      isFirstOrder: customerData.isFirstOrder,
+    } : null,
+  });
 
   // Manual Discount State (kept local — not part of offer engine)
   const [manualDiscountValue, setManualDiscountValue] = useState('');
@@ -2295,11 +2307,15 @@ const OrderSummary = ({
                         const oid = offer.id || offer._id;
                         const isMulti = offerSettings?.allowMultipleOffers;
                         const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
-                        const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                        const requiresLogin = offer._requiresLogin;
+                        const saves = requiresLogin ? 0 : calculateDiscountForOffer(offer, getTotalAmount(), cart);
                         return (
                           <button
                             key={oid}
+                            disabled={requiresLogin}
+                            title={requiresLogin ? 'Login required to claim' : ''}
                             onClick={() => {
+                              if (requiresLogin) return;
                               if (isMulti) {
                                 toggleOffer(oid);
                               } else {
@@ -2309,21 +2325,32 @@ const OrderSummary = ({
                             style={{
                               padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
                               border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e5e7eb',
-                              background: isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff',
-                              color: isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280',
-                              cursor: 'pointer', whiteSpace: 'nowrap',
+                              background: requiresLogin ? '#fef3c7' : (isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff'),
+                              color: requiresLogin ? '#92400e' : (isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280'),
+                              cursor: requiresLogin ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
                               display: 'flex', alignItems: 'center', gap: '3px',
-                              transition: 'all 0.15s'
+                              transition: 'all 0.15s',
+                              opacity: requiresLogin ? 0.85 : 1,
                             }}
                           >
                             {isSelected && <FaCheckCircle size={8} />}
                             <FaTag size={7} />
                             {offer.name}
                             {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
+                            {requiresLogin && <span style={{ fontSize: '8px' }}>🔒 Login</span>}
                             {isSelected && autoApplied && <span style={{ fontSize: '8px' }}>Auto</span>}
                           </button>
                         );
                       })}
+                      {freeItems && freeItems.length > 0 && (
+                        <span style={{
+                          padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                          background: '#fef3c7', color: '#78350f', border: '1px dashed #f59e0b',
+                          display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap'
+                        }}>
+                          <FaGift size={8} /> Free: {freeItems.map(f => `${f.qty}× ${f.itemId}`).join(', ')}
+                        </span>
+                      )}
                     </div>
                   )}
                   {firstOrderOfferRejected && (

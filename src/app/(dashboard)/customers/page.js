@@ -464,8 +464,163 @@ const Customers = () => {
   useEffect(() => {
     if (restaurantId) {
       loadCustomers(true); // Use cache
+      loadGroups();
     }
   }, [restaurantId]);
+
+  // Groups API helpers
+  const loadGroups = async () => {
+    if (!restaurantId) return;
+    try {
+      setGroupsLoading(true);
+      const resp = await apiClient.request(`/api/customer-groups/${restaurantId}`);
+      setGroups(resp.groups || []);
+    } catch (err) {
+      console.error('Error loading groups:', err);
+    } finally {
+      setGroupsLoading(false);
+    }
+  };
+
+  const openNewGroupModal = (prefillCustomerIds = null) => {
+    setEditingGroup(null);
+    setGroupForm({
+      name: '',
+      description: '',
+      color: GROUP_COLORS[0],
+      icon: '',
+      _prefillCustomerIds: prefillCustomerIds
+    });
+    setShowGroupModal(true);
+  };
+
+  const openEditGroupModal = (group) => {
+    setEditingGroup(group);
+    setGroupForm({
+      name: group.name || '',
+      description: group.description || '',
+      color: group.color || GROUP_COLORS[0],
+      icon: group.icon || ''
+    });
+    setShowGroupModal(true);
+    setGroupMenuOpenId(null);
+  };
+
+  const closeGroupModal = () => {
+    setShowGroupModal(false);
+    setEditingGroup(null);
+    setGroupForm({ name: '', description: '', color: GROUP_COLORS[0], icon: '' });
+  };
+
+  const saveGroup = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!groupForm.name || !groupForm.name.trim()) {
+      alert('Group name is required');
+      return;
+    }
+    try {
+      setGroupSaving(true);
+      if (editingGroup) {
+        const resp = await apiClient.request(`/api/customer-groups/${restaurantId}/${editingGroup.id}`, {
+          method: 'PATCH',
+          body: {
+            name: groupForm.name.trim(),
+            description: groupForm.description || '',
+            color: groupForm.color,
+            icon: groupForm.icon || ''
+          }
+        });
+        // optimistic update
+        setGroups(prev => prev.map(g => g.id === editingGroup.id ? { ...g, ...(resp.group || {}), name: groupForm.name.trim(), description: groupForm.description, color: groupForm.color, icon: groupForm.icon } : g));
+      } else {
+        const prefillIds = groupForm._prefillCustomerIds;
+        let customerIds = [];
+        let customerPhones = [];
+        if (prefillIds && prefillIds.length > 0) {
+          customerIds = prefillIds;
+          customerPhones = customers.filter(c => prefillIds.includes(c.id)).map(c => c.phone).filter(Boolean);
+        }
+        const resp = await apiClient.request(`/api/customer-groups/${restaurantId}`, {
+          method: 'POST',
+          body: {
+            name: groupForm.name.trim(),
+            description: groupForm.description || '',
+            color: groupForm.color,
+            icon: groupForm.icon || '',
+            customerIds,
+            customerPhones
+          }
+        });
+        if (resp.group) {
+          setGroups(prev => [...prev, resp.group]);
+        } else {
+          loadGroups();
+        }
+        if (prefillIds && prefillIds.length > 0) {
+          setSelectedCustomerIds([]);
+        }
+      }
+      closeGroupModal();
+    } catch (err) {
+      console.error('Error saving group:', err);
+      alert('Failed to save group: ' + (err.message || 'Unknown error'));
+    } finally {
+      setGroupSaving(false);
+    }
+  };
+
+  const deleteGroup = async (group) => {
+    if (!confirm(`Delete group "${group.name}"? This cannot be undone.`)) return;
+    try {
+      await apiClient.request(`/api/customer-groups/${restaurantId}/${group.id}`, { method: 'DELETE' });
+      setGroups(prev => prev.filter(g => g.id !== group.id));
+      if (activeGroupId === group.id) setActiveGroupId(null);
+      setGroupMenuOpenId(null);
+    } catch (err) {
+      console.error('Error deleting group:', err);
+      alert('Failed to delete group');
+    }
+  };
+
+  const addSelectedToGroup = async (groupId) => {
+    if (selectedCustomerIds.length === 0) return;
+    const customerIds = selectedCustomerIds.slice();
+    const customerPhones = customers.filter(c => customerIds.includes(c.id)).map(c => c.phone).filter(Boolean);
+    try {
+      await apiClient.request(`/api/customer-groups/${restaurantId}/${groupId}/members`, {
+        method: 'POST',
+        body: { customerIds, customerPhones }
+      });
+      // optimistic
+      setGroups(prev => prev.map(g => {
+        if (g.id !== groupId) return g;
+        const newIds = Array.from(new Set([...(g.customerIds || []), ...customerIds]));
+        const newPhones = Array.from(new Set([...(g.customerPhones || []), ...customerPhones]));
+        return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length };
+      }));
+      setSelectedCustomerIds([]);
+      setShowAddToGroupMenu(false);
+    } catch (err) {
+      console.error('Error adding to group:', err);
+      alert('Failed to add customers to group');
+    }
+  };
+
+  // Returns array of groups the given customer belongs to
+  const getCustomerGroups = (customer) => {
+    if (!groups || groups.length === 0) return [];
+    const cid = customer.id;
+    const cphone = customer.phone;
+    return groups.filter(g => {
+      if (cid && g.customerIds && g.customerIds.includes(cid)) return true;
+      if (cphone && g.customerPhones && g.customerPhones.includes(cphone)) return true;
+      return false;
+    });
+  };
+
+  const toggleCustomerSelect = (customerId) => {
+    setSelectedCustomerIds(prev => prev.includes(customerId) ? prev.filter(id => id !== customerId) : [...prev, customerId]);
+  };
 
   // Listen for restaurant changes
   useEffect(() => {
@@ -704,7 +859,16 @@ const Customers = () => {
   };
 
   // Sort customers (search is handled server-side)
+  const activeGroup = activeGroupId ? groups.find(g => g.id === activeGroupId) : null;
   const filteredCustomers = [...customers]
+    .filter(c => {
+      if (!activeGroup) return true;
+      const ids = activeGroup.customerIds || [];
+      const phones = activeGroup.customerPhones || [];
+      if (c.id && ids.includes(c.id)) return true;
+      if (c.phone && phones.includes(c.phone)) return true;
+      return false;
+    })
     .sort((a, b) => {
       let aValue = a[sortBy];
       let bValue = b[sortBy];
@@ -1092,6 +1256,184 @@ const Customers = () => {
 
           {engagementTab === 'customers' && (
           <>
+          {/* Customer Groups */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: isMobile ? '10px 12px' : '14px 16px',
+            marginBottom: isMobile ? '12px' : '16px',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <FaLayerGroup size={13} style={{ color: '#6b7280' }} />
+              <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#374151' }}>Groups</h3>
+              {activeGroup && (
+                <button
+                  onClick={() => setActiveGroupId(null)}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '2px 8px',
+                    background: '#f3f4f6',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '11px',
+                    color: '#6b7280',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: '4px',
+              scrollbarWidth: 'thin'
+            }}>
+              {groupsLoading && groups.length === 0 ? (
+                <span style={{ fontSize: '12px', color: '#9ca3af' }}>Loading groups...</span>
+              ) : groups.length === 0 ? (
+                <span style={{ fontSize: '12px', color: '#9ca3af', alignSelf: 'center' }}>
+                  No groups yet. Create one to segment your customers.
+                </span>
+              ) : (
+                groups.map((g) => {
+                  const isActive = activeGroupId === g.id;
+                  return (
+                    <div key={g.id} style={{ position: 'relative', flexShrink: 0 }}>
+                      <button
+                        onClick={() => setActiveGroupId(isActive ? null : g.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 10px 6px 12px',
+                          borderRadius: '999px',
+                          border: 'none',
+                          background: g.color || '#6b7280',
+                          color: 'white',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          boxShadow: isActive ? `0 0 0 3px ${(g.color || '#6b7280')}40` : 'none',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {g.icon && <span style={{ fontSize: '13px' }}>{g.icon}</span>}
+                        <span>{g.name}</span>
+                        <span style={{
+                          background: 'rgba(255,255,255,0.25)',
+                          padding: '1px 6px',
+                          borderRadius: '8px',
+                          fontSize: '10px'
+                        }}>
+                          {g.customerCount ?? (g.customerIds || []).length}
+                        </span>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setGroupMenuOpenId(groupMenuOpenId === g.id ? null : g.id);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginLeft: '2px',
+                            padding: '2px',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <FaEllipsisH size={10} />
+                        </span>
+                      </button>
+                      {groupMenuOpenId === g.id && (
+                        <div
+                          onMouseLeave={() => setGroupMenuOpenId(null)}
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: 0,
+                            marginTop: '4px',
+                            background: 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            zIndex: 30,
+                            minWidth: '120px',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <button
+                            onClick={() => openEditGroupModal(g)}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              background: 'white',
+                              border: 'none',
+                              textAlign: 'left',
+                              fontSize: '13px',
+                              color: '#374151',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <FaEdit size={11} /> Edit
+                          </button>
+                          <button
+                            onClick={() => deleteGroup(g)}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              background: 'white',
+                              border: 'none',
+                              borderTop: '1px solid #f3f4f6',
+                              textAlign: 'left',
+                              fontSize: '13px',
+                              color: '#dc2626',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <FaTrash size={11} /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+              <button
+                onClick={() => openNewGroupModal()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 12px',
+                  borderRadius: '999px',
+                  border: '1px dashed #d1d5db',
+                  background: '#f9fafb',
+                  color: '#374151',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <FaPlus size={10} /> New Group
+              </button>
+            </div>
+          </div>
+
           {/* Search and Filters */}
           <div style={{
             backgroundColor: 'white',
@@ -1182,7 +1524,10 @@ const Customers = () => {
           }}>
             {filteredCustomers.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {filteredCustomers.map((customer, index) => (
+                {filteredCustomers.map((customer, index) => {
+                  const isSelected = selectedCustomerIds.includes(customer.id);
+                  const custGroups = getCustomerGroups(customer);
+                  return (
                   <div key={customer.id} style={{
                     padding: isMobile ? '12px' : '20px',
                     borderBottom: index < filteredCustomers.length - 1 ? '1px solid #f3f4f6' : 'none',
@@ -1190,8 +1535,17 @@ const Customers = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
-                    gap: isMobile ? '8px' : '16px'
+                    gap: isMobile ? '8px' : '16px',
+                    backgroundColor: isSelected ? '#fef2f2' : 'transparent'
                   }}>
+                    {/* Select checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleCustomerSelect(customer.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444' }}
+                    />
                     {/* Customer Info - Clickable */}
                     <div
                       style={{
@@ -1249,6 +1603,26 @@ const Customers = () => {
                               </span>
                             )}
                           </div>
+                          {custGroups.length > 0 && (
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                              {custGroups.map(g => (
+                                <span key={g.id} style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '10px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  background: (g.color || '#6b7280') + '20',
+                                  color: g.color || '#6b7280',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}>
+                                  {g.icon && <span>{g.icon}</span>}
+                                  {g.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1374,7 +1748,8 @@ const Customers = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: isMobile ? '40px 16px' : '60px 20px' }}>
@@ -1648,6 +2023,327 @@ const Customers = () => {
         />
       )}
       {showOrderHistory && <OrderHistoryModal />}
+
+      {/* Floating selection action bar */}
+      {selectedCustomerIds.length > 0 && engagementTab === 'customers' && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? '16px' : '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#111827',
+          color: 'white',
+          borderRadius: '12px',
+          padding: isMobile ? '10px 14px' : '12px 18px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          zIndex: 40,
+          flexWrap: 'wrap',
+          maxWidth: 'calc(100vw - 32px)'
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: '600' }}>
+            {selectedCustomerIds.length} selected
+          </span>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowAddToGroupMenu(v => !v)}
+              style={{
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              Add to group <span style={{ fontSize: '9px' }}>▾</span>
+            </button>
+            {showAddToGroupMenu && (
+              <div style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                marginBottom: '6px',
+                background: 'white',
+                color: '#374151',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                minWidth: '180px',
+                maxHeight: '240px',
+                overflowY: 'auto',
+                zIndex: 41
+              }}>
+                {groups.length === 0 ? (
+                  <div style={{ padding: '10px 12px', fontSize: '12px', color: '#9ca3af' }}>
+                    No groups yet
+                  </div>
+                ) : (
+                  groups.map(g => (
+                    <button
+                      key={g.id}
+                      onClick={() => addSelectedToGroup(g.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '8px 12px',
+                        background: 'white',
+                        border: 'none',
+                        borderBottom: '1px solid #f3f4f6',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        textAlign: 'left',
+                        color: '#374151'
+                      }}
+                    >
+                      <span style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        background: g.color || '#6b7280',
+                        display: 'inline-block'
+                      }} />
+                      {g.icon && <span>{g.icon}</span>}
+                      <span>{g.name}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => { setShowAddToGroupMenu(false); openNewGroupModal(selectedCustomerIds.slice()); }}
+            style={{
+              background: 'transparent',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            + New group with selected
+          </button>
+          <button
+            onClick={() => { setSelectedCustomerIds([]); setShowAddToGroupMenu(false); }}
+            style={{
+              background: 'transparent',
+              color: '#d1d5db',
+              border: 'none',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* Group Create/Edit Modal */}
+      {showGroupModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 60,
+          padding: isMobile ? '16px' : '32px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            width: '100%',
+            maxWidth: isMobile ? '100%' : '460px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>
+                {editingGroup ? 'Edit Group' : 'New Customer Group'}
+              </h2>
+              <button
+                onClick={closeGroupModal}
+                style={{
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#6b7280',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <FaTimes size={14} />
+              </button>
+            </div>
+            <form onSubmit={saveGroup} style={{ padding: '24px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Name <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={groupForm.name}
+                  onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
+                  placeholder="e.g. VIPs, Regulars, Birthday Club"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: '#f9fafb'
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Description
+                </label>
+                <textarea
+                  value={groupForm.description}
+                  onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
+                  placeholder="Optional description"
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: '#f9fafb',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Color
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {GROUP_COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setGroupForm({ ...groupForm, color: c })}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: c,
+                        border: 'none',
+                        cursor: 'pointer',
+                        boxShadow: groupForm.color === c ? `0 0 0 3px ${c}50, 0 0 0 5px white inset` : 'none',
+                        outline: groupForm.color === c ? `2px solid ${c}` : 'none'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Icon (emoji, optional)
+                </label>
+                <input
+                  type="text"
+                  value={groupForm.icon}
+                  onChange={(e) => setGroupForm({ ...groupForm, icon: e.target.value })}
+                  placeholder="⭐ 🎂 🍕"
+                  maxLength={4}
+                  style={{
+                    width: '100px',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '18px',
+                    outline: 'none',
+                    backgroundColor: '#f9fafb',
+                    textAlign: 'center'
+                  }}
+                />
+              </div>
+              {groupForm._prefillCustomerIds && groupForm._prefillCustomerIds.length > 0 && (
+                <div style={{
+                  padding: '10px 12px',
+                  backgroundColor: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  color: '#0369a1',
+                  marginBottom: '16px'
+                }}>
+                  {groupForm._prefillCustomerIds.length} customer(s) will be added to this group.
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={closeGroupModal}
+                  style={{
+                    padding: '10px 18px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={groupSaving}
+                  style={{
+                    padding: '10px 18px',
+                    backgroundColor: '#111827',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    border: 'none',
+                    cursor: groupSaving ? 'not-allowed' : 'pointer',
+                    opacity: groupSaving ? 0.7 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {groupSaving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                  {editingGroup ? 'Update' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

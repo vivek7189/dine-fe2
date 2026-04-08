@@ -4,16 +4,140 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import apiClient from '../lib/api';
 
 /**
+ * Normalize a phone number to the last 10 digits for matching.
+ */
+const normalizePhone = (phone) => {
+  if (phone === null || phone === undefined || phone === '') return null;
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length <= 10) return digits;
+  return digits.slice(-10);
+};
+
+/**
+ * Audience matcher mirroring backend services/offerEngine.js.
+ * context: { customerId, customerPhone, customerGroupIds, isFirstOrder }
+ */
+export const matchesAudience = (offer, context = {}) => {
+  const legacyFirstOrder = offer.isFirstOrderOnly === true;
+  const audience = offer.audience || (legacyFirstOrder ? { type: 'first_order' } : { type: 'all' });
+  const type = audience.type || 'all';
+
+  if (type === 'all') return true;
+  if (type === 'first_order') return context.isFirstOrder === true;
+
+  if (type === 'groups') {
+    const offerGroups = Array.isArray(audience.groupIds) ? audience.groupIds : [];
+    if (offerGroups.length === 0) return false;
+    const custGroups = Array.isArray(context.customerGroupIds) ? context.customerGroupIds : [];
+    if (custGroups.length === 0) return false;
+    return offerGroups.some(gid => custGroups.includes(gid));
+  }
+
+  if (type === 'customers') {
+    const custIds = Array.isArray(audience.customerIds) ? audience.customerIds : [];
+    const custPhones = Array.isArray(audience.customerPhones)
+      ? audience.customerPhones.map(normalizePhone).filter(Boolean)
+      : [];
+    if (context.customerId && custIds.includes(context.customerId)) return true;
+    const normPhone = normalizePhone(context.customerPhone);
+    if (normPhone && custPhones.includes(normPhone)) return true;
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Resolve tier (highest minSubtotal <= subtotal).
+ */
+const resolveTier = (offer, subtotal) => {
+  if (!Array.isArray(offer.tiers) || offer.tiers.length === 0) return null;
+  const sorted = [...offer.tiers]
+    .filter(t => t && typeof t.minSubtotal === 'number')
+    .sort((a, b) => a.minSubtotal - b.minSubtotal);
+  let matched = null;
+  for (const tier of sorted) {
+    if (subtotal >= tier.minSubtotal) matched = tier;
+  }
+  return matched;
+};
+
+/**
+ * Cross-item BOGO calculator — returns { discount, freeItems }.
+ */
+const calculateCrossItemBogo = (offer, cart) => {
+  const cfg = offer.crossItemBogo;
+  if (!cfg || !cfg.enabled) return { discount: 0, freeItems: [] };
+
+  const buyItemIds = Array.isArray(cfg.buyItemIds) ? cfg.buyItemIds : [];
+  const buyCategoryIds = Array.isArray(cfg.buyCategoryIds) ? cfg.buyCategoryIds : [];
+  const getItemIds = Array.isArray(cfg.getItemIds) ? cfg.getItemIds : [];
+  const buyQty = Number(cfg.buyQty) || 1;
+  const getQty = Number(cfg.getQty) || 1;
+  const maxApps = cfg.maxApplications != null ? Number(cfg.maxApplications) : Infinity;
+
+  if (buyQty <= 0 || getQty <= 0 || getItemIds.length === 0) {
+    return { discount: 0, freeItems: [] };
+  }
+
+  let buyUnits = 0;
+  for (const item of cart) {
+    const id = item.menuItemId || item.id;
+    const cat = (item.category || item.categoryId || '').toString();
+    const qty = item.quantity || 0;
+    const matchById = buyItemIds.length > 0 && buyItemIds.includes(id);
+    const matchByCat = buyCategoryIds.length > 0 && buyCategoryIds.includes(cat);
+    if (matchById || matchByCat) buyUnits += qty;
+  }
+
+  const applications = Math.min(Math.floor(buyUnits / buyQty), maxApps);
+  if (applications <= 0) return { discount: 0, freeItems: [] };
+
+  const pool = [];
+  for (const item of cart) {
+    const id = item.menuItemId || item.id;
+    if (!getItemIds.includes(id)) continue;
+    const qty = item.quantity || 0;
+    const price = item.price || 0;
+    for (let i = 0; i < qty; i++) pool.push({ itemId: id, price });
+  }
+  pool.sort((a, b) => a.price - b.price);
+
+  const totalFreeUnitsWanted = applications * getQty;
+  const taken = pool.slice(0, totalFreeUnitsWanted);
+  if (taken.length === 0) return { discount: 0, freeItems: [] };
+
+  const agg = new Map();
+  let discount = 0;
+  for (const u of taken) {
+    discount += u.price;
+    const key = `${u.itemId}:${u.price}`;
+    if (!agg.has(key)) agg.set(key, { itemId: u.itemId, qty: 0, unitPrice: u.price });
+    agg.get(key).qty += 1;
+  }
+
+  return {
+    discount: Math.round(discount * 100) / 100,
+    freeItems: Array.from(agg.values()),
+  };
+};
+
+/**
  * Calculate discount for a single offer against the given cart/subtotal.
  * Pure function — no side effects.
+ *
+ * Back-compat: returns a Number by default (legacy callers) but exposes
+ * freeItems + appliedTier via the `.freeItems` / `.appliedTier` props on the
+ * returned Number wrapper-object behavior — to keep perfect back-compat we
+ * return a primitive Number and provide a sibling helper `calculateOfferResult`
+ * that returns the full object shape.
  */
-export const calculateDiscountForOffer = (offer, subtotal, cart = []) => {
-  if (!offer || subtotal <= 0) return 0;
+export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) => {
+  if (!offer || subtotal <= 0) return { discount: 0, freeItems: [], appliedTier: null };
 
   const offerScope = offer.scope || 'order';
   let applicableSubtotal = subtotal;
 
-  // Scoped subtotals
   if (offerScope === 'category' && Array.isArray(offer.targetCategories) && offer.targetCategories.length > 0) {
     applicableSubtotal = cart
       .filter(item => offer.targetCategories.some(c => c.toLowerCase() === (item.category || '').toLowerCase()))
@@ -24,9 +148,14 @@ export const calculateDiscountForOffer = (offer, subtotal, cart = []) => {
       .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
   }
 
-  if (applicableSubtotal <= 0) return 0;
+  // Tier override
+  const appliedTier = resolveTier(offer, subtotal);
+  const effectiveDiscountType = appliedTier ? appliedTier.discountType : offer.discountType;
+  const effectiveDiscountValue = appliedTier ? Number(appliedTier.discountValue) : (offer.discountValue || 0);
 
-  // BOGO calculation
+  let baseDiscount = 0;
+
+  // Legacy same-item BOGO
   if (offer.promotionType === 'bogo' && offer.bogoConfig) {
     const bogoItems = offerScope === 'item' && offer.targetItems?.length > 0
       ? cart.filter(item => offer.targetItems.includes(item.menuItemId || item.id))
@@ -38,20 +167,31 @@ export const calculateDiscountForOffer = (offer, subtotal, cart = []) => {
     const sets = Math.floor(totalQty / (buyQty + getQty));
     if (sets > 0 && bogoItems.length > 0) {
       const cheapestPrice = Math.min(...bogoItems.map(item => item.price || 0));
-      return Math.round(sets * getQty * cheapestPrice * (getDiscount / 100) * 100) / 100;
+      baseDiscount = Math.round(sets * getQty * cheapestPrice * (getDiscount / 100) * 100) / 100;
     }
-    return 0;
+  } else if (applicableSubtotal > 0) {
+    if (effectiveDiscountType === 'percentage') {
+      let disc = (applicableSubtotal * effectiveDiscountValue) / 100;
+      if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
+      baseDiscount = Math.round(disc * 100) / 100;
+    } else {
+      baseDiscount = Math.round(Math.min(effectiveDiscountValue, applicableSubtotal) * 100) / 100;
+    }
   }
 
-  // Percentage discount
-  if (offer.discountType === 'percentage') {
-    let disc = (applicableSubtotal * (offer.discountValue || 0)) / 100;
-    if (offer.maxDiscount && disc > offer.maxDiscount) disc = offer.maxDiscount;
-    return Math.round(disc * 100) / 100;
-  }
+  // Cross-item BOGO additive
+  const cross = calculateCrossItemBogo(offer, cart);
+  const totalDiscount = Math.round((baseDiscount + cross.discount) * 100) / 100;
 
-  // Flat discount
-  return Math.round(Math.min(offer.discountValue || 0, applicableSubtotal) * 100) / 100;
+  return { discount: totalDiscount, freeItems: cross.freeItems, appliedTier };
+};
+
+/**
+ * Legacy signature — returns a primitive number. Third-arg `cart`, optional
+ * 4th-arg `context`. All existing call-sites continue to work unchanged.
+ */
+export const calculateDiscountForOffer = (offer, subtotal, cart = [], context = {}) => {
+  return calculateOfferResult(offer, subtotal, cart, context).discount;
 };
 
 /**
@@ -153,7 +293,7 @@ const getNextScheduleTransition = (offers) => {
   return minMs;
 };
 
-const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = null, taxSettings = null }) => {
+const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = null, taxSettings = null, customerContext = null }) => {
   const [allOffers, setAllOffers] = useState([]);
   const [offerSettings, setOfferSettings] = useState({
     autoApplyBestOffer: false,
@@ -180,6 +320,57 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
   const wasManuallySelectedRef = useRef(false);
   const prevRestaurantIdRef = useRef(null);
+  const [customerGroupIds, setCustomerGroupIds] = useState([]);
+  const groupLookupCacheRef = useRef({}); // key: `${rid}|${phone}|${cid}` -> groupIds
+
+  // Resolve final context (merge customerInfo.isFirstOrder if only customerInfo passed)
+  const resolvedContext = useMemo(() => {
+    if (!customerContext && !customerInfo) return null;
+    const ctx = { ...(customerContext || {}) };
+    if (customerInfo && ctx.isFirstOrder === undefined && customerInfo.isFirstOrder !== undefined) {
+      ctx.isFirstOrder = customerInfo.isFirstOrder;
+    }
+    if (customerInfo && !ctx.customerPhone && customerInfo.phone) {
+      ctx.customerPhone = customerInfo.phone;
+    }
+    if (customerInfo && !ctx.customerId && customerInfo.id) {
+      ctx.customerId = customerInfo.id;
+    }
+    ctx.customerGroupIds = customerGroupIds;
+    return ctx;
+  }, [customerContext, customerInfo, customerGroupIds]);
+
+  // Load customer groups when context known
+  useEffect(() => {
+    if (!restaurantId) return;
+    const phone = customerContext?.customerPhone || customerInfo?.phone;
+    const cid = customerContext?.customerId || customerInfo?.id;
+    if (!phone && !cid) {
+      setCustomerGroupIds([]);
+      return;
+    }
+    const cacheKey = `${restaurantId}|${phone || ''}|${cid || ''}`;
+    if (groupLookupCacheRef.current[cacheKey]) {
+      setCustomerGroupIds(groupLookupCacheRef.current[cacheKey]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+        if (phone) params.set('phone', phone);
+        if (cid) params.set('customerId', cid);
+        const res = await apiClient.request(`/api/customer-groups/lookup/${restaurantId}?${params.toString()}`, { method: 'GET' }).catch(() => null);
+        const groups = res?.groups || [];
+        const ids = groups.map(g => g.id).filter(Boolean);
+        groupLookupCacheRef.current[cacheKey] = ids;
+        if (!cancelled) setCustomerGroupIds(ids);
+      } catch (_) {
+        if (!cancelled) setCustomerGroupIds([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [restaurantId, customerContext?.customerPhone, customerContext?.customerId, customerInfo?.phone, customerInfo?.id]);
 
   // Load offers when restaurantId changes
   useEffect(() => {
@@ -267,37 +458,65 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   const applicableOffers = useMemo(() => {
     if (!allOffers.length) return [];
 
-    const result = allOffers.filter(offer => {
+    const hasContext = !!resolvedContext;
+
+    const result = [];
+    for (const offer of allOffers) {
       // Schedule check (happy hour, recurring)
-      if (!isScheduleValid(offer)) return false;
+      if (!isScheduleValid(offer)) continue;
+      if (!isDateValid(offer)) continue;
+      if (offer.minOrderValue && subtotal < offer.minOrderValue) continue;
+      if (offer.isFirstOrderOnly && customerInfo && customerInfo.isFirstOrder === false) continue;
 
-      // Date range check
-      if (!isDateValid(offer)) return false;
-
-      // Min order value check
-      if (offer.minOrderValue && subtotal < offer.minOrderValue) return false;
-
-      // First order check
-      if (offer.isFirstOrderOnly && customerInfo && customerInfo.isFirstOrder === false) return false;
-
-      // Scope check — for category/item scoped offers, verify cart has matching items
+      // Scope check
       if (offer.scope === 'category' && Array.isArray(offer.targetCategories) && offer.targetCategories.length > 0) {
         const hasMatchingItem = cart.some(item =>
           offer.targetCategories.some(c => c.toLowerCase() === (item.category || '').toLowerCase())
         );
-        if (!hasMatchingItem) return false;
+        if (!hasMatchingItem) continue;
       }
       if (offer.scope === 'item' && Array.isArray(offer.targetItems) && offer.targetItems.length > 0) {
         const hasMatchingItem = cart.some(item =>
           offer.targetItems.includes(item.menuItemId || item.id)
         );
-        if (!hasMatchingItem) return false;
+        if (!hasMatchingItem) continue;
       }
 
-      return true;
-    });
+      // Audience filtering
+      const audienceType = offer.audience?.type || (offer.isFirstOrderOnly ? 'first_order' : 'all');
+      const isPublicAudience = audienceType === 'all' || audienceType === 'first_order';
+
+      if (hasContext) {
+        if (!matchesAudience(offer, resolvedContext)) continue;
+        result.push(offer);
+      } else {
+        if (isPublicAudience) {
+          // first_order without context: show but note eligibility unknown
+          result.push(offer);
+        } else {
+          // targeted audience, no login — mark requires login
+          result.push({ ...offer, _requiresLogin: true });
+        }
+      }
+    }
     return result;
-  }, [allOffers, subtotal, cart, customerInfo, scheduleCheckKey]);
+  }, [allOffers, subtotal, cart, customerInfo, scheduleCheckKey, resolvedContext]);
+
+  // Compute freeItems from currently applied offer(s) via cross-item BOGO
+  const freeItems = useMemo(() => {
+    const activeIds = offerSettings.allowMultipleOffers && selectedOfferIds.length > 0
+      ? selectedOfferIds
+      : (selectedOfferId ? [selectedOfferId] : []);
+    if (activeIds.length === 0) return [];
+    const all = [];
+    for (const oid of activeIds) {
+      const offer = allOffers.find(o => (o.id || o._id) === oid);
+      if (!offer) continue;
+      const res = calculateOfferResult(offer, subtotal, cart, resolvedContext || {});
+      if (res.freeItems && res.freeItems.length) all.push(...res.freeItems);
+    }
+    return all;
+  }, [selectedOfferId, selectedOfferIds, allOffers, subtotal, cart, offerSettings.allowMultipleOffers, resolvedContext]);
 
   // Update discount when selected offers or subtotal changes
   useEffect(() => {
@@ -354,7 +573,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     let bestOffer = null;
     let bestDiscount = 0;
     for (const offer of applicableOffers) {
-      const disc = calculateDiscountForOffer(offer, subtotal, cart);
+      if (offer._requiresLogin) continue;
+      const disc = calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
       if (disc > bestDiscount) {
         bestDiscount = disc;
         bestOffer = offer;
@@ -462,6 +682,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     offerSettings,
     loyaltySettings,
     calculateDiscountForOffer,
+    freeItems,
+    customerGroupIds,
   };
 };
 

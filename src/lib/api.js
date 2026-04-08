@@ -2661,6 +2661,13 @@ class ApiClient {
     });
   }
 
+  // Public customer-groups lookup (phone -> groups) for offer audience unlock.
+  async lookupPublicCustomerGroups(restaurantId, phone) {
+    const p = phone == null ? '' : String(phone).trim();
+    const qs = new URLSearchParams({ phone: p }).toString();
+    return this.request(`/api/public/customer-groups/lookup/${restaurantId}?${qs}`);
+  }
+
   // Get customer loyalty history (public) - for showing points history
   async getCustomerLoyaltyHistory(customerId, page = 1, limit = 20, type = 'all') {
     return this.request(`/api/public/customer/${customerId}/loyalty-history?page=${page}&limit=${limit}&type=${type}`);

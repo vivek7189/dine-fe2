@@ -7,6 +7,7 @@ import ImageCarousel from '../../components/ImageCarousel';
 import UpiPaymentModal from '../../components/UpiPaymentModal';
 import apiClient from '../../lib/api.js';
 import { getDisplayImage } from '../../utils/placeholderImages';
+import { calculateDiscountForOffer, calculateOfferResult, matchesAudience } from '../../hooks/useOfferEngine';
 
 // Try to import Firebase modules with error handling
 let firebaseAuth = null;
@@ -220,6 +221,15 @@ const PlaceOrderContent = () => {
   const [showUpiModal, setShowUpiModal] = useState(false);
   const [upiOrderAmount, setUpiOrderAmount] = useState(0);
 
+  // Phase 4: phone-login gate + audience context for targeted offers
+  const [customerPhoneForOffers, setCustomerPhoneForOffers] = useState('');
+  const [customerGroupIds, setCustomerGroupIds] = useState([]);
+  const [showPhoneGate, setShowPhoneGate] = useState(false);
+  const [phoneGateInput, setPhoneGateInput] = useState('');
+  const [phoneGateLoading, setPhoneGateLoading] = useState(false);
+  const [unlockToast, setUnlockToast] = useState('');
+  const [prevUnlockedIds, setPrevUnlockedIds] = useState([]);
+
   // Derived values
   const restaurantId = searchParams.get('restaurant') || 'default';
   const seatNumber = searchParams.get('seat') || '';
@@ -346,6 +356,53 @@ const PlaceOrderContent = () => {
     loadData();
   }, [restaurantId]);
 
+  // Phase 4: phone-login gate helpers
+  const normalizePhoneForOffers = (raw) => {
+    if (!raw) return '';
+    const digits = String(raw).replace(/\D/g, '');
+    return digits.length > 10 ? digits.slice(-10) : digits;
+  };
+
+  // Load cached phone on mount
+  useEffect(() => {
+    if (!restaurantId || restaurantId === 'default') return;
+    try {
+      const cached = localStorage.getItem(`dineopen_placeorder_phone_${restaurantId}`);
+      if (cached) {
+        setCustomerPhoneForOffers(cached);
+      }
+    } catch (_) {}
+  }, [restaurantId]);
+
+  // Fetch customer groups whenever phone is known
+  useEffect(() => {
+    if (!restaurantId || restaurantId === 'default') return;
+    const phone = normalizePhoneForOffers(customerPhoneForOffers);
+    if (!phone) {
+      setCustomerGroupIds([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.lookupPublicCustomerGroups(restaurantId, phone);
+        if (cancelled) return;
+        const ids = (res?.groups || []).map(g => g.id).filter(Boolean);
+        setCustomerGroupIds(ids);
+      } catch (_) {
+        if (!cancelled) setCustomerGroupIds([]);
+      }
+      // Also lookup customer record (for isFirstOrder) — non-blocking
+      try {
+        const lookup = await apiClient.lookupCustomerByPhone(restaurantId, phone);
+        if (!cancelled && lookup?.customer) {
+          setCustomerData(lookup.customer);
+        }
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [restaurantId, customerPhoneForOffers]);
+
   // Schedule validation helpers
   const isScheduleValid = (offer) => {
     if (!offer.schedule || offer.schedule.type !== 'recurring') return true;
@@ -409,14 +466,51 @@ const PlaceOrderContent = () => {
     return () => clearTimeout(timer);
   }, [offers, scheduleCheckKey]);
 
-  // Compute applicable offers - filter by schedule, first-order, etc.
-  const applicableOffers = offers.filter(offer => {
-    if (!isScheduleValid(offer)) return false;
-    if (offer.isFirstOrderOnly && customerData && customerData.isFirstOrder === false) {
-      return false;
+  // Build customer context for offer engine (phone, id, groups, isFirstOrder)
+  const customerContext = (() => {
+    const phone = normalizePhoneForOffers(customerPhoneForOffers || customerInfo.phone);
+    const ctx = {
+      customerPhone: phone || undefined,
+      customerId: customerData?.id,
+      customerGroupIds,
+      isFirstOrder: customerData?.isFirstOrder,
+    };
+    return (phone || customerData?.id) ? ctx : null;
+  })();
+  const hasAudienceContext = !!customerContext;
+
+  // Compute applicable offers - filter by schedule, first-order, audience
+  const applicableOffers = offers.reduce((acc, offer) => {
+    if (!isScheduleValid(offer)) return acc;
+    if (offer.isFirstOrderOnly && customerData && customerData.isFirstOrder === false) return acc;
+
+    const audienceType = offer.audience?.type || (offer.isFirstOrderOnly ? 'first_order' : 'all');
+    const isPublicAudience = audienceType === 'all' || audienceType === 'first_order';
+
+    if (hasAudienceContext) {
+      if (!matchesAudience(offer, customerContext)) return acc;
+      acc.push(offer);
+    } else if (isPublicAudience) {
+      acc.push(offer);
+    } else {
+      // Targeted offer, no phone context — expose as locked
+      acc.push({ ...offer, _requiresLogin: true });
     }
-    return true;
-  });
+    return acc;
+  }, []);
+
+  // Toast when new offers get unlocked after phone-gate login
+  const unlockedCount = applicableOffers.filter(o => !o._requiresLogin).length;
+  useEffect(() => {
+    setPrevUnlockedIds(prev => {
+      if (prev.length && unlockedCount > prev.length) {
+        const diff = unlockedCount - prev.length;
+        setUnlockToast(`🎉 ${diff} new offer${diff > 1 ? 's' : ''} unlocked!`);
+        setTimeout(() => setUnlockToast(''), 4000);
+      }
+      return new Array(unlockedCount);
+    });
+  }, [unlockedCount]);
 
   // Auto-apply best offer(s) ONLY ONCE on initial load when cart has items
   // After auto-apply, user has full control to select/deselect offers
@@ -439,7 +533,7 @@ const PlaceOrderContent = () => {
 
     // Calculate discount for each applicable offer and sort by best discount
     const offersWithDiscount = applicableOffers
-      .filter(offer => subtotal >= (offer.minOrderValue || 0))
+      .filter(offer => !offer._requiresLogin && subtotal >= (offer.minOrderValue || 0))
       .map(offer => {
         let discount = 0;
         if (offer.discountType === 'percentage') {
@@ -508,47 +602,40 @@ const PlaceOrderContent = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // Calculate offer discount (supports multiple offers, scope-aware)
+  // Calculate offer discount via shared engine (audience/tiers/cross-item BOGO aware)
   const getOfferDiscount = () => {
     if (!selectedOffers || selectedOffers.length === 0) return 0;
     const subtotal = getCartSubtotal();
     let totalDiscount = 0;
-
     for (const offer of selectedOffers) {
-      // Calculate applicable subtotal based on scope
-      let applicableSubtotal = subtotal;
-      if (offer.scope === 'category' && offer.targetCategories?.length) {
-        applicableSubtotal = cart.reduce((sum, item) => {
-          if (offer.targetCategories.some(c => c.toLowerCase() === (item.category || '').toLowerCase())) {
-            return sum + (item.price * item.quantity);
-          }
-          return sum;
-        }, 0);
-      } else if (offer.scope === 'item' && offer.targetItems?.length) {
-        applicableSubtotal = cart.reduce((sum, item) => {
-          if (offer.targetItems.includes(item.id)) {
-            return sum + (item.price * item.quantity);
-          }
-          return sum;
-        }, 0);
-      }
-
-      if (applicableSubtotal < (offer.minOrderValue || 0)) continue;
+      if (offer._requiresLogin) continue;
+      if (subtotal < (offer.minOrderValue || 0)) continue;
       if (offer.isFirstOrderOnly && customerData && !customerData.isFirstOrder) continue;
-
-      let discount = 0;
-      if (offer.discountType === 'percentage') {
-        discount = (applicableSubtotal * offer.discountValue) / 100;
-        if (offer.maxDiscount && discount > offer.maxDiscount) {
-          discount = offer.maxDiscount;
-        }
-      } else {
-        discount = Math.min(offer.discountValue, applicableSubtotal);
-      }
-      totalDiscount += discount;
+      // cart needs menuItemId for engine; use id fallback
+      const engineCart = cart.map(it => ({ ...it, menuItemId: it.menuItemId || it.id, total: it.price * it.quantity }));
+      totalDiscount += calculateDiscountForOffer(offer, subtotal, engineCart, customerContext || {});
     }
-
     return Math.round(Math.min(totalDiscount, subtotal) * 100) / 100;
+  };
+
+  // Free items aggregated across selected offers (from cross-item BOGO)
+  const getFreeItems = () => {
+    if (!selectedOffers || selectedOffers.length === 0) return [];
+    const subtotal = getCartSubtotal();
+    const engineCart = cart.map(it => ({ ...it, menuItemId: it.menuItemId || it.id, total: it.price * it.quantity }));
+    const all = [];
+    for (const offer of selectedOffers) {
+      if (offer._requiresLogin) continue;
+      const res = calculateOfferResult(offer, subtotal, engineCart, customerContext || {});
+      if (res.freeItems && res.freeItems.length) {
+        // decorate with name from menu
+        for (const fi of res.freeItems) {
+          const menuItem = menu.find(m => m.id === fi.itemId);
+          all.push({ ...fi, name: menuItem?.name || 'Free item' });
+        }
+      }
+    }
+    return all;
   };
 
   // Calculate loyalty discount
@@ -1412,6 +1499,69 @@ const PlaceOrderContent = () => {
         </div>
       )}
 
+      {/* Phone-Login Gate Modal (unlock targeted offers) */}
+      {showPhoneGate && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }} onClick={() => setShowPhoneGate(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: '16px', padding: '24px',
+            maxWidth: '400px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700, color: '#1f2937' }}>
+              🔓 Unlock your offers
+            </h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#6b7280' }}>
+              Enter your phone number to see personalized offers from this restaurant.
+            </p>
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="Phone number"
+              value={phoneGateInput}
+              onChange={(e) => setPhoneGateInput(e.target.value)}
+              style={{
+                width: '100%', padding: '12px', fontSize: '14px',
+                border: '1px solid #d1d5db', borderRadius: '8px', marginBottom: '12px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowPhoneGate(false)}
+                style={{
+                  flex: 1, padding: '12px', border: '1px solid #d1d5db',
+                  background: '#fff', borderRadius: '8px', cursor: 'pointer',
+                  fontSize: '14px', fontWeight: 600, color: '#374151'
+                }}
+              >Cancel</button>
+              <button
+                disabled={phoneGateLoading}
+                onClick={async () => {
+                  const normalized = normalizePhoneForOffers(phoneGateInput);
+                  if (!normalized || normalized.length < 7) return;
+                  setPhoneGateLoading(true);
+                  try {
+                    localStorage.setItem(`dineopen_placeorder_phone_${restaurantId}`, normalized);
+                  } catch (_) {}
+                  setCustomerPhoneForOffers(normalized);
+                  // Also prefill customer info phone if empty
+                  setCustomerInfo(prev => prev.phone ? prev : { ...prev, phone: normalized });
+                  setPhoneGateLoading(false);
+                  setShowPhoneGate(false);
+                }}
+                style={{
+                  flex: 1, padding: '12px', border: 'none',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)', borderRadius: '8px',
+                  cursor: 'pointer', fontSize: '14px', fontWeight: 700, color: '#fff'
+                }}
+              >{phoneGateLoading ? 'Loading…' : 'Continue'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* UPI Payment Modal */}
       <UpiPaymentModal
         isOpen={showUpiModal}
@@ -1721,6 +1871,26 @@ const PlaceOrderContent = () => {
               </div>
             ) : (
                 <div style={{ padding: '16px 0' }}>
+                  {getFreeItems().map((fi, idx) => (
+                    <div key={`free-${fi.itemId}-${idx}`} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 16px', backgroundColor: '#ecfdf5', borderRadius: '12px',
+                      border: '1px dashed #10b981', marginBottom: '8px'
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#065f46', margin: '0 0 2px 0' }}>
+                          {fi.name} × {fi.qty}
+                        </h4>
+                        <p style={{ fontSize: '11px', color: '#047857', margin: 0 }}>
+                          Complimentary from offer
+                        </p>
+                      </div>
+                      <span style={{
+                        fontSize: '11px', fontWeight: 700, color: '#065f46',
+                        background: '#d1fae5', padding: '4px 8px', borderRadius: '999px'
+                      }}>FREE</span>
+                    </div>
+                  ))}
                   {cart.map(item => (
                     <div key={item.id} style={{
                       display: 'flex',
@@ -2032,17 +2202,46 @@ const PlaceOrderContent = () => {
                         </span>
                       )}
                     </h4>
+                    {/* Phone-login gate banner */}
+                    {applicableOffers.some(o => o._requiresLogin) && !hasAudienceContext && (
+                      <button
+                        onClick={() => { setPhoneGateInput(customerInfo.phone || ''); setShowPhoneGate(true); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          padding: '10px 12px', marginBottom: '8px',
+                          background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                          border: '1px dashed #f59e0b', borderRadius: '8px',
+                          cursor: 'pointer', textAlign: 'left', width: '100%'
+                        }}
+                      >
+                        <span style={{ fontSize: '16px' }}>🔓</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#92400e' }}>
+                          Login with phone to unlock personal offers
+                        </span>
+                      </button>
+                    )}
+                    {unlockToast && (
+                      <div style={{
+                        padding: '8px 12px', marginBottom: '8px',
+                        background: '#ecfdf5', border: '1px solid #10b981',
+                        borderRadius: '8px', color: '#065f46', fontSize: '12px', fontWeight: 600
+                      }}>
+                        {unlockToast}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {applicableOffers.map(offer => {
-                        const isSelected = selectedOffers.some(o => o.id === offer.id);
+                        const isLocked = !!offer._requiresLogin;
+                        const isSelected = !isLocked && selectedOffers.some(o => o.id === offer.id);
                         const meetsMinOrder = getCartSubtotal() >= (offer.minOrderValue || 0);
                         const isFirstOrderValid = !offer.isFirstOrderOnly || (customerData?.isFirstOrder ?? true);
                         const allowMultiple = customerAppSettings?.offerSettings?.allowMultipleOffers ?? false;
                         const maxOffers = customerAppSettings?.offerSettings?.maxOffersAllowed ?? 1;
                         const canSelectMore = selectedOffers.length < maxOffers || isSelected;
-                        const isApplicable = meetsMinOrder && isFirstOrderValid && (allowMultiple ? canSelectMore : true);
+                        const isApplicable = !isLocked && meetsMinOrder && isFirstOrderValid && (allowMultiple ? canSelectMore : true);
 
                         const handleOfferClick = () => {
+                          if (isLocked) { setPhoneGateInput(customerInfo.phone || ''); setShowPhoneGate(true); return; }
                           if (!isApplicable) return;
                           if (isSelected) {
                             setSelectedOffers(prev => prev.filter(o => o.id !== offer.id));
@@ -2061,17 +2260,17 @@ const PlaceOrderContent = () => {
                           <button
                             key={offer.id}
                             onClick={handleOfferClick}
-                            disabled={!isApplicable}
+                            disabled={!isApplicable && !isLocked}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '10px 12px',
-                              backgroundColor: isSelected ? '#fef2f2' : isApplicable ? '#f9fafb' : '#f3f4f6',
-                              border: isSelected ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                              backgroundColor: isLocked ? '#fffbeb' : isSelected ? '#fef2f2' : isApplicable ? '#f9fafb' : '#f3f4f6',
+                              border: isLocked ? '1px dashed #f59e0b' : isSelected ? '2px solid #ef4444' : '1px solid #e2e8f0',
                               borderRadius: '8px',
-                              cursor: isApplicable ? 'pointer' : 'not-allowed',
-                              opacity: isApplicable ? 1 : 0.6,
+                              cursor: isLocked || isApplicable ? 'pointer' : 'not-allowed',
+                              opacity: isLocked ? 0.9 : isApplicable ? 1 : 0.6,
                               transition: 'all 0.2s ease',
                               textAlign: 'left'
                             }}
@@ -2097,6 +2296,11 @@ const PlaceOrderContent = () => {
                                 </p>
                               )}
                             </div>
+                            {isLocked && (
+                              <span style={{ color: '#92400e', fontWeight: '700', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <FaLock size={10} /> Login
+                              </span>
+                            )}
                             {isSelected && (
                               <span style={{ color: '#ef4444', fontWeight: '700', fontSize: '12px' }}>Applied</span>
                             )}
