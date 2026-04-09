@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
+// Force mobile embed flag before anything renders
+if (typeof window !== 'undefined') {
+  window.__DINEOPEN_MOBILE_EMBED__ = true;
+}
+
 // Reuse the exact same customers page from the dashboard
 // The mobile layout strips sidebar/header, so it renders full-width
 const CustomersPage = dynamic(

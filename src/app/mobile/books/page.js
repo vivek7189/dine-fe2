@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
+if (typeof window !== 'undefined') {
+  window.__DINEOPEN_MOBILE_EMBED__ = true;
+}
+
 const BooksPage = dynamic(
   () => import('../../(dashboard)/books/page'),
   { ssr: false, loading: () => <LoadingSpinner /> }

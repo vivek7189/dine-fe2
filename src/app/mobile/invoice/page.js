@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { InvoiceToastProvider } from '../../(dashboard)/invoice/contexts/InvoiceToastContext';
 
+if (typeof window !== 'undefined') {
+  window.__DINEOPEN_MOBILE_EMBED__ = true;
+}
+
 const InvoiceDashboard = dynamic(
   () => import('../../(dashboard)/invoice/dashboard/page'),
   { ssr: false, loading: () => <LoadingSpinner /> }

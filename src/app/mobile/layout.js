@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
 
+// Set mobile embed flag IMMEDIATELY at module level (before any useEffect/render)
+// This ensures pages that check this flag during their initial render won't redirect to /login
+if (typeof window !== 'undefined') {
+  window.__DINEOPEN_MOBILE_EMBED__ = true;
+}
+
 /**
  * Mobile Embed Layout
  * Stripped-down layout for WebView embedding in native apps.
@@ -16,7 +22,7 @@ export default function MobileLayout({ children }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Mark this as a mobile embed so pages don't redirect to /login
+    // Reinforce the flag (in case module-level didn't run)
     window.__DINEOPEN_MOBILE_EMBED__ = true;
 
     // Extract restaurantId from URL if provided (WebView passes it)
