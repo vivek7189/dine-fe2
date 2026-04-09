@@ -6,7 +6,7 @@ import { FaSpinner } from 'react-icons/fa';
 import OnlineOrderPage from '../onlineorder/page';
 
 // Reserved paths that should NOT be handled by this dynamic route
-// These paths have their own dedicated pages/folders
+// These paths have their own dedicated pages/folders s
 const RESERVED_PATHS = [
   'admin', 'api', 'login', 'logout', 'signup', 'register', 'dashboard', 'billing',
   'menu', 'orders', 'settings', 'profile', 'help', 'support', 'contact', 'about',
