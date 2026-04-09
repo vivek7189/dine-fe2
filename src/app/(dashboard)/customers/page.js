@@ -391,6 +391,8 @@ const Customers = () => {
 
         if (!token || !userData.id) {
           console.log('❌ Customers: No auth token or user, redirecting to login');
+          // Skip redirect in mobile embed (WebView) — let the native app handle auth
+          if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
           router.push('/login');
           return;
         }
@@ -656,6 +658,8 @@ const Customers = () => {
     try {
       const user = apiClient.getUser();
       if (!user) {
+        // Skip redirect in mobile embed (WebView) — let the native app handle auth
+        if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
         router.replace('/login');
         return;
       }
@@ -1104,7 +1108,10 @@ const Customers = () => {
             {t('customers.noRestaurantMessage')}
           </p>
           <button
-            onClick={() => router.push('/admin')}
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
+              router.push('/admin');
+            }}
             style={{
               padding: '12px 24px',
               backgroundColor: '#ef4444',

@@ -9,12 +9,16 @@ import { CurrencyProvider } from '../../contexts/CurrencyContext';
  * - No sidebar, no header, no DineAI button
  * - Auto-authenticates via ?token= and ?user= URL params (handled by root TokenExtractor)
  * - Also accepts ?restaurantId= to pre-select restaurant
+ * - Sets window.__DINEOPEN_MOBILE_EMBED__ flag so pages skip login redirects
  * - Full-width, mobile-optimized
  */
 export default function MobileLayout({ children }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // Mark this as a mobile embed so pages don't redirect to /login
+    window.__DINEOPEN_MOBILE_EMBED__ = true;
+
     // Extract restaurantId from URL if provided (WebView passes it)
     const params = new URLSearchParams(window.location.search);
     const rid = params.get('restaurantId');
@@ -22,10 +26,44 @@ export default function MobileLayout({ children }) {
       localStorage.setItem('selectedRestaurantId', rid);
     }
 
-    // TokenExtractor in root layout already handles ?token= and ?user=
-    // Give it a tick to finish before rendering children
-    const timer = setTimeout(() => setReady(true), 50);
-    return () => clearTimeout(timer);
+    // Also extract token/user directly here as a safety net
+    // (the root TokenExtractor also does this, but we need it ASAP)
+    const token = params.get('token');
+    const user = params.get('user');
+    if (token) {
+      localStorage.setItem('authToken', token);
+    }
+    if (user) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(user));
+        localStorage.setItem('user', JSON.stringify(parsed));
+      } catch (e) {
+        console.error('Mobile layout: failed to parse user param:', e);
+      }
+    }
+
+    // Wait for auth to be in localStorage before rendering children
+    let attempts = 0;
+    const checkReady = () => {
+      const hasToken = localStorage.getItem('authToken');
+      const hasUser = localStorage.getItem('user');
+      if (hasToken && hasUser) {
+        setReady(true);
+        return;
+      }
+      attempts++;
+      if (attempts < 15) {
+        setTimeout(checkReady, 100);
+      } else {
+        // Render anyway after 1.5s — page will handle missing auth
+        setReady(true);
+      }
+    };
+    checkReady();
+
+    return () => {
+      window.__DINEOPEN_MOBILE_EMBED__ = false;
+    };
   }, []);
 
   if (!ready) {
