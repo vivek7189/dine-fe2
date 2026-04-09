@@ -43,7 +43,9 @@ export default function BooksPage() {
 
   const handleTabChange = useCallback((tabId) => {
     setActiveTab(tabId);
-    const url = tabId === 'overview' ? '/books' : `/books?tab=${tabId}`;
+    const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+    const basePath = isMobileEmbed ? '/mobile/books' : '/books';
+    const url = tabId === 'overview' ? basePath : `${basePath}?tab=${tabId}`;
     router.replace(url, { scroll: false });
   }, [setActiveTab, router]);
 

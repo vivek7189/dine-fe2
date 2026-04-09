@@ -173,7 +173,10 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
-              <Button size="sm" icon={HiPlus} onClick={() => router.push('/invoice/invoices/new')}>
+              <Button size="sm" icon={HiPlus} onClick={() => {
+                if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
+                router.push('/invoice/invoices/new');
+              }}>
                 New
               </Button>
             </div>
