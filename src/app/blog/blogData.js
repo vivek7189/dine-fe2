@@ -3,6 +3,14 @@
 
 export const blogPosts = [
   {
+    slug: 'restaurant-inventory-management-software-guide',
+    title: 'Restaurant Inventory Management Software: The Complete 2026 Guide to DineOpen Inventory',
+    excerpt: 'Learn how to manage restaurant inventory with DineOpen — stock tracking, recipe costing, supplier management, purchase orders, AI reorder suggestions, and barcode scanning. Step-by-step guide with screenshots.',
+    date: '2026-04-10',
+    category: 'Operations',
+    categoryColor: '#10b981',
+  },
+  {
     slug: 'i-got-quoted-1200-month-for-toast-heres-what-i-built-instead',
     title: 'I Got Quoted $1,200/month for Toast. Here\'s What I Built Instead.',
     excerpt: 'In 2022 a Toast rep quoted me $1,200/month plus 2.49% on every swipe for a 2-location café. I walked out, spent 18 months building DineOpen, and now run the same setup for $9.99/month. Here\'s the full story — and the real math.',
@@ -8896,6 +8904,665 @@ export const blogPostContent = {
     category: 'Technology',
     categoryColor: '#3b82f6',
     tags: ['Restaurant Billing App', 'Billing App for Restaurant', 'Restaurant Bill App', 'Table Billing App', 'GST Billing Restaurant', 'Best Billing Software Restaurant']
+  },
+
+  'restaurant-inventory-management-software-guide': {
+    id: 'restaurant-inventory-management-software-guide',
+    title: 'Restaurant Inventory Management Software: The Complete 2026 Guide to DineOpen Inventory',
+    excerpt: 'Learn how to manage restaurant inventory with DineOpen — stock tracking, recipe costing, supplier management, purchase orders, AI reorder suggestions, and barcode scanning. Step-by-step guide with screenshots.',
+    content: `
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Restaurant kitchen with organized inventory shelves and fresh ingredients" style="width: 100%; max-width: 800px; height: 400px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">A well-organized kitchen starts with smart inventory management</p>
+        </div>
+
+        <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;">
+            <strong>Quick answer:</strong> DineOpen's inventory management software helps restaurants track stock in real time, auto-deduct ingredients on every order, manage suppliers, create purchase orders, scan barcodes, track expiry dates, and get AI-powered reorder suggestions — all from one dashboard. Plans start at ₹300/month ($9.99). <a href="/login?ref=inventory-blog" style="color:#92400e;font-weight:700;">Start your free trial →</a>
+          </p>
+        </div>
+
+        <p>Running a restaurant without inventory software is like driving with your eyes closed. You are guessing how much stock you have, manually tracking what comes in and goes out, and discovering items have expired only when a customer complains. The result? <strong>Food waste eats 5-10% of your revenue</strong>, stockouts frustrate customers, and you overpay suppliers because you cannot track prices.</p>
+
+        <p>This guide walks you through every feature of <a href="/products/inventory">DineOpen's inventory management module</a> — what it does, how to set it up, and how it saves you money from day one. Whether you run a single restaurant, a cloud kitchen, or a multi-outlet chain, this is the only inventory guide you will need in 2026.</p>
+
+        <!-- Table of Contents -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 24px 0;">
+          <h3 style="margin: 0 0 12px 0; color: #1e293b; font-size: 20px;">What You Will Learn in This Guide:</h3>
+          <ol style="padding-left: 20px; line-height: 2.2; margin: 0; color: #334155;">
+            <li><a href="#stock-dashboard" style="color: #ef4444; text-decoration: none; font-weight: 500;">Stock Dashboard & Real-Time Tracking</a></li>
+            <li><a href="#barcode" style="color: #ef4444; text-decoration: none; font-weight: 500;">Barcode Scanning — Add Items in Seconds</a></li>
+            <li><a href="#recipes" style="color: #ef4444; text-decoration: none; font-weight: 500;">Recipe Costing & Auto-Deduction</a></li>
+            <li><a href="#suppliers" style="color: #ef4444; text-decoration: none; font-weight: 500;">Supplier Management & Price Comparison</a></li>
+            <li><a href="#purchase-orders" style="color: #ef4444; text-decoration: none; font-weight: 500;">Purchase Orders, GRN & Invoice OCR</a></li>
+            <li><a href="#low-stock" style="color: #ef4444; text-decoration: none; font-weight: 500;">Low Stock Alerts & Expiry Tracking</a></li>
+            <li><a href="#ai-reorder" style="color: #ef4444; text-decoration: none; font-weight: 500;">AI-Powered Reorder Suggestions</a></li>
+            <li><a href="#multi-location" style="color: #ef4444; text-decoration: none; font-weight: 500;">Multi-Location Stock Transfers</a></li>
+            <li><a href="#reports" style="color: #ef4444; text-decoration: none; font-weight: 500;">Reports & Analytics</a></li>
+            <li><a href="#setup" style="color: #ef4444; text-decoration: none; font-weight: 500;">How to Set Up DineOpen Inventory (Step by Step)</a></li>
+            <li><a href="#faq" style="color: #ef4444; text-decoration: none; font-weight: 500;">FAQs</a></li>
+          </ol>
+        </div>
+
+        <!-- RIGHT SIDE CTA -->
+        <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 28px; margin: 32px 0; color: white; text-align: center;">
+          <p style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #9ca3af; margin: 0 0 8px 0;">DineOpen Inventory</p>
+          <h3 style="color: white; margin: 0 0 12px 0; font-size: 22px;">Try It Free for 30 Days</h3>
+          <p style="margin: 0 0 20px 0; opacity: 0.85; font-size: 15px; line-height: 1.6;">Stock tracking, recipe costing, supplier management, AI reorder — everything in one dashboard.</p>
+          <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <a href="/login?ref=inventory-blog" style="display: inline-block; padding: 14px 28px; background: #ef4444; color: white; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 15px;">Start Free Trial</a>
+            <a href="/#contact" style="display: inline-block; padding: 14px 28px; background: rgba(255,255,255,0.15); color: white; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 15px; border: 1px solid rgba(255,255,255,0.3);">Book a Demo</a>
+          </div>
+        </div>
+
+        <h2>Why Every Restaurant Needs Inventory Software in 2026</h2>
+
+        <p>Before we dive into features, here is why this matters for your bottom line:</p>
+
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:14px;border:1px solid #e5e7eb;text-align:left;font-weight:700;">Problem</th>
+            <th style="padding:14px;border:1px solid #e5e7eb;text-align:left;font-weight:700;">Without Software</th>
+            <th style="padding:14px;border:1px solid #e5e7eb;text-align:left;font-weight:700;">With DineOpen</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Food waste</td><td style="padding:12px;border:1px solid #e5e7eb;">8-12% of revenue</td><td style="padding:12px;border:1px solid #e5e7eb;color:#10b981;font-weight:600;">Reduced by 30%</td></tr>
+            <tr style="background:#f9fafb;"><td style="padding:12px;border:1px solid #e5e7eb;">Stockouts per week</td><td style="padding:12px;border:1px solid #e5e7eb;">5-10 items</td><td style="padding:12px;border:1px solid #e5e7eb;color:#10b981;font-weight:600;">Near zero (95% accuracy)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Time on inventory tasks</td><td style="padding:12px;border:1px solid #e5e7eb;">3-4 hours/day</td><td style="padding:12px;border:1px solid #e5e7eb;color:#10b981;font-weight:600;">Under 1 hour/day</td></tr>
+            <tr style="background:#f9fafb;"><td style="padding:12px;border:1px solid #e5e7eb;">Food cost tracking</td><td style="padding:12px;border:1px solid #e5e7eb;">Manual spreadsheets</td><td style="padding:12px;border:1px solid #e5e7eb;color:#10b981;font-weight:600;">Real-time, automatic</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Supplier price comparison</td><td style="padding:12px;border:1px solid #e5e7eb;">Call each supplier</td><td style="padding:12px;border:1px solid #e5e7eb;color:#10b981;font-weight:600;">Side-by-side in dashboard</td></tr>
+            <tr style="background:#f9fafb;"><td style="padding:12px;border:1px solid #e5e7eb;">Expired items caught</td><td style="padding:12px;border:1px solid #e5e7eb;">Often too late</td><td style="padding:12px;border:1px solid #e5e7eb;color:#10b981;font-weight:600;">Alerts 3-14 days before</td></tr>
+          </tbody>
+        </table>
+
+        <p>Restaurants using <a href="/products/inventory">DineOpen Inventory</a> report <strong>20% lower food costs</strong> and <strong>2 hours saved per day</strong> on inventory tasks. Let us show you exactly how.</p>
+
+        <!-- SECTION 1: STOCK DASHBOARD -->
+        <h2 id="stock-dashboard">1. Stock Dashboard & Real-Time Tracking</h2>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="DineOpen inventory dashboard showing stock levels and analytics" style="width: 100%; max-width: 700px; height: 350px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">DineOpen's inventory dashboard gives you a complete view of your stock at a glance</p>
+        </div>
+
+        <p>The moment you log in, DineOpen shows you a real-time snapshot of your entire inventory:</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0;">
+          <div style="background: #f0fdf4; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #bbf7d0;">
+            <div style="font-size: 28px; font-weight: 800; color: #16a34a;">Total Items</div>
+            <p style="color: #15803d; margin: 4px 0 0 0; font-size: 14px;">Every item in your kitchen, counted</p>
+          </div>
+          <div style="background: #fef2f2; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #fecaca;">
+            <div style="font-size: 28px; font-weight: 800; color: #dc2626;">Low Stock</div>
+            <p style="color: #991b1b; margin: 4px 0 0 0; font-size: 14px;">Items below reorder point</p>
+          </div>
+          <div style="background: #fffbeb; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #fde68a;">
+            <div style="font-size: 28px; font-weight: 800; color: #d97706;">Expiring Soon</div>
+            <p style="color: #92400e; margin: 4px 0 0 0; font-size: 14px;">Items expiring this week</p>
+          </div>
+          <div style="background: #eff6ff; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #bfdbfe;">
+            <div style="font-size: 28px; font-weight: 800; color: #2563eb;">Stock Value</div>
+            <p style="color: #1e40af; margin: 4px 0 0 0; font-size: 14px;">Total inventory cost</p>
+          </div>
+        </div>
+
+        <h3>What You See on the Dashboard</h3>
+        <ul>
+          <li><strong>Stock received today</strong> — what came in from suppliers</li>
+          <li><strong>Stock consumed today</strong> — what was used in orders</li>
+          <li><strong>Top 10 consumed items</strong> — your highest-usage ingredients</li>
+          <li><strong>Category-wise breakdown</strong> — vegetables, dairy, meat, spices, packaging</li>
+          <li><strong>Color-coded badges</strong> — green (normal), yellow (running low), red (critically low)</li>
+        </ul>
+
+        <h3>Card View vs List View</h3>
+        <p>Switch between two views based on your preference:</p>
+        <ul>
+          <li><strong>Card view</strong> — visual cards with item images, stock level gauges, and category labels. Great for a quick visual scan.</li>
+          <li><strong>List view</strong> — compact table with columns for SKU, current stock, unit, reorder level, supplier, and cost. Ideal for power users managing large inventories.</li>
+        </ul>
+
+        <p>You can filter items by <strong>category</strong>, <strong>supplier</strong>, or <strong>stock status</strong> (low, normal, overstock). Search by item name, SKU, or barcode to find anything in seconds.</p>
+
+        <!-- SECTION 2: BARCODE -->
+        <h2 id="barcode">2. Barcode Scanning — Add Items in Seconds</h2>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Barcode scanning with phone camera for inventory management" style="width: 100%; max-width: 600px; height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">Scan barcodes with your phone camera or a USB/Bluetooth scanner</p>
+        </div>
+
+        <p>Typing item details manually is slow and error-prone. DineOpen lets you scan barcodes to:</p>
+
+        <ul>
+          <li><strong>Add new items</strong> — scan the barcode, and the item name and details auto-populate</li>
+          <li><strong>Check stock levels</strong> — scan any item to instantly see current stock, reorder point, and last purchase price</li>
+          <li><strong>Record goods received</strong> — scan items as they arrive from suppliers for instant GRN creation</li>
+          <li><strong>Physical stock counts</strong> — walk through your kitchen scanning items instead of writing on paper</li>
+        </ul>
+
+        <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 20px 0; border-radius: 8px;">
+          <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #065f46;">
+            <strong>Works with any device:</strong> Use your phone's camera, a USB barcode scanner, or a Bluetooth scanner. No special hardware required — your existing smartphone is enough to get started.
+          </p>
+        </div>
+
+        <h3>Voice Recognition for Stock Entry</h3>
+        <p>Hands full during a stock count? DineOpen supports <strong>voice commands in English and Hindi</strong>. Say "Tomatoes, 25 kilograms" and the system records it. Faster than typing, fewer errors, and works great during busy receiving hours.</p>
+
+        <!-- SECTION 3: RECIPE COSTING -->
+        <h2 id="recipes">3. Recipe Costing & Auto-Deduction</h2>
+
+        <p>This is where inventory management gets powerful. Instead of just tracking stock, DineOpen connects your <strong>recipes to your inventory</strong> — so every order automatically deducts the right ingredients.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Chef preparing recipe with measured ingredients" style="width: 100%; max-width: 600px; height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">Every recipe is linked to inventory — order a dish and ingredients auto-deduct</p>
+        </div>
+
+        <h3>How Recipe Costing Works</h3>
+        <ol>
+          <li><strong>Create a recipe</strong> — select ingredients from your inventory and set exact quantities (200g chicken, 50ml oil, 10g spice mix)</li>
+          <li><strong>Cost calculates automatically</strong> — DineOpen multiplies each ingredient quantity by its current purchase price to show your exact recipe cost</li>
+          <li><strong>Food cost percentage displays</strong> — see the recipe cost as a percentage of the selling price. Industry benchmark is 28-35%. Items above this are flagged in red.</li>
+          <li><strong>Link to menu</strong> — connect the recipe to a POS menu item. Every time that dish is ordered, ingredients are deducted from inventory automatically.</li>
+        </ol>
+
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin: 24px 0;">
+          <h4 style="color: #1e40af; margin: 0 0 12px 0;">Example: Butter Chicken Recipe Cost</h4>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead><tr style="background:#dbeafe;">
+              <th style="padding:10px;border:1px solid #bfdbfe;text-align:left;">Ingredient</th>
+              <th style="padding:10px;border:1px solid #bfdbfe;text-align:right;">Qty</th>
+              <th style="padding:10px;border:1px solid #bfdbfe;text-align:right;">Unit Cost</th>
+              <th style="padding:10px;border:1px solid #bfdbfe;text-align:right;">Cost</th>
+            </tr></thead>
+            <tbody>
+              <tr><td style="padding:8px;border:1px solid #bfdbfe;">Chicken</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">250g</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹220/kg</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹55</td></tr>
+              <tr style="background:#f0f9ff;"><td style="padding:8px;border:1px solid #bfdbfe;">Butter</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">50g</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹500/kg</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹25</td></tr>
+              <tr><td style="padding:8px;border:1px solid #bfdbfe;">Cream</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">30ml</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹300/L</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹9</td></tr>
+              <tr style="background:#f0f9ff;"><td style="padding:8px;border:1px solid #bfdbfe;">Tomato puree</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">100g</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹80/kg</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹8</td></tr>
+              <tr><td style="padding:8px;border:1px solid #bfdbfe;">Spice mix</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">15g</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹800/kg</td><td style="padding:8px;border:1px solid #bfdbfe;text-align:right;">₹12</td></tr>
+              <tr style="background:#dbeafe;font-weight:700;"><td style="padding:10px;border:1px solid #bfdbfe;" colspan="3">Total Recipe Cost</td><td style="padding:10px;border:1px solid #bfdbfe;text-align:right;">₹109</td></tr>
+              <tr style="background:#dbeafe;"><td style="padding:10px;border:1px solid #bfdbfe;" colspan="3">Selling Price</td><td style="padding:10px;border:1px solid #bfdbfe;text-align:right;">₹350</td></tr>
+              <tr style="background:#dcfce7;font-weight:700;"><td style="padding:10px;border:1px solid #bfdbfe;" colspan="3">Food Cost %</td><td style="padding:10px;border:1px solid #bfdbfe;text-align:right;color:#16a34a;">31.1% ✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Sub-Recipes</h3>
+        <p>Many dishes share base preparations — a gravy base, a marinade, a dough. DineOpen lets you create <strong>sub-recipes</strong> (like "Makhani Gravy" or "Tandoori Marinade") and use them as ingredients in multiple main recipes. Update the sub-recipe cost once, and it cascades through every dish that uses it.</p>
+
+        <h3>Portion Control & Scaling</h3>
+        <p>Define standard portion sizes. Need to scale a recipe for a party of 50? DineOpen multiplies all ingredients while maintaining the correct ratios. This ensures consistency across shifts and reduces waste from guesswork.</p>
+
+        <h3>Modifier-Aware Deductions</h3>
+        <p>Customer orders butter chicken with <em>extra cheese</em> and <em>no onions</em>? DineOpen adjusts the ingredient deduction automatically. Extra cheese adds to dairy deduction. No onions skips the onion deduction. Your actual stock always matches what was really used.</p>
+
+        <!-- CTA BLOCK -->
+        <div style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px; padding: 28px; margin: 36px 0; color: white; text-align: center;">
+          <h3 style="color: white; margin: 0 0 12px 0; font-size: 22px;">Know Your Exact Food Cost on Every Dish</h3>
+          <p style="margin: 0 0 20px 0; opacity: 0.95; font-size: 16px; line-height: 1.6;">DineOpen calculates recipe costs automatically. See which dishes make money and which ones drain your profits.</p>
+          <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <a href="/login?ref=inventory-blog-recipe" style="display: inline-block; padding: 14px 28px; background: white; color: #059669; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 15px;">Start Free Trial →</a>
+            <a href="/tools/food-cost-calculator" style="display: inline-block; padding: 14px 28px; background: rgba(255,255,255,0.2); color: white; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 15px; border: 1px solid rgba(255,255,255,0.4);">Try Food Cost Calculator</a>
+          </div>
+        </div>
+
+        <!-- SECTION 4: SUPPLIERS -->
+        <h2 id="suppliers">4. Supplier Management & Price Comparison</h2>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Fresh produce from suppliers at a restaurant" style="width: 100%; max-width: 600px; height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">Track all your suppliers, compare prices, and make smarter purchasing decisions</p>
+        </div>
+
+        <p>Your suppliers determine your food cost. DineOpen helps you manage them intelligently.</p>
+
+        <h3>Supplier Directory</h3>
+        <p>Store all your supplier details in one place:</p>
+        <ul>
+          <li>Company name, contact person, phone, email</li>
+          <li>Physical address and delivery schedule</li>
+          <li>GSTIN for GST-compliant invoicing</li>
+          <li>Bank details for payment tracking</li>
+          <li>Category tags — vegetables, dairy, meat, packaging, beverages</li>
+          <li>Special arrangements and notes</li>
+        </ul>
+
+        <h3>Supplier Performance Tracking</h3>
+        <p>DineOpen automatically tracks four key metrics for each supplier:</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 20px 0;">
+          <div style="background: #f9fafb; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;">
+            <div style="font-size: 14px; font-weight: 700; color: #111827;">Delivery Reliability</div>
+            <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0;">On-time delivery %</p>
+          </div>
+          <div style="background: #f9fafb; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;">
+            <div style="font-size: 14px; font-weight: 700; color: #111827;">Price Consistency</div>
+            <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0;">Price variation over time</p>
+          </div>
+          <div style="background: #f9fafb; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;">
+            <div style="font-size: 14px; font-weight: 700; color: #111827;">Quality Score</div>
+            <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0;">Based on returns/rejections</p>
+          </div>
+          <div style="background: #f9fafb; padding: 16px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;">
+            <div style="font-size: 14px; font-weight: 700; color: #111827;">Fulfillment Rate</div>
+            <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0;">Order completion %</p>
+          </div>
+        </div>
+
+        <h3>Price Comparison Across Suppliers</h3>
+        <p>Link multiple suppliers to the same item. DineOpen shows you a side-by-side comparison of <strong>unit price, minimum order quantity, delivery time, and quality score</strong> for each supplier. Pick the best option for every purchase — save 15-20% on procurement over time.</p>
+
+        <h3>Payment Term Management</h3>
+        <p>Configure payment terms per supplier: Cash on Delivery, 7-day credit, 15-day credit, 30-day credit, or custom terms. DineOpen tracks outstanding payments, sends due date alerts, and maintains payment history for reconciliation.</p>
+
+        <h3>Returns & Quality Tracking</h3>
+        <p>Log returns with reason codes — quality issue, wrong item, damaged goods, short delivery, expired items. Returns automatically affect the supplier's quality score. Generate return reports for dispute resolution with full evidence.</p>
+
+        <!-- SECTION 5: PURCHASE ORDERS -->
+        <h2 id="purchase-orders">5. Purchase Orders, GRN & Invoice OCR</h2>
+
+        <p>The complete procurement cycle — from ordering to receiving to invoice matching — all automated.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Purchase order and invoice processing for restaurants" style="width: 100%; max-width: 600px; height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">Create, send, and track purchase orders — from creation to delivery to payment</p>
+        </div>
+
+        <h3>Creating Purchase Orders</h3>
+        <ol>
+          <li>Select a supplier from your directory</li>
+          <li>Add items and quantities — DineOpen suggests optimal quantities based on current stock, consumption patterns, and reorder points</li>
+          <li>Set expected delivery date and add notes</li>
+          <li>Send the PO via <strong>WhatsApp, email, or print</strong></li>
+        </ol>
+
+        <h3>PO Status Tracking</h3>
+        <p>Track every purchase order through its lifecycle:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0;">
+          <span style="padding: 8px 16px; background: #f3f4f6; border-radius: 20px; font-size: 14px; font-weight: 600; color: #6b7280;">Draft</span>
+          <span style="padding: 2px 8px; color: #9ca3af;">→</span>
+          <span style="padding: 8px 16px; background: #dbeafe; border-radius: 20px; font-size: 14px; font-weight: 600; color: #1e40af;">Sent to Supplier</span>
+          <span style="padding: 2px 8px; color: #9ca3af;">→</span>
+          <span style="padding: 8px 16px; background: #fef3c7; border-radius: 20px; font-size: 14px; font-weight: 600; color: #92400e;">Partially Received</span>
+          <span style="padding: 2px 8px; color: #9ca3af;">→</span>
+          <span style="padding: 8px 16px; background: #dcfce7; border-radius: 20px; font-size: 14px; font-weight: 600; color: #166534;">Fully Received</span>
+          <span style="padding: 2px 8px; color: #9ca3af;">→</span>
+          <span style="padding: 8px 16px; background: #e5e7eb; border-radius: 20px; font-size: 14px; font-weight: 600; color: #374151;">Closed</span>
+        </div>
+
+        <h3>GRN (Goods Received Note)</h3>
+        <p>When stock arrives, create a GRN against the purchase order:</p>
+        <ul>
+          <li>Compare ordered vs received quantities</li>
+          <li>Note discrepancies and damaged items</li>
+          <li>Record expiry dates during receiving</li>
+          <li>Stock levels update automatically on GRN approval</li>
+        </ul>
+
+        <h3>Invoice OCR — Scan Supplier Invoices</h3>
+        <div style="background: #faf5ff; border-left: 4px solid #8b5cf6; padding: 20px; margin: 20px 0; border-radius: 8px;">
+          <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #581c87;">
+            <strong>Game-changing feature:</strong> Upload a photo or PDF of your supplier's invoice. DineOpen's OCR extracts item names, quantities, prices, tax amounts, and totals automatically. It matches extracted data to your inventory items and corresponding PO. Discrepancies are highlighted. One click to approve and create GRN entries.
+          </p>
+        </div>
+
+        <h3>Three-Way Matching</h3>
+        <p>DineOpen automatically matches three documents to prevent overpayment:</p>
+        <ol>
+          <li><strong>Purchase Order</strong> — what you ordered</li>
+          <li><strong>GRN</strong> — what you received</li>
+          <li><strong>Supplier Invoice</strong> — what you are being charged</li>
+        </ol>
+        <p>Any mismatch in quantity, price, or items is flagged for review. This prevents phantom inventory and ensures you only pay for what you actually received.</p>
+
+        <h3>Recurring Purchase Orders</h3>
+        <p>Set up recurring POs for regular orders — daily milk delivery, weekly vegetable order, monthly packaging restock. DineOpen auto-generates the PO on schedule with preset items and quantities. Modify before sending or let it go automatically.</p>
+
+        <!-- CTA BLOCK -->
+        <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 28px; margin: 36px 0; color: white;">
+          <div style="display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+              <h3 style="color: white; margin: 0 0 8px 0; font-size: 20px;">Stop Losing Money to Supplier Overcharges</h3>
+              <p style="margin: 0; opacity: 0.85; font-size: 15px; line-height: 1.6;">Three-way matching catches every discrepancy. Invoice OCR saves hours of manual data entry.</p>
+            </div>
+            <div>
+              <a href="/login?ref=inventory-blog-po" style="display: inline-block; padding: 14px 28px; background: #ef4444; color: white; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 15px; white-space: nowrap;">Start Free Trial →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 6: LOW STOCK & EXPIRY -->
+        <h2 id="low-stock">6. Low Stock Alerts & Expiry Tracking</h2>
+
+        <p>Never run out of a key ingredient during dinner rush. Never serve expired food.</p>
+
+        <h3>Low Stock Alerts</h3>
+        <p>Set a <strong>minimum stock level (reorder point)</strong> for each item. When stock drops below that level, DineOpen sends alerts through:</p>
+        <ul>
+          <li><strong>Dashboard</strong> — red badges and prominent warnings</li>
+          <li><strong>WhatsApp</strong> — instant notification to your phone</li>
+          <li><strong>Email</strong> — daily or real-time alerts</li>
+        </ul>
+
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <p style="margin: 0; color: #991b1b; font-size: 15px; line-height: 1.7;">
+            <strong>Real scenario:</strong> It is 6 PM on a Saturday. Your paneer stock drops below 2 kg — enough for maybe 8 more orders. DineOpen sends a WhatsApp alert: "Paneer stock low — 1.8 kg remaining. Estimated to last 2 hours at current pace. Reorder now?" You call your supplier and get restocked before the dinner rush hits.
+          </p>
+        </div>
+
+        <h3>Expiry Date Tracking</h3>
+        <ul>
+          <li>Record expiry dates when receiving goods (during GRN creation)</li>
+          <li>Set alert windows — get warned 3, 7, or 14 days before expiry</li>
+          <li>FIFO enforcement — system highlights older stock to use first</li>
+          <li>Expired items flagged automatically — prevents serving expired food</li>
+        </ul>
+
+        <p>Restaurants using DineOpen's expiry tracking report a <strong>30% reduction in food waste</strong> — that is money that was going straight into the garbage.</p>
+
+        <!-- SECTION 7: AI REORDER -->
+        <h2 id="ai-reorder">7. AI-Powered Reorder Suggestions</h2>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="AI-powered analytics and predictions for restaurant inventory" style="width: 100%; max-width: 600px; height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">AI analyzes your consumption patterns and suggests exactly what to order and when</p>
+        </div>
+
+        <p>This is the feature that separates DineOpen from spreadsheets and basic inventory tools. <a href="/products/ai">DineOpen's AI</a> learns your restaurant's patterns and makes intelligent suggestions.</p>
+
+        <h3>Smart Reorder Suggestions</h3>
+        <p>The AI analyzes:</p>
+        <ul>
+          <li>Historical consumption data (what you use daily, weekly, monthly)</li>
+          <li>Current stock levels</li>
+          <li>Supplier lead times (how long delivery takes)</li>
+          <li>Seasonal patterns and day-of-week variations</li>
+        </ul>
+
+        <p>Then it gives you specific, actionable suggestions:</p>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <p style="margin: 0 0 8px 0; font-weight: 700; color: #166534; font-size: 16px;">AI Suggestion Example:</p>
+          <p style="margin: 0; color: #15803d; font-size: 15px; line-height: 1.8;">"Order <strong>50 kg tomatoes</strong> by Thursday. Current stock: 18 kg. Average daily usage: 12 kg. Current stock will last until Saturday morning. Supplier lead time: 1 day. Best price: ₹40/kg from Ramesh Vegetables (vs ₹45/kg from Fresh Farm)."</p>
+        </div>
+
+        <p>After 2-3 months of data, suggestions reach <strong>85-90% accuracy</strong>. You can create a purchase order from a suggestion with one click.</p>
+
+        <h3>Waste Prediction & Prevention</h3>
+        <p>The AI combines expiry dates with consumption rates to predict which items will expire before you use them:</p>
+
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400e; font-size: 15px; line-height: 1.8;">
+            "15 kg chicken expires in 3 days. At current consumption (8 kg/3 days), <strong>7 kg will go to waste</strong> (estimated loss: ₹1,540). Consider running a chicken special or freezing excess stock."
+          </p>
+        </div>
+
+        <h3>Seasonal & Event Awareness</h3>
+        <p>DineOpen learns from historical data and auto-adjusts suggestions for:</p>
+        <ul>
+          <li><strong>Festivals</strong> — order more paneer before Navratri, more meat before Eid, more cake ingredients before Christmas</li>
+          <li><strong>Weekends</strong> — increase stock for Friday-Saturday rush</li>
+          <li><strong>Weather changes</strong> — more cold beverages in summer, more soups in winter</li>
+          <li><strong>Local events</strong> — cricket matches, festivals, college events nearby</li>
+        </ul>
+
+        <h3>Cost Optimization Insights</h3>
+        <p>The AI also identifies cost-saving opportunities:</p>
+        <ul>
+          <li>Bulk purchase suggestions when prices are low</li>
+          <li>Alternative ingredient recommendations when usual items are expensive</li>
+          <li>Supplier switching recommendations based on price trends</li>
+        </ul>
+        <p>Restaurants following AI suggestions report <strong>15-20% reduction in ingredient procurement costs</strong>.</p>
+
+        <!-- SECTION 8: MULTI-LOCATION -->
+        <h2 id="multi-location">8. Multi-Location Stock Transfers</h2>
+
+        <p>Run more than one outlet? DineOpen tracks inventory independently per location while giving you consolidated visibility.</p>
+
+        <ul>
+          <li><strong>Stock transfers</strong> — transfer items between locations with full tracking</li>
+          <li><strong>Internal requisitions</strong> — kitchen can request items from central storage</li>
+          <li><strong>Consolidated reporting</strong> — view total stock across all locations or drill down to individual outlets</li>
+          <li><strong>Cross-location analysis</strong> — compare consumption patterns between outlets to identify inefficiencies</li>
+        </ul>
+
+        <p>This is especially useful for <a href="/blog/cloud-kitchen-guide-2026">cloud kitchens</a> running multiple brands from shared storage, or <a href="/solutions/restaurant-chain-management">restaurant chains</a> that need to balance stock across outlets.</p>
+
+        <!-- SECTION 9: REPORTS -->
+        <h2 id="reports">9. Reports & Analytics</h2>
+
+        <p>Data is only useful if you can act on it. DineOpen provides comprehensive inventory reports:</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 24px 0;">
+          <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <h4 style="color: #111827; margin: 0 0 8px 0; font-size: 16px;">Stock Valuation</h4>
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">Total value of inventory on hand, broken down by category</p>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <h4 style="color: #111827; margin: 0 0 8px 0; font-size: 16px;">Consumption Trends</h4>
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">Usage patterns by day, week, month. Rising vs falling demand items.</p>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <h4 style="color: #111827; margin: 0 0 8px 0; font-size: 16px;">Wastage Reports</h4>
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">What was wasted, when, and why — by category</p>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <h4 style="color: #111827; margin: 0 0 8px 0; font-size: 16px;">Variance Analysis</h4>
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">Actual vs theoretical usage — catch theft and over-portioning</p>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <h4 style="color: #111827; margin: 0 0 8px 0; font-size: 16px;">Supplier Reports</h4>
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">Payment history, performance scores, price trends per supplier</p>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <h4 style="color: #111827; margin: 0 0 8px 0; font-size: 16px;">Stock Movement</h4>
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">Complete audit trail — every stock in, stock out, and adjustment</p>
+          </div>
+        </div>
+
+        <p>Export any report as <strong>Excel, CSV, or PDF</strong>. Schedule automated weekly reports to your email. Share with your accountant for <a href="/products/billing">GST filing</a>.</p>
+
+        <h3>Physical Stock Counting</h3>
+        <p>Conduct periodic stock audits:</p>
+        <ol>
+          <li>Start a count session in DineOpen</li>
+          <li>Scan items or enter actual quantities manually</li>
+          <li>DineOpen calculates variance against system stock</li>
+          <li>Review and approve variances</li>
+          <li>System stock adjusts to match physical count</li>
+        </ol>
+        <p>Count history is maintained for audit trails and compliance.</p>
+
+        <!-- SECTION 10: SETUP GUIDE -->
+        <h2 id="setup">10. How to Set Up DineOpen Inventory (Step by Step)</h2>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Setting up inventory management software on laptop" style="width: 100%; max-width: 600px; height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
+          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">Get started with DineOpen Inventory in under 30 minutes</p>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 16px; padding: 28px; margin: 24px 0; border: 1px solid #e2e8f0;">
+          <h3 style="margin: 0 0 20px 0; color: #0f172a; font-size: 20px;">Step 1: Sign Up & Add Your Items</h3>
+          <p style="color: #334155; line-height: 1.8; margin: 0 0 8px 0;"><a href="/login?ref=inventory-blog-setup" style="color:#ef4444;font-weight:600;">Create your DineOpen account</a> (free 30-day trial). Go to Inventory → Items. Add your ingredients one by one, or scan barcodes for faster entry. For each item, set:</p>
+          <ul style="color: #334155; line-height: 1.8;">
+            <li>Item name, SKU, category</li>
+            <li>Unit of measure (kg, g, ml, pieces)</li>
+            <li>Current stock quantity</li>
+            <li>Minimum stock level (reorder point)</li>
+            <li>Purchase price</li>
+          </ul>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 16px; padding: 28px; margin: 24px 0; border: 1px solid #e2e8f0;">
+          <h3 style="margin: 0 0 20px 0; color: #0f172a; font-size: 20px;">Step 2: Add Your Suppliers</h3>
+          <p style="color: #334155; line-height: 1.8; margin: 0;">Go to Inventory → Suppliers. Add each supplier with their contact details, GSTIN, payment terms, and the items they supply. Link items to their respective suppliers so you can compare prices and create POs quickly.</p>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 16px; padding: 28px; margin: 24px 0; border: 1px solid #e2e8f0;">
+          <h3 style="margin: 0 0 20px 0; color: #0f172a; font-size: 20px;">Step 3: Create Your Recipes</h3>
+          <p style="color: #334155; line-height: 1.8; margin: 0;">Go to Inventory → Recipes. Build each dish by selecting ingredients and setting exact quantities. DineOpen calculates the recipe cost automatically. Link each recipe to its corresponding <a href="/products/menu" style="color:#ef4444;">menu item</a> for auto-deduction.</p>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 16px; padding: 28px; margin: 24px 0; border: 1px solid #e2e8f0;">
+          <h3 style="margin: 0 0 20px 0; color: #0f172a; font-size: 20px;">Step 4: Configure Alerts</h3>
+          <p style="color: #334155; line-height: 1.8; margin: 0;">Set up low stock alerts via WhatsApp and email. Configure expiry alert windows (3, 7, or 14 days). Enable AI reorder suggestions to start learning your patterns.</p>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 16px; padding: 28px; margin: 24px 0; border: 1px solid #e2e8f0;">
+          <h3 style="margin: 0 0 20px 0; color: #0f172a; font-size: 20px;">Step 5: Start Taking Orders</h3>
+          <p style="color: #334155; line-height: 1.8; margin: 0;">Once recipes are linked to menu items, every order placed through your <a href="/products/pos" style="color:#ef4444;">POS</a>, <a href="/products/orders" style="color:#ef4444;">QR menu</a>, or <a href="/products/integrations" style="color:#ef4444;">Zomato/Swiggy</a> automatically deducts the correct ingredients. Your stock levels stay accurate in real time.</p>
+        </div>
+
+        <p style="font-size: 16px; color: #6b7280; text-align: center; margin: 24px 0;">Most restaurants complete setup in <strong>under 30 minutes</strong>. Our team can help — <a href="/#contact" style="color: #ef4444; font-weight: 600;">book a free demo</a>.</p>
+
+        <!-- PRICING -->
+        <h2>Pricing</h2>
+
+        <p>DineOpen Inventory is included with your DineOpen subscription. No extra charges for inventory features.</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 24px 0;">
+          <div style="padding: 28px; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center;">
+            <h3 style="font-size: 22px; font-weight: 700; color: #111827; margin: 0 0 8px 0;">Spark</h3>
+            <div style="font-size: 36px; font-weight: 800; color: #ef4444; margin-bottom: 4px;">$9.99<span style="font-size: 16px; color: #6b7280; font-weight: 500;">/mo</span></div>
+            <div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">₹300/mo in India</div>
+            <ul style="list-style: none; padding: 0; text-align: left;">
+              <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Stock tracking</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Item management</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Category filtering</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Basic reports</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Barcode scanning</li>
+            </ul>
+          </div>
+          <div style="padding: 28px; border-radius: 16px; border: 2px solid #ef4444; text-align: center; position: relative;">
+            <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); padding: 4px 16px; background: #ef4444; color: white; border-radius: 12px; font-size: 12px; font-weight: 700;">POPULAR</div>
+            <h3 style="font-size: 22px; font-weight: 700; color: #111827; margin: 0 0 8px 0;">Blaze</h3>
+            <div style="font-size: 36px; font-weight: 800; color: #ef4444; margin-bottom: 4px;">$89<span style="font-size: 16px; color: #6b7280; font-weight: 500;">/mo</span></div>
+            <div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">₹2,500/mo in India</div>
+            <ul style="list-style: none; padding: 0; text-align: left;">
+              <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Everything in Spark</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151; font-weight: 600;">✓ Recipe costing & auto-deduction</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151; font-weight: 600;">✓ Purchase orders & GRN</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151; font-weight: 600;">✓ Invoice OCR</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151; font-weight: 600;">✓ AI reorder suggestions</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151; font-weight: 600;">✓ Multi-location transfers</li>
+              <li style="padding: 6px 0; font-size: 14px; color: #374151; font-weight: 600;">✓ Supplier management</li>
+            </ul>
+          </div>
+        </div>
+
+        <p style="text-align: center; margin: 16px 0;"><a href="/pricing" style="color: #ef4444; font-weight: 600;">See full pricing details →</a></p>
+
+        <!-- FAQ SECTION FOR AEO -->
+        <h2 id="faq">Frequently Asked Questions</h2>
+
+        <div style="margin: 24px 0;">
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What is restaurant inventory management software?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">Restaurant inventory management software is a digital tool that helps restaurants track raw material stock levels, manage suppliers, create purchase orders, cost recipes, and prevent food waste. It replaces manual spreadsheets and pen-paper tracking with automated, real-time inventory control. DineOpen is a complete restaurant inventory management solution that includes stock tracking, recipe costing, supplier management, purchase orders with OCR, AI reorder suggestions, and multi-location support.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How does auto-deduction work when an order is placed?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">When you create a recipe in DineOpen and link it to a menu item, every time that dish is ordered through the POS, QR menu, Zomato, or Swiggy, the ingredients are automatically deducted from inventory. For example, if butter chicken requires 250g chicken, 50g butter, and 30ml cream, those exact quantities are subtracted from stock when a customer orders butter chicken. Modifiers like "extra cheese" or "no onions" adjust the deduction accordingly.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Can I scan barcodes with my phone?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">Yes. DineOpen uses your phone's camera to scan barcodes. You can also use USB or Bluetooth barcode scanners. Scanning works for adding new items, checking stock levels, recording goods received, and conducting physical stock counts. No special hardware is required.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How accurate are AI reorder suggestions?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">AI reorder suggestions reach 85-90% accuracy after 2-3 months of usage data. The AI analyzes your historical consumption, current stock levels, supplier lead times, seasonal patterns, and day-of-week variations to recommend exactly what to order and when. Accuracy improves over time as the system learns your restaurant's unique patterns.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Does DineOpen support multiple restaurant locations?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">Yes. DineOpen tracks inventory independently per location while providing consolidated reporting. You can transfer stock between locations, view total stock across all outlets, and compare consumption patterns between branches. This is available on the Blaze plan.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">What is Invoice OCR and how does it help?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">Invoice OCR (Optical Character Recognition) lets you upload a photo or PDF of a supplier invoice. DineOpen automatically extracts item names, quantities, prices, and tax amounts. It matches this data to your inventory items and purchase order, highlights discrepancies, and lets you approve with one click. This eliminates manual data entry and catches billing errors.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How much does DineOpen Inventory cost?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen Inventory is included with all plans. The Spark plan starts at $9.99/month (₹300/month in India) with basic stock tracking. The Blaze plan at $89/month (₹2,500/month in India) includes advanced features like recipe costing, purchase orders, invoice OCR, AI suggestions, and multi-location support. All plans come with a free 30-day trial. <a href="/pricing" style="color: #ef4444;">See full pricing →</a></p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Can I track food cost percentage for each menu item?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">Yes. When you create a recipe and set a selling price, DineOpen automatically calculates the food cost percentage (recipe cost / selling price × 100). The industry benchmark is 28-35%. Items exceeding this threshold are flagged in red so you can adjust pricing or ingredients. Use our free <a href="/tools/food-cost-calculator" style="color: #ef4444;">food cost calculator</a> to try it now.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">Does DineOpen work offline?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">Yes. DineOpen caches data locally so you can continue taking orders and tracking inventory during internet outages. Inventory adjustments, stock counts, and recipe deductions work offline. Data syncs automatically when connectivity is restored.</p>
+          </div>
+
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
+            <h4 style="color: #1f2937; margin-bottom: 8px;">How is DineOpen different from Petpooja or POSist inventory?</h4>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen includes AI-powered reorder suggestions, invoice OCR, voice-based stock entry, and three-way matching (PO vs GRN vs Invoice) — features not available in Petpooja or POSist at comparable price points. DineOpen also charges zero transaction fees and includes all integrations free. Compare: <a href="/vs/dineopen-vs-petpooja" style="color: #ef4444;">DineOpen vs Petpooja</a> | <a href="/vs/dineopen-vs-posist" style="color: #ef4444;">DineOpen vs POSist</a></p>
+          </div>
+        </div>
+
+        <!-- INTERNAL LINKS SECTION -->
+        <h2>Related Guides & Tools</h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 24px 0;">
+          <a href="/blog/restaurant-inventory-management-best-practices-2025" style="display: block; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; text-decoration: none; transition: border-color 0.2s;">
+            <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px;">Inventory Best Practices 2025</div>
+            <div style="font-size: 13px; color: #6b7280;">Reduce waste, improve ordering, and control food costs</div>
+          </a>
+          <a href="/blog/how-to-reduce-restaurant-operating-costs" style="display: block; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; text-decoration: none; transition: border-color 0.2s;">
+            <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px;">Reduce Operating Costs</div>
+            <div style="font-size: 13px; color: #6b7280;">10 proven strategies to cut costs without cutting quality</div>
+          </a>
+          <a href="/tools/food-cost-calculator" style="display: block; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; text-decoration: none; transition: border-color 0.2s;">
+            <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px;">Food Cost Calculator</div>
+            <div style="font-size: 13px; color: #6b7280;">Free tool — calculate food cost % for any recipe</div>
+          </a>
+          <a href="/blog/how-to-calculate-food-cost-percentage" style="display: block; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; text-decoration: none; transition: border-color 0.2s;">
+            <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px;">Food Cost % Guide</div>
+            <div style="font-size: 13px; color: #6b7280;">Step-by-step guide to calculating food cost percentage</div>
+          </a>
+          <a href="/products/inventory" style="display: block; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; text-decoration: none; transition: border-color 0.2s;">
+            <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px;">DineOpen Inventory Product Page</div>
+            <div style="font-size: 13px; color: #6b7280;">Full feature overview of DineOpen's inventory module</div>
+          </a>
+          <a href="/blog/restaurant-inventory-sheet" style="display: block; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; text-decoration: none; transition: border-color 0.2s;">
+            <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px;">Free Inventory Sheet Template</div>
+            <div style="font-size: 13px; color: #6b7280;">Download a free restaurant inventory tracking template</div>
+          </a>
+        </div>
+
+        <!-- FINAL CTA -->
+        <div style="text-align: center; margin: 40px 0;">
+          <div style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 40px 32px; border-radius: 20px; color: white;">
+            <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Start Managing Your Inventory the Smart Way</h3>
+            <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95; max-width: 600px; margin-left: auto; margin-right: auto;">Join thousands of restaurants using DineOpen to reduce waste, lower food costs, and never run out of stock again.</p>
+            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+              <a href="/login?ref=inventory-blog-final" style="display: inline-block; padding: 16px 36px; background: white; color: #dc2626; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free 30-Day Trial →</a>
+              <a href="/#contact" style="display: inline-block; padding: 16px 36px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book a Free Demo</a>
+            </div>
+            <p style="margin: 16px 0 0 0; font-size: 14px; opacity: 0.8;">No credit card required. All features included.</p>
+          </div>
+        </div>
+
+        <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: April 10, 2026</em></p>
+      `,
+    author: 'DineOpen Team',
+    authorRole: 'Product Team',
+    publishDate: 'April 10, 2026',
+    readTime: '18 min read',
+    category: 'Operations',
+    categoryColor: '#10b981',
+    tags: ['Restaurant Inventory Management', 'Inventory Software', 'Recipe Costing', 'Food Cost Control', 'Restaurant Stock Management', 'AI Inventory', 'Purchase Order Restaurant', 'DineOpen Inventory']
   }
 };
 

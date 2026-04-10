@@ -172,7 +172,7 @@ export default function sitemap() {
     priority: 0.8,
   }));
 
-  // Product pages — hub pages only, no sub-pages (11)
+  // Product pages — hub pages only, no sub-pages (12)
   const productPages = [
     'menu',
     'loyalty',
@@ -185,6 +185,7 @@ export default function sitemap() {
     'tables',
     'inventory',
     'admin',
+    'integrations',
   ].map((slug) => ({
     url: `${baseUrl}/products/${slug}`,
     lastModified: currentDate,
@@ -307,8 +308,9 @@ export default function sitemap() {
     })
   );
 
-  // Blog posts served by Next.js dynamic route (blogData.js — have content in blogPostContent) (27)
+  // Blog posts served by Next.js dynamic route (blogData.js — have content in blogPostContent) (28)
   const blogPostsDynamic = [
+    'restaurant-inventory-management-software-guide',
     '5-ways-increase-restaurant-sales-digital-menus',
     'ai-voice-ordering-restaurants-2026',
     'bakery-pos-software-dineopen-increase-revenue',
