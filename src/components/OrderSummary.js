@@ -200,6 +200,9 @@ const OrderSummary = ({
   // Loyalty Points Redemption State
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
 
+  // Offers & Rewards Modal
+  const [showOffersModal, setShowOffersModal] = useState(false);
+
   // Billing features state
   const [activeBillingPanel, setActiveBillingPanel] = useState(null);
   const [cashReceived, setCashReceived] = useState('');
@@ -1643,8 +1646,8 @@ const OrderSummary = ({
                         </div>
                       )}
                       {(invoice?.loyaltyDiscount || 0) > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#7c3aed' }}>
-                          <span>Loyalty Points:</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#b45309' }}>
+                          <span>Loyalty Redeem:</span>
                           <span>-{formatCurrency(invoice.loyaltyDiscount)}</span>
                         </div>
                       )}
@@ -1749,7 +1752,7 @@ const OrderSummary = ({
                       const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
                       const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Offer${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
                       const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Manual Discount:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
-                      const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#7c3aed;"><span>Loyalty Points:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
+                      const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#b45309;"><span>Loyalty Redeem:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
                       const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml;
                       const serviceChargeHtml = (invoice?.serviceChargeAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Service Charge${invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${currencySymbol}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
                       const tipHtml = (invoice?.tipAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Tip${invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${currencySymbol}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
@@ -2295,303 +2298,78 @@ const OrderSummary = ({
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
             <div style={{ padding: '6px 12px 12px 12px' }}>
-              {/* Row 1: Offer Chips — horizontally scrollable */}
-              <div style={{ marginBottom: '6px' }}>
-                {(genericOffers.length > 0 || personalizedOffers.length > 0) && (
-                  <div style={{
-                    display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '4px',
-                    scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch',
-                    maskImage: 'linear-gradient(to right, black 92%, transparent)',
-                    WebkitMaskImage: 'linear-gradient(to right, black 92%, transparent)',
-                  }} className="hide-scrollbar">
-                    {/* Generic offers (available to everyone) */}
-                    {genericOffers.map(offer => {
-                      const oid = offer.id || offer._id;
-                      const isMulti = offerSettings?.allowMultipleOffers;
-                      const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
-                      const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
-                      return (
-                        <button
-                          key={oid}
-                          onClick={() => {
-                            if (isMulti) { toggleOffer(oid); } else { setSelectedOfferId(isSelected ? null : oid); }
-                          }}
-                          style={{
-                            padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
-                            border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e5e7eb',
-                            background: isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff',
-                            color: isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280',
-                            cursor: 'pointer', whiteSpace: 'nowrap',
-                            display: 'flex', alignItems: 'center', gap: '3px',
-                            transition: 'all 0.15s', flexShrink: 0,
-                          }}
-                        >
-                          {isSelected && <FaCheckCircle size={8} />}
-                          <FaTag size={7} />
-                          {offer.name}
-                          {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
-                          {isSelected && autoApplied && <span style={{ fontSize: '8px' }}>Auto</span>}
-                        </button>
-                      );
-                    })}
-                    {/* Personalized offers (group/customer-targeted) — only when customer identified */}
-                    {lookupStatus === 'found' && personalizedOffers.map(offer => {
-                      const oid = offer.id || offer._id;
-                      const isMulti = offerSettings?.allowMultipleOffers;
-                      const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
-                      const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
-                      const offerGroupIds = offer.audience?.groupIds || [];
-                      const matchedGroup = customerOfferGroups?.find(g => offerGroupIds.includes(g.id));
-                      return (
-                        <button
-                          key={oid}
-                          onClick={() => {
-                            if (isMulti) { toggleOffer(oid); } else { setSelectedOfferId(isSelected ? null : oid); }
-                          }}
-                          style={{
-                            padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
-                            border: isSelected ? '1.5px solid #d97706' : '1.5px solid #fbbf24',
-                            background: isSelected ? '#fef3c7' : '#fffbeb',
-                            color: isSelected ? '#92400e' : '#b45309',
-                            cursor: 'pointer', whiteSpace: 'nowrap',
-                            display: 'flex', alignItems: 'center', gap: '3px',
-                            transition: 'all 0.15s', flexShrink: 0,
-                          }}
-                        >
-                          {isSelected && <FaCheckCircle size={8} />}
-                          <FaHandHoldingUsd size={7} />
-                          {offer.name}
-                          {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
-                          {matchedGroup && (
-                            <span style={{
-                              fontSize: '8px', padding: '1px 4px', borderRadius: '6px',
-                              background: matchedGroup.color || '#6366f1', color: '#fff', fontWeight: 700,
-                            }}>{matchedGroup.name}</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                    {freeItems && freeItems.length > 0 && (
-                      <span style={{
-                        padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
-                        background: '#fef3c7', color: '#78350f', border: '1px dashed #f59e0b',
-                        display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', flexShrink: 0,
-                      }}>
-                        <FaGift size={8} /> Free: {freeItems.map(f => `${f.qty}× ${f.itemId}`).join(', ')}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {firstOrderOfferRejected && (
-                  <span style={{ fontSize: '9px', color: '#dc2626', whiteSpace: 'nowrap' }}>Not first order</span>
-                )}
+              {/* Offers & Rewards Summary Row — opens modal */}
+              {(() => {
+                const hasOffers = genericOffers.length > 0 || personalizedOffers.length > 0;
+                const hasLoyalty = loyaltySettings?.enabled && customerData && lookupStatus === 'found';
+                const hasAnything = hasOffers || hasLoyalty || totalDiscountAmount > 0 || specialInstructions;
+                if (!hasAnything || cart.length === 0) return null;
 
-                {/* Row 2: Manual discount + clear + special instructions */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  marginBottom: '6px'
-                }}>
-                  {/* Discount amount display */}
-                  {totalDiscountAmount > 0 && (
-                    <>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                const activeOfferCount = (offerSettings?.allowMultipleOffers ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : [])).length;
+                const loyaltyDisc = getLoyaltyDiscountAmount();
+                const manualDisc = getManualDiscountAmount();
+                const earnPts = getLoyaltyPointsToEarn();
+                const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0 || manualDisc > 0;
+
+                return (
+                  <button
+                    onClick={() => setShowOffersModal(true)}
+                    style={{
+                      width: '100%', padding: '7px 10px', borderRadius: '8px',
+                      border: hasApplied ? '1.5px solid #86efac' : '1.5px solid #e5e7eb',
+                      background: hasApplied ? '#f0fdf4' : '#f9fafb',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                      marginBottom: '6px', transition: 'all 0.15s',
+                    }}
+                  >
+                    <FaTag size={11} style={{ color: hasApplied ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                      {hasApplied ? (
+                        <>
+                          {activeOfferCount > 0 && (
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                              {activeOfferCount} offer{activeOfferCount > 1 ? 's' : ''} -{formatCurrency(offerDiscount)}
+                            </span>
+                          )}
+                          {loyaltyDisc > 0 && (
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap' }}>
+                              {redeemLoyaltyPoints}pts -{formatCurrency(loyaltyDisc)}
+                            </span>
+                          )}
+                          {manualDisc > 0 && (
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#7c3aed', whiteSpace: 'nowrap' }}>
+                              Disc -{formatCurrency(manualDisc)}
+                            </span>
+                          )}
+                          {specialInstructions && (
+                            <FaStickyNote size={9} style={{ color: '#d97706', flexShrink: 0 }} />
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', whiteSpace: 'nowrap' }}>
+                          {hasOffers ? `${applicableOffers.length} offer${applicableOffers.length > 1 ? 's' : ''} available` : ''}
+                          {hasOffers && hasLoyalty ? ' · ' : ''}
+                          {hasLoyalty ? `${customerData.loyaltyPoints || 0} pts` : ''}
+                        </span>
+                      )}
+                    </div>
+                    {earnPts > 0 && (
+                      <span style={{
+                        fontSize: '9px', fontWeight: 600, color: '#16a34a', flexShrink: 0,
+                        background: '#f0fdf4', padding: '2px 6px', borderRadius: '8px',
+                        border: '1px solid #bbf7d0',
+                      }}>+{earnPts}pts</span>
+                    )}
+                    {hasApplied ? (
+                      <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, flexShrink: 0 }}>
                         -{formatCurrency(totalDiscountAmount)}
                       </span>
-                      <button
-                        onClick={() => { setManualDiscountValue(''); setRedeemLoyaltyPoints(0); resetOffers(); }}
-                        style={{
-                          width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
-                          border: '1px solid #fecaca', backgroundColor: '#fee2e2',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
-                        }}
-                      >
-                        <FaTimes size={7} style={{ color: '#dc2626' }} />
-                      </button>
-                    </>
-                  )}
-
-                  {/* Spacer to push special instructions to the right */}
-                  <div style={{ flex: 1 }} />
-
-                  {/* Special Instructions Icon Button with Floating Box */}
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                      onClick={() => { setShowInstructionsModal(!showInstructionsModal); setShowDiscountPopup(false); }}
-                      title={specialInstructions ? 'Edit kitchen instructions' : 'Add kitchen instructions'}
-                      style={{
-                        padding: '5px 8px',
-                        background: specialInstructions ? '#fef3c7' : 'transparent',
-                        border: specialInstructions ? '1px solid #fbbf24' : '1px solid #d1d5db',
-                        borderRadius: specialInstructions ? '5px 0 0 5px' : '5px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <FaStickyNote size={11} style={{ color: specialInstructions ? '#d97706' : '#9ca3af' }} />
-                      {specialInstructions && <span style={{ fontSize: '9px', color: '#d97706' }}>✓</span>}
-                    </button>
-                    {/* Clear button - only show when instructions exist */}
-                    {specialInstructions && (
-                      <button
-                        onClick={() => setSpecialInstructions('')}
-                        title="Clear instructions"
-                        style={{
-                          padding: '5px 6px',
-                          background: '#fee2e2',
-                          border: '1px solid #fecaca',
-                          borderLeft: 'none',
-                          borderRadius: '0 5px 5px 0',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <FaTimes size={9} style={{ color: '#dc2626' }} />
-                      </button>
+                    ) : (
+                      <FaChevronDown size={10} style={{ color: '#9ca3af', flexShrink: 0 }} />
                     )}
-
-                    {/* Floating Instructions Box */}
-                    {showInstructionsModal && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        right: 0,
-                        marginTop: '6px',
-                        width: '260px',
-                        background: 'white',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                        border: '1px solid #e5e7eb',
-                        zIndex: 100,
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{ padding: '8px 10px', background: '#fef3c7', borderBottom: '1px solid #fde68a' }}>
-                          <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400e' }}>Kitchen Instructions</span>
-                        </div>
-                        <div style={{ padding: '8px' }}>
-                          <textarea
-                            value={specialInstructions}
-                            onChange={(e) => setSpecialInstructions(e.target.value)}
-                            placeholder="E.g., No onions, extra spicy..."
-                            autoFocus
-                            style={{
-                              width: '100%',
-                              height: '60px',
-                              padding: '8px',
-                              border: '1px solid #e5e7eb',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              resize: 'none',
-                              outline: 'none',
-                              fontFamily: 'inherit',
-                              boxSizing: 'border-box'
-                            }}
-                            onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
-                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                          />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '6px' }}>
-                            {specialInstructions && (
-                              <button
-                                onClick={() => setSpecialInstructions('')}
-                                style={{
-                                  padding: '5px 10px',
-                                  fontSize: '10px',
-                                  background: '#fee2e2',
-                                  color: '#dc2626',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontWeight: '600'
-                                }}
-                              >
-                                Clear
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setShowInstructionsModal(false)}
-                              style={{
-                                padding: '5px 12px',
-                                fontSize: '10px',
-                                background: '#f59e0b',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontWeight: '600'
-                              }}
-                            >
-                              Done
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Loyalty Points Redemption */}
-                {loyaltySettings?.enabled && customerData && lookupStatus === 'found' && cart.length > 0 && (
-                  <div style={{
-                    padding: '6px 8px', borderRadius: '6px', marginBottom: '4px',
-                    background: 'linear-gradient(135deg, #faf5ff, #f3e8ff)',
-                    border: '1px solid #e9d5ff'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (customerData.loyaltyPoints || 0) > 0 ? '4px' : '0' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <FaGift size={9} /> {customerData.loyaltyPoints || 0} pts
-                        {(customerData.loyaltyPoints || 0) > 0 && (
-                          <span style={{ fontWeight: 400, color: '#9333ea' }}>
-                            (= {formatCurrency((customerData.loyaltyPoints || 0) / (loyaltySettings.redemptionRate || 100))})
-                          </span>
-                        )}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {getLoyaltyPointsToEarn() > 0 && (
-                          <span style={{
-                            fontSize: '9px', fontWeight: 600, color: '#16a34a',
-                            background: '#f0fdf4', padding: '2px 6px', borderRadius: '8px',
-                            border: '1px solid #bbf7d0',
-                          }}>
-                            +{getLoyaltyPointsToEarn()} pts
-                          </span>
-                        )}
-                        {getLoyaltyDiscountAmount() > 0 && (
-                          <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed' }}>
-                            -{formatCurrency(getLoyaltyDiscountAmount())}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {(customerData.loyaltyPoints || 0) > 0 && (() => {
-                      const redemptionRate = loyaltySettings.redemptionRate || 100;
-                      const maxPct = loyaltySettings.maxRedemptionPercent || 20;
-                      const afterOtherDisc = Math.max(0, getTotalAmount() - offerDiscount - getManualDiscountAmount());
-                      const maxDiscByPct = (afterOtherDisc * maxPct) / 100;
-                      const maxPointsByPct = Math.floor(maxDiscByPct * redemptionRate);
-                      const maxRedeemable = Math.min(customerData.loyaltyPoints, maxPointsByPct);
-                      return maxRedeemable > 0 ? (
-                        <div>
-                          <input
-                            type="range" min="0" max={maxRedeemable} step={1}
-                            value={Math.min(redeemLoyaltyPoints, maxRedeemable)}
-                            onChange={(e) => setRedeemLoyaltyPoints(Number(e.target.value))}
-                            style={{ width: '100%', height: '4px', accentColor: '#7c3aed' }}
-                          />
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#6b21a8', marginTop: '2px' }}>
-                            <span>Redeem: {redeemLoyaltyPoints} pts = {formatCurrency(redeemLoyaltyPoints / redemptionRate)}</span>
-                            <span>Max: {maxRedeemable} pts ({maxPct}%)</span>
-                          </div>
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
-                )}
+                  </button>
+                );
+              })()}
 
                 {/* Validation states */}
                 {(() => {
@@ -2881,7 +2659,6 @@ const OrderSummary = ({
                     </div>
                   );
                 })()}
-              </div>
 
               {/* Payment Method Selection */}
               <div style={{ marginBottom: '16px' }}>
@@ -3793,6 +3570,409 @@ const OrderSummary = ({
           </div>
         </div>
       )}
+      {/* Offers & Rewards Modal */}
+      {showOffersModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowOffersModal(false); }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <div style={{
+            background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '460px',
+            maxHeight: '78vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden',
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '14px 16px', borderBottom: '1px solid #f3f4f6',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaTag size={14} style={{ color: '#6366f1' }} />
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Offers & Rewards</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>
+                  Total: {formatCurrency(grandTotal > 0 ? grandTotal : getTotalAmount())}
+                </span>
+                <button
+                  onClick={() => setShowOffersModal(false)}
+                  style={{
+                    width: '28px', height: '28px', borderRadius: '8px',
+                    border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <FaTimes size={12} style={{ color: '#64748b' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body — scrollable */}
+            <style>{`
+              .loyalty-slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#f59e0b; cursor:pointer; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+              .loyalty-slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#f59e0b; cursor:pointer; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+            `}</style>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+
+              {/* OFFERS Section */}
+              {(genericOffers.length > 0 || personalizedOffers.length > 0) && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                    Offers
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {genericOffers.map(offer => {
+                      const oid = offer.id || offer._id;
+                      const isMulti = offerSettings?.allowMultipleOffers;
+                      const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
+                      const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                      return (
+                        <button
+                          key={oid}
+                          onClick={() => {
+                            if (isMulti) { toggleOffer(oid); } else { setSelectedOfferId(isSelected ? null : oid); }
+                          }}
+                          style={{
+                            width: '100%', padding: '10px 12px', borderRadius: '10px',
+                            border: isSelected ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb',
+                            borderLeft: isSelected ? '4px solid #6366f1' : '4px solid transparent',
+                            background: isSelected ? '#eef2ff' : '#fff',
+                            cursor: 'pointer', textAlign: 'left',
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <div style={{
+                            width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                            border: isSelected ? '2px solid #6366f1' : '2px solid #d1d5db',
+                            background: isSelected ? '#6366f1' : '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {isSelected && <FaCheckCircle size={10} style={{ color: '#fff' }} />}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#4338ca' : '#374151' }}>
+                              {offer.name}
+                            </div>
+                            {offer.description && (
+                              <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {offer.description}
+                              </div>
+                            )}
+                          </div>
+                          {saves > 0 && (
+                            <span style={{
+                              fontSize: '12px', fontWeight: 700, flexShrink: 0,
+                              color: isSelected ? '#16a34a' : '#6b7280',
+                            }}>
+                              -{formatCurrency(saves)}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {/* Personalized offers */}
+                    {lookupStatus === 'found' && personalizedOffers.length > 0 && (
+                      <>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <FaGift size={9} /> For You
+                        </div>
+                        {personalizedOffers.map(offer => {
+                          const oid = offer.id || offer._id;
+                          const isMulti = offerSettings?.allowMultipleOffers;
+                          const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
+                          const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                          const offerGroupIds = offer.audience?.groupIds || [];
+                          const matchedGroup = customerOfferGroups?.find(g => offerGroupIds.includes(g.id));
+                          return (
+                            <button
+                              key={oid}
+                              onClick={() => {
+                                if (isMulti) { toggleOffer(oid); } else { setSelectedOfferId(isSelected ? null : oid); }
+                              }}
+                              style={{
+                                width: '100%', padding: '10px 12px', borderRadius: '10px',
+                                border: isSelected ? '1.5px solid #d97706' : '1.5px solid #fde68a',
+                                borderLeft: isSelected ? '4px solid #d97706' : '4px solid #fbbf24',
+                                background: isSelected ? '#fef3c7' : '#fffbeb',
+                                cursor: 'pointer', textAlign: 'left',
+                                display: 'flex', alignItems: 'center', gap: '10px',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              <div style={{
+                                width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                                border: isSelected ? '2px solid #d97706' : '2px solid #fbbf24',
+                                background: isSelected ? '#d97706' : '#fff',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                {isSelected && <FaCheckCircle size={10} style={{ color: '#fff' }} />}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#92400e' : '#b45309' }}>
+                                  {offer.name}
+                                </div>
+                                {(offer.description || matchedGroup) && (
+                                  <div style={{ fontSize: '11px', color: '#d97706', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    {offer.description && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{offer.description}</span>}
+                                    {matchedGroup && (
+                                      <span style={{
+                                        fontSize: '9px', padding: '1px 5px', borderRadius: '6px',
+                                        background: matchedGroup.color || '#6366f1', color: '#fff', fontWeight: 700, flexShrink: 0,
+                                      }}>{matchedGroup.name}</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              {saves > 0 && (
+                                <span style={{
+                                  fontSize: '12px', fontWeight: 700, flexShrink: 0,
+                                  color: isSelected ? '#16a34a' : '#92400e',
+                                }}>
+                                  -{formatCurrency(saves)}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                  {freeItems && freeItems.length > 0 && (
+                    <div style={{
+                      marginTop: '8px', padding: '6px 10px', borderRadius: '8px',
+                      background: '#fef3c7', border: '1px dashed #f59e0b',
+                      fontSize: '11px', fontWeight: 600, color: '#78350f',
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                    }}>
+                      <FaGift size={10} /> Free: {freeItems.map(f => `${f.qty}× ${f.itemId}`).join(', ')}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* LOYALTY POINTS Section */}
+              {loyaltySettings?.enabled && customerData && lookupStatus === 'found' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                    Loyalty Points
+                  </div>
+                  <div style={{
+                    padding: '12px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+                    border: '1px solid #fde68a',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#b45309' }}>
+                        {customerData.loyaltyPoints || 0} points available
+                      </span>
+                      {getLoyaltyPointsToEarn() > 0 && (
+                        <span style={{
+                          fontSize: '11px', fontWeight: 600, color: '#16a34a',
+                          background: '#f0fdf4', padding: '3px 8px', borderRadius: '8px',
+                          border: '1px solid #bbf7d0',
+                        }}>
+                          Will earn +{getLoyaltyPointsToEarn()} pts
+                        </span>
+                      )}
+                    </div>
+                    {(customerData.loyaltyPoints || 0) > 0 && (() => {
+                      const redemptionRate = loyaltySettings.redemptionRate || 100;
+                      const maxPct = loyaltySettings.maxRedemptionPercent || 20;
+                      const afterOtherDisc = Math.max(0, getTotalAmount() - offerDiscount - getManualDiscountAmount());
+                      const maxDiscByPct = (afterOtherDisc * maxPct) / 100;
+                      const maxPointsByPct = Math.floor(maxDiscByPct * redemptionRate);
+                      const maxRedeemable = Math.min(customerData.loyaltyPoints, maxPointsByPct);
+                      if (maxRedeemable <= 0) return (
+                        <div style={{ fontSize: '11px', color: '#92400e' }}>
+                          Cannot redeem points on current order (max {maxPct}% of total)
+                        </div>
+                      );
+                      return (
+                        <div>
+                          <input
+                            type="range"
+                            className="loyalty-slider"
+                            min={0}
+                            max={maxRedeemable}
+                            step={1}
+                            value={redeemLoyaltyPoints}
+                            onChange={(e) => setRedeemLoyaltyPoints(Number(e.target.value))}
+                            style={{
+                              width: '100%', height: '6px', borderRadius: '3px',
+                              appearance: 'none', WebkitAppearance: 'none',
+                              background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${(redeemLoyaltyPoints / maxRedeemable) * 100}%, #e5e7eb ${(redeemLoyaltyPoints / maxRedeemable) * 100}%, #e5e7eb 100%)`,
+                              outline: 'none', cursor: 'pointer', marginBottom: '6px',
+                            }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#b45309' }}>
+                              {redeemLoyaltyPoints > 0 ? `${redeemLoyaltyPoints} pts = -${formatCurrency(getLoyaltyDiscountAmount())}` : 'Slide to redeem'}
+                            </span>
+                            <span style={{ fontSize: '10px', color: '#92400e' }}>
+                              Max: {maxRedeemable} pts ({maxPct}%)
+                            </span>
+                          </div>
+                          {redeemLoyaltyPoints > 0 && (
+                            <button
+                              onClick={() => setRedeemLoyaltyPoints(0)}
+                              style={{
+                                marginTop: '6px', fontSize: '10px', fontWeight: 600, color: '#dc2626',
+                                background: '#fee2e2', padding: '4px 10px', borderRadius: '6px',
+                                border: '1px solid #fecaca', cursor: 'pointer',
+                              }}
+                            >
+                              Clear Redemption
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* MANUAL DISCOUNT Section */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                  Manual Discount
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div style={{
+                    display: 'flex', borderRadius: '8px', overflow: 'hidden',
+                    border: '1.5px solid #e5e7eb', flexShrink: 0,
+                  }}>
+                    <button
+                      onClick={() => setManualDiscountTypeState('flat')}
+                      style={{
+                        padding: '6px 10px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                        background: manualDiscountTypeState === 'flat' ? '#6366f1' : '#f9fafb',
+                        color: manualDiscountTypeState === 'flat' ? '#fff' : '#6b7280',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {getCurrencySymbol()}
+                    </button>
+                    <button
+                      onClick={() => setManualDiscountTypeState('percentage')}
+                      style={{
+                        padding: '6px 10px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                        background: manualDiscountTypeState === 'percentage' ? '#6366f1' : '#f9fafb',
+                        color: manualDiscountTypeState === 'percentage' ? '#fff' : '#6b7280',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      %
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    placeholder={manualDiscountTypeState === 'flat' ? 'Amount' : 'Percent'}
+                    value={manualDiscountValue}
+                    onChange={(e) => setManualDiscountValue(e.target.value)}
+                    style={{
+                      flex: 1, padding: '7px 10px', borderRadius: '8px',
+                      border: '1.5px solid #e5e7eb', fontSize: '13px', outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  />
+                  {manualDiscountValue && (
+                    <button
+                      onClick={() => setManualDiscountValue('')}
+                      style={{
+                        padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
+                        background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca',
+                        cursor: 'pointer', flexShrink: 0,
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {getManualDiscountAmount() > 0 && (
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#7c3aed', marginTop: '6px' }}>
+                    Discount: -{formatCurrency(getManualDiscountAmount())}
+                  </div>
+                )}
+              </div>
+
+              {/* KITCHEN NOTES Section */}
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <FaStickyNote size={9} /> Kitchen Notes
+                </div>
+                <textarea
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  placeholder="E.g., No onions, extra spicy, birthday celebration..."
+                  rows={2}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: '8px',
+                    border: '1.5px solid #e5e7eb', fontSize: '12px', resize: 'none',
+                    outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
+                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer — sticky */}
+            <div style={{
+              padding: '12px 16px', borderTop: '1px solid #f3f4f6',
+              background: '#f8fafc',
+            }}>
+              {/* Price breakdown */}
+              {totalDiscountAmount > 0 && (
+                <div style={{ marginBottom: '10px', fontSize: '12px', color: '#64748b' }}>
+                  {offerDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span>Offers</span>
+                      <span style={{ fontWeight: 600, color: '#16a34a' }}>-{formatCurrency(offerDiscount)}</span>
+                    </div>
+                  )}
+                  {getLoyaltyDiscountAmount() > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span>Loyalty ({redeemLoyaltyPoints} pts)</span>
+                      <span style={{ fontWeight: 600, color: '#b45309' }}>-{formatCurrency(getLoyaltyDiscountAmount())}</span>
+                    </div>
+                  )}
+                  {getManualDiscountAmount() > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span>Manual Discount</span>
+                      <span style={{ fontWeight: 600, color: '#7c3aed' }}>-{formatCurrency(getManualDiscountAmount())}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => setShowOffersModal(false)}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: '10px',
+                  border: 'none', cursor: 'pointer',
+                  background: totalDiscountAmount > 0 ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  color: '#fff', fontSize: '14px', fontWeight: 700,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {totalDiscountAmount > 0 ? `Done (saving ${formatCurrency(totalDiscountAmount)})` : 'Done'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Customer Detail Modal (lazy loaded) */}
       {showCustomerModal && customerData?.id && (
         <CustomerDetailModal
