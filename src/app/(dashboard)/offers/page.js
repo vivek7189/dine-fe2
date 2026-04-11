@@ -149,6 +149,12 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [editingGroup, setEditingGroup] = useState(null);
   const [groupForm, setGroupForm] = useState({ name: '', description: '', color: '#ef4444', icon: '' });
   const [groupSaving, setGroupSaving] = useState(false);
+  const [groupMembers, setGroupMembers] = useState([]); // Current members of group being edited
+  const [groupMembersLoading, setGroupMembersLoading] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [addPhoneInput, setAddPhoneInput] = useState('');
+  const [addingMember, setAddingMember] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState(null);
   const [offerErrors, setOfferErrors] = useState({
     maxOffersAllowed: '',
     discountValue: '',
@@ -443,9 +449,12 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         });
         setCustomerGroups(prev => prev.map(g => g.id === editingGroup.id ? { ...g, name: groupForm.name.trim(), description: groupForm.description, color: groupForm.color, icon: groupForm.icon } : g));
       } else {
+        // Include pending members when creating
+        const customerIds = groupMembers.map(m => m.id).filter(id => !id.startsWith('phone_'));
+        const customerPhones = groupMembers.map(m => m.phone).filter(Boolean);
         const resp = await apiClient.request(`/api/customer-groups/${id}`, {
           method: 'POST',
-          body: { name: groupForm.name.trim(), description: groupForm.description || '', color: groupForm.color, icon: groupForm.icon || '' }
+          body: { name: groupForm.name.trim(), description: groupForm.description || '', color: groupForm.color, icon: groupForm.icon || '', customerIds, customerPhones }
         });
         setCustomerGroups(prev => [...prev, resp.group]);
       }
@@ -454,6 +463,162 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       console.error('Error saving group:', err);
     } finally {
       setGroupSaving(false);
+    }
+  };
+
+  // Load group members when editing
+  const loadGroupMembers = async (group) => {
+    const id = getRestaurantId();
+    if (!id || !group) return;
+    setGroupMembersLoading(true);
+    try {
+      await ensureCustomersLoaded();
+      // Get member IDs and phones from group
+      const memberIds = group.customerIds || [];
+      const memberPhones = group.customerPhones || [];
+      // Match against loaded customers
+      const members = customersList.filter(c =>
+        memberIds.includes(c.id) || (c.phone && memberPhones.includes(c.phone))
+      );
+      // Also add phone-only members not in customer list
+      const matchedPhones = new Set(members.map(m => m.phone).filter(Boolean));
+      memberPhones.forEach(phone => {
+        if (!matchedPhones.has(phone)) {
+          members.push({ id: `phone_${phone}`, name: phone, phone, _phoneOnly: true });
+        }
+      });
+      setGroupMembers(members);
+    } catch (err) {
+      console.error('Error loading group members:', err);
+    } finally {
+      setGroupMembersLoading(false);
+    }
+  };
+
+  // Add member to group by selecting existing customer
+  const addMemberToGroup = async (customer) => {
+    const id = getRestaurantId();
+    const groupId = editingGroup?.id;
+    if (!id || !groupId) return;
+    setAddingMember(true);
+    try {
+      const payload = {
+        customerIds: [customer.id],
+        customerPhones: customer.phone ? [customer.phone] : [],
+      };
+      await apiClient.request(`/api/customer-groups/${id}/${groupId}/members`, {
+        method: 'POST', body: payload,
+      });
+      setGroupMembers(prev => {
+        if (prev.some(m => m.id === customer.id)) return prev;
+        return [...prev, customer];
+      });
+      setCustomerGroups(prev => prev.map(g => {
+        if (g.id !== groupId) return g;
+        const newIds = Array.from(new Set([...(g.customerIds || []), customer.id]));
+        const newPhones = customer.phone ? Array.from(new Set([...(g.customerPhones || []), customer.phone])) : (g.customerPhones || []);
+        return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length };
+      }));
+      setMemberSearchQuery('');
+    } catch (err) {
+      console.error('Error adding member:', err);
+      alert('Failed to add member');
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  // Add member by phone (create customer if new)
+  const addMemberByPhone = async (phone) => {
+    const id = getRestaurantId();
+    const groupId = editingGroup?.id;
+    if (!id || !groupId || !phone?.trim()) return;
+    const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+    if (normalizedPhone.length < 10) { alert('Enter a valid 10-digit phone number'); return; }
+    setAddingMember(true);
+    try {
+      // Check if customer exists
+      let customer = customersList.find(c => c.phone && c.phone.replace(/\D/g, '').slice(-10) === normalizedPhone);
+      if (!customer) {
+        // Create new customer
+        const resp = await apiClient.request('/api/customers', {
+          method: 'POST',
+          body: { phone: normalizedPhone, name: `Customer ${normalizedPhone.slice(-4)}`, restaurantId: id },
+        });
+        customer = resp.customer || { id: resp.customerId || resp.id, phone: normalizedPhone, name: `Customer ${normalizedPhone.slice(-4)}` };
+        setCustomersList(prev => [...prev, customer]);
+      }
+      await addMemberToGroup(customer);
+      setAddPhoneInput('');
+    } catch (err) {
+      console.error('Error adding member by phone:', err);
+      alert('Failed to add member: ' + (err.message || 'Unknown error'));
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  // Remove member from group
+  const removeMemberFromGroup = async (member) => {
+    const id = getRestaurantId();
+    const groupId = editingGroup?.id;
+    if (!id || !groupId) return;
+    setRemovingMemberId(member.id);
+    try {
+      const payload = {
+        customerIds: member._phoneOnly ? [] : [member.id],
+        customerPhones: member.phone ? [member.phone] : [],
+      };
+      await apiClient.request(`/api/customer-groups/${id}/${groupId}/members`, {
+        method: 'DELETE', body: payload,
+      });
+      setGroupMembers(prev => prev.filter(m => m.id !== member.id));
+      setCustomerGroups(prev => prev.map(g => {
+        if (g.id !== groupId) return g;
+        const newIds = (g.customerIds || []).filter(cid => cid !== member.id);
+        const newPhones = member.phone ? (g.customerPhones || []).filter(p => p !== member.phone) : (g.customerPhones || []);
+        return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length };
+      }));
+    } catch (err) {
+      console.error('Error removing member:', err);
+      alert('Failed to remove member');
+    } finally {
+      setRemovingMemberId(null);
+    }
+  };
+
+  // Add member locally for new group (no API call yet)
+  const addPendingMember = (customer) => {
+    setGroupMembers(prev => {
+      if (prev.some(m => m.id === customer.id)) return prev;
+      return [...prev, customer];
+    });
+    setMemberSearchQuery('');
+  };
+
+  const addPendingMemberByPhone = async (phone) => {
+    const id = getRestaurantId();
+    if (!id || !phone?.trim()) return;
+    const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+    if (normalizedPhone.length < 10) { alert('Enter a valid 10-digit phone number'); return; }
+    setAddingMember(true);
+    try {
+      let customer = customersList.find(c => c.phone && String(c.phone).replace(/\D/g, '').slice(-10) === normalizedPhone);
+      if (!customer) {
+        const resp = await apiClient.request('/api/customers', {
+          method: 'POST',
+          body: { phone: normalizedPhone, name: `Customer ${normalizedPhone.slice(-4)}`, restaurantId: id },
+        });
+        customer = resp.customer || { id: resp.customerId || resp.id, phone: normalizedPhone, name: `Customer ${normalizedPhone.slice(-4)}` };
+        setCustomersList(prev => [...prev, customer]);
+      }
+      addPendingMember(customer);
+      setAddPhoneInput('');
+    } catch (err) {
+      console.error('Error adding member by phone:', err);
+      alert('Failed to add member: ' + (err.message || 'Unknown error'));
+    } finally {
+      setAddingMember(false);
     }
   };
 
@@ -639,7 +804,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 Customer Groups
               </h2>
               <button
-                onClick={() => { setEditingGroup(null); setGroupForm({ name: '', description: '', color: GROUP_COLORS[0], icon: '' }); setShowGroupModal(true); }}
+                onClick={() => { setEditingGroup(null); setGroupForm({ name: '', description: '', color: GROUP_COLORS[0], icon: '' }); setGroupMembers([]); setMemberSearchQuery(''); setAddPhoneInput(''); setShowGroupModal(true); }}
                 style={{
                   padding: isMobile ? '8px 14px' : '10px 20px',
                   backgroundColor: '#ec4899',
@@ -693,7 +858,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
-                        onClick={() => { setEditingGroup(g); setGroupForm({ name: g.name, description: g.description || '', color: g.color || GROUP_COLORS[0], icon: g.icon || '' }); setShowGroupModal(true); }}
+                        onClick={() => { setEditingGroup(g); setGroupForm({ name: g.name, description: g.description || '', color: g.color || GROUP_COLORS[0], icon: g.icon || '' }); setGroupMembers([]); setMemberSearchQuery(''); setAddPhoneInput(''); setShowGroupModal(true); loadGroupMembers(g); }}
                         style={{ background: '#f3f4f6', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#6b7280' }}
                       >
                         <FaEdit size={12} />
@@ -2097,7 +2262,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
           <div style={{
             backgroundColor: 'white', borderRadius: '16px',
             padding: isMobile ? '20px' : '28px',
-            width: '100%', maxWidth: isMobile ? '100%' : '440px',
+            width: '100%', maxWidth: isMobile ? '100%' : '520px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
             maxHeight: '90vh', overflowY: 'auto'
           }} onClick={(e) => e.stopPropagation()}>
@@ -2148,17 +2313,125 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   ))}
                 </div>
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Icon (emoji)</label>
-                <input
-                  type="text"
-                  value={groupForm.icon}
-                  onChange={(e) => setGroupForm(prev => ({ ...prev, icon: e.target.value.slice(0, 4) }))}
-                  placeholder="e.g. ⭐"
-                  maxLength={4}
-                  style={{ width: '60px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '18px', textAlign: 'center', outline: 'none' }}
-                />
+              <div style={{ marginBottom: '20px', display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Icon (emoji)</label>
+                  <input
+                    type="text"
+                    value={groupForm.icon}
+                    onChange={(e) => setGroupForm(prev => ({ ...prev, icon: e.target.value.slice(0, 4) }))}
+                    placeholder="e.g. ⭐"
+                    maxLength={4}
+                    style={{ width: '60px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '18px', textAlign: 'center', outline: 'none' }}
+                  />
+                </div>
               </div>
+
+              {/* Members Section */}
+              {(
+                <div style={{ marginBottom: '20px', borderTop: '1px solid #f3f4f6', paddingTop: '16px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaUsers size={12} /> Members ({groupMembers.length})
+                  </label>
+
+                  {/* Add by phone */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                    <input
+                      type="tel"
+                      value={addPhoneInput}
+                      onChange={(e) => setAddPhoneInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); editingGroup ? addMemberByPhone(addPhoneInput) : addPendingMemberByPhone(addPhoneInput); } }}
+                      placeholder="Add by phone number"
+                      style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    <button
+                      type="button"
+                      disabled={addingMember || !addPhoneInput.trim()}
+                      onClick={() => editingGroup ? addMemberByPhone(addPhoneInput) : addPendingMemberByPhone(addPhoneInput)}
+                      style={{ padding: '8px 14px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', opacity: addingMember || !addPhoneInput.trim() ? 0.5 : 1, whiteSpace: 'nowrap' }}
+                    >
+                      {addingMember ? '...' : '+ Add'}
+                    </button>
+                  </div>
+
+                  {/* Search existing customers */}
+                  <div style={{ position: 'relative', marginBottom: '10px' }}>
+                    <input
+                      type="text"
+                      value={memberSearchQuery}
+                      onChange={(e) => { setMemberSearchQuery(e.target.value); ensureCustomersLoaded(); }}
+                      placeholder="Search customers by name or phone..."
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    {memberSearchQuery.length >= 2 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '160px', overflowY: 'auto', zIndex: 10, marginTop: '4px' }}>
+                        {customersList
+                          .filter(c => {
+                            const q = memberSearchQuery.toLowerCase();
+                            const alreadyMember = groupMembers.some(m => m.id === c.id);
+                            if (alreadyMember) return false;
+                            return (c.name && c.name.toLowerCase().includes(q)) || (c.phone && String(c.phone).includes(q));
+                          })
+                          .slice(0, 8)
+                          .map(c => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => editingGroup ? addMemberToGroup(c) : addPendingMember(c)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', fontSize: '13px', textAlign: 'left', color: '#374151' }}
+                            >
+                              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', color: '#6b7280', flexShrink: 0 }}>
+                                {(c.name || '?')[0].toUpperCase()}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || 'Unknown'}</div>
+                                {c.phone && <div style={{ fontSize: '11px', color: '#9ca3af' }}>{c.phone}</div>}
+                              </div>
+                              <FaPlus size={10} color="#10b981" />
+                            </button>
+                          ))
+                        }
+                        {customersList.filter(c => {
+                          const q = memberSearchQuery.toLowerCase();
+                          return !groupMembers.some(m => m.id === c.id) && ((c.name && c.name.toLowerCase().includes(q)) || (c.phone && String(c.phone).includes(q)));
+                        }).length === 0 && (
+                          <div style={{ padding: '12px', fontSize: '12px', color: '#9ca3af', textAlign: 'center' }}>No matching customers found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Current members list */}
+                  {groupMembersLoading ? (
+                    <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>Loading members...</div>
+                  ) : groupMembers.length === 0 ? (
+                    <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#9ca3af', background: '#f9fafb', borderRadius: '8px' }}>No members yet. Add customers above.</div>
+                  ) : (
+                    <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #f3f4f6', borderRadius: '8px' }}>
+                      {groupMembers.map(member => (
+                        <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderBottom: '1px solid #f9fafb', fontSize: '13px' }}>
+                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: groupForm.color || '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', color: 'white', flexShrink: 0 }}>
+                            {(member.name || '?')[0].toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{member.name || 'Unknown'}</div>
+                            {member.phone && <div style={{ fontSize: '11px', color: '#9ca3af' }}>{member.phone}</div>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => editingGroup ? removeMemberFromGroup(member) : setGroupMembers(prev => prev.filter(m => m.id !== member.id))}
+                            disabled={removingMemberId === member.id}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: removingMemberId === member.id ? '#d1d5db' : '#ef4444', opacity: removingMemberId === member.id ? 0.5 : 1 }}
+                          >
+                            <FaTimes size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => setShowGroupModal(false)}
                   style={{ flex: 1, padding: '12px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>

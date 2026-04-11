@@ -2393,39 +2393,7 @@ const OrderSummary = ({
                   gap: '5px',
                   marginBottom: '6px'
                 }}>
-                  {/* Manual discount controls — only when discount is enabled */}
-                  {canEditManualDiscount && (
-                    <>
-                      <button
-                        onClick={() => setManualDiscountTypeState(prev => prev === 'flat' ? 'percentage' : 'flat')}
-                        style={{
-                          width: '24px', height: '24px', borderRadius: '5px', flexShrink: 0,
-                          border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6',
-                          fontWeight: '700', fontSize: '11px', color: '#374151',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
-                        }}
-                      >
-                        {manualDiscountTypeState === 'percentage' ? '%' : getCurrencySymbol()}
-                      </button>
-                      <input
-                        type="number"
-                        placeholder="Discount"
-                        value={manualDiscountValue}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          const maxPct = discountSettings.maxDiscountPercent || 100;
-                          const maxAmt = discountSettings.maxDiscountAmount;
-                          if (manualDiscountTypeState === 'percentage' && val > maxPct) return;
-                          if (manualDiscountTypeState === 'flat' && maxAmt && val > maxAmt) return;
-                          setManualDiscountValue(e.target.value);
-                        }}
-                        style={{
-                          width: '80px', flex: '0 1 80px', minWidth: '60px', padding: '4px 6px', borderRadius: '5px',
-                          border: '1px solid #e5e7eb', fontSize: '11px', color: '#1f2937'
-                        }}
-                      />
-                    </>
-                  )}
+                  {/* Discount amount display */}
                   {totalDiscountAmount > 0 && (
                     <>
                       <span style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
@@ -2568,18 +2536,20 @@ const OrderSummary = ({
                 </div>
 
                 {/* Loyalty Points Redemption */}
-                {loyaltySettings?.enabled && customerData?.loyaltyPoints > 0 && cart.length > 0 && (
+                {loyaltySettings?.enabled && customerData && lookupStatus === 'found' && cart.length > 0 && (
                   <div style={{
                     padding: '6px 8px', borderRadius: '6px', marginBottom: '4px',
                     background: 'linear-gradient(135deg, #faf5ff, #f3e8ff)',
                     border: '1px solid #e9d5ff'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (customerData.loyaltyPoints || 0) > 0 ? '4px' : '0' }}>
                       <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <FaGift size={9} /> {customerData.loyaltyPoints} pts
-                        <span style={{ fontWeight: 400, color: '#9333ea' }}>
-                          (= {formatCurrency(customerData.loyaltyPoints / (loyaltySettings.redemptionRate || 100))})
-                        </span>
+                        <FaGift size={9} /> {customerData.loyaltyPoints || 0} pts
+                        {(customerData.loyaltyPoints || 0) > 0 && (
+                          <span style={{ fontWeight: 400, color: '#9333ea' }}>
+                            (= {formatCurrency((customerData.loyaltyPoints || 0) / (loyaltySettings.redemptionRate || 100))})
+                          </span>
+                        )}
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {getLoyaltyPointsToEarn() > 0 && (
@@ -2598,7 +2568,7 @@ const OrderSummary = ({
                         )}
                       </div>
                     </div>
-                    {(() => {
+                    {(customerData.loyaltyPoints || 0) > 0 && (() => {
                       const redemptionRate = loyaltySettings.redemptionRate || 100;
                       const maxPct = loyaltySettings.maxRedemptionPercent || 20;
                       const afterOtherDisc = Math.max(0, getTotalAmount() - offerDiscount - getManualDiscountAmount());
@@ -2618,9 +2588,7 @@ const OrderSummary = ({
                             <span>Max: {maxRedeemable} pts ({maxPct}%)</span>
                           </div>
                         </div>
-                      ) : (
-                        <div style={{ fontSize: '9px', color: '#9333ea' }}>Add items to redeem points</div>
-                      );
+                      ) : null;
                     })()}
                   </div>
                 )}
@@ -2642,40 +2610,7 @@ const OrderSummary = ({
                       alignItems: isMobile ? 'stretch' : 'center',
                       flexWrap: 'wrap'
                   }}>
-                    {/* Customer Name */}
-                    {!posSettings.hideCustomerName && (
-                    <input
-                      type="text"
-                      placeholder={posSettings.customerNameLabel || t('dashboard.customerName')}
-                      value={customerName || ''}
-                      style={{
-                          flex: isMobile ? '0 0 auto' : '1',
-                          minWidth: isMobile ? '100%' : '120px',
-                        padding: isMobile ? '10px 12px' : '8px 10px',
-                          border: `2px solid ${isValidName ? '#22c55e' : '#d1d5db'}`,
-                        borderRadius: '6px',
-                        fontSize: isMobile ? '14px' : '12px',
-                        outline: 'none',
-                        backgroundColor: '#f9fafb',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onChange={(e) => {
-                        if (typeof onCustomerNameChange === 'function') {
-                          onCustomerNameChange(e.target.value);
-                        }
-                      }}
-                        onFocus={(e) => {
-                          const val = e.target.value.trim();
-                          e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#d1d5db';
-                        }}
-                        onBlur={(e) => {
-                          const val = e.target.value.trim();
-                          e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#d1d5db';
-                        }}
-                    />
-                    )}
-                    
-                    {/* Customer Mobile + Lookup */}
+                    {/* Customer Mobile + Lookup (Phone First) */}
                     {!posSettings.hideMobile && (
                     <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : '1', minWidth: isMobile ? '100%' : '120px' }}>
                     <input
@@ -2687,12 +2622,14 @@ const OrderSummary = ({
                           width: '100%',
                         padding: isMobile ? '10px 12px' : '8px 10px',
                         paddingRight: lookupStatus === 'loading' ? '30px' : (isMobile ? '12px' : '10px'),
-                          border: `2px solid ${isValidMobile ? '#22c55e' : lookupStatus === 'found' ? '#a78bfa' : '#d1d5db'}`,
-                        borderRadius: '6px',
+                          border: `1.5px solid ${isValidMobile ? '#22c55e' : lookupStatus === 'found' ? '#a78bfa' : '#e5e7eb'}`,
+                        borderRadius: '8px',
                         fontSize: isMobile ? '14px' : '12px',
                         outline: 'none',
-                        backgroundColor: '#f9fafb',
-                        transition: 'border-color 0.2s'
+                        backgroundColor: '#ffffff',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        boxSizing: 'border-box',
                       }}
                       onChange={(e) => {
                           const digits = e.target.value.replace(/\D/g, '');
@@ -2702,14 +2639,16 @@ const OrderSummary = ({
                           triggerLookup(digits);
                         }}
                         onFocus={(e) => {
+                          e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
                           const digits = (e.target.value || '').replace(/\D/g, '');
                           const minLen = getPhoneMinLength(countryCode);
-                          e.target.style.borderColor = digits.length >= minLen ? '#22c55e' : '#d1d5db';
+                          e.target.style.borderColor = digits.length >= minLen ? '#22c55e' : '#6366f1';
                         }}
                         onBlur={(e) => {
+                          e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
                           const digits = (e.target.value || '').replace(/\D/g, '');
                           const minLen = getPhoneMinLength(countryCode);
-                          e.target.style.borderColor = digits.length >= minLen ? '#22c55e' : '#d1d5db';
+                          e.target.style.borderColor = digits.length >= minLen ? '#22c55e' : '#e5e7eb';
                         }}
                       />
                       {lookupStatus === 'loading' && (
@@ -2722,19 +2661,58 @@ const OrderSummary = ({
                       <style>{`@keyframes custSpin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
                     </div>
                     )}
+
+                    {/* Customer Name (Second) */}
+                    {!posSettings.hideCustomerName && (
+                    <input
+                      type="text"
+                      placeholder={posSettings.customerNameLabel || t('dashboard.customerName')}
+                      value={customerName || ''}
+                      style={{
+                          flex: isMobile ? '0 0 auto' : '1',
+                          minWidth: isMobile ? '100%' : '120px',
+                        padding: isMobile ? '10px 12px' : '8px 10px',
+                          border: `1.5px solid ${isValidName ? '#22c55e' : '#e5e7eb'}`,
+                        borderRadius: '8px',
+                        fontSize: isMobile ? '14px' : '12px',
+                        outline: 'none',
+                        backgroundColor: '#ffffff',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        boxSizing: 'border-box',
+                      }}
+                      onChange={(e) => {
+                        if (typeof onCustomerNameChange === 'function') {
+                          onCustomerNameChange(e.target.value);
+                        }
+                      }}
+                        onFocus={(e) => {
+                          e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
+                          const val = e.target.value.trim();
+                          e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#6366f1';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
+                          const val = e.target.value.trim();
+                          e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#e5e7eb';
+                        }}
+                    />
+                    )}
+
                     {/* Customer Chip — appears when customer found */}
                     {lookupStatus === 'found' && customerData && (
                       <button
                         onClick={() => setShowCustomerModal(true)}
                         style={{
-                          flex: '0 0 auto', padding: '4px 8px', borderRadius: '6px',
-                          border: '1px solid #e9d5ff', backgroundColor: '#f5f3ff',
+                          flex: '0 0 auto', padding: '5px 10px', borderRadius: '8px',
+                          border: '1.5px solid #c4b5fd', backgroundColor: '#f5f3ff',
                           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                           fontSize: '10px', fontWeight: 600, color: '#6d28d9',
-                          transition: 'background 0.15s', whiteSpace: 'nowrap',
+                          transition: 'all 0.15s', whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 3px rgba(109,40,217,0.1)',
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ede9fe'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f5f3ff'}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ede9fe'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(109,40,217,0.15)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f5f3ff'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(109,40,217,0.1)'; }}
                         title="View customer details"
                       >
                         <span style={{ maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2750,6 +2728,7 @@ const OrderSummary = ({
                             background: g.color || '#6366f1', color: '#fff', fontWeight: 700,
                           }}>{g.name}</span>
                         ))}
+                        <FaInfoCircle size={10} style={{ color: '#a78bfa', marginLeft: '2px' }} />
                       </button>
                     )}
                       
