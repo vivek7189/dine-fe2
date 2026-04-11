@@ -9,10 +9,12 @@ import {
   FaCoins, FaChevronRight, FaCheck, FaPercent, FaCrown, FaSignOutAlt, FaEnvelope
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
-import ImageCarousel from '../../components/ImageCarousel';
-import UpiPaymentModal from '../../components/UpiPaymentModal';
 import apiClient from '../../lib/api.js';
 import { getDisplayImage } from '../../utils/placeholderImages';
+
+// Lazy-load heavy components for faster initial render
+const ImageCarousel = dynamic(() => import('../../components/ImageCarousel'), { ssr: false });
+const UpiPaymentModal = dynamic(() => import('../../components/UpiPaymentModal'), { ssr: false });
 
 // Dynamic theme component imports
 const themeComponents = {
@@ -23,16 +25,27 @@ const themeComponents = {
   carousel: dynamic(() => import('../placeorder/carousel/Carousel3DMenu'), { ssr: false }),
 };
 
-// Try to import Firebase modules with error handling
+// Firebase modules loaded lazily on first OTP use
 let firebaseAuth = null;
 let firebaseConfig = null;
+let firebaseLoadPromise = null;
 
-try {
-  firebaseAuth = require('firebase/auth');
-  firebaseConfig = require('../../../firebase');
-} catch (error) {
-  console.warn('Firebase modules not available:', error.message);
-}
+const loadFirebase = () => {
+  if (firebaseLoadPromise) return firebaseLoadPromise;
+  firebaseLoadPromise = Promise.all([
+    import('firebase/auth'),
+    import('../../../firebase')
+  ]).then(([auth, config]) => {
+    firebaseAuth = auth;
+    firebaseConfig = config;
+    return { auth, config };
+  }).catch(error => {
+    console.warn('Firebase modules not available:', error.message);
+    firebaseLoadPromise = null;
+    return null;
+  });
+  return firebaseLoadPromise;
+};
 
 // ============================================
 // CUSTOMER SESSION MANAGEMENT
@@ -296,14 +309,19 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
     restoreSession();
   }, [restaurantId, sessionRestored]);
 
-  // Handle scroll
+  // Handle scroll — with hysteresis to prevent flicker at threshold
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
           const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-          setIsScrolled(scrollTop > 100);
+          setIsScrolled(prev => {
+            // Hysteresis: scroll down past 80 to compact, scroll up past 40 to expand
+            if (!prev && scrollTop > 80) return true;
+            if (prev && scrollTop < 40) return false;
+            return prev;
+          });
           ticking = false;
         });
         ticking = true;
@@ -758,6 +776,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
       setSendingOtp(true);
       setError('');
 
+      // Lazy-load Firebase on first OTP use
+      await loadFirebase();
       if (!firebaseAuth || !firebaseConfig) {
         throw new Error('Firebase modules not available');
       }
@@ -1204,6 +1224,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
         showUpiModal={showUpiModal}
         setShowUpiModal={setShowUpiModal}
         upiOrderAmount={upiOrderAmount}
+        handleUpiConfirm={handleUpiConfirm}
       />
     );
   }
@@ -1218,7 +1239,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
     <div style={{
       minHeight: '100vh',
       backgroundColor: pageBackgroundColor,
-      paddingBottom: '100px'
+      paddingBottom: getCartItemCount() > 0 ? '100px' : '60px'
     }}>
       <style jsx global>{`
         @keyframes spin {
@@ -1249,6 +1270,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
 
         /* Desktop responsive styles */
         @media (min-width: 768px) {
+          .sticky-cart-bar-desktop-hide {
+            display: none !important;
+          }
           .desktop-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -1356,7 +1380,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
             zIndex: 100,
             padding: isScrolled ? '8px 16px' : '12px 16px',
             boxShadow: isScrolled ? '0 2px 12px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.05)',
-            transition: 'all 0.2s ease-out'
+            transition: 'padding 0.25s ease, box-shadow 0.25s ease',
+            willChange: 'padding, box-shadow'
           }}>
             <div className="desktop-header-inner" style={{
               maxWidth: '1400px',
@@ -1367,7 +1392,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: isScrolled ? '8px' : '12px'
+              marginBottom: isScrolled ? '8px' : '12px',
+              transition: 'margin-bottom 0.25s ease'
             }}>
               {/* Logo & Restaurant Info */}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1388,7 +1414,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
                     ? `0 4px 12px ${brandColorShadow}`
                     : '0 2px 8px rgba(0,0,0,0.15)',
                   border: logoUrl ? '2px solid #f3f4f6' : 'none',
-                  transition: 'all 0.2s ease'
+                  transition: 'width 0.25s ease, height 0.25s ease'
                 }}>
                   {logoUrl ? (
                     <img
@@ -1423,18 +1449,22 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     textShadow: ['gradient', 'solid'].includes(headerStyle) ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                    letterSpacing: '-0.3px'
+                    letterSpacing: '-0.3px',
+                    transition: 'font-size 0.25s ease'
                   }}>
                     {restaurant?.name || 'Restaurant'}
                   </h1>
-                  {!isScrolled && tagline && (
+                  {tagline && (
                     <p style={{
                       fontSize: '12px',
                       color: ['gradient', 'solid'].includes(headerStyle) ? textColor : '#6b7280',
-                      margin: '3px 0 0',
+                      margin: isScrolled ? '0' : '3px 0 0',
                       fontWeight: '500',
                       letterSpacing: '0.2px',
-                      opacity: ['gradient', 'solid'].includes(headerStyle) ? 0.85 : 1
+                      opacity: isScrolled ? 0 : (['gradient', 'solid'].includes(headerStyle) ? 0.85 : 1),
+                      maxHeight: isScrolled ? '0px' : '20px',
+                      overflow: 'hidden',
+                      transition: 'all 0.2s ease-out'
                     }}>
                       {tagline}
                     </p>
@@ -1521,7 +1551,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
             <div style={{
               position: 'relative',
               marginBottom: isScrolled ? '8px' : '12px',
-              padding: ['gradient', 'solid'].includes(headerStyle) ? '0 4px' : 0
+              padding: ['gradient', 'solid'].includes(headerStyle) ? '0 4px' : 0,
+              transition: 'margin-bottom 0.25s ease'
             }}>
               <FaSearch size={14} color="#9ca3af" style={{
                 position: 'absolute',
@@ -1898,6 +1929,14 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
         </div>
       </div>
       )}
+
+      {/* Sticky Bottom Cart Bar */}
+      <StickyCartBar
+        cartItemCount={getCartItemCount()}
+        cartSubtotal={getCartSubtotal()}
+        onViewCart={handleCartClick}
+        publicMenuOnly={customerAppSettings?.pageSettings?.publicMenuOnly === true}
+      />
 
       {/* Cart Modal - Shown to logged-in users or when login not required */}
       {showCart && (customerVerified || (customerAppSettings?.pageSettings?.loginMode || 'optional') !== 'required') && (
@@ -2296,6 +2335,7 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
 const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor }) => {
   const isVeg = item.isVeg !== false;
   const [isHovered, setIsHovered] = useState(false);
+  const indicatorColor = isVeg ? '#22c55e' : '#ef4444';
 
   // Use getDisplayImage to get proper image URL (user uploaded or placeholder)
   const imageUrl = getDisplayImage(item);
@@ -2307,14 +2347,13 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         backgroundColor: 'white',
         borderRadius: '16px',
         padding: '16px',
-        boxShadow: isHovered ? '0 8px 24px rgba(0,0,0,0.12)' : '0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: isHovered ? '0 6px 20px rgba(0,0,0,0.1)' : '0 1px 3px rgba(0,0,0,0.06)',
         display: 'flex',
-        gap: '16px',
+        gap: '14px',
         alignItems: 'flex-start',
-        transition: 'all 0.25s ease',
-        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-        cursor: 'pointer',
-        border: isHovered ? '1px solid #e5e7eb' : '1px solid transparent'
+        transition: 'all 0.2s ease',
+        transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
+        border: isHovered ? '1px solid #e5e7eb' : '1px solid #f0f0f0'
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -2326,7 +2365,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         borderRadius: '14px',
         flexShrink: 0,
         overflow: 'hidden',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)'
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
       }}>
         {hasUserImages ? (
           <ImageCarousel
@@ -2363,40 +2402,47 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '110px' }}>
+        {/* Veg/Non-veg indicator + Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+          <div style={{
+            width: '14px',
+            height: '14px',
+            border: `1.5px solid ${indicatorColor}`,
+            borderRadius: '3px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <div style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              backgroundColor: indicatorColor
+            }} />
+          </div>
           <h3 style={{
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: '600',
             color: '#1f2937',
             margin: 0,
             flex: 1,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            lineHeight: '1.3'
           }}>
             {item.name}
           </h3>
-          <div style={{
-            width: '16px',
-            height: '16px',
-            borderRadius: '50%',
-            backgroundColor: isVeg ? '#22c55e' : '#ef4444',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            marginLeft: '8px'
-          }}>
-            {isVeg ? <FaLeaf size={8} color="white" /> : <FaDrumstickBite size={8} color="white" />}
-          </div>
         </div>
 
+        {/* Description */}
         {item.description && (
           <p style={{
             fontSize: '12px',
-            color: '#64748b',
-            margin: '0 0 8px 0',
+            color: '#6b7280',
+            margin: '0 0 0 0',
             lineHeight: '1.4',
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -2407,51 +2453,177 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
           </p>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Price + ADD button row — pushed to bottom */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
           <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>
             ₹{Number(item.price || 0).toFixed(2)}
           </span>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {cartQuantity > 0 && (
-              <>
-                <button
-                  onClick={() => onRemoveFromCart(item.id)}
-                  style={{
-                    background: '#f1f5f9',
-                    border: 'none',
-                    padding: '6px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <FaMinus size={10} color="#64748b" />
-                </button>
-                <span style={{ fontSize: '14px', fontWeight: '600', minWidth: '20px', textAlign: 'center' }}>
-                  {cartQuantity}
-                </span>
-              </>
-            )}
+          {cartQuantity > 0 ? (
+            /* Quantity counter */
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: '1.5px solid #22c55e',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              height: '32px'
+            }}>
+              <button
+                onClick={() => onRemoveFromCart(item.id)}
+                style={{
+                  background: '#22c55e',
+                  border: 'none',
+                  color: 'white',
+                  width: '30px',
+                  height: '100%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <FaMinus size={10} />
+              </button>
+              <span style={{
+                minWidth: '28px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: '700',
+                color: '#22c55e'
+              }}>
+                {cartQuantity}
+              </span>
+              <button
+                onClick={() => onAddToCart(item)}
+                style={{
+                  background: '#22c55e',
+                  border: 'none',
+                  color: 'white',
+                  width: '30px',
+                  height: '100%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <FaPlus size={10} />
+              </button>
+            </div>
+          ) : (
+            /* ADD button */
             <button
               onClick={() => onAddToCart(item)}
               style={{
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                border: 'none',
-                padding: '6px',
+                background: 'white',
+                border: '1.5px solid #22c55e',
+                color: '#22c55e',
                 borderRadius: '8px',
+                padding: '6px 18px',
+                fontSize: '13px',
+                fontWeight: '700',
+                letterSpacing: '0.5px',
                 cursor: 'pointer',
+                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+                transition: 'background 0.15s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
             >
-              <FaPlus size={10} color="white" />
+              ADD
             </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Sticky Bottom Cart Bar — shows when items are in cart
+const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly }) => {
+  if (publicMenuOnly || cartItemCount === 0) return null;
+  return (
+    <div className="sticky-cart-bar-desktop-hide" style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 150,
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      animation: 'slideUp 0.3s ease-out'
+    }}>
+      <div
+        onClick={onViewCart}
+        style={{
+          backgroundColor: '#1f2937',
+          margin: '0 12px 12px',
+          borderRadius: '16px',
+          padding: '12px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 -4px 24px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.15)',
+          cursor: 'pointer'
+        }}
+      >
+        {/* Left: item count + price */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            position: 'relative',
+            backgroundColor: '#374151',
+            borderRadius: '10px',
+            padding: '8px',
+            display: 'flex'
+          }}>
+            <FaShoppingCart size={15} color="white" />
+            <span style={{
+              position: 'absolute',
+              top: '-5px',
+              right: '-5px',
+              backgroundColor: '#22c55e',
+              color: 'white',
+              borderRadius: '50%',
+              width: '17px',
+              height: '17px',
+              fontSize: '9px',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {cartItemCount}
+            </span>
           </div>
+          <div>
+            <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>
+              {cartItemCount} item{cartItemCount !== 1 ? 's' : ''} added
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: '700', color: 'white' }}>
+              ₹{cartSubtotal.toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: View Cart CTA */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: '#22c55e',
+          color: 'white',
+          padding: '10px 16px',
+          borderRadius: '12px',
+          fontSize: '14px',
+          fontWeight: '700'
+        }}>
+          View Cart
+          <FaChevronRight size={11} />
         </div>
       </div>
     </div>
@@ -3101,7 +3273,8 @@ const CheckoutView = ({
   setExpandedOrderId,
   showUpiModal,
   setShowUpiModal,
-  upiOrderAmount
+  upiOrderAmount,
+  handleUpiConfirm
 }) => {
   const tier = customerData?.loyaltyTier || loyaltyHistory?.summary?.currentTier || 'bronze';
   const tierData = tierInfo[tier] || tierInfo.bronze;
