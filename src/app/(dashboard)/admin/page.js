@@ -3363,6 +3363,8 @@ const Admin = () => {
         console.log('Admin page: Auth token exists:', !!authToken);
         
         if (!userData || !authToken) {
+          // Skip redirect in mobile embed (WebView) — let the native app handle auth
+          if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
           console.log('Admin page: No user data or token, redirecting to login');
           router.push('/login');
           return;
@@ -3375,15 +3377,21 @@ const Admin = () => {
         
         // Allow owners and admin roles to access admin page
         if (user.role && !['owner', 'admin'].includes(user.role)) {
-          console.log('Admin page: User does not have admin access, redirecting to home');
-          router.push('/');
-          return;
+          // Skip redirect in mobile embed (WebView) — app controls access
+          if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) {
+            // Allow through in mobile embed
+          } else {
+            console.log('Admin page: User does not have admin access, redirecting to home');
+            router.push('/');
+            return;
+          }
         }
 
         console.log('Admin page: Authorization successful');
         setAuthorized(true);
       } catch (error) {
         console.error('Admin page: Auth check error:', error);
+        if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
         router.push('/login');
       }
     };
@@ -4159,8 +4167,8 @@ const Admin = () => {
       )}
       <div style={{ padding: isClient && isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
-        {/* Mobile Header + Dropdown */}
-        {isClient && isMobile && (
+        {/* Mobile Header + Dropdown (hidden in mobile embed — each tab opened separately from app) */}
+        {isClient && isMobile && !(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) && (
           <div style={{ marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
               <div style={{

@@ -161,6 +161,8 @@ function RestaurantPOSContent() {
   const [deletingSavedOrderId, setDeletingSavedOrderId] = useState(null); // Currently deleting order ID
   const [printSettings, setPrintSettings] = useState(null); // Print settings for the restaurant
   const [isLoadingOrder, setIsLoadingOrder] = useState(false); // Flag to prevent localStorage override during order loading
+  const [showResetConfirm, setShowResetConfirm] = useState(false); // Reset tables confirmation modal
+  const [resetLoading, setResetLoading] = useState(false); // Loading state during table reset
   
   // Mobile responsive state
   const [isMobile, setIsMobile] = useState(false);
@@ -4413,6 +4415,14 @@ function RestaurantPOSContent() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
         }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
       `}</style>
       <div
         onClick={pendingCount > 0 && isOnline ? manualSync : undefined}
@@ -5131,28 +5141,15 @@ function RestaurantPOSContent() {
             {/* Reset Tables (only in tables view, owner/admin only) */}
             {viewMode === 'tables' && ['owner', 'admin'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) && (
               <button
-                onClick={async () => {
-                  const allTables = tablesData.tables || tablesData.floors?.flatMap(f => f.tables || []) || [];
+                onClick={() => {
+                  const allTables = tablesData.tables?.length > 0 ? tablesData.tables : tablesData.floors?.flatMap(f => f.tables || []) || [];
                   const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
-                  if (occupiedCount === 0) return;
-                  if (!window.confirm(`Free ${occupiedCount} occupied table(s)? This will mark them as available.`)) return;
-                  try {
-                    await apiClient.resetAllTables(selectedRestaurant.id);
-                    setTablesData(prev => ({
-                      ...prev,
-                      floors: prev.floors.map(floor => ({
-                        ...floor,
-                        tables: floor.tables?.map(t =>
-                          t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
-                        ),
-                      })),
-                      tables: prev.tables.map(t =>
-                        t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
-                      ),
-                    }));
-                  } catch (err) {
-                    alert(err.message || 'Failed to reset tables');
+                  if (occupiedCount === 0) {
+                    setNotification({ type: 'info', title: 'No Tables to Reset', message: 'All tables are already available.', show: true });
+                    setTimeout(() => setNotification(null), 3000);
+                    return;
                   }
+                  setShowResetConfirm(true);
                 }}
                 style={{
                   height: '36px',
@@ -7272,6 +7269,106 @@ function RestaurantPOSContent() {
           </div>
         </div>
       )}
+
+      {/* Reset Tables Confirmation Modal */}
+      {showResetConfirm && (() => {
+        const allTables = tablesData.tables?.length > 0 ? tablesData.tables : tablesData.floors?.flatMap(f => f.tables || []) || [];
+        const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease'
+          }} onClick={() => !resetLoading && setShowResetConfirm(false)}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: 'white', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)', animation: 'slideUp 0.3s ease'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+                }}>
+                  <FaTools size={24} color="#ef4444" />
+                </div>
+                <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', color: '#111827' }}>
+                  Reset All Tables?
+                </h3>
+                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
+                  This will mark <strong style={{ color: '#ef4444' }}>{occupiedCount} occupied table{occupiedCount !== 1 ? 's' : ''}</strong> as available. Any active orders on these tables will be unlinked.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  disabled={resetLoading}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '10px', border: '1.5px solid #e5e7eb',
+                    background: 'white', color: '#374151', fontSize: '14px', fontWeight: '600',
+                    cursor: resetLoading ? 'not-allowed' : 'pointer', opacity: resetLoading ? 0.5 : 1
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setResetLoading(true);
+                    try {
+                      await apiClient.resetAllTables(selectedRestaurant.id);
+                      setTablesData(prev => ({
+                        ...prev,
+                        floors: prev.floors.map(floor => ({
+                          ...floor,
+                          tables: floor.tables?.map(t =>
+                            t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
+                          ),
+                        })),
+                        tables: prev.tables?.map(t =>
+                          t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
+                        ) || [],
+                      }));
+                      setShowResetConfirm(false);
+                      setNotification({
+                        type: 'success', title: 'Tables Reset',
+                        message: `${occupiedCount} table${occupiedCount !== 1 ? 's' : ''} reset to available.`,
+                        show: true
+                      });
+                      setTimeout(() => setNotification(null), 4000);
+                    } catch (err) {
+                      setNotification({
+                        type: 'error', title: 'Reset Failed',
+                        message: err.message || 'Failed to reset tables. Please try again.',
+                        show: true
+                      });
+                      setTimeout(() => setNotification(null), 4000);
+                    } finally {
+                      setResetLoading(false);
+                    }
+                  }}
+                  disabled={resetLoading}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '10px', border: 'none',
+                    background: resetLoading ? '#fca5a5' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: 'white', fontSize: '14px', fontWeight: '600',
+                    cursor: resetLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    boxShadow: '0 2px 8px rgba(239,68,68,0.3)'
+                  }}
+                >
+                  {resetLoading ? (
+                    <>
+                      <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      Resetting...
+                    </>
+                  ) : (
+                    'Reset All'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Notification Component */}
       <Notification

@@ -6,6 +6,7 @@ import Sidebar from '../../components/Sidebar';
 import { DineAIProvider } from '../../contexts/DineAIContext';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
 import DineAIButton from '../../components/dineai/DineAIButton';
+import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 
 function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -16,6 +17,9 @@ function DashboardLayoutContent({ children }) {
 
   // Check if current page is dashboard
   const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
+
+  // Prefetch dashboard data when browser is idle (skips if already on /dashboard)
+  useIdlePrefetch(pathname);
 
   // Check if device is mobile and set client-side flag
   useEffect(() => {

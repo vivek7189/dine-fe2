@@ -526,3 +526,82 @@ export function clearAutomationCache(restaurantId) {
   }
 }
 
+// ========== BACKGROUND PREFETCH FOR DASHBOARD ==========
+
+/**
+ * Prefetch dashboard data in background after login.
+ * Fetches restaurants, menu, floors, tax settings, and pricing rules,
+ * then caches them for instant dashboard load.
+ * Non-blocking — errors are silently caught.
+ */
+export async function prefetchDashboardInBackground(apiClient) {
+  try {
+    console.log('🚀 Background prefetch: starting...');
+
+    // Step 1: Get restaurants
+    const restaurantsResponse = await apiClient.getRestaurants();
+    const restaurantsList = restaurantsResponse.restaurants || [];
+    if (restaurantsList.length === 0) {
+      console.log('⏭️ Background prefetch: no restaurants, skipping');
+      return;
+    }
+
+    // Determine which restaurant to prefetch for
+    const userData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+    let restaurant = null;
+
+    if (userData?.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(userData.role)) {
+      restaurant = userData.restaurant || restaurantsList.find(r => r.id === userData.restaurantId);
+    } else {
+      const savedId = localStorage.getItem('selectedRestaurantId');
+      const defaultId = restaurantsResponse.defaultRestaurantId;
+      restaurant = restaurantsList.find(r => r.id === savedId) ||
+                   (defaultId ? restaurantsList.find(r => r.id === defaultId) : null) ||
+                   restaurantsList[0];
+    }
+
+    if (!restaurant) {
+      console.log('⏭️ Background prefetch: no restaurant resolved');
+      return;
+    }
+
+    console.log('🚀 Background prefetch: fetching data for', restaurant.name);
+
+    // Step 2: Fetch menu + floors in parallel
+    const [menuResponse, floorsResponse] = await Promise.all([
+      apiClient.getMenu(restaurant.id).catch(() => ({ menuItems: [] })),
+      apiClient.getFloors(restaurant.id).catch(() => ({ floors: [] }))
+    ]);
+
+    const menuItems = menuResponse.menuItems || [];
+    const floors = floorsResponse.floors || floorsResponse || [];
+
+    // Step 3: Cache the data
+    const dataToCache = {
+      menuItems,
+      floors,
+      tablesData: { floors, tables: [] }
+    };
+    setCachedDashboardData(restaurant.id, dataToCache);
+
+    // Also persist to IndexedDB if available
+    try {
+      const { setCachedData } = await import('../lib/offlineDb');
+      await setCachedData(`dashboard_${restaurant.id}`, dataToCache);
+    } catch { /* IndexedDB not critical */ }
+
+    // Step 4: Prefetch tax settings
+    try {
+      const taxResponse = await apiClient.getTaxSettings(restaurant.id);
+      if (taxResponse) {
+        const { setCachedData } = await import('../lib/offlineDb');
+        await setCachedData(`tax_${restaurant.id}`, taxResponse).catch(() => {});
+      }
+    } catch { /* tax not critical */ }
+
+    console.log('✅ Background prefetch: complete for', restaurant.name);
+  } catch (error) {
+    console.warn('⚠️ Background prefetch failed (non-critical):', error.message);
+  }
+}
+

@@ -27,6 +27,7 @@ import apiClient from '../../lib/api';
 import { t } from '../../lib/i18n';
 import RestaurantNameOnboarding from '../../components/RestaurantNameOnboarding';
 import { redirectToSubdomain } from '../../utils/subdomain';
+import { prefetchDashboardInBackground } from '../../utils/dashboardCache';
 
 // Product ref to dashboard route mapping
 // Used when users come from product pages (e.g., /login?ref=menu)
@@ -55,6 +56,14 @@ function getRefRedirectPath() {
     return REF_TO_ROUTE[ref];
   }
   return '/home';
+}
+
+// Trigger background prefetch of dashboard data after login (non-blocking)
+function triggerDashboardPrefetch() {
+  // Use setTimeout to avoid blocking the redirect
+  setTimeout(() => {
+    prefetchDashboardInBackground(apiClient).catch(() => {});
+  }, 100);
 }
 
 // Country data with flags and codes
@@ -706,7 +715,8 @@ const Login = () => {
           // Store auth token and user data in both cookie (for cross-subdomain) and localStorage
           apiClient.setToken(firebaseData.token); // Stores in both cookie and localStorage
           apiClient.setUser(firebaseData.user); // Stores in both cookie and localStorage
-          
+          triggerDashboardPrefetch();
+
           // Handle first-time user experience
           if (firebaseData.firstTimeUser) {
             console.log('🎉 First-time user detected!');
@@ -758,7 +768,8 @@ const Login = () => {
           // Store auth token in both cookie (for cross-subdomain) and localStorage
           apiClient.setToken(data.token); // Stores in both cookie and localStorage
           apiClient.setUser(data.user); // Stores in both cookie and localStorage
-          
+          triggerDashboardPrefetch();
+
           // Handle first-time user experience
           if (data.firstTimeUser) {
             console.log('🎉 First-time phone user detected!');
@@ -936,6 +947,7 @@ const Login = () => {
       if (registerData.token) {
         apiClient.setToken(registerData.token);
         apiClient.setUser(registerData.user);
+        triggerDashboardPrefetch();
 
         if (registerData.firstTimeUser) {
           setShowRestaurantOnboarding(true);
@@ -1016,6 +1028,7 @@ const Login = () => {
       if (loginData.token) {
         apiClient.setToken(loginData.token);
         apiClient.setUser(loginData.user);
+        triggerDashboardPrefetch();
 
         if (loginData.subdomainUrl) {
           redirectToSubdomain(loginData.subdomainUrl, loginData.token, loginData.user);
@@ -1046,6 +1059,7 @@ const Login = () => {
       const data = await apiClient.pinLogin(pinIdentifier.trim(), pinCode);
       if (data.success) {
         apiClient.setUser(data.user);
+        triggerDashboardPrefetch();
         if (data.subdomainUrl) {
           redirectToSubdomain(data.subdomainUrl, data.token, data.user);
         } else if (data.redirectTo) {
@@ -1123,7 +1137,8 @@ const Login = () => {
         // Store auth token and user data in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(googleData.token); // Stores in both cookie and localStorage
         apiClient.setUser(googleData.user); // Stores in both cookie and localStorage
-        
+        triggerDashboardPrefetch();
+
         console.log('Google login successful:', googleData);
         console.log('Is new user:', googleData.isNewUser);
         console.log('First time user:', googleData.firstTimeUser);
@@ -1240,7 +1255,8 @@ const Login = () => {
           owner: data.owner
         };
         apiClient.setUser(userData); // Stores in both cookie and localStorage
-        
+        triggerDashboardPrefetch();
+
         // Staff goes to POS page or ref-based product page
         router.replace(getRefRedirectPath());
       } else {
