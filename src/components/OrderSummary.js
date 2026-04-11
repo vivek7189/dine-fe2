@@ -172,12 +172,14 @@ const OrderSummary = ({
 
   // Offer Engine Hook
   const {
-    applicableOffers, selectedOfferId, setSelectedOfferId,
+    applicableOffers, genericOffers, personalizedOffers,
+    selectedOfferId, setSelectedOfferId,
     selectedOfferIds, toggleOffer,
     offerDiscount, selectedOfferName, resetOffers,
     autoApplied, firstOrderOfferRejected,
     offerSettings, loyaltySettings,
     freeItems,
+    customerGroups: customerOfferGroups,
   } = useOfferEngine({
     restaurantId,
     cart,
@@ -2293,70 +2295,104 @@ const OrderSummary = ({
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
             <div style={{ padding: '6px 12px 12px 12px' }}>
-              {/* Discount + Special Instructions row */}
+              {/* Row 1: Offer Chips — horizontally scrollable */}
               <div style={{ marginBottom: '6px' }}>
+                {(genericOffers.length > 0 || personalizedOffers.length > 0) && (
+                  <div style={{
+                    display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '4px',
+                    scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch',
+                    maskImage: 'linear-gradient(to right, black 92%, transparent)',
+                    WebkitMaskImage: 'linear-gradient(to right, black 92%, transparent)',
+                  }} className="hide-scrollbar">
+                    {/* Generic offers (available to everyone) */}
+                    {genericOffers.map(offer => {
+                      const oid = offer.id || offer._id;
+                      const isMulti = offerSettings?.allowMultipleOffers;
+                      const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
+                      const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                      return (
+                        <button
+                          key={oid}
+                          onClick={() => {
+                            if (isMulti) { toggleOffer(oid); } else { setSelectedOfferId(isSelected ? null : oid); }
+                          }}
+                          style={{
+                            padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                            border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e5e7eb',
+                            background: isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff',
+                            color: isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280',
+                            cursor: 'pointer', whiteSpace: 'nowrap',
+                            display: 'flex', alignItems: 'center', gap: '3px',
+                            transition: 'all 0.15s', flexShrink: 0,
+                          }}
+                        >
+                          {isSelected && <FaCheckCircle size={8} />}
+                          <FaTag size={7} />
+                          {offer.name}
+                          {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
+                          {isSelected && autoApplied && <span style={{ fontSize: '8px' }}>Auto</span>}
+                        </button>
+                      );
+                    })}
+                    {/* Personalized offers (group/customer-targeted) — only when customer identified */}
+                    {lookupStatus === 'found' && personalizedOffers.map(offer => {
+                      const oid = offer.id || offer._id;
+                      const isMulti = offerSettings?.allowMultipleOffers;
+                      const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
+                      const saves = calculateDiscountForOffer(offer, getTotalAmount(), cart);
+                      const offerGroupIds = offer.audience?.groupIds || [];
+                      const matchedGroup = customerOfferGroups?.find(g => offerGroupIds.includes(g.id));
+                      return (
+                        <button
+                          key={oid}
+                          onClick={() => {
+                            if (isMulti) { toggleOffer(oid); } else { setSelectedOfferId(isSelected ? null : oid); }
+                          }}
+                          style={{
+                            padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                            border: isSelected ? '1.5px solid #d97706' : '1.5px solid #fbbf24',
+                            background: isSelected ? '#fef3c7' : '#fffbeb',
+                            color: isSelected ? '#92400e' : '#b45309',
+                            cursor: 'pointer', whiteSpace: 'nowrap',
+                            display: 'flex', alignItems: 'center', gap: '3px',
+                            transition: 'all 0.15s', flexShrink: 0,
+                          }}
+                        >
+                          {isSelected && <FaCheckCircle size={8} />}
+                          <FaHandHoldingUsd size={7} />
+                          {offer.name}
+                          {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
+                          {matchedGroup && (
+                            <span style={{
+                              fontSize: '8px', padding: '1px 4px', borderRadius: '6px',
+                              background: matchedGroup.color || '#6366f1', color: '#fff', fontWeight: 700,
+                            }}>{matchedGroup.name}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {freeItems && freeItems.length > 0 && (
+                      <span style={{
+                        padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                        background: '#fef3c7', color: '#78350f', border: '1px dashed #f59e0b',
+                        display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', flexShrink: 0,
+                      }}>
+                        <FaGift size={8} /> Free: {freeItems.map(f => `${f.qty}× ${f.itemId}`).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {firstOrderOfferRejected && (
+                  <span style={{ fontSize: '9px', color: '#dc2626', whiteSpace: 'nowrap' }}>Not first order</span>
+                )}
+
+                {/* Row 2: Manual discount + clear + special instructions */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '5px',
                   marginBottom: '6px'
                 }}>
-                  {/* Offer Chips — always show if applicable (independent of manual discount setting) */}
-                  {applicableOffers.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: '1 1 auto' }}>
-                      {applicableOffers.map(offer => {
-                        const oid = offer.id || offer._id;
-                        const isMulti = offerSettings?.allowMultipleOffers;
-                        const isSelected = isMulti ? selectedOfferIds.includes(oid) : selectedOfferId === oid;
-                        const requiresLogin = offer._requiresLogin;
-                        const saves = requiresLogin ? 0 : calculateDiscountForOffer(offer, getTotalAmount(), cart);
-                        return (
-                          <button
-                            key={oid}
-                            disabled={requiresLogin}
-                            title={requiresLogin ? 'Login required to claim' : ''}
-                            onClick={() => {
-                              if (requiresLogin) return;
-                              if (isMulti) {
-                                toggleOffer(oid);
-                              } else {
-                                setSelectedOfferId(isSelected ? null : oid);
-                              }
-                            }}
-                            style={{
-                              padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
-                              border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e5e7eb',
-                              background: requiresLogin ? '#fef3c7' : (isSelected ? (autoApplied ? '#f0fdf4' : '#f5f3ff') : '#fff'),
-                              color: requiresLogin ? '#92400e' : (isSelected ? (autoApplied ? '#16a34a' : '#7c3aed') : '#6b7280'),
-                              cursor: requiresLogin ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
-                              display: 'flex', alignItems: 'center', gap: '3px',
-                              transition: 'all 0.15s',
-                              opacity: requiresLogin ? 0.85 : 1,
-                            }}
-                          >
-                            {isSelected && <FaCheckCircle size={8} />}
-                            <FaTag size={7} />
-                            {offer.name}
-                            {saves > 0 && <span style={{ opacity: 0.8 }}>-{formatCurrency(saves)}</span>}
-                            {requiresLogin && <span style={{ fontSize: '8px' }}>🔒 Login</span>}
-                            {isSelected && autoApplied && <span style={{ fontSize: '8px' }}>Auto</span>}
-                          </button>
-                        );
-                      })}
-                      {freeItems && freeItems.length > 0 && (
-                        <span style={{
-                          padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
-                          background: '#fef3c7', color: '#78350f', border: '1px dashed #f59e0b',
-                          display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap'
-                        }}>
-                          <FaGift size={8} /> Free: {freeItems.map(f => `${f.qty}× ${f.itemId}`).join(', ')}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {firstOrderOfferRejected && (
-                    <span style={{ fontSize: '9px', color: '#dc2626', whiteSpace: 'nowrap' }}>Not first order</span>
-                  )}
                   {/* Manual discount controls — only when discount is enabled */}
                   {canEditManualDiscount && (
                     <>
@@ -2540,14 +2576,27 @@ const OrderSummary = ({
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <FaGift size={9} /> Loyalty Points
-                        <span style={{ fontWeight: 400, color: '#9333ea' }}>({customerData.loyaltyPoints} pts)</span>
-                      </span>
-                      {getLoyaltyDiscountAmount() > 0 && (
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed' }}>
-                          -{formatCurrency(getLoyaltyDiscountAmount())}
+                        <FaGift size={9} /> {customerData.loyaltyPoints} pts
+                        <span style={{ fontWeight: 400, color: '#9333ea' }}>
+                          (= {formatCurrency(customerData.loyaltyPoints / (loyaltySettings.redemptionRate || 100))})
                         </span>
-                      )}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {getLoyaltyPointsToEarn() > 0 && (
+                          <span style={{
+                            fontSize: '9px', fontWeight: 600, color: '#16a34a',
+                            background: '#f0fdf4', padding: '2px 6px', borderRadius: '8px',
+                            border: '1px solid #bbf7d0',
+                          }}>
+                            +{getLoyaltyPointsToEarn()} pts
+                          </span>
+                        )}
+                        {getLoyaltyDiscountAmount() > 0 && (
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed' }}>
+                            -{formatCurrency(getLoyaltyDiscountAmount())}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {(() => {
                       const redemptionRate = loyaltySettings.redemptionRate || 100;
@@ -2565,7 +2614,7 @@ const OrderSummary = ({
                             style={{ width: '100%', height: '4px', accentColor: '#7c3aed' }}
                           />
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#6b21a8', marginTop: '2px' }}>
-                            <span>Redeem: {redeemLoyaltyPoints} pts</span>
+                            <span>Redeem: {redeemLoyaltyPoints} pts = {formatCurrency(redeemLoyaltyPoints / redemptionRate)}</span>
                             <span>Max: {maxRedeemable} pts ({maxPct}%)</span>
                           </div>
                         </div>
@@ -2573,11 +2622,6 @@ const OrderSummary = ({
                         <div style={{ fontSize: '9px', color: '#9333ea' }}>Add items to redeem points</div>
                       );
                     })()}
-                    {getLoyaltyPointsToEarn() > 0 && (
-                      <div style={{ fontSize: '9px', color: '#16a34a', marginTop: '3px', fontWeight: 600 }}>
-                        You&apos;ll earn +{getLoyaltyPointsToEarn()} pts on this order
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -2700,6 +2744,12 @@ const OrderSummary = ({
                           <span style={{ color: '#d97706', fontWeight: 700 }}>⭐{customerData.loyaltyPoints}</span>
                         )}
                         <span style={{ color: '#9ca3af' }}>{customerData.totalOrders}ord</span>
+                        {customerOfferGroups && customerOfferGroups.length > 0 && customerOfferGroups.slice(0, 2).map(g => (
+                          <span key={g.id} style={{
+                            fontSize: '8px', padding: '1px 4px', borderRadius: '6px',
+                            background: g.color || '#6366f1', color: '#fff', fontWeight: 700,
+                          }}>{g.name}</span>
+                        ))}
                       </button>
                     )}
                       

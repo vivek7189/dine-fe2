@@ -11,6 +11,7 @@ import {
 import dynamic from 'next/dynamic';
 import apiClient from '../../lib/api.js';
 import { getDisplayImage } from '../../utils/placeholderImages';
+import { matchesAudience } from '../../hooks/useOfferEngine';
 
 // Lazy-load heavy components for faster initial render
 const ImageCarousel = dynamic(() => import('../../components/ImageCarousel'), { ssr: false });
@@ -218,6 +219,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
   const [customerVerified, setCustomerVerified] = useState(false);
   const [loyaltyHistory, setLoyaltyHistory] = useState(null);
+  const [customerGroupIds, setCustomerGroupIds] = useState([]);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [selectedTipPreset, setSelectedTipPreset] = useState(null);
+  const [customTipInput, setCustomTipInput] = useState('');
   const [orderHistory, setOrderHistory] = useState(null);
   const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -344,6 +349,29 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
       }
     };
   }, []);
+
+  // Lookup customer groups when customer is identified
+  useEffect(() => {
+    if (!restaurantId || !customerData?.id) {
+      setCustomerGroupIds([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const phone = customerData.phone || customerInfo?.phone;
+        const cid = customerData.id;
+        const params = new URLSearchParams();
+        if (phone) params.set('phone', phone);
+        if (cid) params.set('customerId', cid);
+        const res = await apiClient.request(`/api/customer-groups/lookup/${restaurantId}?${params.toString()}`, { method: 'GET' });
+        if (!cancelled) setCustomerGroupIds((res?.groups || []).map(g => g.id));
+      } catch {
+        if (!cancelled) setCustomerGroupIds([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [restaurantId, customerData?.id, customerData?.phone]);
 
   // Helper to filter valid offers
   const filterValidOffers = (offersData) => {
@@ -524,12 +552,20 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
     return () => clearTimeout(timer);
   }, [offers, scheduleCheckKey]);
 
-  // Compute applicable offers - filter by schedule, first-order, etc.
+  // Compute applicable offers - filter by schedule, first-order, audience/groups
   const applicableOffers = offers.filter(offer => {
     if (!isScheduleValid(offer)) return false;
     if (offer.isFirstOrderOnly && customerData && customerData.isFirstOrder === false) {
       return false;
     }
+    // Audience filtering — hides group/customer offers when no customer is logged in
+    const context = {
+      customerId: customerData?.id,
+      customerPhone: customerData?.phone || customerInfo?.phone,
+      customerGroupIds,
+      isFirstOrder: customerData?.isFirstOrder,
+    };
+    if (!matchesAudience(offer, context)) return false;
     return true;
   });
 
@@ -705,10 +741,18 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
     return Math.max(0, subtotal - offerDiscount - loyaltyDiscount);
   };
 
+  const getServiceCharge = () => {
+    const bs = customerAppSettings?.billingSettings;
+    if (!bs?.serviceChargeEnabled || !bs?.serviceChargeRate) return 0;
+    const preTaxTotal = getPreTaxTotal();
+    return Math.round((preTaxTotal * bs.serviceChargeRate / 100) * 100) / 100;
+  };
+
   const getFinalTotal = () => {
     const preTaxTotal = getPreTaxTotal();
     const { taxAmount } = getTaxBreakdown();
-    return Math.round((preTaxTotal + taxAmount) * 100) / 100;
+    const serviceCharge = getServiceCharge();
+    return Math.round((preTaxTotal + taxAmount + serviceCharge + tipAmount) * 100) / 100;
   };
 
   const getLoyaltyPointsToEarn = () => {
@@ -958,7 +1002,13 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
       verificationId: firebaseUid || null,
       offerIds: selectedOffers.map(o => o.id),
       redeemLoyaltyPoints: firebaseUid ? actualRedeemPoints : 0,
-      orderSource: 'online_order'
+      orderSource: 'online_order',
+      tipAmount: tipAmount > 0 ? tipAmount : undefined,
+      serviceCharge: getServiceCharge() > 0 ? {
+        amount: getServiceCharge(),
+        rate: customerAppSettings?.billingSettings?.serviceChargeRate || 0,
+        label: customerAppSettings?.billingSettings?.serviceChargeLabel || 'Service Charge',
+      } : undefined,
     };
   };
 
@@ -1031,7 +1081,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
 
     if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
       // Show UPI modal FIRST - order will be placed via onConfirmPayment callback
-      setUpiOrderAmount(getCartSubtotal());
+      setUpiOrderAmount(getFinalTotal());
       setShowUpiModal(true);
     } else {
       // No UPI - place order directly
@@ -1225,6 +1275,14 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
         setShowUpiModal={setShowUpiModal}
         upiOrderAmount={upiOrderAmount}
         handleUpiConfirm={handleUpiConfirm}
+        tipAmount={tipAmount}
+        setTipAmount={setTipAmount}
+        selectedTipPreset={selectedTipPreset}
+        setSelectedTipPreset={setSelectedTipPreset}
+        customTipInput={customTipInput}
+        setCustomTipInput={setCustomTipInput}
+        getServiceCharge={getServiceCharge}
+        getPreTaxTotal={getPreTaxTotal}
       />
     );
   }
@@ -3274,7 +3332,15 @@ const CheckoutView = ({
   showUpiModal,
   setShowUpiModal,
   upiOrderAmount,
-  handleUpiConfirm
+  handleUpiConfirm,
+  tipAmount,
+  setTipAmount,
+  selectedTipPreset,
+  setSelectedTipPreset,
+  customTipInput,
+  setCustomTipInput,
+  getServiceCharge,
+  getPreTaxTotal,
 }) => {
   const tier = customerData?.loyaltyTier || loyaltyHistory?.summary?.currentTier || 'bronze';
   const tierData = tierInfo[tier] || tierInfo.bronze;
@@ -4197,6 +4263,22 @@ const CheckoutView = ({
                     <span style={{ color: '#374151' }}>₹{tax.amount.toFixed(2)}</span>
                   </div>
                 ))}
+                {/* Service Charge */}
+                {getServiceCharge() > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>
+                      {customerAppSettings?.billingSettings?.serviceChargeLabel || 'Service Charge'} ({customerAppSettings?.billingSettings?.serviceChargeRate}%)
+                    </span>
+                    <span style={{ color: '#374151' }}>₹{getServiceCharge().toFixed(2)}</span>
+                  </div>
+                )}
+                {/* Tip */}
+                {tipAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                    <span style={{ color: '#d97706' }}>Tip</span>
+                    <span style={{ color: '#d97706' }}>₹{tipAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -4221,6 +4303,79 @@ const CheckoutView = ({
                   }}>
                     <span style={{ fontSize: '12px', color: '#5b21b6' }}>Points you&apos;ll earn</span>
                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#7c3aed' }}>+{getLoyaltyPointsToEarn()}</span>
+                  </div>
+                )}
+                {/* Tip Selection */}
+                {customerAppSettings?.billingSettings?.tipsEnabled && (
+                  <div style={{
+                    backgroundColor: '#fffbeb',
+                    borderRadius: '10px',
+                    padding: '14px',
+                    marginTop: '12px',
+                    border: '1px solid #fde68a',
+                  }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#92400e', marginBottom: '10px' }}>
+                      Add a tip for the team
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {(customerAppSettings.billingSettings.tipPresets || [5, 10, 15]).map((preset) => {
+                        const presetAmount = Math.round(getPreTaxTotal() * preset / 100);
+                        const isSelected = selectedTipPreset === preset;
+                        return (
+                          <button
+                            key={preset}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedTipPreset(null);
+                                setTipAmount(0);
+                                setCustomTipInput('');
+                              } else {
+                                setSelectedTipPreset(preset);
+                                setTipAmount(presetAmount);
+                                setCustomTipInput('');
+                              }
+                            }}
+                            style={{
+                              padding: '8px 14px',
+                              borderRadius: '8px',
+                              border: isSelected ? '2px solid #d97706' : '2px solid #e5e7eb',
+                              backgroundColor: isSelected ? '#fef3c7' : 'white',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: isSelected ? '700' : '500',
+                              color: isSelected ? '#92400e' : '#374151',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {preset}% (₹{presetAmount})
+                          </button>
+                        );
+                      })}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '13px', color: '#6b7280' }}>₹</span>
+                        <input
+                          type="number"
+                          placeholder="Custom"
+                          value={customTipInput}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCustomTipInput(val);
+                            const num = parseFloat(val) || 0;
+                            setTipAmount(Math.max(0, num));
+                            setSelectedTipPreset(null);
+                          }}
+                          style={{
+                            width: '70px',
+                            padding: '8px',
+                            border: `2px solid ${selectedTipPreset === null && tipAmount > 0 && customTipInput ? '#d97706' : '#e5e7eb'}`,
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            boxSizing: 'border-box',
+                            backgroundColor: selectedTipPreset === null && tipAmount > 0 && customTipInput ? '#fef3c7' : 'white',
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

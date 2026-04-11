@@ -359,6 +359,12 @@ const Customers = () => {
   const [groupMenuOpenId, setGroupMenuOpenId] = useState(null);
   const [selectedCustomerIds, setSelectedCustomerIds] = useState([]);
   const [showAddToGroupMenu, setShowAddToGroupMenu] = useState(false);
+  const [inlineCreateMode, setInlineCreateMode] = useState(false);
+  const [inlineGroupName, setInlineGroupName] = useState('');
+  const [inlineGroupColor, setInlineGroupColor] = useState(GROUP_COLORS[0]);
+  const [inlineGroupSaving, setInlineGroupSaving] = useState(false);
+  const [groupPopoverCustomerId, setGroupPopoverCustomerId] = useState(null);
+  const [groupPopoverSaving, setGroupPopoverSaving] = useState(null); // groupId being toggled
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -611,6 +617,74 @@ const Customers = () => {
       console.error('Error adding to group:', err);
       alert('Failed to add customers to group');
     }
+  };
+
+  // Inline create group and add selected customers
+  const handleInlineCreateAndAdd = async () => {
+    if (!inlineGroupName.trim()) return;
+    setInlineGroupSaving(true);
+    try {
+      const customerIds = selectedCustomerIds.slice();
+      const customerPhones = customers.filter(c => customerIds.includes(c.id)).map(c => c.phone).filter(Boolean);
+      const resp = await apiClient.request(`/api/customer-groups/${restaurantId}`, {
+        method: 'POST',
+        body: {
+          name: inlineGroupName.trim(),
+          color: inlineGroupColor,
+          customerIds,
+          customerPhones,
+        }
+      });
+      if (resp.group) {
+        setGroups(prev => [resp.group, ...prev]);
+      }
+      setSelectedCustomerIds([]);
+      setShowAddToGroupMenu(false);
+      setInlineCreateMode(false);
+      setInlineGroupName('');
+      setInlineGroupColor(GROUP_COLORS[0]);
+    } catch (err) {
+      console.error('Error creating group:', err);
+      alert('Failed to create group');
+    }
+    setInlineGroupSaving(false);
+  };
+
+  // Toggle a single customer's membership in a group (for per-customer popover)
+  const toggleCustomerGroup = async (customer, groupId, isCurrentlyMember) => {
+    setGroupPopoverSaving(groupId);
+    try {
+      const payload = {
+        customerIds: [customer.id],
+        customerPhones: customer.phone ? [customer.phone] : [],
+      };
+      if (isCurrentlyMember) {
+        await apiClient.request(`/api/customer-groups/${restaurantId}/${groupId}/members`, {
+          method: 'DELETE',
+          body: payload,
+        });
+        setGroups(prev => prev.map(g => {
+          if (g.id !== groupId) return g;
+          const newIds = (g.customerIds || []).filter(id => id !== customer.id);
+          const newPhones = customer.phone ? (g.customerPhones || []).filter(p => p !== customer.phone) : (g.customerPhones || []);
+          return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length };
+        }));
+      } else {
+        await apiClient.request(`/api/customer-groups/${restaurantId}/${groupId}/members`, {
+          method: 'POST',
+          body: payload,
+        });
+        setGroups(prev => prev.map(g => {
+          if (g.id !== groupId) return g;
+          const newIds = Array.from(new Set([...(g.customerIds || []), customer.id]));
+          const newPhones = customer.phone ? Array.from(new Set([...(g.customerPhones || []), customer.phone])) : (g.customerPhones || []);
+          return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length };
+        }));
+      }
+    } catch (err) {
+      console.error('Error toggling group membership:', err);
+    }
+    setGroupPopoverSaving(null);
   };
 
   // Returns array of groups the given customer belongs to
@@ -1629,7 +1703,7 @@ const Customers = () => {
                           {custGroups.length > 0 && (
                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
                               {custGroups.map(g => (
-                                <span key={g.id} style={{
+                                <span key={g.id} title={g.name} style={{
                                   padding: '2px 8px',
                                   borderRadius: '10px',
                                   fontSize: '10px',
@@ -1638,8 +1712,12 @@ const Customers = () => {
                                   color: g.color || '#6b7280',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '3px'
+                                  gap: '4px'
                                 }}>
+                                  <span style={{
+                                    width: '6px', height: '6px', borderRadius: '50%',
+                                    background: g.color || '#6b7280', flexShrink: 0,
+                                  }} />
                                   {g.icon && <span>{g.icon}</span>}
                                   {g.name}
                                 </span>
@@ -1729,6 +1807,95 @@ const Customers = () => {
                         <FaHistory size={12} />
                         {!isMobile && t('customers.actions.history')}
                       </button>
+                      {/* Group toggle popover */}
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => setGroupPopoverCustomerId(groupPopoverCustomerId === customer.id ? null : customer.id)}
+                          style={{
+                            padding: 0,
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '13px',
+                            color: getCustomerGroups(customer).length > 0 ? '#7c3aed' : '#6b7280',
+                            fontWeight: '500'
+                          }}
+                          title="Manage groups"
+                        >
+                          <FaLayerGroup size={12} />
+                          {!isMobile && (getCustomerGroups(customer).length > 0
+                            ? `${getCustomerGroups(customer).length} Groups`
+                            : 'Groups')}
+                        </button>
+                        {groupPopoverCustomerId === customer.id && (
+                          <div style={{
+                            position: 'absolute', top: '100%', right: 0, marginTop: '6px',
+                            background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '200px', zIndex: 50,
+                            overflow: 'hidden',
+                          }}>
+                            <div style={{
+                              padding: '8px 12px', borderBottom: '1px solid #f3f4f6',
+                              fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}>
+                              Groups for {customer.name || 'Customer'}
+                            </div>
+                            {groups.length === 0 ? (
+                              <div style={{ padding: '12px', fontSize: '12px', color: '#9ca3af' }}>No groups created yet</div>
+                            ) : groups.map(g => {
+                              const isMember = (g.customerIds || []).includes(customer.id) ||
+                                (customer.phone && (g.customerPhones || []).includes(customer.phone));
+                              const isSavingThis = groupPopoverSaving === g.id;
+                              return (
+                                <button
+                                  key={g.id}
+                                  onClick={() => toggleCustomerGroup(customer, g.id, isMember)}
+                                  disabled={isSavingThis}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                                    padding: '8px 12px', background: isMember ? '#f5f3ff' : 'white',
+                                    border: 'none', borderBottom: '1px solid #f3f4f6', cursor: isSavingThis ? 'wait' : 'pointer',
+                                    fontSize: '12px', textAlign: 'left', color: '#374151',
+                                    transition: 'background 0.15s',
+                                  }}
+                                >
+                                  <span style={{
+                                    width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
+                                    border: isMember ? 'none' : '2px solid #d1d5db',
+                                    background: isMember ? (g.color || '#7c3aed') : 'transparent',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}>
+                                    {isMember && <FaCheckCircle size={10} style={{ color: 'white' }} />}
+                                  </span>
+                                  <span style={{
+                                    width: '8px', height: '8px', borderRadius: '50%',
+                                    background: g.color || '#6b7280', flexShrink: 0,
+                                  }} />
+                                  <span style={{ flex: 1 }}>{g.name}</span>
+                                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>{g.customerCount || 0}</span>
+                                </button>
+                              );
+                            })}
+                            <button
+                              onClick={() => {
+                                setGroupPopoverCustomerId(null);
+                                openNewGroupModal([customer.id]);
+                              }}
+                              style={{
+                                width: '100%', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px',
+                                background: '#f0fdf4', border: 'none', cursor: 'pointer', fontSize: '11px',
+                                color: '#16a34a', fontWeight: 600, borderRadius: '0 0 10px 10px',
+                              }}
+                            >
+                              <FaPlus size={9} /> Create New Group
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       {canEditCustomer && (
                       <button
                         onClick={() => handleEdit(customer)}
@@ -2173,12 +2340,12 @@ const Customers = () => {
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                minWidth: '180px',
-                maxHeight: '240px',
+                minWidth: '220px',
+                maxHeight: '320px',
                 overflowY: 'auto',
                 zIndex: 41
               }}>
-                {groups.length === 0 ? (
+                {groups.length === 0 && !inlineCreateMode ? (
                   <div style={{ padding: '10px 12px', fontSize: '12px', color: '#9ca3af' }}>
                     No groups yet
                   </div>
@@ -2207,13 +2374,81 @@ const Customers = () => {
                         height: '10px',
                         borderRadius: '50%',
                         background: g.color || '#6b7280',
-                        display: 'inline-block'
+                        display: 'inline-block',
+                        flexShrink: 0,
                       }} />
                       {g.icon && <span>{g.icon}</span>}
                       <span>{g.name}</span>
+                      <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: 'auto' }}>{g.customerCount || 0}</span>
                     </button>
                   ))
                 )}
+                {/* Divider + inline create */}
+                <div style={{ borderTop: '1px solid #e5e7eb' }}>
+                  {!inlineCreateMode ? (
+                    <button
+                      onClick={() => setInlineCreateMode(true)}
+                      style={{
+                        width: '100%', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px',
+                        background: '#f0fdf4', border: 'none', cursor: 'pointer', fontSize: '12px',
+                        color: '#16a34a', fontWeight: 600, borderRadius: '0 0 8px 8px',
+                      }}
+                    >
+                      + Create New Group
+                    </button>
+                  ) : (
+                    <div style={{ padding: '8px 12px' }}>
+                      <input
+                        autoFocus
+                        placeholder="Group name"
+                        value={inlineGroupName}
+                        onChange={(e) => setInlineGroupName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleInlineCreateAndAdd(); }}
+                        style={{
+                          width: '100%', padding: '6px 8px', borderRadius: '6px',
+                          border: '1px solid #d1d5db', fontSize: '12px', outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '4px', margin: '6px 0' }}>
+                        {GROUP_COLORS.map(c => (
+                          <button
+                            key={c}
+                            onClick={() => setInlineGroupColor(c)}
+                            style={{
+                              width: 18, height: 18, borderRadius: '50%', background: c, border: 'none',
+                              cursor: 'pointer', outline: inlineGroupColor === c ? '2px solid #1f2937' : 'none',
+                              outlineOffset: '1px',
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={handleInlineCreateAndAdd}
+                          disabled={!inlineGroupName.trim() || inlineGroupSaving}
+                          style={{
+                            flex: 1, padding: '6px', fontSize: '11px', fontWeight: 600,
+                            background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px',
+                            cursor: !inlineGroupName.trim() || inlineGroupSaving ? 'not-allowed' : 'pointer',
+                            opacity: !inlineGroupName.trim() || inlineGroupSaving ? 0.6 : 1,
+                          }}
+                        >
+                          {inlineGroupSaving ? 'Creating...' : 'Create & Add'}
+                        </button>
+                        <button
+                          onClick={() => { setInlineCreateMode(false); setInlineGroupName(''); }}
+                          style={{
+                            padding: '6px 10px', fontSize: '11px', background: '#f3f4f6',
+                            border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#6b7280',
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

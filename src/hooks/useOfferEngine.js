@@ -321,7 +321,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   const wasManuallySelectedRef = useRef(false);
   const prevRestaurantIdRef = useRef(null);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
-  const groupLookupCacheRef = useRef({}); // key: `${rid}|${phone}|${cid}` -> groupIds
+  const [customerGroups, setCustomerGroups] = useState([]); // full objects { id, name, color }
+  const groupLookupCacheRef = useRef({}); // key: `${rid}|${phone}|${cid}` -> { ids, groups }
 
   // Resolve final context (merge customerInfo.isFirstOrder if only customerInfo passed)
   const resolvedContext = useMemo(() => {
@@ -347,11 +348,13 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     const cid = customerContext?.customerId || customerInfo?.id;
     if (!phone && !cid) {
       setCustomerGroupIds([]);
+      setCustomerGroups([]);
       return;
     }
     const cacheKey = `${restaurantId}|${phone || ''}|${cid || ''}`;
     if (groupLookupCacheRef.current[cacheKey]) {
-      setCustomerGroupIds(groupLookupCacheRef.current[cacheKey]);
+      setCustomerGroupIds(groupLookupCacheRef.current[cacheKey].ids);
+      setCustomerGroups(groupLookupCacheRef.current[cacheKey].groups);
       return;
     }
     let cancelled = false;
@@ -363,10 +366,17 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
         const res = await apiClient.request(`/api/customer-groups/lookup/${restaurantId}?${params.toString()}`, { method: 'GET' }).catch(() => null);
         const groups = res?.groups || [];
         const ids = groups.map(g => g.id).filter(Boolean);
-        groupLookupCacheRef.current[cacheKey] = ids;
-        if (!cancelled) setCustomerGroupIds(ids);
+        const groupObjs = groups.map(g => ({ id: g.id, name: g.name, color: g.color })).filter(g => g.id);
+        groupLookupCacheRef.current[cacheKey] = { ids, groups: groupObjs };
+        if (!cancelled) {
+          setCustomerGroupIds(ids);
+          setCustomerGroups(groupObjs);
+        }
       } catch (_) {
-        if (!cancelled) setCustomerGroupIds([]);
+        if (!cancelled) {
+          setCustomerGroupIds([]);
+          setCustomerGroups([]);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -493,14 +503,27 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
         if (isPublicAudience) {
           // first_order without context: show but note eligibility unknown
           result.push(offer);
-        } else {
-          // targeted audience, no login — mark requires login
-          result.push({ ...offer, _requiresLogin: true });
         }
+        // targeted audience without context: simply exclude (shown after customer identified)
       }
     }
     return result;
   }, [allOffers, subtotal, cart, customerInfo, scheduleCheckKey, resolvedContext]);
+
+  // Split applicable offers into generic (everyone/first-order) and personalized (group/customer-targeted)
+  const { genericOffers, personalizedOffers } = useMemo(() => {
+    const generic = [];
+    const personalized = [];
+    for (const offer of applicableOffers) {
+      const audienceType = offer.audience?.type || (offer.isFirstOrderOnly ? 'first_order' : 'all');
+      if (audienceType === 'all' || audienceType === 'first_order') {
+        generic.push(offer);
+      } else {
+        personalized.push(offer);
+      }
+    }
+    return { genericOffers: generic, personalizedOffers: personalized };
+  }, [applicableOffers]);
 
   // Compute freeItems from currently applied offer(s) via cross-item BOGO
   const freeItems = useMemo(() => {
@@ -570,8 +593,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       return;
     }
 
-    const eligible = applicableOffers.filter(o => !o._requiresLogin);
-    if (eligible.length === 0) return;
+    if (applicableOffers.length === 0) return;
+    const eligible = applicableOffers;
 
     if (offerSettings.allowMultipleOffers) {
       // Multi-offer mode: auto-apply top N offers by discount
@@ -693,6 +716,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
   return {
     applicableOffers,
+    genericOffers,
+    personalizedOffers,
     selectedOfferId,
     setSelectedOfferId,
     selectedOfferIds,
@@ -708,6 +733,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     calculateDiscountForOffer,
     freeItems,
     customerGroupIds,
+    customerGroups,
   };
 };
 

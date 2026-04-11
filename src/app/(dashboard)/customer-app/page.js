@@ -21,6 +21,10 @@ import {
   FaShare,
   FaFilePdf,
   FaLink,
+  FaStore,
+  FaPercent,
+  FaRupeeSign,
+  FaHandHoldingUsd,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -117,6 +121,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       publicMenuOnly: false,
       collectName: true,
       collectEmail: false,
+    },
+    billingSettings: {
+      tipsEnabled: false,
+      tipPresets: [5, 10, 15],
+      serviceChargeEnabled: false,
+      serviceChargeRate: 0,
+      serviceChargeLabel: 'Service Charge',
     },
   });
 
@@ -653,6 +664,17 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
             Configure your restaurant&apos;s customer ordering app settings
           </p>
+          {restaurantName && (
+            <div style={{
+              marginTop: '12px', padding: '8px 14px', borderRadius: '8px',
+              background: '#f0fdf4', border: '1px solid #bbf7d0',
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              fontSize: '13px', color: '#166534', fontWeight: 600,
+            }}>
+              <FaStore size={14} />
+              Configuring for: {restaurantName}
+            </div>
+          )}
         </div>
         )}
 
@@ -1687,6 +1709,201 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               </div>
             </div>
           )}
+        </div>
+
+        {/* Billing Settings Section */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '16px' : '24px',
+          marginTop: isMobile ? '12px' : '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          border: '1px solid #e5e7eb',
+        }}>
+          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaRupeeSign style={{ color: '#059669' }} />
+            Billing Settings
+          </h2>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: '-12px 0 20px' }}>
+            Configure tips, service charge, and other billing options for your online ordering page
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Tips Toggle */}
+            <div style={{
+              padding: '16px',
+              backgroundColor: settings.billingSettings?.tipsEnabled ? '#f0fdf4' : '#f9fafb',
+              borderRadius: '12px',
+              border: `1px solid ${settings.billingSettings?.tipsEnabled ? '#bbf7d0' : '#e5e7eb'}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: settings.billingSettings?.tipsEnabled ? '12px' : '0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FaHandHoldingUsd style={{ color: settings.billingSettings?.tipsEnabled ? '#059669' : '#9ca3af', fontSize: '16px' }} />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>Tips</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Allow customers to add a tip to their order</div>
+                  </div>
+                </div>
+                <div
+                  onClick={() => setSettings(prev => ({
+                    ...prev,
+                    billingSettings: { ...prev.billingSettings, tipsEnabled: !prev.billingSettings?.tipsEnabled }
+                  }))}
+                  style={{ cursor: 'pointer', fontSize: '24px', color: settings.billingSettings?.tipsEnabled ? '#059669' : '#d1d5db' }}
+                >
+                  {settings.billingSettings?.tipsEnabled ? <FaToggleOn /> : <FaToggleOff />}
+                </div>
+              </div>
+
+              {settings.billingSettings?.tipsEnabled && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    Tip Presets (%)
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {(settings.billingSettings?.tipPresets || [5, 10, 15]).map((preset, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <input
+                          type="number"
+                          value={preset}
+                          min={1}
+                          max={100}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setSettings(prev => {
+                              const presets = [...(prev.billingSettings?.tipPresets || [5, 10, 15])];
+                              presets[idx] = val;
+                              return { ...prev, billingSettings: { ...prev.billingSettings, tipPresets: presets } };
+                            });
+                          }}
+                          style={{
+                            width: '60px', padding: '8px', border: '2px solid #e5e7eb',
+                            borderRadius: '8px', fontSize: '14px', textAlign: 'center', boxSizing: 'border-box',
+                          }}
+                        />
+                        <FaPercent style={{ fontSize: '10px', color: '#6b7280' }} />
+                      </div>
+                    ))}
+                    {(settings.billingSettings?.tipPresets || [5, 10, 15]).length < 5 && (
+                      <button
+                        onClick={() => setSettings(prev => {
+                          const presets = [...(prev.billingSettings?.tipPresets || [5, 10, 15])];
+                          presets.push(20);
+                          return { ...prev, billingSettings: { ...prev.billingSettings, tipPresets: presets } };
+                        })}
+                        style={{
+                          padding: '8px 12px', border: '2px dashed #d1d5db', borderRadius: '8px',
+                          background: 'none', cursor: 'pointer', fontSize: '13px', color: '#6b7280',
+                        }}
+                      >
+                        + Add
+                      </button>
+                    )}
+                    {(settings.billingSettings?.tipPresets || []).length > 2 && (
+                      <button
+                        onClick={() => setSettings(prev => {
+                          const presets = [...(prev.billingSettings?.tipPresets || [5, 10, 15])];
+                          presets.pop();
+                          return { ...prev, billingSettings: { ...prev.billingSettings, tipPresets: presets } };
+                        })}
+                        style={{
+                          padding: '8px 12px', border: '2px dashed #fecaca', borderRadius: '8px',
+                          background: 'none', cursor: 'pointer', fontSize: '13px', color: '#dc2626',
+                        }}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '6px', marginBottom: 0 }}>
+                    Customers will see these as quick-select options. They can also enter a custom amount.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Service Charge Toggle */}
+            <div style={{
+              padding: '16px',
+              backgroundColor: settings.billingSettings?.serviceChargeEnabled ? '#f0fdf4' : '#f9fafb',
+              borderRadius: '12px',
+              border: `1px solid ${settings.billingSettings?.serviceChargeEnabled ? '#bbf7d0' : '#e5e7eb'}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: settings.billingSettings?.serviceChargeEnabled ? '12px' : '0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FaPercent style={{ color: settings.billingSettings?.serviceChargeEnabled ? '#059669' : '#9ca3af', fontSize: '14px' }} />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>Service Charge</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Add a service charge to online orders</div>
+                  </div>
+                </div>
+                <div
+                  onClick={() => setSettings(prev => ({
+                    ...prev,
+                    billingSettings: { ...prev.billingSettings, serviceChargeEnabled: !prev.billingSettings?.serviceChargeEnabled }
+                  }))}
+                  style={{ cursor: 'pointer', fontSize: '24px', color: settings.billingSettings?.serviceChargeEnabled ? '#059669' : '#d1d5db' }}
+                >
+                  {settings.billingSettings?.serviceChargeEnabled ? <FaToggleOn /> : <FaToggleOff />}
+                </div>
+              </div>
+
+              {settings.billingSettings?.serviceChargeEnabled && (
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1', minWidth: '120px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={settings.billingSettings?.serviceChargeRate || 0}
+                      min={0}
+                      max={30}
+                      step={0.5}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        billingSettings: { ...prev.billingSettings, serviceChargeRate: parseFloat(e.target.value) || 0 }
+                      }))}
+                      style={{
+                        width: '100%', padding: '10px', border: '2px solid #e5e7eb',
+                        borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: '2', minWidth: '180px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Label (shown on bill)
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.billingSettings?.serviceChargeLabel || 'Service Charge'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        billingSettings: { ...prev.billingSettings, serviceChargeLabel: e.target.value }
+                      }))}
+                      style={{
+                        width: '100%', padding: '10px', border: '2px solid #e5e7eb',
+                        borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box',
+                      }}
+                      placeholder="Service Charge"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '10px',
+            border: '1px solid #bae6fd',
+          }}>
+            <p style={{ margin: 0, fontSize: '12px', color: '#0369a1', lineHeight: '1.6' }}>
+              <strong>Note:</strong> Taxes (GST/VAT) are automatically applied based on your restaurant&apos;s tax configuration in Dashboard Settings. These billing settings only control additional charges shown on the online ordering page.
+            </p>
+          </div>
         </div>
 
         {/* Branding Section - Full Width */}
