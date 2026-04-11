@@ -958,11 +958,12 @@ const OrderHistory = () => {
   };
 
   const getOrderBreakdown = (order) => {
-    // Calculate subtotal from items
+    // Calculate subtotal from items (raw total before discounts)
     let subtotal = 0;
     if (order.items && Array.isArray(order.items)) {
       subtotal = order.items.reduce((sum, item) => sum + (item.total || (item.price * item.quantity) || 0), 0);
-    } else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
+    } else if (order.subtotal && order.subtotal > 0) subtotal = order.subtotal;
+    else if (order.totalAmount && order.totalAmount > 0) subtotal = order.totalAmount;
     subtotal = parseFloat(subtotal.toFixed(2));
 
     let taxAmount = 0;
@@ -992,7 +993,7 @@ const OrderHistory = () => {
     if (order.discountAmount && order.discountAmount > 0) {
       const amt = parseFloat(order.discountAmount.toFixed(2));
       discountAmount += amt;
-      const offerName = order.appliedOffer?.name || (order.appliedOffers?.length > 0 ? order.appliedOffers[0]?.name : null) || 'Offer Discount';
+      const offerName = (typeof order.appliedOffer === 'string' ? order.appliedOffer : order.appliedOffer?.name) || order.selectedOfferName || (order.appliedOffers?.length > 0 ? (typeof order.appliedOffers[0] === 'string' ? order.appliedOffers[0] : order.appliedOffers[0]?.name) : null) || 'Offer Discount';
       discountLines.push({ name: offerName, amount: amt });
     }
     if (order.manualDiscount && order.manualDiscount > 0) {
@@ -2035,9 +2036,10 @@ const OrderHistory = () => {
                               <span className="text-xl font-bold text-gray-900">{formatCurrency(breakdown.total)}</span>
                               <span className="text-[11px] text-gray-400">{order.paymentMethod || 'Cash'}</span>
                             </div>
-                            {(breakdown.taxLines?.length > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
+                            {(breakdown.taxLines?.length > 0 || breakdown.discountAmount > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
                               <div className="text-xs text-gray-500 mt-0.5">
                                 {formatCurrency(breakdown.subtotal)}
+                                {breakdown.discountAmount > 0 && <span className="text-green-600">{` - Disc ${formatCurrency(breakdown.discountAmount)}`}</span>}
                                 {breakdown.serviceCharge > 0 && ` + SC ${formatCurrency(breakdown.serviceCharge)}`}
                                 {breakdown.taxLines?.length > 0 && ` + ${breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}`}
                                 {breakdown.tip > 0 && ` + Tip ${formatCurrency(breakdown.tip)}`}
@@ -3334,7 +3336,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                     </div>
                     {offerDiscount > 0 && (
                       <div className="flex justify-between text-green-600">
-                        <span>{order.appliedOffer?.name || 'Offer Discount'}:</span>
+                        <span>{(typeof order.appliedOffer === 'string' ? order.appliedOffer : order.appliedOffer?.name) || order.selectedOfferName || 'Offer Discount'}:</span>
                         <span>-{formatCurrency(offerDiscount)}</span>
                       </div>
                     )}

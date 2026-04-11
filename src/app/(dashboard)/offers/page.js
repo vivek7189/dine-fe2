@@ -142,6 +142,13 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [customerSearch, setCustomerSearch] = useState('');
   const [menuItems, setMenuItems] = useState([]);
   const [menuLoaded, setMenuLoaded] = useState(false);
+  // Groups sub-view state
+  const GROUP_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280'];
+  const [offersSubView, setOffersSubView] = useState('offers'); // 'offers' | 'groups'
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [groupForm, setGroupForm] = useState({ name: '', description: '', color: '#ef4444', icon: '' });
+  const [groupSaving, setGroupSaving] = useState(false);
   const [offerErrors, setOfferErrors] = useState({
     maxOffersAllowed: '',
     discountValue: '',
@@ -421,6 +428,46 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     }
   };
 
+  // Group CRUD
+  const saveGroup = async (e) => {
+    e.preventDefault();
+    if (!groupForm.name?.trim()) return;
+    const id = getRestaurantId();
+    if (!id) return;
+    setGroupSaving(true);
+    try {
+      if (editingGroup) {
+        await apiClient.request(`/api/customer-groups/${id}/${editingGroup.id}`, {
+          method: 'PATCH',
+          body: { name: groupForm.name.trim(), description: groupForm.description || '', color: groupForm.color, icon: groupForm.icon || '' }
+        });
+        setCustomerGroups(prev => prev.map(g => g.id === editingGroup.id ? { ...g, name: groupForm.name.trim(), description: groupForm.description, color: groupForm.color, icon: groupForm.icon } : g));
+      } else {
+        const resp = await apiClient.request(`/api/customer-groups/${id}`, {
+          method: 'POST',
+          body: { name: groupForm.name.trim(), description: groupForm.description || '', color: groupForm.color, icon: groupForm.icon || '' }
+        });
+        setCustomerGroups(prev => [...prev, resp.group]);
+      }
+      setShowGroupModal(false);
+    } catch (err) {
+      console.error('Error saving group:', err);
+    } finally {
+      setGroupSaving(false);
+    }
+  };
+
+  const deleteGroup = async (group) => {
+    if (!confirm(`Delete group "${group.name}"?`)) return;
+    const id = getRestaurantId();
+    try {
+      await apiClient.request(`/api/customer-groups/${id}/${group.id}`, { method: 'DELETE' });
+      setCustomerGroups(prev => prev.filter(g => g.id !== group.id));
+    } catch (err) {
+      console.error('Error deleting group:', err);
+    }
+  };
+
   const getDiscountLabel = (offer) => {
     if (offer.discountType === 'percentage') {
       return `${offer.discountValue}% OFF`;
@@ -482,73 +529,209 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '16px' : '24px' }}>
+    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      {/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */}
+      {isMobile && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          input, textarea, select { font-size: 16px !important; }
+        ` }} />
+      )}
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {view === 'list' && (
         <>
         {/* Header */}
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: isMobile ? '20px' : '32px',
-          marginBottom: '24px',
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '14px' : '32px',
+          marginBottom: isMobile ? '12px' : '24px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           border: '1px solid #fce7f3',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '16px'
+          gap: isMobile ? '10px' : '16px'
         }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <FaTag color="#ec4899" size={isMobile ? 24 : 28} />
+            <h1 style={{ fontSize: isMobile ? '18px' : '32px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }}>
+              <FaTag color="#ec4899" size={isMobile ? 18 : 28} />
               Offers & Promotions
             </h1>
+            {!isMobile && (
             <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
               Create and manage offers for your Crave app customers
             </p>
+            )}
           </div>
           <button
             onClick={() => handleOpenModal()}
             style={{
-              padding: '12px 24px',
+              padding: isMobile ? '8px 14px' : '12px 24px',
               backgroundColor: '#ec4899',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
+              borderRadius: isMobile ? '10px' : '12px',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: isMobile ? '6px' : '8px',
+              fontSize: isMobile ? '13px' : '14px',
               boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
             }}
           >
-            <FaPlus />
+            <FaPlus size={isMobile ? 12 : 14} />
             Create Offer
           </button>
         </div>
 
+        {/* Sub-view toggle: Offers | Groups */}
+        <div style={{
+          display: 'flex',
+          gap: '4px',
+          marginBottom: '16px',
+          background: '#f3f4f6',
+          borderRadius: '10px',
+          padding: '4px',
+          width: 'fit-content'
+        }}>
+          {[
+            { id: 'offers', label: 'Offers', icon: <FaTag size={12} /> },
+            { id: 'groups', label: `Groups (${customerGroups.length})`, icon: <FaLayerGroup size={12} /> },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setOffersSubView(tab.id)}
+              style={{
+                padding: isMobile ? '8px 14px' : '8px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                background: offersSubView === tab.id ? 'white' : 'transparent',
+                color: offersSubView === tab.id ? '#1f2937' : '#6b7280',
+                fontWeight: '600',
+                fontSize: isMobile ? '12px' : '13px',
+                cursor: 'pointer',
+                boxShadow: offersSubView === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s'
+              }}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Groups Sub-view */}
+        {offersSubView === 'groups' && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: isMobile ? '12px' : '16px',
+            padding: isMobile ? '14px' : '32px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            border: '1px solid #fce7f3'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '12px' : '20px', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? '16px' : '22px', fontWeight: '700', color: '#1f2937', display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '10px' }}>
+                <FaUsers color="#ec4899" size={isMobile ? 16 : 22} />
+                Customer Groups
+              </h2>
+              <button
+                onClick={() => { setEditingGroup(null); setGroupForm({ name: '', description: '', color: GROUP_COLORS[0], icon: '' }); setShowGroupModal(true); }}
+                style={{
+                  padding: isMobile ? '8px 14px' : '10px 20px',
+                  backgroundColor: '#ec4899',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: isMobile ? '8px' : '10px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: isMobile ? '12px' : '13px',
+                  boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
+                }}
+              >
+                <FaPlus size={isMobile ? 10 : 12} /> New Group
+              </button>
+            </div>
+
+            {customerGroups.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                <FaUsers size={40} style={{ marginBottom: '12px', opacity: 0.4 }} />
+                <p style={{ fontSize: '14px', margin: 0 }}>No customer groups yet. Create one to target offers to specific audiences.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
+                {customerGroups.map(g => (
+                  <div key={g.id} style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    backgroundColor: '#fafafa'
+                  }}>
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '10px',
+                      backgroundColor: g.color || '#6b7280',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', fontSize: '18px', fontWeight: '700', flexShrink: 0
+                    }}>
+                      {g.icon || g.name?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: '#1f2937' }}>{g.name}</p>
+                      {g.description && <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.description}</p>}
+                      <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9ca3af' }}>
+                        {g.customerCount ?? (g.customerIds || []).length} members
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => { setEditingGroup(g); setGroupForm({ name: g.name, description: g.description || '', color: g.color || GROUP_COLORS[0], icon: g.icon || '' }); setShowGroupModal(true); }}
+                        style={{ background: '#f3f4f6', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#6b7280' }}
+                      >
+                        <FaEdit size={12} />
+                      </button>
+                      <button
+                        onClick={() => deleteGroup(g)}
+                        style={{ background: '#fef2f2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#dc2626' }}
+                      >
+                        <FaTrash size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {offersSubView === 'offers' && (<>
         {/* Offer Settings */}
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          marginBottom: '24px',
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '12px' : '24px',
+          marginBottom: isMobile ? '12px' : '24px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           border: '1px solid #e5e7eb'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaCog color="#6b7280" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '12px' : '20px' }}>
+            <h2 style={{ fontSize: isMobile ? '15px' : '18px', fontWeight: '600', color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '8px' }}>
+              <FaCog color="#6b7280" size={isMobile ? 14 : 16} />
               Offer Settings
             </h2>
             <button
               onClick={saveOfferSettings}
               disabled={savingSettings}
               style={{
-                padding: '8px 16px',
+                padding: isMobile ? '6px 12px' : '8px 16px',
                 backgroundColor: savingSettings ? '#9ca3af' : '#10b981',
                 color: 'white',
                 border: 'none',
@@ -557,20 +740,20 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 cursor: savingSettings ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '13px'
+                gap: '5px',
+                fontSize: isMobile ? '12px' : '13px'
               }}
             >
-              <FaSave size={12} />
-              {savingSettings ? 'Saving...' : 'Save Settings'}
+              <FaSave size={isMobile ? 10 : 12} />
+              {savingSettings ? 'Saving...' : (isMobile ? 'Save' : 'Save Settings')}
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: isMobile ? '8px' : '16px' }}>
             {/* Auto-apply Best Offer */}
-            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Auto-apply Best Offer</span>
+            <div style={{ padding: isMobile ? '10px' : '16px', backgroundColor: '#f9fafb', borderRadius: isMobile ? '10px' : '12px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#374151' }}>Auto-apply Best Offer</span>
                 <button
                   onClick={() => setOfferSettings(prev => ({ ...prev, autoApplyBestOffer: !prev.autoApplyBestOffer }))}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
@@ -588,9 +771,9 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
             </div>
 
             {/* Allow Multiple Offers */}
-            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Allow Multiple Offers</span>
+            <div style={{ padding: isMobile ? '10px' : '16px', backgroundColor: '#f9fafb', borderRadius: isMobile ? '10px' : '12px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#374151' }}>Allow Multiple Offers</span>
                 <button
                   onClick={() => setOfferSettings(prev => ({ ...prev, allowMultipleOffers: !prev.allowMultipleOffers }))}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
@@ -608,9 +791,9 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
             </div>
 
             {/* Max Offers Allowed */}
-            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-              <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Max Offers per Order</span>
+            <div style={{ padding: isMobile ? '10px' : '16px', backgroundColor: '#f9fafb', borderRadius: isMobile ? '10px' : '12px', border: '1px solid #e5e7eb' }}>
+              <div style={{ marginBottom: '6px' }}>
+                <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#374151' }}>Max Offers per Order</span>
               </div>
               <input
                 type="text"
@@ -684,24 +867,24 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gap: isMobile ? '10px' : '16px' }}>
             {offers.map((offer) => (
               <div
                 key={offer.id}
                 style={{
                   backgroundColor: 'white',
-                  borderRadius: '16px',
-                  padding: '20px',
+                  borderRadius: isMobile ? '12px' : '16px',
+                  padding: isMobile ? '12px' : '20px',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                   border: offer.isActive ? '2px solid #10b981' : '1px solid #e5e7eb',
                   opacity: offer.isActive ? 1 : 0.7
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
                       <span style={{
-                        padding: '6px 12px',
+                        padding: isMobile ? '4px 8px' : '6px 12px',
                         backgroundColor: offer.discountType === 'percentage' ? '#fef3c7' : '#dbeafe',
                         color: offer.discountType === 'percentage' ? '#92400e' : '#1e40af',
                         borderRadius: '20px',
@@ -810,7 +993,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         </span>
                       )}
                     </div>
-                    <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+                    <h3 style={{ margin: '0 0 4px', fontSize: isMobile ? '15px' : '18px', fontWeight: '600', color: '#1f2937' }}>
                       {offer.name}
                     </h3>
                     {offer.description && (
@@ -878,14 +1061,15 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
             ))}
           </div>
         )}
+        </>)}
         </>
         )}
 
         {view === 'builder' && (
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: isMobile ? '16px' : '24px',
+            borderRadius: isMobile ? '12px' : '16px',
+            padding: isMobile ? '12px' : '24px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             border: '1px solid #fce7f3',
           }}>
@@ -893,40 +1077,39 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '24px',
-              gap: '12px',
-              flexWrap: 'wrap',
+              marginBottom: isMobile ? '16px' : '24px',
+              gap: isMobile ? '8px' : '12px',
               position: 'sticky',
               top: 0,
               backgroundColor: 'white',
-              paddingBottom: '12px',
+              paddingBottom: isMobile ? '8px' : '12px',
               borderBottom: '1px solid #f3f4f6',
               zIndex: 2,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                <button
-                  onClick={closeBuilder}
-                  style={{
-                    background: '#f3f4f6',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: '#374151',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                  }}
-                >
-                  <FaArrowLeft size={12} /> Back to offers
-                </button>
-                <h2 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: '600', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {editingOffer ? `Edit Offer${formData.name ? ': ' + formData.name : ''}` : 'Create Offer'}
-                </h2>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={closeBuilder}
+                style={{
+                  background: '#f3f4f6',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: isMobile ? '8px' : '10px 14px',
+                  borderRadius: isMobile ? '8px' : '10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: '#374151',
+                  fontWeight: 600,
+                  fontSize: isMobile ? '12px' : '13px',
+                  flexShrink: 0,
+                }}
+              >
+                <FaArrowLeft size={isMobile ? 10 : 12} />
+              </button>
+              <h2 style={{ margin: 0, fontSize: isMobile ? '14px' : '20px', fontWeight: '600', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                {editingOffer ? `Edit Offer${!isMobile && formData.name ? ': ' + formData.name : ''}` : 'Create Offer'}
+              </h2>
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                {!isMobile && (
                 <button
                   onClick={closeBuilder}
                   style={{
@@ -942,26 +1125,27 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 >
                   Cancel
                 </button>
+                )}
                 <button
                   onClick={handleSave}
                   disabled={saving}
                   style={{
-                    padding: '10px 18px',
+                    padding: isMobile ? '8px 12px' : '10px 18px',
                     backgroundColor: saving ? '#9ca3af' : '#ec4899',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: isMobile ? '8px' : '10px',
                     fontWeight: '600',
                     cursor: saving ? 'not-allowed' : 'pointer',
-                    fontSize: '13px',
+                    fontSize: isMobile ? '12px' : '13px',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '5px',
                     boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
                   }}
                 >
-                  <FaSave size={12} />
-                  {saving ? 'Saving...' : 'Save Offer'}
+                  <FaSave size={isMobile ? 10 : 12} />
+                  {saving ? 'Saving...' : (isMobile ? 'Save' : 'Save Offer')}
                 </button>
               </div>
             </div>
@@ -1008,7 +1192,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                     Discount Type
@@ -1063,7 +1247,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                     Min Order Value (Rs.)
@@ -1115,7 +1299,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                     Valid From
@@ -1265,7 +1449,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   </label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {(formData.tiers || []).map((tier, idx) => (
-                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1.2fr 1fr 1fr auto', gap: '8px', alignItems: isMobile ? 'end' : 'center' }}>
                         <div>
                           <label style={{ display: 'block', fontSize: '10px', color: '#0e7490', marginBottom: '2px' }}>Min Subtotal</label>
                           <input
@@ -1331,7 +1515,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#b91c1c', marginBottom: '8px' }}>
                     Cross-item BOGO
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Qty</label>
                       <input
@@ -1379,7 +1563,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                       value={formData.crossItemBogo?.maxApplications || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, maxApplications: e.target.value === '' ? null : (parseInt(e.target.value, 10) || 1) } }))}
                       placeholder="Unlimited"
-                      style={{ width: '160px', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
+                      style={{ width: isMobile ? '100%' : '160px', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
@@ -1391,7 +1575,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#831843', marginBottom: '8px' }}>
                     BOGO Configuration
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '8px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Qty</label>
                       <input
@@ -1626,7 +1810,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         ))}
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Start Time</label>
                         <input
@@ -1699,7 +1883,14 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#fefce8', borderRadius: '8px', border: '1px solid #fde68a' }}>
                     {customerGroups.length === 0 ? (
                       <p style={{ fontSize: '12px', color: '#92400e', margin: 0 }}>
-                        No customer groups yet. Create groups from the Customers page.
+                        No customer groups yet.{' '}
+                        <button
+                          type="button"
+                          onClick={() => { setView('list'); setOffersSubView('groups'); }}
+                          style={{ background: 'none', border: 'none', color: '#0369a1', cursor: 'pointer', textDecoration: 'underline', fontSize: '12px', padding: 0 }}
+                        >
+                          Create a group
+                        </button>
                       </p>
                     ) : (
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1813,7 +2004,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   }}
                   placeholder="Unlimited"
                   style={{
-                    width: '160px',
+                    width: isMobile ? '100%' : '160px',
                     padding: '10px 12px',
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
@@ -1895,6 +2086,93 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
           </div>
         )}
       </div>
+
+      {/* Group Create/Edit Modal */}
+      {showGroupModal && (
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px'
+        }} onClick={() => setShowGroupModal(false)}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '16px',
+            padding: isMobile ? '20px' : '28px',
+            width: '100%', maxWidth: isMobile ? '100%' : '440px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+            maxHeight: '90vh', overflowY: 'auto'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>
+                {editingGroup ? 'Edit Group' : 'New Customer Group'}
+              </h3>
+              <button onClick={() => setShowGroupModal(false)} style={{ background: '#f3f4f6', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+                <FaTimes size={14} color="#6b7280" />
+              </button>
+            </div>
+            <form onSubmit={saveGroup}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Name *</label>
+                <input
+                  type="text"
+                  value={groupForm.name}
+                  onChange={(e) => setGroupForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. VIP Customers"
+                  autoFocus
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Description</label>
+                <textarea
+                  value={groupForm.description}
+                  onChange={(e) => setGroupForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Optional description"
+                  rows={2}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Color</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {GROUP_COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setGroupForm(prev => ({ ...prev, color: c }))}
+                      style={{
+                        width: '32px', height: '32px', borderRadius: '8px',
+                        backgroundColor: c, border: groupForm.color === c ? '3px solid #1f2937' : '2px solid transparent',
+                        cursor: 'pointer', transition: 'all 0.15s'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Icon (emoji)</label>
+                <input
+                  type="text"
+                  value={groupForm.icon}
+                  onChange={(e) => setGroupForm(prev => ({ ...prev, icon: e.target.value.slice(0, 4) }))}
+                  placeholder="e.g. ⭐"
+                  maxLength={4}
+                  style={{ width: '60px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '18px', textAlign: 'center', outline: 'none' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => setShowGroupModal(false)}
+                  style={{ flex: 1, padding: '12px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={groupSaving || !groupForm.name?.trim()}
+                  style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #ec4899, #be185d)', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', opacity: groupSaving || !groupForm.name?.trim() ? 0.6 : 1 }}>
+                  {groupSaving ? 'Saving...' : (editingGroup ? 'Update' : 'Create')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

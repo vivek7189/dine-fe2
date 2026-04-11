@@ -786,21 +786,39 @@ var CustomerDetail = function() {
                             padding: '10px 12px', backgroundColor: 'white', borderRadius: '8px',
                             fontSize: '13px'
                           }}>
-                            {order.subTotal > 0 && (
+                            {(order.subtotal || order.subTotal) > 0 && (
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#64748b' }}>Subtotal</span>
-                                <span style={{ color: '#1e293b' }}>{formatCurrency(order.subTotal)}</span>
+                                <span style={{ color: '#1e293b' }}>{formatCurrency(order.subtotal || order.subTotal)}</span>
+                              </div>
+                            )}
+                            {(order.discountAmount || 0) > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#16a34a' }}>Discount{(() => { const offerName = typeof order.appliedOffer === 'string' ? order.appliedOffer : (order.appliedOffer?.name || order.selectedOfferName); return offerName ? ` (${offerName})` : ''; })()}</span>
+                                <span style={{ color: '#16a34a' }}>-{formatCurrency(order.discountAmount)}</span>
+                              </div>
+                            )}
+                            {(order.manualDiscount || 0) > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#16a34a' }}>Manual Discount</span>
+                                <span style={{ color: '#16a34a' }}>-{formatCurrency(order.manualDiscount)}</span>
+                              </div>
+                            )}
+                            {(order.loyaltyDiscount || 0) > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#7c3aed' }}>Loyalty Points</span>
+                                <span style={{ color: '#7c3aed' }}>-{formatCurrency(order.loyaltyDiscount)}</span>
                               </div>
                             )}
                             {order.serviceChargeAmount > 0 && (
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#7c3aed' }}>Service Charge</span>
+                                <span style={{ color: '#7c3aed' }}>Service Charge{order.serviceChargeRate ? ` (${order.serviceChargeRate}%)` : ''}</span>
                                 <span style={{ color: '#7c3aed' }}>{formatCurrency(order.serviceChargeAmount)}</span>
                               </div>
                             )}
                             {(order.taxAmount > 0 || order.totalTax > 0) && (
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#64748b' }}>Tax</span>
+                                <span style={{ color: '#64748b' }}>{order.taxBreakdown?.length > 0 ? order.taxBreakdown.map(t => `${t.name}${t.rate ? ` ${t.rate}%` : ''}`).join(', ') : 'Tax'}</span>
                                 <span style={{ color: '#1e293b' }}>{formatCurrency(order.taxAmount || order.totalTax)}</span>
                               </div>
                             )}

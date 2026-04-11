@@ -35,7 +35,8 @@ import {
   FaGift,
   FaArrowRight,
   FaLayerGroup,
-  FaEllipsisH
+  FaEllipsisH,
+  FaStore
 } from 'react-icons/fa';
 
 // Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
@@ -324,6 +325,8 @@ const Customers = () => {
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
+  const [restaurants, setRestaurants] = useState([]);
+  const [engagementRestaurant, setEngagementRestaurant] = useState(null);
 
   // Customer form state
   const [customerForm, setCustomerForm] = useState({
@@ -416,6 +419,7 @@ const Customers = () => {
         else {
           try {
             const restaurantsResponse = await apiClient.getRestaurants();
+            setRestaurants(restaurantsResponse.restaurants || []);
             if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
               const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
               const defaultId = restaurantsResponse.defaultRestaurantId;
@@ -426,6 +430,7 @@ const Customers = () => {
 
               finalRestaurantId = resolved.id;
               finalRestaurant = resolved;
+              setEngagementRestaurant(resolved);
               console.log('✅ Customers: Using restaurant:', finalRestaurantId, resolved.name);
 
               localStorage.setItem('selectedRestaurantId', finalRestaurantId);
@@ -1139,15 +1144,24 @@ const Customers = () => {
         <title>Customer Management - DineOpen</title>
       </Head>
       
-      <div style={{ 
+      <div style={{
         width: '100%',
         backgroundColor: '#f9fafb',
-        paddingTop: 0 // Align to top
+        paddingTop: 0,
+        overflowX: 'hidden',
+        boxSizing: 'border-box'
       }}>
+        {/* Prevent iOS auto-zoom on input focus */}
+        {isMobile && (
+          <style dangerouslySetInnerHTML={{ __html: `
+            input, textarea, select { font-size: 16px !important; }
+          ` }} />
+        )}
         <div style={{
           width: '100%',
           padding: isMobile ? '8px' : '24px',
-          paddingTop: 0
+          paddingTop: 0,
+          boxSizing: 'border-box'
         }}>
           {/* Sticky Header + Tabs */}
           <div style={{
@@ -1157,10 +1171,10 @@ const Customers = () => {
             backgroundColor: '#f9fafb',
             paddingTop: isMobile ? '8px' : '24px',
             paddingBottom: isMobile ? '4px' : '4px',
-            marginLeft: isMobile ? '-8px' : '-24px',
-            marginRight: isMobile ? '-8px' : '-24px',
-            paddingLeft: isMobile ? '8px' : '24px',
-            paddingRight: isMobile ? '8px' : '24px'
+            marginLeft: isMobile ? '0' : '-24px',
+            marginRight: isMobile ? '0' : '-24px',
+            paddingLeft: isMobile ? '0' : '24px',
+            paddingRight: isMobile ? '0' : '24px'
           }}>
           {/* Header */}
           <div style={{
@@ -1174,7 +1188,7 @@ const Customers = () => {
             <div>
               <h1 style={{
                 margin: 0,
-                fontSize: isMobile ? '20px' : '24px',
+                fontSize: isMobile ? '17px' : '24px',
                 fontWeight: '700',
                 color: '#1f2937'
               }}>
@@ -1213,14 +1227,15 @@ const Customers = () => {
           {/* Customer Engagement — tab bar */}
           <div style={{
             background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%)',
-            borderRadius: '12px',
-            padding: isMobile ? '4px' : '6px 8px',
+            borderRadius: isMobile ? '10px' : '12px',
+            padding: isMobile ? '3px' : '6px 8px',
             marginBottom: isMobile ? '8px' : '12px',
             display: 'flex',
-            gap: isMobile ? '2px' : '4px',
+            gap: isMobile ? '1px' : '4px',
             overflowX: isMobile ? 'auto' : 'visible',
             WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none'
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           }}>
             {[
               { id: 'customers', label: 'Customers', mobileLabel: 'Customers', icon: FaUsers },
@@ -1237,23 +1252,23 @@ const Customers = () => {
                   type="button"
                   onClick={function() { setEngagementTab(tab.id); }}
                   style={{
-                    padding: isMobile ? '7px 10px' : '10px 16px',
-                    borderRadius: '8px',
+                    padding: isMobile ? '6px 8px' : '10px 16px',
+                    borderRadius: isMobile ? '7px' : '8px',
                     border: 'none',
                     background: isActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent',
                     color: isActive ? '#ffffff' : '#881b1b',
                     fontWeight: '600',
-                    fontSize: isMobile ? '11px' : '13px',
+                    fontSize: isMobile ? '10px' : '13px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: isMobile ? '4px' : '6px',
+                    gap: isMobile ? '3px' : '6px',
                     transition: 'all 0.2s ease',
                     whiteSpace: 'nowrap',
                     flexShrink: 0
                   }}
                 >
-                  <TabIcon size={isMobile ? 11 : 13} />
+                  <TabIcon size={isMobile ? 9 : 13} />
                   {isMobile ? tab.mobileLabel : tab.label}
                 </button>
               );
@@ -1536,13 +1551,13 @@ const Customers = () => {
                   const custGroups = getCustomerGroups(customer);
                   return (
                   <div key={customer.id} style={{
-                    padding: isMobile ? '12px' : '20px',
+                    padding: isMobile ? '10px 8px' : '20px',
                     borderBottom: index < filteredCustomers.length - 1 ? '1px solid #f3f4f6' : 'none',
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: isMobile ? 'flex-start' : 'center',
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
-                    gap: isMobile ? '8px' : '16px',
+                    gap: isMobile ? '6px' : '16px',
                     backgroundColor: isSelected ? '#fef2f2' : 'transparent'
                   }}>
                     {/* Select checkbox */}
@@ -1551,18 +1566,19 @@ const Customers = () => {
                       checked={isSelected}
                       onChange={() => toggleCustomerSelect(customer.id)}
                       onClick={(e) => e.stopPropagation()}
-                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444' }}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444', marginTop: isMobile ? '4px' : 0, flexShrink: 0 }}
                     />
                     {/* Customer Info - Clickable */}
                     <div
                       style={{
                         flex: 1,
-                        minWidth: isMobile ? '150px' : '200px',
+                        minWidth: 0,
                         cursor: 'pointer',
                         padding: '4px',
                         borderRadius: '8px',
                         margin: '-4px',
-                        transition: 'background-color 0.2s'
+                        transition: 'background-color 0.2s',
+                        overflow: 'hidden'
                       }}
                       onClick={() => {
                         router.push('/customers/' + customer.id);
@@ -1635,7 +1651,7 @@ const Customers = () => {
                     </div>
 
                     {/* Stats - More Compact */}
-                    <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center', ...(isMobile ? { width: '100%', paddingLeft: '24px' } : {}) }}>
                       {/* Crave App Badge */}
                       {customer.source === 'customer_app' && (
                         <div style={{
@@ -1694,7 +1710,7 @@ const Customers = () => {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center', ...(isMobile ? { width: '100%', paddingLeft: '24px' } : {}) }}>
                       <button
                         onClick={() => handleViewHistory(customer)}
                         style={{
@@ -1886,12 +1902,86 @@ const Customers = () => {
         </> )}
           {engagementTab === 'offers' && (
             <div style={{ marginTop: 0 }}>
-              <OffersManagement embedded={true} restaurantId={restaurantId} />
+              {restaurants.length > 1 && (
+                <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: isMobile ? '12px' : '16px', marginBottom: '12px', border: '1px solid #e5e7eb' }}>
+                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant</p>
+                  <div style={{ display: 'flex', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
+                    {restaurants.map(r => {
+                      const isActive = (engagementRestaurant?.id || restaurantId) === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => setEngagementRestaurant(r)}
+                          style={{
+                            background: isActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
+                            color: isActive ? 'white' : '#374151',
+                            padding: isMobile ? '7px 12px' : '10px 18px',
+                            borderRadius: '12px',
+                            fontWeight: '600',
+                            fontSize: isMobile ? '12px' : '14px',
+                            border: isActive ? 'none' : '1px solid #fef2f2',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            boxShadow: isActive ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                            display: 'flex', alignItems: 'center', gap: '8px'
+                          }}
+                        >
+                          <FaStore size={isMobile ? 11 : 14} />
+                          {r.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <OffersManagement
+                key={engagementRestaurant?.id || restaurantId}
+                embedded={true}
+                restaurantId={engagementRestaurant?.id || restaurantId}
+                restaurants={restaurants}
+              />
             </div>
           )}
           {engagementTab === 'loyalty' && (
             <div style={{ marginTop: 0 }}>
-              <CustomerAppSettings embedded={true} restaurantId={restaurantId} section="loyalty" />
+              {restaurants.length > 1 && (
+                <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: isMobile ? '12px' : '16px', marginBottom: '12px', border: '1px solid #e5e7eb' }}>
+                  <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant</p>
+                  <div style={{ display: 'flex', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
+                    {restaurants.map(r => {
+                      const isActive = (engagementRestaurant?.id || restaurantId) === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => setEngagementRestaurant(r)}
+                          style={{
+                            background: isActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
+                            color: isActive ? 'white' : '#374151',
+                            padding: isMobile ? '7px 12px' : '10px 18px',
+                            borderRadius: '12px',
+                            fontWeight: '600',
+                            fontSize: isMobile ? '12px' : '14px',
+                            border: isActive ? 'none' : '1px solid #fef2f2',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            boxShadow: isActive ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                            display: 'flex', alignItems: 'center', gap: '8px'
+                          }}
+                        >
+                          <FaStore size={isMobile ? 11 : 14} />
+                          {r.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <CustomerAppSettings
+                key={engagementRestaurant?.id || restaurantId}
+                embedded={true}
+                restaurantId={engagementRestaurant?.id || restaurantId}
+                section="loyalty"
+              />
             </div>
           )}
           {engagementTab === 'app-settings' && (

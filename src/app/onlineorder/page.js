@@ -6,12 +6,22 @@ import {
   FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft,
   FaPhone, FaChair, FaUtensils, FaLeaf, FaDrumstickBite, FaSpinner,
   FaLock, FaTimes, FaHotel, FaUser, FaHistory, FaGift, FaStar,
-  FaCoins, FaChevronRight, FaCheck, FaPercent, FaCrown, FaSignOutAlt
+  FaCoins, FaChevronRight, FaCheck, FaPercent, FaCrown, FaSignOutAlt, FaEnvelope
 } from 'react-icons/fa';
+import dynamic from 'next/dynamic';
 import ImageCarousel from '../../components/ImageCarousel';
 import UpiPaymentModal from '../../components/UpiPaymentModal';
 import apiClient from '../../lib/api.js';
 import { getDisplayImage } from '../../utils/placeholderImages';
+
+// Dynamic theme component imports
+const themeComponents = {
+  classic: dynamic(() => import('../placeorder/classic/ClassicMenu'), { ssr: false }),
+  bistro: dynamic(() => import('../placeorder/bistro/BistroBookMenu'), { ssr: false }),
+  book: dynamic(() => import('../placeorder/book/BookMenu'), { ssr: false }),
+  cube: dynamic(() => import('../placeorder/cube/CubeMenu'), { ssr: false }),
+  carousel: dynamic(() => import('../placeorder/carousel/Carousel3DMenu'), { ssr: false }),
+};
 
 // Try to import Firebase modules with error handling
 let firebaseAuth = null;
@@ -154,7 +164,7 @@ const tierInfo = {
   platinum: { color: '#E5E4E2', bgColor: '#f8f8ff', label: 'Platinum', icon: '💎', multiplier: 2 }
 };
 
-const OnlineOrderContent = ({ restaurantIdProp = null }) => {
+const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -168,7 +178,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
     phone: '',
     seatNumber: '',
     roomNumber: '',
-    name: ''
+    name: '',
+    email: ''
   });
   const [orderType, setOrderType] = useState('takeaway');
   const [searchTerm, setSearchTerm] = useState('');
@@ -197,6 +208,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
   const [orderHistory, setOrderHistory] = useState(null);
   const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+
+  // Theme state
+  const [themeId, setThemeId] = useState(themeOverride || 'default');
+  const [themeSheetIndex, setThemeSheetIndex] = useState(0);
 
   // UI State for post-OTP experience
   const [currentView, setCurrentView] = useState('menu'); // 'menu', 'checkout', 'profile', 'history'
@@ -379,11 +394,17 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
           // End loading after menu is loaded (don't wait for offers)
           setLoading(false);
 
-          // STEP 3: Fetch offers and settings in background (non-blocking)
-          Promise.all([
+          // STEP 3: Fetch offers, settings, and theme in background (non-blocking)
+          const fetchPromises = [
             apiClient.getActiveOffers(restaurantId),
             apiClient.getPublicCustomerAppSettings(restaurantId)
-          ]).then(([offersResponse, settingsResponse]) => {
+          ];
+          // Fetch theme only if no override provided
+          if (!themeOverride) {
+            fetchPromises.push(apiClient.getPublicMenuTheme(restaurantId).catch(() => null));
+          }
+
+          Promise.all(fetchPromises).then(([offersResponse, settingsResponse, themeResponse]) => {
             if (offersResponse?.offers) {
               const validOffers = filterValidOffers(offersResponse);
               setOffers(validOffers);
@@ -394,6 +415,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
               setCustomerAppSettings(settingsResponse.settings);
               // Cache settings
               setCachedData(restaurantId, 'settings', settingsResponse.settings);
+            }
+            if (!themeOverride && themeResponse?.themeId) {
+              setThemeId(themeResponse.themeId);
             }
           }).catch(extrasError => {
             console.warn('Failed to load offers/settings:', extrasError);
@@ -541,6 +565,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
 
   // Cart functions
   const addToCart = (item) => {
+    if (customerAppSettings?.pageSettings?.publicMenuOnly === true) return;
     setCart(prev => {
       const existingItem = prev.find(cartItem => cartItem.id === item.id);
       if (existingItem) {
@@ -884,45 +909,46 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
     await sendOtp();
   };
 
-  const placeOrderWithVerification = async () => {
-    if (!firebaseUid) {
-      setError('Please verify your phone first');
-      return;
-    }
+  // Build order data (shared between verified and unverified paths)
+  const buildOrderData = () => {
+    const actualRedeemPoints = customerData?.loyaltyPoints
+      ? Math.min(redeemLoyaltyPoints, customerData.loyaltyPoints)
+      : 0;
 
+    return {
+      customerPhone: customerInfo.phone.trim(),
+      customerName: customerInfo.name.trim() || customerData?.name || 'Customer',
+      customerEmail: customerInfo.email?.trim() || '',
+      seatNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || 'Walk-in') : null,
+      roomNumber: orderType === 'room' ? (customerInfo.roomNumber.trim() || null) : null,
+      tableNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || null) : null,
+      items: cart.map(item => ({
+        menuItemId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        shortCode: item.shortCode
+      })),
+      totalAmount: getCartSubtotal(),
+      orderType: orderType === 'table' ? 'dine_in' : 'takeaway',
+      notes: orderType === 'room'
+        ? `Online order for Room ${customerInfo.roomNumber || 'N/A'}`
+        : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}` : 'Takeaway'}`,
+      otp: firebaseUid ? 'verified' : 'skipped',
+      verificationId: firebaseUid || null,
+      offerIds: selectedOffers.map(o => o.id),
+      redeemLoyaltyPoints: firebaseUid ? actualRedeemPoints : 0,
+      orderSource: 'online_order'
+    };
+  };
+
+  // Place order directly (no UPI) or after UPI confirmation
+  const placeOrderDirect = async () => {
     try {
       setPlacingOrder(true);
       setError('');
 
-      const actualRedeemPoints = customerData?.loyaltyPoints
-        ? Math.min(redeemLoyaltyPoints, customerData.loyaltyPoints)
-        : 0;
-
-      const orderData = {
-        customerPhone: customerInfo.phone.trim(),
-        customerName: customerInfo.name.trim() || customerData?.name || 'Customer',
-        seatNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || 'Walk-in') : null,
-        roomNumber: orderType === 'room' ? (customerInfo.roomNumber.trim() || null) : null,
-        tableNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || null) : null,
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          shortCode: item.shortCode
-        })),
-        totalAmount: getCartSubtotal(),
-        orderType: orderType === 'table' ? 'dine_in' : 'takeaway',
-        notes: orderType === 'room'
-          ? `Online order for Room ${customerInfo.roomNumber || 'N/A'}`
-          : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}` : 'Takeaway'}`,
-        otp: 'verified',
-        verificationId: firebaseUid,
-        offerIds: selectedOffers.map(o => o.id),
-        redeemLoyaltyPoints: actualRedeemPoints,
-        orderSource: 'online_order'
-      };
-
+      const orderData = buildOrderData();
       const response = await apiClient.placePublicOrder(restaurantId, orderData);
 
       let successMsg = 'Order placed successfully!';
@@ -930,28 +956,66 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
         successMsg += ` You earned ${response.order.loyaltyPointsEarned} loyalty points!`;
       }
 
-      const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
-      const orderTotal = getCartSubtotal();
-
       setCart([]);
       setSelectedOffers([]);
       setRedeemLoyaltyPoints(0);
 
-      // Refresh customer data
-      await lookupCustomer();
-
-      if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
-        setUpiOrderAmount(orderTotal);
-        setShowUpiModal(true);
-      } else {
-        setSuccess(successMsg);
+      // Refresh customer data if verified
+      if (firebaseUid) {
+        await lookupCustomer();
       }
 
+      setSuccess(successMsg);
+      return response;
     } catch (err) {
       console.error('Error placing order:', err);
       setError(err.message || 'Failed to place order. Please try again.');
+      throw err;
     } finally {
       setPlacingOrder(false);
+    }
+  };
+
+  // UPI confirm callback - called from UpiPaymentModal
+  const handleUpiConfirm = async () => {
+    const orderData = buildOrderData();
+    const response = await apiClient.placePublicOrder(restaurantId, orderData);
+
+    setCart([]);
+    setSelectedOffers([]);
+    setRedeemLoyaltyPoints(0);
+
+    if (firebaseUid) {
+      await lookupCustomer();
+    }
+
+    return response;
+  };
+
+  const placeOrderWithVerification = async () => {
+    const loginMode = customerAppSettings?.pageSettings?.loginMode || 'optional';
+
+    // Only require OTP verification in 'required' mode
+    if (loginMode === 'required' && !firebaseUid) {
+      setError('Please verify your phone first');
+      return;
+    }
+
+    // For optional/none modes, require at least a phone number
+    if (loginMode !== 'none' && !customerInfo.phone.trim()) {
+      setError('Please enter your phone number');
+      return;
+    }
+
+    const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
+
+    if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
+      // Show UPI modal FIRST - order will be placed via onConfirmPayment callback
+      setUpiOrderAmount(getCartSubtotal());
+      setShowUpiModal(true);
+    } else {
+      // No UPI - place order directly
+      await placeOrderDirect();
     }
   };
 
@@ -974,11 +1038,16 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
   // If not logged in, show login popup instead of cart
   // ============================================
   const handleCartClick = () => {
-    if (!customerVerified) {
-      // User not logged in - show login popup
+    const loginMode = customerAppSettings?.pageSettings?.loginMode || 'optional';
+    const publicMenuOnly = customerAppSettings?.pageSettings?.publicMenuOnly === true;
+
+    if (publicMenuOnly) return; // No cart in public menu only mode
+
+    if (loginMode === 'required' && !customerVerified) {
+      // Must OTP verify before seeing cart
       setShowLoginPopup(true);
     } else {
-      // User is logged in - show cart
+      // Optional or none login mode - open cart directly
       setShowCart(true);
     }
   };
@@ -1085,7 +1154,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
   }
 
   // Render checkout/profile views when customer is verified
-  if (customerVerified && currentView !== 'menu') {
+  const loginMode = customerAppSettings?.pageSettings?.loginMode || 'optional';
+  const canAccessCheckout = customerVerified || loginMode !== 'required';
+
+  if (canAccessCheckout && currentView !== 'menu') {
     return (
       <CheckoutView
         currentView={currentView}
@@ -1129,6 +1201,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
         loadLoyaltyHistory={loadLoyaltyHistory}
         expandedOrderId={expandedOrderId}
         setExpandedOrderId={setExpandedOrderId}
+        showUpiModal={showUpiModal}
+        setShowUpiModal={setShowUpiModal}
+        upiOrderAmount={upiOrderAmount}
       />
     );
   }
@@ -1387,6 +1462,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
                     <FaUser size={16} color={['gradient', 'solid'].includes(headerStyle) ? textColor : '#6b7280'} />
                   </button>
                 )}
+                {customerAppSettings?.pageSettings?.publicMenuOnly !== true && (
                 <button
                   onClick={handleCartClick}
                   style={{
@@ -1415,7 +1491,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
                     backdropFilter: ['gradient', 'solid'].includes(headerStyle) ? 'blur(10px)' : 'none'
                   }}
                 >
-                  {!customerVerified && <FaLock size={12} />}
+                  {customerAppSettings?.pageSettings?.loginMode === 'required' && !customerVerified && <FaLock size={12} />}
                   <FaShoppingCart size={16} />
                   {getCartItemCount() > 0 && (
                     <span style={{
@@ -1438,6 +1514,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
                     </span>
                   )}
                 </button>
+                )}
               </div>
             </div>
             {/* Search */}
@@ -1543,7 +1620,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
       })()}
 
       {/* Offers Banner - Carousel for multiple offers - Right after header */}
-      {applicableOffers.length > 0 && (
+      {applicableOffers.length > 0 && customerAppSettings?.pageSettings?.showOffersOnMenu !== false && (
         <div style={{ marginTop: '0', marginBottom: '0' }}>
           <OffersBanner
             offers={applicableOffers}
@@ -1613,7 +1690,65 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
         </div>
       )}
 
-      {/* Menu */}
+      {/* Public Menu Only Banner */}
+      {customerAppSettings?.pageSettings?.publicMenuOnly === true && (
+        <div style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: '12px 16px'
+        }}>
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fcd34d',
+            color: '#92400e',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            fontSize: '14px',
+            textAlign: 'center',
+            fontWeight: '500'
+          }}>
+            Menu view only. Visit the restaurant to order!
+          </div>
+        </div>
+      )}
+
+      {/* Theme Menu - Renders theme component instead of default menu grid */}
+      {themeId !== 'default' && themeComponents[themeId] && (() => {
+        const ThemeComponent = themeComponents[themeId];
+        const themeProps = {
+          menu: filteredMenu,
+          categories,
+          restaurant,
+        };
+        // Add cart handlers for themes that support them
+        if (['classic', 'carousel'].includes(themeId)) {
+          themeProps.addToCart = addToCart;
+          themeProps.cart = cart;
+          if (themeId === 'classic') themeProps.removeFromCart = removeFromCart;
+        }
+        if (themeId === 'bistro') {
+          themeProps.onAddToCart = addToCart;
+          themeProps.cart = cart;
+          themeProps.onRemoveFromCart = removeFromCart;
+          themeProps.currentSheet = themeSheetIndex;
+          themeProps.onSheetChange = setThemeSheetIndex;
+        }
+        if (['book', 'cube'].includes(themeId)) {
+          themeProps.onCategorySelect = (category) => setSelectedCategory(category);
+          if (themeId === 'book') {
+            themeProps.currentPage = themeSheetIndex;
+            themeProps.onPageChange = setThemeSheetIndex;
+          }
+        }
+        return (
+          <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px' }}>
+            <ThemeComponent {...themeProps} />
+          </div>
+        );
+      })()}
+
+      {/* Default Menu - Hidden when a theme is active */}
+      {(themeId === 'default' || !themeComponents[themeId]) && (
       <div className="desktop-container" style={{ padding: '0 16px', maxWidth: '1400px', margin: '0 auto' }}>
         <div className="desktop-two-column" style={{ display: 'flex', gap: '24px' }}>
           {/* Desktop Sidebar - Categories */}
@@ -1762,9 +1897,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Cart Modal - Only shown to logged-in users */}
-      {showCart && customerVerified && (
+      {/* Cart Modal - Shown to logged-in users or when login not required */}
+      {showCart && (customerVerified || (customerAppSettings?.pageSettings?.loginMode || 'optional') !== 'required') && (
         <CartModal
           cart={cart}
           addToCart={addToCart}
@@ -1783,6 +1919,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null }) => {
           sendingOtp={sendingOtp}
           setCart={setCart}
           customerVerified={customerVerified}
+          customerAppSettings={customerAppSettings}
         />
       )}
 
@@ -2322,7 +2459,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
 };
 
 // Cart Modal Component
-const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified }) => {
+const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings }) => {
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
 
   return (
@@ -2381,6 +2518,66 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               <span style={{ fontSize: '13px', color: '#166534' }}>
                 Logged in as <strong>{customerInfo.phone}</strong>
               </span>
+            </div>
+          )}
+          {/* Customer Info - shown when not OTP-verified (optional/none modes) */}
+          {!customerVerified && (
+            <div style={{ marginBottom: '4px' }}>
+              {(customerAppSettings?.pageSettings?.loginMode || 'optional') !== 'none' && (
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{
+                      position: 'absolute', left: '12px', top: '50%',
+                      transform: 'translateY(-50%)', color: '#6b7280',
+                      fontSize: '13px', fontWeight: '500'
+                    }}>+91</span>
+                    <input
+                      type="tel"
+                      value={customerInfo.phone}
+                      onChange={(e) => setCustomerInfo({
+                        ...customerInfo,
+                        phone: e.target.value.replace(/\D/g, '').slice(0, 10)
+                      })}
+                      placeholder="Phone number"
+                      style={{
+                        width: '100%', padding: '10px 12px 10px 44px',
+                        border: '2px solid #f3f4f6', borderRadius: '10px',
+                        fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              {customerAppSettings?.pageSettings?.collectName !== false && (
+                <div style={{ marginBottom: '8px' }}>
+                  <input
+                    type="text"
+                    value={customerInfo.name}
+                    onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                    placeholder="Your name"
+                    style={{
+                      width: '100%', padding: '10px 12px',
+                      border: '2px solid #f3f4f6', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
+              {customerAppSettings?.pageSettings?.collectEmail && (
+                <div style={{ marginBottom: '8px' }}>
+                  <input
+                    type="email"
+                    value={customerInfo.email}
+                    onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                    placeholder="Email (optional)"
+                    style={{
+                      width: '100%', padding: '10px 12px',
+                      border: '2px solid #f3f4f6', borderRadius: '10px',
+                      fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
           <div style={{
@@ -2901,7 +3098,10 @@ const CheckoutView = ({
   loadOrderHistory,
   loadLoyaltyHistory,
   expandedOrderId,
-  setExpandedOrderId
+  setExpandedOrderId,
+  showUpiModal,
+  setShowUpiModal,
+  upiOrderAmount
 }) => {
   const tier = customerData?.loyaltyTier || loyaltyHistory?.summary?.currentTier || 'bronze';
   const tierData = tierInfo[tier] || tierInfo.bronze;
@@ -2945,6 +3145,7 @@ const CheckoutView = ({
           <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
             {currentView === 'checkout' ? 'Checkout' : currentView === 'profile' ? 'My Profile' : 'Points History'}
           </h1>
+          {customerData && (
           <button
             onClick={handleLogout}
             style={{
@@ -2958,6 +3159,7 @@ const CheckoutView = ({
           >
             <FaSignOutAlt size={14} />
           </button>
+          )}
         </div>
       </div>
 
@@ -3009,7 +3211,8 @@ const CheckoutView = ({
 
       {/* Content */}
       <div style={{ padding: '16px 24px', maxWidth: '900px', margin: '0 auto' }}>
-        {/* Customer Profile Card */}
+        {/* Customer Profile Card - Only show when customer is verified/has data */}
+        {customerData && (
         <div style={{
           background: `linear-gradient(135deg, ${tierData.color}22 0%, ${tierData.color}11 100%)`,
           borderRadius: '20px',
@@ -3176,9 +3379,10 @@ const CheckoutView = ({
             </button>
           </div>
         </div>
+        )}
 
         {/* Profile View */}
-        {currentView === 'profile' && (
+        {currentView === 'profile' && customerData && (
           <div>
             <div style={{
               backgroundColor: 'white',
@@ -3226,6 +3430,26 @@ const CheckoutView = ({
                   }}
                 />
               </div>
+              {customerAppSettings?.pageSettings?.collectEmail && (
+                <div style={{ marginTop: '12px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '6px', display: 'block' }}>Email</label>
+                  <input
+                    type="email"
+                    value={customerInfo.email || customerData?.email || ''}
+                    onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                    placeholder="Your email"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #f3f4f6',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Stats */}
@@ -3252,7 +3476,7 @@ const CheckoutView = ({
         )}
 
         {/* History View */}
-        {currentView === 'history' && (
+        {currentView === 'history' && customerData && (
           <div>
             {/* Order History Section */}
             <div style={{
@@ -3917,8 +4141,8 @@ const CheckoutView = ({
         isOpen={showUpiModal}
         onClose={() => {
           setShowUpiModal(false);
-          setSuccess('Order placed successfully!');
         }}
+        onConfirmPayment={handleUpiConfirm}
         amount={upiOrderAmount}
         restaurantName={restaurant?.name}
         upiId={customerAppSettings?.paymentSettings?.upiId}
@@ -3929,7 +4153,7 @@ const CheckoutView = ({
   );
 };
 
-const OnlineOrderPage = ({ restaurantId = null }) => {
+const OnlineOrderPage = ({ restaurantId = null, themeOverride = null }) => {
   return (
     <Suspense fallback={
       <div style={{
@@ -3942,7 +4166,7 @@ const OnlineOrderPage = ({ restaurantId = null }) => {
         <FaSpinner size={40} color="#ef4444" style={{ animation: 'spin 1s linear infinite' }} />
       </div>
     }>
-      <OnlineOrderContent restaurantIdProp={restaurantId} />
+      <OnlineOrderContent restaurantIdProp={restaurantId} themeOverride={themeOverride} />
     </Suspense>
   );
 };

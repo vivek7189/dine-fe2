@@ -1630,7 +1630,7 @@ const OrderSummary = ({
                       </div>
                       {(invoice?.discountAmount || 0) > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#16a34a' }}>
-                          <span>Offer{invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span>
+                          <span>Offer{(() => { const n = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName); return n ? ` (${n})` : ''; })()}:</span>
                           <span>-{formatCurrency(invoice.discountAmount)}</span>
                         </div>
                       )}
@@ -1744,7 +1744,8 @@ const OrderSummary = ({
                       const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
                       const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
                       const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0);
-                      const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Offer${invoice?.appliedOffer?.name ? ` (${invoice.appliedOffer.name})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
+                      const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
+                      const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Offer${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
                       const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Manual Discount:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
                       const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#7c3aed;"><span>Loyalty Points:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
                       const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml;

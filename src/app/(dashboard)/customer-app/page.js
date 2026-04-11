@@ -111,6 +111,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       tagline: '',
       headerStyle: 'modern', // 'modern', 'gradient', 'solid'
     },
+    pageSettings: {
+      loginMode: 'optional', // 'required', 'optional', 'none'
+      showOffersOnMenu: true,
+      publicMenuOnly: false,
+      collectName: true,
+      collectEmail: false,
+    },
   });
 
   useEffect(() => {
@@ -593,7 +600,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
   }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f9fafb', padding: isMobile ? '16px' : '24px' }}>
+    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f9fafb', padding: isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      {/* Prevent iOS auto-zoom on input focus */}
+      {isMobile && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          input, textarea, select { font-size: 16px !important; }
+        ` }} />
+      )}
       {/* Toast Notification */}
       {showToast && (
         <div style={{
@@ -650,15 +663,15 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
         <div style={{
           backgroundColor: 'white',
           borderRadius: isMobile ? '12px' : '16px',
-          padding: isMobile ? '16px' : '28px',
-          marginBottom: '16px',
+          padding: isMobile ? '12px' : '28px',
+          marginBottom: isMobile ? '12px' : '16px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           border: '1px solid #e5e7eb',
           background: 'white'
         }}>
           <div style={{ marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: isMobile ? '12px' : '0' }}>
-              <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: isMobile ? '8px' : '0' }}>
+              <h2 style={{ fontSize: isMobile ? '16px' : '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
                 Loyalty & Rewards
               </h2>
               <button
@@ -690,16 +703,16 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           </div>
 
           <div style={{
-            marginTop: isMobile ? '14px' : '24px',
-            padding: isMobile ? '14px' : '20px',
+            marginTop: isMobile ? '10px' : '24px',
+            padding: isMobile ? '10px' : '20px',
             backgroundColor: '#fef3c7',
-            borderRadius: '10px',
+            borderRadius: isMobile ? '8px' : '10px',
             border: '1px solid #fde68a',
-            marginBottom: isMobile ? '14px' : '24px'
+            marginBottom: isMobile ? '10px' : '24px'
           }}>
-            <div style={{ fontSize: '13px', color: '#92400e', lineHeight: '1.6' }}>
-              <strong>💡 How it works:</strong> Customers order through your online order page, earn loyalty points for every order, 
-              and can redeem those points for discounts on future orders. Perfect for small outlets where customers order online and pick up food.
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: '#92400e', lineHeight: '1.5' }}>
+              <strong>💡 How it works:</strong> Customers order through your online order page, earn loyalty points for every order,
+              and can redeem those points for discounts on future orders.{!isMobile && ' Perfect for small outlets where customers order online and pick up food.'}
             </div>
           </div>
 
@@ -713,18 +726,18 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           />
 
           {settings.loyaltySettings.enabled && (
-            <div style={{ marginTop: '24px' }}>
+            <div style={{ marginTop: isMobile ? '16px' : '24px' }}>
               {/* Points Earning Rule */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+              <div style={{ marginBottom: isMobile ? '14px' : '20px' }}>
+                <label style={{ display: 'block', fontSize: isMobile ? '12px' : '13px', fontWeight: '600', color: '#374151', marginBottom: isMobile ? '8px' : '12px' }}>
                   Points Earning Rule
                 </label>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: isMobile ? '6px' : '8px',
                   flexWrap: 'wrap',
-                  padding: '16px',
+                  padding: isMobile ? '10px' : '16px',
                   backgroundColor: '#f9fafb',
                   borderRadius: '10px',
                   border: '2px solid #e5e7eb'
@@ -835,13 +848,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               </div>
 
               <div style={{
-                padding: '20px',
+                padding: isMobile ? '12px' : '20px',
                 backgroundColor: '#fefce8',
-                borderRadius: '12px',
+                borderRadius: isMobile ? '10px' : '12px',
                 border: '1px solid #fde047',
-                marginTop: '20px'
+                marginTop: isMobile ? '14px' : '20px'
               }}>
-                <div style={{ marginBottom: '16px', fontWeight: '700', fontSize: '15px', color: '#854d0e' }}>
+                <div style={{ marginBottom: isMobile ? '10px' : '16px', fontWeight: '700', fontSize: isMobile ? '13px' : '15px', color: '#854d0e' }}>
                   Points Earning on Redemption
                 </div>
                 <Toggle
@@ -894,14 +907,14 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               </div>
 
               <div style={{
-                padding: '20px',
+                padding: isMobile ? '12px' : '20px',
                 backgroundColor: '#f0fdf4',
-                borderRadius: '12px',
+                borderRadius: isMobile ? '10px' : '12px',
                 border: '1px solid #bbf7d0',
-                marginTop: '20px'
+                marginTop: isMobile ? '14px' : '20px'
               }}>
-                <div style={{ fontSize: '14px', color: '#166534', lineHeight: '1.7', fontWeight: '500' }}>
-                  <div style={{ marginBottom: '12px', fontWeight: '700', fontSize: '15px' }}>📊 Example Calculation:</div>
+                <div style={{ fontSize: isMobile ? '12px' : '14px', color: '#166534', lineHeight: '1.6', fontWeight: '500' }}>
+                  <div style={{ marginBottom: isMobile ? '8px' : '12px', fontWeight: '700', fontSize: isMobile ? '13px' : '15px' }}>📊 Example Calculation:</div>
                   <div style={{ marginBottom: '8px' }}>
                     • Customer spends <strong>{getCurrencySymbol()}1,000</strong> → Earns <strong>{Math.floor(1000 / settings.loyaltySettings.earnPerAmount) * settings.loyaltySettings.pointsEarned} points</strong>
                   </div>
@@ -1145,6 +1158,76 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 }}
               />
             </div>
+
+            <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 12px' }}>Page Behavior</h3>
+
+            {/* Login Mode */}
+            <div style={{ padding: '12px 0', borderBottom: '1px solid #f3f4f6' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>
+                Login Mode
+              </label>
+              {[
+                { value: 'required', label: 'Phone + OTP Required', desc: 'Customer must verify via OTP before ordering' },
+                { value: 'optional', label: 'Phone Optional (Recommended)', desc: 'Can order without login. OTP unlocks loyalty & profile' },
+                { value: 'none', label: 'No Login', desc: 'Minimal flow, just name at checkout' },
+              ].map(opt => (
+                <label key={opt.value} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 0', cursor: 'pointer'
+                }}>
+                  <input
+                    type="radio"
+                    name="loginMode"
+                    checked={settings.pageSettings?.loginMode === opt.value}
+                    onChange={() => setSettings(prev => ({
+                      ...prev,
+                      pageSettings: { ...prev.pageSettings, loginMode: opt.value }
+                    }))}
+                    style={{ marginTop: '2px' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '13px', color: '#1f2937', fontWeight: '500' }}>{opt.label}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{opt.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <Toggle
+              value={settings.pageSettings?.showOffersOnMenu !== false}
+              onChange={(v) => setSettings(prev => ({
+                ...prev,
+                pageSettings: { ...prev.pageSettings, showOffersOnMenu: v }
+              }))}
+              label="Show Offers on Menu"
+            />
+
+            <Toggle
+              value={settings.pageSettings?.publicMenuOnly === true}
+              onChange={(v) => setSettings(prev => ({
+                ...prev,
+                pageSettings: { ...prev.pageSettings, publicMenuOnly: v }
+              }))}
+              label="Public Menu Only (No Ordering)"
+            />
+
+            <Toggle
+              value={settings.pageSettings?.collectName !== false}
+              onChange={(v) => setSettings(prev => ({
+                ...prev,
+                pageSettings: { ...prev.pageSettings, collectName: v }
+              }))}
+              label="Collect Customer Name"
+            />
+
+            <Toggle
+              value={settings.pageSettings?.collectEmail === true}
+              onChange={(v) => setSettings(prev => ({
+                ...prev,
+                pageSettings: { ...prev.pageSettings, collectEmail: v }
+              }))}
+              label="Collect Customer Email"
+            />
+
           </div>
 
           {/* QR Code */}
@@ -1191,7 +1274,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 )}
 
                 {/* Action Buttons Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', marginTop: '16px' }}>
                   {/* Print Button */}
                   <button
                     onClick={() => {

@@ -557,38 +557,62 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     setOfferDiscount(disc);
   }, [selectedOfferId, selectedOfferIds, subtotal, cart, allOffers, offerSettings.allowMultipleOffers]);
 
-  // Auto-apply best offer
+  // Auto-apply best offer(s)
   useEffect(() => {
     if (!offerSettings.autoApplyBestOffer) return;
     if (wasManuallySelectedRef.current) return;
     if (applicableOffers.length === 0) {
       if (selectedOfferId && !wasManuallySelectedRef.current) {
         setSelectedOfferIdInternal(null);
+        setSelectedOfferIdsInternal([]);
         setAutoApplied(false);
       }
       return;
     }
 
-    // Find the offer that gives the maximum discount
-    let bestOffer = null;
-    let bestDiscount = 0;
-    for (const offer of applicableOffers) {
-      if (offer._requiresLogin) continue;
-      const disc = calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
-      if (disc > bestDiscount) {
-        bestDiscount = disc;
-        bestOffer = offer;
-      }
-    }
+    const eligible = applicableOffers.filter(o => !o._requiresLogin);
+    if (eligible.length === 0) return;
 
-    if (bestOffer) {
-      const bestId = bestOffer.id || bestOffer._id;
-      if (bestId !== selectedOfferId) {
-        setSelectedOfferIdInternal(bestId);
-        setAutoApplied(true);
+    if (offerSettings.allowMultipleOffers) {
+      // Multi-offer mode: auto-apply top N offers by discount
+      const maxOffers = offerSettings.maxOffersAllowed || 1;
+      const scored = eligible.map(offer => ({
+        offer,
+        discount: calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {}),
+      })).filter(s => s.discount > 0);
+      scored.sort((a, b) => b.discount - a.discount);
+      const topN = scored.slice(0, maxOffers);
+
+      if (topN.length > 0) {
+        const newIds = topN.map(s => s.offer.id || s.offer._id);
+        const currentIds = selectedOfferIds.join(',');
+        if (newIds.join(',') !== currentIds) {
+          setSelectedOfferIdsInternal(newIds);
+          setSelectedOfferIdInternal(newIds[0]);
+          setAutoApplied(true);
+        }
+      }
+    } else {
+      // Single offer mode: pick the one with maximum discount
+      let bestOffer = null;
+      let bestDiscount = 0;
+      for (const offer of eligible) {
+        const disc = calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
+        if (disc > bestDiscount) {
+          bestDiscount = disc;
+          bestOffer = offer;
+        }
+      }
+
+      if (bestOffer) {
+        const bestId = bestOffer.id || bestOffer._id;
+        if (bestId !== selectedOfferId) {
+          setSelectedOfferIdInternal(bestId);
+          setAutoApplied(true);
+        }
       }
     }
-  }, [applicableOffers, subtotal, cart, offerSettings.autoApplyBestOffer]);
+  }, [applicableOffers, subtotal, cart, offerSettings.autoApplyBestOffer, offerSettings.allowMultipleOffers, offerSettings.maxOffersAllowed]);
 
   // First-order offer rejection: if customer looked up and not first order, deselect first-order-only offer
   useEffect(() => {

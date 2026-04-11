@@ -3008,6 +3008,7 @@ const Admin = () => {
   const [staff, setStaff] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [offersSelectedRestaurant, setOffersSelectedRestaurant] = useState(null); // null = use selectedRestaurant
   const [loading, setLoading] = useState(false);
   const [showAddRestaurantModal, setShowAddRestaurantModal] = useState(false);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
@@ -4150,7 +4151,13 @@ const Admin = () => {
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
       `}</style>
 
-      <div style={{ padding: isClient && isMobile ? '16px' : '24px' }}>
+      {/* Prevent iOS auto-zoom on input focus */}
+      {isClient && isMobile && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          input, textarea, select { font-size: 16px !important; }
+        ` }} />
+      )}
+      <div style={{ padding: isClient && isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
         {/* Mobile Header + Dropdown */}
         {isClient && isMobile && (
@@ -8535,12 +8542,55 @@ const Admin = () => {
       {activeTab === 'offers' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
+          borderRadius: isMobile ? '12px' : '16px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           border: '1px solid #f1f5f9',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          padding: isMobile ? '12px' : '24px'
         }}>
-          <OffersManagement embedded={true} restaurantId={selectedRestaurant?.id} restaurants={restaurants} />
+          {/* Restaurant Selector */}
+          {restaurants.length > 1 && (
+            <div style={{ marginBottom: isMobile ? '12px' : '20px' }}>
+              <p style={{ fontSize: isMobile ? '11px' : '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Restaurant
+              </p>
+              <div style={{ display: 'flex', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
+                {restaurants.map((restaurant) => {
+                  const isActive = (offersSelectedRestaurant?.id || selectedRestaurant?.id) === restaurant.id;
+                  return (
+                    <button
+                      key={restaurant.id}
+                      onClick={() => setOffersSelectedRestaurant(restaurant)}
+                      style={{
+                        background: isActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
+                        color: isActive ? 'white' : '#374151',
+                        padding: isMobile ? '7px 12px' : '10px 18px',
+                        borderRadius: '12px',
+                        fontWeight: '600',
+                        fontSize: isMobile ? '12px' : '14px',
+                        border: isActive ? 'none' : '1px solid #fef2f2',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: isActive ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: isMobile ? '6px' : '8px'
+                      }}
+                    >
+                      <FaStore size={isMobile ? 11 : 14} />
+                      {restaurant.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <OffersManagement
+            key={offersSelectedRestaurant?.id || selectedRestaurant?.id}
+            embedded={true}
+            restaurantId={offersSelectedRestaurant?.id || selectedRestaurant?.id}
+            restaurants={restaurants}
+          />
         </div>
       )}
 
@@ -8548,18 +8598,18 @@ const Admin = () => {
       {activeTab === 'loyalty' && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
+          borderRadius: isMobile ? '12px' : '16px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           border: '1px solid #f1f5f9',
           overflow: 'hidden',
-          padding: '24px'
+          padding: isMobile ? '12px' : '24px'
         }}>
           {/* Restaurant Selector */}
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ marginBottom: isMobile ? '12px' : '20px' }}>
+            <p style={{ fontSize: isMobile ? '11px' : '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Restaurant
             </p>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
               {restaurants.map((restaurant) => (
                 <button
                   key={restaurant.id}
@@ -8567,20 +8617,20 @@ const Admin = () => {
                   style={{
                     background: selectedRestaurant?.id === restaurant.id ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#faf5f7',
                     color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                    padding: '10px 18px',
+                    padding: isMobile ? '7px 12px' : '10px 18px',
                     borderRadius: '12px',
                     fontWeight: '600',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '12px' : '14px',
                     border: selectedRestaurant?.id === restaurant.id ? 'none' : '1px solid #fef2f2',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     boxShadow: selectedRestaurant?.id === restaurant.id ? '0 4px 12px rgba(236,72,153,0.25)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: isMobile ? '6px' : '8px'
                   }}
                 >
-                  <FaStore size={14} />
+                  <FaStore size={isMobile ? 11 : 14} />
                   {restaurant.name}
                 </button>
               ))}
