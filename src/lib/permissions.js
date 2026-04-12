@@ -1,13 +1,20 @@
 // Granular feature permission utilities
 // Shared between admin page and all feature pages
 
+export const ADMIN_TAB_OPS = [
+  'settings', 'tax', 'pricing', 'payments', 'billingSettings',
+  'currency', 'print', 'features', 'restaurants', 'staff',
+  'orderManagement', 'offers', 'loyalty', 'googleReviews'
+];
+
 export const FEATURE_OPS = {
   inventory: ['read', 'add', 'update', 'delete'],
   menu: ['read', 'add', 'update', 'delete', 'markOutOfStock'],
   orders: ['read', 'update', 'cancel', 'refund', 'completeBill'],
   tables: ['read', 'add', 'update', 'delete', 'reset'],
   customers: ['read', 'add', 'update', 'delete'],
-  offers: ['read', 'add', 'update', 'delete']
+  offers: ['read', 'add', 'update', 'delete'],
+  admin: ADMIN_TAB_OPS
 };
 
 export const OP_LABELS = {
@@ -20,6 +27,40 @@ export const OP_LABELS = {
   refund: 'Refund',
   completeBill: 'Complete Bill',
   reset: 'Reset All'
+};
+
+export const ADMIN_TAB_LABELS = {
+  settings: 'General',
+  tax: 'Tax Management',
+  pricing: 'Pricing Rules',
+  payments: 'Payment Settings',
+  billingSettings: 'Billing',
+  currency: 'Currency',
+  print: 'Print Settings',
+  features: 'Features',
+  restaurants: 'Restaurants',
+  staff: 'Staff',
+  orderManagement: 'Order Management',
+  offers: 'Offers & Discounts',
+  loyalty: 'Loyalty Program',
+  googleReviews: 'Google Reviews',
+};
+
+export const ADMIN_TAB_ID_TO_KEY = {
+  'settings': 'settings',
+  'tax': 'tax',
+  'pricing': 'pricing',
+  'payments': 'payments',
+  'billing-settings': 'billingSettings',
+  'currency': 'currency',
+  'print': 'print',
+  'features': 'features',
+  'restaurants': 'restaurants',
+  'staff': 'staff',
+  'order-management': 'orderManagement',
+  'offers': 'offers',
+  'loyalty': 'loyalty',
+  'google-reviews': 'googleReviews',
 };
 
 /**

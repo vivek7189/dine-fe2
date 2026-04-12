@@ -76,7 +76,7 @@ import GoogleReviews from '../../../components/GoogleReviews';
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
 import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../lib/currencyData';
-import { FEATURE_OPS, OP_LABELS } from '@/lib/permissions';
+import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS } from '../../../utils/printFontSizes';
 
 // Tax Management Component
@@ -3057,7 +3057,7 @@ const Admin = () => {
   const [editLoading, setEditLoading] = useState(false);
 
   const ROLE_DEFAULT_PAGE_ACCESS = {
-    admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:true, completeBill:true, invoice:true, customers:true, offers:true },
+    admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:{ settings:true, tax:true, pricing:true, payments:true, billingSettings:true, currency:true, print:true, features:true, restaurants:true, staff:true, orderManagement:true, offers:true, loyalty:true, googleReviews:true }, completeBill:true, invoice:true, customers:true, offers:true },
     manager:  { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:false, completeBill:true, invoice:true, customers:true, offers:true },
     waiter:   { dashboard:true, history:true, tables:true, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false },
     cashier:  { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:true, invoice:true, customers:false, offers:false },
@@ -3357,7 +3357,33 @@ const Admin = () => {
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
     ]},
   ];
-  const activeNavItem = navGroups.flatMap(function(g) { return g.items; }).find(function(i) { return i.id === activeTab; });
+  // Filter admin tabs based on user's pageAccess.admin sub-permissions
+  const filteredNavGroups = (() => {
+    if (currentUserRole === 'owner') return navGroups; // Owners see all tabs
+    try {
+      const cached = typeof window !== 'undefined' && localStorage.getItem('navPageAccess');
+      if (!cached) return navGroups;
+      const pa = JSON.parse(cached);
+      const adminPerms = resolveFeaturePermissions(pa, 'admin');
+      return navGroups.map(group => ({
+        ...group,
+        items: group.items.filter(item => {
+          const permKey = ADMIN_TAB_ID_TO_KEY[item.id];
+          return permKey ? !!adminPerms[permKey] : true;
+        })
+      })).filter(group => group.items.length > 0);
+    } catch { return navGroups; }
+  })();
+
+  // Auto-select first permitted tab if current tab is not in filtered list
+  const allFilteredItems = filteredNavGroups.flatMap(g => g.items);
+  useEffect(() => {
+    if (allFilteredItems.length > 0 && !allFilteredItems.find(i => i.id === activeTab)) {
+      setActiveTab(allFilteredItems[0].id);
+    }
+  }, [activeTab, allFilteredItems.length]);
+
+  const activeNavItem = filteredNavGroups.flatMap(function(g) { return g.items; }).find(function(i) { return i.id === activeTab; });
 
   // Sync current language and posSettings when opening Settings tab
   useEffect(() => {
@@ -3424,8 +3450,13 @@ const Admin = () => {
         
         setCurrentUserRole(user.role || 'owner');
         
-        // Allow owners and admin roles to access admin page
-        if (user.role && !['owner', 'admin'].includes(user.role)) {
+        // Allow owners, admin roles, and staff with any admin tab permission
+        const hasAdminPageAccess = ['owner', 'admin'].includes(user.role) || (() => {
+          const pa = user.pageAccess?.admin;
+          if (typeof pa === 'object' && pa !== null) return Object.values(pa).some(Boolean);
+          return !!pa;
+        })();
+        if (user.role && !hasAdminPageAccess) {
           // Skip redirect in mobile embed (WebView) — app controls access
           if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) {
             // Allow through in mobile embed
@@ -4261,7 +4292,7 @@ const Admin = () => {
                     boxShadow: '0 12px 40px rgba(0,0,0,0.12)', padding: '8px',
                     maxHeight: '60vh', overflowY: 'auto'
                   }}>
-                    {navGroups.map(function(group) {
+                    {filteredNavGroups.map(function(group) {
                       return (
                         <div key={group.label}>
                           <div style={{
@@ -4355,7 +4386,7 @@ const Admin = () => {
               border: '1px solid #fecdd3',
               display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap'
             }}>
-              {navGroups.map(function(group, groupIdx) {
+              {filteredNavGroups.map(function(group, groupIdx) {
                 return (
                   <div key={group.label} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                     {groupIdx > 0 && (
@@ -4987,7 +5018,7 @@ const Admin = () => {
                                         color: member.pageAccess[key][op] ? '#166534' : '#dc2626',
                                         border: `1px solid ${member.pageAccess[key][op] ? '#bbf7d0' : '#fca5a5'}`
                                       }}>
-                                        {OP_LABELS[op] || op}: {member.pageAccess[key][op] ? 'Yes' : 'No'}
+                                        {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}: {member.pageAccess[key][op] ? 'Yes' : 'No'}
                                       </span>
                                     ))}
                                   </div>
@@ -6211,7 +6242,7 @@ const Admin = () => {
                                   fontWeight: '500',
                                   color: newStaff.pageAccess[key][op] ? '#059669' : '#374151'
                                 }}>
-                                  {OP_LABELS[op] || op}
+                                  {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}
                                 </span>
                               </label>
                             ))}

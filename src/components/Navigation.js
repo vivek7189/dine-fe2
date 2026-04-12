@@ -216,7 +216,7 @@ function NavigationContent({ isHidden = false }) {
           // Fetch page access and notAllowedPages in background
           try {
             const accessData = await apiClient.getUserPageAccess();
-            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
+            if (parsedUser.role && parsedUser.role !== 'owner') {
               setPageAccess(accessData.pageAccess);
               localStorage.setItem('navPageAccess', JSON.stringify(accessData.pageAccess));
             }
@@ -226,7 +226,7 @@ function NavigationContent({ isHidden = false }) {
             localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
           } catch (error) {
             console.error('Error fetching page access:', error);
-            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
+            if (parsedUser.role && parsedUser.role !== 'owner') {
               const defaultAccess = {
                 dashboard: true,
                 history: true,
@@ -389,7 +389,7 @@ function NavigationContent({ isHidden = false }) {
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', gradient: 'from-teal-500 to-teal-600', roles: ['owner', 'admin', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', gradient: 'from-cyan-500 to-cyan-600', roles: ['owner', 'admin'] },
     { id: 'headquarters', name: 'Headquarters', icon: FaStore, href: '/headquarters', color: '#dc2626', gradient: 'from-red-600 to-red-700', roles: ['owner'] },
-    { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', gradient: 'from-pink-500 to-pink-600', roles: ['owner', 'admin'] },
+    { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', gradient: 'from-pink-500 to-pink-600', roles: ['owner', 'admin', 'manager', 'employee', 'cashier', 'sales', 'waiter'] },
     { id: 'kot', name: t('nav.kot'), icon: FaPrint, href: '/kot', color: '#f97316', gradient: 'from-orange-500 to-orange-600', roles: ['owner', 'admin', 'manager', 'waiter'] },
     { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'admin', 'manager'] },
   ];

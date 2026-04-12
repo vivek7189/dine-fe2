@@ -99,7 +99,7 @@ export default function Sidebar({ isDashboardPage = false }) {
           // Fetch page access and notAllowedPages in background
           try {
             const accessData = await apiClient.getUserPageAccess();
-            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
+            if (parsedUser.role && parsedUser.role !== 'owner') {
               setPageAccess(accessData.pageAccess);
               localStorage.setItem('navPageAccess', JSON.stringify(accessData.pageAccess));
             }
@@ -109,7 +109,7 @@ export default function Sidebar({ isDashboardPage = false }) {
             localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
           } catch (error) {
             console.error('Error fetching page access:', error);
-            if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
+            if (parsedUser.role && parsedUser.role !== 'owner') {
               const defaultAccess = {
                 dashboard: true,
                 history: true,
@@ -264,7 +264,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'invoice', name: 'Invoice', icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
     { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'admin', 'manager'] },
     // --- Settings (always last) ---
-    { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner', 'admin'] },
+    { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner', 'admin', 'manager', 'employee', 'cashier', 'sales', 'waiter'] },
     { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
   ];
 
