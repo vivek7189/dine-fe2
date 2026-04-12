@@ -100,6 +100,7 @@ export default function MobileLayout({ children }) {
         minHeight: '100vh',
         backgroundColor: '#f9fafb',
         overflow: 'auto',
+        paddingBottom: '90px',
         // Hide scrollbar for cleaner WebView look
         WebkitOverflowScrolling: 'touch',
       }}>

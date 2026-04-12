@@ -40,7 +40,8 @@ import {
   FaBan,
   FaWallet,
   FaChevronDown,
-  FaChevronUp
+  FaChevronUp,
+  FaUser
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -2298,7 +2299,7 @@ const OrderSummary = ({
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
             <div style={{ padding: '6px 12px 12px 12px' }}>
-              {/* Offers & Rewards Summary Row — opens modal */}
+              {/* Offers & Rewards Summary Row — opens unified detail modal */}
               {(() => {
                 const hasOffers = genericOffers.length > 0 || personalizedOffers.length > 0;
                 const hasLoyalty = loyaltySettings?.enabled && customerData && lookupStatus === 'found';
@@ -2307,66 +2308,82 @@ const OrderSummary = ({
 
                 const activeOfferCount = (offerSettings?.allowMultipleOffers ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : [])).length;
                 const loyaltyDisc = getLoyaltyDiscountAmount();
-                const manualDisc = getManualDiscountAmount();
                 const earnPts = getLoyaltyPointsToEarn();
-                const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0 || manualDisc > 0;
+                const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0;
 
                 return (
                   <button
                     onClick={() => setShowOffersModal(true)}
                     style={{
-                      width: '100%', padding: '7px 10px', borderRadius: '8px',
-                      border: hasApplied ? '1.5px solid #86efac' : '1.5px solid #e5e7eb',
-                      background: hasApplied ? '#f0fdf4' : '#f9fafb',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                      marginBottom: '6px', transition: 'all 0.15s',
+                      width: '100%', padding: '10px 12px', borderRadius: '10px',
+                      border: hasApplied ? '1.5px solid #86efac' : '1.5px dashed #d1d5db',
+                      background: hasApplied
+                        ? 'linear-gradient(135deg, #f0fdf4, #ecfdf5)'
+                        : 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px',
+                      marginBottom: '6px', transition: 'all 0.2s',
+                      boxShadow: hasApplied ? '0 2px 8px rgba(22,163,74,0.08)' : '0 1px 3px rgba(0,0,0,0.04)',
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = hasApplied ? '0 4px 12px rgba(22,163,74,0.12)' : '0 3px 8px rgba(0,0,0,0.08)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = hasApplied ? '0 2px 8px rgba(22,163,74,0.08)' : '0 1px 3px rgba(0,0,0,0.04)'; }}
                   >
-                    <FaTag size={11} style={{ color: hasApplied ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                      background: hasApplied ? '#dcfce7' : '#f1f5f9',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <FaTag size={11} style={{ color: hasApplied ? '#16a34a' : '#9ca3af' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                       {hasApplied ? (
-                        <>
-                          {activeOfferCount > 0 && (
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', whiteSpace: 'nowrap' }}>
-                              {activeOfferCount} offer{activeOfferCount > 1 ? 's' : ''} -{formatCurrency(offerDiscount)}
-                            </span>
-                          )}
-                          {loyaltyDisc > 0 && (
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap' }}>
-                              {redeemLoyaltyPoints}pts -{formatCurrency(loyaltyDisc)}
-                            </span>
-                          )}
-                          {manualDisc > 0 && (
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#7c3aed', whiteSpace: 'nowrap' }}>
-                              Disc -{formatCurrency(manualDisc)}
-                            </span>
-                          )}
-                          {specialInstructions && (
-                            <FaStickyNote size={9} style={{ color: '#d97706', flexShrink: 0 }} />
-                          )}
-                        </>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#15803d' }}>
+                            Saving {formatCurrency(totalDiscountAmount)}
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {activeOfferCount > 0 && (
+                              <span style={{ fontSize: '10px', fontWeight: 500, color: '#16a34a' }}>
+                                {activeOfferCount} offer{activeOfferCount > 1 ? 's' : ''}
+                              </span>
+                            )}
+                            {loyaltyDisc > 0 && (
+                              <span style={{ fontSize: '10px', fontWeight: 500, color: '#b45309' }}>
+                                {redeemLoyaltyPoints}pts redeemed
+                              </span>
+                            )}
+                            {specialInstructions && (
+                              <span style={{ fontSize: '10px', fontWeight: 500, color: '#d97706', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <FaStickyNote size={7} /> Note
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       ) : (
-                        <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', whiteSpace: 'nowrap' }}>
-                          {hasOffers ? `${applicableOffers.length} offer${applicableOffers.length > 1 ? 's' : ''} available` : ''}
-                          {hasOffers && hasLoyalty ? ' · ' : ''}
-                          {hasLoyalty ? `${customerData.loyaltyPoints || 0} pts` : ''}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>
+                            Offers & Rewards
+                          </span>
+                          <span style={{ fontSize: '10px', color: '#9ca3af' }}>
+                            {hasOffers ? `${applicableOffers.length} offer${applicableOffers.length > 1 ? 's' : ''} available` : ''}
+                            {hasOffers && hasLoyalty ? ' · ' : ''}
+                            {hasLoyalty ? `${customerData.loyaltyPoints || 0} pts` : ''}
+                          </span>
+                        </div>
                       )}
                     </div>
                     {earnPts > 0 && (
                       <span style={{
                         fontSize: '9px', fontWeight: 600, color: '#16a34a', flexShrink: 0,
-                        background: '#f0fdf4', padding: '2px 6px', borderRadius: '8px',
-                        border: '1px solid #bbf7d0',
+                        background: '#dcfce7', padding: '2px 7px', borderRadius: '10px',
                       }}>+{earnPts}pts</span>
                     )}
-                    {hasApplied ? (
-                      <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, flexShrink: 0 }}>
-                        -{formatCurrency(totalDiscountAmount)}
-                      </span>
-                    ) : (
-                      <FaChevronDown size={10} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                    )}
+                    <div style={{
+                      width: '24px', height: '24px', borderRadius: '6px', flexShrink: 0,
+                      background: hasApplied ? '#bbf7d0' : '#e5e7eb',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <FaChevronDown size={8} style={{ color: hasApplied ? '#15803d' : '#6b7280' }} />
+                    </div>
                   </button>
                 );
               })()}
@@ -2440,8 +2457,8 @@ const OrderSummary = ({
                     </div>
                     )}
 
-                    {/* Customer Name (Second) */}
-                    {!posSettings.hideCustomerName && (
+                    {/* Customer Name — only show when customer NOT found via lookup */}
+                    {!posSettings.hideCustomerName && !(lookupStatus === 'found' && customerData) && (
                     <input
                       type="text"
                       placeholder={posSettings.customerNameLabel || t('dashboard.customerName')}
@@ -2477,36 +2494,31 @@ const OrderSummary = ({
                     />
                     )}
 
-                    {/* Customer Chip — appears when customer found */}
+                    {/* Customer Chip — when customer found, replaces name input */}
                     {lookupStatus === 'found' && customerData && (
                       <button
-                        onClick={() => setShowCustomerModal(true)}
+                        onClick={() => setShowOffersModal(true)}
                         style={{
-                          flex: '0 0 auto', padding: '5px 10px', borderRadius: '8px',
-                          border: '1.5px solid #c4b5fd', backgroundColor: '#f5f3ff',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                          fontSize: '10px', fontWeight: 600, color: '#6d28d9',
+                          flex: '1', minWidth: 0, padding: '6px 10px', borderRadius: '8px',
+                          border: '1.5px solid #a5f3fc', backgroundColor: '#ecfeff',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                          fontSize: '11px', fontWeight: 600, color: '#0e7490',
                           transition: 'all 0.15s', whiteSpace: 'nowrap',
-                          boxShadow: '0 1px 3px rgba(109,40,217,0.1)',
+                          boxShadow: '0 1px 3px rgba(14,116,144,0.08)',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ede9fe'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(109,40,217,0.15)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f5f3ff'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(109,40,217,0.1)'; }}
-                        title="View customer details"
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#cffafe'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(14,116,144,0.12)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ecfeff'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(14,116,144,0.08)'; }}
+                        title="View customer & offers"
                       >
-                        <span style={{ maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <FaUser size={9} style={{ color: '#06b6d4', flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
                           {customerData.name}
                         </span>
                         {customerData.loyaltyPoints > 0 && (
-                          <span style={{ color: '#d97706', fontWeight: 700 }}>⭐{customerData.loyaltyPoints}</span>
+                          <span style={{ color: '#d97706', fontWeight: 700, fontSize: '10px' }}>⭐{customerData.loyaltyPoints}</span>
                         )}
-                        <span style={{ color: '#9ca3af' }}>{customerData.totalOrders}ord</span>
-                        {customerOfferGroups && customerOfferGroups.length > 0 && customerOfferGroups.slice(0, 2).map(g => (
-                          <span key={g.id} style={{
-                            fontSize: '8px', padding: '1px 4px', borderRadius: '6px',
-                            background: g.color || '#6366f1', color: '#fff', fontWeight: 700,
-                          }}>{g.name}</span>
-                        ))}
-                        <FaInfoCircle size={10} style={{ color: '#a78bfa', marginLeft: '2px' }} />
+                        <span style={{ color: '#94a3b8', fontSize: '10px' }}>{customerData.totalOrders} orders</span>
+                        <FaChevronDown size={8} style={{ color: '#94a3b8', marginLeft: 'auto', flexShrink: 0 }} />
                       </button>
                     )}
                       
@@ -3570,47 +3582,52 @@ const OrderSummary = ({
           </div>
         </div>
       )}
-      {/* Offers & Rewards Modal */}
+      {/* Unified Order Details Modal — Offers, Loyalty, Customer, Notes */}
       {showOffersModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowOffersModal(false); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '16px',
+            display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+            padding: isMobile ? '0' : '16px',
           }}
         >
           <div style={{
-            background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '460px',
-            maxHeight: '78vh', display: 'flex', flexDirection: 'column',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden',
+            background: '#fff', borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+            width: '100%', maxWidth: isMobile ? '100%' : '560px',
+            maxHeight: isMobile ? '92vh' : '82vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
           }}>
             {/* Modal Header */}
             <div style={{
               padding: '14px 16px', borderBottom: '1px solid #f3f4f6',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+              background: 'linear-gradient(135deg, #fafbfc, #f1f5f9)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FaTag size={14} style={{ color: '#6366f1' }} />
-                <span style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Offers & Rewards</span>
+                <div style={{
+                  width: '30px', height: '30px', borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <FaTag size={12} style={{ color: '#fff' }} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b', display: 'block' }}>Order Details</span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>{cart.length} items · {formatCurrency(getTotalAmount())}</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>
-                  Total: {formatCurrency(grandTotal > 0 ? grandTotal : getTotalAmount())}
-                </span>
-                <button
-                  onClick={() => setShowOffersModal(false)}
-                  style={{
-                    width: '28px', height: '28px', borderRadius: '8px',
-                    border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <FaTimes size={12} style={{ color: '#64748b' }} />
-                </button>
-              </div>
+              <button
+                onClick={() => setShowOffersModal(false)}
+                style={{
+                  width: '28px', height: '28px', borderRadius: '8px',
+                  border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <FaTimes size={12} style={{ color: '#64748b' }} />
+              </button>
             </div>
 
             {/* Modal Body — scrollable */}
@@ -3619,6 +3636,86 @@ const OrderSummary = ({
               .loyalty-slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#f59e0b; cursor:pointer; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.2); }
             `}</style>
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+
+              {/* CUSTOMER INFO Section — when customer found */}
+              {lookupStatus === 'found' && customerData && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                    Customer
+                  </div>
+                  <div style={{
+                    padding: '12px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #ecfeff, #f0f9ff)',
+                    border: '1px solid #a5f3fc',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <FaUser size={14} style={{ color: '#fff' }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0e7490' }}>
+                          {customerData.name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          {customerData.phone || customerMobile}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowCustomerModal(true)}
+                        style={{
+                          padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
+                          background: '#fff', color: '#0e7490', border: '1px solid #a5f3fc',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                        }}
+                      >
+                        View <FaChevronDown size={7} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{
+                        flex: 1, padding: '8px', borderRadius: '8px', background: '#fff',
+                        textAlign: 'center', border: '1px solid #e0f2fe',
+                      }}>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: '#0e7490' }}>{customerData.totalOrders || 0}</div>
+                        <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 500 }}>Orders</div>
+                      </div>
+                      <div style={{
+                        flex: 1, padding: '8px', borderRadius: '8px', background: '#fff',
+                        textAlign: 'center', border: '1px solid #e0f2fe',
+                      }}>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: '#d97706' }}>
+                          {customerData.loyaltyPoints || 0}
+                        </div>
+                        <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 500 }}>Points</div>
+                      </div>
+                      <div style={{
+                        flex: 1, padding: '8px', borderRadius: '8px', background: '#fff',
+                        textAlign: 'center', border: '1px solid #e0f2fe',
+                      }}>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: '#16a34a' }}>
+                          {formatCurrency(customerData.totalSpent || 0)}
+                        </div>
+                        <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 500 }}>Spent</div>
+                      </div>
+                    </div>
+                    {customerOfferGroups && customerOfferGroups.length > 0 && (
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
+                        {customerOfferGroups.map(g => (
+                          <span key={g.id} style={{
+                            fontSize: '9px', padding: '2px 8px', borderRadius: '8px',
+                            background: g.color || '#6366f1', color: '#fff', fontWeight: 700,
+                          }}>{g.name}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* OFFERS Section */}
               {(genericOffers.length > 0 || personalizedOffers.length > 0) && (
@@ -3839,72 +3936,6 @@ const OrderSummary = ({
                 </div>
               )}
 
-              {/* MANUAL DISCOUNT Section */}
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  Manual Discount
-                </div>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <div style={{
-                    display: 'flex', borderRadius: '8px', overflow: 'hidden',
-                    border: '1.5px solid #e5e7eb', flexShrink: 0,
-                  }}>
-                    <button
-                      onClick={() => setManualDiscountTypeState('flat')}
-                      style={{
-                        padding: '6px 10px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
-                        background: manualDiscountTypeState === 'flat' ? '#6366f1' : '#f9fafb',
-                        color: manualDiscountTypeState === 'flat' ? '#fff' : '#6b7280',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {getCurrencySymbol()}
-                    </button>
-                    <button
-                      onClick={() => setManualDiscountTypeState('percentage')}
-                      style={{
-                        padding: '6px 10px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
-                        background: manualDiscountTypeState === 'percentage' ? '#6366f1' : '#f9fafb',
-                        color: manualDiscountTypeState === 'percentage' ? '#fff' : '#6b7280',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      %
-                    </button>
-                  </div>
-                  <input
-                    type="number"
-                    placeholder={manualDiscountTypeState === 'flat' ? 'Amount' : 'Percent'}
-                    value={manualDiscountValue}
-                    onChange={(e) => setManualDiscountValue(e.target.value)}
-                    style={{
-                      flex: 1, padding: '7px 10px', borderRadius: '8px',
-                      border: '1.5px solid #e5e7eb', fontSize: '13px', outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#6366f1'}
-                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                  />
-                  {manualDiscountValue && (
-                    <button
-                      onClick={() => setManualDiscountValue('')}
-                      style={{
-                        padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
-                        background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca',
-                        cursor: 'pointer', flexShrink: 0,
-                      }}
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                {getManualDiscountAmount() > 0 && (
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#7c3aed', marginTop: '6px' }}>
-                    Discount: -{formatCurrency(getManualDiscountAmount())}
-                  </div>
-                )}
-              </div>
-
               {/* KITCHEN NOTES Section */}
               <div style={{ marginBottom: '8px' }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -3927,34 +3958,40 @@ const OrderSummary = ({
               </div>
             </div>
 
-            {/* Modal Footer — sticky */}
+            {/* Modal Footer — sticky with full breakdown */}
             <div style={{
-              padding: '12px 16px', borderTop: '1px solid #f3f4f6',
+              padding: '12px 16px', borderTop: '1px solid #e5e7eb',
               background: '#f8fafc',
             }}>
-              {/* Price breakdown */}
-              {totalDiscountAmount > 0 && (
-                <div style={{ marginBottom: '10px', fontSize: '12px', color: '#64748b' }}>
-                  {offerDiscount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                      <span>Offers</span>
-                      <span style={{ fontWeight: 600, color: '#16a34a' }}>-{formatCurrency(offerDiscount)}</span>
-                    </div>
-                  )}
-                  {getLoyaltyDiscountAmount() > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                      <span>Loyalty ({redeemLoyaltyPoints} pts)</span>
-                      <span style={{ fontWeight: 600, color: '#b45309' }}>-{formatCurrency(getLoyaltyDiscountAmount())}</span>
-                    </div>
-                  )}
-                  {getManualDiscountAmount() > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                      <span>Manual Discount</span>
-                      <span style={{ fontWeight: 600, color: '#7c3aed' }}>-{formatCurrency(getManualDiscountAmount())}</span>
-                    </div>
-                  )}
+              {/* Full price breakdown */}
+              <div style={{ marginBottom: '10px', fontSize: '12px', color: '#64748b' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span>Subtotal</span>
+                  <span style={{ fontWeight: 600, color: '#374151' }}>{formatCurrency(getTotalAmount())}</span>
                 </div>
-              )}
+                {offerDiscount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <span style={{ color: '#16a34a' }}>Offers</span>
+                    <span style={{ fontWeight: 600, color: '#16a34a' }}>-{formatCurrency(offerDiscount)}</span>
+                  </div>
+                )}
+                {getLoyaltyDiscountAmount() > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <span style={{ color: '#b45309' }}>Loyalty ({redeemLoyaltyPoints} pts)</span>
+                    <span style={{ fontWeight: 600, color: '#b45309' }}>-{formatCurrency(getLoyaltyDiscountAmount())}</span>
+                  </div>
+                )}
+                {taxBreakdown.map((tax, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <span>{tax.name} ({tax.rate}%)</span>
+                    <span style={{ fontWeight: 500 }}>{formatCurrency(tax.amount || 0)}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #e5e7eb', marginTop: '4px' }}>
+                  <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '14px' }}>Total</span>
+                  <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '14px' }}>{formatCurrency(grandTotal > 0 ? grandTotal : getTotalAmount())}</span>
+                </div>
+              </div>
               <button
                 onClick={() => setShowOffersModal(false)}
                 style={{
@@ -3962,11 +3999,13 @@ const OrderSummary = ({
                   border: 'none', cursor: 'pointer',
                   background: totalDiscountAmount > 0 ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
                   color: '#fff', fontSize: '14px', fontWeight: 700,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  boxShadow: totalDiscountAmount > 0 ? '0 4px 12px rgba(16,185,129,0.3)' : '0 4px 12px rgba(99,102,241,0.3)',
                   transition: 'all 0.15s',
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
               >
-                {totalDiscountAmount > 0 ? `Done (saving ${formatCurrency(totalDiscountAmount)})` : 'Done'}
+                {totalDiscountAmount > 0 ? `Apply & Save ${formatCurrency(totalDiscountAmount)}` : 'Done'}
               </button>
             </div>
           </div>

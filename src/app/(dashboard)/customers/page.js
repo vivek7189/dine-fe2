@@ -323,6 +323,7 @@ const Customers = () => {
   const [sortBy, setSortBy] = useState('lastOrderDate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [isMobile, setIsMobile] = useState(false);
+  const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
@@ -1410,7 +1411,7 @@ const Customers = () => {
       
       <div style={{
         width: '100%',
-        backgroundColor: '#f9fafb',
+        backgroundColor: isMobileEmbed ? '#fff' : '#f9fafb',
         paddingTop: 0,
         overflowX: 'hidden',
         boxSizing: 'border-box'
@@ -1423,7 +1424,7 @@ const Customers = () => {
         )}
         <div style={{
           width: '100%',
-          padding: isMobile ? '8px' : '24px',
+          padding: isMobileEmbed ? '0' : (isMobile ? '8px' : '24px'),
           paddingTop: 0,
           boxSizing: 'border-box'
         }}>
@@ -1432,13 +1433,13 @@ const Customers = () => {
             position: 'sticky',
             top: 0,
             zIndex: 20,
-            backgroundColor: '#f9fafb',
+            backgroundColor: isMobileEmbed ? '#fff' : '#f9fafb',
             paddingTop: isMobile ? '8px' : '24px',
             paddingBottom: isMobile ? '4px' : '4px',
             marginLeft: isMobile ? '0' : '-24px',
             marginRight: isMobile ? '0' : '-24px',
-            paddingLeft: isMobile ? '0' : '24px',
-            paddingRight: isMobile ? '0' : '24px'
+            paddingLeft: isMobileEmbed ? '10px' : (isMobile ? '0' : '24px'),
+            paddingRight: isMobileEmbed ? '10px' : (isMobile ? '0' : '24px')
           }}>
           {/* Header */}
           <div style={{
@@ -1491,7 +1492,7 @@ const Customers = () => {
           {/* Customer Engagement — tab bar */}
           <div style={{
             background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%)',
-            borderRadius: isMobile ? '10px' : '12px',
+            borderRadius: isMobileEmbed ? '0' : (isMobile ? '10px' : '12px'),
             padding: isMobile ? '3px' : '6px 8px',
             marginBottom: isMobile ? '8px' : '12px',
             display: 'flex',
@@ -1545,11 +1546,11 @@ const Customers = () => {
           {/* Customer Groups */}
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '12px',
+            borderRadius: isMobileEmbed ? '0' : '12px',
             padding: isMobile ? '10px 12px' : '14px 16px',
             marginBottom: isMobile ? '12px' : '16px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+            border: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
+            boxShadow: isMobileEmbed ? 'none' : '0 1px 3px rgba(0,0,0,0.06)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <FaLayerGroup size={13} style={{ color: '#6b7280' }} />
@@ -1723,11 +1724,11 @@ const Customers = () => {
           {/* Search and Filters */}
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '12px',
+            borderRadius: isMobileEmbed ? '0' : '12px',
             padding: isMobile ? '12px' : '16px',
             marginBottom: isMobile ? '12px' : '16px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+            border: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
+            boxShadow: isMobileEmbed ? 'none' : '0 1px 3px rgba(0,0,0,0.06)'
           }}>
             <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
@@ -1803,10 +1804,10 @@ const Customers = () => {
           {/* Customers List */}
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '12px',
+            borderRadius: isMobileEmbed ? '0' : '12px',
             overflow: 'hidden',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            border: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
+            boxShadow: isMobileEmbed ? 'none' : '0 1px 3px rgba(0,0,0,0.06)',
             marginBottom: selectedCustomerIds.length > 0 ? '70px' : 0
           }}>
             {filteredCustomers.length > 0 ? (
@@ -2210,9 +2211,9 @@ const Customers = () => {
               marginTop: '16px',
               padding: isMobile ? '12px' : '16px',
               backgroundColor: 'white',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+              borderRadius: isMobileEmbed ? '0' : '12px',
+              border: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
+              boxShadow: isMobileEmbed ? 'none' : '0 1px 3px rgba(0,0,0,0.06)'
             }}>
               <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#6b7280' }}>
                 Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalCustomers)} of {totalCustomers} customers
