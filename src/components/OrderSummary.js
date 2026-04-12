@@ -42,7 +42,8 @@ import {
   FaWallet,
   FaChevronDown,
   FaChevronUp,
-  FaUser
+  FaUser,
+  FaWhatsapp
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -118,6 +119,7 @@ const OrderSummary = ({
   autoSelectedRule = false,
   setAutoSelectedRule,
   upiSettings = {},
+  whatsappConnected = false,
 }) => {
   // Business-type-aware billing labels
   const billingLabels = {
@@ -154,6 +156,10 @@ const OrderSummary = ({
   const [taxBreakdown, setTaxBreakdown] = useState([]);
   const [totalTax, setTotalTax] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
+
+  // WhatsApp bill sending state
+  const [waSending, setWaSending] = useState(false);
+  const [waSent, setWaSent] = useState(false);
 
   // Special Instructions State
   const [specialInstructions, setSpecialInstructions] = useState('');
@@ -258,8 +264,38 @@ const OrderSummary = ({
       setOrderSuccess(null);
       setInvoice(null);
       setShowInvoicePermanently(false);
+      setWaSent(false);
     }
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Send bill on WhatsApp (via API)
+  const handleSendBillWhatsApp = async () => {
+    if (!restaurantId || !invoice) return;
+    const phone = invoice?.customerPhone || invoice?.customerMobile || customerMobile;
+    if (!phone) {
+      alert('Customer phone number not available. Add customer phone to send bill on WhatsApp.');
+      return;
+    }
+    setWaSending(true);
+    try {
+      const res = await apiClient.sendBillOnWhatsApp(restaurantId, {
+        customerPhone: phone,
+        customerName: invoice?.customerName || customerName || '',
+        amount: invoice?.grandTotal || grandTotal,
+        orderId: invoice?.dailyOrderId || invoice?.orderId || '',
+        restaurantName: invoice?.restaurantName || restaurantName || '',
+      });
+      if (res?.success) {
+        setWaSent(true);
+      } else {
+        alert(res?.error || 'Failed to send bill on WhatsApp');
+      }
+    } catch (err) {
+      alert(err?.error || err?.message || 'Failed to send bill on WhatsApp');
+    } finally {
+      setWaSending(false);
+    }
+  };
   
   // Debug: Log cart prop received by OrderSummary
   console.log('📋 OrderSummary: Received cart prop:', cart);
@@ -1806,6 +1842,23 @@ const OrderSummary = ({
                     <FaPrint size={14} />
                     Print {bLabels.billLabel}
                   </button>
+                  {whatsappConnected && (
+                    <button
+                      onClick={handleSendBillWhatsApp}
+                      disabled={waSending || waSent}
+                      style={{
+                        backgroundColor: waSent ? '#22c55e' : '#25D366', color: 'white', border: 'none',
+                        borderRadius: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600',
+                        cursor: (waSending || waSent) ? 'default' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        boxShadow: '0 2px 4px rgba(37,211,102,0.3)',
+                        opacity: waSending ? 0.7 : 1
+                      }}
+                    >
+                      <FaWhatsapp size={14} />
+                      {waSent ? 'Sent on WhatsApp!' : waSending ? 'Sending...' : 'Send on WhatsApp'}
+                    </button>
+                  )}
                 </div>
                   )}
                 </>

@@ -72,6 +72,7 @@ import {
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
 import GoogleReviews from '../../../components/GoogleReviews';
+import WhatsAppTab from '../../../components/WhatsAppTab';
 
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
@@ -3057,7 +3058,7 @@ const Admin = () => {
   const [editLoading, setEditLoading] = useState(false);
 
   const ROLE_DEFAULT_PAGE_ACCESS = {
-    admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:{ settings:true, tax:true, pricing:true, payments:true, billingSettings:true, currency:true, print:true, features:true, restaurants:true, staff:true, orderManagement:true, offers:true, loyalty:true, googleReviews:true }, completeBill:true, invoice:true, customers:true, offers:true },
+    admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:{ settings:true, tax:true, pricing:true, payments:true, billingSettings:true, currency:true, print:true, features:true, restaurants:true, staff:true, orderManagement:true, offers:true, loyalty:true, googleReviews:true, whatsapp:true }, completeBill:true, invoice:true, customers:true, offers:true },
     manager:  { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:false, completeBill:true, invoice:true, customers:true, offers:true },
     waiter:   { dashboard:true, history:true, tables:true, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false },
     cashier:  { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:true, invoice:true, customers:false, offers:false },
@@ -3355,6 +3356,7 @@ const Admin = () => {
     ]},
     { label: 'INTEGRATIONS', items: [
       { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle },
+      { id: 'whatsapp', label: 'WhatsApp', icon: FaPhone },
     ]},
   ];
   // Filter admin tabs based on user's pageAccess.admin sub-permissions
@@ -8786,14 +8788,20 @@ const Admin = () => {
               <p>Please select a restaurant from the dropdown above to manage Google Reviews.</p>
             </div>
           ) : (
-            <GoogleReviews 
+            <GoogleReviews
               restaurantId={selectedRestaurant.id}
               restaurant={selectedRestaurant}
             />
           )}
         </div>
       )}
-      
+
+      {activeTab === 'whatsapp' && (
+        <WhatsAppTab
+          selectedRestaurant={selectedRestaurant}
+        />
+      )}
+
       <style jsx>{`
         @keyframes bounce {
           0%, 20%, 50%, 80%, 100% {

@@ -4,7 +4,7 @@
 export const ADMIN_TAB_OPS = [
   'settings', 'tax', 'pricing', 'payments', 'billingSettings',
   'currency', 'print', 'features', 'restaurants', 'staff',
-  'orderManagement', 'offers', 'loyalty', 'googleReviews'
+  'orderManagement', 'offers', 'loyalty', 'googleReviews', 'whatsapp'
 ];
 
 export const FEATURE_OPS = {
@@ -44,6 +44,7 @@ export const ADMIN_TAB_LABELS = {
   offers: 'Offers & Discounts',
   loyalty: 'Loyalty Program',
   googleReviews: 'Google Reviews',
+  whatsapp: 'WhatsApp',
 };
 
 export const ADMIN_TAB_ID_TO_KEY = {
@@ -61,6 +62,7 @@ export const ADMIN_TAB_ID_TO_KEY = {
   'offers': 'offers',
   'loyalty': 'loyalty',
   'google-reviews': 'googleReviews',
+  'whatsapp': 'whatsapp',
 };
 
 /**

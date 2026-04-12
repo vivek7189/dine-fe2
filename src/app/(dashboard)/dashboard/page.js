@@ -161,6 +161,7 @@ function RestaurantPOSContent() {
   const [deletingSavedOrderId, setDeletingSavedOrderId] = useState(null); // Currently deleting order ID
   const [printSettings, setPrintSettings] = useState(null); // Print settings for the restaurant
   const [upiSettings, setUpiSettings] = useState({}); // UPI payment settings from customer app settings
+  const [whatsappConnected, setWhatsappConnected] = useState(false); // WhatsApp Business connection status
   const [isLoadingOrder, setIsLoadingOrder] = useState(false); // Flag to prevent localStorage override during order loading
   const [showResetConfirm, setShowResetConfirm] = useState(false); // Reset tables confirmation modal
   const [resetLoading, setResetLoading] = useState(false); // Loading state during table reset
@@ -639,6 +640,20 @@ function RestaurantPOSContent() {
       }
     };
     loadUpiSettings();
+  }, [selectedRestaurant?.id]);
+
+  // Load WhatsApp connection status
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+    const loadWaSettings = async () => {
+      try {
+        const waRes = await apiClient.getWhatsAppSettings(selectedRestaurant.id);
+        setWhatsappConnected(waRes?.connected || false);
+      } catch (e) {
+        setWhatsappConnected(false);
+      }
+    };
+    loadWaSettings();
   }, [selectedRestaurant?.id]);
 
   // Load print settings for the restaurant
@@ -6482,6 +6497,7 @@ function RestaurantPOSContent() {
                 menuItems={menuItems}
                 printSettings={printSettings}
                 upiSettings={upiSettings}
+                whatsappConnected={whatsappConnected}
                 onRefreshTables={() => {
                   // Refresh tables in background after billing completion
                   if (selectedRestaurant?.id) {
@@ -6663,6 +6679,7 @@ function RestaurantPOSContent() {
             autoSelectedRule={autoSelectedRule}
             setAutoSelectedRule={setAutoSelectedRule}
             upiSettings={upiSettings}
+            whatsappConnected={whatsappConnected}
           />
         </div>
                 ) : (
@@ -6740,6 +6757,7 @@ function RestaurantPOSContent() {
                     autoSelectedRule={autoSelectedRule}
                     setAutoSelectedRule={setAutoSelectedRule}
                     upiSettings={upiSettings}
+                    whatsappConnected={whatsappConnected}
                   />
             )}
           </>

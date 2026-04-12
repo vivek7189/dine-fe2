@@ -157,11 +157,11 @@ export default function HomePage() {
 
   const canAccess = (key) => {
     if (!user) return false;
-    if (user.role === 'owner') return true;
+    if (user.role === 'owner' || user.role === 'admin') return true;
     const idMap = { dashboard: 'pos', history: 'orders', tables: 'tables', menu: 'menu', analytics: 'analytics', inventory: 'inventory', kot: 'kot', admin: 'admin', customers: 'customers' };
     if (notAllowedPages?.includes(idMap[key] || key)) return false;
     if (user.role === 'waiter') return ['dashboard', 'tables', 'history', 'kot'].includes(key);
-    if (user.role === 'employee' || user.role === 'manager') {
+    if (['employee', 'manager', 'cashier', 'sales'].includes(user.role)) {
       if (pageAccess) {
         const accessMap = { dashboard: 'dashboard', history: 'history', tables: 'tables', menu: 'menu', analytics: 'analytics', inventory: 'inventory', kot: 'kot', admin: 'admin', customers: 'customers' };
         return accessMap[key] ? !!pageAccess[accessMap[key]] : false;

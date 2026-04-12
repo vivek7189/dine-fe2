@@ -125,6 +125,7 @@ const OrderHistory = () => {
   const [cancelError, setCancelError] = useState(null);
   const [printSettings, setPrintSettings] = useState(null);
   const [upiSettings, setUpiSettings] = useState({});
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
   const [printingOrderId, setPrintingOrderId] = useState(null);
   const [printSuccess, setPrintSuccess] = useState(null);
   const [analyticsStats, setAnalyticsStats] = useState(null);
@@ -568,6 +569,18 @@ const OrderHistory = () => {
       }
     };
     loadUpiSettings();
+  }, [restaurantId]);
+
+  // Fetch WhatsApp connection status
+  useEffect(() => {
+    if (!restaurantId) return;
+    const loadWa = async () => {
+      try {
+        const waRes = await apiClient.getWhatsAppSettings(restaurantId);
+        setWhatsappConnected(waRes?.connected || false);
+      } catch { setWhatsappConnected(false); }
+    };
+    loadWa();
   }, [restaurantId]);
 
   // Listen for restaurant changes — update state so Pusher reconnects via dependency
@@ -2425,6 +2438,7 @@ const OrderHistory = () => {
                     businessType={restaurant?.businessType || 'restaurant'}
                     countryCode={restaurant?.countryCode || 'IN'}
                     upiSettings={upiSettings}
+                    whatsappConnected={whatsappConnected}
                   />
                 </div>
               ) : (

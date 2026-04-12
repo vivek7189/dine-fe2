@@ -2308,6 +2308,35 @@ class ApiClient {
     });
   }
 
+  async sendBillOnWhatsApp(restaurantId, { customerPhone, customerName, amount, orderId, invoiceText, restaurantName }) {
+    return this.request(`/api/automation/${restaurantId}/whatsapp/send-bill`, {
+      method: 'POST',
+      body: { customerPhone, customerName, amount, orderId, invoiceText, restaurantName },
+    });
+  }
+
+  async getWhatsAppMessages(restaurantId, { page, limit, phone } = {}) {
+    const params = new URLSearchParams();
+    if (page) params.set('page', page);
+    if (limit) params.set('limit', limit);
+    if (phone) params.set('phone', phone);
+    return this.request(`/api/automation/${restaurantId}/whatsapp/messages?${params.toString()}`);
+  }
+
+  async replyWhatsApp(restaurantId, { phone, message }) {
+    return this.request(`/api/automation/${restaurantId}/whatsapp/reply`, {
+      method: 'POST',
+      body: { phone, message },
+    });
+  }
+
+  async markWhatsAppRead(restaurantId, phone) {
+    return this.request(`/api/automation/${restaurantId}/whatsapp/mark-read`, {
+      method: 'POST',
+      body: { phone },
+    });
+  }
+
   // Demo request endpoint - public, no auth required
   async submitDemoRequest(contactType, phone, email, comment) {
     // Create a request without auth token
