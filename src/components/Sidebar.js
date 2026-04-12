@@ -153,11 +153,13 @@ export default function Sidebar({ isDashboardPage = false }) {
           }
         }
 
-        if (parsedUser.restaurantId && ['waiter', 'manager', 'employee', 'cashier', 'admin', 'sales'].includes(parsedUser.role)) {
+        if (parsedUser.restaurantId && ['waiter', 'manager', 'employee', 'cashier', 'sales'].includes(parsedUser.role)) {
+          // Non-admin staff: use their single assigned restaurant from login data
           if (parsedUser.restaurant) {
             setSelectedRestaurant(parsedUser.restaurant);
           }
-        } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
+        } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer' || parsedUser.role === 'admin') {
+          // Owner, customer, and admin staff: fetch from API (admin can have multiple restaurants)
           try {
             const token = localStorage.getItem('authToken');
             const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
@@ -243,27 +245,27 @@ export default function Sidebar({ isDashboardPage = false }) {
 
   const getAllNavItems = () => [
     // --- Home (landing page for all roles) ---
-    { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', roles: ['owner', 'manager', 'waiter', 'employee'] },
+    { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
     // --- Core POS ---
-    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : t('nav.dashboard'), icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', roles: ['owner', 'manager', 'waiter'] },
+    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : t('nav.dashboard'), icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'admin', 'manager', 'waiter'] },
+    { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'waiter'] },
     // --- Management ---
-    { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'manager'] },
-    { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'manager'] },
-    { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'manager'] },
-    { id: 'shifts', name: 'Shifts', icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'manager'] },
-    { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner'] },
+    { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'admin', 'manager'] },
+    { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
+    { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
+    { id: 'shifts', name: 'Shifts', icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'admin', 'manager'] },
+    { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Tools & Extras ---
-    { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'manager'] },
-    { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'manager'] },
-    { id: 'books', name: 'Books', icon: FaBook, href: '/books', color: '#2563eb', roles: ['owner'] },
-    { id: 'invoice', name: 'Invoice', icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'manager'] },
-    { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'manager'] },
+    { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
+    { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
+    { id: 'books', name: 'Books', icon: FaBook, href: '/books', color: '#2563eb', roles: ['owner', 'admin'] },
+    { id: 'invoice', name: 'Invoice', icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
+    { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'admin', 'manager'] },
     // --- Settings (always last) ---
-    { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner'] },
-    { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'manager', 'waiter', 'employee'] },
+    { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner', 'admin'] },
+    { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
   ];
 
   const navItems = getAllNavItems().filter(item => {
@@ -279,8 +281,12 @@ export default function Sidebar({ isDashboardPage = false }) {
       return true;
     }
 
-    if (user.role === 'employee' || user.role === 'manager') {
-      if (!pageAccess) return false;
+    // Admin, manager, employee, cashier, sales — respect pageAccess so owner can restrict
+    if (['admin', 'manager', 'employee', 'cashier', 'sales'].includes(user.role)) {
+      // First check if item's roles array includes this role
+      if (!item.roles.includes(user.role)) return false;
+      // Then check pageAccess (admin defaults are all-true, so this is transparent unless owner restricts)
+      if (!pageAccess) return user.role === 'admin'; // admin defaults to visible if no pageAccess loaded yet
       const accessMap = {
         'pos': 'dashboard',
         'orders': 'history',
@@ -291,10 +297,15 @@ export default function Sidebar({ isDashboardPage = false }) {
         'kot': 'kot',
         'admin': 'admin',
         'hotel': 'hotel',
-        'invoice': 'invoice'
+        'invoice': 'invoice',
+        'billing': 'completeBill',
+        'books': 'admin',
+        'dineai': 'analytics',
+        'shifts': 'admin',
+        'google-reviews': 'admin',
       };
       const accessKey = accessMap[item.id];
-      if (!accessKey) return false;
+      if (!accessKey) return true; // no access mapping = always visible (e.g. home, profile)
       const accessValue = pageAccess[accessKey];
       if (typeof accessValue === 'object' && accessValue !== null) {
         return Object.values(accessValue).some(Boolean);
@@ -302,7 +313,7 @@ export default function Sidebar({ isDashboardPage = false }) {
       return !!accessValue;
     }
 
-    if (['owner', 'manager', 'waiter'].includes(user.role)) {
+    if (['owner', 'waiter'].includes(user.role)) {
       return item.roles.includes(user.role);
     }
 

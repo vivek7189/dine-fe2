@@ -280,8 +280,8 @@ function NavigationContent({ isHidden = false }) {
         }
 
         // Set restaurant data for staff and owners
-        if (parsedUser.restaurantId) {
-          // First try to use restaurant data from login response
+        if (parsedUser.restaurantId && !['owner', 'customer', 'admin'].includes(parsedUser.role)) {
+          // Non-admin staff: use their single assigned restaurant from login data
           if (parsedUser.restaurant) {
             setSelectedRestaurant(parsedUser.restaurant);
           } else {
@@ -306,7 +306,7 @@ function NavigationContent({ isHidden = false }) {
               console.error('Error fetching restaurant data:', error);
             }
           }
-        } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
+        } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer' || parsedUser.role === 'admin') {
           // For owners, get all their restaurants
           try {
             const token = localStorage.getItem('authToken');
@@ -380,22 +380,18 @@ function NavigationContent({ isHidden = false }) {
   };
   
   const getAllNavItems = () => [
-    { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'manager', 'waiter', 'employee'] },
-    { id: 'pos', name: t('nav.dashboard'), icon: FaCashRegister, href: '/dashboard', color: '#ef4444', gradient: 'from-red-500 to-red-600', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', gradient: 'from-amber-500 to-amber-600', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', gradient: 'from-blue-500 to-blue-600', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'manager'] },
-    { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', gradient: 'from-emerald-500 to-emerald-600', roles: ['owner', 'manager'] },
-    { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', gradient: 'from-teal-500 to-teal-600', roles: ['owner', 'manager'] },
-    // Analytics - Commented out temporarily
-    // { id: 'analytics', name: t('nav.analytics'), icon: FaChartBar, href: '/analytics', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'manager'] },
-    { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', gradient: 'from-cyan-500 to-cyan-600', roles: ['owner'] },
+    { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
+    { id: 'pos', name: t('nav.dashboard'), icon: FaCashRegister, href: '/dashboard', color: '#ef4444', gradient: 'from-red-500 to-red-600', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', gradient: 'from-amber-500 to-amber-600', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', gradient: 'from-blue-500 to-blue-600', roles: ['owner', 'admin', 'manager', 'waiter'] },
+    { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', gradient: 'from-violet-500 to-violet-600', roles: ['owner', 'admin', 'manager'] },
+    { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', gradient: 'from-emerald-500 to-emerald-600', roles: ['owner', 'admin', 'manager'] },
+    { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', gradient: 'from-teal-500 to-teal-600', roles: ['owner', 'admin', 'manager'] },
+    { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', gradient: 'from-cyan-500 to-cyan-600', roles: ['owner', 'admin'] },
     { id: 'headquarters', name: 'Headquarters', icon: FaStore, href: '/headquarters', color: '#dc2626', gradient: 'from-red-600 to-red-700', roles: ['owner'] },
-    { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', gradient: 'from-pink-500 to-pink-600', roles: ['owner'] },
-    { id: 'kot', name: t('nav.kot'), icon: FaPrint, href: '/kot', color: '#f97316', gradient: 'from-orange-500 to-orange-600', roles: ['owner', 'manager', 'waiter'] },
-    { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'manager'] },
-    // Automation - Commented out temporarily
-    // { id: 'automation', name: 'Automation', icon: FaRobot, href: '/automation', color: '#10b981', gradient: 'from-emerald-500 to-emerald-600', roles: ['owner', 'manager'] },
+    { id: 'admin', name: t('nav.admin'), icon: FaUsers, href: '/admin', color: '#ec4899', gradient: 'from-pink-500 to-pink-600', roles: ['owner', 'admin'] },
+    { id: 'kot', name: t('nav.kot'), icon: FaPrint, href: '/kot', color: '#f97316', gradient: 'from-orange-500 to-orange-600', roles: ['owner', 'admin', 'manager', 'waiter'] },
+    { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', gradient: 'from-indigo-500 to-indigo-600', roles: ['owner', 'admin', 'manager'] },
   ];
 
   // Filter navigation items based on user role and page access
@@ -414,12 +410,10 @@ function NavigationContent({ isHidden = false }) {
       return false;
     }
 
-    // For staff users, check page access
-    if (user.role === 'employee' || user.role === 'manager') {
-      // Don't show items until pageAccess is loaded
-      if (!pageAccess) return false;
-
-      // Map navigation IDs to page access keys
+    // For staff users (admin, manager, employee, cashier, sales), check pageAccess
+    if (['admin', 'manager', 'employee', 'cashier', 'sales'].includes(user.role)) {
+      if (!item.roles.includes(user.role)) return false;
+      if (!pageAccess) return user.role === 'admin'; // admin defaults visible
       const accessMap = {
         'pos': 'dashboard',
         'orders': 'history',
@@ -427,22 +421,26 @@ function NavigationContent({ isHidden = false }) {
         'customers': 'customers',
         'menu': 'menu',
         'inventory': 'inventory',
-        // 'analytics': 'analytics', // Commented out temporarily
         'kot': 'kot',
         'admin': 'admin',
-        'hotel': 'hotel' // Added hotel access
+        'hotel': 'hotel',
+        'billing': 'completeBill',
       };
-
       const accessKey = accessMap[item.id];
-      return accessKey ? pageAccess[accessKey] : false;
+      if (!accessKey) return true;
+      const accessValue = pageAccess[accessKey];
+      if (typeof accessValue === 'object' && accessValue !== null) {
+        return Object.values(accessValue).some(Boolean);
+      }
+      return !!accessValue;
     }
 
-    // For owners, use role-based filtering
-    if (['owner', 'manager', 'waiter'].includes(user.role)) {
+    // For owners and waiters, use role-based filtering
+    if (['owner', 'waiter'].includes(user.role)) {
       return item.roles.includes(user.role);
     }
 
-    return false; // Default to not showing items
+    return false;
   });
 
   const handleNavItemClick = () => {
@@ -885,7 +883,7 @@ function NavigationContent({ isHidden = false }) {
             )}
             
             {/* Restaurant Selector - Desktop Only */}
-            {!isMobile && (user?.role === 'owner' || user?.role === 'customer') && allRestaurants.length > 1 && (
+            {!isMobile && (user?.role === 'owner' || user?.role === 'customer' || user?.role === 'admin') && allRestaurants.length > 1 && (
               <div style={{ position: 'relative', zIndex: 1000 }} data-restaurant-dropdown>
                 <button
                     onClick={(e) => {

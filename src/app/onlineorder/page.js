@@ -810,6 +810,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
   }, {});
 
   // OTP functions
+  // Test/dummy phone numbers that bypass Firebase OTP
+  const isDummyPhone = (phone) => {
+    const cleaned = phone.replace(/\D/g, '');
+    return cleaned === '9000000001' || cleaned === '919000000001';
+  };
+
   const sendOtp = async () => {
     if (!customerInfo.phone.trim()) {
       setError('Please enter your phone number');
@@ -819,6 +825,25 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
     try {
       setSendingOtp(true);
       setError('');
+
+      let phoneNumber = customerInfo.phone.trim();
+      if (!phoneNumber.startsWith('+')) {
+        phoneNumber = '+91' + phoneNumber;
+      }
+
+      // Dummy test account — bypass Firebase, use backend OTP
+      if (isDummyPhone(phoneNumber)) {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        await fetch(`${apiUrl}/api/auth/phone/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phoneNumber }),
+        });
+        setVerificationId('dummy-test-account');
+        setOtpSent(true);
+        setShowOtpModal(true);
+        return;
+      }
 
       // Lazy-load Firebase on first OTP use
       await loadFirebase();
@@ -831,11 +856,6 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
 
       if (!isFirebaseConfigured || !isFirebaseConfigured()) {
         throw new Error('Firebase not configured - using demo mode');
-      }
-
-      let phoneNumber = customerInfo.phone.trim();
-      if (!phoneNumber.startsWith('+')) {
-        phoneNumber = '+91' + phoneNumber;
       }
 
       if (window.recaptchaVerifier) {
@@ -904,8 +924,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
   };
 
   const verifyOtp = async () => {
-    if (!otp.trim() || otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+    const isDummy = verificationId === 'dummy-test-account';
+    const isDemo = verificationId === 'demo-verification-id';
+    const requiredLen = (isDummy) ? 4 : 6;
+
+    if (!otp.trim() || otp.length !== requiredLen) {
+      setError(`Please enter a valid ${requiredLen}-digit OTP`);
       return;
     }
 
@@ -915,7 +939,23 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
 
       let uid = null;
 
-      if (verificationId === 'demo-verification-id') {
+      if (isDummy) {
+        // Test account — verify via backend
+        let phoneNumber = customerInfo.phone.trim();
+        if (!phoneNumber.startsWith('+')) phoneNumber = '+91' + phoneNumber;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+        const resp = await fetch(`${apiUrl}/api/auth/phone/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phoneNumber, otp, name: customerInfo.name || 'Test User' }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          setError(data.error || 'Invalid OTP');
+          return;
+        }
+        uid = data.userId || 'test-user-uid';
+      } else if (isDemo) {
         if (otp === '123456') {
           uid = 'demo-firebase-uid';
         } else {
@@ -2049,6 +2089,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
           setOtp={setOtp}
           sendingOtp={sendingOtp}
           error={error}
+          otpLength={verificationId === 'dummy-test-account' ? 4 : 6}
           onCancel={() => {
             setShowOtpModal(false);
             setShowLoginPopup(false);
@@ -3156,7 +3197,7 @@ const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError
 };
 
 // OTP Modal Component
-const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onVerify }) => {
+const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onVerify, otpLength = 6 }) => {
   return (
     <div style={{
       position: 'fixed',
@@ -3193,7 +3234,7 @@ const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onV
             Verify Your Phone
           </h2>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-            We sent a 6-digit code to <strong>{customerPhone}</strong>
+            We sent a {otpLength}-digit code to <strong>{customerPhone}</strong>
           </p>
         </div>
 
@@ -3214,9 +3255,9 @@ const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onV
           <input
             type="text"
             value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="Enter 6-digit code"
-            maxLength={6}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, otpLength))}
+            placeholder={`Enter ${otpLength}-digit code`}
+            maxLength={otpLength}
             autoFocus
             style={{
               width: '100%',
@@ -3252,10 +3293,10 @@ const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onV
           </button>
           <button
             onClick={onVerify}
-            disabled={sendingOtp || otp.length !== 6}
+            disabled={sendingOtp || otp.length !== otpLength}
             style={{
               flex: 1,
-              background: sendingOtp || otp.length !== 6
+              background: sendingOtp || otp.length !== otpLength
                 ? '#d1d5db'
                 : 'linear-gradient(135deg, #ef4444, #dc2626)',
               color: 'white',
@@ -3264,7 +3305,7 @@ const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onV
               borderRadius: '12px',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: sendingOtp || otp.length !== 6 ? 'not-allowed' : 'pointer',
+              cursor: sendingOtp || otp.length !== otpLength ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

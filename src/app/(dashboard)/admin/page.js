@@ -31,6 +31,7 @@ import {
   FaCopy,
   FaUserCog,
   FaCheck,
+  FaCheckCircle,
   FaTimes,
   FaPercentage,
   FaSave,
@@ -703,35 +704,63 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
                   UPI QR Code Image
                 </label>
                 {settings.upiQrCodeUrl ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '12px', border: '2px solid #e5e7eb' }}>
-                      <img src={settings.upiQrCodeUrl} alt="UPI QR" style={{ width: '180px', height: '180px', objectFit: 'contain', display: 'block' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                    <div style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '12px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                      <img src={settings.upiQrCodeUrl} alt="UPI QR" style={{ width: '200px', height: '200px', objectFit: 'contain', display: 'block' }} />
                     </div>
-                    <button
-                      onClick={() => setSettings(prev => ({ ...prev, upiQrCodeUrl: '' }))}
-                      style={{
-                        padding: '8px 16px', backgroundColor: '#fee2e2', color: '#dc2626',
-                        border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                      }}
-                    >
-                      <FaTimes size={12} /> Remove QR Code
-                    </button>
+                    <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <FaCheckCircle size={12} /> QR Code uploaded
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <label style={{
+                        padding: '8px 16px', backgroundColor: '#eef2ff', color: '#6366f1',
+                        border: '1px solid #c7d2fe', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                        cursor: uploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                        opacity: uploading ? 0.6 : 1,
+                      }}>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/jpg,image/webp"
+                          onChange={(e) => handleUpload(e.target.files?.[0])}
+                          style={{ display: 'none' }}
+                          disabled={uploading}
+                        />
+                        {uploading ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={12} /> : <FaDownload size={12} />}
+                        {uploading ? 'Uploading…' : 'Change QR'}
+                      </label>
+                      <button
+                        onClick={() => setSettings(prev => ({ ...prev, upiQrCodeUrl: '' }))}
+                        disabled={uploading}
+                        style={{
+                          padding: '8px 16px', backgroundColor: '#fee2e2', color: '#dc2626',
+                          border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                          cursor: uploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                          opacity: uploading ? 0.6 : 1,
+                        }}
+                      >
+                        <FaTimes size={12} /> Remove
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <label style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     padding: '32px', border: '2px dashed #cbd5e1', borderRadius: '12px',
-                    backgroundColor: '#f8fafc', cursor: 'pointer', gap: '8px',
+                    backgroundColor: '#f8fafc', cursor: uploading ? 'not-allowed' : 'pointer', gap: '8px',
+                    opacity: uploading ? 0.6 : 1,
                   }}>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/jpg,image/webp"
                       onChange={(e) => handleUpload(e.target.files?.[0])}
                       style={{ display: 'none' }}
+                      disabled={uploading}
                     />
                     {uploading ? (
-                      <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={24} color="#6366f1" />
+                      <>
+                        <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={24} color="#6366f1" />
+                        <span style={{ fontSize: '13px', color: '#6366f1', fontWeight: 600 }}>Uploading…</span>
+                      </>
                     ) : (
                       <>
                         <FaDownload size={24} color="#6366f1" />
@@ -3026,6 +3055,25 @@ const Admin = () => {
     legalBusinessName: '', gstin: '', staffCount: '', seatingCapacity: ''
   });
   const [editLoading, setEditLoading] = useState(false);
+
+  const ROLE_DEFAULT_PAGE_ACCESS = {
+    admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:true, completeBill:true, invoice:true, customers:true, offers:true },
+    manager:  { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:false, completeBill:true, invoice:true, customers:true, offers:true },
+    waiter:   { dashboard:true, history:true, tables:true, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false },
+    cashier:  { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:true, invoice:true, customers:false, offers:false },
+    employee: { dashboard:true, history:true, tables:true, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false },
+    sales:    { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:true, offers:true },
+  };
+
+  const ROLE_DESCRIPTIONS = {
+    admin:    'Full access like owner, scoped to assigned restaurants. Can manage multiple locations.',
+    manager:  'Elevated staff with access to most features. Cannot access admin settings by default.',
+    waiter:   'Service staff. Basic access to tables, orders, and menu.',
+    cashier:  'Billing-focused staff. Access to POS, orders, and invoices.',
+    employee: 'Basic staff. Only gets access to what you explicitly grant.',
+    sales:    'Sales staff. Access to customers and offers by default.',
+  };
+
   const [newStaff, setNewStaff] = useState({
     name: '',
     phone: '',
@@ -3043,13 +3091,14 @@ const Admin = () => {
       inventory: false,
       kot: false,
       admin: false,
+      completeBill: false,
       invoice: false,
       customers: false,
       offers: false
     }
   });
   const [showPassword, setShowPassword] = useState({});
-  const [customRoles, setCustomRoles] = useState(['employee', 'manager', 'admin']);
+  const [customRoles, setCustomRoles] = useState(['employee', 'waiter', 'cashier', 'manager', 'sales', 'admin']);
   const [newCustomRole, setNewCustomRole] = useState('');
   const [currentUserRole, setCurrentUserRole] = useState('owner');
   const [copiedCredentials, setCopiedCredentials] = useState({});
@@ -4024,7 +4073,10 @@ const Admin = () => {
       'owner': 4,
       'admin': 3,
       'manager': 2,
-      'employee': 1
+      'waiter': 1,
+      'cashier': 1,
+      'employee': 1,
+      'sales': 1
     };
     
     const currentLevel = roleHierarchy[currentUserRole] || 0;
@@ -5911,7 +5963,15 @@ const Admin = () => {
                 </label>
                 <select
                   value={newStaff.role}
-                  onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                  onChange={(e) => {
+                    const selectedRole = e.target.value;
+                    const roleDefaults = ROLE_DEFAULT_PAGE_ACCESS[selectedRole];
+                    if (roleDefaults) {
+                      setNewStaff(prev => ({ ...prev, role: selectedRole, pageAccess: { ...roleDefaults } }));
+                    } else {
+                      setNewStaff(prev => ({ ...prev, role: selectedRole }));
+                    }
+                  }}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -5937,6 +5997,17 @@ const Admin = () => {
                   })}
                   <option value="custom" style={{ fontStyle: 'italic', color: '#6b7280' }}>+ Add Custom Role</option>
                 </select>
+                {ROLE_DESCRIPTIONS[newStaff.role] && (
+                  <div style={{
+                    marginTop: '8px', padding: '10px 14px',
+                    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                    borderLeft: '3px solid #3b82f6', borderRadius: '8px',
+                    fontSize: '13px', color: '#475569', lineHeight: '1.5'
+                  }}>
+                    <span style={{ fontWeight: 600, color: '#1e40af' }}>{newStaff.role?.charAt(0).toUpperCase() + newStaff.role?.slice(1)}:</span>{' '}
+                    {ROLE_DESCRIPTIONS[newStaff.role]}
+                  </div>
+                )}
               </div>
 
               {/* Custom Role Input */}
