@@ -153,7 +153,7 @@ export default function Sidebar({ isDashboardPage = false }) {
           }
         }
 
-        if (parsedUser.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(parsedUser.role)) {
+        if (parsedUser.restaurantId && ['waiter', 'manager', 'employee', 'cashier', 'admin', 'sales'].includes(parsedUser.role)) {
           if (parsedUser.restaurant) {
             setSelectedRestaurant(parsedUser.restaurant);
           }
