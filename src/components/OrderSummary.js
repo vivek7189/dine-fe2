@@ -10,6 +10,7 @@ import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngi
 import { getBillPrintCSS, getKOTPrintCSS } from '../utils/printFontSizes';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
+import UpiPaymentModal from './UpiPaymentModal';
 import {
   FaShoppingCart,
   FaTimes,
@@ -116,6 +117,7 @@ const OrderSummary = ({
   setActivePricingRuleId,
   autoSelectedRule = false,
   setAutoSelectedRule,
+  upiSettings = {},
 }) => {
   // Business-type-aware billing labels
   const billingLabels = {
@@ -170,6 +172,8 @@ const OrderSummary = ({
   // Customer Lookup Hook
   const { customerData, lookupStatus, triggerLookup, clearCustomer } = useCustomerLookup({ restaurantId, countryCode });
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showUpiQr, setShowUpiQr] = useState(false);
+  const [pendingUpiAction, setPendingUpiAction] = useState(null); // 'place' | 'complete'
 
   // Offer Engine Hook
   const {
@@ -681,51 +685,80 @@ const OrderSummary = ({
     }
   };
   
+  const upiConfigured = upiSettings?.upiEnabled && upiSettings?.upiId;
+
+  // Build tax data helper (shared by Place Order, Complete Billing, and UPI confirm)
+  const buildTaxData = () => {
+    const cashReceivedNum = parseFloat(cashReceived) || 0;
+    const changeReturned = cashReceivedNum > 0 ? Math.max(0, cashReceivedNum - grandTotal) : 0;
+    const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0)
+      ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }))
+      : null;
+    const allOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
+      ? selectedOfferIds
+      : (selectedOfferId ? [selectedOfferId] : []);
+    return {
+      taxBreakdown,
+      totalTax,
+      finalAmount: grandTotal,
+      subtotal: getTotalAmount(),
+      specialInstructions: specialInstructions.trim() || null,
+      offerIds: allOfferIds,
+      manualDiscount: getManualDiscountAmount(),
+      offerDiscount,
+      selectedOfferName,
+      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
+      redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
+      loyaltyDiscount: getLoyaltyDiscountAmount(),
+      serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
+      serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
+      tipAmount: tipAmount > 0 ? tipAmount : null,
+      tipPercentage: tipPercentage || null,
+      cashReceived: cashReceivedNum > 0 ? cashReceivedNum : null,
+      changeReturned: changeReturned > 0 ? changeReturned : null,
+      splitPayments: validSplitPayments,
+      roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
+      compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
+      voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
+      partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
+      managerPin: managerPin || null,
+    };
+  };
+
+  const handleUpiConfirm = async () => {
+    setShowUpiQr(false);
+    if (pendingUpiAction === 'place') {
+      if (typeof onPlaceOrder === 'function') {
+        onPlaceOrder(buildTaxData());
+      }
+      if (isMobile && onClose) {
+        setTimeout(() => onClose(), 500);
+      }
+    } else if (pendingUpiAction === 'complete') {
+      if (typeof onProcessOrder === 'function') {
+        try {
+          const result = await onProcessOrder(buildTaxData());
+          if (result && result.orderId) {
+            await generateInvoice(result.orderId);
+          }
+        } catch (error) {
+          console.error('Error in UPI confirm order:', error);
+        }
+      }
+    }
+    setPendingUpiAction(null);
+  };
+
   const handleProcessOrder = async () => {
+    // Intercept UPI — show QR modal before processing
+    if (paymentMethod === 'upi' && upiConfigured) {
+      setPendingUpiAction('complete');
+      setShowUpiQr(true);
+      return;
+    }
     if (typeof onProcessOrder === 'function') {
       try {
-        // Pass tax data and special instructions to the handler
-        // Determine change for cash tendering
-        const cashReceivedNum = parseFloat(cashReceived) || 0;
-        const changeReturned = cashReceivedNum > 0 ? Math.max(0, cashReceivedNum - grandTotal) : 0;
-
-        // Validate split payments if used
-        const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0)
-          ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) }))
-          : null;
-
-        const allOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
-          ? selectedOfferIds
-          : (selectedOfferId ? [selectedOfferId] : []);
-
-        const taxData = {
-          taxBreakdown,
-          totalTax,
-          finalAmount: grandTotal,
-          subtotal: getTotalAmount(),
-          specialInstructions: specialInstructions.trim() || null,
-          offerIds: allOfferIds,
-          manualDiscount: getManualDiscountAmount(),
-          offerDiscount,
-          selectedOfferName,
-          totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
-          // Loyalty fields
-          redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
-          loyaltyDiscount: getLoyaltyDiscountAmount(),
-          // Billing fields
-          serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
-          serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
-          tipAmount: tipAmount > 0 ? tipAmount : null,
-          tipPercentage: tipPercentage || null,
-          cashReceived: cashReceivedNum > 0 ? cashReceivedNum : null,
-          changeReturned: changeReturned > 0 ? changeReturned : null,
-          splitPayments: validSplitPayments,
-          roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
-          compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
-          voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
-          partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
-          managerPin: managerPin || null,
-        };
+        const taxData = buildTaxData();
         const result = await onProcessOrder(taxData);
         console.log('Process order result:', result);
         // If order was successful and we have an order ID, generate invoice
@@ -3345,36 +3378,14 @@ const OrderSummary = ({
 
               <button
                 onClick={() => {
+                  // Intercept UPI — show QR modal
+                  if (paymentMethod === 'upi' && upiConfigured) {
+                    setPendingUpiAction('place');
+                    setShowUpiQr(true);
+                    return;
+                  }
                   if (typeof onPlaceOrder === 'function') {
-                    const cashReceivedNum = parseFloat(cashReceived) || 0;
-                    const validSplitPayments = billingSettings.splitPaymentEnabled && splitPayments.length >= 2 && splitPayments.every(sp => sp.amount > 0)
-                      ? splitPayments.map(sp => ({ method: sp.method, amount: Number(sp.amount) })) : null;
-                    const placeOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
-                      ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : []);
-                    const taxData = {
-                      taxBreakdown, totalTax, finalAmount: grandTotal, subtotal: getTotalAmount(),
-                      specialInstructions: specialInstructions.trim() || null,
-                      offerIds: placeOfferIds,
-                      manualDiscount: getManualDiscountAmount(),
-                      offerDiscount,
-                      selectedOfferName,
-                      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
-                      redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
-                      loyaltyDiscount: getLoyaltyDiscountAmount(),
-                      serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
-                      serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
-                      tipAmount: tipAmount > 0 ? tipAmount : null,
-                      tipPercentage: tipPercentage || null,
-                      cashReceived: cashReceivedNum > 0 ? cashReceivedNum : null,
-                      changeReturned: cashReceivedNum > grandTotal ? cashReceivedNum - grandTotal : null,
-                      splitPayments: validSplitPayments,
-                      roundOffAmount: roundOffAmount !== 0 ? roundOffAmount : null,
-                      compItems: compVoidItems.filter(cv => cv.type === 'comp').length > 0 ? compVoidItems.filter(cv => cv.type === 'comp') : null,
-                      voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
-                      partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
-                      managerPin: managerPin || null,
-                    };
-                    onPlaceOrder(taxData);
+                    onPlaceOrder(buildTaxData());
                   }
                   if (isMobile && onClose) {
                     setTimeout(() => onClose(), 500);
@@ -4020,6 +4031,17 @@ const OrderSummary = ({
           onClose={() => setShowCustomerModal(false)}
         />
       )}
+      <UpiPaymentModal
+        isOpen={showUpiQr}
+        onClose={() => { setShowUpiQr(false); setPendingUpiAction(null); }}
+        onConfirmPayment={handleUpiConfirm}
+        amount={grandTotal}
+        restaurantName={restaurantName}
+        upiId={upiSettings?.upiId}
+        upiQrCodeUrl={upiSettings?.upiQrCodeUrl}
+        upiDisplayName={upiSettings?.upiDisplayName}
+        formatCurrency={formatCurrency}
+      />
     </div>
   );
 };

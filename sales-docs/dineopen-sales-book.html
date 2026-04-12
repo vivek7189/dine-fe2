@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DineOpen - Complete Sales Book 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #111827;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page { size: A4; margin: 0; }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 48px 44px;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @media screen {
+    .page { box-shadow: 0 4px 40px rgba(0,0,0,0.08); margin: 20px auto; }
+  }
+
+  /* ===== SHARED STYLES ===== */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+
+  .logo-box {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 900; font-size: 14px;
+    box-shadow: 0 3px 10px rgba(239,68,68,0.25);
+  }
+
+  .logo-text { font-size: 20px; font-weight: 900; color: #111827; }
+
+  .page-label {
+    font-size: 10px; font-weight: 700; color: #9ca3af;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .page-num {
+    position: absolute; bottom: 20px; right: 44px;
+    font-size: 10px; color: #d1d5db; font-weight: 600;
+  }
+
+  .section-title {
+    font-size: 22px; font-weight: 900; color: #111827;
+    margin-bottom: 8px; letter-spacing: -0.5px;
+  }
+
+  .section-subtitle {
+    font-size: 14px; color: #6b7280; line-height: 1.5;
+    margin-bottom: 24px; max-width: 560px;
+  }
+
+  .red { color: #ef4444; }
+  .green { color: #10b981; }
+  .bold { font-weight: 700; }
+
+  .red-bar {
+    width: 40px; height: 4px; background: #ef4444;
+    border-radius: 2px; margin-bottom: 12px;
+  }
+
+  .badge-sm {
+    display: inline-block;
+    background: #fef2f2; color: #dc2626;
+    font-size: 10px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px;
+    border: 1px solid #fecaca; margin-bottom: 14px;
+  }
+
+  /* ===== COVER PAGE ===== */
+  .cover {
+    background: linear-gradient(160deg, #111827 0%, #1f2937 40%, #111827 100%);
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center; color: #fff;
+    position: relative;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(239,68,68,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(239,68,68,0.1) 0%, transparent 50%);
+  }
+
+  .cover-content { position: relative; z-index: 1; }
+
+  .cover-logo {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 900; font-size: 32px;
+    margin: 0 auto 24px;
+    box-shadow: 0 8px 32px rgba(239,68,68,0.4);
+  }
+
+  .cover h1 {
+    font-size: 48px; font-weight: 900;
+    line-height: 1.05; margin-bottom: 16px;
+    letter-spacing: -1.5px;
+  }
+
+  .cover h1 span { color: #ef4444; }
+
+  .cover p {
+    font-size: 18px; color: #9ca3af;
+    max-width: 500px; margin: 0 auto 40px;
+    line-height: 1.5;
+  }
+
+  .cover-stats {
+    display: flex; gap: 40px; justify-content: center;
+    margin-bottom: 48px;
+  }
+
+  .cover-stat-num {
+    font-size: 36px; font-weight: 900; color: #ef4444;
+    line-height: 1;
+  }
+
+  .cover-stat-label {
+    font-size: 11px; color: #6b7280; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;
+  }
+
+  .cover-footer {
+    position: absolute; bottom: 40px; left: 0; right: 0;
+    text-align: center; font-size: 12px; color: #4b5563;
+  }
+
+  .cover-footer a { color: #ef4444; text-decoration: none; font-weight: 600; }
+
+  /* ===== FEATURE CARDS ===== */
+  .feature-grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+
+  .feat-card {
+    background: #fff; border: 1px solid #f3f4f6;
+    border-radius: 14px; padding: 18px;
+    transition: all 0.2s;
+  }
+
+  .feat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+
+  .feat-card-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin-bottom: 10px;
+  }
+
+  .feat-card h4 {
+    font-size: 14px; font-weight: 800; color: #111827;
+    margin-bottom: 4px;
+  }
+
+  .feat-card p {
+    font-size: 11.5px; color: #6b7280; line-height: 1.45;
+  }
+
+  .feat-card ul {
+    list-style: none; padding: 0; margin-top: 6px;
+  }
+
+  .feat-card ul li {
+    font-size: 11px; color: #374151; padding: 2px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .feat-card ul li::before {
+    content: ''; width: 5px; height: 5px;
+    background: #ef4444; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ===== PRICING ===== */
+  .pricing-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+
+  .plan-card {
+    background: #fff; border: 1.5px solid #e5e7eb;
+    border-radius: 14px; padding: 20px 16px;
+    text-align: center; position: relative;
+  }
+
+  .plan-card.popular {
+    border-color: #ef4444;
+    box-shadow: 0 4px 20px rgba(239,68,68,0.12);
+  }
+
+  .popular-badge {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff; font-size: 9px; font-weight: 800;
+    padding: 3px 12px; border-radius: 999px; white-space: nowrap;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .plan-name { font-size: 17px; font-weight: 800; color: #111827; margin-bottom: 2px; }
+  .plan-for { font-size: 10px; color: #9ca3af; font-weight: 500; margin-bottom: 10px; }
+
+  .plan-price {
+    font-size: 30px; font-weight: 900; color: #111827; line-height: 1;
+  }
+  .plan-price .cur { font-size: 16px; vertical-align: super; }
+  .plan-price .per { font-size: 12px; color: #9ca3af; font-weight: 500; }
+
+  .plan-strike { font-size: 12px; color: #9ca3af; text-decoration: line-through; margin-top: 2px; }
+  .plan-billed { font-size: 9.5px; color: #6b7280; margin-top: 2px; margin-bottom: 12px; }
+
+  .plan-features { text-align: left; list-style: none; padding: 0; }
+
+  .plan-features li {
+    font-size: 10.5px; color: #374151; padding: 2.5px 0;
+    display: flex; align-items: flex-start; gap: 5px; line-height: 1.3;
+  }
+
+  .plan-features li::before { content: '✓'; color: #10b981; font-weight: 800; font-size: 10px; flex-shrink: 0; }
+  .plan-features li.no::before { content: '✗'; color: #d1d5db; }
+  .plan-features li.no { color: #d1d5db; }
+
+  .ent-card {
+    background: linear-gradient(135deg, #111827, #1f2937);
+    color: #fff; border-radius: 14px; padding: 20px 16px; text-align: center;
+  }
+  .ent-card .plan-name { color: #fff; }
+  .ent-card .plan-for { color: #9ca3af; }
+  .ent-card .plan-features li { color: #d1d5db; }
+  .ent-card .plan-features li::before { color: #34d399; }
+
+  /* ===== COMPARISON TABLE ===== */
+  .compare-table {
+    width: 100%; border-collapse: collapse; font-size: 11.5px;
+  }
+
+  .compare-table th {
+    background: #f9fafb; padding: 10px 12px; text-align: left;
+    font-weight: 700; color: #374151; border-bottom: 2px solid #e5e7eb;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .compare-table td {
+    padding: 8px 12px; border-bottom: 1px solid #f3f4f6; color: #374151;
+  }
+
+  .compare-table tr.highlight td {
+    background: #fef2f2; font-weight: 700; color: #dc2626;
+  }
+
+  .chk { color: #10b981; font-weight: 800; }
+  .nope { color: #d1d5db; }
+
+  /* ===== CALLOUT BOXES ===== */
+  .callout {
+    border-radius: 12px; padding: 16px 20px;
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .callout-green { background: #ecfdf5; border: 1px solid #a7f3d0; }
+  .callout-yellow { background: #fef3c7; border: 1px solid #fbbf24; }
+  .callout-red { background: #fef2f2; border: 1px solid #fecaca; }
+
+  .callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+  .callout-text {
+    font-size: 12px; line-height: 1.5;
+  }
+
+  .callout-text strong { font-weight: 700; }
+
+  /* ===== VERTICAL CHIPS ===== */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .chip {
+    background: #f3f4f6; color: #374151;
+    font-size: 11px; font-weight: 600;
+    padding: 6px 14px; border-radius: 999px;
+  }
+
+  .chip.red { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+  /* ===== TIMELINE ===== */
+  .timeline { margin: 0; padding: 0; list-style: none; }
+
+  .timeline li {
+    display: flex; gap: 14px; margin-bottom: 16px;
+    position: relative;
+  }
+
+  .timeline li::before {
+    content: ''; position: absolute;
+    left: 15px; top: 32px; bottom: -16px;
+    width: 2px; background: #f3f4f6;
+  }
+
+  .timeline li:last-child::before { display: none; }
+
+  .tl-num {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 13px;
+    position: relative; z-index: 1;
+  }
+
+  .tl-content h4 { font-size: 14px; font-weight: 700; color: #111827; }
+  .tl-content p { font-size: 12px; color: #6b7280; line-height: 1.4; margin-top: 2px; }
+
+  /* ===== FAQ ===== */
+  .faq-item { margin-bottom: 12px; }
+
+  .faq-q {
+    font-size: 13px; font-weight: 700; color: #111827;
+    margin-bottom: 3px;
+  }
+
+  .faq-a {
+    font-size: 11.5px; color: #6b7280; line-height: 1.5;
+  }
+
+  /* ===== CTA STRIP ===== */
+  .cta-strip {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 16px; padding: 28px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    color: #fff; margin-top: 24px;
+  }
+
+  .cta-strip h3 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .cta-strip p { font-size: 12px; opacity: 0.9; }
+
+  .cta-btn {
+    background: #fff; color: #dc2626;
+    font-size: 14px; font-weight: 800;
+    padding: 12px 28px; border-radius: 10px;
+    text-decoration: none; display: inline-block;
+  }
+
+  .cta-contact {
+    font-size: 10px; opacity: 0.85; margin-top: 6px; text-align: right;
+  }
+
+  /* ===== TOOLS GRID ===== */
+  .tools-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+
+  .tool-item {
+    background: #f9fafb; border-radius: 8px; padding: 8px 10px;
+    font-size: 10.5px; color: #374151; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .tool-item::before {
+    content: ''; width: 6px; height: 6px;
+    background: #ef4444; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ===== HARDWARE ===== */
+  .hw-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+
+  .hw-card {
+    background: #f9fafb; border-radius: 12px; padding: 16px;
+    text-align: center;
+  }
+
+  .hw-icon { font-size: 28px; margin-bottom: 6px; }
+  .hw-title { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+  .hw-desc { font-size: 10.5px; color: #6b7280; line-height: 1.4; }
+
+  /* ===== VALUE PROP ROW ===== */
+  .value-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .value-card {
+    background: #fff; border: 1px solid #f3f4f6;
+    border-radius: 14px; padding: 20px; text-align: center;
+  }
+
+  .value-num {
+    font-size: 32px; font-weight: 900; color: #ef4444; line-height: 1;
+  }
+
+  .value-label {
+    font-size: 11px; color: #6b7280; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;
+  }
+
+  .value-desc {
+    font-size: 11px; color: #9ca3af; margin-top: 4px; line-height: 1.3;
+  }
+
+  /* Feature detail list */
+  .feat-detail-list {
+    list-style: none; padding: 0;
+  }
+
+  .feat-detail-list li {
+    display: flex; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid #f9fafb;
+    font-size: 12px;
+  }
+
+  .feat-detail-list li:last-child { border-bottom: none; }
+
+  .fdl-icon {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: #fef2f2; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  .fdl-name { font-weight: 700; color: #111827; }
+  .fdl-desc { color: #6b7280; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- PAGE 1: COVER -->
+<!-- ============================================================ -->
+<div class="page cover">
+  <div class="cover-content">
+    <div class="cover-logo">DO</div>
+    <h1>DineOpen<br><span>Sales Book</span></h1>
+    <p>India's most affordable AI-powered Cloud POS for restaurants, cafes, bars, cloud kitchens, and every food business.</p>
+    <div class="cover-stats">
+      <div>
+        <div class="cover-stat-num">&#8377;333</div>
+        <div class="cover-stat-label">Starting Price/mo</div>
+      </div>
+      <div>
+        <div class="cover-stat-num">0%</div>
+        <div class="cover-stat-label">Transaction Fees</div>
+      </div>
+      <div>
+        <div class="cover-stat-num">14</div>
+        <div class="cover-stat-label">Day Free Trial</div>
+      </div>
+      <div>
+        <div class="cover-stat-num">45+</div>
+        <div class="cover-stat-label">Free AI Tools</div>
+      </div>
+    </div>
+  </div>
+  <div class="cover-footer">
+    <a href="https://www.dineopen.com">www.dineopen.com</a> &nbsp;&bull;&nbsp; +91 95286 32779 &nbsp;&bull;&nbsp; April 2026 Edition
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 2: WHAT IS DINEOPEN + WHY -->
+<!-- ============================================================ -->
+<div class="page" style="background: linear-gradient(180deg, #fff 0%, #fef2f2 100%);">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">About DineOpen</div>
+  </div>
+
+  <div class="red-bar"></div>
+  <div class="section-title">What is DineOpen?</div>
+  <div class="section-subtitle">
+    DineOpen is a <strong>cloud-based, AI-powered POS (Point of Sale) system</strong> built specifically for the Indian restaurant industry. It replaces expensive legacy systems with a modern, affordable, all-in-one platform that handles billing, inventory, ordering, customer loyalty, and analytics.
+  </div>
+
+  <div class="value-row">
+    <div class="value-card">
+      <div class="value-num">&#8377;333</div>
+      <div class="value-label">Starting Price</div>
+      <div class="value-desc">Cheapest AI POS in India. Annual billing.</div>
+    </div>
+    <div class="value-card">
+      <div class="value-num">0%</div>
+      <div class="value-label">Transaction Fees</div>
+      <div class="value-desc">No commission on any order. Ever.</div>
+    </div>
+    <div class="value-card">
+      <div class="value-num">2 min</div>
+      <div class="value-label">Setup Time</div>
+      <div class="value-desc">Photograph menu, AI creates it digitally.</div>
+    </div>
+  </div>
+
+  <div class="red-bar"></div>
+  <div class="section-title">Why DineOpen?</div>
+  <div style="margin-bottom: 20px;">
+    <div class="callout callout-green">
+      <div class="callout-icon">&#128176;</div>
+      <div class="callout-text">
+        <strong>Save &#8377;26,000+ per month</strong> &mdash; Competitors charge 2-3% transaction fees. On &#8377;10 lakh monthly revenue, that's &#8377;20,000-30,000 gone. DineOpen charges <strong>0%</strong>.
+      </div>
+    </div>
+    <div class="callout callout-yellow">
+      <div class="callout-icon">&#129302;</div>
+      <div class="callout-text">
+        <strong>AI built in, not bolted on</strong> &mdash; Voice ordering in Hindi/English/Tamil/Marathi, AI menu generator from photos, AI sales insights, AI reorder suggestions. No competitor offers this at any price.
+      </div>
+    </div>
+    <div class="callout callout-red">
+      <div class="callout-icon">&#128274;</div>
+      <div class="callout-text">
+        <strong>No hardware lock-in</strong> &mdash; Works on any Android tablet, phone, or browser. Use any Bluetooth/USB/network thermal printer. No proprietary devices required.
+      </div>
+    </div>
+  </div>
+
+  <div class="red-bar"></div>
+  <div class="section-title">Who Is It For?</div>
+  <div class="chips" style="margin-bottom: 14px;">
+    <span class="chip red">Restaurants</span>
+    <span class="chip red">Cafes</span>
+    <span class="chip red">Bars &amp; Pubs</span>
+    <span class="chip red">Cloud Kitchens</span>
+    <span class="chip">Bakeries</span>
+    <span class="chip">Food Trucks</span>
+    <span class="chip">Dhabas</span>
+    <span class="chip">QSR / Fast Food</span>
+    <span class="chip">Sweet Shops / Mithai</span>
+    <span class="chip">Hotels</span>
+    <span class="chip">Fine Dining</span>
+    <span class="chip">Canteens</span>
+    <span class="chip">Catering</span>
+    <span class="chip">Tiffin Services</span>
+    <span class="chip">Ice Cream Parlors</span>
+    <span class="chip">Juice Bars</span>
+    <span class="chip">Chai Tapri</span>
+    <span class="chip">Biryani / Thali</span>
+    <span class="chip">Pizza Shops</span>
+    <span class="chip">Street Food</span>
+    <span class="chip">Pubs &amp; Breweries</span>
+    <span class="chip">Food Courts</span>
+    <span class="chip">College Canteens</span>
+  </div>
+  <div class="page-num">2</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 3: CORE PRODUCTS -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">Product Suite</div>
+  </div>
+
+  <div class="badge-sm">6 PRODUCTS, 1 PLATFORM</div>
+  <div class="section-title">The Complete Restaurant Operating System</div>
+  <div class="section-subtitle">Everything your restaurant needs in a single platform. No expensive add-ons.</div>
+
+  <div class="feature-grid-2">
+    <div class="feat-card">
+      <div class="feat-card-icon">&#127869;</div>
+      <h4>DineOpen POS</h4>
+      <p>Lightning-fast cloud billing that works on any device. GST-compliant invoices, multi-payment support, split bills, discounts, tips, and round-off.</p>
+      <ul>
+        <li>Cloud-based &mdash; no server needed</li>
+        <li>Works offline, syncs when online</li>
+        <li>KOT printing (Bluetooth/USB/network)</li>
+        <li>Multi-terminal billing</li>
+        <li>AC / Non-AC / Takeaway pricing</li>
+      </ul>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-card-icon">&#129302;</div>
+      <h4>DineOpen AI</h4>
+      <p>Industry-first AI features that no competitor offers. Voice ordering, menu generation, sales insights, and intelligent reorder suggestions.</p>
+      <ul>
+        <li>AI Voice Ordering (Hindi, English, Tamil, Marathi)</li>
+        <li>AI Menu Generator (photo to digital in 2 min)</li>
+        <li>AI Sales Assistant &amp; Insights</li>
+        <li>AI Inventory Reorder Suggestions</li>
+        <li>AI-powered customer analytics</li>
+      </ul>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-card-icon">&#128196;</div>
+      <h4>DineOpen Menu</h4>
+      <p>Digital menus with QR codes. Customers scan, browse, and order directly from their phone. Zero commission.</p>
+      <ul>
+        <li>QR code menu generation</li>
+        <li>Real-time menu updates</li>
+        <li>Photos, descriptions, dietary tags</li>
+        <li>Multi-language support</li>
+        <li>WhatsApp sharing</li>
+      </ul>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-card-icon">&#128230;</div>
+      <h4>DineOpen Inventory</h4>
+      <p>Track every ingredient, manage recipes, monitor stock levels, and get AI-powered reorder alerts.</p>
+      <ul>
+        <li>Recipe-level ingredient tracking</li>
+        <li>Vendor management &amp; purchase orders</li>
+        <li>Stock alerts &amp; AI reorder</li>
+        <li>Wastage &amp; expiry tracking</li>
+        <li>Food cost percentage reports</li>
+      </ul>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-card-icon">&#128722;</div>
+      <h4>DineOpen Orders</h4>
+      <p>Your own branded online ordering website + WhatsApp ordering bot. No aggregator commissions.</p>
+      <ul>
+        <li>Branded ordering website</li>
+        <li>WhatsApp ordering bot</li>
+        <li>QR-based table ordering</li>
+        <li>Delivery management</li>
+        <li>Swiggy/Zomato sync (Pro plan)</li>
+      </ul>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-card-icon">&#127978;</div>
+      <h4>DineOpen Hotel</h4>
+      <p>Room booking, check-in/out, room service integration with POS. Built for restaurants inside hotels.</p>
+      <ul>
+        <li>Room management &amp; booking</li>
+        <li>Guest billing &amp; room charges</li>
+        <li>Room service via POS</li>
+        <li>Multi-property support</li>
+        <li>Housekeeping coordination</li>
+      </ul>
+    </div>
+  </div>
+  <div class="page-num">3</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 4: DETAILED FEATURES -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">Feature Details</div>
+  </div>
+
+  <div class="badge-sm">COMPLETE FEATURE LIST</div>
+  <div class="section-title">Every Feature You'll Ever Need</div>
+  <div class="section-subtitle">No hidden add-ons. Every feature listed here is included in the Growth plan or above.</div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+      <h4 style="font-size: 13px; font-weight: 800; color: #ef4444; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">&#9889; Billing &amp; Payments</h4>
+      <ul class="feat-detail-list">
+        <li><div class="fdl-icon">&#128179;</div><div><div class="fdl-name">GST-Compliant Billing</div><div class="fdl-desc">CGST, SGST, IGST auto-calculated. GSTR-1 ready.</div></div></li>
+        <li><div class="fdl-icon">&#128179;</div><div><div class="fdl-name">Split Bills &amp; Partial Payments</div><div class="fdl-desc">Split by item, equal share, or custom amount.</div></div></li>
+        <li><div class="fdl-icon">&#128179;</div><div><div class="fdl-name">Multi-Payment</div><div class="fdl-desc">Cash + UPI + card in one bill. Dynamic QR for UPI.</div></div></li>
+        <li><div class="fdl-icon">&#128179;</div><div><div class="fdl-name">Discounts &amp; Offers</div><div class="fdl-desc">%, flat, BOGO, happy hour, item-level offers.</div></div></li>
+        <li><div class="fdl-icon">&#128179;</div><div><div class="fdl-name">Comp, Void &amp; Refund</div><div class="fdl-desc">Full audit trail. Manager approval for voids.</div></div></li>
+        <li><div class="fdl-icon">&#128179;</div><div><div class="fdl-name">Tips &amp; Round-off</div><div class="fdl-desc">Tip amount, percentage, or pool. Auto round-off.</div></div></li>
+      </ul>
+
+      <h4 style="font-size: 13px; font-weight: 800; color: #ef4444; margin-bottom: 10px; margin-top: 18px; text-transform: uppercase; letter-spacing: 0.5px;">&#128200; Analytics &amp; Reports</h4>
+      <ul class="feat-detail-list">
+        <li><div class="fdl-icon">&#128200;</div><div><div class="fdl-name">Real-Time Dashboard</div><div class="fdl-desc">Sales, orders, avg ticket size, top items &mdash; live.</div></div></li>
+        <li><div class="fdl-icon">&#128200;</div><div><div class="fdl-name">Profit &amp; Loss Reports</div><div class="fdl-desc">Revenue, COGS, labor, rent &mdash; outlet-wise P&L.</div></div></li>
+        <li><div class="fdl-icon">&#128200;</div><div><div class="fdl-name">AI Sales Insights</div><div class="fdl-desc">Best selling items, slow hours, trend predictions.</div></div></li>
+        <li><div class="fdl-icon">&#128200;</div><div><div class="fdl-name">Cross-Outlet Analytics</div><div class="fdl-desc">Compare performance across locations (Pro+).</div></div></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 style="font-size: 13px; font-weight: 800; color: #ef4444; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">&#127869; Operations</h4>
+      <ul class="feat-detail-list">
+        <li><div class="fdl-icon">&#128438;</div><div><div class="fdl-name">KOT Printing</div><div class="fdl-desc">Bluetooth, USB, network printers. Auto route to bar/kitchen.</div></div></li>
+        <li><div class="fdl-icon">&#128187;</div><div><div class="fdl-name">Kitchen Display (KDS)</div><div class="fdl-desc">Digital screen for kitchen. Mark items done. Priority flagging.</div></div></li>
+        <li><div class="fdl-icon">&#128101;</div><div><div class="fdl-name">Captain / Waiter App</div><div class="fdl-desc">Take orders from table. Android &amp; iOS. Real-time sync.</div></div></li>
+        <li><div class="fdl-icon">&#127869;</div><div><div class="fdl-name">Table Management</div><div class="fdl-desc">Visual table layout, merge/transfer, reservations.</div></div></li>
+        <li><div class="fdl-icon">&#128290;</div><div><div class="fdl-name">QR Ordering</div><div class="fdl-desc">Customers scan, order, pay. Reduces waiter dependency.</div></div></li>
+        <li><div class="fdl-icon">&#128222;</div><div><div class="fdl-name">WhatsApp Ordering Bot</div><div class="fdl-desc">Customers order via WhatsApp. Auto-routes to POS.</div></div></li>
+      </ul>
+
+      <h4 style="font-size: 13px; font-weight: 800; color: #ef4444; margin-bottom: 10px; margin-top: 18px; text-transform: uppercase; letter-spacing: 0.5px;">&#128101; Customer Management</h4>
+      <ul class="feat-detail-list">
+        <li><div class="fdl-icon">&#128101;</div><div><div class="fdl-name">Loyalty Program</div><div class="fdl-desc">Points-based rewards. Auto-track visits &amp; spend.</div></div></li>
+        <li><div class="fdl-icon">&#128101;</div><div><div class="fdl-name">Khata (Credit Ledger)</div><div class="fdl-desc">Track customer credit. Settle anytime. WhatsApp reminders.</div></div></li>
+        <li><div class="fdl-icon">&#128101;</div><div><div class="fdl-name">Customer Database</div><div class="fdl-desc">Auto-capture. Order history, preferences, spend analytics.</div></div></li>
+        <li><div class="fdl-icon">&#128101;</div><div><div class="fdl-name">WhatsApp Marketing</div><div class="fdl-desc">Send offers, birthday wishes, feedback requests.</div></div></li>
+      </ul>
+    </div>
+  </div>
+  <div class="page-num">4</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 5: PRICING -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">Pricing</div>
+  </div>
+
+  <div class="badge-sm">SIMPLE, TRANSPARENT PRICING</div>
+  <div class="section-title">Plans That Fit Every Restaurant</div>
+  <div class="section-subtitle">All prices on annual billing (save ~17%). Monthly billing also available. 14-day free trial on all plans. No credit card required.</div>
+
+  <div class="pricing-grid">
+    <div class="plan-card">
+      <div class="plan-name">Starter</div>
+      <div class="plan-for">For new restaurants &amp; cafes</div>
+      <div class="plan-price"><span class="cur">&#8377;</span>333<span class="per">/mo</span></div>
+      <div class="plan-strike">&#8377;999/mo</div>
+      <div class="plan-billed">Billed &#8377;3,996/year</div>
+      <ul class="plan-features">
+        <li>1 outlet</li>
+        <li>Unlimited orders &amp; items</li>
+        <li>Unlimited staff accounts</li>
+        <li>Cloud POS (web + tablet)</li>
+        <li>KOT &amp; bill printing</li>
+        <li>QR menu &amp; ordering</li>
+        <li>GST billing</li>
+        <li>Basic inventory</li>
+        <li>Daily sales reports</li>
+        <li>0% transaction fees</li>
+        <li class="no">AI Voice Ordering</li>
+        <li class="no">Captain / Waiter app</li>
+        <li class="no">Multi-outlet</li>
+      </ul>
+    </div>
+
+    <div class="plan-card popular">
+      <div class="popular-badge">MOST POPULAR</div>
+      <div class="plan-name">Growth</div>
+      <div class="plan-for">For busy restaurants</div>
+      <div class="plan-price"><span class="cur">&#8377;</span>749<span class="per">/mo</span></div>
+      <div class="plan-strike">&#8377;1,999/mo</div>
+      <div class="plan-billed">Billed &#8377;8,988/year</div>
+      <ul class="plan-features">
+        <li>Up to 2 outlets</li>
+        <li>Everything in Starter +</li>
+        <li>AI Voice Ordering</li>
+        <li>AI Menu Generator</li>
+        <li>AI Sales Assistant</li>
+        <li>Captain app (Android/iOS)</li>
+        <li>Kitchen Display (KDS)</li>
+        <li>Advanced inventory</li>
+        <li>Multi-tier pricing</li>
+        <li>Customer loyalty &amp; khata</li>
+        <li>Online ordering website</li>
+        <li>WhatsApp ordering bot</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+
+    <div class="plan-card">
+      <div class="plan-name">Pro</div>
+      <div class="plan-for">For restaurant chains</div>
+      <div class="plan-price"><span class="cur">&#8377;</span>1,499<span class="per">/mo</span></div>
+      <div class="plan-strike">&#8377;3,999/mo</div>
+      <div class="plan-billed">Billed &#8377;17,988/year</div>
+      <ul class="plan-features">
+        <li>Up to 5 outlets</li>
+        <li>Everything in Growth +</li>
+        <li>Chain dashboard &amp; HQ view</li>
+        <li>Cross-outlet analytics</li>
+        <li>Centralized menu &amp; inventory</li>
+        <li>Staff &amp; role management</li>
+        <li>Outlet-wise P&amp;L</li>
+        <li>Franchise-ready</li>
+        <li>API access</li>
+        <li>Swiggy/Zomato sync</li>
+        <li>Custom roles</li>
+        <li>Dedicated onboarding</li>
+        <li>24/7 priority support</li>
+      </ul>
+    </div>
+
+    <div class="plan-card ent-card">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-for">5+ outlets &amp; franchises</div>
+      <div class="plan-price" style="font-size: 22px; margin: 10px 0;">Custom</div>
+      <div class="plan-billed" style="color: #9ca3af;">Book a demo</div>
+      <ul class="plan-features">
+        <li>Unlimited outlets</li>
+        <li>Dedicated CSM</li>
+        <li>Custom integrations</li>
+        <li>On-site training</li>
+        <li>White-label app</li>
+        <li>Custom dashboards</li>
+        <li>SLA-backed uptime</li>
+        <li>Priority features</li>
+        <li>Volume discounts</li>
+        <li>Contract billing</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-green" style="margin-top: 20px;">
+    <div class="callout-icon">&#128161;</div>
+    <div class="callout-text">
+      <strong>Annual billing saves ~17%</strong> (effectively 2 months free). Monthly billing also available &mdash; no long-term contract. All plans include 14-day free trial with full feature access. Upgrade, downgrade, or cancel anytime.
+    </div>
+  </div>
+  <div class="page-num">5</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 6: COMPETITOR COMPARISON -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">Comparison</div>
+  </div>
+
+  <div class="badge-sm">HONEST COMPARISON</div>
+  <div class="section-title">DineOpen vs. The Competition</div>
+  <div class="section-subtitle">Real prices. No marketing tricks. We show what restaurants actually pay once mandatory add-ons are factored in.</div>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">POS System</th>
+        <th>Real Price/mo</th>
+        <th>AI Built-in</th>
+        <th>Txn Fee</th>
+        <th>Setup Fee</th>
+        <th>Hardware Lock-in</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td><strong>DineOpen Growth</strong></td>
+        <td><strong>&#8377;749/mo</strong></td>
+        <td class="chk">&#10003; Yes</td>
+        <td><strong>0%</strong></td>
+        <td><strong>Free</strong></td>
+        <td><strong>None</strong></td>
+      </tr>
+      <tr>
+        <td>Petpooja</td>
+        <td>&#8377;1,800&ndash;3,500/mo</td>
+        <td class="nope">&#10007;</td>
+        <td>0%</td>
+        <td>&#8377;3,000+</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Restroworks (POSist)</td>
+        <td>&#8377;2,000&ndash;4,000/mo</td>
+        <td class="nope">&#10007;</td>
+        <td>0%</td>
+        <td>&#8377;5,000+</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>PosBytz Pro</td>
+        <td>&#8377;1,499/mo</td>
+        <td class="nope">&#10007;</td>
+        <td>0%</td>
+        <td>Paid</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>Limetray</td>
+        <td>&#8377;1,500&ndash;5,000/mo</td>
+        <td class="nope">&#10007;</td>
+        <td>0%</td>
+        <td>Paid</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>Toast (US)</td>
+        <td>&#8377;5,800/mo (~$69)</td>
+        <td class="nope">&#10007;</td>
+        <td>2.49%</td>
+        <td>Paid</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Square (US)</td>
+        <td>&#8377;0 + 2.6%/txn</td>
+        <td class="nope">&#10007;</td>
+        <td>2.6%</td>
+        <td>Free</td>
+        <td>Yes</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-yellow" style="margin-top: 16px;">
+    <div class="callout-icon">&#9888;&#65039;</div>
+    <div class="callout-text">
+      <strong>Petpooja's advertised &#8377;833/mo is misleading.</strong> That's the base-only price. Add KOT printing module (&#8377;300+), captain app (&#8377;200+), inventory module (&#8377;300+), CRM module (&#8377;200+), and the real cost is &#8377;1,800&ndash;3,500/mo. DineOpen includes ALL of these in every plan.
+    </div>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <div class="red-bar"></div>
+    <div class="section-title" style="font-size: 18px;">Feature Comparison: DineOpen vs Petpooja</div>
+    <table class="compare-table" style="margin-top: 12px;">
+      <thead>
+        <tr><th>Feature</th><th>DineOpen</th><th>Petpooja</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>AI Voice Ordering</td><td class="chk">&#10003; Included</td><td class="nope">&#10007; Not available</td></tr>
+        <tr><td>AI Menu Generator</td><td class="chk">&#10003; Included</td><td class="nope">&#10007; Not available</td></tr>
+        <tr><td>KOT Printing</td><td class="chk">&#10003; Included</td><td>Paid add-on</td></tr>
+        <tr><td>Captain App</td><td class="chk">&#10003; Included</td><td>Paid add-on</td></tr>
+        <tr><td>Inventory Module</td><td class="chk">&#10003; Included</td><td>Paid add-on</td></tr>
+        <tr><td>Customer Loyalty</td><td class="chk">&#10003; Included</td><td>Paid add-on</td></tr>
+        <tr><td>Online Ordering</td><td class="chk">&#10003; Included</td><td>Paid add-on</td></tr>
+        <tr><td>WhatsApp Ordering</td><td class="chk">&#10003; Included</td><td class="nope">&#10007; Not available</td></tr>
+        <tr><td>Swiggy/Zomato Integration</td><td>Pro plan</td><td class="chk">&#10003; Included</td></tr>
+        <tr><td>Hardware Lock-in</td><td class="chk">&#10003; None</td><td class="nope">&#10007; Proprietary</td></tr>
+        <tr><td>Monthly Billing (no lock-in)</td><td class="chk">&#10003; Yes</td><td class="nope">Annual only</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="page-num">6</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 7: HARDWARE + ONBOARDING -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">Getting Started</div>
+  </div>
+
+  <div class="badge-sm">ZERO HARDWARE INVESTMENT</div>
+  <div class="section-title">What Hardware Do You Need?</div>
+  <div class="section-subtitle">Use devices you already own. No proprietary hardware required.</div>
+
+  <div class="hw-grid" style="margin-bottom: 28px;">
+    <div class="hw-card">
+      <div class="hw-icon">&#128241;</div>
+      <div class="hw-title">Android Tablet / Phone</div>
+      <div class="hw-desc">Any Android device with Chrome. Or use any computer with a browser. iPad also works.</div>
+    </div>
+    <div class="hw-card">
+      <div class="hw-icon">&#128424;</div>
+      <div class="hw-title">Thermal Printer</div>
+      <div class="hw-desc">Bluetooth, USB, or network. All major brands supported. Use your existing printer.</div>
+    </div>
+    <div class="hw-card">
+      <div class="hw-icon">&#128225;</div>
+      <div class="hw-title">UPI QR Stand (optional)</div>
+      <div class="hw-desc">Dynamic UPI QR generated in-app. Print or display on any stand.</div>
+    </div>
+  </div>
+
+  <div class="red-bar"></div>
+  <div class="section-title">Onboarding in 4 Simple Steps</div>
+
+  <ul class="timeline" style="margin-top: 16px; margin-bottom: 28px;">
+    <li>
+      <div class="tl-num">1</div>
+      <div class="tl-content">
+        <h4>Sign Up (1 minute)</h4>
+        <p>Visit dineopen.com/login. Enter phone number or email. Verify OTP. Done &mdash; your restaurant dashboard is live.</p>
+      </div>
+    </li>
+    <li>
+      <div class="tl-num">2</div>
+      <div class="tl-content">
+        <h4>Add Menu (2 minutes)</h4>
+        <p>Photograph your physical menu. AI reads it and creates a digital version instantly. Or manually add items. Import from Petpooja/Restroworks.</p>
+      </div>
+    </li>
+    <li>
+      <div class="tl-num">3</div>
+      <div class="tl-content">
+        <h4>Connect Printer (2 minutes)</h4>
+        <p>Pair your Bluetooth/USB/network thermal printer. Test print a KOT and bill. Works with all major printer brands.</p>
+      </div>
+    </li>
+    <li>
+      <div class="tl-num">4</div>
+      <div class="tl-content">
+        <h4>Start Billing (immediate)</h4>
+        <p>Take your first order. Print KOT. Generate bill. Accept payment. Staff training takes about 15 minutes.</p>
+      </div>
+    </li>
+  </ul>
+
+  <div class="red-bar"></div>
+  <div class="section-title" style="font-size: 18px;">Migration from Existing POS</div>
+  <div class="section-subtitle">Switching from Petpooja, Restroworks, PosBytz, Square, or Toast? We handle it.</div>
+
+  <div class="callout callout-green">
+    <div class="callout-icon">&#128640;</div>
+    <div class="callout-text">
+      <strong>Free migration included:</strong> Our team transfers your menu, customer data, and settings. Run both systems in parallel for a few days, then switch. Zero downtime, zero data loss, zero hassle.
+    </div>
+  </div>
+
+  <div class="red-bar" style="margin-top: 24px;"></div>
+  <div class="section-title" style="font-size: 18px;">Data Security &amp; Privacy</div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
+    <div class="hw-card">
+      <div class="hw-icon">&#128274;</div>
+      <div class="hw-title">Encrypted</div>
+      <div class="hw-desc">TLS 1.3 in transit. AES-256 at rest. Enterprise-grade security.</div>
+    </div>
+    <div class="hw-card">
+      <div class="hw-icon">&#9729;</div>
+      <div class="hw-title">Google Cloud</div>
+      <div class="hw-desc">Firestore + Cloud Run. 99.9% uptime. Daily automated backups.</div>
+    </div>
+    <div class="hw-card">
+      <div class="hw-icon">&#128188;</div>
+      <div class="hw-title">Your Data, Your Control</div>
+      <div class="hw-desc">Export data anytime. No vendor lock-in. You own your data.</div>
+    </div>
+  </div>
+  <div class="page-num">7</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 8: FREE AI TOOLS + SALES PARTNER INFO -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">AI Tools &amp; Resources</div>
+  </div>
+
+  <div class="badge-sm">45+ FREE AI TOOLS</div>
+  <div class="section-title">Free Tools That Build Trust</div>
+  <div class="section-subtitle">DineOpen offers 45+ free AI-powered calculators and generators on its website. These tools drive organic traffic, build trust with restaurant owners, and create warm leads for sales partners.</div>
+
+  <div class="tools-grid" style="margin-bottom: 24px;">
+    <div class="tool-item">Food Cost Calculator</div>
+    <div class="tool-item">Recipe Cost Calculator</div>
+    <div class="tool-item">Menu Price Calculator</div>
+    <div class="tool-item">GST Calculator</div>
+    <div class="tool-item">Profit Margin Calculator</div>
+    <div class="tool-item">Break-Even Calculator</div>
+    <div class="tool-item">ROI Calculator</div>
+    <div class="tool-item">Revenue Forecast</div>
+    <div class="tool-item">Bill Splitter</div>
+    <div class="tool-item">Menu Description Generator</div>
+    <div class="tool-item">Restaurant Name Generator</div>
+    <div class="tool-item">Social Caption Generator</div>
+    <div class="tool-item">Review Response Generator</div>
+    <div class="tool-item">Job Description Generator</div>
+    <div class="tool-item">Tagline Generator</div>
+    <div class="tool-item">QR Menu Generator</div>
+    <div class="tool-item">FSSAI Fee Calculator</div>
+    <div class="tool-item">Startup Cost Calculator</div>
+    <div class="tool-item">Staff Calculator</div>
+    <div class="tool-item">Swiggy/Zomato Calculator</div>
+    <div class="tool-item">Labor Cost Calculator</div>
+    <div class="tool-item">Liquor Cost Calculator</div>
+    <div class="tool-item">Kitchen Conversion</div>
+    <div class="tool-item">Seating Capacity</div>
+    <div class="tool-item">Table Turnover Calculator</div>
+    <div class="tool-item">Rent Calculator</div>
+    <div class="tool-item">Waste Calculator</div>
+    <div class="tool-item">Tip Calculator</div>
+    <div class="tool-item">EMI Calculator</div>
+    <div class="tool-item">Customer Lifetime Value</div>
+    <div class="tool-item">Delivery Radius Calculator</div>
+    <div class="tool-item">Google Review Calculator</div>
+    <div class="tool-item">Inventory PAR Calculator</div>
+    <div class="tool-item">Complaint Response Generator</div>
+    <div class="tool-item">Restaurant Valuation</div>
+    <div class="tool-item">Catering Calculator</div>
+    <div class="tool-item">Tip Pooling Calculator</div>
+    <div class="tool-item">Recipe Scaler</div>
+    <div class="tool-item">Opening Checklist</div>
+    <div class="tool-item">Closing Checklist</div>
+    <div class="tool-item">Menu Engineering Tool</div>
+    <div class="tool-item">Restaurant Invoice Generator</div>
+    <div class="tool-item">KOT System Demo</div>
+    <div class="tool-item">Loyalty Program Builder</div>
+    <div class="tool-item">Table Management Demo</div>
+  </div>
+
+  <div class="red-bar"></div>
+  <div class="section-title" style="font-size: 18px;">Sales Partner Quick Reference</div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+    <div>
+      <h4 style="font-size: 12px; font-weight: 800; color: #111827; margin-bottom: 8px;">Key Selling Points</h4>
+      <ul style="list-style: none; padding: 0;">
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">1.</span> Cheapest AI POS in India (&#8377;333/mo)</li>
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">2.</span> Zero transaction fees (saves &#8377;26K+/mo)</li>
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">3.</span> AI Voice Ordering (only POS with this)</li>
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">4.</span> 2-minute setup with AI menu generator</li>
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">5.</span> No hardware lock-in (any device works)</li>
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">6.</span> 14-day free trial, no credit card</li>
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">7.</span> Free migration from any POS</li>
+        <li style="font-size: 11.5px; padding: 4px 0; display: flex; gap: 6px; color: #374151;"><span style="color: #ef4444; font-weight: 800;">8.</span> All features included, no paid add-ons</li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="font-size: 12px; font-weight: 800; color: #111827; margin-bottom: 8px;">Objection Handling</h4>
+      <ul style="list-style: none; padding: 0; font-size: 11px;">
+        <li style="padding: 4px 0; color: #374151;"><strong>"We already use Petpooja"</strong><br><span style="color: #6b7280;">You're paying 2-5x more for fewer features. Free migration, run both in parallel.</span></li>
+        <li style="padding: 4px 0; color: #374151;"><strong>"What about Swiggy/Zomato?"</strong><br><span style="color: #6b7280;">Pro plan includes sync. But also offer your own ordering to save 25-30% commission.</span></li>
+        <li style="padding: 4px 0; color: #374151;"><strong>"Is it reliable?"</strong><br><span style="color: #6b7280;">Google Cloud infrastructure. Works offline too. Daily backups. 99.9% uptime.</span></li>
+        <li style="padding: 4px 0; color: #374151;"><strong>"My staff won't learn it"</strong><br><span style="color: #6b7280;">15-minute training. Simpler than Petpooja. AI voice ordering reduces learning curve.</span></li>
+        <li style="padding: 4px 0; color: #374151;"><strong>"Why so cheap?"</strong><br><span style="color: #6b7280;">Small team, modern tech stack, no legacy costs. We pass savings to restaurants.</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="page-num">8</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 9: FAQ + CONTACT -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area"><div class="logo-box">DO</div><div class="logo-text">DineOpen</div></div>
+    <div class="page-label">FAQ &amp; Contact</div>
+  </div>
+
+  <div class="badge-sm">FREQUENTLY ASKED QUESTIONS</div>
+  <div class="section-title">Common Questions</div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; margin-bottom: 28px; margin-top: 16px;">
+    <div class="faq-item">
+      <div class="faq-q">Is there a free trial?</div>
+      <div class="faq-a">Yes &mdash; 14-day free trial on all plans. No credit card required. Full access to every feature.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Why is DineOpen so much cheaper?</div>
+      <div class="faq-a">Modern cloud-native product. Small team, no legacy infrastructure, no sales armies. We bundle AI features that competitors charge extra for or don't offer.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What are the transaction fees?</div>
+      <div class="faq-a">DineOpen charges 0% transaction fees, ever. Only standard payment gateway fees apply. UPI is 0% with our Paytm integration.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Can I switch plans later?</div>
+      <div class="faq-a">Yes &mdash; upgrade or downgrade anytime from dashboard. Changes take effect immediately, prorated.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Is there a long-term contract?</div>
+      <div class="faq-a">No. Monthly plans are pay-as-you-go. Annual plans save 17% and can be cancelled at end of term.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What payment methods accepted?</div>
+      <div class="faq-a">UPI, all credit/debit cards, net banking, Razorpay, Paytm.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Can I migrate from Petpooja?</div>
+      <div class="faq-a">Yes! Free menu &amp; customer data migration from Petpooja, Restroworks, PosBytz, Square, Toast. Our team handles everything.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What hardware do I need?</div>
+      <div class="faq-a">Any Android tablet/phone or computer with browser + thermal printer (Bluetooth/USB/network). No proprietary hardware.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Is my data safe?</div>
+      <div class="faq-a">TLS 1.3 encryption in transit, AES at rest. Google Cloud Firestore with daily backups. You own your data, export anytime.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Do you support GST billing?</div>
+      <div class="faq-a">Full GST compliance &mdash; CGST, SGST, IGST auto-calculated. GST-compliant invoices with GSTIN, HSN/SAC codes, GSTR-1 reports.</div>
+    </div>
+  </div>
+
+  <div class="cta-strip">
+    <div>
+      <h3>Ready to Get Started?</h3>
+      <p>Start your 14-day free trial &bull; No credit card required &bull; Free migration</p>
+    </div>
+    <div style="text-align: right;">
+      <div class="cta-btn" style="margin-bottom: 8px;">dineopen.com/login</div>
+      <div class="cta-contact" style="font-size: 11px; color: rgba(255,255,255,0.9);">
+        &#128222; +91 95286 32779 (WhatsApp)<br>
+        &#128231; support@dineopen.com
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 24px; text-align: center; padding: 20px; background: #f9fafb; border-radius: 12px;">
+    <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px;">Join 500+ restaurants already running on DineOpen</div>
+    <div style="font-size: 32px; font-weight: 900; color: #111827; margin-bottom: 4px;">
+      <span style="color: #ef4444;">Dine</span>Open
+    </div>
+    <div style="font-size: 11px; color: #9ca3af;">
+      www.dineopen.com &nbsp;&bull;&nbsp; India's Most Affordable AI-Powered POS &nbsp;&bull;&nbsp; April 2026
+    </div>
+  </div>
+  <div class="page-num">9</div>
+</div>
+
+</body>
+</html>

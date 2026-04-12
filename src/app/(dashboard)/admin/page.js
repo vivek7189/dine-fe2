@@ -5684,33 +5684,34 @@ const Admin = () => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          backgroundColor: 'rgba(0,0,0,0.5)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
           zIndex: 50,
-          padding: '16px'
+          padding: isMobile ? '0' : '16px'
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '24px',
+            borderRadius: isMobile ? '20px 20px 0 0' : '24px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
-            maxWidth: '800px',
-            maxHeight: '90vh',
-            border: '1px solid #f1f5f9',
+            maxWidth: isMobile ? '100%' : '800px',
+            maxHeight: isMobile ? '92vh' : '90vh',
+            border: isMobile ? 'none' : '1px solid #f1f5f9',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column'
           }}>
             <div style={{
-              padding: '24px',
+              padding: isMobile ? '16px 20px' : '24px',
               borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)'
+              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)',
+              flexShrink: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h2 style={{
-                  fontSize: '24px',
+                  fontSize: isMobile ? '18px' : '24px',
                   fontWeight: 'bold',
                   color: '#1f2937',
                   margin: 0
@@ -5733,19 +5734,21 @@ const Admin = () => {
                 </button>
               </div>
             </div>
-            
-            <form onSubmit={handleAddStaff} style={{ 
-              padding: '24px',
+
+            <form onSubmit={handleAddStaff} style={{
+              padding: isMobile ? '16px 20px' : '24px',
               overflowY: 'auto',
               flex: 1,
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              WebkitOverflowScrolling: 'touch'
             }}>
-              {/* Form Fields in Two Columns */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
-                gap: '20px',
+              {/* Form Fields - single column on mobile, two columns on desktop */}
+              <div style={{
+                display: isMobile ? 'flex' : 'grid',
+                flexDirection: 'column',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: isMobile ? '16px' : '20px',
                 marginBottom: '20px'
               }}>
                 {/* Left Column */}
@@ -6181,12 +6184,14 @@ const Admin = () => {
                 />
               </div>
 
-              <div style={{ 
-                display: 'flex', 
-                gap: '12px', 
+              <div style={{
+                display: 'flex',
+                gap: '12px',
                 marginTop: 'auto',
-                paddingTop: '20px',
-                borderTop: '1px solid #f3f4f6'
+                paddingTop: '16px',
+                paddingBottom: isMobile ? '20px' : '0',
+                borderTop: '1px solid #f3f4f6',
+                flexShrink: 0
               }}>
                 <button
                   type="button"
@@ -6195,7 +6200,7 @@ const Admin = () => {
                     flex: 1,
                     backgroundColor: '#6b7280',
                     color: 'white',
-                    padding: '12px 20px',
+                    padding: isMobile ? '14px 20px' : '12px 20px',
                     borderRadius: '12px',
                     fontWeight: '600',
                     fontSize: '14px',
@@ -6213,7 +6218,7 @@ const Admin = () => {
                     flex: 1,
                     background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
-                    padding: '12px 20px',
+                    padding: isMobile ? '14px 20px' : '12px 20px',
                     borderRadius: '12px',
                     fontWeight: '600',
                     fontSize: '14px',

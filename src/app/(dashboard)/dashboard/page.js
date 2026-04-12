@@ -160,6 +160,7 @@ function RestaurantPOSContent() {
   const [savingOrder, setSavingOrder] = useState(false); // Separate loading state for save order button
   const [deletingSavedOrderId, setDeletingSavedOrderId] = useState(null); // Currently deleting order ID
   const [printSettings, setPrintSettings] = useState(null); // Print settings for the restaurant
+  const [upiSettings, setUpiSettings] = useState({}); // UPI payment settings from customer app settings
   const [isLoadingOrder, setIsLoadingOrder] = useState(false); // Flag to prevent localStorage override during order loading
   const [showResetConfirm, setShowResetConfirm] = useState(false); // Reset tables confirmation modal
   const [resetLoading, setResetLoading] = useState(false); // Loading state during table reset
@@ -623,6 +624,22 @@ function RestaurantPOSContent() {
       loadTaxSettings(selectedRestaurant.id);
     }
   }, [selectedRestaurant?.id, loadTaxSettings]);
+
+  // Load UPI settings from customer app settings
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+    const loadUpiSettings = async () => {
+      try {
+        const csRes = await apiClient.getCustomerAppSettings(selectedRestaurant.id);
+        if (csRes?.paymentSettings) setUpiSettings(csRes.paymentSettings);
+        else setUpiSettings({});
+      } catch (e) {
+        console.log('Customer app settings fetch error:', e);
+        setUpiSettings({});
+      }
+    };
+    loadUpiSettings();
+  }, [selectedRestaurant?.id]);
 
   // Load print settings for the restaurant
   const loadPrintSettings = useCallback(async (restaurantId) => {
@@ -6464,6 +6481,7 @@ function RestaurantPOSContent() {
                 taxSettings={taxSettings}
                 menuItems={menuItems}
                 printSettings={printSettings}
+                upiSettings={upiSettings}
                 onRefreshTables={() => {
                   // Refresh tables in background after billing completion
                   if (selectedRestaurant?.id) {
@@ -6644,6 +6662,7 @@ function RestaurantPOSContent() {
             setActivePricingRuleId={setActivePricingRuleId}
             autoSelectedRule={autoSelectedRule}
             setAutoSelectedRule={setAutoSelectedRule}
+            upiSettings={upiSettings}
           />
         </div>
                 ) : (
@@ -6720,6 +6739,7 @@ function RestaurantPOSContent() {
                     setActivePricingRuleId={setActivePricingRuleId}
                     autoSelectedRule={autoSelectedRule}
                     setAutoSelectedRule={setAutoSelectedRule}
+                    upiSettings={upiSettings}
                   />
             )}
           </>

@@ -110,6 +110,12 @@ export default function MobileLayout({ children }) {
           body::-webkit-scrollbar { display: none; }
           /* Override any sidebar margin that pages might assume */
           .dashboard-page-content { animation: none !important; }
+          /* Fix modals in mobile WebView — ensure they sit above everything and inputs are full-width */
+          input, select, textarea { font-size: 16px !important; max-width: 100%; box-sizing: border-box; }
+          /* Prevent iOS zoom on input focus */
+          @media screen and (max-width: 768px) {
+            input, select, textarea { font-size: 16px !important; }
+          }
         `}</style>
         {children}
       </div>

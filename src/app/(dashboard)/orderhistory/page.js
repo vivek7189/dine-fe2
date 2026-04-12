@@ -124,6 +124,7 @@ const OrderHistory = () => {
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [cancelError, setCancelError] = useState(null);
   const [printSettings, setPrintSettings] = useState(null);
+  const [upiSettings, setUpiSettings] = useState({});
   const [printingOrderId, setPrintingOrderId] = useState(null);
   const [printSuccess, setPrintSuccess] = useState(null);
   const [analyticsStats, setAnalyticsStats] = useState(null);
@@ -551,6 +552,22 @@ const OrderHistory = () => {
       }
     };
     fetchPrintSettings();
+  }, [restaurantId]);
+
+  // Fetch UPI settings from customer app settings
+  useEffect(() => {
+    if (!restaurantId) return;
+    const loadUpiSettings = async () => {
+      try {
+        const csRes = await apiClient.getCustomerAppSettings(restaurantId);
+        if (csRes?.paymentSettings) setUpiSettings(csRes.paymentSettings);
+        else setUpiSettings({});
+      } catch (e) {
+        console.log('Customer app settings fetch error:', e);
+        setUpiSettings({});
+      }
+    };
+    loadUpiSettings();
   }, [restaurantId]);
 
   // Listen for restaurant changes — update state so Pusher reconnects via dependency
@@ -2407,6 +2424,7 @@ const OrderHistory = () => {
                     billingSettings={restaurant?.billingSettings || {}}
                     businessType={restaurant?.businessType || 'restaurant'}
                     countryCode={restaurant?.countryCode || 'IN'}
+                    upiSettings={upiSettings}
                   />
                 </div>
               ) : (

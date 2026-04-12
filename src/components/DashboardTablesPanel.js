@@ -53,7 +53,8 @@ export default function DashboardTablesPanel({
   printSettings,
   onRefreshTables, // Callback to refresh tables data after billing
   recentlyUpdatedTableId, // Table ID that just had an order action (for highlight animation)
-  onClearRecentlyUpdated // Callback to clear the highlight
+  onClearRecentlyUpdated, // Callback to clear the highlight
+  upiSettings = {},
 }) {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -1369,6 +1370,7 @@ export default function DashboardTablesPanel({
                   menuItems={menuItems}
                   onClose={closeActionsModal}
                   billingMode={true}
+                  upiSettings={upiSettings}
                 />
               </div>
             ) : (
@@ -1553,6 +1555,7 @@ export default function DashboardTablesPanel({
                     taxSettings={taxSettings}
                     menuItems={menuItems}
                     onClose={handleSliderClose}
+                    upiSettings={upiSettings}
                   />
                 ) : null}
               </div>
