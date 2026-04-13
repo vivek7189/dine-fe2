@@ -216,7 +216,7 @@ function NavigationContent({ isHidden = false }) {
           // Fetch page access and notAllowedPages in background
           try {
             const accessData = await apiClient.getUserPageAccess();
-            if (parsedUser.role && parsedUser.role !== 'owner') {
+            if (parsedUser.role && parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
               setPageAccess(accessData.pageAccess);
               localStorage.setItem('navPageAccess', JSON.stringify(accessData.pageAccess));
             }
@@ -226,7 +226,7 @@ function NavigationContent({ isHidden = false }) {
             localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
           } catch (error) {
             console.error('Error fetching page access:', error);
-            if (parsedUser.role && parsedUser.role !== 'owner') {
+            if (parsedUser.role && parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
               const defaultAccess = {
                 dashboard: true,
                 history: true,
@@ -269,7 +269,7 @@ function NavigationContent({ isHidden = false }) {
               const restaurant = JSON.parse(savedRestaurant);
               if (parsedUser.restaurantId && restaurant.id === parsedUser.restaurantId) {
                 setSelectedRestaurant(restaurant);
-              } else if (parsedUser.role === 'owner' || parsedUser.role === 'customer') {
+              } else if (parsedUser.role === 'owner' || parsedUser.role === 'admin' || parsedUser.role === 'customer') {
                 setSelectedRestaurant(restaurant);
               }
             } catch (error) {

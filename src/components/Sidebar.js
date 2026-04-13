@@ -99,7 +99,7 @@ export default function Sidebar({ isDashboardPage = false }) {
           // Fetch page access and notAllowedPages in background
           try {
             const accessData = await apiClient.getUserPageAccess();
-            if (parsedUser.role && parsedUser.role !== 'owner') {
+            if (parsedUser.role && parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
               setPageAccess(accessData.pageAccess);
               localStorage.setItem('navPageAccess', JSON.stringify(accessData.pageAccess));
             }
@@ -109,7 +109,7 @@ export default function Sidebar({ isDashboardPage = false }) {
             localStorage.setItem('navNotAllowedPages', JSON.stringify(notAllowed));
           } catch (error) {
             console.error('Error fetching page access:', error);
-            if (parsedUser.role && parsedUser.role !== 'owner') {
+            if (parsedUser.role && parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
               const defaultAccess = {
                 dashboard: true,
                 history: true,
@@ -281,12 +281,17 @@ export default function Sidebar({ isDashboardPage = false }) {
       return true;
     }
 
-    // Admin, manager, employee, cashier, sales — respect pageAccess so owner can restrict
-    if (['admin', 'manager', 'employee', 'cashier', 'sales'].includes(user.role)) {
+    // Owner and admin (co-owner) bypass pageAccess — full sidebar access
+    if (['owner', 'admin', 'waiter'].includes(user.role)) {
+      return item.roles.includes(user.role);
+    }
+
+    // Manager, employee, cashier, sales — respect pageAccess so owner can restrict
+    if (['manager', 'employee', 'cashier', 'sales'].includes(user.role)) {
       // First check if item's roles array includes this role
       if (!item.roles.includes(user.role)) return false;
-      // Then check pageAccess (admin defaults are all-true, so this is transparent unless owner restricts)
-      if (!pageAccess) return user.role === 'admin'; // admin defaults to visible if no pageAccess loaded yet
+      // Then check pageAccess
+      if (!pageAccess) return false;
       const accessMap = {
         'pos': 'dashboard',
         'orders': 'history',
@@ -311,10 +316,6 @@ export default function Sidebar({ isDashboardPage = false }) {
         return Object.values(accessValue).some(Boolean);
       }
       return !!accessValue;
-    }
-
-    if (['owner', 'waiter'].includes(user.role)) {
-      return item.roles.includes(user.role);
     }
 
     return false;

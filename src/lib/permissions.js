@@ -85,7 +85,7 @@ export function resolveFeaturePermissions(pageAccess, feature) {
 
 /**
  * Check if a user can perform a specific operation on a feature.
- * Owner/admin always can. Manager allowed by default if no explicit restriction.
+ * Owner/admin always can. All other roles checked against pageAccess.
  */
 export function canPerform(user, pageAccess, feature, operation) {
   const role = user?.role?.toLowerCase();
@@ -102,13 +102,6 @@ export function canPerform(user, pageAccess, feature, operation) {
   const perms = resolveFeaturePermissions(pageAccess, feature);
   if (perms[operation]) return true;
 
-  // Manager fallback: if feature key not present at all, allow
-  if (role === 'manager' && pageAccess?.[feature] === undefined) return true;
-
   return false;
 }
 
-// Backward-compatible alias
-export function resolveInventoryPermissions(pageAccess) {
-  return resolveFeaturePermissions(pageAccess, 'inventory');
-}

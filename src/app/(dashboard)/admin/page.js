@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
@@ -3043,6 +3044,9 @@ const Admin = () => {
   const [showAddRestaurantModal, setShowAddRestaurantModal] = useState(false);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [editingStaff, setEditingStaff] = useState(false);
+  const [editStaffForm, setEditStaffForm] = useState({ name: '', phone: '', email: '', role: '', pageAccess: {} });
+  const [editStaffSaving, setEditStaffSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [authorized, setAuthorized] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState({
@@ -3057,6 +3061,7 @@ const Admin = () => {
   });
   const [editLoading, setEditLoading] = useState(false);
 
+  // SYNC: Keep in sync with dine-backend/index.js and dine-app/components/StaffManagement.js
   const ROLE_DEFAULT_PAGE_ACCESS = {
     admin:    { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:{ settings:true, tax:true, pricing:true, payments:true, billingSettings:true, currency:true, print:true, features:true, restaurants:true, staff:true, orderManagement:true, offers:true, loyalty:true, googleReviews:true, whatsapp:true }, completeBill:true, invoice:true, customers:true, offers:true },
     manager:  { dashboard:true, history:true, tables:true, menu:true, analytics:true, inventory:true, kot:true, admin:false, completeBill:true, invoice:true, customers:true, offers:true },
@@ -3067,7 +3072,7 @@ const Admin = () => {
   };
 
   const ROLE_DESCRIPTIONS = {
-    admin:    'Full access like owner, scoped to assigned restaurants. Can manage multiple locations.',
+    admin:    'Full access — same as owner. Ideal for co-owners or business partners. Can manage all restaurants, staff, and settings.',
     manager:  'Elevated staff with access to most features. Cannot access admin settings by default.',
     waiter:   'Service staff. Basic access to tables, orders, and menu.',
     cashier:  'Billing-focused staff. Access to POS, orders, and invoices.',
@@ -3361,7 +3366,7 @@ const Admin = () => {
   ];
   // Filter admin tabs based on user's pageAccess.admin sub-permissions
   const filteredNavGroups = (() => {
-    if (currentUserRole === 'owner') return navGroups; // Owners see all tabs
+    if (currentUserRole === 'owner' || currentUserRole === 'admin') return navGroups; // Owners and admin co-owners see all tabs
     try {
       const cached = typeof window !== 'undefined' && localStorage.getItem('navPageAccess');
       if (!cached) return navGroups;
@@ -3386,6 +3391,17 @@ const Admin = () => {
   }, [activeTab, allFilteredItems.length]);
 
   const activeNavItem = filteredNavGroups.flatMap(function(g) { return g.items; }).find(function(i) { return i.id === activeTab; });
+
+  // Sync activeTab to URL so refresh preserves the selected tab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location);
+      if (url.searchParams.get('tab') !== activeTab) {
+        url.searchParams.set('tab', activeTab);
+        window.history.replaceState({}, '', url);
+      }
+    }
+  }, [activeTab]);
 
   // Sync current language and posSettings when opening Settings tab
   useEffect(() => {
@@ -3412,6 +3428,7 @@ const Admin = () => {
   // Hide staff detail when leaving Staff tab so it doesn’t show on Order Management / other tabs
   useEffect(() => {
     if (activeTab !== 'staff' && selectedStaff) {
+      setEditingStaff(false);
       setSelectedStaff(null);
     }
   }, [activeTab, selectedStaff]);
@@ -3892,6 +3909,60 @@ const Admin = () => {
     } catch (error) {
       console.error('Error updating staff status:', error);
       alert(`Failed to update staff status: ${error.message}`);
+    }
+  };
+
+  const handleEditStaff = () => {
+    if (!selectedStaff) return;
+    setEditStaffForm({
+      name: selectedStaff.name || '',
+      phone: selectedStaff.phone || '',
+      email: selectedStaff.email || '',
+      role: selectedStaff.role || 'employee',
+      pageAccess: selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee,
+    });
+    setEditingStaff(true);
+  };
+
+  const handleSaveStaffEdit = async () => {
+    if (!selectedStaff) return;
+    const { name, phone, email, role } = editStaffForm;
+    if (!name.trim()) { alert('Name is required'); return; }
+    if (!phone.trim()) { alert('Phone is required'); return; }
+
+    // Only owner can assign admin role
+    if (role === 'admin' && currentUserRole !== 'owner') {
+      alert('Only owners can assign admin role.');
+      return;
+    }
+    // Cannot assign owner role
+    if (role === 'owner') {
+      alert('Cannot assign owner role to staff.');
+      return;
+    }
+
+    setEditStaffSaving(true);
+    try {
+      const updateData = { name: name.trim(), phone: phone.trim(), role };
+      if (email.trim()) updateData.email = email.trim();
+      else updateData.email = '';
+
+      // Always send pageAccess (user may have customized it)
+      updateData.pageAccess = editStaffForm.pageAccess;
+
+      await apiClient.updateStaff(selectedStaff.id, updateData);
+
+      // Update local state
+      const updatedMember = { ...selectedStaff, ...updateData };
+      setStaff(prev => prev.map(m => m.id === selectedStaff.id ? updatedMember : m));
+      setSelectedStaff(updatedMember);
+      setEditingStaff(false);
+      alert('Staff details updated successfully!');
+    } catch (error) {
+      console.error('Error updating staff:', error);
+      alert(`Failed to update staff: ${error.message}`);
+    } finally {
+      setEditStaffSaving(false);
     }
   };
 
@@ -6615,56 +6686,66 @@ const Admin = () => {
       )}
 
       {/* Staff Detail Modal — only when Staff tab is active */}
-      {selectedStaff && activeTab === 'staff' && (
+      {selectedStaff && activeTab === 'staff' && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
           backgroundColor: 'rgba(0,0,0,0.6)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: isClient && isMobile ? 'flex-start' : 'center',
           justifyContent: 'center',
-          zIndex: 50,
-          padding: '16px'
+          zIndex: 10002,
+          padding: isClient && isMobile ? '0' : '16px'
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '24px',
+            borderRadius: isClient && isMobile ? '0' : '24px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
-            maxWidth: '600px',
-            maxHeight: '90vh',
+            maxWidth: isClient && isMobile ? '100%' : '600px',
+            height: isClient && isMobile ? '100%' : 'auto',
+            maxHeight: isClient && isMobile ? '100%' : '90vh',
             overflowY: 'auto',
-            border: '1px solid #f1f5f9'
+            border: isClient && isMobile ? 'none' : '1px solid #f1f5f9',
+            display: 'flex',
+            flexDirection: 'column'
           }}>
             <div style={{
-              padding: '24px',
+              padding: isClient && isMobile ? '16px' : '24px',
               borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)'
+              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isClient && isMobile ? '8px' : '12px', minWidth: 0, flex: 1 }}>
                   <div style={{
-                    width: '40px',
-                    height: '40px',
+                    width: isClient && isMobile ? '32px' : '40px',
+                    height: isClient && isMobile ? '32px' : '40px',
                     backgroundColor: '#ef4444',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}>
-                    <FaUsers color="white" size={18} />
+                    <FaUsers color="white" size={isClient && isMobile ? 14 : 18} />
                   </div>
                   <h2 style={{
-                    fontSize: '24px',
+                    fontSize: isClient && isMobile ? '16px' : '24px',
                     fontWeight: 'bold',
                     color: '#1f2937',
-                    margin: 0
+                    margin: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
                   }}>
-                    Staff Details - {selectedStaff.name}
+                    {isClient && isMobile ? selectedStaff.name : `Staff Details - ${selectedStaff.name}`}
                   </h2>
                 </div>
                 <button
-                  onClick={() => setSelectedStaff(null)}
+                  onClick={() => { setEditingStaff(false); setSelectedStaff(null); }}
                   style={{
                     color: '#6b7280',
                     fontSize: '24px',
@@ -6680,29 +6761,29 @@ const Admin = () => {
               </div>
             </div>
             
-            <div style={{ padding: '24px' }}>
+            <div style={{ padding: isClient && isMobile ? '16px' : '24px', flex: 1 }}>
               {/* Login Credentials - Full Width */}
               {(selectedStaff.loginId || selectedStaff.tempPassword) && (
-                <div style={{ 
-                  backgroundColor: '#f0f9ff', 
-                  padding: '20px', 
-                  borderRadius: '16px',
-                  marginBottom: '24px',
+                <div style={{
+                  backgroundColor: '#f0f9ff',
+                  padding: isClient && isMobile ? '14px' : '20px',
+                  borderRadius: isClient && isMobile ? '12px' : '16px',
+                  marginBottom: isClient && isMobile ? '16px' : '24px',
                   border: '1px solid #0ea5e9'
                 }}>
-                  <h3 style={{ 
-                    fontWeight: '600', 
-                    color: '#0c4a6e', 
-                    marginBottom: '16px', 
-                    fontSize: '18px',
+                  <h3 style={{
+                    fontWeight: '600',
+                    color: '#0c4a6e',
+                    marginBottom: isClient && isMobile ? '12px' : '16px',
+                    fontSize: isClient && isMobile ? '15px' : '18px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px'
                   }}>
-                    <FaKey size={16} />
+                    <FaKey size={isClient && isMobile ? 14 : 16} />
                     Login Credentials
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isClient && isMobile ? '1fr' : '1fr 1fr', gap: isClient && isMobile ? '14px' : '20px' }}>
                     {/* User ID */}
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -6858,32 +6939,85 @@ const Admin = () => {
               )}
 
               {/* Staff Info */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                <div style={{ 
-                  backgroundColor: '#f8fafc', 
-                  padding: '16px', 
+              <div style={{ display: 'grid', gridTemplateColumns: isClient && isMobile ? '1fr' : '1fr 1fr', gap: isClient && isMobile ? '12px' : '24px', marginBottom: isClient && isMobile ? '16px' : '24px' }}>
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  padding: isClient && isMobile ? '12px' : '16px',
                   borderRadius: '12px',
                   border: '1px solid #f1f5f9'
                 }}>
-                  <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: '12px', fontSize: '16px' }}>Personal Information</h3>
-                  <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                    <div style={{ marginBottom: '8px' }}><strong>Name:</strong> {selectedStaff.name || 'N/A'}</div>
-                    <div style={{ marginBottom: '8px' }}><strong>Phone:</strong> {selectedStaff.phone || 'N/A'}</div>
-                    <div style={{ marginBottom: '8px' }}><strong>Email:</strong> {selectedStaff.email || 'N/A'}</div>
-                    <div style={{ marginBottom: '8px' }}><strong>Role:</strong> {getRoleInfo(selectedStaff.role || 'employee').label}</div>
-                    <div style={{ marginBottom: '8px' }}><strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}</div>
-                  </div>
+                  <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: isClient && isMobile ? '8px' : '12px', fontSize: isClient && isMobile ? '14px' : '16px' }}>Personal Information</h3>
+                  {editingStaff ? (
+                    <div style={{ fontSize: '14px' }}>
+                      <div style={{ marginBottom: '10px' }}>
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>Name</label>
+                        <input value={editStaffForm.name} onChange={e => setEditStaffForm(f => ({ ...f, name: e.target.value }))}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none' }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '10px' }}>
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>Phone</label>
+                        <input value={editStaffForm.phone} onChange={e => setEditStaffForm(f => ({ ...f, phone: e.target.value }))}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none' }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '10px' }}>
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>Email</label>
+                        <input value={editStaffForm.email} onChange={e => setEditStaffForm(f => ({ ...f, email: e.target.value }))}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none' }}
+                          placeholder="Optional"
+                        />
+                      </div>
+                      <div style={{ marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#374151' }}>Role</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {customRoles.map(role => {
+                            // Only owner can assign admin role
+                            if (role === 'admin' && currentUserRole !== 'owner') return null;
+                            // Can only assign roles below your level
+                            if (!canManageStaff(role) && role !== editStaffForm.role) return null;
+                            const info = getRoleInfo(role);
+                            const isSelected = editStaffForm.role === role;
+                            return (
+                              <button key={role} type="button" onClick={() => setEditStaffForm(f => ({ ...f, role, pageAccess: ROLE_DEFAULT_PAGE_ACCESS[role] || ROLE_DEFAULT_PAGE_ACCESS.employee }))}
+                                style={{
+                                  padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+                                  border: isSelected ? `2px solid ${info.color}` : '2px solid #e5e7eb',
+                                  backgroundColor: isSelected ? info.bg : '#fff',
+                                  color: isSelected ? info.color : '#6b7280',
+                                  cursor: 'pointer', transition: 'all 0.15s'
+                                }}
+                              >
+                                {info.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
+                        <strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                      <div style={{ marginBottom: '8px' }}><strong>Name:</strong> {selectedStaff.name || 'N/A'}</div>
+                      <div style={{ marginBottom: '8px' }}><strong>Phone:</strong> {selectedStaff.phone || 'N/A'}</div>
+                      <div style={{ marginBottom: '8px' }}><strong>Email:</strong> {selectedStaff.email || 'N/A'}</div>
+                      <div style={{ marginBottom: '8px' }}><strong>Role:</strong> {getRoleInfo(selectedStaff.role || 'employee').label}</div>
+                      <div style={{ marginBottom: '8px' }}><strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}</div>
+                    </div>
+                  )}
                 </div>
                 
-                <div style={{ 
-                  backgroundColor: '#f8fafc', 
-                  padding: '16px', 
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  padding: isClient && isMobile ? '12px' : '16px',
                   borderRadius: '12px',
                   border: '1px solid #f1f5f9'
                 }}>
-                  <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: '12px', fontSize: '16px' }}>Work Information</h3>
+                  <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: isClient && isMobile ? '8px' : '12px', fontSize: isClient && isMobile ? '14px' : '16px' }}>Work Information</h3>
                   <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                    <div style={{ marginBottom: '8px' }}><strong>Start Date:</strong> {selectedStaff.startDate ? new Date(selectedStaff.startDate).toLocaleDateString('en-IN') : 'N/A'}</div>
+                    <div style={{ marginBottom: '8px' }}><strong>Start Date:</strong> {formatDate(selectedStaff.startDate)}</div>
                     <div style={{ marginBottom: '8px' }}><strong>Last Login:</strong> {formatDateTime(selectedStaff.lastLogin)}</div>
                     {(() => {
                       const stats = getPerformanceStats(selectedStaff);
@@ -6897,54 +7031,282 @@ const Admin = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Page Access Permissions — editable in edit mode, read-only otherwise */}
+              {editingStaff ? (
+                editStaffForm.role === 'admin' ? (
+                  <div style={{
+                    backgroundColor: '#eff6ff',
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #bfdbfe',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    color: '#1e40af',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <FaShieldAlt size={14} />
+                    Admin role has full access (same as owner). Permissions are not customizable.
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '12px'
+                    }}>
+                      <FaShieldAlt size={14} style={{ color: '#166534' }} />
+                      <h3 style={{ fontWeight: '600', color: '#1f2937', fontSize: isClient && isMobile ? '14px' : '16px', margin: 0 }}>Page Access Permissions</h3>
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(2, 1fr)',
+                      gap: isClient && isMobile ? '8px' : '10px',
+                      padding: isClient && isMobile ? '12px' : '16px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '12px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      {[
+                        { key: 'dashboard', label: t('nav.dashboard'), icon: '🏠' },
+                        { key: 'history', label: t('nav.history'), icon: '📋' },
+                        { key: 'tables', label: t('nav.tables'), icon: '🪑' },
+                        { key: 'menu', label: t('nav.menu'), icon: '🍽️' },
+                        { key: 'analytics', label: t('nav.analytics'), icon: '📊' },
+                        { key: 'inventory', label: t('nav.inventory'), icon: '📦' },
+                        { key: 'kot', label: t('nav.kot'), icon: '👨‍🍳' },
+                        { key: 'admin', label: t('nav.admin'), icon: '⚙️' },
+                        { key: 'invoice', label: 'Invoice', icon: '🧾' },
+                        { key: 'customers', label: 'Customers', icon: '👥' },
+                        { key: 'offers', label: 'Offers', icon: '🏷️' },
+                        { key: 'orders', label: 'Orders', icon: '🧾' }
+                      ].map(({ key, label, icon }) => {
+                        const hasGranular = !!FEATURE_OPS[key];
+                        const isChecked = hasGranular
+                          ? (typeof editStaffForm.pageAccess[key] === 'object'
+                            ? Object.values(editStaffForm.pageAccess[key]).some(Boolean)
+                            : !!editStaffForm.pageAccess[key])
+                          : !!editStaffForm.pageAccess[key];
+                        return (
+                          <div key={key} style={{ gridColumn: hasGranular && isChecked ? '1 / -1' : undefined }}>
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              cursor: 'pointer',
+                              padding: '8px',
+                              borderRadius: '8px',
+                              backgroundColor: isChecked ? '#dcfce7' : 'white',
+                              border: `1px solid ${isChecked ? '#10b981' : '#e5e7eb'}`,
+                              transition: 'all 0.2s'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (hasGranular) {
+                                    const ops = FEATURE_OPS[key];
+                                    const allEnabled = {};
+                                    ops.forEach(op => allEnabled[op] = true);
+                                    setEditStaffForm(f => ({
+                                      ...f,
+                                      pageAccess: {
+                                        ...f.pageAccess,
+                                        [key]: e.target.checked ? allEnabled : false
+                                      }
+                                    }));
+                                  } else {
+                                    setEditStaffForm(f => ({
+                                      ...f,
+                                      pageAccess: {
+                                        ...f.pageAccess,
+                                        [key]: e.target.checked
+                                      }
+                                    }));
+                                  }
+                                }}
+                                style={{ margin: 0 }}
+                              />
+                              <span style={{ fontSize: '16px' }}>{icon}</span>
+                              <span style={{
+                                fontSize: '13px',
+                                fontWeight: '500',
+                                color: isChecked ? '#059669' : '#374151'
+                              }}>
+                                {label}
+                              </span>
+                            </label>
+                            {hasGranular && typeof editStaffForm.pageAccess[key] === 'object' && (
+                              <div style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '8px',
+                                marginTop: '8px',
+                                marginLeft: '16px',
+                                padding: '10px',
+                                backgroundColor: '#f0fdf4',
+                                borderRadius: '8px',
+                                border: '1px solid #bbf7d0'
+                              }}>
+                                {FEATURE_OPS[key].map(op => (
+                                  <label key={op} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer',
+                                    padding: '6px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: editStaffForm.pageAccess[key][op] ? '#dcfce7' : 'white',
+                                    border: `1px solid ${editStaffForm.pageAccess[key][op] ? '#10b981' : '#e5e7eb'}`,
+                                    transition: 'all 0.2s'
+                                  }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={!!editStaffForm.pageAccess[key][op]}
+                                      onChange={(e) => {
+                                        const updated = {
+                                          ...editStaffForm.pageAccess[key],
+                                          [op]: e.target.checked
+                                        };
+                                        const anyChecked = Object.values(updated).some(Boolean);
+                                        setEditStaffForm(f => ({
+                                          ...f,
+                                          pageAccess: {
+                                            ...f.pageAccess,
+                                            [key]: anyChecked ? updated : false
+                                          }
+                                        }));
+                                      }}
+                                      style={{ margin: 0 }}
+                                    />
+                                    <span style={{
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      color: editStaffForm.pageAccess[key][op] ? '#059669' : '#374151'
+                                    }}>
+                                      {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '8px 0 0 0' }}>
+                      Toggle features and granular operations this staff member can access.
+                    </p>
+                  </div>
+                )
+              ) : null}
             </div>
-            
-            <div style={{ 
-              padding: '24px', 
-              backgroundColor: '#f8fafc', 
-              display: 'flex', 
+
+            <div style={{
+              padding: isClient && isMobile ? '16px' : '24px',
+              backgroundColor: '#f8fafc',
+              display: 'flex',
               gap: '12px',
-              borderTop: '1px solid #fef2f2'
+              borderTop: '1px solid #fef2f2',
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 10
             }}>
-              <button
-                onClick={() => setSelectedStaff(null)}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#6b7280',
-                  color: 'white',
-                  padding: '12px 20px',
-                  borderRadius: '12px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Close
-              </button>
-              <button style={{
-                flex: 1,
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                color: 'white',
-                padding: '12px 20px',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: '14px',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}>
-                <FaEdit size={14} />
-                Edit Details
-              </button>
+              {editingStaff ? (
+                <>
+                  <button
+                    onClick={() => setEditingStaff(false)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#6b7280',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveStaffEdit}
+                    disabled={editStaffSaving}
+                    style={{
+                      flex: 1,
+                      background: editStaffSaving ? '#9ca3af' : 'linear-gradient(135deg, #10b981, #059669)',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: 'none',
+                      cursor: editStaffSaving ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {editStaffSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { setEditingStaff(false); setSelectedStaff(null); }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#6b7280',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Close
+                  </button>
+                  {canManageStaff(selectedStaff.role) && (
+                    <button
+                      onClick={handleEditStaff}
+                      style={{
+                        flex: 1,
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        color: 'white',
+                        padding: '12px 20px',
+                        borderRadius: '12px',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <FaEdit size={14} />
+                      Edit Details
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Settings: Language + Default Restaurant + Dashboard Customization */}

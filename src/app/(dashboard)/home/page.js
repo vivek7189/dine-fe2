@@ -122,8 +122,8 @@ export default function HomePage() {
     const savedCurrency = localStorage.getItem('currencySymbol');
     if (savedCurrency) setCurrencySymbol(savedCurrency);
 
-    // Only load data for non-owner (HQ handles its own data; staff with 'admin' role are elevated staff)
-    if (parsed.role !== 'owner') {
+    // Only load data for non-owner/admin (HQ handles its own data)
+    if (parsed.role !== 'owner' && parsed.role !== 'admin') {
       loadRecentOrders(parsed);
       loadTables(parsed);
     }
@@ -171,10 +171,8 @@ export default function HomePage() {
     return false;
   };
 
-  // Only the account owner sees the full Headquarters dashboard.
-  // Staff with role 'admin' are elevated staff, not account owners —
-  // they should see the staff home page with quick actions based on pageAccess.
-  const isOwnerOrAdmin = user?.role === 'owner';
+  // Owner and admin (co-owner) both see the full Headquarters dashboard.
+  const isOwnerOrAdmin = user?.role === 'owner' || user?.role === 'admin';
 
   if (!user) return null;
 
