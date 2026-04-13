@@ -923,50 +923,9 @@ function RestaurantPOSContent() {
         console.log('✅ Restaurant data loaded successfully');
         }
       } else {
-        // No restaurant found - automatically create one with default name
-        console.log('📋 No restaurant found for user, creating default restaurant');
-        try {
-          const defaultRestaurant = {
-            name: 'My Restaurant',
-            description: '',
-            address: 'Add your address here',
-            phone: '',
-            email: '',
-            cuisine: 'Multi-cuisine',
-            timings: {
-              open: '09:00',
-              close: '22:00',
-              days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            },
-            settings: {
-              currency: 'INR',
-              taxRate: 18,
-              serviceCharge: 0,
-              deliveryFee: 0,
-              minOrderAmount: 0
-            },
-            menu: {
-              categories: [],
-              items: [],
-              lastUpdated: new Date()
-            },
-            ownerId: user.id,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-
-          const response = await apiClient.createRestaurant(defaultRestaurant);
-          const newRestaurant = response.data.restaurant;
-          
-          // Update local storage
-          localStorage.setItem('selectedRestaurant', JSON.stringify(newRestaurant));
-          setSelectedRestaurant(newRestaurant);
-          
-          console.log('✅ Default restaurant created successfully');
-        } catch (error) {
-          console.error('Error creating default restaurant:', error);
-          // Continue with empty state if creation fails
-        }
+        // No restaurant found — show empty state (don't auto-create to avoid duplicates)
+        console.log('📋 No restaurant found for user — showing empty state');
+        setLoading(false);
       }
       
     } catch (error) {

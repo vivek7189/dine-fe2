@@ -29,7 +29,7 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!restaurantName.trim()) return;
+    if (!restaurantName.trim() || loading || skipping) return;
 
     try {
       setLoading(true);
@@ -94,6 +94,7 @@ const RestaurantNameOnboarding = ({ onComplete, onSkip, selectedCountryCode }) =
   };
 
   const handleSkip = async () => {
+    if (loading || skipping) return;
     try {
       setSkipping(true);
 

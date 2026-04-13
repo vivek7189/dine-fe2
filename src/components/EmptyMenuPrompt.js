@@ -103,53 +103,11 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
       let currentRestaurant = selectedRestaurant;
       let restaurantId = currentRestaurant?.id;
 
-      // If no restaurant exists, create one automatically
+      // If no restaurant exists, don't auto-create — ask user to set up first
       if (!restaurantId) {
-        setProcessingStep('Creating your restaurant...');
-        console.log('No restaurant found, creating default restaurant...');
-        
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (!user.id) {
-          throw new Error('User not logged in. Please log in again.');
-        }
-
-        const defaultRestaurant = {
-          name: 'My Restaurant',
-          description: '',
-          address: 'Add your address here',
-          phone: '',
-          email: '',
-          cuisine: 'Multi-cuisine',
-          timings: {
-            open: '09:00',
-            close: '22:00',
-            days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-          },
-          settings: {
-            currency: 'INR',
-            taxRate: 18,
-            serviceCharge: 0,
-            deliveryFee: 0,
-            minOrderAmount: 0
-          },
-          menu: {
-            categories: [],
-            items: [],
-            lastUpdated: new Date()
-          },
-          ownerId: user.id,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-
-        const response = await apiClient.createRestaurant(defaultRestaurant);
-        currentRestaurant = response.restaurant;
-        restaurantId = currentRestaurant.id;
-        
-        // Update local storage
-        localStorage.setItem('selectedRestaurant', JSON.stringify(currentRestaurant));
-        
-        console.log('✅ Default restaurant created successfully');
+        setUploadError('Please set up your restaurant first before uploading a menu.');
+        setUploading(false);
+        return;
       }
 
       // Step 1: Upload files
