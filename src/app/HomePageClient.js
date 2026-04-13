@@ -2333,7 +2333,7 @@ export default function LandingPage() {
       )}
       {/* Floating WhatsApp Button */}
       <a
-        href="https://wa.me/919528632779?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS!"
+        href="https://wa.me/917042330092?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20POS!"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat on WhatsApp"
