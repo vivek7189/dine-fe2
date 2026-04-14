@@ -1,4 +1,5 @@
 'use client';
+// Mobile WebView billing page — renders OrderSummary for dine-app WebView billing flow
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -510,6 +511,13 @@ export default function MobileBillingPage() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Make phone/name inputs more compact in mobile WebView */}
+      <style>{`
+        input[type="tel"], input[type="text"] {
+          padding: 7px 10px !important;
+          font-size: 13px !important;
+        }
+      `}</style>
       <OrderSummary
         cart={cart}
         setCart={setCart}
