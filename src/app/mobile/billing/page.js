@@ -504,6 +504,7 @@ export default function MobileBillingPage() {
     return <ErrorView message={error} onRetry={loadAllData} onClose={handleClose} />;
   }
 
+
   const user = (() => {
     try { return JSON.parse(localStorage.getItem('user') || '{}'); }
     catch { return {}; }
