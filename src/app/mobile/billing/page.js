@@ -403,12 +403,14 @@ export default function MobileBillingPage() {
       },
     };
 
+    // Table number — always include for all statuses
+    updateData.tableNumber = tableNumber || order?.tableNumber || null;
+
     // Status-specific fields
     if (status === 'completed') {
       updateData.status = 'completed';
       updateData.paymentStatus = d.partialPay ? 'partial' : 'paid';
       updateData.completedAt = new Date().toISOString();
-      updateData.tableNumber = tableNumber || order?.tableNumber || null;
     } else {
       updateData.status = status;
     }
