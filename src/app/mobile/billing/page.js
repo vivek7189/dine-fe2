@@ -123,7 +123,8 @@ export default function MobileBillingPage() {
     try {
       // Fetch the order first
       const orderRes = await apiClient.getOrderById(orderId);
-      const orderData = orderRes?.order || orderRes;
+      // Backend returns { orders: [order], pagination: {...} }
+      const orderData = orderRes?.orders?.[0] || orderRes?.order || orderRes;
       if (!orderData || !orderData.id) {
         setError('Order not found');
         return;
