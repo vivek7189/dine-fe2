@@ -304,7 +304,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     enabled: false,
     earnPerAmount: 100,
     pointsEarned: 4,
-    redemptionRate: 100,
+    redemptionRate: 1,
     maxRedemptionPercent: 20,
     earnPointsOnRedemption: false,
     earnOnFullAmount: false,

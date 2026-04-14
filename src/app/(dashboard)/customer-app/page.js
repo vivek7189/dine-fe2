@@ -94,7 +94,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       enabled: false,
       earnPerAmount: 100,
       pointsEarned: 4,
-      redemptionRate: 100,
+      redemptionRate: 1,
       maxRedemptionPercent: 20,
       earnPointsOnRedemption: false,
       earnOnFullAmount: false,
@@ -816,12 +816,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Points needed for {getCurrencySymbol()}1 redemption
+                    Redemption Rate (points per {getCurrencySymbol()}1)
                   </label>
                   <input
                     type="text"
                     value={settings.loyaltySettings.redemptionRate}
                     onChange={(e) => handleLoyaltyInputChange('redemptionRate', e.target.value)}
+                    placeholder="1"
                     style={{
                       width: '100%',
                       padding: '14px',
@@ -837,7 +838,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#dc2626' }}>{loyaltyErrors.redemptionRate}</p>
                   )}
                   <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#6b7280' }}>
-                    How many points = {getCurrencySymbol()}1 discount
+                    Set to 1 for 1 point = {getCurrencySymbol()}1. Set to 10 for 10 points = {getCurrencySymbol()}1.
                   </p>
                 </div>
 
@@ -941,7 +942,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     • Customer spends <strong>{getCurrencySymbol()}1,000</strong> → Earns <strong>{Math.floor(1000 / settings.loyaltySettings.earnPerAmount) * settings.loyaltySettings.pointsEarned} points</strong>
                   </div>
                   <div style={{ marginBottom: '8px' }}>
-                    • With <strong>{settings.loyaltySettings.redemptionRate * 100} points</strong>, they can redeem <strong>{getCurrencySymbol()}100</strong>
+                    • <strong>1 point = {getCurrencySymbol()}{(1 / (settings.loyaltySettings.redemptionRate || 1)).toFixed(2)}</strong> redemption value
                   </div>
                   <div>
                     • Maximum redemption per order: <strong>{settings.loyaltySettings.maxRedemptionPercent}%</strong> of order value

@@ -265,7 +265,7 @@ function BarPOSContent() {
     if (!loyaltySettings?.enabled || !customerData || !redeemLoyaltyPoints) return 0;
     const subtotal = (activeTab?.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
     const afterDiscounts = subtotal - getOfferDiscount() - getManualDiscountAmount();
-    const redemptionRate = loyaltySettings.redemptionRate || 100;
+    const redemptionRate = loyaltySettings.redemptionRate || 1;
     const maxRedemptionPercent = loyaltySettings.maxRedemptionPercent || 20;
     const maxFromPercent = (afterDiscounts * maxRedemptionPercent) / 100;
     const maxFromPoints = redeemLoyaltyPoints / redemptionRate;
@@ -1336,7 +1336,7 @@ function BarPOSContent() {
                         {customerData.name || 'Customer'} — {customerData.loyaltyPoints || 0} pts
                       </span>
                       <span style={{ fontSize: '10px', color: '#047857' }}>
-                        Worth {formatCurrency((customerData.loyaltyPoints || 0) / (loyaltySettings.redemptionRate || 100))}
+                        Worth {formatCurrency((customerData.loyaltyPoints || 0) / (loyaltySettings.redemptionRate || 1))}
                       </span>
                     </div>
                   </div>

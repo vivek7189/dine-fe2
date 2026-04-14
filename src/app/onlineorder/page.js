@@ -701,7 +701,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
     const offerDiscount = getOfferDiscount();
     const afterOffer = subtotal - offerDiscount;
 
-    const redemptionRate = customerAppSettings.loyaltySettings.redemptionRate || 100;
+    const redemptionRate = customerAppSettings.loyaltySettings.redemptionRate || 1;
     const maxRedemptionPercent = customerAppSettings.loyaltySettings.maxRedemptionPercent || 20;
 
     const maxFromPercent = (afterOffer * maxRedemptionPercent) / 100;
@@ -4260,7 +4260,7 @@ const CheckoutView = ({
                     min="0"
                     max={Math.min(
                       customerData?.loyaltyPoints || 0,
-                      Math.floor((getCartSubtotal() - getOfferDiscount()) * (customerAppSettings.loyaltySettings.maxRedemptionPercent || 20) / 100 * (customerAppSettings.loyaltySettings.redemptionRate || 100))
+                      Math.floor((getCartSubtotal() - getOfferDiscount()) * (customerAppSettings.loyaltySettings.maxRedemptionPercent || 20) / 100 * (customerAppSettings.loyaltySettings.redemptionRate || 1))
                     )}
                     value={redeemLoyaltyPoints}
                     onChange={(e) => setRedeemLoyaltyPoints(parseInt(e.target.value) || 0)}
