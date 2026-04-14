@@ -317,137 +317,166 @@ export default function MobileBillingPage() {
     }
   }, [authReady, isPreloadMode]);
 
-  // Handle billing completion
+  // Helper: extract taxData fields (same destructuring as dashboard)
+  const extractTaxData = (taxData = {}) => {
+    const {
+      taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null,
+      specialInstructions = null, offerIds = [], manualDiscount = 0,
+      offerDiscount: offerDiscountAmt = 0, selectedOfferName: offerName = '',
+      totalDiscountAmount: discountTotal = 0,
+      redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
+      serviceChargeRate = null, serviceChargeAmount: scAmount = null,
+      tipAmount: tipAmt = null, tipPercentage: tipPct = null,
+      cashReceived = null, changeReturned = null,
+      splitPayments: splitPay = null, roundOffAmount: roundOff = null,
+      partialPayAmount: partialPay = null,
+      compItems: compData = null, voidItems: voidData = null,
+    } = taxData;
+    return {
+      taxBreakdown, totalTax, finalAmount, subtotal, specialInstructions,
+      offerIds, manualDiscount, offerDiscountAmt, offerName, discountTotal,
+      redeemLoyaltyPoints, loyaltyDiscAmt, serviceChargeRate, scAmount,
+      tipAmt, tipPct, cashReceived, changeReturned, splitPay, roundOff,
+      partialPay, compData, voidData,
+    };
+  };
+
+  // Build update payload (same structure as dashboard's processOrder / placeOrder)
+  const buildUpdateData = (taxData, status) => {
+    const d = extractTaxData(taxData);
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const totalAmount = d.subtotal || cart.reduce((t, i) => t + i.price * i.quantity, 0);
+    const computedFinal = d.finalAmount || totalAmount + d.totalTax;
+
+    const updateData = {
+      items: cart.map(item => ({
+        menuItemId: item.menuItemId || item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        notes: '',
+      })),
+      orderType: order?.orderType || 'dine-in',
+      paymentMethod: d.splitPay && d.splitPay.length > 1 ? 'split' : paymentMethod,
+      totalAmount,
+      taxBreakdown: d.taxBreakdown,
+      taxAmount: d.totalTax,
+      finalAmount: computedFinal,
+      specialInstructions: d.specialInstructions || null,
+      updatedAt: new Date().toISOString(),
+      // Billing feature fields
+      serviceChargeRate: d.serviceChargeRate || null,
+      serviceChargeAmount: d.scAmount || null,
+      tipAmount: d.tipAmt || null,
+      tipPercentage: d.tipPct || null,
+      cashReceived: d.cashReceived || null,
+      changeReturned: d.changeReturned || null,
+      splitPayments: d.splitPay || null,
+      roundOffAmount: d.roundOff || null,
+      partialPayAmount: d.partialPay || null,
+      paidAmount: d.partialPay ? Math.round(Number(d.partialPay) * 100) / 100 : null,
+      outstandingAmount: d.partialPay ? Math.round((computedFinal - Number(d.partialPay)) * 100) / 100 : null,
+      compItems: d.compData || null,
+      voidItems: d.voidData || null,
+      // Discount/offer fields
+      offerIds: d.offerIds && d.offerIds.length > 0 ? d.offerIds : [],
+      manualDiscount: d.manualDiscount || 0,
+      discountAmount: d.offerDiscountAmt || 0,
+      offerDiscount: d.offerDiscountAmt || 0,
+      totalDiscountAmount: d.discountTotal || 0,
+      selectedOfferName: d.offerName || null,
+      // Loyalty fields
+      redeemLoyaltyPoints: d.redeemLoyaltyPoints || 0,
+      loyaltyDiscount: d.loyaltyDiscAmt || 0,
+      // Customer & staff
+      customerInfo: {
+        name: customerName || order?.customerInfo?.name || '',
+        phone: customerMobile || order?.customerInfo?.phone || null,
+        tableNumber: tableNumber || order?.tableNumber || null,
+      },
+      customerId: order?.customerId || null,
+      lastUpdatedBy: {
+        name: currentUser.name || 'Staff',
+        id: currentUser.id,
+        role: currentUser.role || 'waiter',
+      },
+    };
+
+    // Status-specific fields
+    if (status === 'completed') {
+      updateData.status = 'completed';
+      updateData.paymentStatus = d.partialPay ? 'partial' : 'paid';
+      updateData.completedAt = new Date().toISOString();
+      updateData.tableNumber = tableNumber || order?.tableNumber || null;
+    } else {
+      updateData.status = status;
+    }
+
+    return { updateData, d, currentUser, computedFinal };
+  };
+
+  // Complete Billing — same API flow as dashboard processOrder
   const handleProcessOrder = async (taxData = {}) => {
     if (!order || processing) return;
     setProcessing(true);
-
-    const {
-      taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null,
-      serviceChargeAmount, serviceChargeRate, tipAmount, tipPercentage,
-      cashReceived, changeReturned, splitPayments, roundOffAmount,
-      compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
-      offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
-      redeemLoyaltyPoints, loyaltyDiscount,
-    } = taxData;
+    setError(null);
 
     try {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const paymentAmount = finalAmount || order.finalAmount || order.totalAmount || cart.reduce((t, i) => t + i.price * i.quantity, 0);
-      const isPartialPayment = partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
-
-      const updateData = {
-        status: 'completed',
-        paymentStatus: isPartialPayment ? 'partial' : 'paid',
-        paymentMethod: splitPayments ? 'split' : paymentMethod,
-        completedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...(taxBreakdown.length > 0 && {
-          totalAmount: subtotal || cart.reduce((t, i) => t + i.price * i.quantity, 0),
-          taxBreakdown,
-          taxAmount: totalTax,
-          finalAmount,
-        }),
-        ...(serviceChargeAmount > 0 && { serviceChargeAmount, serviceChargeRate }),
-        ...(tipAmount > 0 && { tipAmount, tipPercentage }),
-        ...(cashReceived > 0 && { cashReceived, changeReturned }),
-        ...(splitPayments && { splitPayments }),
-        ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
-        ...(compItems && { compItems }),
-        ...(voidItems && { voidItems }),
-        ...(isPartialPayment && {
-          partialPayAmount,
-          paidAmount: partialPayAmount,
-          outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
-        }),
-        ...(manualDiscount > 0 && { manualDiscount }),
-        ...(offerDiscount > 0 && { offerDiscount, offerIds, selectedOfferName }),
-        ...(totalDiscountAmount > 0 && { totalDiscountAmount }),
-        ...(specialInstructions && { specialInstructions }),
-        ...(redeemLoyaltyPoints > 0 && { redeemLoyaltyPoints }),
-        ...(loyaltyDiscount > 0 && { loyaltyDiscount }),
-        customerId: order.customerId || null,
-        tableNumber: tableNumber || order.tableNumber || null,
-        customerInfo: {
-          name: customerName || order.customerInfo?.name || '',
-          phone: customerMobile || order.customerInfo?.phone || null,
-          tableNumber: tableNumber || order.tableNumber || null,
-        },
-        lastUpdatedBy: {
-          name: currentUser.name || 'Staff',
-          id: currentUser.id,
-          role: currentUser.role || 'waiter',
-        },
-      };
-
+      const { updateData, d, currentUser, computedFinal } = buildUpdateData(taxData, 'completed');
       await apiClient.updateOrder(order.id, updateData);
 
+      // Verify payment — same as dashboard
       await apiClient.verifyPayment({
         orderId: order.id,
-        paymentMethod: splitPayments ? 'split' : paymentMethod,
-        amount: isPartialPayment ? partialPayAmount : paymentAmount,
+        paymentMethod: d.splitPay && d.splitPay.length > 1 ? 'split' : paymentMethod,
+        amount: d.partialPay ? Math.round(Number(d.partialPay) * 100) / 100 : computedFinal,
         userId: currentUser.id,
         restaurantId: order.restaurantId,
-        paymentStatus: isPartialPayment ? 'partial' : 'completed',
+        paymentStatus: d.partialPay ? 'partial' : 'completed',
       });
 
       if (typeof window !== 'undefined' && window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'BILLING_COMPLETE',
-          orderId: order.id,
-          status: 'completed',
+          type: 'BILLING_COMPLETE', orderId: order.id, status: 'completed',
         }));
       }
-
       return { orderId: order.id };
     } catch (e) {
       console.error('Billing completion error:', e);
-      alert('Billing failed: ' + (e.message || 'Unknown error'));
+      setError('Billing failed: ' + (e.message || 'Unknown error'));
       throw e;
     } finally {
       setProcessing(false);
     }
   };
 
-  // Save order (keep as saved/pending)
+  // Save Order — same API flow as dashboard saveOrder
   const handleSaveOrder = async (taxData = {}) => {
     if (!order) return;
+    setError(null);
     try {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      await apiClient.updateOrder(order.id, {
-        status: 'saved',
-        items: cart.map(i => ({ menuItemId: i.menuItemId || i.id, name: i.name, price: i.price, quantity: i.quantity })),
-        tableNumber: tableNumber || order.tableNumber || null,
-        customerInfo: { name: customerName || '', phone: customerMobile || null },
-        ...(taxData.specialInstructions && { specialInstructions: taxData.specialInstructions }),
-        lastUpdatedBy: { name: currentUser.name || 'Staff', id: currentUser.id, role: currentUser.role || 'waiter' },
-      });
+      const { updateData } = buildUpdateData(taxData, 'saved');
+      await apiClient.updateOrder(order.id, updateData);
       if (typeof window !== 'undefined' && window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BILLING_COMPLETE', orderId: order.id, status: 'saved' }));
       }
     } catch (e) {
-      alert('Save failed: ' + (e.message || 'Unknown error'));
+      setError('Save failed: ' + (e.message || 'Unknown error'));
     }
   };
 
-  // Place order (send to kitchen — status confirmed)
+  // Place Order (send to kitchen) — same API flow as dashboard placeOrder
   const handlePlaceOrder = async (taxData = {}) => {
     if (!order) return;
+    setError(null);
     try {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      await apiClient.updateOrder(order.id, {
-        status: 'confirmed',
-        items: cart.map(i => ({ menuItemId: i.menuItemId || i.id, name: i.name, price: i.price, quantity: i.quantity })),
-        tableNumber: tableNumber || order.tableNumber || null,
-        customerInfo: { name: customerName || '', phone: customerMobile || null },
-        ...(taxData.specialInstructions && { specialInstructions: taxData.specialInstructions }),
-        lastUpdatedBy: { name: currentUser.name || 'Staff', id: currentUser.id, role: currentUser.role || 'waiter' },
-      });
+      const { updateData } = buildUpdateData(taxData, 'confirmed');
+      await apiClient.updateOrder(order.id, updateData);
       if (typeof window !== 'undefined' && window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BILLING_COMPLETE', orderId: order.id, status: 'confirmed' }));
       }
     } catch (e) {
-      alert('Place order failed: ' + (e.message || 'Unknown error'));
+      setError('Place order failed: ' + (e.message || 'Unknown error'));
     }
   };
 
@@ -506,7 +535,7 @@ export default function MobileBillingPage() {
         placingOrder={false}
         orderSuccess={false}
         setOrderSuccess={() => {}}
-        error={null}
+        error={error}
         getTotalAmount={() => cart.reduce((t, i) => t + i.price * i.quantity, 0)}
         tableNumber={tableNumber}
         selectedTable={tableNumber ? { name: tableNumber } : null}
