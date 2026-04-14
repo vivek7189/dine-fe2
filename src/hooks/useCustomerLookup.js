@@ -26,7 +26,7 @@ const useCustomerLookup = ({ restaurantId, countryCode = 'IN' }) => {
   const debounceRef = useRef(null);
   const lastPhoneRef = useRef('');
 
-  const triggerLookup = useCallback((phone) => {
+  const triggerLookup = useCallback((phone, { force = false } = {}) => {
     const digits = (phone || '').replace(/\D/g, '');
     const minLength = getPhoneMinLength(countryCode);
 
@@ -46,8 +46,8 @@ const useCustomerLookup = ({ restaurantId, countryCode = 'IN' }) => {
       return;
     }
 
-    // Don't re-lookup the same phone
-    if (digits === lastPhoneRef.current) return;
+    // Don't re-lookup the same phone (unless forced)
+    if (digits === lastPhoneRef.current && !force) return;
 
     setLookupStatus('loading');
 

@@ -102,10 +102,10 @@ const CustomerDetailModal = ({ customerId, restaurantId, onClose }) => {
     }
 
     const stats = [
-      { label: 'Total Spent', value: formatCurrency(customer?.totalSpent || 0), color: '#16a34a', bg: '#f0fdf4' },
-      { label: 'Total Orders', value: customer?.totalOrders || 0, color: '#2563eb', bg: '#eff6ff' },
-      { label: 'Loyalty Points', value: customer?.loyaltyPoints || 0, color: '#d97706', bg: '#fffbeb' },
-      { label: 'Member Since', value: formatDate(customer?.createdAt), color: '#7c3aed', bg: '#f5f3ff' },
+      { label: 'Total Spent', value: formatCurrency(customer?.totalSpent || 0), color: '#047857', bg: 'linear-gradient(135deg, #ecfdf5, #a7f3d0)', border: '#6ee7b7' },
+      { label: 'Total Orders', value: customer?.totalOrders || 0, color: '#0d9488', bg: 'linear-gradient(135deg, #f0fdfa, #ccfbf1)', border: '#2dd4bf' },
+      { label: 'Loyalty Points', value: customer?.loyaltyPoints || 0, color: '#b45309', bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24' },
+      { label: 'Member Since', value: formatDate(customer?.createdAt), color: '#c2410c', bg: 'linear-gradient(135deg, #fff7ed, #fed7aa)', border: '#fdba74' },
     ];
 
     return (
@@ -114,8 +114,8 @@ const CustomerDetailModal = ({ customerId, restaurantId, onClose }) => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
           {stats.map((stat, i) => (
             <div key={i} style={{
-              padding: '12px', borderRadius: '10px', backgroundColor: stat.bg,
-              border: `1px solid ${stat.color}20`,
+              padding: '12px', borderRadius: '12px', background: stat.bg,
+              border: `1px solid ${stat.border}`,
             }}>
               <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, marginBottom: '4px' }}>
                 {stat.label}
@@ -259,21 +259,21 @@ const CustomerDetailModal = ({ customerId, restaurantId, onClose }) => {
       <div>
         {/* Points balance */}
         <div style={{
-          padding: '16px', borderRadius: '12px', marginBottom: '12px',
-          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-          textAlign: 'center',
+          padding: '16px', borderRadius: '14px', marginBottom: '12px',
+          background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #06b6d4 100%)',
+          textAlign: 'center', boxShadow: '0 4px 16px rgba(13,148,136,0.25)',
         }}>
-          <div style={{ fontSize: '11px', color: '#78350f', fontWeight: 500, marginBottom: '4px' }}>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: 500, marginBottom: '4px' }}>
             Available Points
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#451a03' }}>
+          <div style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff' }}>
             {points.toLocaleString()}
           </div>
           {customer?.loyaltyTier && customer.loyaltyTier !== 'bronze' && (
             <div style={{
               display: 'inline-block', marginTop: '4px',
               padding: '2px 8px', borderRadius: '4px',
-              backgroundColor: 'rgba(255,255,255,0.3)', color: '#78350f',
+              backgroundColor: 'rgba(255,255,255,0.2)', color: '#ffffff',
               fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
             }}>
               {customer.loyaltyTier} tier
@@ -364,33 +364,47 @@ const CustomerDetailModal = ({ customerId, restaurantId, onClose }) => {
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px', borderBottom: '1px solid #f1f5f9',
+          padding: '16px 16px 14px',
+          background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #06b6d4 100%)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           flexShrink: 0,
         }}>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>
-              {loading ? 'Loading...' : (customer?.name || 'Customer')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FaUser size={14} style={{ color: '#fff' }} />
             </div>
-            {customer?.phone && (
-              <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px' }}>
-                {customer.phone}
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>
+                {loading ? 'Loading...' : (customer?.name || 'Customer')}
               </div>
-            )}
+              {customer?.phone && (
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: '1px' }}>
+                  {customer.phone}
+                </div>
+              )}
+            </div>
           </div>
           <button onClick={onClose} style={{
             width: '28px', height: '28px', borderRadius: '8px',
-            border: '1px solid #e5e7eb', backgroundColor: '#f9fafb',
+            border: 'none', backgroundColor: 'rgba(255,255,255,0.2)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <FaTimes size={11} style={{ color: '#6b7280' }} />
+            transition: 'background 0.15s',
+          }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+          >
+            <FaTimes size={11} style={{ color: '#fff' }} />
           </button>
         </div>
 
         {/* Tabs */}
         <div style={{
-          display: 'flex', gap: '0', borderBottom: '1px solid #f1f5f9',
-          padding: '0 16px', flexShrink: 0,
+          display: 'flex', gap: '0', borderBottom: '1px solid #e5e7eb',
+          padding: '0 16px', flexShrink: 0, background: '#f0fdfa',
         }}>
           {tabs.map(tab => (
             <button
@@ -399,10 +413,9 @@ const CustomerDetailModal = ({ customerId, restaurantId, onClose }) => {
               style={{
                 flex: 1, padding: '10px 8px',
                 fontSize: '12px', fontWeight: activeTab === tab.id ? 700 : 500,
-                color: activeTab === tab.id ? '#111827' : '#9ca3af',
-                borderBottom: activeTab === tab.id ? '2px solid #111827' : '2px solid transparent',
+                color: activeTab === tab.id ? '#0d9488' : '#9ca3af',
                 background: 'none', border: 'none', borderBottomWidth: '2px', borderBottomStyle: 'solid',
-                borderBottomColor: activeTab === tab.id ? '#111827' : 'transparent',
+                borderBottomColor: activeTab === tab.id ? '#0d9488' : 'transparent',
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                 transition: 'all 0.15s',

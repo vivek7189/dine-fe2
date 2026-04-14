@@ -44,7 +44,11 @@ import {
   FaChevronUp,
   FaUser,
   FaWhatsapp,
-  FaArrowLeft
+  FaArrowLeft,
+  FaRedo,
+  FaExclamationCircle,
+  FaUserPlus,
+  FaStar
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -178,6 +182,21 @@ const OrderSummary = ({
 
   // Customer Lookup Hook
   const { customerData, lookupStatus, triggerLookup, clearCustomer } = useCustomerLookup({ restaurantId, countryCode });
+
+  // Auto-trigger customer lookup when phone is pre-filled (e.g., billing modal from order history/tables)
+  const initialLookupDone = useRef(false);
+  useEffect(() => {
+    if (initialLookupDone.current) return;
+    if (customerMobile && restaurantId) {
+      const digits = (customerMobile || '').replace(/\D/g, '');
+      const minLen = getPhoneMinLength(countryCode);
+      if (digits.length >= minLen) {
+        initialLookupDone.current = true;
+        triggerLookup(digits);
+      }
+    }
+  }, [customerMobile, restaurantId, countryCode, triggerLookup]);
+
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showUpiQr, setShowUpiQr] = useState(false);
   const [pendingUpiAction, setPendingUpiAction] = useState(null); // 'place' | 'complete'
@@ -213,6 +232,8 @@ const OrderSummary = ({
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
   const [sliderDragging, setSliderDragging] = useState(false);
   const [sliderLocalValue, setSliderLocalValue] = useState(0);
+  const loyaltyPreFilled = useRef(false);
+  const prevCustomerId = useRef(null);
 
   // Offers & Rewards Modal
   const [showOffersModal, setShowOffersModal] = useState(false);
@@ -248,8 +269,16 @@ const OrderSummary = ({
   // Bubble customerData up to dashboard
   useEffect(() => { onCustomerDataChange?.(customerData); }, [customerData, onCustomerDataChange]);
 
-  // Reset loyalty redemption when customer changes
-  useEffect(() => { setRedeemLoyaltyPoints(0); }, [customerData?.id]);
+  // Reset loyalty redemption when customer changes (but not if pre-filling from saved order)
+  useEffect(() => {
+    if (prevCustomerId.current !== null && prevCustomerId.current !== customerData?.id) {
+      // Customer actually changed (not first load) — reset loyalty
+      setRedeemLoyaltyPoints(0);
+      setSliderLocalValue(0);
+      loyaltyPreFilled.current = false;
+    }
+    prevCustomerId.current = customerData?.id || null;
+  }, [customerData?.id]);
 
   // Auto-fill customer name when found
   useEffect(() => {
@@ -493,6 +522,19 @@ const OrderSummary = ({
       setSpecialInstructions(currentOrder.specialInstructions);
     }
   }, [currentOrder]);
+
+  // Pre-populate loyalty redemption from saved order (e.g., billing modal from order history)
+  useEffect(() => {
+    if (loyaltyPreFilled.current) return;
+    const savedRedeemed = currentOrder?.loyaltyPointsRedeemed || currentOrder?.redeemLoyaltyPoints || 0;
+    if (savedRedeemed > 0 && customerData?.loyaltyPoints > 0) {
+      // Only pre-fill if customer has enough points and order had redemption
+      const pointsToSet = Math.min(savedRedeemed, customerData.loyaltyPoints);
+      setRedeemLoyaltyPoints(pointsToSet);
+      setSliderLocalValue(pointsToSet);
+      loyaltyPreFilled.current = true;
+    }
+  }, [currentOrder, customerData]);
 
   // Voice Assistant Functions
   const fuzzyMatchMenuItems = (transcript, menuItems) => {
@@ -2506,13 +2548,18 @@ const OrderSummary = ({
                       style={{
                           width: '100%',
                         padding: isMobile ? '10px 12px' : '8px 10px',
-                        paddingRight: lookupStatus === 'loading' ? '30px' : (isMobile ? '12px' : '10px'),
-                          border: `1.5px solid ${isValidMobile ? '#22c55e' : lookupStatus === 'found' ? '#a78bfa' : '#e5e7eb'}`,
+                        paddingRight: '36px',
+                          border: `1.5px solid ${
+                            lookupStatus === 'error' ? '#ef4444' :
+                            lookupStatus === 'found' ? '#22c55e' :
+                            lookupStatus === 'not_found' && isValidMobile ? '#f59e0b' :
+                            isValidMobile ? '#22c55e' : '#e5e7eb'
+                          }`,
                         borderRadius: '8px',
                         fontSize: isMobile ? '14px' : '12px',
                         outline: 'none',
-                        backgroundColor: '#ffffff',
-                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                        backgroundColor: lookupStatus === 'found' ? '#f0fdf4' : lookupStatus === 'error' ? '#fef2f2' : '#ffffff',
+                        transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                         boxSizing: 'border-box',
                       }}
@@ -2522,6 +2569,16 @@ const OrderSummary = ({
                             onCustomerMobileChange(digits);
                           }
                           triggerLookup(digits);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const digits = (e.target.value || '').replace(/\D/g, '');
+                            const minLen = getPhoneMinLength(countryCode);
+                            if (digits.length >= minLen) {
+                              triggerLookup(digits, { force: true });
+                            }
+                          }
                         }}
                         onFocus={(e) => {
                           e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
@@ -2533,16 +2590,60 @@ const OrderSummary = ({
                           e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
                           const digits = (e.target.value || '').replace(/\D/g, '');
                           const minLen = getPhoneMinLength(countryCode);
-                          e.target.style.borderColor = digits.length >= minLen ? '#22c55e' : '#e5e7eb';
+                          e.target.style.borderColor = lookupStatus === 'error' ? '#ef4444' :
+                            lookupStatus === 'found' ? '#22c55e' :
+                            digits.length >= minLen ? '#22c55e' : '#e5e7eb';
                         }}
                       />
-                      {lookupStatus === 'loading' && (
-                        <span style={{
-                          position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-                          width: '14px', height: '14px', border: '2px solid #fee2e2', borderTopColor: '#ef4444',
-                          borderRadius: '50%', animation: 'custSpin .6s linear infinite', display: 'inline-block',
-                        }} />
-                      )}
+                      {/* Status icon inside input — right side */}
+                      <span style={{
+                        position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                        display: 'flex', alignItems: 'center', gap: '2px',
+                      }}>
+                        {lookupStatus === 'loading' ? (
+                          <span style={{
+                            width: '14px', height: '14px', border: '2px solid #e0e7ff', borderTopColor: '#6366f1',
+                            borderRadius: '50%', animation: 'custSpin .6s linear infinite', display: 'inline-block',
+                          }} />
+                        ) : lookupStatus === 'found' ? (
+                          <FaCheckCircle size={14} color="#22c55e" title="Customer found" />
+                        ) : lookupStatus === 'not_found' && isValidMobile ? (
+                          <FaUserPlus size={13} color="#f59e0b" title="New customer" />
+                        ) : lookupStatus === 'error' ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const digits = (customerMobile || '').replace(/\D/g, '');
+                              triggerLookup(digits, { force: true });
+                            }}
+                            title="Retry lookup"
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+                              display: 'flex', alignItems: 'center', color: '#ef4444',
+                            }}
+                          >
+                            <FaRedo size={12} />
+                          </button>
+                        ) : isValidMobile ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const digits = (customerMobile || '').replace(/\D/g, '');
+                              triggerLookup(digits, { force: true });
+                            }}
+                            title="Fetch customer details"
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+                              display: 'flex', alignItems: 'center', color: '#9ca3af',
+                              transition: 'color 0.15s',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#6366f1'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+                          >
+                            <FaRedo size={11} />
+                          </button>
+                        ) : null}
+                      </span>
                       <style>{`@keyframes custSpin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
                     </div>
                     )}
@@ -2602,41 +2703,41 @@ const OrderSummary = ({
                         style={{
                           width: isMobile ? '100%' : 'auto',
                           flex: isMobile ? '0 0 auto' : '0 0 auto',
-                          padding: isMobile ? '8px 12px' : '6px 10px',
+                          padding: isMobile ? '8px 14px' : '6px 12px',
                           borderRadius: '10px',
-                          border: '1.5px solid #a5f3fc',
-                          background: 'linear-gradient(135deg, #ecfeff 0%, #cffafe 100%)',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #06b6d4 100%)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           gap: isMobile ? '10px' : '8px',
                           fontSize: isMobile ? '12px' : '11px',
                           fontWeight: 600,
-                          color: '#0e7490',
-                          transition: 'all 0.15s',
+                          color: '#ffffff',
+                          transition: 'all 0.2s',
                           whiteSpace: 'nowrap',
-                          boxShadow: '0 1px 4px rgba(14,116,144,0.08)',
+                          boxShadow: '0 2px 8px rgba(13,148,136,0.3)',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#cffafe'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(14,116,144,0.15)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.boxShadow = '0 1px 4px rgba(14,116,144,0.08)'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(13,148,136,0.45)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(13,148,136,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                         title="View customer details & offers"
                       >
                         <div style={{
-                          width: isMobile ? '28px' : '22px', height: isMobile ? '28px' : '22px',
-                          borderRadius: '50%', background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                          width: isMobile ? '26px' : '20px', height: isMobile ? '26px' : '20px',
+                          borderRadius: '50%', background: 'rgba(255,255,255,0.25)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                         }}>
-                          <FaUser size={isMobile ? 10 : 8} style={{ color: 'white' }} />
+                          <FaUser size={isMobile ? 9 : 8} style={{ color: '#fff' }} />
                         </div>
                         {customerData.loyaltyPoints > 0 && (
-                          <span style={{ color: '#d97706', fontWeight: 700, fontSize: isMobile ? '11px' : '10px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            <FaTag size={8} style={{ color: '#d97706' }} />{customerData.loyaltyPoints}pts
+                          <span style={{ color: '#ffffff', fontWeight: 700, fontSize: isMobile ? '11px' : '10px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <FaStar size={8} style={{ color: '#ffffff' }} />{customerData.loyaltyPoints}
                           </span>
                         )}
-                        <span style={{ color: '#0e7490', fontSize: isMobile ? '11px' : '10px' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: isMobile ? '11px' : '10px' }}>
                           {customerData.totalOrders} orders
                         </span>
-                        <FaChevronDown size={8} style={{ color: '#67e8f9', marginLeft: isMobile ? 'auto' : '0', flexShrink: 0 }} />
+                        <FaChevronDown size={8} style={{ color: 'rgba(255,255,255,0.6)', marginLeft: isMobile ? 'auto' : '0', flexShrink: 0 }} />
                       </button>
                     )}
 
@@ -3770,24 +3871,24 @@ const OrderSummary = ({
                   </div>
                   <div style={{
                     padding: '14px', borderRadius: '14px',
-                    background: '#fff',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 50%, #f0fdfa 100%)',
+                    border: '1px solid #5eead4',
+                    boxShadow: '0 2px 8px rgba(13,148,136,0.08)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                       <div style={{
                         width: '38px', height: '38px', borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                        background: 'linear-gradient(135deg, #0d9488, #0891b2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
+                        flexShrink: 0, boxShadow: '0 2px 8px rgba(13,148,136,0.3)',
                       }}>
                         <FaUser size={14} style={{ color: '#fff' }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#134e4a' }}>
                           {customerData.name}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                        <div style={{ fontSize: '11px', color: '#5eaaa0' }}>
                           {customerData.phone || customerMobile}
                         </div>
                       </div>
@@ -3795,12 +3896,12 @@ const OrderSummary = ({
                         onClick={() => setShowCustomerModal(true)}
                         style={{
                           padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
-                          background: '#f1f5f9', color: '#475569', border: 'none',
+                          background: 'rgba(13,148,136,0.1)', color: '#0d9488', border: '1px solid rgba(13,148,136,0.2)',
                           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
-                          transition: 'background 0.15s',
+                          transition: 'all 0.15s',
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(13,148,136,0.18)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(13,148,136,0.1)'; }}
                       >
                         Profile <FaChevronDown size={7} />
                       </button>
@@ -3808,31 +3909,31 @@ const OrderSummary = ({
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <div style={{
                         flex: 1, padding: '10px 6px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-                        textAlign: 'center',
+                        background: 'linear-gradient(135deg, #f0fdfa, #ccfbf1)',
+                        textAlign: 'center', border: '1px solid #2dd4bf',
                       }}>
-                        <div style={{ fontSize: '17px', fontWeight: 700, color: '#1d4ed8' }}>{customerData.totalOrders || 0}</div>
-                        <div style={{ fontSize: '9px', color: '#3b82f6', fontWeight: 600 }}>Orders</div>
+                        <div style={{ fontSize: '17px', fontWeight: 700, color: '#0d9488' }}>{customerData.totalOrders || 0}</div>
+                        <div style={{ fontSize: '9px', color: '#0891b2', fontWeight: 600 }}>Orders</div>
                       </div>
                       <div style={{
                         flex: 1, padding: '10px 6px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #fefce8, #fef3c7)',
-                        textAlign: 'center',
+                        background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                        textAlign: 'center', border: '1px solid #fbbf24',
                       }}>
                         <div style={{ fontSize: '17px', fontWeight: 700, color: '#b45309' }}>
                           {customerData.loyaltyPoints || 0}
                         </div>
-                        <div style={{ fontSize: '9px', color: '#d97706', fontWeight: 600 }}>Points</div>
+                        <div style={{ fontSize: '9px', color: '#b45309', fontWeight: 600 }}>Points</div>
                       </div>
                       <div style={{
                         flex: 1, padding: '10px 6px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-                        textAlign: 'center',
+                        background: 'linear-gradient(135deg, #ecfdf5, #a7f3d0)',
+                        textAlign: 'center', border: '1px solid #6ee7b7',
                       }}>
-                        <div style={{ fontSize: '17px', fontWeight: 700, color: '#15803d' }}>
+                        <div style={{ fontSize: '17px', fontWeight: 700, color: '#047857' }}>
                           {formatCurrency(customerData.totalSpent || 0)}
                         </div>
-                        <div style={{ fontSize: '9px', color: '#16a34a', fontWeight: 600 }}>Spent</div>
+                        <div style={{ fontSize: '9px', color: '#059669', fontWeight: 600 }}>Spent</div>
                       </div>
                     </div>
                     {customerOfferGroups && customerOfferGroups.length > 0 && (

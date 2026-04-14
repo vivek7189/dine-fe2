@@ -3689,6 +3689,27 @@ function RestaurantPOSContent() {
     // Clear any stale billing/KOT summary when switching views
     // This prevents showing old "Billing Complete" messages
     setOrderSuccess(null);
+
+    // When switching to tables view, clear cart and edit state
+    // so the user starts fresh when taking a new order from a table
+    if (newView === 'tables') {
+      setCart([]);
+      setCurrentOrder(null);
+      setActiveSavedOrderId(null);
+      setTableNumber('');
+      setCustomerName('');
+      setCustomerMobile('');
+      setManualTableNumber('');
+      setManualRoomNumber('');
+      setOrderLookup('');
+      setReturnToView(null);
+      localStorage.removeItem('dine_cart');
+      if (selectedTable && selectedTable.id) {
+        apiClient.updateTableStatus(selectedTable.id, 'available', null, selectedRestaurant?.id);
+        setSelectedTable(null);
+      }
+    }
+
     if (updateUrl && typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       // For orders view (default), remove the view param for cleaner URLs
@@ -6235,6 +6256,13 @@ function RestaurantPOSContent() {
                 printSettings={printSettings}
                 upiSettings={upiSettings}
                 whatsappConnected={whatsappConnected}
+                billingSettings={selectedRestaurant?.billingSettings || {}}
+                multiPricingEnabled={multiPricingEnabled}
+                pricingRules={pricingRules}
+                activePricingRuleId={activePricingRuleId}
+                setActivePricingRuleId={setActivePricingRuleId}
+                countryCode={selectedRestaurant?.countryCode || 'IN'}
+                businessType={selectedRestaurant?.businessType || 'restaurant'}
                 onRefreshTables={() => {
                   // Refresh tables in background after billing completion
                   if (selectedRestaurant?.id) {

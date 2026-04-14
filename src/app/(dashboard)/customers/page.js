@@ -379,6 +379,10 @@ const Customers = () => {
   const [bulkDeleteReason, setBulkDeleteReason] = useState('');
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
+  // Single delete confirmation modal
+  const [deleteConfirmCustomer, setDeleteConfirmCustomer] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
@@ -931,10 +935,20 @@ const Customers = () => {
           setBackgroundLoading(true);
           window.dispatchEvent(new CustomEvent('customersBackgroundLoading', { detail: { loading: true } }));
         } else {
-          setLoading(true);
+          // Only show full page loader on initial load (no existing data)
+          if (customers.length === 0) {
+            setLoading(true);
+          } else {
+            setBackgroundLoading(true);
+          }
         }
       } else {
-        setLoading(true);
+        // For search/pagination — don't show full page loader if we already have data
+        if (customers.length === 0 && !search) {
+          setLoading(true);
+        } else {
+          setBackgroundLoading(true);
+        }
       }
 
       // Fetch fresh data with pagination and search
@@ -1069,25 +1083,29 @@ const Customers = () => {
     }
   };
 
-  // Handle delete customer
-  const handleDelete = async (customer) => {
-    const customerName = customer.name || customer.phone || t('customers.unnamed');
-    const confirmMessage = t('customers.messages.deleteConfirm', { name: customerName });
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+  // Handle delete customer — show confirmation modal
+  const handleDelete = (customer) => {
+    setDeleteConfirmCustomer(customer);
+  };
 
+  // Confirm delete — remove row inline without full page reload
+  const confirmDeleteCustomer = async () => {
+    const customer = deleteConfirmCustomer;
+    if (!customer) return;
+    setDeletingId(customer.id);
     try {
       await apiClient.request(`/api/customers/${customer.id}`, {
         method: 'DELETE'
       });
-      // If last item on current page, go back one page
-      const newPage = (customers.length <= 1 && currentPage > 1) ? currentPage - 1 : currentPage;
-      setCurrentPage(newPage);
-      await loadCustomers(false, newPage, searchTerm);
+      // Remove from local state immediately (no full reload)
+      setCustomers(prev => prev.filter(c => c.id !== customer.id));
+      setTotalCustomers(prev => Math.max(0, prev - 1));
+      setDeleteConfirmCustomer(null);
     } catch (error) {
       console.error('Error deleting customer:', error);
       setError(t('customers.messages.failedToDelete'));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -2850,6 +2868,115 @@ const Customers = () => {
                 }}
               >
                 {bulkDeleting ? <><FaSpinner size={12} className="spin" /> Deleting...</> : <>Delete {selectedCustomerIds.length} Customer{selectedCustomerIds.length > 1 ? 's' : ''}</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmCustomer && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget && !deletingId) setDeleteConfirmCustomer(null); }}
+          style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 100, padding: '16px',
+            animation: 'fadeIn 0.15s ease',
+          }}
+        >
+          <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}} @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
+          <div style={{
+            background: 'white', borderRadius: '16px', width: '100%', maxWidth: '380px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+            animation: 'slideUp 0.2s ease',
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '20px 24px 16px',
+              background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+              borderBottom: '1px solid #fecaca',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 12px', boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
+              }}>
+                <FaTrash size={18} color="white" />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#991b1b' }}>
+                Delete Customer?
+              </h3>
+            </div>
+            {/* Body */}
+            <div style={{ padding: '20px 24px', textAlign: 'center' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '12px', borderRadius: '10px', background: '#f9fafb',
+                border: '1px solid #e5e7eb', marginBottom: '12px',
+              }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '14px', fontWeight: 700, color: '#6b7280', flexShrink: 0,
+                }}>
+                  {(deleteConfirmCustomer.name || '?')[0].toUpperCase()}
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+                    {deleteConfirmCustomer.name || 'Unnamed'}
+                  </div>
+                  {deleteConfirmCustomer.phone && (
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>{deleteConfirmCustomer.phone}</div>
+                  )}
+                </div>
+                {deleteConfirmCustomer.totalOrders > 0 && (
+                  <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#374151' }}>{deleteConfirmCustomer.totalOrders}</div>
+                    <div style={{ fontSize: '10px', color: '#9ca3af' }}>orders</div>
+                  </div>
+                )}
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: 1.5 }}>
+                This will permanently delete all customer data including order history and loyalty points.
+              </p>
+            </div>
+            {/* Footer */}
+            <div style={{
+              padding: '16px 24px', borderTop: '1px solid #f3f4f6',
+              display: 'flex', gap: '10px',
+            }}>
+              <button
+                onClick={() => setDeleteConfirmCustomer(null)}
+                disabled={!!deletingId}
+                style={{
+                  flex: 1, padding: '10px', fontSize: '13px', fontWeight: 600,
+                  background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '10px',
+                  cursor: deletingId ? 'not-allowed' : 'pointer', transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => !deletingId && (e.currentTarget.style.background = '#e5e7eb')}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#f3f4f6'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteCustomer}
+                disabled={!!deletingId}
+                style={{
+                  flex: 1, padding: '10px', fontSize: '13px', fontWeight: 600,
+                  background: deletingId ? '#fca5a5' : '#dc2626',
+                  color: 'white', border: 'none', borderRadius: '10px',
+                  cursor: deletingId ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => !deletingId && (e.currentTarget.style.background = '#b91c1c')}
+                onMouseLeave={(e) => !deletingId && (e.currentTarget.style.background = '#dc2626')}
+              >
+                {deletingId ? <><FaSpinner size={12} className="spin" /> Deleting...</> : 'Delete'}
               </button>
             </div>
           </div>

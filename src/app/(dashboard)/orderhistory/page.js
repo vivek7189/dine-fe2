@@ -129,6 +129,12 @@ const OrderHistory = () => {
   const [printingOrderId, setPrintingOrderId] = useState(null);
   const [printSuccess, setPrintSuccess] = useState(null);
   const [analyticsStats, setAnalyticsStats] = useState(null);
+  const [taxSettings, setTaxSettings] = useState(null);
+  // Menu items & multi-tier pricing for billing modal
+  const [menuItems, setMenuItems] = useState([]);
+  const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
+  const [pricingRules, setPricingRules] = useState([]);
+  const [activePricingRuleId, setActivePricingRuleId] = useState(null);
 
   useEffect(() => {
     // Initialize language
@@ -555,6 +561,22 @@ const OrderHistory = () => {
     fetchPrintSettings();
   }, [restaurantId]);
 
+  // Fetch tax settings for billing modal
+  useEffect(() => {
+    if (!restaurantId) return;
+    const loadTaxSettings = async () => {
+      try {
+        const response = await apiClient.getTaxSettings(restaurantId);
+        if (response?.success) {
+          setTaxSettings(response.taxSettings);
+        }
+      } catch (e) {
+        console.log('Tax settings load error:', e.message);
+      }
+    };
+    loadTaxSettings();
+  }, [restaurantId]);
+
   // Fetch UPI settings from customer app settings
   useEffect(() => {
     if (!restaurantId) return;
@@ -569,6 +591,31 @@ const OrderHistory = () => {
       }
     };
     loadUpiSettings();
+  }, [restaurantId]);
+
+  // Load menu items & pricing rules for billing modal (multi-tier pricing support)
+  useEffect(() => {
+    if (!restaurantId) return;
+    const loadMenuAndPricing = async () => {
+      try {
+        const [menuRes, pricingRes] = await Promise.all([
+          apiClient.getMenu(restaurantId),
+          apiClient.getPricingSettings(restaurantId).catch(() => null),
+        ]);
+        setMenuItems(menuRes?.menuItems || []);
+        const mp = pricingRes?.settings?.multiPricing;
+        if (mp?.enabled) {
+          setMultiPricingEnabled(true);
+          setPricingRules((mp.rules || []).filter(r => r.isActive));
+        } else {
+          setMultiPricingEnabled(false);
+          setPricingRules([]);
+        }
+      } catch (e) {
+        console.log('Menu/pricing load for billing:', e.message);
+      }
+    };
+    loadMenuAndPricing();
   }, [restaurantId]);
 
   // Fetch WhatsApp connection status
@@ -701,16 +748,20 @@ const OrderHistory = () => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
-    const cartItems = (order.items || []).map(item => ({
-      id: item.menuItemId || item.id,
-      name: item.name,
-      price: item.price || 0,
-      quantity: item.quantity || 1,
-      selectedVariant: item.selectedVariant,
-      selectedCustomizations: item.selectedCustomizations,
-      basePrice: item.basePrice || item.price || 0,
-      cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
-    }));
+    const cartItems = (order.items || []).map(item => {
+      const menuItem = menuItems?.find(m => m.id === (item.menuItemId || item.id));
+      return {
+        id: item.menuItemId || item.id,
+        name: item.name,
+        price: item.price || 0,
+        quantity: item.quantity || 1,
+        selectedVariant: item.selectedVariant,
+        selectedCustomizations: item.selectedCustomizations,
+        basePrice: item.basePrice || item.price || 0,
+        pricingRules: menuItem?.pricingRules || item.pricingRules || {},
+        cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
+      };
+    });
 
     setBillingModalCart(cartItems);
     setBillingModalPaymentMethod(order.paymentMethod || 'cash');
@@ -745,6 +796,7 @@ const OrderHistory = () => {
       cashReceived, changeReturned, splitPayments, roundOffAmount,
       compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
       offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
+      redeemLoyaltyPoints, loyaltyDiscount,
     } = taxData;
 
     try {
@@ -780,6 +832,9 @@ const OrderHistory = () => {
         ...(offerDiscount > 0 && { offerDiscount, offerIds, selectedOfferName }),
         ...(totalDiscountAmount > 0 && { totalDiscountAmount }),
         ...(specialInstructions && { specialInstructions }),
+        ...(redeemLoyaltyPoints > 0 && { redeemLoyaltyPoints }),
+        ...(loyaltyDiscount > 0 && { loyaltyDiscount }),
+        customerId: order.customerId || null,
         tableNumber: billingTableNumber || order.tableNumber || null,
         customerInfo: {
           name: billingCustomerName || order.customerInfo?.name || '',
@@ -2429,14 +2484,18 @@ const OrderHistory = () => {
                     onShowQRCode={() => {}}
                     restaurantId={restaurantId}
                     restaurantName={restaurant?.name || ''}
-                    taxSettings={restaurant?.taxSettings}
+                    taxSettings={taxSettings}
                     printSettings={printSettings}
-                    menuItems={[]}
+                    menuItems={menuItems}
                     onClose={closeBillingModal}
                     billingMode={true}
                     billingSettings={restaurant?.billingSettings || {}}
                     businessType={restaurant?.businessType || 'restaurant'}
                     countryCode={restaurant?.countryCode || 'IN'}
+                    multiPricingEnabled={multiPricingEnabled}
+                    pricingRules={pricingRules}
+                    activePricingRuleId={activePricingRuleId}
+                    setActivePricingRuleId={setActivePricingRuleId}
                     upiSettings={upiSettings}
                     whatsappConnected={whatsappConnected}
                   />

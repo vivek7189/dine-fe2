@@ -68,7 +68,8 @@ import {
   FaStar,
   FaBan,
   FaUndo,
-  FaLock
+  FaLock,
+  FaMobileAlt
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -3300,6 +3301,7 @@ const Admin = () => {
     managerPin: '',
     refundsEnabled: false,
     refundsRequireApproval: true,
+    emailInvoiceEnabled: false,
   });
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMessage, setBillingMessage] = useState({ type: '', text: '' });
@@ -8526,6 +8528,12 @@ const Admin = () => {
                     )
                   },
                   {
+                    key: 'emailInvoiceEnabled',
+                    name: 'Email Invoice',
+                    desc: 'Auto-send invoice on bill completion',
+                    icon: FaEnvelope,
+                  },
+                  {
                     key: 'refundsEnabled',
                     name: 'Refunds',
                     desc: 'Full or partial refunds',
@@ -8541,6 +8549,19 @@ const Admin = () => {
                           />
                           Require manager approval
                         </label>
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'useWebViewBilling',
+                    name: 'WebView Billing',
+                    desc: 'Web-based billing in mobile app',
+                    icon: FaMobileAlt,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
+                          When enabled, the mobile app uses web-based billing with full features (offers, loyalty, multi-tier pricing, tips, split payment). Falls back to native billing when offline.
+                        </p>
                       </div>
                     )
                   }

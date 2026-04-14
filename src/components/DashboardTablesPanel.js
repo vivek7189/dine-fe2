@@ -56,6 +56,13 @@ export default function DashboardTablesPanel({
   onClearRecentlyUpdated, // Callback to clear the highlight
   upiSettings = {},
   whatsappConnected = false,
+  billingSettings = {},
+  multiPricingEnabled = false,
+  pricingRules = [],
+  activePricingRuleId = null,
+  setActivePricingRuleId,
+  countryCode = 'IN',
+  businessType = 'restaurant',
 }) {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -65,6 +72,9 @@ export default function DashboardTablesPanel({
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderError, setOrderError] = useState(null);
   const [outOfServiceModal, setOutOfServiceModal] = useState({ open: false, table: null });
+  // Customer state for billing modal (so customer lookup works)
+  const [modalCustomerName, setModalCustomerName] = useState('');
+  const [modalCustomerMobile, setModalCustomerMobile] = useState('');
 
   // Timer tick to keep elapsed times updated (every 60s)
   const [, setTick] = useState(0);
@@ -224,19 +234,25 @@ export default function DashboardTablesPanel({
         const order = response.orders[0];
         setActionsModal(prev => ({ ...prev, order, loading: false }));
 
-        // Populate modal cart with order items
-        const cartItems = (order.items || []).map(item => ({
-          id: item.menuItemId || item.id,
-          name: item.name,
-          price: item.price || 0,
-          quantity: item.quantity || 1,
-          selectedVariant: item.selectedVariant,
-          selectedCustomizations: item.selectedCustomizations,
-          basePrice: item.basePrice || item.price || 0,
-          cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
-        }));
+        // Populate modal cart with order items (include pricingRules from menu for multi-tier pricing)
+        const cartItems = (order.items || []).map(item => {
+          const menuItem = menuItems?.find(m => m.id === (item.menuItemId || item.id));
+          return {
+            id: item.menuItemId || item.id,
+            name: item.name,
+            price: item.price || 0,
+            quantity: item.quantity || 1,
+            selectedVariant: item.selectedVariant,
+            selectedCustomizations: item.selectedCustomizations,
+            basePrice: item.basePrice || item.price || 0,
+            pricingRules: menuItem?.pricingRules || item.pricingRules || {},
+            cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
+          };
+        });
         setModalCart(cartItems);
         setModalPaymentMethod(order.paymentMethod || 'cash');
+        setModalCustomerName(order.customerInfo?.name || '');
+        setModalCustomerMobile(order.customerInfo?.phone || '');
       } else {
         setActionsModal(prev => ({ ...prev, loading: false }));
       }
@@ -250,6 +266,8 @@ export default function DashboardTablesPanel({
     setActionsModal({ open: false, table: null, order: null, loading: false });
     setModalCart([]);
     setModalProcessing(false);
+    setModalCustomerName('');
+    setModalCustomerMobile('');
   };
 
   // Get total amount for modal cart
@@ -266,29 +284,60 @@ export default function DashboardTablesPanel({
     setModalProcessing(true);
     const order = actionsModal.order;
 
-    // Extract tax information from taxData passed by OrderSummary
-    const { taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null } = taxData;
+    // Extract ALL billing data from taxData passed by OrderSummary
+    const {
+      taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null,
+      serviceChargeAmount, serviceChargeRate, tipAmount, tipPercentage,
+      cashReceived, changeReturned, splitPayments, roundOffAmount,
+      compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
+      offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
+      redeemLoyaltyPoints, loyaltyDiscount,
+    } = taxData;
 
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
       // Calculate the payment amount (use taxData if provided, else use order's stored values)
-      const paymentAmount = finalAmount || order.finalAmount || order.totalAmount || getModalTotalAmount();
+      const paymentAmount = finalAmount ?? order.finalAmount ?? order.totalAmount ?? getModalTotalAmount();
+      const isPartialPayment = partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
 
-      // Update order to completed status with payment and tax info
+      // Update order to completed status with full billing data
       const updateData = {
         status: 'completed',
-        paymentStatus: 'paid',
-        paymentMethod: modalPaymentMethod,
+        paymentStatus: isPartialPayment ? 'partial' : 'paid',
+        paymentMethod: splitPayments ? 'split' : modalPaymentMethod,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        // Include tax data if provided (in case tax settings changed or for consistency)
         ...(taxBreakdown.length > 0 && {
           totalAmount: subtotal || getModalTotalAmount(),
           taxBreakdown: taxBreakdown,
           taxAmount: totalTax,
           finalAmount: finalAmount
         }),
+        ...(serviceChargeAmount > 0 && { serviceChargeAmount, serviceChargeRate }),
+        ...(tipAmount > 0 && { tipAmount, tipPercentage }),
+        ...(cashReceived > 0 && { cashReceived, changeReturned }),
+        ...(splitPayments && { splitPayments }),
+        ...(roundOffAmount && roundOffAmount !== 0 && { roundOffAmount }),
+        ...(compItems && { compItems }),
+        ...(voidItems && { voidItems }),
+        ...(isPartialPayment && {
+          partialPayAmount,
+          paidAmount: partialPayAmount,
+          outstandingAmount: Math.round((paymentAmount - partialPayAmount) * 100) / 100,
+        }),
+        ...(manualDiscount > 0 && { manualDiscount }),
+        ...(offerDiscount > 0 && { offerDiscount, offerIds, selectedOfferName }),
+        ...(totalDiscountAmount > 0 && { totalDiscountAmount }),
+        ...(specialInstructions && { specialInstructions }),
+        ...(redeemLoyaltyPoints > 0 && { redeemLoyaltyPoints }),
+        ...(loyaltyDiscount > 0 && { loyaltyDiscount }),
+        customerId: order.customerId || null,
+        customerInfo: {
+          name: modalCustomerName || order.customerInfo?.name || '',
+          phone: modalCustomerMobile || order.customerInfo?.phone || null,
+          tableNumber: order.tableNumber || actionsModal.table?.name || null,
+        },
         lastUpdatedBy: {
           name: currentUser.name || 'Staff',
           id: currentUser.id,
@@ -301,11 +350,11 @@ export default function DashboardTablesPanel({
       // Process payment
       await apiClient.verifyPayment({
         orderId: order.id,
-        paymentMethod: modalPaymentMethod,
-        amount: paymentAmount,
+        paymentMethod: splitPayments ? 'split' : modalPaymentMethod,
+        amount: isPartialPayment ? partialPayAmount : paymentAmount,
         userId: currentUser.id,
         restaurantId: selectedRestaurant.id,
-        paymentStatus: 'completed'
+        paymentStatus: isPartialPayment ? 'partial' : 'completed'
       });
 
       // Only send to auto-print if auto-print is enabled (manualPrint disabled)
@@ -1348,8 +1397,8 @@ export default function DashboardTablesPanel({
                     ).filter(item => item.quantity > 0));
                   }}
                   onTableNumberChange={() => {}}
-                  onCustomerNameChange={() => {}}
-                  onCustomerMobileChange={() => {}}
+                  onCustomerNameChange={(val) => setModalCustomerName(val)}
+                  onCustomerMobileChange={(val) => setModalCustomerMobile(val)}
                   processing={modalProcessing}
                   placingOrder={false}
                   orderSuccess={false}
@@ -1357,8 +1406,8 @@ export default function DashboardTablesPanel({
                   error={null}
                   getTotalAmount={getModalTotalAmount}
                   tableNumber={actionsModal.order.tableNumber || actionsModal.table?.name || ''}
-                  customerName={actionsModal.order.customerInfo?.name || ''}
-                  customerMobile={actionsModal.order.customerInfo?.phone || ''}
+                  customerName={modalCustomerName}
+                  customerMobile={modalCustomerMobile}
                   orderLookup=""
                   setOrderLookup={() => {}}
                   currentOrder={actionsModal.order}
@@ -1371,6 +1420,13 @@ export default function DashboardTablesPanel({
                   menuItems={menuItems}
                   onClose={closeActionsModal}
                   billingMode={true}
+                  billingSettings={billingSettings}
+                  multiPricingEnabled={multiPricingEnabled}
+                  pricingRules={pricingRules}
+                  activePricingRuleId={activePricingRuleId}
+                  setActivePricingRuleId={setActivePricingRuleId || (() => {})}
+                  countryCode={countryCode}
+                  businessType={businessType}
                   upiSettings={upiSettings}
                   whatsappConnected={whatsappConnected}
                 />
