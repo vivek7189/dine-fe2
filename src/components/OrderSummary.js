@@ -150,10 +150,6 @@ const OrderSummary = ({
     return parts;
   };
 
-  // In mobile WebView billing, use dashboard-style red gradient header (not the gray billingMode header)
-  const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
-  const useRedHeader = !billingMode || isMobileEmbed;
-
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder;
   // True when editing a loaded saved order (disable save button, keep place order text normal)
@@ -875,18 +871,18 @@ const OrderSummary = ({
     }}>
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
-        background: useRedHeader
-          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)'
-          : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-        padding: useRedHeader ? '14px 16px' : '10px 16px',
-        color: useRedHeader ? 'white' : '#1e293b',
+        background: billingMode
+          ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+          : 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+        padding: billingMode ? '10px 16px' : '14px 16px',
+        color: billingMode ? '#1e293b' : 'white',
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0,
-        ...(!useRedHeader && { borderBottom: '1px solid #e2e8f0' })
+        ...(billingMode && { borderBottom: '1px solid #e2e8f0' })
       }}>
         {/* Background Pattern - hidden in billing mode */}
-        {useRedHeader && (
+        {!billingMode && (
           <div style={{
             position: 'absolute',
             top: 0,
@@ -912,7 +908,7 @@ const OrderSummary = ({
               <button
                 onClick={onClose}
                 style={{
-                  background: useRedHeader ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
+                  background: billingMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.2)',
                   border: 'none',
                   borderRadius: '8px',
                   width: '32px',
@@ -921,7 +917,7 @@ const OrderSummary = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: useRedHeader ? 'white' : '#374151'
+                  color: billingMode ? '#374151' : 'white'
                 }}
               >
                 <FaArrowLeft size={14} />
@@ -930,14 +926,14 @@ const OrderSummary = ({
             <div style={{
               width: '24px',
               height: '24px',
-              backgroundColor: useRedHeader ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
+              backgroundColor: billingMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.2)',
               borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               backdropFilter: 'blur(10px)'
             }}>
-              <FaShoppingCart size={12} style={!useRedHeader ? { color: '#64748b' } : undefined} />
+              <FaShoppingCart size={12} style={billingMode ? { color: '#64748b' } : undefined} />
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: isMobile ? '14px' : '13px', fontWeight: 'bold', margin: 0 }}>
@@ -986,12 +982,12 @@ const OrderSummary = ({
                 onClick={() => setOrderType('dine-in')}
                 style={{
                   backgroundColor: orderType === 'dine-in'
-                    ? (useRedHeader ? 'rgba(255,255,255,0.5)' : '#e2e8f0')
-                    : (useRedHeader ? 'rgba(255,255,255,0.1)' : 'transparent'),
-                  color: useRedHeader ? 'white' : '#334155',
+                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
+                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
+                  color: billingMode ? '#334155' : 'white',
                   border: orderType === 'dine-in'
-                    ? (useRedHeader ? '2px solid white' : '2px solid #94a3b8')
-                    : (useRedHeader ? '1px solid rgba(255,255,255,0.2)' : '1px solid #cbd5e1'),
+                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
+                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
                   borderRadius: isMobile ? '4px' : '6px',
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',
@@ -1010,12 +1006,12 @@ const OrderSummary = ({
                 disabled={hasTable}
                 style={{
                   backgroundColor: orderType === 'takeaway'
-                    ? (useRedHeader ? 'rgba(255,255,255,0.5)' : '#e2e8f0')
-                    : (useRedHeader ? 'rgba(255,255,255,0.1)' : 'transparent'),
-                  color: useRedHeader ? 'white' : '#334155',
+                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
+                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
+                  color: billingMode ? '#334155' : 'white',
                   border: orderType === 'takeaway'
-                    ? (useRedHeader ? '2px solid white' : '2px solid #94a3b8')
-                    : (useRedHeader ? '1px solid rgba(255,255,255,0.2)' : '1px solid #cbd5e1'),
+                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
+                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
                   borderRadius: isMobile ? '4px' : '6px',
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',
@@ -1035,12 +1031,12 @@ const OrderSummary = ({
                 disabled={hasTable}
                 style={{
                   backgroundColor: orderType === 'delivery'
-                    ? (useRedHeader ? 'rgba(255,255,255,0.5)' : '#e2e8f0')
-                    : (useRedHeader ? 'rgba(255,255,255,0.1)' : 'transparent'),
-                  color: useRedHeader ? 'white' : '#334155',
+                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
+                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
+                  color: billingMode ? '#334155' : 'white',
                   border: orderType === 'delivery'
-                    ? (useRedHeader ? '2px solid white' : '2px solid #94a3b8')
-                    : (useRedHeader ? '1px solid rgba(255,255,255,0.2)' : '1px solid #cbd5e1'),
+                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
+                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
                   borderRadius: isMobile ? '4px' : '6px',
                   padding: isMobile ? '4px 6px' : '6px 12px',
                   fontSize: isMobile ? '9px' : '10px',

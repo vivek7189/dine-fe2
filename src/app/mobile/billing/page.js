@@ -409,6 +409,48 @@ export default function MobileBillingPage() {
     }
   };
 
+  // Save order (keep as saved/pending)
+  const handleSaveOrder = async (taxData = {}) => {
+    if (!order) return;
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      await apiClient.updateOrder(order.id, {
+        status: 'saved',
+        items: cart.map(i => ({ menuItemId: i.menuItemId || i.id, name: i.name, price: i.price, quantity: i.quantity })),
+        tableNumber: tableNumber || order.tableNumber || null,
+        customerInfo: { name: customerName || '', phone: customerMobile || null },
+        ...(taxData.specialInstructions && { specialInstructions: taxData.specialInstructions }),
+        lastUpdatedBy: { name: currentUser.name || 'Staff', id: currentUser.id, role: currentUser.role || 'waiter' },
+      });
+      if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BILLING_COMPLETE', orderId: order.id, status: 'saved' }));
+      }
+    } catch (e) {
+      alert('Save failed: ' + (e.message || 'Unknown error'));
+    }
+  };
+
+  // Place order (send to kitchen — status confirmed)
+  const handlePlaceOrder = async (taxData = {}) => {
+    if (!order) return;
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      await apiClient.updateOrder(order.id, {
+        status: 'confirmed',
+        items: cart.map(i => ({ menuItemId: i.menuItemId || i.id, name: i.name, price: i.price, quantity: i.quantity })),
+        tableNumber: tableNumber || order.tableNumber || null,
+        customerInfo: { name: customerName || '', phone: customerMobile || null },
+        ...(taxData.specialInstructions && { specialInstructions: taxData.specialInstructions }),
+        lastUpdatedBy: { name: currentUser.name || 'Staff', id: currentUser.id, role: currentUser.role || 'waiter' },
+      });
+      if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BILLING_COMPLETE', orderId: order.id, status: 'confirmed' }));
+      }
+    } catch (e) {
+      alert('Place order failed: ' + (e.message || 'Unknown error'));
+    }
+  };
+
   const handleClose = () => {
     if (typeof window !== 'undefined' && window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BILLING_CLOSE' }));
@@ -448,8 +490,8 @@ export default function MobileBillingPage() {
         setPaymentMethod={setPaymentMethod}
         onClearCart={() => {}}
         onProcessOrder={handleProcessOrder}
-        onSaveOrder={() => {}}
-        onPlaceOrder={() => {}}
+        onSaveOrder={handleSaveOrder}
+        onPlaceOrder={handlePlaceOrder}
         onRemoveFromCart={() => {}}
         onAddToCart={() => {}}
         onUpdateCartItemQuantity={(cartId, newQty) => {
@@ -481,7 +523,7 @@ export default function MobileBillingPage() {
         printSettings={printSettings}
         menuItems={menuItems}
         onClose={handleClose}
-        billingMode={true}
+        billingMode={false}
         billingSettings={billingSettings}
         businessType={restaurant?.businessType || 'restaurant'}
         countryCode={restaurant?.countryCode || 'IN'}
