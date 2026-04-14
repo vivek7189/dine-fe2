@@ -2318,6 +2318,7 @@ function RestaurantPOSContent() {
 
   // Keyboard shortcut for command bar (Cmd/Ctrl + K)
   useEffect(() => {
+    if (posSettings.hideSearchBar) return;
     const handleCommandBarShortcut = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -2328,7 +2329,7 @@ function RestaurantPOSContent() {
     };
     window.addEventListener('keydown', handleCommandBarShortcut);
     return () => window.removeEventListener('keydown', handleCommandBarShortcut);
-  }, []);
+  }, [posSettings.hideSearchBar]);
 
   const processVoiceCommand = async (transcript) => {
     try {
@@ -4310,7 +4311,7 @@ function RestaurantPOSContent() {
       </div>
 
       {/* Floating Command Bar - Search & Voice */}
-      {!isMobile && viewMode === 'orders' && (
+      {!isMobile && viewMode === 'orders' && !posSettings.hideSearchBar && (
         <div
           style={{
             position: 'fixed',
@@ -6425,6 +6426,11 @@ function RestaurantPOSContent() {
               </>
             )}
 
+            {/* Hide sidebar hamburger when mobile cart is open */}
+            {isMobile && showMobileCart && (
+              <style>{`#sidebar-hamburger { display: none !important; }`}</style>
+            )}
+
             {/* Mobile Order Summary - Full Screen */}
             {isMobile && showMobileCart && viewMode === 'orders' && (
                   <OrderSummary
@@ -7391,8 +7397,54 @@ function RestaurantPOSContent() {
         />
       )}
 
+      {/* Mobile Bottom Cart Button - When Search Bar is Hidden */}
+      {isMobile && viewMode === 'orders' && !showMobileCart && posSettings.hideSearchBar && (
+        <div style={{
+          position: 'fixed',
+          bottom: '16px',
+          left: '16px',
+          right: '16px',
+          zIndex: 900
+        }}>
+          <button
+            onClick={() => setShowMobileCart(true)}
+            style={{
+              width: '100%',
+              padding: cart.length > 0 ? '14px 20px' : '12px 20px',
+              backgroundColor: cart.length > 0 ? '#10b981' : '#f3f4f6',
+              color: cart.length > 0 ? 'white' : '#6b7280',
+              border: 'none',
+              borderRadius: '50px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              fontWeight: '700',
+              fontSize: '15px',
+              boxShadow: cart.length > 0
+                ? '0 8px 32px rgba(16, 185, 129, 0.3), 0 0 0 1px rgba(16, 185, 129, 0.1)'
+                : '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+            }}
+          >
+            <FaShoppingCart size={16} />
+            {cart.length > 0 ? (
+              <>
+                <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} items</span>
+                <span style={{ margin: '0 4px', opacity: 0.5 }}>|</span>
+                <span>Rs.{getTotalAmount()}</span>
+              </>
+            ) : (
+              <span>Cart is empty</span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Mobile Command Bar - Bottom Fixed */}
-      {isMobile && viewMode === 'orders' && !showMobileCart && (
+      {isMobile && viewMode === 'orders' && !showMobileCart && !posSettings.hideSearchBar && (
         <div style={{
           position: 'fixed',
           bottom: '16px',

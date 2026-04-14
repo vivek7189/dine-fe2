@@ -197,6 +197,9 @@ export function HeadquartersContent({ embedded = false }) {
   const MENU_PAGE_SIZE = 100;
   const INVENTORY_PAGE_SIZE = 50;
 
+  // Business type for CTA routing
+  const [businessType, setBusinessType] = useState('restaurant');
+
   // UI state
   const [refreshing, setRefreshing] = useState(false);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -243,6 +246,11 @@ export function HeadquartersContent({ embedded = false }) {
       setAuthorized(true);
       setLoading(false); // Show page shell immediately
       setEmailPreferences(prev => ({ ...prev, reportEmail: userData.email || '' }));
+      // Read business type for CTA routing
+      try {
+        const savedR = localStorage.getItem('selectedRestaurant');
+        if (savedR) { const r = JSON.parse(savedR); if (r.businessType) setBusinessType(r.businessType); }
+      } catch {};
     } catch (error) {
       console.error('Auth check error:', error);
       if (!embedded) router.push('/login');
@@ -557,10 +565,10 @@ export function HeadquartersContent({ embedded = false }) {
   // Dynamic headline based on date filter
   const getDynamicHeadline = () => {
     const headlines = {
-      today: { title: "Today's Snapshot", subtitle: 'Real-time performance across your restaurants' },
-      '7d': { title: 'Weekly Highlights', subtitle: 'Your 7-day performance summary' },
-      '30d': { title: 'Monthly Overview', subtitle: 'Performance trends this month' },
-      '90d': { title: 'Quarterly Insights', subtitle: '90-day business analysis' },
+      today: { title: "Today's Overview", subtitle: 'How your business is doing today' },
+      '7d': { title: 'This Week', subtitle: 'Your 7-day performance' },
+      '30d': { title: 'This Month', subtitle: 'Monthly business trends' },
+      '90d': { title: 'This Quarter', subtitle: '90-day business review' },
       custom: { title: 'Custom Period', subtitle: `${dateRange.startDate} to ${dateRange.endDate}` }
     };
     return headlines[dateRange.preset] || headlines['7d'];
@@ -580,49 +588,51 @@ export function HeadquartersContent({ embedded = false }) {
   const MetricCard = ({ icon: Icon, label, value, subtitle, color = '#ef4444' }) => (
     <div style={{
       backgroundColor: 'white',
-      borderRadius: '16px',
-      padding: '20px',
+      borderRadius: isMobile ? '14px' : '16px',
+      padding: isMobile ? '14px' : '20px',
       boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
       border: '1px solid #f1f5f9',
       position: 'relative',
       overflow: 'hidden'
     }}>
-      <div style={{
-        position: 'absolute',
-        top: '-30px',
-        right: '-30px',
-        width: '100px',
-        height: '100px',
-        borderRadius: '50%',
-        background: `linear-gradient(135deg, ${color}15, ${color}05)`,
-        zIndex: 0
-      }} />
+      {!isMobile && (
+        <div style={{
+          position: 'absolute',
+          top: '-30px',
+          right: '-30px',
+          width: '100px',
+          height: '100px',
+          borderRadius: '50%',
+          background: `linear-gradient(135deg, ${color}15, ${color}05)`,
+          zIndex: 0
+        }} />
+      )}
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{
-          width: '44px',
-          height: '44px',
-          borderRadius: '12px',
+          width: isMobile ? '34px' : '44px',
+          height: isMobile ? '34px' : '44px',
+          borderRadius: isMobile ? '10px' : '12px',
           background: `linear-gradient(135deg, ${color}, ${color}dd)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           boxShadow: `0 4px 12px ${color}30`,
-          marginBottom: '16px'
+          marginBottom: isMobile ? '10px' : '16px'
         }}>
-          <Icon size={20} style={{ color: 'white' }} />
+          <Icon size={isMobile ? 15 : 20} style={{ color: 'white' }} />
         </div>
         {isDataLoading ? (
           <>
-            <div style={{ width: '80px', height: '26px', borderRadius: '6px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite', marginBottom: '8px' }} />
+            <div style={{ width: '80px', height: isMobile ? '20px' : '26px', borderRadius: '6px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite', marginBottom: '8px' }} />
             <div style={{ width: '100px', height: '14px', borderRadius: '4px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
           </>
         ) : (
           <>
-            <div style={{ fontSize: '26px', fontWeight: '700', color: '#1f2937', marginBottom: '4px', lineHeight: 1.2 }}>
+            <div style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: '700', color: '#1f2937', marginBottom: '4px', lineHeight: 1.2 }}>
               {value}
             </div>
-            <div style={{ fontSize: '13px', color: '#6b7280' }}>{label}</div>
-            {subtitle && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{subtitle}</div>}
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: '#6b7280' }}>{label}</div>
+            {subtitle && <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', marginTop: '2px' }}>{subtitle}</div>}
           </>
         )}
       </div>
@@ -1474,20 +1484,20 @@ export function HeadquartersContent({ embedded = false }) {
     <button onClick={() => setActiveTab(id)} style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '12px 20px',
-      borderRadius: '12px',
+      gap: isMobile ? '5px' : '8px',
+      padding: isMobile ? '8px 14px' : '12px 20px',
+      borderRadius: isMobile ? '10px' : '12px',
       border: 'none',
       backgroundColor: active ? '#ef4444' : 'white',
       color: active ? 'white' : '#6b7280',
-      fontSize: '14px',
+      fontSize: isMobile ? '12px' : '14px',
       fontWeight: '600',
       cursor: 'pointer',
       boxShadow: active ? '0 4px 12px rgba(239, 68, 68, 0.3)' : '0 1px 3px rgba(0,0,0,0.1)',
       whiteSpace: 'nowrap',
       transition: 'all 0.2s'
     }}>
-      <Icon size={16} />
+      <Icon size={isMobile ? 13 : 16} />
       {label}
     </button>
   );
@@ -1894,6 +1904,51 @@ export function HeadquartersContent({ embedded = false }) {
             )}
           </div>
         </div>
+
+        {/* Daily Email Reports Card */}
+        <div
+          onClick={() => setShowEmailModal(true)}
+          style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: isMobile ? '16px' : '20px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+            border: '1px solid #f1f5f9',
+            marginTop: '20px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: isMobile ? '40px' : '44px', height: isMobile ? '40px' : '44px',
+              borderRadius: '12px',
+              background: emailPreferences.emailEnabled ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #6b7280, #4b5563)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: emailPreferences.emailEnabled ? '0 4px 12px rgba(34,197,94,0.3)' : '0 4px 12px rgba(107,114,128,0.2)',
+            }}>
+              <FaEnvelope size={isMobile ? 16 : 18} style={{ color: 'white' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: isMobile ? '14px' : '15px', fontWeight: '700', color: '#1f2937' }}>Daily Email Reports</div>
+              <div style={{ fontSize: isMobile ? '12px' : '13px', color: '#6b7280', marginTop: '2px' }}>
+                {emailPreferences.emailEnabled
+                  ? `Enabled \u2014 sending to ${emailPreferences.reportEmail || 'your email'}`
+                  : 'Get daily business summaries delivered to your inbox'}
+              </div>
+            </div>
+          </div>
+          <div style={{
+            padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+            backgroundColor: emailPreferences.emailEnabled ? '#dcfce7' : '#f1f5f9',
+            color: emailPreferences.emailEnabled ? '#16a34a' : '#6b7280',
+          }}>
+            {emailPreferences.emailEnabled ? 'On' : 'Setup'}
+          </div>
+        </div>
       </div>
     );
   };
@@ -2066,153 +2121,113 @@ export function HeadquartersContent({ embedded = false }) {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: isMobile ? '16px' : '24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: '20px', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? '26px' : '32px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '12px' : '20px', gap: isMobile ? '12px' : '16px' }}>
+        <div style={{ paddingLeft: isMobile ? '48px' : undefined }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '32px', fontWeight: '800', color: '#1f2937', margin: 0 }}>
             {getDynamicHeadline().title}
           </h1>
-          <p style={{ color: '#6b7280', margin: '4px 0 0', fontSize: '14px' }}>{getDynamicHeadline().subtitle}</p>
+          <p style={{ color: '#6b7280', margin: '4px 0 0', fontSize: isMobile ? '12px' : '14px' }}>{getDynamicHeadline().subtitle}</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           {(dashboardData?.restaurants?.length || 0) > 1 && <RestaurantSelector />}
           <DatePicker />
 
-          {/* AI Insights Button */}
+          {/* Start Taking Orders CTA - Desktop */}
+          {!isMobile && (
+            <button
+              onClick={() => router.push(businessType === 'bar' ? '/dashboard/bar' : '/dashboard')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '12px 24px', borderRadius: '12px', border: 'none',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                color: 'white', fontWeight: '700', fontSize: '14px', cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(239,68,68,0.3)', transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.4)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; }}
+            >
+              <FaShoppingCart size={13} />
+              {businessType === 'bar' ? 'Open Bar POS' : 'Start Taking Orders'}
+            </button>
+          )}
+
+          {/* AI Insights Button - compact */}
           <button
             onClick={loadAIInsights}
             disabled={loadingInsights || aiInsightsRemaining <= 0}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '12px 20px',
-              borderRadius: '12px',
+              justifyContent: 'center',
+              width: isMobile ? '36px' : '40px',
+              height: isMobile ? '36px' : '40px',
+              borderRadius: '10px',
               border: 'none',
               background: aiInsightsRemaining <= 0 ? '#9ca3af' : 'linear-gradient(135deg, #ef4444, #dc2626)',
               color: 'white',
-              fontWeight: '600',
-              fontSize: '14px',
               cursor: loadingInsights || aiInsightsRemaining <= 0 ? 'not-allowed' : 'pointer',
-              boxShadow: aiInsightsRemaining > 0 ? '0 4px 12px rgba(239, 68, 68, 0.3)' : 'none',
+              boxShadow: aiInsightsRemaining > 0 ? '0 2px 8px rgba(239, 68, 68, 0.25)' : 'none',
               opacity: aiInsightsRemaining <= 0 ? 0.7 : 1,
               transition: 'all 0.2s ease'
             }}
+            title="AI Insights"
           >
             {loadingInsights ? (
               <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
             ) : (
               <FaRobot size={14} />
             )}
-            <span>AI Insights</span>
           </button>
 
-          {/* Email Settings - Enhanced */}
-          <div style={{ position: 'relative' }} className="email-btn-wrapper">
-            <button onClick={() => setShowEmailModal(true)} style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '48px',
-              height: '48px',
-              borderRadius: '14px',
-              border: '2px solid #e5e7eb',
-              backgroundColor: emailPreferences.emailEnabled ? '#fef2f2' : 'white',
-              color: emailPreferences.emailEnabled ? '#ef4444' : '#6b7280',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.target.style.borderColor = emailPreferences.emailEnabled ? '#fca5a5' : '#e5e7eb'; e.target.style.transform = 'scale(1)'; }}
-            >
-              <FaBell size={18} />
-              {emailPreferences.emailEnabled && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '50%',
-                  backgroundColor: '#22c55e',
-                  border: '2px solid white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <FaCheck size={7} style={{ color: 'white' }} />
-                </div>
-              )}
-            </button>
-            {/* Tooltip */}
-            <div className="tooltip-email" style={{
-              position: 'absolute',
-              bottom: '-55px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              backgroundColor: '#1f2937',
-              color: 'white',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '12px',
-              whiteSpace: 'nowrap',
-              opacity: 0,
-              visibility: 'hidden',
-              transition: 'all 0.2s ease',
-              zIndex: 100,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-            }}>
-              <div style={{ fontWeight: '600', marginBottom: '2px' }}>Daily Email Reports</div>
-              <div style={{ color: emailPreferences.emailEnabled ? '#86efac' : '#9ca3af', fontSize: '11px' }}>
-                {emailPreferences.emailEnabled ? 'Enabled - Click to configure' : 'Disabled - Click to enable'}
-              </div>
-              <div style={{
-                position: 'absolute',
-                top: '-6px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 0,
-                height: 0,
-                borderLeft: '6px solid transparent',
-                borderRight: '6px solid transparent',
-                borderBottom: '6px solid #1f2937'
-              }} />
-            </div>
-          </div>
-
-          {/* Refresh */}
+          {/* Refresh - compact */}
           <button onClick={refreshAll} disabled={refreshing} style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '12px 20px',
-            borderRadius: '14px',
-            border: 'none',
-            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-            color: 'white',
-            fontWeight: '600',
-            fontSize: '14px',
+            justifyContent: 'center',
+            width: isMobile ? '36px' : '40px',
+            height: isMobile ? '36px' : '40px',
+            borderRadius: '10px',
+            border: '1px solid #e5e7eb',
+            background: 'white',
+            color: '#6b7280',
             cursor: refreshing ? 'wait' : 'pointer',
-            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
             transition: 'all 0.2s ease'
           }}
-          onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; }}
+          title="Refresh"
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#6b7280'; }}
           >
             <FaSyncAlt size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-            {!isMobile && 'Refresh'}
           </button>
         </div>
       </div>
+
+      {/* Mobile CTA - Start Taking Orders */}
+      {isMobile && (
+        <button
+          onClick={() => router.push(businessType === 'bar' ? '/dashboard/bar' : '/dashboard')}
+          style={{
+            width: '100%', padding: '13px', borderRadius: '14px',
+            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            border: 'none', color: 'white', fontSize: '15px', fontWeight: '700',
+            cursor: 'pointer', marginBottom: '14px',
+            boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+          }}
+        >
+          <FaShoppingCart size={15} />
+          {businessType === 'bar' ? 'Open Bar POS' : 'Start Taking Orders'}
+        </button>
+      )}
 
       {/* Tabs Row with Filter Chips */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px',
-        gap: '16px',
+        marginBottom: isMobile ? '16px' : '24px',
+        gap: isMobile ? '8px' : '16px',
         flexWrap: 'wrap'
       }}>
         {/* Left: Tabs */}

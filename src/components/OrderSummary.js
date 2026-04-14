@@ -43,7 +43,8 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaUser,
-  FaWhatsapp
+  FaWhatsapp,
+  FaArrowLeft
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -250,7 +251,7 @@ const OrderSummary = ({
 
   // Auto-fill customer name when found
   useEffect(() => {
-    if (customerData?.name && !customerName?.trim()) {
+    if (customerData?.name) {
       onCustomerNameChange?.(customerData.name);
     }
   }, [customerData]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -857,24 +858,24 @@ const OrderSummary = ({
           zIndex: 2
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {/* Close Button for Mobile */}
+            {/* Back Button for Mobile */}
             {isMobile && onClose && (
               <button
                 onClick={onClose}
                 style={{
-                  background: 'rgba(255,255,255,0.2)',
+                  background: billingMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.2)',
                   border: 'none',
-                  borderRadius: '6px',
-                  width: '28px',
-                  height: '28px',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'white'
+                  color: billingMode ? '#374151' : 'white'
                 }}
               >
-                <FaTimes size={14} />
+                <FaArrowLeft size={14} />
               </button>
             )}
             <div style={{
@@ -2543,21 +2544,22 @@ const OrderSummary = ({
                     </div>
                     )}
 
-                    {/* Customer Name — only show when customer NOT found via lookup */}
-                    {!posSettings.hideCustomerName && !(lookupStatus === 'found' && customerData) && (
+                    {/* Customer Name — always visible, pre-filled when customer found */}
+                    {!posSettings.hideCustomerName && (
+                    <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : '1', minWidth: isMobile ? '100%' : '120px' }}>
                     <input
                       type="text"
                       placeholder={posSettings.customerNameLabel || t('dashboard.customerName')}
                       value={customerName || ''}
                       style={{
-                          flex: isMobile ? '0 0 auto' : '1',
-                          minWidth: isMobile ? '100%' : '120px',
+                          width: '100%',
                         padding: isMobile ? '10px 12px' : '8px 10px',
-                          border: `1.5px solid ${isValidName ? '#22c55e' : '#e5e7eb'}`,
+                        paddingRight: (lookupStatus === 'found' && customerData) ? '36px' : (isMobile ? '12px' : '10px'),
+                          border: `1.5px solid ${(lookupStatus === 'found' && customerData) ? '#a78bfa' : isValidName ? '#22c55e' : '#e5e7eb'}`,
                         borderRadius: '8px',
                         fontSize: isMobile ? '14px' : '12px',
                         outline: 'none',
-                        backgroundColor: '#ffffff',
+                        backgroundColor: (lookupStatus === 'found' && customerData) ? '#faf5ff' : '#ffffff',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                         boxSizing: 'border-box',
@@ -2575,37 +2577,85 @@ const OrderSummary = ({
                         onBlur={(e) => {
                           e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
                           const val = e.target.value.trim();
-                          e.target.style.borderColor = val.length > 3 ? '#22c55e' : '#e5e7eb';
+                          e.target.style.borderColor = (lookupStatus === 'found' && customerData) ? '#a78bfa' : val.length > 3 ? '#22c55e' : '#e5e7eb';
                         }}
                     />
+                    {/* Verified badge inside name field */}
+                    {lookupStatus === 'found' && customerData && (
+                      <span style={{
+                        position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                        color: '#8b5cf6', display: 'flex', alignItems: 'center',
+                      }}>
+                        <FaCheckCircle size={14} />
+                      </span>
+                    )}
+                    </div>
                     )}
 
-                    {/* Customer Chip — when customer found, replaces name input */}
+                    {/* Customer Info Card — shows when customer found via lookup */}
                     {lookupStatus === 'found' && customerData && (
                       <button
                         onClick={() => setShowOffersModal(true)}
                         style={{
-                          flex: '1', minWidth: 0, padding: '6px 10px', borderRadius: '8px',
-                          border: '1.5px solid #a5f3fc', backgroundColor: '#ecfeff',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                          fontSize: '11px', fontWeight: 600, color: '#0e7490',
-                          transition: 'all 0.15s', whiteSpace: 'nowrap',
-                          boxShadow: '0 1px 3px rgba(14,116,144,0.08)',
+                          width: isMobile ? '100%' : 'auto',
+                          flex: isMobile ? '0 0 auto' : '0 0 auto',
+                          padding: isMobile ? '8px 12px' : '6px 10px',
+                          borderRadius: '10px',
+                          border: '1.5px solid #e9d5ff',
+                          background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: isMobile ? '10px' : '8px',
+                          fontSize: isMobile ? '12px' : '11px',
+                          fontWeight: 600,
+                          color: '#7c3aed',
+                          transition: 'all 0.15s',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 4px rgba(124,58,237,0.08)',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#cffafe'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(14,116,144,0.12)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ecfeff'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(14,116,144,0.08)'; }}
-                        title="View customer & offers"
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3e8ff'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(124,58,237,0.15)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.boxShadow = '0 1px 4px rgba(124,58,237,0.08)'; }}
+                        title="View customer details & offers"
                       >
-                        <FaUser size={9} style={{ color: '#06b6d4', flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
-                          {customerData.name}
-                        </span>
+                        <div style={{
+                          width: isMobile ? '28px' : '22px', height: isMobile ? '28px' : '22px',
+                          borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                          <FaUser size={isMobile ? 10 : 8} style={{ color: 'white' }} />
+                        </div>
                         {customerData.loyaltyPoints > 0 && (
-                          <span style={{ color: '#d97706', fontWeight: 700, fontSize: '10px' }}>⭐{customerData.loyaltyPoints}</span>
+                          <span style={{ color: '#d97706', fontWeight: 700, fontSize: isMobile ? '11px' : '10px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <FaTag size={8} style={{ color: '#d97706' }} />{customerData.loyaltyPoints}pts
+                          </span>
                         )}
-                        <span style={{ color: '#94a3b8', fontSize: '10px' }}>{customerData.totalOrders} orders</span>
-                        <FaChevronDown size={8} style={{ color: '#94a3b8', marginLeft: 'auto', flexShrink: 0 }} />
+                        <span style={{ color: '#7c3aed', fontSize: isMobile ? '11px' : '10px' }}>
+                          {customerData.totalOrders} orders
+                        </span>
+                        <FaChevronDown size={8} style={{ color: '#a78bfa', marginLeft: isMobile ? 'auto' : '0', flexShrink: 0 }} />
                       </button>
+                    )}
+
+                    {/* New Customer indicator — when phone entered but no profile found */}
+                    {lookupStatus === 'not_found' && customerMobile && (
+                      <div style={{
+                        width: isMobile ? '100%' : 'auto',
+                        flex: isMobile ? '0 0 auto' : '0 0 auto',
+                        padding: isMobile ? '6px 12px' : '5px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid #bbf7d0',
+                        backgroundColor: '#f0fdf4',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: isMobile ? '11px' : '10px',
+                        color: '#16a34a',
+                        fontWeight: 500,
+                      }}>
+                        <FaUser size={8} />
+                        <span>New customer — will be saved on billing</span>
+                      </div>
                     )}
                       
                       {/* Table/Room Number - Inline when not in-room dining, or when in-room dining is enabled */}

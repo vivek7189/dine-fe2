@@ -377,6 +377,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     <>
       {/* Mobile Menu Button - Only show on mobile (dashboard has its own hamburger) */}
       <button
+        id="sidebar-hamburger"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         className="md:hidden fixed top-4 left-4 z-[10001] p-3 bg-white rounded-xl shadow-lg"
         style={{ border: '1px solid rgba(0,0,0,0.1)' }}

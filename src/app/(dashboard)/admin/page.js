@@ -74,6 +74,28 @@ import {
 import dynamic from 'next/dynamic';
 import GoogleReviews from '../../../components/GoogleReviews';
 import WhatsAppTab from '../../../components/WhatsAppTab';
+import { useNotification } from '../../../components/Notification';
+
+// Reusable confirmation modal to replace native confirm()
+const ConfirmModal = ({ open, title, message, onConfirm, onCancel, confirmText = 'Delete', confirmColor = '#dc2626' }) => {
+  if (!open) return null;
+  return createPortal(
+    <div style={{ position:'fixed', inset:0, zIndex:10010, display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:'rgba(0,0,0,0.5)' }} onClick={onCancel}>
+      <div style={{ background:'#fff', borderRadius:'16px', padding:'28px', maxWidth:'420px', width:'90%', boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+          <h3 style={{ margin:0, fontSize:'17px', fontWeight:700, color:'#111' }}>{title || 'Confirm'}</h3>
+          <button onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', padding:'4px', color:'#6b7280', fontSize:'18px', lineHeight:1 }}>&times;</button>
+        </div>
+        <p style={{ margin:'0 0 24px', fontSize:'14px', color:'#4b5563', lineHeight:1.5 }}>{message}</p>
+        <div style={{ display:'flex', gap:'12px', justifyContent:'flex-end' }}>
+          <button onClick={onCancel} style={{ padding:'9px 20px', borderRadius:'8px', border:'1px solid #d1d5db', background:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer', color:'#374151' }}>Cancel</button>
+          <button onClick={onConfirm} style={{ padding:'9px 20px', borderRadius:'8px', border:'none', background:confirmColor, color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>{confirmText}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
 
 const OffersManagement = dynamic(() => import('../offers/page'), { ssr: false });
 const CustomerAppSettings = dynamic(() => import('../customer-app/page'), { ssr: false });
@@ -83,6 +105,7 @@ import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS } from '../../../uti
 
 // Tax Management Component
 const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+  const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
   const [taxSettings, setTaxSettings] = useState({
     enabled: true,
     taxes: [
@@ -122,11 +145,11 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     try {
       const response = await apiClient.updateTaxSettings(selectedRestaurant.id, taxSettings);
       if (response.success) {
-        alert('Tax settings saved successfully!');
+        showSuccess('Tax settings saved successfully!');
       }
     } catch (error) {
       console.error('Error saving tax settings:', error);
-      alert('Error saving tax settings');
+      showError('Error saving tax settings');
     } finally {
       setSaving(false);
     }
@@ -180,6 +203,7 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
   return (
     <div>
+      <TaxNotifications />
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaPercentage size={20} />
@@ -521,6 +545,7 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 // Payment Settings Component (UPI)
 const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+  const { showSuccess, showError, showWarning, NotificationContainer: PaymentNotifications } = useNotification();
   const [settings, setSettings] = useState({
     upiEnabled: false,
     upiId: '',
@@ -530,12 +555,7 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2500);
-  };
+  // Toast state removed — using useNotification instead
 
   const loadSettings = async (restaurantId) => {
     if (!restaurantId) return;
@@ -574,10 +594,10 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
         },
       };
       await apiClient.put(`/api/restaurants/${selectedRestaurant.id}/customer-app-settings`, merged);
-      showToast('Payment settings saved');
+      showSuccess('Payment settings saved');
     } catch (e) {
       console.error('Error saving payment settings:', e);
-      showToast('Failed to save');
+      showError('Failed to save');
     } finally {
       setSaving(false);
     }
@@ -586,8 +606,8 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
   const handleUpload = async (file) => {
     if (!file) return;
     const allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-    if (!allowed.includes(file.type)) { alert('Only JPEG/PNG/WebP images allowed'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return; }
+    if (!allowed.includes(file.type)) { showWarning('Only JPEG/PNG/WebP images allowed'); return; }
+    if (file.size > 5 * 1024 * 1024) { showWarning('Max 5MB'); return; }
     setUploading(true);
     try {
       const formData = new FormData();
@@ -595,10 +615,10 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
       const res = await apiClient.uploadImage(formData);
       if (res.imageUrl) {
         setSettings(prev => ({ ...prev, upiQrCodeUrl: res.imageUrl }));
-        showToast('QR uploaded');
+        showSuccess('QR uploaded');
       }
     } catch (e) {
-      alert('Upload failed');
+      showError('Upload failed');
     } finally {
       setUploading(false);
     }
@@ -606,6 +626,7 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
 
   return (
     <div>
+      <PaymentNotifications />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -793,16 +814,7 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
             </button>
           </div>
 
-          {toast && (
-            <div style={{
-              position: 'fixed', bottom: '24px', right: '24px', padding: '12px 20px',
-              backgroundColor: '#111827', color: '#fff', borderRadius: '10px',
-              fontSize: '13px', fontWeight: 600, zIndex: 9999,
-              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-            }}>
-              {toast}
-            </div>
-          )}
+          {/* Toast replaced with useNotification */}
         </div>
       )}
     </div>
@@ -830,6 +842,8 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
   const [deletingTableName, setDeletingTableName] = useState('');
   const [deleteTableReason, setDeleteTableReason] = useState('');
   const { formatCurrency } = useCurrency();
+  const { showSuccess, showError, NotificationContainer: PricingNotifications } = useNotification();
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const TAKEAWAY_NAMES = ['takeaway', 'take away', 'take-away'];
   const DELIVERY_NAMES = ['delivery'];
@@ -871,10 +885,10 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
     setSaving(true);
     try {
       await apiClient.updatePricingSettings(selectedRestaurant.id, pricingSettings);
-      alert('Pricing settings saved!');
+      showSuccess('Pricing settings saved!');
     } catch (error) {
       console.error('Failed to save pricing settings:', error);
-      alert('Failed to save pricing settings');
+      showError('Failed to save pricing settings');
     } finally {
       setSaving(false);
     }
@@ -895,25 +909,30 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
       setFloors(prev => [...prev, { ...response.floor, tables: [] }]);
       setNewFloorName('');
     } catch (err) {
-      alert('Failed to add floor: ' + err.message);
+      showError('Failed to add floor: ' + err.message);
     } finally {
       setAddingFloor(false);
     }
   };
 
-  const handleDeleteFloor = async (floorId, floorName) => {
+  const handleDeleteFloor = (floorId, floorName) => {
     const floorTables = getTablesForFloor(floorName);
     const msg = floorTables.length > 0
       ? `Delete "${floorName}" and its ${floorTables.length} table(s)? This cannot be undone.`
       : `Delete floor "${floorName}"? This cannot be undone.`;
-    if (!confirm(msg)) return;
-    try {
-      await apiClient.deleteFloor(floorId, { restaurantId: selectedRestaurant.id });
-      setFloors(prev => prev.filter(f => f.id !== floorId));
-      setTables(prev => prev.filter(t => t.floor !== floorName));
-    } catch (err) {
-      alert('Failed to delete floor: ' + err.message);
-    }
+    setConfirmModal({
+      open: true, title: 'Delete Floor', message: msg,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, open: false }));
+        try {
+          await apiClient.deleteFloor(floorId, { restaurantId: selectedRestaurant.id });
+          setFloors(prev => prev.filter(f => f.id !== floorId));
+          setTables(prev => prev.filter(t => t.floor !== floorName));
+        } catch (err) {
+          showError('Failed to delete floor: ' + err.message);
+        }
+      }
+    });
   };
 
   const handleAddTable = async (floorId, floorName) => {
@@ -931,7 +950,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
       setNewTableData({ name: '', capacity: 4 });
       setAddingTableForFloor(null);
     } catch (err) {
-      alert('Failed to add table: ' + err.message);
+      showError('Failed to add table: ' + err.message);
     } finally {
       setAddingTable(false);
     }
@@ -946,7 +965,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
       setDeletingTableName('');
       setDeleteTableReason('');
     } catch (err) {
-      alert('Failed to delete table: ' + err.message);
+      showError('Failed to delete table: ' + err.message);
     }
   };
 
@@ -1079,6 +1098,8 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
 
   return (
     <div>
+      <PricingNotifications />
+      <ConfirmModal open={confirmModal.open} title={confirmModal.title} message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, open: false }))} />
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaSlidersH size={20} />
@@ -1838,6 +1859,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const { showSuccess, showError, NotificationContainer: CurrencyNotifications } = useNotification();
 
   const countries = getAllCountriesWithCurrency();
   const filteredCountries = countries.filter(c =>
@@ -1872,11 +1894,11 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
         const msg = response.taxSettingsUpdated
           ? 'Currency settings saved! Tax labels were automatically updated.'
           : 'Currency settings saved successfully!';
-        alert(msg);
+        showSuccess(msg);
       }
     } catch (error) {
       console.error('Error saving currency settings:', error);
-      alert('Error saving currency settings');
+      showError('Error saving currency settings');
     } finally {
       setSaving(false);
     }
@@ -1942,6 +1964,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
 
   return (
     <div>
+      <CurrencyNotifications />
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaMoneyBillWave size={20} />
@@ -3128,12 +3151,9 @@ const Admin = () => {
   const [businessType, setBusinessType] = useState('restaurant');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Toast notification state
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
+  // Notification & confirm modal
+  const { showSuccess, showError, showWarning, showInfo, NotificationContainer: AdminNotifications } = useNotification();
+  const [adminConfirm, setAdminConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
   // Full-screen saving overlay state
   const [generalSaving, setGeneralSaving] = useState(false);
 
@@ -3555,22 +3575,23 @@ const Admin = () => {
   }, []);
 
   // Delete staff member
-  const deleteStaff = async (staffId, staffName) => {
-    if (!confirm(`Are you sure you want to delete ${staffName}? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await apiClient.deleteStaff(staffId);
-      
-      // Remove from local state
-      setStaff(prevStaff => prevStaff.filter(member => member.id !== staffId));
-      
-      alert(`${staffName} has been deleted successfully`);
-    } catch (error) {
-      console.error('Error deleting staff:', error);
-      alert(`Failed to delete ${staffName}: ${error.message || 'Unknown error'}`);
-    }
+  const deleteStaff = (staffId, staffName) => {
+    setAdminConfirm({
+      open: true,
+      title: 'Delete Staff Member',
+      message: `Are you sure you want to delete ${staffName}? This action cannot be undone.`,
+      onConfirm: async () => {
+        setAdminConfirm(prev => ({ ...prev, open: false }));
+        try {
+          await apiClient.deleteStaff(staffId);
+          setStaff(prevStaff => prevStaff.filter(member => member.id !== staffId));
+          showSuccess(`${staffName} has been deleted successfully`);
+        } catch (error) {
+          console.error('Error deleting staff:', error);
+          showError(`Failed to delete ${staffName}: ${error.message || 'Unknown error'}`);
+        }
+      }
+    });
   };
 
   // Fetch credentials for a specific staff member (admin-set temp password only; if user changed from app, we don't get password)
@@ -3747,10 +3768,10 @@ const Admin = () => {
       });
       setShowAddRestaurantModal(false);
       
-      alert('Restaurant added successfully!');
+      showSuccess('Restaurant added successfully!');
     } catch (error) {
       console.error('Error adding restaurant:', error);
-      alert(`Failed to add restaurant: ${error.message}`);
+      showError(`Failed to add restaurant: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -3790,10 +3811,10 @@ const Admin = () => {
       } catch (e) {}
 
       setShowEditRestaurantModal(false);
-      alert('Restaurant updated successfully!');
+      showSuccess('Restaurant updated successfully!');
     } catch (error) {
       console.error('Error updating restaurant:', error);
-      alert(`Failed to update restaurant: ${error.message}`);
+      showError(`Failed to update restaurant: ${error.message}`);
     } finally {
       setEditLoading(false);
     }
@@ -3823,13 +3844,13 @@ const Admin = () => {
   const handleAddStaff = async (e) => {
     e.preventDefault();
     if (!selectedRestaurant) {
-      alert('Please select a restaurant first');
+      showWarning('Please select a restaurant first');
       return;
     }
 
     // Validate role permissions
     if (currentUserRole !== 'owner' && newStaff.role === 'admin') {
-      alert('Only owners can create admin roles');
+      showWarning('Only owners can create admin roles');
       return;
     }
 
@@ -3880,10 +3901,10 @@ const Admin = () => {
       const credLines = ['User ID: ' + response.credentials.loginId];
       if (response.credentials.username) credLines.push('Username: ' + response.credentials.username);
       credLines.push('Password: ' + response.credentials.password);
-      alert(`Staff member added successfully!\n\nLogin Credentials:\n${credLines.join('\n')}\n\nPlease save these credentials securely. Staff can log in with User ID or username.`);
+      showSuccess(`Staff added! Credentials: ${credLines.join(' | ')}. Save these securely.`, 15000);
     } catch (error) {
       console.error('Error adding staff:', error);
-      alert(`Failed to add staff member: ${error.message}`);
+      showError(`Failed to add staff member: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -3905,10 +3926,10 @@ const Admin = () => {
         return member;
       }));
       
-      alert(`Staff member ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
+      showSuccess(`Staff member ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
     } catch (error) {
       console.error('Error updating staff status:', error);
-      alert(`Failed to update staff status: ${error.message}`);
+      showError(`Failed to update staff status: ${error.message}`);
     }
   };
 
@@ -3927,17 +3948,17 @@ const Admin = () => {
   const handleSaveStaffEdit = async () => {
     if (!selectedStaff) return;
     const { name, phone, email, role } = editStaffForm;
-    if (!name.trim()) { alert('Name is required'); return; }
-    if (!phone.trim()) { alert('Phone is required'); return; }
+    if (!name.trim()) { showWarning('Name is required'); return; }
+    if (!phone.trim()) { showWarning('Phone is required'); return; }
 
     // Only owner can assign admin role
     if (role === 'admin' && currentUserRole !== 'owner') {
-      alert('Only owners can assign admin role.');
+      showWarning('Only owners can assign admin role.');
       return;
     }
     // Cannot assign owner role
     if (role === 'owner') {
-      alert('Cannot assign owner role to staff.');
+      showWarning('Cannot assign owner role to staff.');
       return;
     }
 
@@ -3957,10 +3978,10 @@ const Admin = () => {
       setStaff(prev => prev.map(m => m.id === selectedStaff.id ? updatedMember : m));
       setSelectedStaff(updatedMember);
       setEditingStaff(false);
-      alert('Staff details updated successfully!');
+      showSuccess('Staff details updated successfully!');
     } catch (error) {
       console.error('Error updating staff:', error);
-      alert(`Failed to update staff: ${error.message}`);
+      showError(`Failed to update staff: ${error.message}`);
     } finally {
       setEditStaffSaving(false);
     }
@@ -4105,7 +4126,7 @@ const Admin = () => {
       setResetResult({ temporaryPassword: res.temporaryPassword, loginId: res.loginId, username: res.username });
       setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: res.temporaryPassword, loginId: res.loginId, username: res.username, hasTemporaryPassword: true, credentialsMessage: res.message } : m));
     } catch (error) {
-      alert(error.message || 'Failed to generate temporary password');
+      showError(error.message || 'Failed to generate temporary password');
     } finally {
       setResetLoading(false);
     }
@@ -4114,15 +4135,15 @@ const Admin = () => {
   const handleSetNewPassword = async () => {
     if (!staffForReset?.id) return;
     if (!resetNewPassword || !resetConfirmPassword) {
-      alert('Please enter password and confirmation');
+      showWarning('Please enter password and confirmation');
       return;
     }
     if (resetNewPassword !== resetConfirmPassword) {
-      alert('Password and confirmation do not match');
+      showWarning('Password and confirmation do not match');
       return;
     }
     if (resetNewPassword.length < 6) {
-      alert('Password must be at least 6 characters');
+      showWarning('Password must be at least 6 characters');
       return;
     }
     try {
@@ -4131,10 +4152,10 @@ const Admin = () => {
       if (resetUsername.trim()) body.username = resetUsername.trim();
       const res = await apiClient.resetStaffPassword(staffForReset.id, body);
       setStaff(prev => prev.map(m => m.id === staffForReset.id ? { ...m, tempPassword: undefined, username: res.username, hasTemporaryPassword: false, credentialsMessage: 'Password set by admin. Staff can log in with the new password.' } : m));
-      alert('Password set successfully.');
+      showSuccess('Password set successfully.');
       closeResetPasswordModal();
     } catch (error) {
-      alert(error.message || 'Failed to set password');
+      showError(error.message || 'Failed to set password');
     } finally {
       setResetLoading(false);
     }
@@ -4151,25 +4172,31 @@ const Admin = () => {
       ));
     } catch (error) {
       console.error('Error updating menu item availability:', error);
-      alert(`Failed to update item availability: ${error.message}`);
+      showError(`Failed to update item availability: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteMenuItem = async (itemId) => {
-    if (!confirm('Are you sure you want to delete this menu item?')) return;
-
-    try {
-      setLoading(true);
-      await apiClient.deleteMenuItem(itemId, selectedRestaurant?.id);
-      setMenuItems(items => items.filter(item => item.id !== itemId));
-    } catch (error) {
-      console.error('Error deleting menu item:', error);
-      alert(`Failed to delete menu item: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
+  const deleteMenuItem = (itemId) => {
+    setAdminConfirm({
+      open: true,
+      title: 'Delete Menu Item',
+      message: 'Are you sure you want to delete this menu item?',
+      onConfirm: async () => {
+        setAdminConfirm(prev => ({ ...prev, open: false }));
+        try {
+          setLoading(true);
+          await apiClient.deleteMenuItem(itemId, selectedRestaurant?.id);
+          setMenuItems(items => items.filter(item => item.id !== itemId));
+        } catch (error) {
+          console.error('Error deleting menu item:', error);
+          showError(`Failed to delete menu item: ${error.message}`);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const canManageStaff = (targetRole) => {
@@ -4266,6 +4293,8 @@ const Admin = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <AdminNotifications />
+      <ConfirmModal open={adminConfirm.open} title={adminConfirm.title} message={adminConfirm.message} onConfirm={adminConfirm.onConfirm} onCancel={() => setAdminConfirm(prev => ({ ...prev, open: false }))} />
       {/* Full-screen saving overlay */}
       {generalSaving && (
         <div style={{
@@ -4285,30 +4314,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Toast notification */}
-      {toast.show && (
-        <div style={{
-          position: 'fixed', top: '24px', right: '24px', zIndex: 10000,
-          backgroundColor: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
-          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
-          borderRadius: '12px', padding: '14px 20px',
-          display: 'flex', alignItems: 'center', gap: '10px',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-          animation: 'slideIn 0.3s ease-out',
-          maxWidth: '400px'
-        }}>
-          {toast.type === 'error'
-            ? <FaTimes size={14} color="#ef4444" />
-            : <FaCheck size={14} color="#22c55e" />
-          }
-          <span style={{
-            fontSize: '14px', fontWeight: 600,
-            color: toast.type === 'error' ? '#dc2626' : '#16a34a'
-          }}>
-            {toast.message}
-          </span>
-        </div>
-      )}
+      {/* Toast replaced with AdminNotifications */}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -7460,10 +7466,10 @@ const Admin = () => {
                   }));
 
                   // 5. Toast notification
-                  showToast('Settings saved successfully!');
+                  showSuccess('Settings saved successfully!');
                 } catch (err) {
                   console.error('Failed to save preferences:', err);
-                  showToast('Failed to save. Please try again.', 'error');
+                  showError('Failed to save. Please try again.');
                 } finally {
                   setGeneralSaving(false);
                 }
@@ -7626,6 +7632,30 @@ const Admin = () => {
 
             {/* Divider */}
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
+
+            {/* General POS Options */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
+                General
+              </label>
+
+              {/* Search Bar Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, hideSearchBar: !prev.hideSearchBar }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.hideSearchBar
+                    ? <FaToggleOff size={28} color="#d1d5db" />
+                    : <FaToggleOn size={28} color="#ef4444" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Search Bar</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Floating search bar on the POS screen</div>
+                </div>
+              </div>
+            </div>
 
             {/* Button Visibility & Labels */}
             <div style={{ marginBottom: '20px' }}>
@@ -8974,10 +9004,10 @@ const Admin = () => {
                       });
                       setRestaurants(prev => prev.map(r => r.id === selectedRestaurant.id ? { ...r, orderSettings: { ...(r.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : r));
                       setSelectedRestaurant(prev => prev && prev.id === selectedRestaurant.id ? { ...prev, orderSettings: { ...(prev.orderSettings || {}), sequentialOrderIdEnabled: orderManagementSeqEnabled } } : prev);
-                      showToast('Settings saved successfully!');
+                      showSuccess('Settings saved successfully!');
                     } catch (err) {
                       console.error(err);
-                      showToast('Failed to save. Please try again.', 'error');
+                      showError('Failed to save. Please try again.');
                     } finally {
                       setOrderManagementSaving(false);
                     }
