@@ -514,7 +514,7 @@ export default function MobileBillingPage() {
         customerMobile={customerMobile}
         orderLookup=""
         setOrderLookup={() => {}}
-        currentOrder={order}
+        currentOrder={null}
         setCurrentOrder={() => {}}
         onShowQRCode={() => {}}
         restaurantId={restaurantId}
@@ -524,6 +524,7 @@ export default function MobileBillingPage() {
         menuItems={menuItems}
         onClose={handleClose}
         billingMode={false}
+        posSettings={{ hideTableField: !!tableNumber }}
         billingSettings={billingSettings}
         businessType={restaurant?.businessType || 'restaurant'}
         countryCode={restaurant?.countryCode || 'IN'}
