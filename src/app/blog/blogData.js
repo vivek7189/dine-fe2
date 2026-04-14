@@ -3,6 +3,26 @@
 
 export const blogPosts = [
   {
+    slug: 'catering-retail-whatsapp-ordering-billing-guide',
+    title: 'How WhatsApp Ordering & Digital Billing Are Transforming Catering and Retail Food Businesses in India',
+    excerpt: 'Discover how caterers, bakeries, sweet shops, and retail food businesses in India are using WhatsApp ordering and digital billing to grow 3x faster — with GST-compliant invoicing, per-plate pricing, and automated customer follow-ups.',
+    date: '2026-04-14',
+    category: 'Catering & Retail',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/catering-retail-whatsapp-ordering-billing-guide.html'
+  },
+  {
+    slug: 'dineopen-vs-petpooja-vs-toast-ordering-pricing-comparison',
+    title: 'DineOpen vs Petpooja vs Toast: Why AI-Powered Pricing Gives You Better Food Without Burning Your Pocket',
+    excerpt: 'An honest comparison of DineOpen, Petpooja, Toast, POSist, and Square — real pricing, hidden fees, and how AI-powered restaurant tech benefits both owners and customers with genuine pricing.',
+    date: '2026-04-14',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/dineopen-vs-petpooja-vs-toast-ordering-pricing-comparison.html'
+  },
+  {
     slug: 'restaurant-inventory-management-software-guide',
     title: 'Restaurant Inventory Management Software: The Complete 2026 Guide to DineOpen Inventory',
     excerpt: 'Learn how to manage restaurant inventory with DineOpen — stock tracking, recipe costing, supplier management, purchase orders, AI reorder suggestions, and barcode scanning. Step-by-step guide with screenshots.',

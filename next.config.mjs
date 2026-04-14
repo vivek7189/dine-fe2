@@ -125,6 +125,7 @@ const nextConfig = {
     const staticBlogSlugs = [
       'best-billing-software-small-restaurant',
       'best-catering-management-software-india',
+      'catering-retail-whatsapp-ordering-billing-guide',
       'best-free-pos-ice-cream-shop',
       'best-pos-system-ice-cream-shop',
       'best-pos-system-pizza-restaurant',
@@ -139,6 +140,7 @@ const nextConfig = {
       'cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen',
       'cloud-kitchen-vs-restaurant-india',
       'cost-to-open-restaurant-india-2026',
+      'dineopen-vs-petpooja-vs-toast-ordering-pricing-comparison',
       'dineopen-vs-posist-detailed-comparison',
       'food-cost-calculator-complete-guide',
       'food-waste-cost-management-cafe-restaurant',
