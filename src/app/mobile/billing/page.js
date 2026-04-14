@@ -33,6 +33,23 @@ function LoadingSpinner() {
   );
 }
 
+function WaitingForData() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '80vh', flexDirection: 'column', gap: '12px',
+    }}>
+      <div style={{
+        width: 32, height: 32,
+        border: '3px solid #e5e7eb', borderTopColor: '#10b981',
+        borderRadius: '50%', animation: 'spin 0.6s linear infinite',
+      }} />
+      <div style={{ fontSize: '14px', color: '#6b7280' }}>Ready for billing...</div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 function ErrorView({ message, onRetry, onClose }) {
   return (
     <div style={{
@@ -67,6 +84,9 @@ function ErrorView({ message, onRetry, onClose }) {
 export default function MobileBillingPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
+  // mode=preload means page is pre-loaded, waiting for data via postMessage
+  const mode = searchParams.get('mode');
+  const isPreloadMode = mode === 'preload' || !orderId;
 
   const [authReady, setAuthReady] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -92,7 +112,7 @@ export default function MobileBillingPage() {
   const [tableNumber, setTableNumber] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  // Step 1: Wait for auth to be populated by injected JS / mobile layout
+  // Step 1: Wait for auth
   useEffect(() => {
     let attempts = 0;
     const checkAuth = () => {
@@ -112,18 +132,103 @@ export default function MobileBillingPage() {
     checkAuth();
   }, []);
 
-  // Step 2: Load all data once auth is ready
-  const loadAllData = useCallback(async () => {
-    if (!orderId) {
-      setError('No order ID provided');
-      return;
+  // Step 2A: Listen for data from native app via postMessage (pre-load mode)
+  useEffect(() => {
+    const handleMessage = (event) => {
+      let data;
+      try {
+        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      } catch { return; }
+
+      if (data.type === 'BILLING_DATA') {
+        // Native app is sending all the data we need — no API calls required
+        const d = data.payload;
+
+        // Set order
+        setOrder({
+          id: d.orderId,
+          restaurantId: d.restaurantId,
+          items: d.cart || [],
+          orderType: d.orderType || 'dine-in',
+          paymentMethod: d.paymentMethod || 'cash',
+          tableNumber: d.tableNumber || '',
+          customerInfo: {
+            name: d.customerName || '',
+            phone: d.customerMobile || '',
+          },
+          customerPhone: d.customerMobile || '',
+          customerId: d.customerId || null,
+          pricingRuleId: d.activePricingRuleId || null,
+        });
+
+        // Set all settings directly — no API fetch needed
+        if (d.taxSettings) setTaxSettings(d.taxSettings);
+        if (d.billingSettings) setBillingSettings(d.billingSettings);
+        if (d.menuItems) setMenuItems(d.menuItems);
+        if (d.upiSettings) setUpiSettings(d.upiSettings);
+        if (d.printSettings) setPrintSettings(d.printSettings);
+        if (d.restaurant) setRestaurant(d.restaurant);
+        if (d.multiPricingEnabled !== undefined) setMultiPricingEnabled(d.multiPricingEnabled);
+        if (d.pricingRules) setPricingRules(d.pricingRules);
+        if (d.activePricingRuleId) setActivePricingRuleId(d.activePricingRuleId);
+
+        // Build cart
+        const items = d.cart || [];
+        setCart(items.map((item, idx) => ({
+          id: item.menuItemId || item.id || `item-${idx}`,
+          cartId: `${item.menuItemId || item.id}-${idx}`,
+          menuItemId: item.menuItemId || item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity || 1,
+          originalPrice: item.originalPrice || item.price,
+          pricingRules: item.pricingRules || {},
+        })));
+
+        // Pre-fill customer/table
+        setCustomerName(d.customerName || '');
+        setCustomerMobile(d.customerMobile || '');
+        setTableNumber(d.tableNumber || '');
+        setPaymentMethod(d.paymentMethod || 'cash');
+
+        setDataLoaded(true);
+        setError(null);
+
+        // Tell native app we're ready
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BILLING_READY' }));
+        }
+      } else if (data.type === 'BILLING_RESET') {
+        // Reset for next billing session
+        setDataLoaded(false);
+        setOrder(null);
+        setCart([]);
+        setError(null);
+        setProcessing(false);
+      }
+    };
+
+    // Listen on both window.onmessage (RN WebView) and document message
+    window.addEventListener('message', handleMessage);
+    // Also handle RN WebView's direct message posting
+    if (typeof document !== 'undefined') {
+      document.addEventListener('message', handleMessage);
     }
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('message', handleMessage);
+      }
+    };
+  }, []);
+
+  // Step 2B: Fallback — fetch from API if orderId is provided directly (non-preload mode)
+  const loadAllData = useCallback(async () => {
+    if (!orderId || isPreloadMode) return;
 
     setError(null);
     try {
-      // Fetch the order first
       const orderRes = await apiClient.getOrderById(orderId);
-      // Backend returns { orders: [order], pagination: {...} }
       const orderData = orderRes?.orders?.[0] || orderRes?.order || orderRes;
       if (!orderData || !orderData.id) {
         setError('Order not found');
@@ -137,31 +242,30 @@ export default function MobileBillingPage() {
         return;
       }
 
-      // Fetch all settings in parallel
-      const [taxRes, billingRes, pricingRes, restaurantRes, menuRes, upiRes, printRes] = await Promise.allSettled([
+      let storedRestaurant = null;
+      try {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        storedRestaurant = userData.restaurant || null;
+      } catch (e) {}
+
+      const [taxRes, billingRes, pricingRes, menuRes, upiRes, printRes] = await Promise.allSettled([
         apiClient.getTaxSettings(restaurantId),
         apiClient.getBillingSettings(restaurantId),
         apiClient.getPricingSettings(restaurantId),
-        apiClient.getRestaurant(restaurantId),
         apiClient.getMenu(restaurantId),
         apiClient.getCustomerAppSettings(restaurantId),
         apiClient.getPrintSettings?.(restaurantId) || Promise.resolve(null),
       ]);
 
-      // Tax settings
       if (taxRes.status === 'fulfilled' && taxRes.value?.taxSettings) {
         const ts = taxRes.value.taxSettings;
         const enabledTaxes = (ts.taxes || []).filter(t => t.enabled);
         const totalRate = enabledTaxes.reduce((s, t) => s + (t.rate || 0), 0);
         setTaxSettings({ enabled: ts.enabled || false, rate: totalRate, taxes: ts.taxes || [] });
       }
-
-      // Billing settings
       if (billingRes.status === 'fulfilled') {
         setBillingSettings(billingRes.value?.billingSettings || billingRes.value?.settings || billingRes.value || {});
       }
-
-      // Multi-tier pricing
       if (pricingRes.status === 'fulfilled') {
         const mp = pricingRes.value?.settings?.multiPricing;
         if (mp?.enabled) {
@@ -169,28 +273,11 @@ export default function MobileBillingPage() {
           setPricingRules((mp.rules || []).filter(r => r.isActive));
         }
       }
+      if (storedRestaurant) setRestaurant(storedRestaurant);
+      if (menuRes.status === 'fulfilled') setMenuItems(menuRes.value?.menuItems || []);
+      if (upiRes.status === 'fulfilled' && upiRes.value?.paymentSettings) setUpiSettings(upiRes.value.paymentSettings);
+      if (printRes.status === 'fulfilled' && printRes.value) setPrintSettings(printRes.value?.printSettings || printRes.value || {});
 
-      // Restaurant data
-      if (restaurantRes.status === 'fulfilled') {
-        setRestaurant(restaurantRes.value?.restaurant || restaurantRes.value);
-      }
-
-      // Menu items
-      if (menuRes.status === 'fulfilled') {
-        setMenuItems(menuRes.value?.menuItems || []);
-      }
-
-      // UPI settings
-      if (upiRes.status === 'fulfilled' && upiRes.value?.paymentSettings) {
-        setUpiSettings(upiRes.value.paymentSettings);
-      }
-
-      // Print settings
-      if (printRes.status === 'fulfilled' && printRes.value) {
-        setPrintSettings(printRes.value?.printSettings || printRes.value || {});
-      }
-
-      // Build cart from order items
       const items = orderData.items || [];
       const allMenuItems = menuRes.status === 'fulfilled' ? (menuRes.value?.menuItems || []) : [];
       setCart(items.map((item, idx) => {
@@ -207,25 +294,30 @@ export default function MobileBillingPage() {
         };
       }));
 
-      // Pre-fill customer and table info from order
       setCustomerName(orderData.customerInfo?.name || orderData.customerName || '');
       setCustomerMobile(orderData.customerPhone || orderData.customerInfo?.phone || orderData.customerInfo?.mobile || '');
       setTableNumber(orderData.tableNumber || '');
       setPaymentMethod(orderData.paymentMethod || 'cash');
       setActivePricingRuleId(orderData.pricingRuleId || null);
-
       setDataLoaded(true);
     } catch (e) {
       console.error('MobileBillingPage loadAllData error:', e);
       setError(e.message || 'Failed to load billing data');
     }
-  }, [orderId]);
+  }, [orderId, isPreloadMode]);
 
   useEffect(() => {
-    if (authReady) loadAllData();
-  }, [authReady, loadAllData]);
+    if (authReady && !isPreloadMode) loadAllData();
+  }, [authReady, loadAllData, isPreloadMode]);
 
-  // Handle billing completion — called by OrderSummary's onProcessOrder
+  // Notify native app that page shell is ready (pre-load mode)
+  useEffect(() => {
+    if (authReady && isPreloadMode && window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BILLING_SHELL_READY' }));
+    }
+  }, [authReady, isPreloadMode]);
+
+  // Handle billing completion
   const handleProcessOrder = async (taxData = {}) => {
     if (!order || processing) return;
     setProcessing(true);
@@ -290,7 +382,6 @@ export default function MobileBillingPage() {
 
       await apiClient.updateOrder(order.id, updateData);
 
-      // Verify payment
       await apiClient.verifyPayment({
         orderId: order.id,
         paymentMethod: splitPayments ? 'split' : paymentMethod,
@@ -300,7 +391,6 @@ export default function MobileBillingPage() {
         paymentStatus: isPartialPayment ? 'partial' : 'completed',
       });
 
-      // Notify native app that billing is complete
       if (typeof window !== 'undefined' && window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'BILLING_COMPLETE',
@@ -325,7 +415,13 @@ export default function MobileBillingPage() {
     }
   };
 
-  // Loading states
+  // Pre-load mode: show "waiting" state until data arrives
+  if (isPreloadMode && !dataLoaded) {
+    if (!authReady) return <LoadingSpinner />;
+    return <WaitingForData />;
+  }
+
+  // Normal mode: show loading/error
   if (!authReady || (!dataLoaded && !error)) {
     return <LoadingSpinner />;
   }
