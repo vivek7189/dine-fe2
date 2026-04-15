@@ -58,6 +58,7 @@ const CustomerForm = React.memo(({
   if (!isEdit && !customerForm) return null;
 
   if (typeof document === 'undefined') return null;
+  const _isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   return createPortal(
     <div style={{
       position: 'fixed',
@@ -67,7 +68,8 @@ const CustomerForm = React.memo(({
       alignItems: isMobile ? 'flex-end' : 'center',
       justifyContent: 'center',
       zIndex: 9999,
-      padding: isMobile ? '0' : '32px'
+      padding: isMobile ? '0' : '32px',
+      paddingBottom: _isMobileEmbed ? '70px' : (isMobile ? '0' : '32px'),
     }}>
       <div style={{
         backgroundColor: 'white',
@@ -75,7 +77,7 @@ const CustomerForm = React.memo(({
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         width: '100%',
         maxWidth: isMobile ? '100%' : '500px',
-        maxHeight: isMobile ? '94vh' : '90vh',
+        maxHeight: _isMobileEmbed ? '80vh' : (isMobile ? '94vh' : '90vh'),
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -1223,7 +1225,8 @@ const Customers = () => {
       alignItems: isMobile ? 'flex-end' : 'center',
       justifyContent: 'center',
       zIndex: 9999,
-      padding: isMobile ? '0' : '32px'
+      padding: isMobile ? '0' : '32px',
+      paddingBottom: isMobileEmbed ? '70px' : (isMobile ? '0' : '32px'),
     }}>
       <div style={{
         backgroundColor: 'white',
@@ -1231,7 +1234,7 @@ const Customers = () => {
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         width: '100%',
         maxWidth: isMobile ? '100%' : '600px',
-        maxHeight: isMobile ? '92vh' : '80vh',
+        maxHeight: isMobileEmbed ? '78vh' : (isMobile ? '92vh' : '80vh'),
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -1452,6 +1455,7 @@ const Customers = () => {
         width: '100%',
         backgroundColor: isMobileEmbed ? '#fff' : '#f9fafb',
         paddingTop: 0,
+        paddingBottom: isMobileEmbed ? '80px' : '0',
         overflowX: 'hidden',
         boxSizing: 'border-box'
       }}>
@@ -1850,7 +1854,7 @@ const Customers = () => {
             overflow: 'hidden',
             border: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
             boxShadow: isMobileEmbed ? 'none' : '0 1px 3px rgba(0,0,0,0.06)',
-            marginBottom: selectedCustomerIds.length > 0 ? '70px' : 0
+            marginBottom: selectedCustomerIds.length > 0 ? (isMobileEmbed ? '140px' : '70px') : 0
           }}>
             {filteredCustomers.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1907,7 +1911,7 @@ const Customers = () => {
                       />
                       <div
                         style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                        onClick={() => router.push('/customers/' + customer.id)}
+                        onClick={() => router.push((isMobileEmbed ? '/mobile/customers/' : '/customers/') + customer.id)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div style={{
@@ -1974,7 +1978,7 @@ const Customers = () => {
                       overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none'
                     }}>
                       <button
-                        onClick={() => router.push('/customers/' + customer.id)}
+                        onClick={() => router.push((isMobileEmbed ? '/mobile/customers/' : '/customers/') + customer.id)}
                         style={{
                           padding: '5px 10px', backgroundColor: '#f1f5f9', border: 'none',
                           borderRadius: '6px', cursor: 'pointer', display: 'flex',
@@ -2010,10 +2014,11 @@ const Customers = () => {
                         </button>
                         {groupPopoverCustomerId === customer.id && (
                           <div data-group-popover style={{
-                            position: 'fixed', left: '16px', right: '16px', bottom: '16px',
+                            position: 'fixed', left: '16px', right: '16px',
+                            bottom: isMobileEmbed ? '80px' : '16px',
                             background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px',
                             boxShadow: '0 -8px 30px rgba(0,0,0,0.15)', zIndex: 9998,
-                            overflow: 'hidden', maxHeight: '60vh'
+                            overflow: 'hidden', maxHeight: isMobileEmbed ? '50vh' : '60vh'
                           }}>
                             <div style={{
                               padding: '12px 16px', borderBottom: '1px solid #f3f4f6',
@@ -2140,7 +2145,7 @@ const Customers = () => {
                         overflow: 'hidden'
                       }}
                       onClick={() => {
-                        router.push('/customers/' + customer.id);
+                        router.push((isMobileEmbed ? '/mobile/customers/' : '/customers/') + customer.id);
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -2773,7 +2778,7 @@ const Customers = () => {
       {selectedCustomerIds.length > 0 && engagementTab === 'customers' && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
-          bottom: isMobile ? '16px' : '24px',
+          bottom: isMobileEmbed ? '80px' : (isMobile ? '16px' : '24px'),
           left: '50%',
           transform: 'translateX(-50%)',
           backgroundColor: '#111827',
@@ -3197,7 +3202,8 @@ const Customers = () => {
           alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: isMobile ? '0' : '32px'
+          padding: isMobile ? '0' : '32px',
+          paddingBottom: isMobileEmbed ? '70px' : (isMobile ? '0' : '32px'),
         }}>
           <div style={{
             backgroundColor: 'white',
@@ -3205,7 +3211,7 @@ const Customers = () => {
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
             maxWidth: isMobile ? '100%' : '520px',
-            maxHeight: isMobile ? '94vh' : '90vh',
+            maxHeight: isMobileEmbed ? '80vh' : (isMobile ? '94vh' : '90vh'),
             display: 'flex',
             flexDirection: 'column',
           }}>

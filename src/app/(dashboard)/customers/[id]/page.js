@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useParams } from 'next/navigation';
 import apiClient from '../../../../lib/api';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
@@ -47,6 +48,7 @@ var CustomerDetail = function() {
   var [creditLoading, setCreditLoading] = useState(false);
   var [settlingCredit, setSettlingCredit] = useState(null);
   var [expandedOrderId, setExpandedOrderId] = useState(null);
+  var isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
 
   useEffect(function() {
     var checkMobile = function() { setIsMobile(window.innerWidth <= 768); };
@@ -135,7 +137,8 @@ var CustomerDetail = function() {
     if (!confirm('Are you sure you want to delete ' + customerName + '?')) return;
     try {
       await apiClient.request('/api/customers/' + customerId, { method: 'DELETE' });
-      router.push('/customers');
+      var isME = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+      router.push(isME ? '/mobile/customers' : '/customers');
     } catch (err) {
       console.error('Error deleting customer:', err);
       alert('Failed to delete customer');
@@ -176,7 +179,7 @@ var CustomerDetail = function() {
   if (error || !customer) {
     return (
       <div style={{ padding: isMobile ? '16px' : '32px' }}>
-        <button onClick={function() { router.push('/customers'); }} style={{
+        <button onClick={function() { var isME = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__; router.push(isME ? '/mobile/customers' : '/customers'); }} style={{
           background: 'none', border: 'none', cursor: 'pointer', display: 'flex',
           alignItems: 'center', gap: '8px', fontSize: '14px', color: '#6b7280',
           fontWeight: '500', padding: 0, marginBottom: '24px'
@@ -224,22 +227,24 @@ var CustomerDetail = function() {
     <div style={{
       width: '100%',
       backgroundColor: '#f8fafc',
-      minHeight: '100vh'
+      minHeight: '100vh',
+      paddingBottom: isMobileEmbed ? '80px' : '0',
     }}>
       {/* Hero Header with gradient */}
       <div style={{
         background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
-        padding: isMobile ? '12px 14px 50px' : '24px 32px 72px',
+        padding: isMobileEmbed ? '10px 12px 42px' : (isMobile ? '12px 14px 50px' : '24px 32px 72px'),
         position: 'relative'
       }}>
-        {/* Top bar */}
+        {/* Top bar — hidden in mobile embed (native app handles back) */}
+        {!isMobileEmbed && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: isMobile ? '14px' : '28px'
         }}>
-          <button onClick={function() { router.push('/customers'); }} style={{
+          <button onClick={function() { var isME = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__; router.push(isME ? '/mobile/customers' : '/customers'); }} style={{
             background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: '8px', cursor: 'pointer', display: 'flex',
             alignItems: 'center', gap: isMobile ? '4px' : '8px', fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.85)',
@@ -258,6 +263,7 @@ var CustomerDetail = function() {
           </button>
           )}
         </div>
+        )}
 
         {/* Customer info on dark bg */}
         <div style={{
@@ -903,22 +909,26 @@ var CustomerDetail = function() {
         </div>
       </div>
 
-      {showEditForm && (
+      {showEditForm && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
-          zIndex: 50, padding: isMobile ? '0' : '32px'
+          zIndex: 9999, padding: isMobile ? '0' : '32px',
+          paddingBottom: isMobileEmbed ? '70px' : (isMobile ? '0' : '32px'),
         }}>
           <div style={{
             backgroundColor: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '14px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-            width: '100%', maxWidth: isMobile ? '100%' : '480px', maxHeight: isMobile ? '85vh' : '90vh', overflowY: 'auto'
+            width: '100%', maxWidth: isMobile ? '100%' : '480px',
+            maxHeight: isMobileEmbed ? '80vh' : (isMobile ? '85vh' : '90vh'),
+            display: 'flex', flexDirection: 'column',
           }}>
             <div style={{
-              padding: '20px 24px', borderBottom: '1px solid #f3f4f6',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              padding: isMobile ? '16px 20px' : '20px 24px', borderBottom: '1px solid #f3f4f6',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexShrink: 0,
             }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Edit Customer</h2>
+              <h2 style={{ margin: 0, fontSize: isMobile ? '16px' : '18px', fontWeight: '700', color: '#1f2937' }}>Edit Customer</h2>
               <button onClick={function() { setShowEditForm(false); setFormErrors({}); }} style={{
                 background: '#f3f4f6', border: 'none', borderRadius: '8px',
                 color: '#6b7280', padding: '8px', cursor: 'pointer'
@@ -926,7 +936,7 @@ var CustomerDetail = function() {
                 <FaTimes size={14} />
               </button>
             </div>
-            <form onSubmit={handleSave} style={{ padding: '24px' }}>
+            <form onSubmit={handleSave} style={{ padding: isMobile ? '16px 20px' : '24px', overflowY: 'auto', flex: 1 }}>
               {formErrors.general && (
                 <div style={{
                   backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px',
@@ -987,7 +997,8 @@ var CustomerDetail = function() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
