@@ -1507,10 +1507,11 @@ const Customers = () => {
             )}
           </div>
 
-          {/* Customer Engagement — tab bar */}
+          {/* Customer Engagement — tab bar (hidden in mobile embed) */}
+          {!isMobileEmbed && (
           <div style={{
             background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%)',
-            borderRadius: isMobileEmbed ? '0' : (isMobile ? '10px' : '12px'),
+            borderRadius: isMobile ? '10px' : '12px',
             padding: isMobile ? '3px' : '6px 8px',
             marginBottom: isMobile ? '8px' : '12px',
             display: 'flex',
@@ -1557,6 +1558,7 @@ const Customers = () => {
               );
             })}
           </div>
+          )}
           </div>
 
           {engagementTab === 'customers' && (

@@ -2327,40 +2327,43 @@ const MenuManagement = () => {
             }
           }
         }
-        
+
         const response = await apiClient.createMenuItem(currentRestaurant.id, itemData);
         const newItem = response.menuItem;
         setMenuItems(items => [...items, newItem]);
-        
+
         // If there are temporary images, upload them now
         if (formData.tempImages && formData.tempImages.length > 0) {
           try {
             const files = formData.tempImages.map(temp => temp.file);
             const uploadResponse = await apiClient.uploadMenuItemImages(newItem.id, files, currentRestaurant?.id);
-            
+
             if (uploadResponse.success) {
               // Update the new item with uploaded images
-              setMenuItems(items => items.map(item => 
-                item.id === newItem.id 
+              setMenuItems(items => items.map(item =>
+                item.id === newItem.id
                   ? { ...item, images: uploadResponse.images }
                   : item
               ));
             }
           } catch (uploadError) {
             console.error('Error uploading temporary images:', uploadError);
-            // Don't show alert, just log the error
           }
         }
-        
+
         // Show success notification
         setSuccessMessage(`"${formData.name}" added to menu`);
         setTimeout(() => setSuccessMessage(''), 3000);
-
-      resetForm();
       }
+
+      // Close modal on success
+      resetForm();
     } catch (error) {
       console.error('Error saving menu item:', error);
+      // Show error notification and close modal
       setError(`Failed to ${editingItem ? 'update' : 'add'} menu item: ${error.message}`);
+      setTimeout(() => setError(''), 5000);
+      resetForm();
     } finally {
       setProcessing(false);
     }
@@ -3070,9 +3073,9 @@ const MenuManagement = () => {
           100% { transform: translateX(100%); }
         }
       `}</style>
-      <div style={{ 
-        width: '100%', 
-        padding: '20px', 
+      <div style={{
+        width: '100%',
+        padding: '14px',
         position: 'relative',
         paddingBottom: '40px'
       }}>
@@ -3082,18 +3085,18 @@ const MenuManagement = () => {
           top: 0,
           zIndex: 100,
           backgroundColor: '#ffffff',
-          marginLeft: '-20px',
-          marginRight: '-20px',
-          padding: '16px 20px 0 20px',
-          marginBottom: '20px'
+          marginLeft: '-14px',
+          marginRight: '-14px',
+          padding: '12px 14px 0 14px',
+          marginBottom: '14px'
         }}>
           {/* Title row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <div>
-              <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+              <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
                 {t('menu.title')}
               </h1>
-              <p style={{ fontSize: '12px', color: '#9ca3af', margin: '3px 0 0 0' }}>
+              <p style={{ fontSize: '11px', color: '#9ca3af', margin: '2px 0 0 0' }}>
                 {filteredItems.length} {t('common.items')}
                 {currentRestaurant?.name ? ` · ${currentRestaurant.name}` : ''}
               </p>
@@ -3103,19 +3106,21 @@ const MenuManagement = () => {
             <button
               onClick={() => setShowAddForm(true)}
               style={{
-                padding: '10px 20px',
+                padding: '8px 14px',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 fontWeight: '600',
-                fontSize: '14px',
+                fontSize: '13px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '7px',
+                gap: '6px',
                 boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.4)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; }}
@@ -3126,29 +3131,28 @@ const MenuManagement = () => {
           </div>
 
           {/* Action pills row */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
             {[
               { icon: <FaCloudUploadAlt size={14} />, label: 'Upload', onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2' },
               { icon: <FaCamera size={13} />, label: 'Photo', onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7' },
               { icon: <FaQrcode size={13} />, label: 'QR Code', onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5' },
               { icon: <FaEye size={13} />, label: 'Customize', onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); router.push(`/menu/customize${rid ? `?restaurant=${rid}` : ''}`); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe' },
-              { icon: <FaPlus size={13} />, label: t('menu.freshOrder'), onClick: () => router.push('/dashboard'), bg: '#f3f4f6', color: '#4b5563', hoverBg: '#e5e7eb' },
             ].map((action, i) => (
               <button
                 key={i}
                 onClick={action.onClick}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 12px',
                   backgroundColor: action.bg,
                   color: action.color,
                   border: 'none',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   fontWeight: '600',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   transition: 'all 0.2s',
                   whiteSpace: 'nowrap'
                 }}
@@ -3163,17 +3167,17 @@ const MenuManagement = () => {
                 onClick={handleBulkDeleteClick}
                 disabled={operationLoading}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 12px',
                   backgroundColor: '#fef2f2',
                   color: '#ef4444',
                   border: 'none',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   fontWeight: '600',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   cursor: operationLoading ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   transition: 'all 0.2s',
                   opacity: operationLoading ? 0.5 : 1,
                   whiteSpace: 'nowrap'
@@ -3928,27 +3932,28 @@ const MenuManagement = () => {
           alignItems: 'flex-start',
           justifyContent: 'center',
           zIndex: 10002,
-          padding: '20px',
+          padding: window.innerWidth <= 768 ? '0' : '20px',
           overflowY: 'auto'
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '12px',
+            borderRadius: window.innerWidth <= 768 ? '0' : '12px',
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             width: '100%',
-            maxWidth: window.innerWidth <= 768 ? '500px' : '820px',
-            marginTop: '20px',
-            marginBottom: '20px'
+            maxWidth: window.innerWidth <= 768 ? '100%' : '820px',
+            minHeight: window.innerWidth <= 768 ? '100vh' : 'auto',
+            marginTop: window.innerWidth <= 768 ? '0' : '20px',
+            marginBottom: window.innerWidth <= 768 ? '0' : '20px'
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '16px 24px',
+              padding: window.innerWidth <= 768 ? '14px 16px' : '16px 24px',
               borderBottom: '1px solid #e5e7eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              borderRadius: '12px 12px 0 0'
+              borderRadius: window.innerWidth <= 768 ? '0' : '12px 12px 0 0'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{
@@ -4005,7 +4010,7 @@ const MenuManagement = () => {
                 </button>
             </div>
             
-            <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+            <form onSubmit={handleSubmit} style={{ padding: window.innerWidth <= 768 ? '16px' : '24px' }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr',
@@ -4927,14 +4932,13 @@ const MenuManagement = () => {
                 position: 'sticky',
                 bottom: 0,
                 display: 'flex',
-                gap: '12px',
+                gap: '10px',
                 justifyContent: 'flex-end',
-                padding: '16px 0 0 0',
-                margin: '16px -24px 0 -24px',
-                padding: '14px 24px',
+                margin: window.innerWidth <= 768 ? '16px -16px 0 -16px' : '16px -24px 0 -24px',
+                padding: window.innerWidth <= 768 ? '12px 16px' : '14px 24px',
                 borderTop: '1px solid #e5e7eb',
                 backgroundColor: '#f9fafb',
-                borderRadius: '0 0 12px 12px',
+                borderRadius: window.innerWidth <= 768 ? '0' : '0 0 12px 12px',
                 flexDirection: window.innerWidth <= 768 ? 'column' : 'row'
               }}>
                 <button

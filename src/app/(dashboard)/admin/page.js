@@ -4362,15 +4362,15 @@ const Admin = () => {
                 <span style={{ flex: 1, textAlign: 'left' }}>{activeNavItem ? activeNavItem.label : 'Select'}</span>
                 <FaChevronDown size={11} style={{ color: '#9ca3af', transform: mobileNavOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </button>
-              {mobileNavOpen && (
+              {mobileNavOpen && typeof document !== 'undefined' && createPortal(
                 <div>
                   <div onClick={function() { setMobileNavOpen(false); }} style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998, background: 'rgba(0,0,0,0.1)'
                   }}></div>
                   <div style={{
-                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50,
+                    position: 'fixed', top: '120px', left: '8px', right: '8px', zIndex: 9999,
                     background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.12)', padding: '8px',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)', padding: '8px',
                     maxHeight: '60vh', overflowY: 'auto'
                   }}>
                     {filteredNavGroups.map(function(group) {
@@ -4402,7 +4402,8 @@ const Admin = () => {
                       );
                     })}
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           </div>
