@@ -86,8 +86,8 @@ export default function InvoiceTopNav() {
               href={item.href}
               ref={active ? activeRef : null}
               style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '10px 14px', whiteSpace: 'nowrap',
+                display: 'flex', alignItems: 'center', gap: '5px',
+                padding: '8px 12px', whiteSpace: 'nowrap',
                 fontSize: '13px', fontWeight: active ? 700 : 500,
                 color: active ? '#2563eb' : '#6b7280',
                 borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',

@@ -141,14 +141,16 @@ export default function DashboardPage() {
     expenses: 0,
   }));
 
+  const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+
   return (
     <div>
       {/* Greeting */}
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">
+      <div className={isMobileEmbed ? 'mb-3' : 'mb-6'}>
+        <h1 className={isMobileEmbed ? 'text-lg font-semibold text-gray-900' : 'text-xl font-semibold text-gray-900'}>
           Hello, {orgName || 'there'}
         </h1>
-        {orgName && (
+        {orgName && !isMobileEmbed && (
           <p className="text-sm text-gray-500 mt-0.5">{orgName}</p>
         )}
       </div>
@@ -174,8 +176,8 @@ export default function DashboardPage() {
                 )}
               </div>
               <Button size="sm" icon={HiPlus} onClick={() => {
-                if (typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) return;
-                router.push('/invoice/invoices/new');
+                const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
+                router.push(isMobileEmbed ? '/mobile/invoice?page=invoices-new' : '/invoice/invoices/new');
               }}>
                 New
               </Button>

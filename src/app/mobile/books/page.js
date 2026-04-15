@@ -18,11 +18,11 @@ function LoadingSpinner() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      height: '60vh',
+      height: '40vh',
     }}>
       <div style={{
-        width: 32,
-        height: 32,
+        width: 28,
+        height: 28,
         border: '3px solid #e5e7eb',
         borderTopColor: '#ef4444',
         borderRadius: '50%',
@@ -57,5 +57,9 @@ export default function MobileBooksPage() {
 
   if (!authReady) return <LoadingSpinner />;
 
-  return <BooksPage />;
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <BooksPage />
+    </div>
+  );
 }

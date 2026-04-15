@@ -32,6 +32,7 @@ export default function BooksPage() {
   const { formatCurrency } = useCurrency();
   const books = useBooks();
   const { isMobile, activeTab, setActiveTab, error, setError, success, setSuccess, period, setPeriod, PERIODS, customStart, setCustomStart, customEnd, setCustomEnd } = books;
+  const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -58,15 +59,15 @@ export default function BooksPage() {
 
       <div style={{ padding: isMobile ? '12px' : '24px', maxWidth: '100%', overflowX: 'hidden' }}>
         {/* Header */}
-        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ marginBottom: isMobileEmbed ? '12px' : '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isMobileEmbed ? '8px' : '12px' }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 800, color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FaBook color="white" size={16} />
+            <h1 style={{ fontSize: isMobileEmbed ? '18px' : (isMobile ? '22px' : '28px'), fontWeight: 800, color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '8px' : '10px' }}>
+              <div style={{ width: isMobileEmbed ? '28px' : '36px', height: isMobileEmbed ? '28px' : '36px', borderRadius: isMobileEmbed ? '8px' : '10px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FaBook color="white" size={isMobileEmbed ? 12 : 16} />
               </div>
               Books
             </h1>
-            <p style={{ fontSize: '13px', color: '#9ca3af', margin: '4px 0 0 46px' }}>Financial overview & accounting</p>
+            {!isMobileEmbed && <p style={{ fontSize: '13px', color: '#9ca3af', margin: '4px 0 0 46px' }}>Financial overview & accounting</p>}
           </div>
 
           {/* Period Selector */}

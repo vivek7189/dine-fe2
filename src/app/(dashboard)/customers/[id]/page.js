@@ -229,7 +229,7 @@ var CustomerDetail = function() {
       {/* Hero Header with gradient */}
       <div style={{
         background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
-        padding: isMobile ? '16px 16px 60px' : '24px 32px 72px',
+        padding: isMobile ? '12px 14px 50px' : '24px 32px 72px',
         position: 'relative'
       }}>
         {/* Top bar */}
@@ -237,16 +237,17 @@ var CustomerDetail = function() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: isMobile ? '20px' : '28px'
+          marginBottom: isMobile ? '14px' : '28px'
         }}>
           <button onClick={function() { router.push('/customers'); }} style={{
             background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: '8px', cursor: 'pointer', display: 'flex',
-            alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.85)',
-            fontWeight: '500', padding: '8px 14px'
+            alignItems: 'center', gap: isMobile ? '4px' : '8px', fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.85)',
+            fontWeight: '500', padding: isMobile ? '6px 10px' : '8px 14px'
           }}>
-            <FaArrowLeft size={12} /> Back to Customers
+            <FaArrowLeft size={isMobile ? 10 : 12} /> {isMobile ? 'Back' : 'Back to Customers'}
           </button>
+          {!isMobile && (
           <button onClick={function() { window.open(window.location.href, '_blank'); }} style={{
             background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', display: 'flex',
@@ -255,6 +256,7 @@ var CustomerDetail = function() {
           }}>
             <FaExternalLinkAlt size={10} /> New window
           </button>
+          )}
         </div>
 
         {/* Customer info on dark bg */}
@@ -263,41 +265,41 @@ var CustomerDetail = function() {
           alignItems: isMobile ? 'flex-start' : 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '16px'
+          gap: isMobile ? '12px' : '16px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px', flex: 1, minWidth: 0 }}>
             <div style={{
-              width: isMobile ? '52px' : '64px', height: isMobile ? '52px' : '64px',
-              borderRadius: '16px',
+              width: isMobile ? '44px' : '64px', height: isMobile ? '44px' : '64px',
+              borderRadius: isMobile ? '12px' : '16px',
               background: 'linear-gradient(135deg, #ef4444, #f97316)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: 'white',
-              boxShadow: '0 4px 14px rgba(239,68,68,0.4)'
+              fontSize: isMobile ? '18px' : '26px', fontWeight: '700', color: 'white',
+              boxShadow: '0 4px 14px rgba(239,68,68,0.4)', flexShrink: 0
             }}>
               {(customer.name || 'C')[0].toUpperCase()}
             </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '26px', fontWeight: '700', color: 'white' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h1 style={{ margin: 0, fontSize: isMobile ? '17px' : '26px', fontWeight: '700', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {customer.name || 'Unnamed Customer'}
               </h1>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '6px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px', marginTop: isMobile ? '4px' : '6px' }}>
                 {customer.phone && (
-                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <FaPhone size={11} /> {customer.phone}
+                  <span style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <FaPhone size={isMobile ? 9 : 11} /> {customer.phone}
                   </span>
                 )}
                 {customer.email && (
-                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <FaEnvelope size={11} /> {customer.email}
+                  <span style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '160px' : 'none' }}>
+                    <FaEnvelope size={isMobile ? 9 : 11} /> {customer.email}
                   </span>
                 )}
-                {customer.city && (
+                {customer.city && !isMobile && (
                   <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <FaMapMarkerAlt size={11} /> {customer.city}
                   </span>
                 )}
               </div>
-              {(customer.createdAt || customer.dob) && (
+              {(customer.createdAt || customer.dob) && !isMobile && (
                 <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
                   {customer.createdAt ? 'Customer since ' + (parseDate(customer.createdAt) ? parseDate(customer.createdAt).toLocaleDateString() : 'N/A') : ''}
                   {customer.dob ? '  \u00B7  DOB: ' + (parseDate(customer.dob) ? parseDate(customer.dob).toLocaleDateString() : 'N/A') : ''}
@@ -305,22 +307,24 @@ var CustomerDetail = function() {
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', ...(isMobile ? { width: '100%' } : {}) }}>
             <button onClick={handleEdit} style={{
               background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
+              borderRadius: '8px', padding: isMobile ? '7px 14px' : '8px 16px', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: '6px',
-              fontSize: '13px', color: 'white', fontWeight: '500'
+              fontSize: isMobile ? '12px' : '13px', color: 'white', fontWeight: '500',
+              flex: isMobile ? 1 : 'none', justifyContent: 'center'
             }}>
-              <FaEdit size={12} /> Edit
+              <FaEdit size={isMobile ? 11 : 12} /> Edit
             </button>
             <button onClick={handleDelete} style={{
               background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
+              borderRadius: '8px', padding: isMobile ? '7px 14px' : '8px 16px', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: '6px',
-              fontSize: '13px', color: '#fca5a5', fontWeight: '500'
+              fontSize: isMobile ? '12px' : '13px', color: '#fca5a5', fontWeight: '500',
+              flex: isMobile ? 1 : 'none', justifyContent: 'center'
             }}>
-              <FaTrash size={12} /> Delete
+              <FaTrash size={isMobile ? 11 : 12} /> Delete
             </button>
           </div>
         </div>
@@ -328,15 +332,45 @@ var CustomerDetail = function() {
 
       {/* Stats Cards - overlapping the header */}
       <div style={{
-        padding: isMobile ? '0 12px' : '0 32px',
-        marginTop: isMobile ? '-44px' : '-48px',
-        marginBottom: '20px'
+        padding: isMobile ? '0 10px' : '0 32px',
+        marginTop: isMobile ? '-36px' : '-48px',
+        marginBottom: isMobile ? '14px' : '20px'
       }}>
+        {isMobile ? (
+        /* Mobile: Horizontal scroll stats */
+        <div style={{
+          display: 'flex', gap: '8px',
+          overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none', paddingBottom: '4px'
+        }}>
+          {[
+            { value: totalOrders, label: 'Orders', gradient: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
+            { value: formatCurrency(totalSpent), label: 'Spent', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
+            { value: formatCurrency(avgOrderValue), label: 'Avg Order', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
+            { value: currentPoints, label: 'Points', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)', color: '#f59e0b' },
+            { value: formatCurrency(outstandingBalance), label: 'Due', gradient: outstandingBalance > 0 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #10b981, #34d399)', color: outstandingBalance > 0 ? '#ef4444' : '#10b981' },
+          ].map(function(stat, i) {
+            return (
+              <div key={i} style={{
+                backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: '12px 16px',
+                textAlign: 'center', position: 'relative', overflow: 'hidden',
+                minWidth: '100px', flexShrink: 0
+              }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: stat.gradient }}></div>
+                <p style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: stat.color || '#1e293b' }}>{stat.value}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</p>
+              </div>
+            );
+          })}
+        </div>
+        ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
+          gridTemplateColumns: 'repeat(5, 1fr)',
           gap: '12px'
         }}>
+
           <div style={{
             backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '22px',
@@ -384,23 +418,24 @@ var CustomerDetail = function() {
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</p>
           </div>
         </div>
+        )}
       </div>
 
       {/* Content area */}
-      <div style={{ padding: isMobile ? '0 12px 24px' : '0 32px 32px' }}>
+      <div style={{ padding: isMobile ? '0 10px 24px' : '0 32px 32px' }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : '320px 1fr',
           gap: '16px'
         }}>
           {/* Left sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '16px' }}>
             {/* Loyalty Card */}
             {(currentPoints > 0 || totalPointsEarned > 0) && (
               <div style={{
                 background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
                 borderRadius: '14px', border: '1px solid #fde68a',
-                padding: '20px'
+                padding: isMobile ? '14px' : '20px'
               }}>
                 <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '700', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{
@@ -530,9 +565,9 @@ var CustomerDetail = function() {
             {/* Details Card */}
             <div style={{
               backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '20px'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: isMobile ? '14px' : '20px'
             }}>
-              <h3 style={{ margin: '0 0 14px', fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>
+              <h3 style={{ margin: isMobile ? '0 0 10px' : '0 0 14px', fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>
                 Customer Details
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -605,21 +640,21 @@ var CustomerDetail = function() {
           {/* Right: Order History */}
           <div style={{
             backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '20px'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: isMobile ? '14px' : '20px'
           }}>
             <h3 style={{
-              margin: '0 0 16px', fontSize: '15px', fontWeight: '700', color: '#1e293b',
+              margin: isMobile ? '0 0 10px' : '0 0 16px', fontSize: isMobile ? '14px' : '15px', fontWeight: '700', color: '#1e293b',
               display: 'flex', alignItems: 'center', gap: '8px'
             }}>
               <div style={{
-                width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#f1f5f9',
+                width: isMobile ? '24px' : '28px', height: isMobile ? '24px' : '28px', borderRadius: '8px', backgroundColor: '#f1f5f9',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                <FaHistory size={12} style={{ color: '#64748b' }} />
+                <FaHistory size={isMobile ? 10 : 12} style={{ color: '#64748b' }} />
               </div>
               Order History
               <span style={{
-                fontSize: '12px', fontWeight: '600', backgroundColor: '#f1f5f9',
+                fontSize: isMobile ? '11px' : '12px', fontWeight: '600', backgroundColor: '#f1f5f9',
                 color: '#64748b', padding: '2px 10px', borderRadius: '20px'
               }}>
                 {orderHistory.length}
@@ -648,16 +683,16 @@ var CustomerDetail = function() {
                       <div
                         onClick={function() { setExpandedOrderId(isExpanded ? null : orderId); }}
                         style={{
-                          padding: '14px 16px',
+                          padding: isMobile ? '10px 12px' : '14px 16px',
                           backgroundColor: index % 2 === 0 ? '#f8fafc' : 'white',
                           cursor: 'pointer',
                           userSelect: 'none'
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '5px' : '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#1e293b' }}>
                                 {order.dailyOrderId ? '#' + order.dailyOrderId : order.orderNumber}
                               </span>
                               {statusBadge && (
@@ -698,15 +733,15 @@ var CustomerDetail = function() {
                                 </span>
                               )}
                             </div>
-                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                            <p style={{ margin: '3px 0 0', fontSize: isMobile ? '11px' : '12px', color: '#94a3b8' }}>
                               {orderDate ? orderDate.toLocaleDateString() : ''}{orderDate ? ' at ' + orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                               {order.tableNumber ? ' \u00B7 Table ' + order.tableNumber : ''}
                               {order.itemsCount ? ' \u00B7 ' + order.itemsCount + ' items' : ''}
                             </p>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? '6px' : '10px', flexShrink: 0 }}>
                             <div style={{ textAlign: 'right' }}>
-                              <p style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>
+                              <p style={{ margin: 0, fontSize: isMobile ? '14px' : '16px', fontWeight: '700', color: '#1e293b' }}>
                                 {formatCurrency(order.finalAmount || order.totalAmount)}
                               </p>
                               {(order.discountAmount > 0 || order.loyaltyDiscount > 0) && (
@@ -747,7 +782,7 @@ var CustomerDetail = function() {
                       {/* Expanded detail section */}
                       {isExpanded && (
                         <div style={{
-                          padding: '14px 16px',
+                          padding: isMobile ? '10px 12px' : '14px 16px',
                           backgroundColor: '#f1f5f9',
                           borderTop: '1px solid #e2e8f0'
                         }}>
@@ -871,13 +906,13 @@ var CustomerDetail = function() {
       {showEditForm && (
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 50, padding: isMobile ? '16px' : '32px'
+          display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+          zIndex: 50, padding: isMobile ? '0' : '32px'
         }}>
           <div style={{
-            backgroundColor: 'white', borderRadius: '14px',
+            backgroundColor: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '14px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-            width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto'
+            width: '100%', maxWidth: isMobile ? '100%' : '480px', maxHeight: isMobile ? '85vh' : '90vh', overflowY: 'auto'
           }}>
             <div style={{
               padding: '20px 24px', borderBottom: '1px solid #f3f4f6',

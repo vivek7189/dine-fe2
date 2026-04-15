@@ -4777,7 +4777,7 @@ function RestaurantPOSContent() {
                     flex: 1,
                     height: '100%',
                     paddingLeft: '10px',
-                    paddingRight: '12px',
+                    paddingRight: searchTerm ? '4px' : '12px',
                     border: 'none',
                     backgroundColor: 'transparent',
                     fontSize: '13px',
@@ -4786,6 +4786,26 @@ function RestaurantPOSContent() {
                     color: '#374151'
                   }}
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: '#e5e7eb',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      marginRight: '6px'
+                    }}
+                  >
+                    <FaTimes size={9} color="#6b7280" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -5345,7 +5365,7 @@ function RestaurantPOSContent() {
                     width: '100%',
                       height: isMobile ? '38px' : '36px',
                       paddingLeft: isMobile ? '38px' : '36px',
-                    paddingRight: '12px',
+                    paddingRight: searchTerm ? '36px' : '12px',
                       border: 'none',
                       borderBottom: '2px solid #e5e7eb',
                       borderRadius: '0px',
@@ -5365,6 +5385,28 @@ function RestaurantPOSContent() {
                       e.target.style.backgroundColor = '#f8fafc';
                   }}
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      backgroundColor: '#e5e7eb',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <FaTimes size={9} color="#6b7280" />
+                  </button>
+                )}
             </div>
                 )}
             

@@ -1867,15 +1867,233 @@ const Customers = () => {
                 {filteredCustomers.map((customer, index) => {
                   const isSelected = selectedCustomerIds.includes(customer.id);
                   const custGroups = getCustomerGroups(customer);
-                  return (
+                  return isMobile ? (
+                  /* ── MOBILE: Card Layout ── */
                   <div key={customer.id} style={{
-                    padding: isMobile ? '10px 8px' : '20px',
+                    padding: '12px',
+                    borderBottom: index < filteredCustomers.length - 1 ? '1px solid #f3f4f6' : 'none',
+                    backgroundColor: isSelected ? '#fef2f2' : 'transparent'
+                  }}>
+                    {/* Top row: checkbox + name + amount */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleCustomerSelect(customer.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444', marginTop: '3px', flexShrink: 0 }}
+                      />
+                      <div
+                        style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                        onClick={() => router.push('/customers/' + customer.id)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '36px', height: '36px',
+                            background: 'linear-gradient(135deg, #fef2f2, #fce7f3)',
+                            borderRadius: '10px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#dc2626', fontSize: '15px', fontWeight: '700', flexShrink: 0
+                          }}>
+                            {(customer.name || (typeof customer.phone === 'string' ? customer.phone : '') || 'C').charAt(0).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {customer.name || t('customers.unnamed')}
+                              </h3>
+                              <span style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', flexShrink: 0 }}>
+                                {formatCurrency(Number(customer.totalSpent || 0))}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                              {typeof customer.phone === 'string' && customer.phone && (
+                                <span style={{ fontSize: '11px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                  <FaPhone size={8} /> {customer.phone}
+                                </span>
+                              )}
+                              <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                                {customer.totalOrders || 0} {t('customers.stats.orders')}
+                              </span>
+                              {customer.source === 'customer_app' && (
+                                <span style={{
+                                  padding: '1px 6px', backgroundColor: '#fce7f3', color: '#ec4899',
+                                  fontSize: '9px', fontWeight: '700', borderRadius: '8px'
+                                }}>Crave</span>
+                              )}
+                              {customer.loyaltyPoints > 0 && (
+                                <span style={{ fontSize: '10px', fontWeight: '600', color: '#f59e0b' }}>
+                                  {customer.loyaltyPoints} pts
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Group tags */}
+                        {custGroups.length > 0 && (
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px', paddingLeft: '46px' }}>
+                            {custGroups.map(g => (
+                              <span key={g.id} style={{
+                                padding: '1px 7px', borderRadius: '8px', fontSize: '9px', fontWeight: '600',
+                                background: (g.color || '#6b7280') + '20', color: g.color || '#6b7280',
+                                display: 'inline-flex', alignItems: 'center', gap: '3px'
+                              }}>
+                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: g.color || '#6b7280' }} />
+                                {g.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Action buttons row */}
+                    <div style={{
+                      display: 'flex', gap: '6px', marginTop: '8px', paddingLeft: '26px',
+                      overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none'
+                    }}>
+                      <button
+                        onClick={() => router.push('/customers/' + customer.id)}
+                        style={{
+                          padding: '5px 10px', backgroundColor: '#f1f5f9', border: 'none',
+                          borderRadius: '6px', cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', gap: '4px', fontSize: '11px',
+                          color: '#475569', fontWeight: '600', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <FaUser size={9} /> View
+                      </button>
+                      <button
+                        onClick={() => handleViewHistory(customer)}
+                        style={{
+                          padding: '5px 10px', backgroundColor: '#f1f5f9', border: 'none',
+                          borderRadius: '6px', cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', gap: '4px', fontSize: '11px',
+                          color: '#475569', fontWeight: '600', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <FaHistory size={9} /> History
+                      </button>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => setGroupPopoverCustomerId(groupPopoverCustomerId === customer.id ? null : customer.id)}
+                          style={{
+                            padding: '5px 10px', backgroundColor: getCustomerGroups(customer).length > 0 ? '#f5f3ff' : '#f1f5f9',
+                            border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', gap: '4px', fontSize: '11px',
+                            color: getCustomerGroups(customer).length > 0 ? '#7c3aed' : '#475569',
+                            fontWeight: '600', whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <FaLayerGroup size={9} /> Groups
+                        </button>
+                        {groupPopoverCustomerId === customer.id && (
+                          <div style={{
+                            position: 'fixed', left: '16px', right: '16px', bottom: '16px',
+                            background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px',
+                            boxShadow: '0 -8px 30px rgba(0,0,0,0.15)', zIndex: 50,
+                            overflow: 'hidden', maxHeight: '60vh'
+                          }}>
+                            <div style={{
+                              padding: '12px 16px', borderBottom: '1px solid #f3f4f6',
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                            }}>
+                              <span style={{ fontSize: '13px', fontWeight: 700, color: '#1f2937' }}>
+                                Groups for {customer.name || 'Customer'}
+                              </span>
+                              <button onClick={() => setGroupPopoverCustomerId(null)} style={{
+                                background: '#f3f4f6', border: 'none', borderRadius: '6px',
+                                padding: '4px 8px', cursor: 'pointer', fontSize: '11px', color: '#6b7280'
+                              }}>Close</button>
+                            </div>
+                            <div style={{ overflowY: 'auto', maxHeight: 'calc(60vh - 90px)' }}>
+                              {groups.length === 0 ? (
+                                <div style={{ padding: '16px', fontSize: '13px', color: '#9ca3af', textAlign: 'center' }}>No groups created yet</div>
+                              ) : groups.map(g => {
+                                const isMember = (g.customerIds || []).includes(customer.id) ||
+                                  (customer.phone && (g.customerPhones || []).includes(customer.phone));
+                                const isSavingThis = groupPopoverSaving === g.id;
+                                return (
+                                  <button
+                                    key={g.id}
+                                    onClick={() => toggleCustomerGroup(customer, g.id, isMember)}
+                                    disabled={isSavingThis}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                      padding: '12px 16px', background: isMember ? '#f5f3ff' : 'white',
+                                      border: 'none', borderBottom: '1px solid #f3f4f6', cursor: isSavingThis ? 'wait' : 'pointer',
+                                      fontSize: '14px', textAlign: 'left', color: '#374151',
+                                    }}
+                                  >
+                                    <span style={{
+                                      width: '20px', height: '20px', borderRadius: '6px', flexShrink: 0,
+                                      border: isMember ? 'none' : '2px solid #d1d5db',
+                                      background: isMember ? (g.color || '#7c3aed') : 'transparent',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                      {isMember && <FaCheckCircle size={12} style={{ color: 'white' }} />}
+                                    </span>
+                                    <span style={{
+                                      width: '10px', height: '10px', borderRadius: '50%',
+                                      background: g.color || '#6b7280', flexShrink: 0,
+                                    }} />
+                                    <span style={{ flex: 1 }}>{g.name}</span>
+                                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>{g.customerCount || 0}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <button
+                              onClick={() => { setGroupPopoverCustomerId(null); openNewGroupModal([customer.id]); }}
+                              style={{
+                                width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', gap: '6px', background: '#f0fdf4', border: 'none',
+                                borderTop: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '13px',
+                                color: '#16a34a', fontWeight: 600,
+                              }}
+                            >
+                              <FaPlus size={10} /> Create New Group
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {canEditCustomer && (
+                      <button
+                        onClick={() => handleEdit(customer)}
+                        style={{
+                          padding: '5px 10px', backgroundColor: '#f1f5f9', border: 'none',
+                          borderRadius: '6px', cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', gap: '4px', fontSize: '11px',
+                          color: '#475569', fontWeight: '600', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <FaEdit size={9} /> Edit
+                      </button>
+                      )}
+                      {canDeleteCustomer && (
+                      <button
+                        onClick={() => handleDelete(customer)}
+                        style={{
+                          padding: '5px 10px', backgroundColor: '#fef2f2', border: 'none',
+                          borderRadius: '6px', cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', gap: '4px', fontSize: '11px',
+                          color: '#dc2626', fontWeight: '600', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <FaTrash size={9} /> Delete
+                      </button>
+                      )}
+                    </div>
+                  </div>
+                  ) : (
+                  /* ── DESKTOP: Original Row Layout ── */
+                  <div key={customer.id} style={{
+                    padding: '20px',
                     borderBottom: index < filteredCustomers.length - 1 ? '1px solid #f3f4f6' : 'none',
                     display: 'flex',
-                    alignItems: isMobile ? 'flex-start' : 'center',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
-                    gap: isMobile ? '6px' : '16px',
+                    gap: '16px',
                     backgroundColor: isSelected ? '#fef2f2' : 'transparent'
                   }}>
                     {/* Select checkbox */}
@@ -1884,7 +2102,7 @@ const Customers = () => {
                       checked={isSelected}
                       onChange={() => toggleCustomerSelect(customer.id)}
                       onClick={(e) => e.stopPropagation()}
-                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444', marginTop: isMobile ? '4px' : 0, flexShrink: 0 }}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444', flexShrink: 0 }}
                     />
                     {/* Customer Info - Clickable */}
                     <div
@@ -1905,41 +2123,41 @@ const Customers = () => {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       title="Click to view customer profile"
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '4px' : '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                         <div style={{
-                          width: isMobile ? '32px' : '40px',
-                          height: isMobile ? '32px' : '40px',
+                          width: '40px',
+                          height: '40px',
                           backgroundColor: '#fef2f2',
                           borderRadius: '10px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           color: '#dc2626',
-                          fontSize: isMobile ? '14px' : '16px',
+                          fontSize: '16px',
                           fontWeight: '600'
                         }}>
                           {(customer.name || (typeof customer.phone === 'string' ? customer.phone : '') || 'C').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h3 style={{ margin: 0, fontSize: isMobile ? '14px' : '15px', fontWeight: '600', color: '#1f2937' }}>
+                          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>
                             {customer.name || t('customers.unnamed')}
                           </h3>
-                          <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                             {typeof customer.phone === 'string' && customer.phone && (
-                              <span style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                <FaPhone size={isMobile ? 8 : 10} />
+                              <span style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                <FaPhone size={10} />
                                 {customer.phone}
                               </span>
                             )}
                             {typeof customer.email === 'string' && customer.email && (
-                              <span style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                <FaEnvelope size={isMobile ? 8 : 10} />
+                              <span style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                <FaEnvelope size={10} />
                                 {customer.email}
                               </span>
                             )}
                             {typeof customer.city === 'string' && customer.city && (
-                              <span style={{ fontSize: isMobile ? '10px' : '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                <FaMapMarkerAlt size={isMobile ? 8 : 10} />
+                              <span style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                <FaMapMarkerAlt size={10} />
                                 {customer.city}
                               </span>
                             )}
@@ -1972,49 +2190,36 @@ const Customers = () => {
                       </div>
                     </div>
 
-                    {/* Stats - More Compact */}
-                    <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center', ...(isMobile ? { width: '100%', paddingLeft: '24px' } : {}) }}>
+                    {/* Stats */}
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                       {/* Crave App Badge */}
                       {customer.source === 'customer_app' && (
                         <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '4px 8px',
-                          backgroundColor: '#fce7f3',
-                          color: '#ec4899',
-                          fontSize: isMobile ? '10px' : '11px',
-                          fontWeight: '600',
-                          borderRadius: '12px'
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          padding: '4px 8px', backgroundColor: '#fce7f3', color: '#ec4899',
+                          fontSize: '11px', fontWeight: '600', borderRadius: '12px'
                         }}>
                           <span style={{ width: '6px', height: '6px', backgroundColor: '#ec4899', borderRadius: '50%', display: 'inline-block' }}></span>
                           Crave
                         </div>
                       )}
-                      {/* Loyalty Points */}
                       {customer.loyaltyPoints > 0 && (
                         <div style={{ textAlign: 'center' }}>
-                          <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#f59e0b' }}>
-                            {customer.loyaltyPoints}
-                          </p>
-                          <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>Points</p>
+                          <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#f59e0b' }}>{customer.loyaltyPoints}</p>
+                          <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Points</p>
                         </div>
                       )}
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1f2937' }}>
-                          {customer.totalOrders || 0}
-                        </p>
-                        <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>{t('customers.stats.orders')}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{customer.totalOrders || 0}</p>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{t('customers.stats.orders')}</p>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1f2937' }}>
-                          {formatCurrency(Number(customer.totalSpent || 0))}
-                        </p>
-                        <p style={{ margin: 0, fontSize: isMobile ? '10px' : '12px', color: '#6b7280' }}>{t('customers.stats.spent')}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{formatCurrency(Number(customer.totalSpent || 0))}</p>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{t('customers.stats.spent')}</p>
                       </div>
                       {(() => {
                         const raw = customer.lastOrderDate;
-                        if (raw == null || raw === '' || isMobile) return null;
+                        if (raw == null || raw === '') return null;
                         let d;
                         if (typeof raw?.toDate === 'function') d = raw.toDate();
                         else if (raw && typeof raw._seconds === 'number') d = new Date(raw._seconds * 1000);
@@ -2022,9 +2227,7 @@ const Customers = () => {
                         if (!d || isNaN(d.getTime())) return null;
                         return (
                           <div style={{ textAlign: 'center' }}>
-                            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                              {d.toLocaleDateString()}
-                            </p>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{d.toLocaleDateString()}</p>
                             <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{t('customers.stats.lastOrder')}</p>
                           </div>
                         );
@@ -2032,47 +2235,35 @@ const Customers = () => {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center', ...(isMobile ? { width: '100%', paddingLeft: '24px' } : {}) }}>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                       <button
                         onClick={() => handleViewHistory(customer)}
                         style={{
-                          padding: 0,
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '13px',
-                          color: '#6b7280',
-                          fontWeight: '500'
+                          padding: 0, backgroundColor: 'transparent', border: 'none',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          gap: '4px', fontSize: '13px', color: '#6b7280', fontWeight: '500'
                         }}
                       >
                         <FaHistory size={12} />
-                        {!isMobile && t('customers.actions.history')}
+                        {t('customers.actions.history')}
                       </button>
                       {/* Group toggle popover */}
                       <div style={{ position: 'relative' }}>
                         <button
                           onClick={() => setGroupPopoverCustomerId(groupPopoverCustomerId === customer.id ? null : customer.id)}
                           style={{
-                            padding: 0,
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '13px',
+                            padding: 0, backgroundColor: 'transparent', border: 'none',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center',
+                            gap: '4px', fontSize: '13px',
                             color: getCustomerGroups(customer).length > 0 ? '#7c3aed' : '#6b7280',
                             fontWeight: '500'
                           }}
                           title="Manage groups"
                         >
                           <FaLayerGroup size={12} />
-                          {!isMobile && (getCustomerGroups(customer).length > 0
+                          {getCustomerGroups(customer).length > 0
                             ? `${getCustomerGroups(customer).length} Groups`
-                            : 'Groups')}
+                            : 'Groups'}
                         </button>
                         {groupPopoverCustomerId === customer.id && (
                           <div style={{
@@ -2144,40 +2335,26 @@ const Customers = () => {
                       <button
                         onClick={() => handleEdit(customer)}
                         style={{
-                          padding: 0,
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '13px',
-                          color: '#6b7280',
-                          fontWeight: '500'
+                          padding: 0, backgroundColor: 'transparent', border: 'none',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          gap: '4px', fontSize: '13px', color: '#6b7280', fontWeight: '500'
                         }}
                       >
                         <FaEdit size={12} />
-                        {!isMobile && t('customers.actions.edit')}
+                        {t('customers.actions.edit')}
                       </button>
                       )}
                       {canDeleteCustomer && (
                       <button
                         onClick={() => handleDelete(customer)}
                         style={{
-                          padding: 0,
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '13px',
-                          color: '#dc2626',
-                          fontWeight: '500'
+                          padding: 0, backgroundColor: 'transparent', border: 'none',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          gap: '4px', fontSize: '13px', color: '#dc2626', fontWeight: '500'
                         }}
                       >
                         <FaTrash size={12} />
-                        {!isMobile && t('customers.actions.delete')}
+                        {t('customers.actions.delete')}
                       </button>
                       )}
                     </div>
