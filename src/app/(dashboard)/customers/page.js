@@ -57,35 +57,38 @@ const CustomerForm = React.memo(({
 }) => {
   if (!isEdit && !customerForm) return null;
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div style={{
       position: 'fixed',
       inset: 0,
       backgroundColor: 'rgba(0,0,0,0.6)',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: isMobile ? 'flex-end' : 'center',
       justifyContent: 'center',
-      zIndex: 50,
-      padding: isMobile ? '16px' : '32px'
+      zIndex: 9999,
+      padding: isMobile ? '0' : '32px'
     }}>
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '16px',
+        borderRadius: isMobile ? '16px 16px 0 0' : '16px',
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         width: '100%',
         maxWidth: isMobile ? '100%' : '500px',
-        maxHeight: '90vh',
-        overflowY: 'auto'
+        maxHeight: isMobile ? '94vh' : '90vh',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {/* Header */}
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px 20px' : '24px',
           borderBottom: '1px solid #f3f4f6',
           backgroundColor: 'white',
-          borderRadius: '16px 16px 0 0'
+          borderRadius: isMobile ? '16px 16px 0 0' : '16px 16px 0 0',
+          flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '17px' : '20px', fontWeight: '700', color: '#1f2937' }}>
               {isEdit ? t('customers.editCustomer') : t('customers.addNewCustomer')}
             </h2>
             <button
@@ -108,7 +111,7 @@ const CustomerForm = React.memo(({
         </div>
 
         {/* Form */}
-        <form onSubmit={onSubmit} style={{ padding: '24px' }}>
+        <form onSubmit={onSubmit} style={{ padding: isMobile ? '16px 20px' : '24px', overflowY: 'auto', flex: 1 }}>
           {formErrors.general && (
             <div style={{
               backgroundColor: '#fef2f2',
@@ -302,7 +305,8 @@ const CustomerForm = React.memo(({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 
@@ -407,6 +411,20 @@ const Customers = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Click-outside handler for group popovers and menus
+  useEffect(() => {
+    if (!groupPopoverCustomerId && groupMenuOpenId === null && !showAddToGroupMenu) return;
+    const handler = (e) => {
+      const t = e.target;
+      if (t.closest && (t.closest('[data-group-popover]') || t.closest('[data-group-menu]') || t.closest('[data-add-to-group-menu]'))) return;
+      setGroupPopoverCustomerId(null);
+      setGroupMenuOpenId(null);
+      setShowAddToGroupMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [groupPopoverCustomerId, groupMenuOpenId, showAddToGroupMenu]);
 
   // Load restaurant and user data
   useEffect(() => {
@@ -1196,35 +1214,37 @@ const Customers = () => {
   };
 
   // Order history modal
-  const OrderHistoryModal = () => (
+  const OrderHistoryModal = () => typeof document !== 'undefined' ? createPortal(
     <div style={{
       position: 'fixed',
       inset: 0,
       backgroundColor: 'rgba(0,0,0,0.6)',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: isMobile ? 'flex-end' : 'center',
       justifyContent: 'center',
-      zIndex: 50,
-      padding: isMobile ? '16px' : '32px'
+      zIndex: 9999,
+      padding: isMobile ? '0' : '32px'
     }}>
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '16px',
+        borderRadius: isMobile ? '16px 16px 0 0' : '16px',
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         width: '100%',
         maxWidth: isMobile ? '100%' : '600px',
-        maxHeight: '80vh',
-        overflowY: 'auto'
+        maxHeight: isMobile ? '92vh' : '80vh',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {/* Header */}
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px 20px' : '24px',
           borderBottom: '1px solid #f3f4f6',
           backgroundColor: 'white',
-          borderRadius: '16px 16px 0 0'
+          borderRadius: isMobile ? '16px 16px 0 0' : '16px 16px 0 0',
+          flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: '700', color: '#1f2937' }}>
               {t('customers.orderHistory.title')} - {selectedCustomer?.name || (typeof selectedCustomer?.phone === 'string' ? selectedCustomer.phone : '') || t('customers.form.customer')}
             </h2>
             <button
@@ -1250,7 +1270,7 @@ const Customers = () => {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: isMobile ? '16px 20px' : '24px', overflowY: 'auto', flex: 1 }}>
           {selectedCustomer?.orderHistory && selectedCustomer.orderHistory.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {selectedCustomer.orderHistory
@@ -1344,8 +1364,9 @@ const Customers = () => {
           )}
         </div>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 
 
   if (loading) {
@@ -1611,7 +1632,7 @@ const Customers = () => {
                 groups.map((g) => {
                   const isActive = activeGroupId === g.id;
                   return (
-                    <div key={g.id} style={{ position: 'relative', flexShrink: 0 }}>
+                    <div key={g.id} data-group-menu style={{ position: 'relative', flexShrink: 0 }}>
                       <button
                         onClick={() => setActiveGroupId(isActive ? null : g.id)}
                         style={{
@@ -1660,6 +1681,7 @@ const Customers = () => {
                       </button>
                       {groupMenuOpenId === g.id && (
                         <div
+                          data-group-menu
                           onMouseLeave={() => setGroupMenuOpenId(null)}
                           style={{
                             position: 'absolute',
@@ -1973,7 +1995,7 @@ const Customers = () => {
                       >
                         <FaHistory size={9} /> History
                       </button>
-                      <div style={{ position: 'relative' }}>
+                      <div data-group-popover style={{ position: 'relative' }}>
                         <button
                           onClick={() => setGroupPopoverCustomerId(groupPopoverCustomerId === customer.id ? null : customer.id)}
                           style={{
@@ -1987,10 +2009,10 @@ const Customers = () => {
                           <FaLayerGroup size={9} /> Groups
                         </button>
                         {groupPopoverCustomerId === customer.id && (
-                          <div style={{
+                          <div data-group-popover style={{
                             position: 'fixed', left: '16px', right: '16px', bottom: '16px',
                             background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px',
-                            boxShadow: '0 -8px 30px rgba(0,0,0,0.15)', zIndex: 50,
+                            boxShadow: '0 -8px 30px rgba(0,0,0,0.15)', zIndex: 9998,
                             overflow: 'hidden', maxHeight: '60vh'
                           }}>
                             <div style={{
@@ -2019,25 +2041,26 @@ const Customers = () => {
                                     disabled={isSavingThis}
                                     style={{
                                       display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
-                                      padding: '12px 16px', background: isMember ? '#f5f3ff' : 'white',
+                                      padding: '12px 16px', background: isSavingThis ? '#f9fafb' : isMember ? '#f5f3ff' : 'white',
                                       border: 'none', borderBottom: '1px solid #f3f4f6', cursor: isSavingThis ? 'wait' : 'pointer',
                                       fontSize: '14px', textAlign: 'left', color: '#374151',
+                                      opacity: isSavingThis ? 0.7 : 1, transition: 'background 0.15s, opacity 0.15s',
                                     }}
                                   >
                                     <span style={{
                                       width: '20px', height: '20px', borderRadius: '6px', flexShrink: 0,
-                                      border: isMember ? 'none' : '2px solid #d1d5db',
-                                      background: isMember ? (g.color || '#7c3aed') : 'transparent',
+                                      border: isSavingThis ? 'none' : isMember ? 'none' : '2px solid #d1d5db',
+                                      background: isSavingThis ? '#d1d5db' : isMember ? (g.color || '#7c3aed') : 'transparent',
                                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     }}>
-                                      {isMember && <FaCheckCircle size={12} style={{ color: 'white' }} />}
+                                      {isSavingThis ? <FaSpinner size={12} className="animate-spin" style={{ color: 'white' }} /> : isMember ? <FaCheckCircle size={12} style={{ color: 'white' }} /> : null}
                                     </span>
                                     <span style={{
                                       width: '10px', height: '10px', borderRadius: '50%',
                                       background: g.color || '#6b7280', flexShrink: 0,
                                     }} />
                                     <span style={{ flex: 1 }}>{g.name}</span>
-                                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>{g.customerCount || 0}</span>
+                                    {isSavingThis ? <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Saving...</span> : <span style={{ fontSize: '12px', color: '#9ca3af' }}>{g.customerCount || 0}</span>}
                                   </button>
                                 );
                               })}
@@ -2248,7 +2271,7 @@ const Customers = () => {
                         {t('customers.actions.history')}
                       </button>
                       {/* Group toggle popover */}
-                      <div style={{ position: 'relative' }}>
+                      <div data-group-popover style={{ position: 'relative' }}>
                         <button
                           onClick={() => setGroupPopoverCustomerId(groupPopoverCustomerId === customer.id ? null : customer.id)}
                           style={{
@@ -2266,10 +2289,10 @@ const Customers = () => {
                             : 'Groups'}
                         </button>
                         {groupPopoverCustomerId === customer.id && (
-                          <div style={{
+                          <div data-group-popover style={{
                             position: 'absolute', top: '100%', right: 0, marginTop: '6px',
                             background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '200px', zIndex: 50,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '220px', zIndex: 50,
                             overflow: 'hidden',
                           }}>
                             <div style={{
@@ -2292,26 +2315,26 @@ const Customers = () => {
                                   disabled={isSavingThis}
                                   style={{
                                     display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-                                    padding: '8px 12px', background: isMember ? '#f5f3ff' : 'white',
+                                    padding: '8px 12px', background: isSavingThis ? '#f9fafb' : isMember ? '#f5f3ff' : 'white',
                                     border: 'none', borderBottom: '1px solid #f3f4f6', cursor: isSavingThis ? 'wait' : 'pointer',
                                     fontSize: '12px', textAlign: 'left', color: '#374151',
-                                    transition: 'background 0.15s',
+                                    transition: 'background 0.15s', opacity: isSavingThis ? 0.7 : 1,
                                   }}
                                 >
                                   <span style={{
                                     width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
-                                    border: isMember ? 'none' : '2px solid #d1d5db',
-                                    background: isMember ? (g.color || '#7c3aed') : 'transparent',
+                                    border: isSavingThis ? 'none' : isMember ? 'none' : '2px solid #d1d5db',
+                                    background: isSavingThis ? '#d1d5db' : isMember ? (g.color || '#7c3aed') : 'transparent',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   }}>
-                                    {isMember && <FaCheckCircle size={10} style={{ color: 'white' }} />}
+                                    {isSavingThis ? <FaSpinner size={10} className="animate-spin" style={{ color: 'white' }} /> : isMember ? <FaCheckCircle size={10} style={{ color: 'white' }} /> : null}
                                   </span>
                                   <span style={{
                                     width: '8px', height: '8px', borderRadius: '50%',
                                     background: g.color || '#6b7280', flexShrink: 0,
                                   }} />
                                   <span style={{ flex: 1 }}>{g.name}</span>
-                                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>{g.customerCount || 0}</span>
+                                  {isSavingThis ? <span style={{ fontSize: '10px', color: '#6b7280' }}>Saving...</span> : <span style={{ fontSize: '10px', color: '#9ca3af' }}>{g.customerCount || 0}</span>}
                                 </button>
                               );
                             })}
@@ -2768,7 +2791,7 @@ const Customers = () => {
           <span style={{ fontSize: '13px', fontWeight: '600' }}>
             {selectedCustomerIds.length} selected
           </span>
-          <div style={{ position: 'relative' }}>
+          <div data-add-to-group-menu style={{ position: 'relative' }}>
             <button
               onClick={() => setShowAddToGroupMenu(v => !v)}
               style={{
@@ -2788,7 +2811,7 @@ const Customers = () => {
               Add to group <span style={{ fontSize: '9px' }}>▾</span>
             </button>
             {showAddToGroupMenu && (
-              <div style={{
+              <div data-add-to-group-menu style={{
                 position: 'absolute',
                 bottom: '100%',
                 left: 0,
@@ -2962,10 +2985,10 @@ const Customers = () => {
       )}
 
       {/* Bulk Delete Reason Modal */}
-      {showBulkDeleteModal && (
+      {showBulkDeleteModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px'
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px'
         }}>
           <div style={{
             background: 'white', borderRadius: '16px', width: '100%', maxWidth: '420px',
@@ -3050,18 +3073,19 @@ const Customers = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmCustomer && (
+      {deleteConfirmCustomer && typeof document !== 'undefined' && createPortal(
         <div
           onClick={(e) => { if (e.target === e.currentTarget && !deletingId) setDeleteConfirmCustomer(null); }}
           style={{
             position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
             backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 100, padding: '16px',
+            zIndex: 9999, padding: '16px',
             animation: 'fadeIn 0.15s ease',
           }}
         >
@@ -3159,38 +3183,41 @@ const Customers = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Group Create/Edit Modal */}
-      {showGroupModal && (
+      {showGroupModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
           backgroundColor: 'rgba(0,0,0,0.6)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
-          zIndex: 60,
-          padding: isMobile ? '16px' : '32px'
+          zIndex: 9999,
+          padding: isMobile ? '0' : '32px'
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '16px',
+            borderRadius: isMobile ? '16px 16px 0 0' : '16px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
             width: '100%',
             maxWidth: isMobile ? '100%' : '520px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
+            maxHeight: isMobile ? '94vh' : '90vh',
+            display: 'flex',
+            flexDirection: 'column',
           }}>
             <div style={{
-              padding: '20px 24px',
+              padding: isMobile ? '16px 20px' : '20px 24px',
               borderBottom: '1px solid #f3f4f6',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              flexShrink: 0,
             }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? '16px' : '18px', fontWeight: '700', color: '#1f2937' }}>
                 {editingGroup ? 'Edit Group' : 'New Customer Group'}
               </h2>
               <button
@@ -3210,7 +3237,7 @@ const Customers = () => {
                 <FaTimes size={14} />
               </button>
             </div>
-            <form onSubmit={saveGroup} style={{ padding: '24px' }}>
+            <form onSubmit={saveGroup} style={{ padding: isMobile ? '16px 20px' : '24px', overflowY: 'auto', flex: 1 }}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
                   Name <span style={{ color: '#dc2626' }}>*</span>
@@ -3462,7 +3489,8 @@ const Customers = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
