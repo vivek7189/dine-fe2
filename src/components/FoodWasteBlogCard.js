@@ -27,7 +27,7 @@ export default function FoodWasteBlogCard() {
         e.currentTarget.style.borderColor = '#fef7f0';
       }}
     >
-      <Link href="/blog/food-waste-cost-management-cafe-restaurant.html" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+      <Link href="/blog/food-waste-cost-management-cafe-restaurant" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
         <div style={{
           position: 'absolute',
           top: '0',

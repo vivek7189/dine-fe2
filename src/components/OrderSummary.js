@@ -2564,7 +2564,7 @@ const OrderSummary = ({
                         boxSizing: 'border-box',
                       }}
                       onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, '');
+                          const digits = (e.target.value || '').replace(/\D/g, '');
                         if (typeof onCustomerMobileChange === 'function') {
                             onCustomerMobileChange(digits);
                           }

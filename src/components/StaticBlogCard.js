@@ -27,7 +27,7 @@ export default function StaticBlogCard() {
         e.currentTarget.style.borderColor = '#fef7f0';
       }}
     >
-      <Link href="/blog/increase-footfall-2026.html" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+      <Link href="/blog/increase-footfall-2026" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
         <div style={{
           position: 'absolute',
           top: '0',
