@@ -16,6 +16,16 @@ export const metadata = {
   },
   alternates: {
     canonical: 'https://www.dineopen.com/pos/singapore',
+    languages: {
+      'x-default': 'https://www.dineopen.com',
+      'en-US': 'https://www.dineopen.com/pos/usa',
+      'en-GB': 'https://www.dineopen.com/pos/uk',
+      'en-IN': 'https://www.dineopen.com/india',
+      'en-AE': 'https://www.dineopen.com/pos/uae',
+      'en-SG': 'https://www.dineopen.com/pos/singapore',
+      'en-CA': 'https://www.dineopen.com/pos/canada',
+      'en-AU': 'https://www.dineopen.com/pos/australia',
+    },
   },
 };
 
@@ -44,6 +54,17 @@ export default function SingaporePOSPage() {
       'Orchard Road', 'Marina Bay', 'Clarke Quay', 'Chinatown', 'Little India',
       'Bugis', 'Tanjong Pagar', 'Holland Village', 'Tiong Bahru', 'Katong',
       'Jurong', 'Tampines', 'Woodlands', 'Sentosa', 'Raffles Place', 'Novena',
+    ],
+    complianceInfo: [
+      { title: 'GST 9% Compliant', desc: 'Automatic GST at 9% (updated 2024). Handles GST-inclusive pricing display as preferred in Singapore.' },
+      { title: 'NEA Food Safety', desc: 'Digital record keeping aligned with National Environment Agency (NEA) food safety requirements.' },
+      { title: 'SFA Licensing', desc: 'Works with Singapore Food Agency licensing. Track food handler certifications and expiry dates.' },
+    ],
+    paymentMethods: ['PayNow', 'GrabPay', 'NETS', 'Apple Pay', 'Google Pay', 'Visa', 'Mastercard', 'Cash (SGD)'],
+    localCompetitors: [
+      { name: 'StoreHub', price: 'SGD 59/mo', note: 'Popular in SEA but limited AI capabilities' },
+      { name: 'Lightspeed', price: 'SGD 99/mo', note: 'Enterprise features but expensive for hawker stalls' },
+      { name: 'Revel', price: 'SGD 99/mo', note: 'US-focused, limited local payment integrations' },
     ],
   };
 

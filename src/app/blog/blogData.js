@@ -3,6 +3,66 @@
 
 export const blogPosts = [
   {
+    slug: 'best-free-restaurant-pos-usa-2026',
+    title: 'Best Free Restaurant POS Systems in USA 2026: Complete Comparison',
+    excerpt: 'Compare the best free restaurant POS systems in the USA for 2026. Toast, Square, Clover vs DineOpen — real costs, hidden fees, feature comparison. Save $2,000+/year.',
+    date: '2026-04-16',
+    category: 'POS Reviews',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-free-restaurant-pos-usa-2026.html'
+  },
+  {
+    slug: 'toast-pos-alternatives-2026',
+    title: '7 Best Toast POS Alternatives 2026: Cheaper, Better Options for Restaurants',
+    excerpt: 'Looking for Toast POS alternatives? Compare 7 better options — DineOpen (free), Square, Clover, SpotOn, TouchBistro, Lightspeed, Revel. Save $2,000/year on monthly fees and processing.',
+    date: '2026-04-16',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/toast-pos-alternatives-2026.html'
+  },
+  {
+    slug: 'takeaway-pos-system-setup-guide',
+    title: 'Takeaway POS System: Complete Setup Guide for Indian & UK Restaurants 2026',
+    excerpt: 'Set up a takeaway POS system for your restaurant in 2026. Covers online ordering, delivery integration (Swiggy, Zomato, Deliveroo, Just Eat), kitchen display, and QR menus. Free options available.',
+    date: '2026-04-16',
+    category: 'Operations',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/takeaway-pos-system-setup-guide.html'
+  },
+  {
+    slug: 'qsr-pos-software-quick-service-restaurant-guide',
+    title: 'QSR POS Software 2026: Best Systems for Quick Service Restaurants',
+    excerpt: 'Compare the best QSR POS software for quick service restaurants in 2026. Fast billing, drive-thru support, combo management, kitchen display, and AI ordering. Free options available.',
+    date: '2026-04-16',
+    category: 'POS Reviews',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/qsr-pos-software-quick-service-restaurant-guide.html'
+  },
+  {
+    slug: 'best-epos-indian-takeaway-uk-2026',
+    title: 'Best EPOS System for Indian Takeaway UK 2026: Top 5 Compared',
+    excerpt: 'Find the best EPOS system for your Indian takeaway in the UK. Compare DineOpen, Epos Now, iZettle, Square & TouchBistro. VAT billing, Just Eat/Deliveroo integration, spice level customization. From £8/month.',
+    date: '2026-04-16',
+    category: 'POS Reviews',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-epos-indian-takeaway-uk-2026.html'
+  },
+  {
+    slug: 'free-qr-code-menu-uk-restaurants',
+    title: 'Free QR Code Menu for UK Restaurants 2026: Setup in 5 Minutes',
+    excerpt: 'Create a free QR code menu for your UK restaurant in 5 minutes. No app download needed. Supports allergen info, VAT prices, multi-language. Works on any phone. 100% free with DineOpen.',
+    date: '2026-04-16',
+    category: 'QR Menus',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/free-qr-code-menu-uk-restaurants.html'
+  },
+  {
     slug: 'catering-retail-whatsapp-ordering-billing-guide',
     title: 'How WhatsApp Ordering & Digital Billing Are Transforming Catering and Retail Food Businesses in India',
     excerpt: 'Discover how caterers, bakeries, sweet shops, and retail food businesses in India are using WhatsApp ordering and digital billing to grow 3x faster — with GST-compliant invoicing, per-plate pricing, and automated customer follow-ups.',
@@ -48,8 +108,8 @@ export const blogPosts = [
   },
   {
     slug: 'how-to-reduce-restaurant-operating-costs',
-    title: 'How to Reduce Restaurant Operating Costs: 10 Proven Strategies',
-    excerpt: 'Discover practical strategies to cut restaurant operating costs without compromising quality. Learn how smart technology and efficient processes can save thousands annually.',
+    title: 'How to Reduce Restaurant Operating Costs: Save ₹2-5 Lakh/Year',
+    excerpt: '10 proven strategies to cut restaurant costs by 15-30% without losing quality. Covers food waste, staff scheduling, energy savings, tech automation, and vendor negotiation with real INR savings.',
     date: '2025-01-22',
     category: 'Operations',
     categoryColor: '#10b981',
@@ -328,8 +388,8 @@ export const blogPosts = [
   },
   {
     slug: 'cloud-kitchen-guide-2026',
-    title: 'Complete Guide to Running a Profitable Cloud Kitchen in 2026',
-    excerpt: 'Everything you need to know about starting and running a cloud kitchen in 2026. Covers delivery integration, multi-brand management, food cost control, and the tech stack you need.',
+    title: 'How to Start a Cloud Kitchen in India 2026: Costs, Licenses & Profit Margins',
+    excerpt: 'Step-by-step cloud kitchen startup guide with real costs (₹3-15 lakh), FSSAI licensing, Swiggy/Zomato integration, multi-brand strategies, and profit margin benchmarks.',
     date: '2026-02-28',
     category: 'Operations',
     categoryColor: '#10b981',
@@ -368,8 +428,8 @@ export const blogPosts = [
   },
   {
     slug: 'petpooja-review-2026',
-    title: 'Petpooja Review 2026: Honest Look at Features, Pricing & Alternatives',
-    excerpt: 'An honest, detailed review of Petpooja restaurant POS in 2026. We cover real pricing, features that work, limitations, and which alternatives might be better for your restaurant.',
+    title: 'Petpooja Review 2026: Real Pricing, Hidden Fees & Better Alternatives',
+    excerpt: 'Honest Petpooja review after testing all plans. Real pricing (₹1,500-5,000/month), hidden fees, feature gaps, and 3 better alternatives including a free option. Updated April 2026.',
     date: '2026-03-06',
     category: 'Review',
     categoryColor: '#ef4444',
@@ -1826,8 +1886,8 @@ export const blogPostContent = {
   // Placeholder content for other posts - full content should be added
   'how-to-reduce-restaurant-operating-costs': {
     id: 'how-to-reduce-restaurant-operating-costs',
-    title: 'How to Reduce Restaurant Operating Costs: 10 Proven Strategies',
-    excerpt: 'Discover practical strategies to cut restaurant operating costs without compromising quality. Learn how smart technology and efficient processes can save thousands annually.',
+    title: 'How to Reduce Restaurant Operating Costs: Save ₹2-5 Lakh/Year',
+    excerpt: 'Cut restaurant operating costs by 15-30% with these proven strategies. Covers food waste reduction, staff scheduling, energy savings, tech automation, and supplier negotiation tactics.',
     content: `
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Restaurant Cost Management" style="width: 100%; max-width: 800px; height: 400px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
@@ -7385,8 +7445,8 @@ export const blogPostContent = {
   },
   'cloud-kitchen-guide-2026': {
     id: 'cloud-kitchen-guide-2026',
-    title: 'Complete Guide to Running a Profitable Cloud Kitchen in 2026',
-    excerpt: 'Everything you need to know about starting and running a cloud kitchen in 2026. Covers delivery integration, multi-brand management, food cost control, and the tech stack you need.',
+    title: 'How to Start a Cloud Kitchen in India 2026: Costs, Licenses & Profit Margins',
+    excerpt: 'Step-by-step cloud kitchen startup guide with real costs (₹3-15 lakh), FSSAI licensing, Swiggy/Zomato integration, multi-brand strategies, and profit margin benchmarks.',
     content: `
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Commercial cloud kitchen setup" style="width: 100%; max-width: 700px; height: 350px; object-fit: cover; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" onerror="this.onerror=null; this.style.display='none';" />
@@ -8544,8 +8604,8 @@ export const blogPostContent = {
   },
   'petpooja-review-2026': {
     id: 'petpooja-review-2026',
-    title: 'Petpooja Review 2026: Honest Look at Features, Pricing & Alternatives',
-    excerpt: 'An honest, detailed review of Petpooja restaurant POS in 2026. We cover real pricing, features that work, limitations, and which alternatives might be better for your restaurant.',
+    title: 'Petpooja Review 2026: Real Pricing, Hidden Fees & Better Alternatives',
+    excerpt: 'Honest Petpooja review after testing all plans. Real pricing (₹1,500-5,000/month), hidden fees, feature gaps, and 3 better alternatives including a free option. Updated April 2026.',
     content: `
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Restaurant POS system in use" style="width: 100%; max-width: 800px; height: 400px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />

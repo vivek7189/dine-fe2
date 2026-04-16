@@ -200,6 +200,12 @@ const nextConfig = {
       'restaurant-staff-retention-management-india',
       'best-pos-system-food-truck-india',
       'restaurant-whatsapp-marketing-india-guide',
+      'best-free-restaurant-pos-usa-2026',
+      'toast-pos-alternatives-2026',
+      'takeaway-pos-system-setup-guide',
+      'qsr-pos-software-quick-service-restaurant-guide',
+      'best-epos-indian-takeaway-uk-2026',
+      'free-qr-code-menu-uk-restaurants',
     ];
 
     // Hindi static blog slugs (served as raw HTML files in public/hi/blog/)

@@ -17,6 +17,16 @@ export const metadata = {
   },
   alternates: {
     canonical: 'https://www.dineopen.com/pos/uk',
+    languages: {
+      'x-default': 'https://www.dineopen.com',
+      'en-US': 'https://www.dineopen.com/pos/usa',
+      'en-GB': 'https://www.dineopen.com/pos/uk',
+      'en-IN': 'https://www.dineopen.com/india',
+      'en-AE': 'https://www.dineopen.com/pos/uae',
+      'en-SG': 'https://www.dineopen.com/pos/singapore',
+      'en-CA': 'https://www.dineopen.com/pos/canada',
+      'en-AU': 'https://www.dineopen.com/pos/australia',
+    },
   },
 };
 
@@ -42,6 +52,17 @@ export default function UKPOSPage() {
       business: 'The Crafty Fox Pub',
     },
     localKeywords: ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Liverpool', 'Bristol', 'Leeds', 'Glasgow', 'Cardiff', 'Brighton'],
+    complianceInfo: [
+      { title: 'VAT 20% Ready', desc: 'Automatic VAT calculation at 20% standard rate. Handles zero-rated food vs hot takeaway distinctions.' },
+      { title: "Natasha's Law Allergens", desc: "Full allergen labelling support for 14 major allergens as required by Natasha's Law for pre-packed food." },
+      { title: 'HMRC Making Tax Digital', desc: 'Digital record keeping compatible with HMRC Making Tax Digital (MTD) requirements.' },
+    ],
+    paymentMethods: ['Contactless', 'Apple Pay', 'Google Pay', 'PayPal', 'Visa', 'Mastercard', 'Amex', 'Cash'],
+    localCompetitors: [
+      { name: 'Epos Now', price: '£25/mo', note: 'Basic features, extra charges for integrations' },
+      { name: 'Lightspeed', price: '£69/mo', note: 'Powerful but expensive for small restaurants' },
+      { name: 'iZettle (Zettle)', price: '1.75% per txn', note: 'Limited restaurant-specific features' },
+    ],
   };
 
   const structuredData = {

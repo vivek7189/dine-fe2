@@ -17,6 +17,16 @@ export const metadata = {
   },
   alternates: {
     canonical: 'https://www.dineopen.com/pos/usa',
+    languages: {
+      'x-default': 'https://www.dineopen.com',
+      'en-US': 'https://www.dineopen.com/pos/usa',
+      'en-GB': 'https://www.dineopen.com/pos/uk',
+      'en-IN': 'https://www.dineopen.com/india',
+      'en-AE': 'https://www.dineopen.com/pos/uae',
+      'en-SG': 'https://www.dineopen.com/pos/singapore',
+      'en-CA': 'https://www.dineopen.com/pos/canada',
+      'en-AU': 'https://www.dineopen.com/pos/australia',
+    },
   },
 };
 
@@ -38,6 +48,17 @@ export default function USAPOSPage() {
     restaurants: 'independent',
     testimonial: null,
     localKeywords: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami', 'San Francisco', 'Seattle', 'Austin', 'Denver', 'Boston'],
+    complianceInfo: [
+      { title: 'State Sales Tax', desc: 'Automatic sales tax calculation for all 50 states. Handles complex rules like food vs prepared food rates.' },
+      { title: 'Tip Reporting', desc: 'IRS-compliant tip tracking, tip pooling, and automatic Form 8027 preparation for tipped employees.' },
+      { title: 'ADA Compliance', desc: 'QR menus with screen reader support and accessible design for ADA compliance.' },
+    ],
+    paymentMethods: ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'Cash App', 'Venmo', 'Cash', 'Debit'],
+    localCompetitors: [
+      { name: 'Toast', price: '$165/mo + 2.49%', note: 'Hardware lock-in, long-term contracts required' },
+      { name: 'Square', price: 'Free + 2.6%', note: 'Transaction fees add up, limited restaurant features' },
+      { name: 'Clover', price: '$90/mo + 2.3%', note: 'Tied to Fiserv processing, complex pricing tiers' },
+    ],
   };
 
   const structuredData = {

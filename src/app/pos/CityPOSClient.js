@@ -18,6 +18,9 @@ export default function CityPOSClient({ cityData }) {
     restaurants,
     testimonial,
     localKeywords,
+    complianceInfo,
+    paymentMethods,
+    localCompetitors,
   } = cityData;
 
   const features = [
@@ -102,6 +105,85 @@ export default function CityPOSClient({ cityData }) {
             </div>
           </div>
         </div>
+
+        {/* Compliance & Regulations */}
+        {complianceInfo && complianceInfo.length > 0 && (
+          <div style={{ padding: '60px 20px' }}>
+            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+              <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '12px' }}>
+                Built for {country} Compliance
+              </h2>
+              <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '40px', fontSize: '16px' }}>
+                DineOpen handles local tax rules and regulations so you don&apos;t have to
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                {complianceInfo.map((item, idx) => (
+                  <div key={idx} style={{ padding: '24px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #ef4444' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{item.title}</h3>
+                    <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Accepted Payment Methods */}
+        {paymentMethods && paymentMethods.length > 0 && (
+          <div style={{ padding: '40px 20px', backgroundColor: 'white' }}>
+            <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>
+                Payment Methods in {country}
+              </h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center' }}>
+                {paymentMethods.map((method, idx) => (
+                  <span key={idx} style={{ padding: '10px 20px', backgroundColor: '#f0fdf4', borderRadius: '20px', fontSize: '14px', color: '#166534', fontWeight: '500', border: '1px solid #bbf7d0' }}>
+                    {method}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Local Competitors Comparison */}
+        {localCompetitors && localCompetitors.length > 0 && (
+          <div style={{ padding: '60px 20px', backgroundColor: '#f9fafb' }}>
+            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+              <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '12px' }}>
+                DineOpen vs Other POS in {country}
+              </h2>
+              <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '40px', fontSize: '16px' }}>
+                See how DineOpen compares to popular alternatives
+              </p>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f3f4f6' }}>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>POS System</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Price</th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Key Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: '#fef2f2' }}>
+                      <td style={{ padding: '16px', fontWeight: '600', color: '#ef4444', fontSize: '14px' }}>DineOpen</td>
+                      <td style={{ padding: '16px', color: '#374151', fontSize: '14px' }}>Free plan available</td>
+                      <td style={{ padding: '16px', color: '#374151', fontSize: '14px' }}>AI voice ordering, zero transaction fees, no hardware lock-in</td>
+                    </tr>
+                    {localCompetitors.map((comp, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '16px', fontWeight: '500', color: '#111827', fontSize: '14px' }}>{comp.name}</td>
+                        <td style={{ padding: '16px', color: '#374151', fontSize: '14px' }}>{comp.price}</td>
+                        <td style={{ padding: '16px', color: '#6b7280', fontSize: '14px' }}>{comp.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Testimonial */}
         {testimonial && (

@@ -16,6 +16,16 @@ export const metadata = {
   },
   alternates: {
     canonical: 'https://www.dineopen.com/pos/uae',
+    languages: {
+      'x-default': 'https://www.dineopen.com',
+      'en-US': 'https://www.dineopen.com/pos/usa',
+      'en-GB': 'https://www.dineopen.com/pos/uk',
+      'en-IN': 'https://www.dineopen.com/india',
+      'en-AE': 'https://www.dineopen.com/pos/uae',
+      'en-SG': 'https://www.dineopen.com/pos/singapore',
+      'en-CA': 'https://www.dineopen.com/pos/canada',
+      'en-AU': 'https://www.dineopen.com/pos/australia',
+    },
   },
 };
 
@@ -44,6 +54,17 @@ export default function UAEPOSPage() {
       'Dubai Marina', 'JBR', 'Downtown Dubai', 'Deira', 'Bur Dubai',
       'Business Bay', 'DIFC', 'JLT', 'Abu Dhabi Corniche', 'Yas Island',
       'Sharjah', 'Ajman', 'Al Ain', 'Karama', 'Al Barsha', 'International City',
+    ],
+    complianceInfo: [
+      { title: 'VAT 5% Compliant', desc: 'Automatic VAT at 5% as per UAE Federal Tax Authority. Tax invoice generation with TRN.' },
+      { title: 'Dubai Municipality Safety', desc: 'Food safety tracking and hygiene compliance aligned with Dubai Municipality requirements.' },
+      { title: 'Trade License Ready', desc: 'Billing system works with mainland and free zone trade licenses across all emirates.' },
+    ],
+    paymentMethods: ['Apple Pay', 'Samsung Pay', 'Mada', 'Visa', 'Mastercard', 'Cash (AED)', 'Multi-Currency'],
+    localCompetitors: [
+      { name: 'Foodics', price: 'AED 300+/mo', note: 'Popular in MENA but expensive for small restaurants' },
+      { name: 'POSRocket', price: 'AED 200+/mo', note: 'Arabic-first but limited AI features' },
+      { name: 'iiko', price: 'Custom pricing', note: 'Enterprise-focused, complex setup' },
     ],
   };
 

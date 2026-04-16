@@ -16,6 +16,16 @@ export const metadata = {
   },
   alternates: {
     canonical: 'https://www.dineopen.com/pos/canada',
+    languages: {
+      'x-default': 'https://www.dineopen.com',
+      'en-US': 'https://www.dineopen.com/pos/usa',
+      'en-GB': 'https://www.dineopen.com/pos/uk',
+      'en-IN': 'https://www.dineopen.com/india',
+      'en-AE': 'https://www.dineopen.com/pos/uae',
+      'en-SG': 'https://www.dineopen.com/pos/singapore',
+      'en-CA': 'https://www.dineopen.com/pos/canada',
+      'en-AU': 'https://www.dineopen.com/pos/australia',
+    },
   },
 };
 
@@ -44,6 +54,17 @@ export default function CanadaPOSPage() {
       'Toronto Downtown', 'Brampton', 'Mississauga', 'Vancouver Downtown', 'Surrey',
       'Calgary', 'Edmonton', 'Montreal', 'Ottawa', 'Winnipeg',
       'Scarborough', 'North York', 'Richmond', 'Burnaby', 'Markham', 'Vaughan',
+    ],
+    complianceInfo: [
+      { title: 'HST/GST/PST by Province', desc: 'Automatic tax calculation handling HST (Ontario, BC), GST+PST (Manitoba, Saskatchewan), and GST-only (Alberta) rules.' },
+      { title: 'Tip-Out Rules', desc: 'Compliant tip pooling and tip-out management following provincial employment standards.' },
+      { title: 'Bilingual Support', desc: 'Full English and French language menus and receipts for Quebec compliance.' },
+    ],
+    paymentMethods: ['Interac', 'Apple Pay', 'Google Pay', 'Debit Tap', 'Visa', 'Mastercard', 'Cash (CAD)'],
+    localCompetitors: [
+      { name: 'TouchBistro', price: 'CAD 69/mo', note: 'iPad-only, no Android or web POS option' },
+      { name: 'Square', price: '2.65% per txn', note: 'Generic POS, not restaurant-specialized' },
+      { name: 'Lightspeed', price: 'CAD 89/mo', note: 'Powerful but complex pricing with add-ons' },
     ],
   };
 

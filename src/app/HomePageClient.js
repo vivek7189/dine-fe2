@@ -1000,6 +1000,142 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* HOW IT WORKS - 3 STEP SECTION */}
+      <section style={{ padding: isMobile ? '60px 20px' : '100px 20px', backgroundColor: '#ffffff', position: 'relative', overflow: 'hidden' }}>
+        {/* Subtle background pattern */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 20% 50%, rgba(239,68,68,0.03) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(16,185,129,0.03) 0%, transparent 50%)', pointerEvents: 'none' }} />
+
+        <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: isMobile ? '40px' : '60px' }}>
+            <div style={{
+              fontSize: '13px', fontWeight: '800', color: '#10b981', textTransform: 'uppercase',
+              letterSpacing: '1.5px', marginBottom: '16px', display: 'inline-block',
+              padding: '6px 16px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              borderRadius: '20px', border: '1px solid #a7f3d0'
+            }}>
+              ⚡ ZERO WAIT TIME
+            </div>
+            <h2 style={{
+              fontSize: isMobile ? '32px' : '52px', fontWeight: '900', color: '#111827',
+              marginBottom: '16px', lineHeight: '1.15', letterSpacing: '-1px'
+            }}>
+              Start Selling in{' '}
+              <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                5 Minutes
+              </span>
+            </h2>
+            <p style={{ fontSize: isMobile ? '16px' : '20px', color: '#6b7280', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
+              No hardware. No training. No waiting. Just login, share your menu, and your POS is live.
+            </p>
+          </div>
+
+          {/* 3 Steps */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
+            gap: isMobile ? '24px' : '40px', position: 'relative'
+          }}>
+            {/* Connecting line (desktop only) */}
+            {!isMobile && (
+              <div style={{
+                position: 'absolute', top: '60px', left: '20%', right: '20%', height: '3px',
+                background: 'linear-gradient(90deg, #fecaca, #ef4444, #fecaca)', borderRadius: '2px', zIndex: 0
+              }} />
+            )}
+
+            {/* Step 1 */}
+            <div style={{
+              textAlign: 'center', position: 'relative', zIndex: 1,
+              padding: isMobile ? '28px 20px' : '36px 28px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)',
+              borderRadius: '20px', border: '1px solid #fee2e2',
+              boxShadow: '0 4px 20px rgba(239,68,68,0.06)',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+            }}>
+              <div style={{
+                width: '72px', height: '72px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(239,68,68,0.3)',
+                fontSize: '28px', color: '#fff'
+              }}>
+                <FaRocket />
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>Step 1</div>
+              <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#111827', marginBottom: '10px' }}>Sign Up Free</h3>
+              <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.6' }}>
+                Create your account in 30 seconds. No credit card, no contracts, no paperwork.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div style={{
+              textAlign: 'center', position: 'relative', zIndex: 1,
+              padding: isMobile ? '28px 20px' : '36px 28px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+              borderRadius: '20px', border: '1px solid #bbf7d0',
+              boxShadow: '0 4px 20px rgba(16,185,129,0.06)',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+            }}>
+              <div style={{
+                width: '72px', height: '72px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(16,185,129,0.3)',
+                fontSize: '28px', color: '#fff'
+              }}>
+                <FaQrcode />
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#10b981', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>Step 2</div>
+              <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#111827', marginBottom: '10px' }}>Share Your Menu</h3>
+              <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.6' }}>
+                Upload a photo or PDF of your menu. Our AI converts it into a digital menu with QR code instantly.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div style={{
+              textAlign: 'center', position: 'relative', zIndex: 1,
+              padding: isMobile ? '28px 20px' : '36px 28px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
+              borderRadius: '20px', border: '1px solid #bfdbfe',
+              boxShadow: '0 4px 20px rgba(59,130,246,0.06)',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+            }}>
+              <div style={{
+                width: '72px', height: '72px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(59,130,246,0.3)',
+                fontSize: '28px', color: '#fff'
+              }}>
+                <FaStore />
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>Step 3</div>
+              <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#111827', marginBottom: '10px' }}>You{"'"}re Live!</h3>
+              <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.6' }}>
+                Start billing, take orders, manage tables. Your full POS is ready — no hardware needed.
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom CTA */}
+          <div style={{ textAlign: 'center', marginTop: isMobile ? '36px' : '48px' }}>
+            <button onClick={handleLogin} style={{
+              padding: '16px 40px', fontSize: '17px', fontWeight: '700', color: '#fff',
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              border: 'none', borderRadius: '14px', cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(239,68,68,0.3)',
+              transition: 'all 0.3s ease', display: 'inline-flex', alignItems: 'center', gap: '10px'
+            }}>
+              <FaRocket size={16} /> Start Selling Now — It{"'"}s Free
+            </button>
+            <p style={{ fontSize: '14px', color: '#9ca3af', marginTop: '12px' }}>
+              No credit card required • Setup in under 5 minutes • Cancel anytime
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* 2. AI AUTOMATION SECTION */}
       <section style={{ padding: isMobile ? '80px 20px' : '120px 20px', backgroundColor: '#f9fafb', position: 'relative', overflow: 'hidden' }}>
         {/* Background Decoration */}
@@ -1562,6 +1698,185 @@ export default function LandingPage() {
                 ✓ Customer Database • ✓ Order History • ✓ Loyalty Rewards
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TRUSTED BY RESTAURANTS WORLDWIDE - SOCIAL PROOF */}
+      <section style={{ padding: isMobile ? '60px 20px' : '100px 20px', backgroundColor: '#f9fafb', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 50% 0%, rgba(239,68,68,0.04) 0%, transparent 60%)', pointerEvents: 'none' }} />
+
+        <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: isMobile ? '40px' : '56px' }}>
+            <div style={{
+              fontSize: '13px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase',
+              letterSpacing: '1.5px', marginBottom: '16px', display: 'inline-block',
+              padding: '6px 16px', background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+              borderRadius: '20px', border: '1px solid #fecaca'
+            }}>
+              🌍 TRUSTED WORLDWIDE
+            </div>
+            <h2 style={{
+              fontSize: isMobile ? '32px' : '52px', fontWeight: '900', color: '#111827',
+              marginBottom: '16px', lineHeight: '1.15', letterSpacing: '-1px'
+            }}>
+              Powering Restaurants Across{' '}
+              <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                The Globe
+              </span>
+            </h2>
+            <p style={{ fontSize: isMobile ? '16px' : '20px', color: '#6b7280', maxWidth: '650px', margin: '0 auto', lineHeight: '1.6' }}>
+              From street-side cafes in Mumbai to fine dining in London — restaurant owners trust DineOpen to run their business.
+            </p>
+          </div>
+
+          {/* Stats Row */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+            gap: isMobile ? '16px' : '24px', marginBottom: isMobile ? '40px' : '56px'
+          }}>
+            {[
+              { number: '1,000+', label: 'Restaurants', icon: '🍽️' },
+              { number: '20+', label: 'Countries', icon: '🌍' },
+              { number: '50K+', label: 'Orders Daily', icon: '📦' },
+              { number: '4.8/5', label: 'Rating', icon: '⭐' }
+            ].map((stat, i) => (
+              <div key={i} style={{
+                textAlign: 'center', padding: isMobile ? '20px 12px' : '28px 20px',
+                background: '#fff', borderRadius: '16px', border: '1px solid #f3f4f6',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+              }}>
+                <div style={{ fontSize: '28px', marginBottom: '8px' }}>{stat.icon}</div>
+                <div style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{stat.number}</div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginTop: '4px' }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Client Badges - Country-wise */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gap: isMobile ? '20px' : '28px', marginBottom: isMobile ? '40px' : '56px'
+          }}>
+            {/* India */}
+            <div style={{
+              padding: '28px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '28px' }}>🇮🇳</span>
+                <div>
+                  <div style={{ fontSize: '17px', fontWeight: '800', color: '#111827' }}>India</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>40+ cities</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad'].map(city => (
+                  <span key={city} style={{
+                    fontSize: '12px', fontWeight: '600', color: '#ef4444', padding: '4px 10px',
+                    background: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca'
+                  }}>{city}</span>
+                ))}
+              </div>
+              <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['GST Compliant', 'UPI Payments', 'Zomato & Swiggy'].map(tag => (
+                  <span key={tag} style={{
+                    fontSize: '11px', fontWeight: '700', color: '#10b981', padding: '3px 8px',
+                    background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0'
+                  }}>✓ {tag}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* UK & Europe */}
+            <div style={{
+              padding: '28px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '28px' }}>🇬🇧</span>
+                <div>
+                  <div style={{ fontSize: '17px', fontWeight: '800', color: '#111827' }}>United Kingdom</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>London & across UK</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Bristol', 'Leeds'].map(city => (
+                  <span key={city} style={{
+                    fontSize: '12px', fontWeight: '600', color: '#3b82f6', padding: '4px 10px',
+                    background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe'
+                  }}>{city}</span>
+                ))}
+              </div>
+              <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['VAT Compliant', 'Card Payments', 'GBP Pricing'].map(tag => (
+                  <span key={tag} style={{
+                    fontSize: '11px', fontWeight: '700', color: '#10b981', padding: '3px 8px',
+                    background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0'
+                  }}>✓ {tag}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* USA & Global */}
+            <div style={{
+              padding: '28px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '28px' }}>🇺🇸</span>
+                <div>
+                  <div style={{ fontSize: '17px', fontWeight: '800', color: '#111827' }}>USA & Global</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>UAE, Singapore, Canada & more</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['New York', 'Dubai', 'Singapore', 'Toronto', 'Sydney', 'California'].map(city => (
+                  <span key={city} style={{
+                    fontSize: '12px', fontWeight: '600', color: '#8b5cf6', padding: '4px 10px',
+                    background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe'
+                  }}>{city}</span>
+                ))}
+              </div>
+              <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['Multi-Currency', 'Tax Compliant', 'Global Support'].map(tag => (
+                  <span key={tag} style={{
+                    fontSize: '11px', fontWeight: '700', color: '#10b981', padding: '3px 8px',
+                    background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0'
+                  }}>✓ {tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Trust Badges */}
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: isMobile ? '12px' : '20px',
+            padding: isMobile ? '24px 16px' : '32px 40px',
+            background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)',
+            borderRadius: '20px', border: '1px solid #374151'
+          }}>
+            {[
+              { icon: '🔒', label: 'PCI DSS Compliant', sub: 'Secure Payments' },
+              { icon: '☁️', label: '99.9% Uptime', sub: 'Cloud Hosted' },
+              { icon: '🛡️', label: 'Data Encrypted', sub: 'SSL Protected' },
+              { icon: '📱', label: 'Works Everywhere', sub: 'Any Device' },
+              { icon: '💸', label: 'Zero Transaction Fee', sub: 'No Hidden Costs' },
+              { icon: '🔄', label: 'No Lock-in Contract', sub: 'Cancel Anytime' }
+            ].map((badge, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: isMobile ? '10px 14px' : '12px 20px',
+                background: 'rgba(255,255,255,0.06)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)'
+              }}>
+                <span style={{ fontSize: '22px' }}>{badge.icon}</span>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff' }}>{badge.label}</div>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>{badge.sub}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

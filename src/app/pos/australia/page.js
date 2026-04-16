@@ -16,6 +16,16 @@ export const metadata = {
   },
   alternates: {
     canonical: 'https://www.dineopen.com/pos/australia',
+    languages: {
+      'x-default': 'https://www.dineopen.com',
+      'en-US': 'https://www.dineopen.com/pos/usa',
+      'en-GB': 'https://www.dineopen.com/pos/uk',
+      'en-IN': 'https://www.dineopen.com/india',
+      'en-AE': 'https://www.dineopen.com/pos/uae',
+      'en-SG': 'https://www.dineopen.com/pos/singapore',
+      'en-CA': 'https://www.dineopen.com/pos/canada',
+      'en-AU': 'https://www.dineopen.com/pos/australia',
+    },
   },
 };
 
@@ -44,6 +54,17 @@ export default function AustraliaPOSPage() {
       'Sydney CBD', 'Melbourne CBD', 'Brisbane', 'Perth', 'Adelaide',
       'Surry Hills', 'Fitzroy', 'Newtown', 'South Yarra', 'Bondi',
       'Gold Coast', 'Canberra', 'Parramatta', 'St Kilda', 'Fremantle', 'Fortitude Valley',
+    ],
+    complianceInfo: [
+      { title: 'GST 10% Compliant', desc: 'Automatic GST at 10% on all applicable items. BAS-ready reporting for quarterly or monthly lodgement.' },
+      { title: 'Food Safety Standards', desc: 'Supports food safety record keeping aligned with Food Standards Australia New Zealand (FSANZ) requirements.' },
+      { title: 'Fair Work Compliant', desc: 'Staff scheduling considers award wage rates and penalty rates for weekends and public holidays.' },
+    ],
+    paymentMethods: ['EFTPOS', 'Apple Pay', 'Google Pay', 'Afterpay', 'Visa', 'Mastercard', 'Cash (AUD)'],
+    localCompetitors: [
+      { name: 'Lightspeed', price: 'AUD 79/mo', note: 'Feature-rich but steep learning curve' },
+      { name: 'Square', price: '1.6% per txn', note: 'Simple but limited restaurant-specific tools' },
+      { name: 'Kounta (Lightspeed K)', price: 'AUD 59/mo', note: 'Hospitality-focused but being merged into Lightspeed' },
     ],
   };
 

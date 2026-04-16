@@ -4,11 +4,11 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Free Restaurant Name Generator | 500+ Creative Names | DineOpen',
-  description: 'Generate unique restaurant names instantly. Get creative name ideas for cafes, bars, Indian restaurants, Italian bistros, food trucks & more. Free AI-powered generator.',
+  title: 'Restaurant Name Generator [Free, AI-Powered] | 500+ Ideas Instantly | DineOpen',
+  description: 'AI-powered restaurant name generator — get 500+ unique name ideas for cafes, bars, Indian restaurants, Italian bistros, food trucks & more. Filter by cuisine, vibe & style. Free, no signup.',
   keywords: 'restaurant name generator, cafe name ideas, bar name generator, restaurant name ideas, creative restaurant names, unique cafe names, food truck names, bistro names, Indian restaurant names, Italian restaurant names, Chinese restaurant names',
   openGraph: {
-    title: 'Free Restaurant Name Generator | 500+ Creative Names | DineOpen',
+    title: 'Restaurant Name Generator [Free, AI-Powered] | 500+ Ideas Instantly | DineOpen',
     description: 'Generate unique restaurant names instantly. Creative ideas for cafes, bars, food trucks & more.',
     url: 'https://www.dineopen.com/tools/restaurant-name-generator',
     siteName: 'DineOpen',

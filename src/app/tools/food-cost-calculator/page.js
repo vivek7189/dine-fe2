@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant Food Cost Calculator [Free, No Login] — Instant Results | DineOpen',
-  description: 'Free restaurant food cost calculator with per-ingredient breakdown — calculate food cost %, profit margins & ideal menu pricing in seconds. Add multiple ingredients, convert units, and get detailed cost analysis. No login, no signup.',
+  description: 'Free restaurant food cost calculator — per-recipe ingredient breakdown, ideal selling price, food cost % & profit margins in seconds. Add multiple ingredients, convert units, and get detailed cost analysis. No login, no signup.',
   keywords: 'restaurant food cost calculator, food cost percentage calculator, recipe cost calculator, ingredient cost calculator, food cost formula, menu costing tool, restaurant profit calculator, food cost percentage, how to calculate food cost, restaurant pricing calculator, food cost calculator online free',
   openGraph: {
     title: 'Restaurant Food Cost Calculator [Free] — Per-Ingredient Breakdown | DineOpen',

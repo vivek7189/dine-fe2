@@ -211,6 +211,21 @@ export default function sitemap() {
     priority: 0.9,
   }));
 
+  // Country pages — 6 international markets (6)
+  const countryPages = [
+    'usa',
+    'uk',
+    'uae',
+    'australia',
+    'canada',
+    'singapore',
+  ].map((slug) => ({
+    url: `${baseUrl}/pos/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'weekly',
+    priority: 0.9,
+  }));
+
   // City pages — 8 metro cities only (8)
   const cityPages = [
     'mumbai',
@@ -419,6 +434,12 @@ export default function sitemap() {
     'restaurant-technology-trends-2026',
     'swiggy-zomato-commission-calculator-guide',
     'what-is-restaurant-operating-system',
+    'best-free-restaurant-pos-usa-2026',
+    'toast-pos-alternatives-2026',
+    'takeaway-pos-system-setup-guide',
+    'qsr-pos-software-quick-service-restaurant-guide',
+    'best-epos-indian-takeaway-uk-2026',
+    'free-qr-code-menu-uk-restaurants',
   ].map((slug) => ({
     url: `${baseUrl}/blog/${slug}.html`,
     lastModified: currentDate,
@@ -453,6 +474,7 @@ export default function sitemap() {
     ...solutionPages,
     ...comparisonPages,
     ...alternativePages,
+    ...countryPages,
     ...cityPages,
     ...integrationPages,
     ...industryPages,
