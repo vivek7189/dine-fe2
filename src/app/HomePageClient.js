@@ -137,7 +137,7 @@ export default function LandingPage() {
   const priceTable = {
     INR: {
       symbol: '₹',
-      starter:  { monthly: 400,  annual: 333,  regular: 999 },
+      starter:  { monthly: 299,  annual: 250,  regular: 999 },
       growth:   { monthly: 899,  annual: 749,  regular: 1999 },
       pro:      { monthly: 1799, annual: 1499, regular: 3999 },
     },

@@ -10,19 +10,10 @@ export default function PricingClient() {
   const [currency, setCurrency] = useState('INR');
   const [billingCycle, setBillingCycle] = useState('annual'); // 'monthly' | 'annual'
 
-  // Price tables. Annual prices are billed yearly but shown as effective
-  // per-month so users see the discount visually. Annual = ~17% off monthly
-  // (2 months free), which is the standard SaaS discount and easy to message.
-  //
-  // India-first strategy:
-  //   ₹400 base price = lowest in the Indian POS market (Petpooja real
-  //   out-the-door cost is ₹1,800-3,500/mo once add-ons are factored in).
-  //   Even our Pro tier at ₹1,499/mo annual undercuts Petpooja by ~₹500/mo
-  //   while bundling AI features Petpooja doesn't have.
   const prices = {
     INR: {
       symbol: '₹',
-      starter:  { monthly: 400,  annual: 333,  monthlyStrike: 999,  annualBilled: 3996 },
+      starter:  { monthly: 299,  annual: 250,  monthlyStrike: 999,  annualBilled: 3000 },
       growth:   { monthly: 899,  annual: 749,  monthlyStrike: 1999, annualBilled: 8988 },
       pro:      { monthly: 1799, annual: 1499, monthlyStrike: 3999, annualBilled: 17988 },
     },

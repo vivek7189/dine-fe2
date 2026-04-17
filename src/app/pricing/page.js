@@ -29,14 +29,14 @@ export default function PricingPage() {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": "DineOpen Restaurant POS",
-    "description": "AI-powered restaurant POS and billing software with voice ordering, QR menus, KOT printing, and zero transaction fees. Starting at just ₹400/month.",
+    "description": "AI-powered restaurant POS and billing software with voice ordering, QR menus, KOT printing, and zero transaction fees. Starting at just ₹299/month.",
     "image": "https://www.dineopen.com/favicon.png",
     "brand": { "@type": "Brand", "name": "DineOpen" },
     "offers": [
       {
         "@type": "Offer",
         "name": "Starter Plan (India)",
-        "price": "400",
+        "price": "299",
         "priceCurrency": "INR",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -86,7 +86,7 @@ export default function PricingPage() {
         "name": "How much does DineOpen cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Starter plan starts at just ₹400/month for a single outlet ($5/month internationally). Growth plan is ₹899/month with AI features and 2 outlets. Pro plan is ₹1,799/month for up to 5 outlets with chain dashboard. Enterprise pricing is custom - book a demo. All plans include a 14-day free trial with no credit card required."
+          "text": "DineOpen Starter plan starts at just ₹299/month for a single outlet ($10/month internationally). Growth plan is ₹899/month with AI features and 2 outlets. Pro plan is ₹1,799/month for up to 5 outlets with chain dashboard. Enterprise pricing is custom - book a demo. All plans include a 14-day free trial with no credit card required."
         }
       },
       {
@@ -118,7 +118,7 @@ export default function PricingPage() {
         "name": "What is the difference between Starter, Growth and Pro plans?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Starter (₹400/month) is for a single outlet with core POS, KOT printing and QR ordering. Growth (₹899/month) adds AI Voice Ordering, AI Menu Generator, captain app, KDS, advanced inventory, customer loyalty, and 2 outlets. Pro (₹1,799/month) adds chain dashboard, cross-outlet analytics, centralized management, and supports up to 5 outlets. Enterprise is custom pricing for unlimited outlets - book a demo."
+          "text": "Starter (₹299/month) is for a single outlet with core POS, KOT printing and QR ordering. Growth (₹899/month) adds AI Voice Ordering, AI Menu Generator, captain app, KDS, advanced inventory, customer loyalty, and 2 outlets. Pro (₹1,799/month) adds chain dashboard, cross-outlet analytics, centralized management, and supports up to 5 outlets. Enterprise is custom pricing for unlimited outlets - book a demo."
         }
       },
       {
