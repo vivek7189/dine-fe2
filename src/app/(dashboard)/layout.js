@@ -7,6 +7,9 @@ import { DineAIProvider } from '../../contexts/DineAIContext';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
 import DineAIButton from '../../components/dineai/DineAIButton';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
+import { useAutoPrint } from '../../hooks/useAutoPrint';
+import { isWeb } from '../../utils/platform';
+import apiClient from '../../lib/api';
 
 function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -15,11 +18,23 @@ function DashboardLayoutContent({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
 
+  const [nativePrintSettings, setNativePrintSettings] = useState(null);
   // Check if current page is dashboard
   const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
 
   // Prefetch dashboard data when browser is idle (skips if already on /dashboard)
   useIdlePrefetch(pathname);
+
+  // Fetch print settings for native auto-print (no-op on web)
+  useEffect(() => {
+    if (isWeb() || !selectedRestaurantId) return;
+    apiClient.getPrintSettings(selectedRestaurantId)
+      .then(res => setNativePrintSettings(res?.printSettings || res))
+      .catch(() => {});
+  }, [selectedRestaurantId]);
+
+  // Auto-print on native platforms (Capacitor/Tauri) — no-op on web
+  useAutoPrint(selectedRestaurantId, nativePrintSettings);
 
   // Check if device is mobile and set client-side flag
   useEffect(() => {

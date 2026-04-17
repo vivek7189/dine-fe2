@@ -1,6 +1,7 @@
 'use client';
 
 import { FaRobot, FaChartLine, FaExclamationTriangle, FaRecycle, FaDownload, FaTimes, FaBoxes, FaClock, FaWarehouse, FaClipboardList } from 'react-icons/fa';
+import { printDocument } from '../../../../utils/printBridge';
 
 const urgencyColors = {
   high: { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' },
@@ -313,7 +314,7 @@ export default function InsightsTab({
               display: 'flex', justifyContent: 'flex-end', gap: '8px',
             }}>
               <button
-                onClick={() => window.print()}
+                onClick={() => printDocument({ type: 'report' })}
                 style={{
                   backgroundColor: '#059669', color: 'white', border: 'none',
                   borderRadius: '8px', padding: '8px 20px', fontSize: '13px',

@@ -37,7 +37,10 @@ import {
   FaArrowRight,
   FaLayerGroup,
   FaEllipsisH,
-  FaStore
+  FaStore,
+  FaWhatsapp,
+  FaToggleOn,
+  FaToggleOff
 } from 'react-icons/fa';
 
 // Reuse full-page content as embedded tabs (standalone /offers and /customer-app remain live)
@@ -388,6 +391,11 @@ const Customers = () => {
   // Single delete confirmation modal
   const [deleteConfirmCustomer, setDeleteConfirmCustomer] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+
+  // WhatsApp preferences modal
+  const [waPrefsCustomerId, setWaPrefsCustomerId] = useState(null);
+  const [waPrefsData, setWaPrefsData] = useState({ whatsappBillEnabled: true, whatsappOffersEnabled: true, whatsappPointsEnabled: true });
+  const [waPrefsSaving, setWaPrefsSaving] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -1169,6 +1177,38 @@ const Customers = () => {
     setSelectedCustomer(customer);
     setShowOrderHistory(true);
   };
+
+  // Handle WhatsApp preferences
+  const openWaPrefs = (customer) => {
+    setWaPrefsCustomerId(customer.id);
+    setWaPrefsData({
+      whatsappBillEnabled: customer.whatsappBillEnabled !== false,
+      whatsappOffersEnabled: customer.whatsappOffersEnabled !== false,
+      whatsappPointsEnabled: customer.whatsappPointsEnabled !== false,
+    });
+  };
+
+  const saveWaPrefs = async () => {
+    if (!waPrefsCustomerId) return;
+    setWaPrefsSaving(true);
+    try {
+      await apiClient.patch(`/api/customers/${waPrefsCustomerId}`, waPrefsData);
+      // Update local state
+      setCustomers(prev => prev.map(c =>
+        c.id === waPrefsCustomerId ? { ...c, ...waPrefsData } : c
+      ));
+      setWaPrefsCustomerId(null);
+    } catch (err) {
+      console.error('Error saving WhatsApp prefs:', err);
+    } finally {
+      setWaPrefsSaving(false);
+    }
+  };
+
+  const isWaAllEnabled = (customer) =>
+    customer.whatsappBillEnabled !== false &&
+    customer.whatsappOffersEnabled !== false &&
+    customer.whatsappPointsEnabled !== false;
 
   // Sort customers (search is handled server-side)
   const activeGroup = activeGroupId ? groups.find(g => g.id === activeGroupId) : null;
@@ -2084,6 +2124,19 @@ const Customers = () => {
                           </div>
                         )}
                       </div>
+                      <button
+                        onClick={() => openWaPrefs(customer)}
+                        style={{
+                          padding: '5px 10px',
+                          backgroundColor: isWaAllEnabled(customer) ? '#dcfce7' : '#f1f5f9',
+                          border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', gap: '4px', fontSize: '11px',
+                          color: isWaAllEnabled(customer) ? '#16a34a' : '#9ca3af',
+                          fontWeight: '600', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <FaWhatsapp size={10} /> WhatsApp
+                      </button>
                       {canEditCustomer && (
                       <button
                         onClick={() => handleEdit(customer)}
@@ -2359,6 +2412,20 @@ const Customers = () => {
                           </div>
                         )}
                       </div>
+                      <button
+                        onClick={() => openWaPrefs(customer)}
+                        title="WhatsApp preferences"
+                        style={{
+                          padding: 0, backgroundColor: 'transparent', border: 'none',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          gap: '4px', fontSize: '13px',
+                          color: isWaAllEnabled(customer) ? '#16a34a' : '#9ca3af',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <FaWhatsapp size={13} />
+                        WhatsApp
+                      </button>
                       {canEditCustomer && (
                       <button
                         onClick={() => handleEdit(customer)}
@@ -2773,6 +2840,100 @@ const Customers = () => {
         />
       )}
       {showOrderHistory && <OrderHistoryModal />}
+
+      {/* WhatsApp Preferences Modal */}
+      {waPrefsCustomerId && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setWaPrefsCustomerId(null)}
+          style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+            zIndex: 9999, padding: isMobile ? 0 : '32px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              width: '100%', maxWidth: isMobile ? '100%' : '380px',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid #f3f4f6',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaWhatsapp size={18} style={{ color: '#25d366' }} />
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937' }}>WhatsApp Preferences</span>
+              </div>
+              <button onClick={() => setWaPrefsCustomerId(null)} style={{
+                background: '#f3f4f6', border: 'none', borderRadius: '8px',
+                padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              }}>
+                <FaTimes size={12} style={{ color: '#6b7280' }} />
+              </button>
+            </div>
+            {/* Customer name */}
+            {(() => {
+              const cust = customers.find(c => c.id === waPrefsCustomerId);
+              return cust ? (
+                <div style={{ padding: '12px 20px 0', fontSize: '13px', color: '#6b7280' }}>
+                  {cust.name || cust.phone || 'Customer'}
+                </div>
+              ) : null;
+            })()}
+            {/* Toggles */}
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {[
+                { key: 'whatsappBillEnabled', label: 'Receive bill on WhatsApp', desc: 'Auto-send invoice after billing' },
+                { key: 'whatsappOffersEnabled', label: 'Offers & promotions', desc: 'Receive deals and discount offers' },
+                { key: 'whatsappPointsEnabled', label: 'Loyalty points updates', desc: 'Points earned, redeemed & balance' },
+              ].map(item => (
+                <div key={item.key} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+                }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#1f2937' }}>{item.label}</div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px' }}>{item.desc}</div>
+                  </div>
+                  <button
+                    onClick={() => setWaPrefsData(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
+                    }}
+                  >
+                    {waPrefsData[item.key] ? (
+                      <FaToggleOn size={28} style={{ color: '#25d366' }} />
+                    ) : (
+                      <FaToggleOff size={28} style={{ color: '#d1d5db' }} />
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+            {/* Save button */}
+            <div style={{ padding: '12px 20px 16px', borderTop: '1px solid #f3f4f6' }}>
+              <button
+                onClick={saveWaPrefs}
+                disabled={waPrefsSaving}
+                style={{
+                  width: '100%', padding: '10px', backgroundColor: '#25d366', color: 'white',
+                  border: 'none', borderRadius: '10px', cursor: waPrefsSaving ? 'wait' : 'pointer',
+                  fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '6px', opacity: waPrefsSaving ? 0.7 : 1,
+                }}
+              >
+                {waPrefsSaving ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSave size={14} />}
+                {waPrefsSaving ? 'Saving...' : 'Save Preferences'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Floating selection action bar — rendered via portal to escape overflow:hidden parent */}
       {selectedCustomerIds.length > 0 && engagementTab === 'customers' && typeof document !== 'undefined' && createPortal(

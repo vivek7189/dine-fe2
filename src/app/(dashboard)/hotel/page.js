@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { printDocument } from '../../../utils/printBridge';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   FaHotel,
@@ -3351,7 +3352,7 @@ const Hotel = () => {
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => window.print()}
+                  onClick={() => printDocument({ type: 'bill' })}
                   className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2"
                 >
                   <FaPrint />

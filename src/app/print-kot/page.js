@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Pusher from 'pusher-js';
+import { printDocument } from '../../utils/printBridge';
+import { isWeb } from '../../utils/platform';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
@@ -418,19 +420,30 @@ const PrintKOTContent = () => {
         </html>
       `;
 
-      // Create iframe
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'absolute';
-      iframe.style.top = '-9999px';
-      iframe.style.left = '-9999px';
-      iframe.style.width = '80mm';
-      iframe.style.height = '0';
-      document.body.appendChild(iframe);
+      if (!isWeb()) {
+        // Native (Capacitor/Tauri): send HTML directly to thermal printer
+        await printDocument({ html: printContent, type: 'kot' });
+      } else {
+        // Web: use hidden iframe approach (unchanged)
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.top = '-9999px';
+        iframe.style.left = '-9999px';
+        iframe.style.width = '80mm';
+        iframe.style.height = '0';
+        document.body.appendChild(iframe);
 
-      // Write content and print
-      iframe.contentDocument.open();
-      iframe.contentDocument.write(printContent);
-      iframe.contentDocument.close();
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(printContent);
+        iframe.contentDocument.close();
+
+        // Remove iframe after print
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        }, 2000);
+      }
 
       // Mark as printed in API
       try {
@@ -448,14 +461,7 @@ const PrintKOTContent = () => {
 
       // Save to local storage
       savePrintedOrder(order.id);
-
-      // Remove iframe after print
-      setTimeout(() => {
-        if (iframe.parentNode) {
-          document.body.removeChild(iframe);
-        }
-        setIsPrinting(false);
-      }, 2000);
+      setIsPrinting(false);
 
     } catch (err) {
       console.error('Print error:', err);

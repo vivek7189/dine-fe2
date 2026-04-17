@@ -11,6 +11,7 @@ import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import { getAllOfflineOrders } from '../../../lib/offlineDb';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS } from '../../../utils/printFontSizes';
+import { printDocument } from '../../../utils/printBridge';
 import OrderSummary from '../../../components/OrderSummary';
 import {
   FaSearch,
@@ -704,7 +705,12 @@ const OrderHistory = () => {
   };
 
   const handleDownloadPDF = () => {
-    window.print();
+    printDocument({
+      type: 'bill',
+      domSelector: '.invoice-print-wrapper',
+      orderId: selectedOrderForInvoice?.id,
+      restaurantId: selectedOrderForInvoice?.restaurantId || restaurantId,
+    });
   };
 
   const handleCancelOrder = (orderId) => {

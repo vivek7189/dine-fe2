@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "DineOpen POS",
+  "identifier": "com.dineopen.pos-desktop",
+  "version": "1.0.0",
+  "build": {
+    "frontendDist": "https://www.dineopen.com/login"
+  },
+  "app": {
+    "title": "DineOpen POS",
+    "windows": [
+      {
+        "title": "DineOpen POS",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' https://*.dineopen.com https://*.pusher.com wss://*.pusher.com https://*.googleapis.com https://*.firebaseapp.com https://checkout.razorpay.com https://apis.google.com https://www.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.google.com https://*.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com; connect-src 'self' https://*.dineopen.com https://*.pusher.com wss://*.pusher.com https://*.googleapis.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://*.google.com https://*.gstatic.com https://checkout.razorpay.com; ipc: asset:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

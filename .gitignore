@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# capacitor (Android build artifacts)
+android/app/build/
+android/.gradle/
+
+# tauri (Rust build artifacts)
+src-tauri/target/

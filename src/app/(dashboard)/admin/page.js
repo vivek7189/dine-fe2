@@ -7,6 +7,8 @@ import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
+import NativePrinterSettings from '../../../components/NativePrinterSettings';
+import { isWeb } from '../../../utils/platform';
 import { 
   FaStore, 
   FaUsers, 
@@ -2833,6 +2835,13 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
             </div>
           </div>
 
+          {/* Native Printer Setup — only visible on Capacitor/Tauri apps */}
+          {!isWeb() && (
+            <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
+              <NativePrinterSettings restaurantId={selectedRestaurant?.id} />
+            </div>
+          )}
+
           {/* Advanced Settings */}
           <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
             <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -3302,6 +3311,7 @@ const Admin = () => {
     refundsEnabled: false,
     refundsRequireApproval: true,
     emailInvoiceEnabled: false,
+    whatsappBillingEnabled: false,
   });
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMessage, setBillingMessage] = useState({ type: '', text: '' });
@@ -8533,6 +8543,12 @@ const Admin = () => {
                     name: 'Email Invoice',
                     desc: 'Auto-send invoice on bill completion',
                     icon: FaEnvelope,
+                  },
+                  {
+                    key: 'whatsappBillingEnabled',
+                    name: 'WhatsApp Bill',
+                    desc: 'Auto-send invoice via WhatsApp after billing',
+                    icon: FaPhone,
                   },
                   {
                     key: 'refundsEnabled',

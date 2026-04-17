@@ -16,7 +16,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [sendingReply, setSendingReply] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [testPhone, setTestPhone] = useState('');
-  const [testMessage, setTestMessage] = useState('Hello from DineOpen!');
+  const [testMessage, setTestMessage] = useState('Test message from DineOpen');
   const [testSending, setTestSending] = useState(false);
   const [connectMode, setConnectMode] = useState('dineopen');
   const [ownCredentials, setOwnCredentials] = useState({ accessToken: '', phoneNumberId: '', businessAccountId: '' });
@@ -232,14 +232,17 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                 ) : (
                   <FaTimesCircle size={24} color="#ef4444" />
                 )}
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '600', color: waSettings?.connected ? '#166534' : '#991b1b' }}>
                     {waSettings?.connected ? 'WhatsApp Connected' : 'WhatsApp Not Connected'}
                   </div>
                   {waSettings?.connected && waSettings?.settings?.mode && (
                     <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                      Mode: {waSettings.settings.mode === 'dineopen' ? 'DineOpen Shared Number' : 'Restaurant Own Number'}
-                      {waSettings.settings.phoneNumber && ` | ${waSettings.settings.phoneNumber}`}
+                      {waSettings.settings.mode === 'dineopen' ? (
+                        <>Sending from DineOpen&apos;s shared number</>
+                      ) : (
+                        <>Sending from your number{waSettings.settings.phoneNumber && waSettings.settings.phoneNumber !== 'N/A' ? `: ${waSettings.settings.phoneNumber}` : ''}</>
+                      )}
                     </div>
                   )}
                 </div>
@@ -296,38 +299,122 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                     ))}
                   </div>
 
-                  {/* Restaurant's own credentials */}
+                  {/* Restaurant's own number — Setup Guide + Credentials */}
                   {connectMode === 'restaurant' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                      <div>
-                        <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Access Token</label>
-                        <input
-                          type="password"
-                          value={ownCredentials.accessToken}
-                          onChange={e => setOwnCredentials(c => ({ ...c, accessToken: e.target.value }))}
-                          placeholder="Permanent System User Token from Meta"
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
-                        />
+                    <div style={{ marginBottom: '16px' }}>
+                      {/* Setup Guide */}
+                      <div style={{
+                        backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px',
+                        padding: '20px', marginBottom: '20px'
+                      }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          How to Set Up Your Own WhatsApp Business Number
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {[
+                            {
+                              step: 1,
+                              title: 'Create a Meta Business Account',
+                              desc: 'Go to business.facebook.com and create a free business account using your Facebook login.',
+                              link: 'https://business.facebook.com'
+                            },
+                            {
+                              step: 2,
+                              title: 'Create a Meta Developer App',
+                              desc: 'Go to developers.facebook.com → My Apps → Create App → Select "Other" → Choose "Business" type → Add the "WhatsApp" product.',
+                              link: 'https://developers.facebook.com/apps'
+                            },
+                            {
+                              step: 3,
+                              title: 'Complete Business Verification',
+                              desc: 'In Meta Business Settings → Security Center → Start Verification. Upload your GST Certificate or business registration. Approval takes ~1 business day.',
+                              link: 'https://business.facebook.com/settings/security'
+                            },
+                            {
+                              step: 4,
+                              title: 'Add & Verify Your Phone Number',
+                              desc: 'In your Meta App → WhatsApp → API Setup → Add a phone number. Verify it via SMS or voice call. This number will appear as the sender for your customers.',
+                            },
+                            {
+                              step: 5,
+                              title: 'Generate a Permanent Access Token',
+                              desc: 'In Meta App → WhatsApp → API Setup → Create a System User with "admin" role → Generate a permanent token with whatsapp_business_messaging permission.',
+                            },
+                            {
+                              step: 6,
+                              title: 'Copy Your IDs & Connect',
+                              desc: 'From the API Setup page, copy your Phone Number ID and WhatsApp Business Account ID. Paste them in the fields below along with the access token.',
+                            },
+                          ].map(item => (
+                            <div key={item.step} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                              <div style={{
+                                width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
+                                backgroundColor: '#25D366', color: 'white', fontSize: '12px', fontWeight: '700',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px'
+                              }}>
+                                {item.step}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                                  {item.title}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', lineHeight: '1.5' }}>
+                                  {item.desc}
+                                  {item.link && (
+                                    <>
+                                      {' '}
+                                      <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', textDecoration: 'underline' }}>
+                                        Open &rarr;
+                                      </a>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Phone Number ID</label>
+
+                      {/* Credential Inputs */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Access Token</label>
                           <input
-                            value={ownCredentials.phoneNumberId}
-                            onChange={e => setOwnCredentials(c => ({ ...c, phoneNumberId: e.target.value }))}
-                            placeholder="From Meta App Dashboard"
+                            type="password"
+                            value={ownCredentials.accessToken}
+                            onChange={e => setOwnCredentials(c => ({ ...c, accessToken: e.target.value }))}
+                            placeholder="Permanent System User Token from Meta"
                             style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
                           />
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Business Account ID</label>
-                          <input
-                            value={ownCredentials.businessAccountId}
-                            onChange={e => setOwnCredentials(c => ({ ...c, businessAccountId: e.target.value }))}
-                            placeholder="WABA ID"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
-                          />
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Phone Number ID</label>
+                            <input
+                              value={ownCredentials.phoneNumberId}
+                              onChange={e => setOwnCredentials(c => ({ ...c, phoneNumberId: e.target.value }))}
+                              placeholder="From Meta App → WhatsApp → API Setup"
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' }}>Business Account ID</label>
+                            <input
+                              value={ownCredentials.businessAccountId}
+                              onChange={e => setOwnCredentials(c => ({ ...c, businessAccountId: e.target.value }))}
+                              placeholder="WhatsApp Business Account ID (WABA)"
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
+                            />
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Info note */}
+                      <div style={{
+                        backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px',
+                        padding: '12px 14px', marginBottom: '16px', fontSize: '12px', color: '#1e40af', lineHeight: '1.6'
+                      }}>
+                        <strong>Once connected:</strong> Bills will be sent from your restaurant&apos;s WhatsApp number. Customers will see your restaurant name as the sender. The same billing settings and per-customer WhatsApp preferences apply.
                       </div>
                     </div>
                   )}
@@ -345,22 +432,6 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                     {saving ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaWhatsapp size={16} />}
                     {saving ? 'Connecting...' : 'Connect WhatsApp'}
                   </button>
-                </div>
-              )}
-
-              {/* Webhook URL (always show) */}
-              {waSettings?.webhookUrl && (
-                <div style={{ marginBottom: '24px' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Webhook URL</h4>
-                  <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>Add this URL in your Meta App Dashboard under WhatsApp &gt; Configuration &gt; Webhook</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <code style={{ flex: 1, padding: '10px 12px', backgroundColor: '#f3f4f6', borderRadius: '8px', fontSize: '12px', color: '#374151', wordBreak: 'break-all' }}>
-                      {waSettings.webhookUrl}
-                    </code>
-                    <button onClick={copyWebhookUrl} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>
-                      {copied ? <FaCheck size={14} color="#22c55e" /> : <FaCopy size={14} color="#6b7280" />}
-                    </button>
-                  </div>
                 </div>
               )}
 

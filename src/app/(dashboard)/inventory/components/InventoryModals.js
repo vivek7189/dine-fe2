@@ -615,6 +615,7 @@ function AddRecipeModal(props) {
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
     inventoryItems, isMobile,
     handleGenerateRecipeSteps, generatingSteps,
+    loading, error,
   } = props;
 
   if (!showAddRecipeModal || typeof document === 'undefined') return null;
@@ -663,9 +664,18 @@ function AddRecipeModal(props) {
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
           />
         </div>
+        {error && (
+          <div style={{
+            margin: '0 20px', padding: '10px 14px', backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626',
+            fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{ fontSize: 15 }}>⚠</span> {error}
+          </div>
+        )}
         <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button style={secondaryBtn} onClick={() => setShowAddRecipeModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={handleAddRecipe}><FaSave /> Create Recipe</button>
+          <button style={{ ...primaryBtn, opacity: loading ? 0.6 : 1, pointerEvents: loading ? 'none' : 'auto' }} onClick={handleAddRecipe} disabled={loading}>{loading ? 'Creating...' : <><FaSave /> Create Recipe</>}</button>
         </div>
       </div>
     </div>,
@@ -1764,6 +1774,7 @@ function EditRecipeModal(props) {
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
     inventoryItems, isMobile,
     handleGenerateRecipeSteps, generatingSteps,
+    loading, error,
   } = props;
 
   if (!showEditRecipeModal || !editingRecipe || typeof document === 'undefined') return null;
@@ -1814,9 +1825,18 @@ function EditRecipeModal(props) {
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
           />
         </div>
+        {error && (
+          <div style={{
+            margin: '0 20px', padding: '10px 14px', backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626',
+            fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{ fontSize: 15 }}>⚠</span> {error}
+          </div>
+        )}
         <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button style={secondaryBtn} onClick={() => setShowEditRecipeModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={handleUpdateRecipe}><FaSave /> Update Recipe</button>
+          <button style={{ ...primaryBtn, opacity: loading ? 0.6 : 1, pointerEvents: loading ? 'none' : 'auto' }} onClick={handleUpdateRecipe} disabled={loading}>{loading ? 'Updating...' : <><FaSave /> Update Recipe</>}</button>
         </div>
       </div>
     </div>,

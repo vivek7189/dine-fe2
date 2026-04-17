@@ -1,0 +1,33 @@
+{
+  "name": "capacitor-dine-printer",
+  "version": "1.0.0",
+  "description": "Capacitor plugin for thermal printer support (Bluetooth/USB) in DineOpen POS",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "dist/",
+    "src/"
+  ],
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "thermal-printer",
+    "bluetooth-printer",
+    "pos"
+  ],
+  "capacitor": {
+    "android": {
+      "src": "android"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^6.0.0"
+  }
+}
