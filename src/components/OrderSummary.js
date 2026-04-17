@@ -291,12 +291,69 @@ const OrderSummary = ({
   const invoicePrintWindowRef = useRef(null);
 
   // Dismiss KOT/billing summary when user starts a new action (adds items, loads saved order)
+  // Also reset all offer/loyalty/discount state since this is a fresh order
+  const prevCartLength = useRef(cart?.length || 0);
   useEffect(() => {
+    prevCartLength.current = cart?.length || 0;
+
     if (cart?.length > 0 && orderSuccess?.show) {
       setOrderSuccess(null);
       setInvoice(null);
       setShowInvoicePermanently(false);
       setWaSent(false);
+      setWaSending(false);
+      // Fresh order: reset all customer-specific state
+      resetOffers();
+      setManualDiscountValue('');
+      setManualDiscountTypeState('flat');
+      setRedeemLoyaltyPoints(0);
+      setSliderLocalValue(0);
+      loyaltyPreFilled.current = false;
+      prevCustomerId.current = null;
+      initialLookupDone.current = false;
+      clearCustomer();
+      setActiveBillingPanel(null);
+      setCashReceived('');
+      setSplitPayments([{ method: 'cash', amount: '' }, { method: 'upi', amount: '' }]);
+      setTipAmount(0);
+      setTipPercentage(null);
+      setServiceChargeAmount(0);
+      setRoundOffAmount(0);
+      setCompVoidItems([]);
+      setCompVoidReason('');
+      setManagerPin('');
+      setPartialPayAmount('');
+    }
+  }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset all offer/loyalty/discount state when cart becomes empty (new order)
+  // This prevents stale customer-specific offers, loyalty points, and discounts
+  // from leaking into the next order
+  useEffect(() => {
+    if (cart?.length === 0) {
+      resetOffers();
+      setManualDiscountValue('');
+      setManualDiscountTypeState('flat');
+      setRedeemLoyaltyPoints(0);
+      setSliderLocalValue(0);
+      loyaltyPreFilled.current = false;
+      prevCustomerId.current = null;
+      initialLookupDone.current = false;
+      clearCustomer();
+      // Reset billing panel state
+      setActiveBillingPanel(null);
+      setCashReceived('');
+      setSplitPayments([{ method: 'cash', amount: '' }, { method: 'upi', amount: '' }]);
+      setTipAmount(0);
+      setTipPercentage(null);
+      setServiceChargeAmount(0);
+      setRoundOffAmount(0);
+      setCompVoidItems([]);
+      setCompVoidReason('');
+      setManagerPin('');
+      setPartialPayAmount('');
+      setWaSent(false);
+      setWaSending(false);
     }
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1542,8 +1599,18 @@ const OrderSummary = ({
                   setOrderSuccess(null);
                   setInvoice(null);
                   setShowInvoicePermanently(false);
-                  onClearCart();
                   setSpecialInstructions(''); // Clear special instructions for new order
+                  // Reset offer/loyalty/discount before clearing cart
+                  resetOffers();
+                  setManualDiscountValue('');
+                  setManualDiscountTypeState('flat');
+                  setRedeemLoyaltyPoints(0);
+                  setSliderLocalValue(0);
+                  loyaltyPreFilled.current = false;
+                  prevCustomerId.current = null;
+                  initialLookupDone.current = false;
+                  clearCustomer();
+                  onClearCart();
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
                 }}
                 style={{
@@ -1918,8 +1985,18 @@ const OrderSummary = ({
                   setOrderSuccess(null);
                   setInvoice(null);
                   setShowInvoicePermanently(false);
-                  onClearCart();
                   setSpecialInstructions(''); // Clear special instructions for new order
+                  // Reset offer/loyalty/discount before clearing cart
+                  resetOffers();
+                  setManualDiscountValue('');
+                  setManualDiscountTypeState('flat');
+                  setRedeemLoyaltyPoints(0);
+                  setSliderLocalValue(0);
+                  loyaltyPreFilled.current = false;
+                  prevCustomerId.current = null;
+                  initialLookupDone.current = false;
+                  clearCustomer();
+                  onClearCart();
                   if (isMobile && onClose) setTimeout(() => onClose(), 300);
                 }}
                 style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '0 auto', boxShadow: '0 4px 12px rgba(34,197,94,0.4)' }}

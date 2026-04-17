@@ -1528,9 +1528,26 @@ function RestaurantPOSContent() {
       }
     }
 
-    // Hide success message when adding new items
+    // When billing/KOT success screen is showing and user adds a new item,
+    // treat it as starting a fresh order — clear everything first
     if (orderSuccess?.show) {
       setOrderSuccess(null);
+      setCart([]);
+      setCurrentOrder(null);
+      setActiveSavedOrderId(null);
+      setCustomerName('');
+      setCustomerMobile('');
+      setCustomerData(null);
+      setTableNumber('');
+      setManualTableNumber('');
+      setManualRoomNumber('');
+      setOrderLookup('');
+      setReturnToView(null);
+      localStorage.removeItem('dine_cart');
+      if (selectedTable && selectedTable.id) {
+        apiClient.updateTableStatus(selectedTable.id, 'available', null, selectedRestaurant?.id);
+        setSelectedTable(null);
+      }
     }
 
     // Multi-tier pricing: always preserve the true base price and set rule-adjusted price
@@ -3665,6 +3682,7 @@ function RestaurantPOSContent() {
     setActiveSavedOrderId(null);
     setCustomerName('');
     setCustomerMobile('');
+    setCustomerData(null);
     setManualTableNumber('');
     setManualRoomNumber('');
     setOrderLookup('');
@@ -3699,6 +3717,7 @@ function RestaurantPOSContent() {
       setTableNumber('');
       setCustomerName('');
       setCustomerMobile('');
+      setCustomerData(null);
       setManualTableNumber('');
       setManualRoomNumber('');
       setOrderLookup('');
