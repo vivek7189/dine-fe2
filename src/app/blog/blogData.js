@@ -3,6 +3,126 @@
 
 export const blogPosts = [
   {
+    slug: 'best-restaurant-pos-canada-2026',
+    title: 'I Tested 7 Canadian Restaurant POS Systems — Here\'s What Actually Works in 2026',
+    excerpt: 'Compare 7 best restaurant POS systems in Canada 2026. TouchBistro (CAD 69/mo), Lightspeed (CAD 89/mo), Square, DineOpen (CAD 39/mo) compared. HST/GST/PST compliant, Skip The Dishes & DoorDash ready.',
+    date: '2026-04-18',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-restaurant-pos-canada-2026.html'
+  },
+  {
+    slug: 'best-restaurant-pos-australia-2026',
+    title: 'Best Restaurant & Cafe POS Systems in Australia 2026: We Compared Pricing, Fees & Features',
+    excerpt: 'Compare 7 best restaurant POS systems in Australia 2026. Lightspeed (AUD 79/mo), Square (1.6% per tap), DineOpen (AUD 39/mo) compared. GST compliant, EFTPOS ready, Uber Eats & Menulog integration.',
+    date: '2026-04-18',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-restaurant-pos-australia-2026.html'
+  },
+  {
+    slug: 'how-to-open-restaurant-canada-2026',
+    title: 'How to Open a Restaurant in Canada in 2026: Costs, Licenses & Everything Nobody Tells You',
+    excerpt: 'Complete guide to opening a restaurant in Canada 2026. Startup costs ($275K-$425K), licenses by province, liquor permits, food handler certification, insurance, technology setup.',
+    date: '2026-04-18',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/how-to-open-restaurant-canada-2026.html'
+  },
+  {
+    slug: 'how-to-open-cafe-melbourne-sydney-2026',
+    title: 'Opening a Cafe in Melbourne or Sydney? Here\'s What It Actually Costs in 2026',
+    excerpt: 'Complete guide to opening a cafe in Melbourne or Sydney 2026. Startup costs (AUD 150K-350K), council registration, food safety, award wages, best suburbs, technology stack.',
+    date: '2026-04-18',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/how-to-open-cafe-melbourne-sydney-2026.html'
+  },
+  {
+    slug: 'how-to-open-restaurant-dubai-2026',
+    title: 'How to Open a Restaurant in Dubai in 2026: License Costs, Visa Rules & the Truth About Profit Margins',
+    excerpt: 'Complete guide to opening a restaurant in Dubai 2026. DET trade license (AED 15K-30K), staff visas (AED 5K-8K each), rent (AED 150-500/sqft), food permits. Real costs revealed.',
+    date: '2026-04-18',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/how-to-open-restaurant-dubai-2026.html'
+  },
+  {
+    slug: 'restaurant-vat-guide-uae-2026',
+    title: 'UAE Restaurant VAT Guide 2026: Everything You Need to Know (Before FTA Fines You)',
+    excerpt: 'Complete UAE restaurant VAT guide 2026. 5% VAT rules, TRN registration, invoice requirements, filing deadlines, penalties (AED 2,500-50,000). How your POS handles VAT automatically.',
+    date: '2026-04-18',
+    category: 'Compliance',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-vat-guide-uae-2026.html'
+  },
+  {
+    slug: 'best-pos-system-pubs-uk-2026',
+    title: 'Best POS System for Pubs & Gastropubs in the UK 2026: Real Costs Compared',
+    excerpt: 'Compare 6 best POS systems for UK pubs and gastropubs 2026. Epos Now, DineOpen (from £8/mo), Lightspeed, Zettle compared. Tab management, split bills, VAT on alcohol, keg tracking.',
+    date: '2026-04-18',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-pos-system-pubs-uk-2026.html'
+  },
+  {
+    slug: 'how-to-open-restaurant-uk-2026',
+    title: 'How to Open a Restaurant in the UK in 2026: From Zero to First Customer (Real Numbers Inside)',
+    excerpt: 'Complete guide to opening a restaurant in the UK 2026. Startup costs (£95K-£250K), food hygiene certificates, premises licence, EHO inspection, Natasha\'s Law allergens, insurance.',
+    date: '2026-04-18',
+    category: 'Guide',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/how-to-open-restaurant-uk-2026.html'
+  },
+  {
+    slug: 'restaurant-sales-tax-guide-usa-2026',
+    title: 'Restaurant Sales Tax by State: The Most Confusing Thing in America (Simplified)',
+    excerpt: 'Restaurant sales tax by state guide 2026. All 50 states compared — rates, prepared food rules, delivery tax, tip taxation. How your POS should handle multi-state tax automatically.',
+    date: '2026-04-18',
+    category: 'Compliance',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-sales-tax-guide-usa-2026.html'
+  },
+  {
+    slug: 'tipping-guide-usa-canada-uk-2026',
+    title: 'Restaurant Tipping in 2026: USA vs Canada vs UK — What Changed and What\'s Coming',
+    excerpt: 'Restaurant tipping guide 2026: USA tip credit rules, Canada Bill 72 (pre-tax tips), UK tipping law (no withholding). How to set up tipping on your POS. Tip pooling rules by country.',
+    date: '2026-04-18',
+    category: 'Operations',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/tipping-guide-usa-canada-uk-2026.html'
+  },
+  {
+    slug: 'best-pos-food-truck-2026',
+    title: 'Best POS for Food Trucks in 2026: 6 Systems That Work Offline, on the Go',
+    excerpt: 'Compare 6 best POS systems for food trucks 2026. DineOpen (offline mode, any device), Square (2.6% fees), Toast Go, Clover Flex compared. Offline capability, battery life, heat resistance tested.',
+    date: '2026-04-18',
+    category: 'Comparison',
+    categoryColor: '#ef4444',
+    isStatic: true,
+    staticPath: '/blog/best-pos-food-truck-2026.html'
+  },
+  {
+    slug: 'qr-code-menu-complete-guide-2026',
+    title: 'QR Code Menus in 2026: Are They Still Worth It? (Data from 10,000 Restaurants)',
+    excerpt: 'QR code menu guide 2026 with data from 10,000 restaurants. 57% of diners prefer QR menus. 15% higher average order value. How to create QR menus customers love. Free QR menu generator.',
+    date: '2026-04-18',
+    category: 'Technology',
+    categoryColor: '#10b981',
+    isStatic: true,
+    staticPath: '/blog/qr-code-menu-complete-guide-2026.html'
+  },
+  {
     slug: 'best-free-restaurant-pos-usa-2026',
     title: 'Best Free Restaurant POS Systems in USA 2026: Complete Comparison',
     excerpt: 'Compare the best free restaurant POS systems in the USA for 2026. Toast, Square, Clover vs DineOpen — real costs, hidden fees, feature comparison. Save $2,000+/year.',

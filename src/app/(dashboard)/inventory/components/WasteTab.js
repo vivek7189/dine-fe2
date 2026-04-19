@@ -50,7 +50,7 @@ const btnStyle = (bg, color) => ({
   border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
 });
 
-export default function WasteTab({ waste, inventoryItems, isMobile, formatCurrency }) {
+export default function WasteTab({ waste, inventoryItems, isMobile, formatCurrency, permissions = { read: true, add: true, update: true, delete: true } }) {
   const {
     loading, wasteEntries, wasteSummary, expiryAlerts,
     wastePeriod, setWastePeriod, wasteReason, setWasteReason,
@@ -129,14 +129,18 @@ export default function WasteTab({ waste, inventoryItems, isMobile, formatCurren
                   <span style={{ fontWeight: 600, color: '#111827' }}>{batch.inventoryItemName || batch.itemName || '-'}</span>
                   <span style={{ color: '#6b7280', marginLeft: 6 }}>{batch.remainingQty ?? '-'} {batch.unit || ''}</span>
                 </div>
-                <button onClick={() => handleMarkExpiredWaste(batch.id)} style={btnStyle('#ef4444', '#fff')}>
-                  <FaTrash size={10} /> Waste
-                </button>
-                <button onClick={() => handleDismissExpired(batch.id)} style={{
-                  ...btnStyle('#fff', '#6b7280'), border: '1px solid #d1d5db',
-                }}>
-                  Used
-                </button>
+                {permissions.update && (
+                  <button onClick={() => handleMarkExpiredWaste(batch.id)} style={btnStyle('#ef4444', '#fff')}>
+                    <FaTrash size={10} /> Waste
+                  </button>
+                )}
+                {permissions.update && (
+                  <button onClick={() => handleDismissExpired(batch.id)} style={{
+                    ...btnStyle('#fff', '#6b7280'), border: '1px solid #d1d5db',
+                  }}>
+                    Used
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -164,12 +168,16 @@ export default function WasteTab({ waste, inventoryItems, isMobile, formatCurren
 
       {/* Toolbar: Actions + Filters */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <button onClick={() => setShowQuickWasteModal(true)} style={btnStyle('#059669', '#fff')}>
-          <FaPlus size={10} /> Log Waste
-        </button>
-        <button onClick={() => waste.setShowLeftoverModal(true)} style={btnStyle('#7c3aed', '#fff')}>
-          <FaMagic size={10} /> AI Leftover
-        </button>
+        {permissions.update && (
+          <button onClick={() => setShowQuickWasteModal(true)} style={btnStyle('#059669', '#fff')}>
+            <FaPlus size={10} /> Log Waste
+          </button>
+        )}
+        {permissions.update && (
+          <button onClick={() => waste.setShowLeftoverModal(true)} style={btnStyle('#7c3aed', '#fff')}>
+            <FaMagic size={10} /> AI Leftover
+          </button>
+        )}
         <button onClick={() => loadWasteData()} style={{
           ...btnStyle('#fff', '#6b7280'), border: '1px solid #d1d5db',
         }}>

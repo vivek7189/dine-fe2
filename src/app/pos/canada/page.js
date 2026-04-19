@@ -37,6 +37,7 @@ export default function CanadaPOSPage() {
     currency: 'CAD ',
     price: '39',
     restaurants: '80+',
+    deliveryPlatforms: 'Connect with Skip The Dishes, DoorDash & Uber Eats',
     highlights: [
       'HST/GST/PST compliant billing',
       'English & French language support',

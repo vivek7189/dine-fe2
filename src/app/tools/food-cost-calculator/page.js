@@ -47,7 +47,7 @@ const softwareSchema = {
   "offers": {
     "@type": "Offer",
     "price": "0",
-    "priceCurrency": "INR"
+    "priceCurrency": "USD"
   },
   "publisher": {
     "@type": "Organization",
@@ -76,7 +76,7 @@ const faqSchema = {
       "name": "How do you calculate food cost percentage?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Food Cost Percentage = (Total Ingredient Cost ÷ Selling Price) × 100. For example, if a dish costs ₹80 in ingredients and sells for ₹250, the food cost percentage is (80 ÷ 250) × 100 = 32%. For recipes that yield multiple portions, divide the total recipe cost by the number of portions first to get cost per portion."
+        "text": "Food Cost Percentage = (Total Ingredient Cost ÷ Selling Price) × 100. For example, if a dish costs $4 in ingredients and sells for $12.50, the food cost percentage is (4 ÷ 12.50) × 100 = 32%. For recipes that yield multiple portions, divide the total recipe cost by the number of portions first to get cost per portion."
       }
     },
     {
@@ -84,7 +84,7 @@ const faqSchema = {
       "name": "What is the difference between food cost and food cost percentage?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Food cost is the absolute rupee amount spent on ingredients (e.g., ₹80). Food cost percentage is the ratio of ingredient cost to selling price expressed as a percentage (e.g., 32%). The percentage is more useful because it allows comparison across dishes of different price points and benchmarking against industry standards."
+        "text": "Food cost is the dollar amount spent on ingredients (e.g., $4). Food cost percentage is the ratio of ingredient cost to selling price expressed as a percentage (e.g., 32%). The percentage is more useful because it allows comparison across dishes of different price points and benchmarking against industry standards."
       }
     },
     {
@@ -92,7 +92,7 @@ const faqSchema = {
       "name": "How often should I calculate food cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "You should calculate food cost at least weekly for your top-selling items and monthly for your entire menu. Ingredient prices fluctuate frequently in India, especially for vegetables, dairy, and poultry. Regular calculation helps you catch rising costs early and adjust pricing or portions before they erode your profits significantly."
+        "text": "You should calculate food cost at least weekly for your top-selling items and monthly for your entire menu. Ingredient prices fluctuate frequently, especially for produce, dairy, and protein. Regular calculation helps you catch rising costs early and adjust pricing or portions before they erode your profits significantly."
       }
     },
     {

@@ -11,6 +11,7 @@ export default function StockTab({
   setShowAddModal, handleEditItem, handleDeleteItem,
   getStatusColor, dashboardStats, inventoryItems, todayUsageSummary = [],
   onViewHistory,
+  permissions = { read: true, add: true, update: true, delete: true },
 }) {
   const getStockBarColor = (current, min, max) => {
     const ratio = max > 0 ? current / max : 0;
@@ -125,17 +126,19 @@ export default function StockTab({
           {sortOrder === 'asc' ? <FaSortAmountUp size={14} color="#6b7280" /> : <FaSortAmountDown size={14} color="#6b7280" />}
         </button>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          style={{
-            padding: '8px 16px', background: '#059669', color: '#fff', border: 'none',
-            borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6, marginLeft: isMobile ? 0 : 'auto',
-            flex: isMobile ? '1 1 100%' : '0 0 auto', justifyContent: 'center',
-          }}
-        >
-          <FaPlus size={12} /> Add Item
-        </button>
+        {permissions.add && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            style={{
+              padding: '8px 16px', background: '#059669', color: '#fff', border: 'none',
+              borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, marginLeft: isMobile ? 0 : 'auto',
+              flex: isMobile ? '1 1 100%' : '0 0 auto', justifyContent: 'center',
+            }}
+          >
+            <FaPlus size={12} /> Add Item
+          </button>
+        )}
 
         <InventoryDownloadPDFButton
           reportType="stock"
@@ -215,18 +218,22 @@ export default function StockTab({
                     }} title="History">
                       <FaClock size={13} color="#4f46e5" />
                     </button>
-                    <button onClick={() => handleEditItem(item)} style={{
-                      padding: 6, border: '1px solid #e5e7eb', borderRadius: 6,
-                      background: '#fff', cursor: 'pointer', display: 'flex',
-                    }}>
-                      <FaEdit size={13} color="#6b7280" />
-                    </button>
-                    <button onClick={() => handleDeleteItem(item._id || item.id)} style={{
-                      padding: 6, border: '1px solid #fee2e2', borderRadius: 6,
-                      background: '#fff', cursor: 'pointer', display: 'flex',
-                    }}>
-                      <FaTrash size={12} color="#ef4444" />
-                    </button>
+                    {permissions.update && (
+                      <button onClick={() => handleEditItem(item)} style={{
+                        padding: 6, border: '1px solid #e5e7eb', borderRadius: 6,
+                        background: '#fff', cursor: 'pointer', display: 'flex',
+                      }}>
+                        <FaEdit size={13} color="#6b7280" />
+                      </button>
+                    )}
+                    {permissions.delete && (
+                      <button onClick={() => handleDeleteItem(item._id || item.id)} style={{
+                        padding: 6, border: '1px solid #fee2e2', borderRadius: 6,
+                        background: '#fff', cursor: 'pointer', display: 'flex',
+                      }}>
+                        <FaTrash size={12} color="#ef4444" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 {/* Stock bar with labels */}
@@ -401,14 +408,18 @@ export default function StockTab({
                         >
                           <FaClock size={13} color="#4f46e5" />
                         </button>
-                        <button onClick={() => handleEditItem(item)} style={actionBtnStyle} title="Edit">
-                          <FaEdit size={13} color="#6b7280" />
-                        </button>
-                        <button onClick={() => handleDeleteItem(item._id || item.id)}
-                          style={{ ...actionBtnStyle, borderColor: '#fee2e2' }} title="Delete"
-                        >
-                          <FaTrash size={12} color="#ef4444" />
-                        </button>
+                        {permissions.update && (
+                          <button onClick={() => handleEditItem(item)} style={actionBtnStyle} title="Edit">
+                            <FaEdit size={13} color="#6b7280" />
+                          </button>
+                        )}
+                        {permissions.delete && (
+                          <button onClick={() => handleDeleteItem(item._id || item.id)}
+                            style={{ ...actionBtnStyle, borderColor: '#fee2e2' }} title="Delete"
+                          >
+                            <FaTrash size={12} color="#ef4444" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

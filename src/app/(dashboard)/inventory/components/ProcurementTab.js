@@ -47,12 +47,12 @@ const emptyState = (msg) => (
   </div>
 );
 
-const sectionHeader = (title, buttonLabel, onClick, extra) => (
+const sectionHeader = (title, buttonLabel, onClick, extra, canAdd = true) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>{title}</h3>
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {extra}
-      <button style={btnPrimary} onClick={onClick}><FaPlus size={12} />{buttonLabel}</button>
+      {canAdd && <button style={btnPrimary} onClick={onClick}><FaPlus size={12} />{buttonLabel}</button>}
     </div>
   </div>
 );
@@ -93,6 +93,7 @@ export default function ProcurementTab({
   startVoiceListeningPO, isListeningVoice, voiceTranscript, processingVoice, voiceError,
   smartSuggestions, loadingSuggestions,
   selectedPOForGRN, setSelectedPOForGRN,
+  permissions = { read: true, add: true, update: true, delete: true },
 }) {
   const tableWrap = { width: '100%', overflowX: 'auto' };
   const table = { width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? 600 : 'auto' };
@@ -109,7 +110,7 @@ export default function ProcurementTab({
 
   const renderSuppliers = () => (
     <div>
-      {sectionHeader('Suppliers', 'Add Supplier', () => setShowAddSupplierModal(true))}
+      {sectionHeader('Suppliers', 'Add Supplier', () => setShowAddSupplierModal(true), null, permissions.add)}
       {suppliers.length === 0 ? emptyState('No suppliers added yet') : (
         <div style={tableWrap}>
           <table style={table}>
@@ -134,9 +135,11 @@ export default function ProcurementTab({
                       ) : <span style={{ color: '#9ca3af', fontSize: 12 }}>N/A</span>}
                     </td>
                     <td style={td}>
-                      <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleDeleteSupplier(s.id || s._id)}>
-                        <FaTimes size={10} /> Delete
-                      </button>
+                      {permissions.delete && (
+                        <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleDeleteSupplier(s.id || s._id)}>
+                          <FaTimes size={10} /> Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -151,13 +154,16 @@ export default function ProcurementTab({
   const renderPurchaseOrders = () => (
     <div>
       {sectionHeader('Purchase Orders', 'Create PO', () => setShowAddPurchaseOrderModal(true),
-        <button
-          style={{ ...btnSmall(isListeningVoice ? '#fef2f2' : '#f0fdf4', isListeningVoice ? '#991b1b' : '#059669'), padding: '8px 14px', fontSize: 13, fontWeight: 600 }}
-          onClick={startVoiceListeningPO}
-          disabled={processingVoice}
-        >
-          {isListeningVoice ? <><FaStop size={12} /> Stop</> : <><FaMicrophone size={12} /> Voice PO</>}
-        </button>
+        permissions.add ? (
+          <button
+            style={{ ...btnSmall(isListeningVoice ? '#fef2f2' : '#f0fdf4', isListeningVoice ? '#991b1b' : '#059669'), padding: '8px 14px', fontSize: 13, fontWeight: 600 }}
+            onClick={startVoiceListeningPO}
+            disabled={processingVoice}
+          >
+            {isListeningVoice ? <><FaStop size={12} /> Stop</> : <><FaMicrophone size={12} /> Voice PO</>}
+          </button>
+        ) : null,
+        permissions.add
       )}
 
       {isListeningVoice && voiceTranscript && (
@@ -217,7 +223,7 @@ export default function ProcurementTab({
 
   const renderRequisitions = () => (
     <div>
-      {sectionHeader('Purchase Requisitions', 'New Requisition', () => setShowAddRequisitionModal(true))}
+      {sectionHeader('Purchase Requisitions', 'New Requisition', () => setShowAddRequisitionModal(true), null, permissions.add)}
       {purchaseRequisitions.length === 0 ? emptyState('No requisitions yet') : (
         <div style={tableWrap}>
           <table style={table}>
@@ -245,7 +251,7 @@ export default function ProcurementTab({
 
   const renderGRN = () => (
     <div>
-      {sectionHeader('Goods Receipt Notes', 'Record Receipt', () => setShowAddGRNModal(true))}
+      {sectionHeader('Goods Receipt Notes', 'Record Receipt', () => setShowAddGRNModal(true), null, permissions.add)}
       {grns.length === 0 ? emptyState('No goods receipts recorded') : (
         <div style={tableWrap}>
           <table style={table}>
@@ -272,7 +278,7 @@ export default function ProcurementTab({
 
   const renderInvoices = () => (
     <div>
-      {sectionHeader('Supplier Invoices', 'Add Invoice', () => setShowAddInvoiceModal(true))}
+      {sectionHeader('Supplier Invoices', 'Add Invoice', () => setShowAddInvoiceModal(true), null, permissions.add)}
       {supplierInvoices.length === 0 ? emptyState('No invoices recorded') : (
         <div style={tableWrap}>
           <table style={table}>
@@ -303,7 +309,7 @@ export default function ProcurementTab({
 
   const renderReturns = () => (
     <div>
-      {sectionHeader('Supplier Returns', 'New Return', () => setShowAddReturnModal(true))}
+      {sectionHeader('Supplier Returns', 'New Return', () => setShowAddReturnModal(true), null, permissions.add)}
       {supplierReturns.length === 0 ? emptyState('No returns recorded') : (
         <div style={tableWrap}>
           <table style={table}>
@@ -334,7 +340,7 @@ export default function ProcurementTab({
 
   const renderTransfers = () => (
     <div>
-      {sectionHeader('Stock Transfers', 'New Transfer', () => setShowAddTransferModal(true))}
+      {sectionHeader('Stock Transfers', 'New Transfer', () => setShowAddTransferModal(true), null, permissions.add)}
       {stockTransfers.length === 0 ? emptyState('No transfers recorded') : (
         <div style={tableWrap}>
           <table style={table}>

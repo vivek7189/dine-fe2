@@ -46,6 +46,7 @@ export default function UKPOSPage() {
       'Month-to-month billing, no contracts',
     ],
     restaurants: '5,000+',
+    deliveryPlatforms: 'Connect with Deliveroo, Just Eat & Uber Eats',
     testimonial: {
       quote: 'DineOpen transformed our gastropub in Shoreditch. The QR ordering reduced our wait times and the AI helps during busy weekend rushes.',
       author: 'James Williams',

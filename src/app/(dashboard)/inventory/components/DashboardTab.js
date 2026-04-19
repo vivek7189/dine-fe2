@@ -11,7 +11,8 @@ export default function DashboardTab({
   inventoryItems, dashboardStats, suppliers, purchaseOrders,
   isMobile, formatCurrency,
   setShowAddModal, setShowQuickStockModal, setActiveTab,
-  getStatusColor, onLogWaste
+  getStatusColor, onLogWaste,
+  permissions = { read: true, add: true, update: true, delete: true },
 }) {
   const [showAlertModal, setShowAlertModal] = useState(false);
   const lowStockItems = inventoryItems.filter(
@@ -103,12 +104,12 @@ export default function DashboardTab({
         gap: isMobile ? '10px' : '12px',
       }}>
         {[
-          { label: 'Add Item', icon: FaPlus, gradient: 'linear-gradient(135deg, #059669, #10b981)', action: () => setShowAddModal(true) },
-          { label: 'Quick Stock', icon: FaBolt, gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)', action: () => setShowQuickStockModal(true) },
+          permissions.add && { label: 'Add Item', icon: FaPlus, gradient: 'linear-gradient(135deg, #059669, #10b981)', action: () => setShowAddModal(true) },
+          permissions.update && { label: 'Quick Stock', icon: FaBolt, gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)', action: () => setShowQuickStockModal(true) },
           { label: 'View Stock', icon: FaWarehouse, gradient: 'linear-gradient(135deg, #3b82f6, #60a5fa)', action: () => setActiveTab('stock') },
           { label: 'AI Insights', icon: FaChartLine, gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', action: () => setActiveTab('insights') },
-          { label: 'Log Waste', icon: FaTrash, gradient: 'linear-gradient(135deg, #ef4444, #f87171)', action: onLogWaste },
-        ].map((btn) => (
+          permissions.update && { label: 'Log Waste', icon: FaTrash, gradient: 'linear-gradient(135deg, #ef4444, #f87171)', action: onLogWaste },
+        ].filter(Boolean).map((btn) => (
           <button
             key={btn.label}
             onClick={btn.action}

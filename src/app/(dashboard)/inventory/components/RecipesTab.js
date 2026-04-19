@@ -22,6 +22,7 @@ export default function RecipesTab({
   handleDeleteRecipe,
   handleEditRecipe,
   handleViewRecipe,
+  permissions = { read: true, add: true, update: true, delete: true },
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -67,17 +68,19 @@ export default function RecipesTab({
             {filteredRecipes.length} of {recipes.length} recipe{recipes.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddRecipeModal(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 20px', background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
-            border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
-          }}
-        >
-          <FaPlus size={13} /> Add Recipe
-        </button>
+        {permissions.add && (
+          <button
+            onClick={() => setShowAddRecipeModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 20px', background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
+              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+            }}
+          >
+            <FaPlus size={13} /> Add Recipe
+          </button>
+        )}
         <InventoryDownloadPDFButton
           reportType="recipes"
           data={{ recipes }}
@@ -215,34 +218,38 @@ export default function RecipesTab({
                     >
                       <FaEye size={13} />
                     </button>
-                    <button
-                      onClick={() => handleEditRecipe(recipe)}
-                      title="Edit recipe"
-                      style={{
-                        background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff',
-                        cursor: 'pointer', padding: 7, borderRadius: 8,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backdropFilter: 'blur(4px)', transition: 'background 0.2s',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.4)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
-                    >
-                      <FaEdit size={13} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteRecipe(recipe._id || recipe.id)}
-                      title="Delete recipe"
-                      style={{
-                        background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff',
-                        cursor: 'pointer', padding: 7, borderRadius: 8,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backdropFilter: 'blur(4px)', transition: 'background 0.2s',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.6)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
-                    >
-                      <FaTrash size={12} />
-                    </button>
+                    {permissions.update && (
+                      <button
+                        onClick={() => handleEditRecipe(recipe)}
+                        title="Edit recipe"
+                        style={{
+                          background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff',
+                          cursor: 'pointer', padding: 7, borderRadius: 8,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          backdropFilter: 'blur(4px)', transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.4)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+                      >
+                        <FaEdit size={13} />
+                      </button>
+                    )}
+                    {permissions.delete && (
+                      <button
+                        onClick={() => handleDeleteRecipe(recipe._id || recipe.id)}
+                        title="Delete recipe"
+                        style={{
+                          background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff',
+                          cursor: 'pointer', padding: 7, borderRadius: 8,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          backdropFilter: 'blur(4px)', transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.6)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+                      >
+                        <FaTrash size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

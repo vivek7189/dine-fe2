@@ -37,6 +37,7 @@ export default function UAEPOSPage() {
     currency: 'AED ',
     price: '149',
     restaurants: '150+',
+    deliveryPlatforms: 'Connect with Talabat, Deliveroo & Careem NOW',
     highlights: [
       'VAT-compliant billing for UAE',
       'Arabic, English, Hindi, Urdu support',

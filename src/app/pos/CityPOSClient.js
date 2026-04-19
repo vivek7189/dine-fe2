@@ -21,14 +21,17 @@ export default function CityPOSClient({ cityData }) {
     complianceInfo,
     paymentMethods,
     localCompetitors,
+    deliveryPlatforms,
   } = cityData;
+
+  const deliveryDesc = deliveryPlatforms || 'Connect with Zomato, Swiggy & more';
 
   const features = [
     { title: 'AI Voice Ordering', desc: 'Take orders by voice in local languages' },
     { title: 'QR Code Menus', desc: 'Contactless digital menus for every table' },
     { title: 'POS Billing', desc: 'Fast, accurate billing with tax compliance' },
     { title: 'Inventory Management', desc: 'Track stock levels in real-time' },
-    { title: 'Delivery Integration', desc: 'Connect with Zomato, Swiggy & more' },
+    { title: 'Delivery Integration', desc: deliveryDesc },
     { title: 'Analytics & Reports', desc: 'Understand your business performance' },
   ];
 
@@ -38,7 +41,7 @@ export default function CityPOSClient({ cityData }) {
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', paddingTop: '80px' }}>
         <Breadcrumb items={[
           { label: 'Home', href: '/' },
-          { label: 'Locations', href: '/pos/mumbai' },
+          { label: 'Locations' },
           { label: `POS in ${city}` },
         ]} />
         {/* Hero */}

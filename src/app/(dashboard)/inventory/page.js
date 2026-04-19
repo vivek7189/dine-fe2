@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
 import useWaste from './hooks/useWaste';
 import DashboardTab from './components/DashboardTab';
@@ -41,6 +42,18 @@ export default function InventoryManagement() {
   const setSuccess = invSuccess ? setInvSuccess : (v) => {};
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Compute inventory permissions from cached pageAccess
+  const permissions = (() => {
+    if (typeof window === 'undefined') return { read: true, add: true, update: true, delete: true };
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = (user.role || '').toLowerCase();
+      if (role === 'owner' || role === 'admin') return { read: true, add: true, update: true, delete: true };
+      const pa = JSON.parse(localStorage.getItem('navPageAccess') || '{}');
+      return resolveFeaturePermissions(pa, 'inventory');
+    } catch { return { read: true, add: true, update: true, delete: true }; }
+  })();
 
   // Read tab from URL on mount
   useEffect(() => {
@@ -113,38 +126,40 @@ export default function InventoryManagement() {
               Smart inventory management
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setShowSmartImport(true)}
-              style={{
-                padding: '10px 18px',
-                background: 'linear-gradient(135deg, #059669, #10b981)',
-                color: 'white', border: 'none', borderRadius: '10px',
-                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
-                transition: 'all 0.15s',
-              }}
-            >
-              <FaMagic size={14} />
-              Smart Import
-            </button>
-            <button
-              onClick={() => inventory.setShowQuickOrderModal(true)}
-              style={{
-                padding: '10px 18px',
-                background: 'linear-gradient(135deg, #059669, #10b981)',
-                color: 'white', border: 'none', borderRadius: '10px',
-                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
-                transition: 'all 0.15s',
-              }}
-            >
-              <FaClipboardList size={14} />
-              Log External Order
-            </button>
-          </div>
+          {permissions.add && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowSmartImport(true)}
+                style={{
+                  padding: '10px 18px',
+                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  color: 'white', border: 'none', borderRadius: '10px',
+                  fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <FaMagic size={14} />
+                Smart Import
+              </button>
+              <button
+                onClick={() => inventory.setShowQuickOrderModal(true)}
+                style={{
+                  padding: '10px 18px',
+                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  color: 'white', border: 'none', borderRadius: '10px',
+                  fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <FaClipboardList size={14} />
+                Log External Order
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Toast Messages */}
@@ -226,6 +241,7 @@ export default function InventoryManagement() {
             setActiveTab={handleTabChange}
             getStatusColor={inventory.getStatusColor}
             onLogWaste={() => waste.setShowQuickWasteModal(true)}
+            permissions={permissions}
           />
         )}
 
@@ -251,6 +267,7 @@ export default function InventoryManagement() {
             inventoryItems={inventory.inventoryItems}
             todayUsageSummary={inventory.todayUsageSummary}
             onViewHistory={inventory.handleViewHistory}
+            permissions={permissions}
           />
         )}
 
@@ -265,6 +282,7 @@ export default function InventoryManagement() {
             handleEditRecipe={inventory.handleEditRecipe}
             handleViewRecipe={inventory.handleViewRecipe}
             handleDeleteRecipe={inventory.handleDeleteRecipe}
+            permissions={permissions}
           />
         )}
 
@@ -319,6 +337,7 @@ export default function InventoryManagement() {
             loadingSuggestions={inventory.loadingSuggestions}
             selectedPOForGRN={inventory.selectedPOForGRN}
             setSelectedPOForGRN={inventory.setSelectedPOForGRN}
+            permissions={permissions}
           />
         )}
 
@@ -343,6 +362,7 @@ export default function InventoryManagement() {
             inventoryItems={inventory.inventoryItems}
             isMobile={isMobile}
             formatCurrency={formatCurrency}
+            permissions={permissions}
           />
         )}
       </div>

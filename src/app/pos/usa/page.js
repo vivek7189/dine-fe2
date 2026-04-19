@@ -46,6 +46,7 @@ export default function USAPOSPage() {
       'Month-to-month billing, no contracts',
     ],
     restaurants: 'independent',
+    deliveryPlatforms: 'Connect with DoorDash, Uber Eats & Grubhub',
     testimonial: null,
     localKeywords: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami', 'San Francisco', 'Seattle', 'Austin', 'Denver', 'Boston'],
     complianceInfo: [

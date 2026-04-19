@@ -37,6 +37,7 @@ export default function AustraliaPOSPage() {
     currency: 'AUD ',
     price: '39',
     restaurants: '70+',
+    deliveryPlatforms: 'Connect with Uber Eats, Menulog & DoorDash',
     highlights: [
       'GST-compliant billing for Australia',
       'Uber Eats & Menulog integration',

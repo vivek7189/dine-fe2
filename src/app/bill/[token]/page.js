@@ -231,7 +231,7 @@ export default function PublicBillPage() {
 
           {/* Footer */}
           <div style={{ padding: '16px 20px', borderTop: '1px dashed #e2e8f0', textAlign: 'center' }}>
-            <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#64748b' }}>Thank you for your visit! 🙏</p>
+            <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#64748b' }}>Thank you for your order! 🙏</p>
             {rest.phone && (
               <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Contact: {rest.phone}</p>
             )}

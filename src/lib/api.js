@@ -2948,6 +2948,7 @@ class ApiClient {
   getInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}`)); }
   getNextInvoiceNumber() { return this._invUnwrap(this.request('/api/invoice/invoices/next-number')); }
   createInvoice(data) { return this._invUnwrap(this.request('/api/invoice/invoices', { method: 'POST', body: data })); }
+  updateInvoice(id, data) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}`, { method: 'PATCH', body: data })); }
   sendInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}/send`, { method: 'POST' })); }
   voidInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}/void`, { method: 'POST' })); }
   deleteInvoice(id) { return this._invUnwrap(this.request(`/api/invoice/invoices/${id}`, { method: 'DELETE' })); }

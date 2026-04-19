@@ -206,6 +206,18 @@ const nextConfig = {
       'qsr-pos-software-quick-service-restaurant-guide',
       'best-epos-indian-takeaway-uk-2026',
       'free-qr-code-menu-uk-restaurants',
+      'best-restaurant-pos-canada-2026',
+      'best-restaurant-pos-australia-2026',
+      'how-to-open-restaurant-canada-2026',
+      'how-to-open-cafe-melbourne-sydney-2026',
+      'how-to-open-restaurant-dubai-2026',
+      'restaurant-vat-guide-uae-2026',
+      'best-pos-system-pubs-uk-2026',
+      'how-to-open-restaurant-uk-2026',
+      'restaurant-sales-tax-guide-usa-2026',
+      'tipping-guide-usa-canada-uk-2026',
+      'best-pos-food-truck-2026',
+      'qr-code-menu-complete-guide-2026',
     ];
 
     // Hindi static blog slugs (served as raw HTML files in public/hi/blog/)

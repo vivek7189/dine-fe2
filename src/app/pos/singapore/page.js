@@ -37,6 +37,7 @@ export default function SingaporePOSPage() {
     currency: 'SGD ',
     price: '49',
     restaurants: '100+',
+    deliveryPlatforms: 'Connect with GrabFood, Foodpanda & Deliveroo',
     highlights: [
       'GST-compliant billing for Singapore',
       'English, Mandarin, Malay, Tamil support',
