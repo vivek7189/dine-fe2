@@ -71,8 +71,9 @@ const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'P
               return (
                 <label key={it.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer', backgroundColor: isSel ? '#fdf2f8' : 'transparent' }}>
                   <input type="checkbox" checked={isSel} onChange={() => toggle(it.id)} style={{ accentColor: '#ec4899' }} />
-                  <span style={{ fontSize: '13px', color: '#1f2937' }}>{it.name}</span>
+                  <span style={{ fontSize: '13px', color: '#1f2937', flex: 1 }}>{it.name}</span>
                   {it._categoryName && <span style={{ fontSize: '10px', color: '#9ca3af' }}>· {it._categoryName}</span>}
+                  {it.price != null && <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '4px' }}>₹{it.price}</span>}
                 </label>
               );
             })}
@@ -247,10 +248,13 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     if (!id) return;
     try {
       const resp = await apiClient.getMenu(id);
-      // Flatten: menu may be categories with items, or an items array
+      // Flatten: API returns { menuItems: [...] } — each item has category field
       let items = [];
-      if (Array.isArray(resp?.items)) items = resp.items;
-      else if (Array.isArray(resp?.menu)) {
+      if (Array.isArray(resp?.menuItems)) {
+        items = resp.menuItems.map(it => ({ ...it, _categoryName: it.category || it.categoryName }));
+      } else if (Array.isArray(resp?.items)) {
+        items = resp.items;
+      } else if (Array.isArray(resp?.menu)) {
         resp.menu.forEach(cat => {
           if (Array.isArray(cat.items)) items.push(...cat.items.map(it => ({ ...it, _categoryName: cat.name || cat.category })));
         });
@@ -269,9 +273,12 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
   // Helper to get restaurantId from state, prop, or user object in localStorage
   const getRestaurantId = () => {
-    if (restaurantId) return restaurantId;
     if (propRestaurantId) return propRestaurantId;
-    // Try to get from user object in localStorage
+    if (restaurantId) return restaurantId;
+    // Try selected restaurant from localStorage first (multi-restaurant users)
+    const selectedId = typeof window !== 'undefined' ? localStorage.getItem('selectedRestaurantId') : null;
+    if (selectedId) return selectedId;
+    // Fallback: user object in localStorage
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
     const id = userData.restaurant?.id || userData.restaurantId;
     if (id) {
@@ -280,6 +287,14 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     }
     return null;
   };
+
+  // Reset menu cache when restaurant prop changes
+  useEffect(() => {
+    if (propRestaurantId) {
+      setMenuLoaded(false);
+      setMenuItems([]);
+    }
+  }, [propRestaurantId]);
 
   const saveOfferSettings = async () => {
     const currentRestaurantId = getRestaurantId();
@@ -1809,7 +1824,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, scope: opt.value }))}
+                      onClick={() => { setFormData(prev => ({ ...prev, scope: opt.value })); if (opt.value === 'item' || opt.value === 'category') ensureMenuLoaded(); }}
                       style={{
                         flex: 1,
                         padding: '10px',
@@ -1829,37 +1844,46 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               </div>
 
               {/* Target Categories */}
-              {formData.scope === 'category' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Target Categories (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={(formData.targetCategories || []).join(', ')}
-                    onChange={(e) => setFormData(prev => ({ ...prev, targetCategories: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
-                    style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-                    placeholder="e.g., Whiskey, Beer, Cocktails"
-                  />
-                </div>
-              )}
+              {formData.scope === 'category' && (() => {
+                const allCategories = [...new Set(menuItems.map(it => it.category || it._categoryName).filter(Boolean))];
+                const catItems = allCategories.map(c => ({ id: c, name: c }));
+                return (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                      Select Categories
+                    </label>
+                    <ItemMultiPicker
+                      items={catItems}
+                      selected={formData.targetCategories || []}
+                      onChange={(ids) => setFormData(prev => ({ ...prev, targetCategories: ids }))}
+                      placeholder="Search categories..."
+                    />
+                    {allCategories.length === 0 && (
+                      <p style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>
+                        Loading categories...
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Target Items */}
               {formData.scope === 'item' && (
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Target Item IDs (comma-separated)
+                    Select Menu Items
                   </label>
-                  <input
-                    type="text"
-                    value={(formData.targetItems || []).join(', ')}
-                    onChange={(e) => setFormData(prev => ({ ...prev, targetItems: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
-                    style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-                    placeholder="e.g., item_123, item_456"
+                  <ItemMultiPicker
+                    items={menuItems}
+                    selected={formData.targetItems || []}
+                    onChange={(ids) => setFormData(prev => ({ ...prev, targetItems: ids }))}
+                    placeholder="Search menu items..."
                   />
-                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
-                    Copy item IDs from your menu
-                  </p>
+                  {menuItems.length === 0 && (
+                    <p style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>
+                      Loading menu items...
+                    </p>
+                  )}
                 </div>
               )}
 

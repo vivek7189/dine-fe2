@@ -12,7 +12,6 @@ import {
   FaSignInAlt
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
-import RestaurantNameOnboarding from '../../components/RestaurantNameOnboarding';
 import { redirectToSubdomain } from '../../utils/subdomain';
 
 const LocalLogin = () => {
@@ -25,7 +24,6 @@ const LocalLogin = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showRestaurantOnboarding, setShowRestaurantOnboarding] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,11 +68,10 @@ const LocalLogin = () => {
         apiClient.setToken(data.token); // Stores in both cookie and localStorage
         apiClient.setUser(data.user); // Stores in both cookie and localStorage
         
-        // Handle first-time user experience (same as OTP login)
+        // Handle first-time user experience
         if (data.firstTimeUser || data.isNewUser) {
           console.log('🎉 First-time user detected!');
-          // Show restaurant name onboarding
-          setShowRestaurantOnboarding(true);
+          router.replace('/onboarding');
         } else {
           // Redirect existing users (same as OTP login)
           if (data.subdomainUrl) {
@@ -259,14 +256,6 @@ const LocalLogin = () => {
         </div>
       </div>
 
-      {/* Restaurant Name Onboarding Modal (same as regular login) */}
-      {showRestaurantOnboarding && (
-        <RestaurantNameOnboarding
-          isOpen={showRestaurantOnboarding}
-          onClose={() => setShowRestaurantOnboarding(false)}
-          user={null} // Will be loaded from localStorage
-        />
-      )}
     </div>
   );
 };

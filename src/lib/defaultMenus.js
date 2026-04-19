@@ -275,6 +275,96 @@ const qsrMenu = [
   { id: 'demo-qsr-36', name: 'Masala Lemonade', price: 50, category: 'Beverages', isVeg: true, description: 'Tangy lemonade with cumin and black salt', status: 'active', isDemo: true },
 ];
 
+const cloudKitchenMenu = [
+  // Biryani
+  { id: 'demo-ck-1', name: 'Chicken Dum Biryani', price: 250, category: 'Biryani', isVeg: false, description: 'Slow-cooked Hyderabadi dum biryani with tender chicken', status: 'active', isDemo: true },
+  { id: 'demo-ck-2', name: 'Mutton Biryani', price: 350, category: 'Biryani', isVeg: false, description: 'Aromatic mutton biryani with saffron and whole spices', status: 'active', isDemo: true },
+  { id: 'demo-ck-3', name: 'Veg Biryani', price: 180, category: 'Biryani', isVeg: true, description: 'Mixed vegetable biryani with fragrant basmati rice', status: 'active', isDemo: true },
+  { id: 'demo-ck-4', name: 'Egg Biryani', price: 200, category: 'Biryani', isVeg: false, description: 'Spiced egg biryani with caramelized onions', status: 'active', isDemo: true },
+  { id: 'demo-ck-5', name: 'Paneer Biryani', price: 220, category: 'Biryani', isVeg: true, description: 'Paneer cubes layered with mint rice and fried onions', status: 'active', isDemo: true },
+  { id: 'demo-ck-6', name: 'Chicken 65 Biryani', price: 280, category: 'Biryani', isVeg: false, description: 'Spicy chicken 65 pieces with fragrant biryani rice', status: 'active', isDemo: true },
+  // Bowls
+  { id: 'demo-ck-7', name: 'Butter Chicken Bowl', price: 220, category: 'Rice Bowls', isVeg: false, description: 'Creamy butter chicken served over steamed rice', status: 'active', isDemo: true },
+  { id: 'demo-ck-8', name: 'Paneer Tikka Bowl', price: 200, category: 'Rice Bowls', isVeg: true, description: 'Grilled paneer tikka with rice and mint chutney', status: 'active', isDemo: true },
+  { id: 'demo-ck-9', name: 'Rajma Chawal Bowl', price: 150, category: 'Rice Bowls', isVeg: true, description: 'Classic kidney bean curry with steamed rice', status: 'active', isDemo: true },
+  { id: 'demo-ck-10', name: 'Chicken Teriyaki Bowl', price: 240, category: 'Rice Bowls', isVeg: false, description: 'Teriyaki glazed chicken with rice and veggies', status: 'active', isDemo: true },
+  { id: 'demo-ck-11', name: 'Dal Makhani Bowl', price: 170, category: 'Rice Bowls', isVeg: true, description: 'Creamy black lentils served over jeera rice', status: 'active', isDemo: true },
+  { id: 'demo-ck-12', name: 'Egg Curry Bowl', price: 160, category: 'Rice Bowls', isVeg: false, description: 'Boiled eggs in spiced onion-tomato gravy with rice', status: 'active', isDemo: true },
+  // Wraps & Rolls
+  { id: 'demo-ck-13', name: 'Chicken Shawarma', price: 130, category: 'Wraps & Rolls', isVeg: false, description: 'Spiced chicken in pita with garlic sauce', status: 'active', isDemo: true },
+  { id: 'demo-ck-14', name: 'Paneer Kathi Roll', price: 110, category: 'Wraps & Rolls', isVeg: true, description: 'Grilled paneer with onions and chutney in paratha', status: 'active', isDemo: true },
+  { id: 'demo-ck-15', name: 'Chicken Tikka Roll', price: 130, category: 'Wraps & Rolls', isVeg: false, description: 'Tandoori chicken pieces with mint chutney in wrap', status: 'active', isDemo: true },
+  { id: 'demo-ck-16', name: 'Egg Roll', price: 80, category: 'Wraps & Rolls', isVeg: false, description: 'Egg paratha roll with onions and green chutney', status: 'active', isDemo: true },
+  { id: 'demo-ck-17', name: 'Falafel Wrap', price: 120, category: 'Wraps & Rolls', isVeg: true, description: 'Crispy falafel with hummus and pickled veggies', status: 'active', isDemo: true },
+  { id: 'demo-ck-18', name: 'Double Chicken Roll', price: 160, category: 'Wraps & Rolls', isVeg: false, description: 'Loaded chicken roll with extra filling and cheese', status: 'active', isDemo: true },
+  // Thali
+  { id: 'demo-ck-19', name: 'Veg Thali', price: 180, category: 'Thali & Combos', isVeg: true, description: 'Dal, sabzi, rice, roti, raita, pickle and sweet', status: 'active', isDemo: true },
+  { id: 'demo-ck-20', name: 'Non-Veg Thali', price: 250, category: 'Thali & Combos', isVeg: false, description: 'Chicken curry, dal, rice, roti, raita and sweet', status: 'active', isDemo: true },
+  { id: 'demo-ck-21', name: 'South Indian Thali', price: 160, category: 'Thali & Combos', isVeg: true, description: 'Sambar, rasam, rice, poriyal, curd and papad', status: 'active', isDemo: true },
+  { id: 'demo-ck-22', name: 'Burger + Fries Combo', price: 200, category: 'Thali & Combos', isVeg: false, description: 'Chicken burger with fries and a cold drink', status: 'active', isDemo: true },
+  { id: 'demo-ck-23', name: 'Biryani + Kebab Combo', price: 320, category: 'Thali & Combos', isVeg: false, description: 'Half biryani with 2 seekh kebabs and raita', status: 'active', isDemo: true },
+  { id: 'demo-ck-24', name: 'Pasta + Garlic Bread', price: 220, category: 'Thali & Combos', isVeg: true, description: 'Penne pasta with cheesy garlic bread', status: 'active', isDemo: true },
+  // Starters
+  { id: 'demo-ck-25', name: 'Chicken Wings (8 pcs)', price: 220, category: 'Starters', isVeg: false, description: 'Crispy wings tossed in hot sauce', status: 'active', isDemo: true },
+  { id: 'demo-ck-26', name: 'Paneer 65', price: 180, category: 'Starters', isVeg: true, description: 'Crispy paneer cubes in spicy masala', status: 'active', isDemo: true },
+  { id: 'demo-ck-27', name: 'Momos (8 pcs)', price: 120, category: 'Starters', isVeg: true, description: 'Steamed veg momos with spicy chutney', status: 'active', isDemo: true },
+  { id: 'demo-ck-28', name: 'Chicken Momos (8 pcs)', price: 140, category: 'Starters', isVeg: false, description: 'Steamed chicken momos with schezwan sauce', status: 'active', isDemo: true },
+  { id: 'demo-ck-29', name: 'French Fries', price: 100, category: 'Starters', isVeg: true, description: 'Crispy golden fries with peri-peri seasoning', status: 'active', isDemo: true },
+  { id: 'demo-ck-30', name: 'Tandoori Chicken (Half)', price: 280, category: 'Starters', isVeg: false, description: 'Charcoal-grilled chicken marinated in yogurt spices', status: 'active', isDemo: true },
+  // Beverages
+  { id: 'demo-ck-31', name: 'Coca-Cola', price: 50, category: 'Beverages', isVeg: true, description: 'Chilled cola - 300ml', status: 'active', isDemo: true },
+  { id: 'demo-ck-32', name: 'Mango Lassi', price: 80, category: 'Beverages', isVeg: true, description: 'Thick mango yogurt smoothie', status: 'active', isDemo: true },
+  { id: 'demo-ck-33', name: 'Masala Chaas', price: 40, category: 'Beverages', isVeg: true, description: 'Spiced buttermilk with cumin and mint', status: 'active', isDemo: true },
+  { id: 'demo-ck-34', name: 'Fresh Lime Soda', price: 60, category: 'Beverages', isVeg: true, description: 'Lime with soda water, sweet or salted', status: 'active', isDemo: true },
+  { id: 'demo-ck-35', name: 'Cold Coffee', price: 100, category: 'Beverages', isVeg: true, description: 'Chilled blended coffee with ice cream', status: 'active', isDemo: true },
+  { id: 'demo-ck-36', name: 'Mineral Water', price: 20, category: 'Beverages', isVeg: true, description: 'Packaged drinking water - 1L', status: 'active', isDemo: true },
+];
+
+const hotelMenu = [
+  // Breakfast
+  { id: 'demo-ht-1', name: 'Continental Breakfast', price: 450, category: 'Breakfast', isVeg: false, description: 'Eggs any style, toast, sausage, hash brown, juice and coffee', status: 'active', isDemo: true },
+  { id: 'demo-ht-2', name: 'Indian Breakfast', price: 350, category: 'Breakfast', isVeg: true, description: 'Poha, upma, idli-sambar, paratha, chai and juice', status: 'active', isDemo: true },
+  { id: 'demo-ht-3', name: 'Pancake Stack', price: 280, category: 'Breakfast', isVeg: true, description: 'Fluffy pancakes with maple syrup and fresh berries', status: 'active', isDemo: true },
+  { id: 'demo-ht-4', name: 'Masala Omelette', price: 180, category: 'Breakfast', isVeg: false, description: 'Three-egg omelette with onions, tomatoes and green chillies', status: 'active', isDemo: true },
+  { id: 'demo-ht-5', name: 'Fresh Fruit Platter', price: 250, category: 'Breakfast', isVeg: true, description: 'Seasonal fresh fruits with honey and yogurt', status: 'active', isDemo: true },
+  { id: 'demo-ht-6', name: 'Eggs Benedict', price: 350, category: 'Breakfast', isVeg: false, description: 'Poached eggs with hollandaise on English muffin', status: 'active', isDemo: true },
+  // Main Course
+  { id: 'demo-ht-7', name: 'Butter Chicken', price: 380, category: 'Main Course', isVeg: false, description: 'Tender chicken in rich buttery tomato gravy', status: 'active', isDemo: true },
+  { id: 'demo-ht-8', name: 'Paneer Butter Masala', price: 320, category: 'Main Course', isVeg: true, description: 'Cottage cheese in creamy tomato-cashew gravy', status: 'active', isDemo: true },
+  { id: 'demo-ht-9', name: 'Grilled Chicken Breast', price: 450, category: 'Main Course', isVeg: false, description: 'Herb-marinated chicken with mashed potatoes and vegetables', status: 'active', isDemo: true },
+  { id: 'demo-ht-10', name: 'Fish & Chips', price: 420, category: 'Main Course', isVeg: false, description: 'Beer-battered fish with crispy fries and tartare sauce', status: 'active', isDemo: true },
+  { id: 'demo-ht-11', name: 'Pasta Alfredo', price: 350, category: 'Main Course', isVeg: true, description: 'Penne in creamy parmesan sauce with garlic bread', status: 'active', isDemo: true },
+  { id: 'demo-ht-12', name: 'Mutton Rogan Josh', price: 480, category: 'Main Course', isVeg: false, description: 'Kashmiri-style lamb in aromatic spiced gravy', status: 'active', isDemo: true },
+  // Room Service Specials
+  { id: 'demo-ht-13', name: 'Club Sandwich + Fries', price: 320, category: 'Room Service', isVeg: false, description: 'Triple-decker chicken club sandwich with fries', status: 'active', isDemo: true },
+  { id: 'demo-ht-14', name: 'Margherita Pizza', price: 350, category: 'Room Service', isVeg: true, description: 'Classic pizza with tomato sauce, mozzarella and basil', status: 'active', isDemo: true },
+  { id: 'demo-ht-15', name: 'Chicken Biryani', price: 350, category: 'Room Service', isVeg: false, description: 'Aromatic chicken dum biryani with raita', status: 'active', isDemo: true },
+  { id: 'demo-ht-16', name: 'Dal Makhani + Naan', price: 280, category: 'Room Service', isVeg: true, description: 'Creamy black lentils with butter naan', status: 'active', isDemo: true },
+  { id: 'demo-ht-17', name: 'Chicken Fried Rice', price: 280, category: 'Room Service', isVeg: false, description: 'Wok-tossed rice with chicken, eggs and vegetables', status: 'active', isDemo: true },
+  { id: 'demo-ht-18', name: 'Cheese Garlic Bread', price: 180, category: 'Room Service', isVeg: true, description: 'Toasted bread with melted cheese and garlic butter', status: 'active', isDemo: true },
+  // Soups & Starters
+  { id: 'demo-ht-19', name: 'Cream of Mushroom Soup', price: 220, category: 'Soups & Starters', isVeg: true, description: 'Rich and creamy mushroom soup with croutons', status: 'active', isDemo: true },
+  { id: 'demo-ht-20', name: 'Chicken Hot & Sour Soup', price: 200, category: 'Soups & Starters', isVeg: false, description: 'Spicy and tangy chicken soup with vegetables', status: 'active', isDemo: true },
+  { id: 'demo-ht-21', name: 'Caesar Salad', price: 280, category: 'Soups & Starters', isVeg: false, description: 'Romaine lettuce with caesar dressing and croutons', status: 'active', isDemo: true },
+  { id: 'demo-ht-22', name: 'Paneer Tikka', price: 280, category: 'Soups & Starters', isVeg: true, description: 'Tandoori-grilled cottage cheese with mint chutney', status: 'active', isDemo: true },
+  { id: 'demo-ht-23', name: 'Chicken Seekh Kebab', price: 320, category: 'Soups & Starters', isVeg: false, description: 'Minced chicken skewers grilled to perfection', status: 'active', isDemo: true },
+  { id: 'demo-ht-24', name: 'Spring Rolls (4 pcs)', price: 200, category: 'Soups & Starters', isVeg: true, description: 'Crispy rolls with mixed vegetable filling', status: 'active', isDemo: true },
+  // Desserts
+  { id: 'demo-ht-25', name: 'Tiramisu', price: 300, category: 'Desserts', isVeg: true, description: 'Italian coffee-flavoured layered dessert', status: 'active', isDemo: true },
+  { id: 'demo-ht-26', name: 'Gulab Jamun', price: 150, category: 'Desserts', isVeg: true, description: 'Warm milk-solid dumplings in rose sugar syrup', status: 'active', isDemo: true },
+  { id: 'demo-ht-27', name: 'Chocolate Brownie', price: 220, category: 'Desserts', isVeg: true, description: 'Warm brownie with vanilla ice cream', status: 'active', isDemo: true },
+  { id: 'demo-ht-28', name: 'Fruit Custard', price: 180, category: 'Desserts', isVeg: true, description: 'Creamy vanilla custard with seasonal fruits', status: 'active', isDemo: true },
+  { id: 'demo-ht-29', name: 'Ice Cream Sundae', price: 200, category: 'Desserts', isVeg: true, description: 'Vanilla and chocolate with hot fudge and nuts', status: 'active', isDemo: true },
+  { id: 'demo-ht-30', name: 'Rasmalai', price: 160, category: 'Desserts', isVeg: true, description: 'Soft cottage cheese discs in saffron-cardamom milk', status: 'active', isDemo: true },
+  // Beverages
+  { id: 'demo-ht-31', name: 'Cappuccino', price: 180, category: 'Beverages', isVeg: true, description: 'Espresso with steamed milk foam', status: 'active', isDemo: true },
+  { id: 'demo-ht-32', name: 'Fresh Orange Juice', price: 150, category: 'Beverages', isVeg: true, description: 'Freshly squeezed orange juice', status: 'active', isDemo: true },
+  { id: 'demo-ht-33', name: 'Masala Chai', price: 80, category: 'Beverages', isVeg: true, description: 'Traditional Indian spiced tea', status: 'active', isDemo: true },
+  { id: 'demo-ht-34', name: 'Virgin Mojito', price: 200, category: 'Beverages', isVeg: true, description: 'Refreshing mint and lime with soda', status: 'active', isDemo: true },
+  { id: 'demo-ht-35', name: 'Mango Lassi', price: 120, category: 'Beverages', isVeg: true, description: 'Thick mango yogurt smoothie', status: 'active', isDemo: true },
+  { id: 'demo-ht-36', name: 'Mineral Water (1L)', price: 50, category: 'Beverages', isVeg: true, description: 'Packaged drinking water', status: 'active', isDemo: true },
+];
+
 const defaultMenusByType = {
   restaurant: restaurantMenu,
   bar: barMenu,
@@ -282,12 +372,14 @@ const defaultMenusByType = {
   ice_cream: iceCreamMenu,
   cafe: cafeMenu,
   qsr: qsrMenu,
+  cloud_kitchen: cloudKitchenMenu,
+  hotel: hotelMenu,
 };
 
 /**
  * Get default menu items for a given business type.
  * Returns items with isDemo: true flag.
- * @param {string} businessType - restaurant, bar, bakery, ice_cream, cafe, qsr
+ * @param {string} businessType - restaurant, bar, bakery, ice_cream, cafe, qsr, cloud_kitchen, hotel
  * @returns {Array} menu items
  */
 export function getDefaultMenu(businessType) {

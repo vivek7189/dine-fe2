@@ -25,7 +25,6 @@ import {
 } from 'firebase/auth';
 import apiClient from '../../lib/api';
 import { t } from '../../lib/i18n';
-import RestaurantNameOnboarding from '../../components/RestaurantNameOnboarding';
 import { redirectToSubdomain } from '../../utils/subdomain';
 import { prefetchDashboardInBackground } from '../../utils/dashboardCache';
 
@@ -273,8 +272,6 @@ const Login = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [isFirebaseOTP, setIsFirebaseOTP] = useState(false);
 
-  // Restaurant onboarding state
-  const [showRestaurantOnboarding, setShowRestaurantOnboarding] = useState(false);
 
   // Demo auto-login state
   const [demoAutoLoginTriggered, setDemoAutoLoginTriggered] = useState(false);
@@ -720,8 +717,7 @@ const Login = () => {
           // Handle first-time user experience
           if (firebaseData.firstTimeUser) {
             console.log('🎉 First-time user detected!');
-            // Show restaurant name onboarding
-            setShowRestaurantOnboarding(true);
+            router.replace('/onboarding');
           } else {
             // Redirect existing users
             if (firebaseData.subdomainUrl) {
@@ -773,8 +769,7 @@ const Login = () => {
           // Handle first-time user experience
           if (data.firstTimeUser) {
             console.log('🎉 First-time phone user detected!');
-            // Show restaurant name onboarding
-            setShowRestaurantOnboarding(true);
+            router.replace('/onboarding');
           } else {
             // Redirect existing users
             if (data.subdomainUrl) {
@@ -826,18 +821,6 @@ const Login = () => {
     setAutoSubmitTriggered(false); // Reset auto-submit state
   };
 
-  // Restaurant onboarding handlers
-  const handleRestaurantOnboardingComplete = (restaurant) => {
-    console.log('✅ Restaurant created:', restaurant);
-    setShowRestaurantOnboarding(false);
-    router.replace(getRefRedirectPath());
-  };
-
-  const handleRestaurantOnboardingSkip = () => {
-    console.log('⏭️ Restaurant onboarding skipped');
-    setShowRestaurantOnboarding(false);
-    router.replace(getRefRedirectPath());
-  };
 
   // Email/Password Registration
   const handleEmailRegister = async (e) => {
@@ -950,7 +933,7 @@ const Login = () => {
         triggerDashboardPrefetch();
 
         if (registerData.firstTimeUser) {
-          setShowRestaurantOnboarding(true);
+          router.replace('/onboarding');
         } else {
           router.replace(registerData.redirectTo || getRefRedirectPath());
         }
@@ -1147,8 +1130,7 @@ const Login = () => {
         // Handle first-time user experience
         if (googleData.firstTimeUser) {
           console.log('🎉 First-time Google user detected!');
-          // Show restaurant name onboarding
-          setShowRestaurantOnboarding(true);
+          router.replace('/onboarding');
         } else {
           // For existing users, fetch restaurants if they have any
           if (googleData.hasRestaurants) {
@@ -2900,14 +2882,6 @@ const Login = () => {
       {/* Hidden reCAPTCHA container */}
       <div id="recaptcha-container" style={{ display: 'none' }}></div>
       
-      {/* Restaurant Name Onboarding Modal */}
-      {showRestaurantOnboarding && (
-        <RestaurantNameOnboarding
-          onComplete={handleRestaurantOnboardingComplete}
-          onSkip={handleRestaurantOnboardingSkip}
-          selectedCountryCode={selectedCountry?.code || 'IN'}
-        />
-      )}
     </div>
   );  
 };

@@ -9,10 +9,127 @@ import {
   FaFire, FaReceipt, FaPlus, FaShoppingCart,
   FaChartLine, FaArrowRight, FaStore,
   FaClock, FaUsers, FaCircle, FaStar,
-  FaHashtag, FaTrophy
+  FaHashtag, FaTrophy, FaRocket
 } from 'react-icons/fa';
 import { useLoading } from '../../../contexts/LoadingContext';
 import apiClient from '../../../lib/api';
+
+// ─── Onboarding Checklist Widget ─────────────────────────────
+function OnboardingChecklist({ onDismiss }) {
+  const router = useRouter();
+  const [checklist, setChecklist] = useState(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('onboardingChecklist');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      // Auto-dismiss after 14 days
+      if (data.completedAt) {
+        const daysSince = (Date.now() - data.completedAt) / (1000 * 60 * 60 * 24);
+        if (daysSince > 14) { localStorage.removeItem('onboardingChecklist'); return; }
+      }
+      setChecklist(data);
+    } catch {}
+  }, []);
+
+  if (!checklist || dismissed) return null;
+
+  const items = [
+    { key: 'account', label: 'Account created', done: true },
+    { key: 'businessType', label: `${checklist.businessType ? checklist.businessType.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Business type'} selected`, done: !!checklist.businessType },
+    { key: 'restaurant', label: 'Restaurant details saved', done: !!checklist.restaurantName },
+    { key: 'features', label: 'Features configured', done: checklist.featuresConfigured },
+    { key: 'menu', label: `Menu loaded${checklist.menuItemCount ? ` (${checklist.menuItemCount} items)` : ''}`, done: checklist.menuSetup },
+    { key: 'firstOrder', label: 'Take your first order', done: false, href: '/dashboard' },
+    { key: 'printer', label: 'Set up a printer', done: false, href: '/admin?tab=print' },
+    { key: 'staff', label: 'Invite a staff member', done: false, href: '/admin?tab=staff' },
+  ];
+
+  const completedCount = items.filter(i => i.done).length;
+  const progress = Math.round((completedCount / items.length) * 100);
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    localStorage.removeItem('onboardingChecklist');
+    if (onDismiss) onDismiss();
+  };
+
+  return (
+    <div style={{
+      background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)', padding: '20px 24px',
+      marginBottom: '20px', position: 'relative',
+    }}>
+      <style>{`
+        @keyframes checkIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .checklist-check { animation: checkIn 0.3s ease forwards; }
+      `}</style>
+
+      {/* Dismiss button */}
+      <button onClick={handleDismiss} style={{
+        position: 'absolute', top: '12px', right: '12px',
+        background: 'none', border: 'none', cursor: 'pointer',
+        fontSize: '18px', color: '#94a3b8', lineHeight: 1,
+      }} title="Dismiss">&times;</button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+        <FaRocket size={16} color="#ef4444" />
+        <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Setup Progress</span>
+        <span style={{
+          fontSize: '12px', fontWeight: '700', padding: '2px 10px', borderRadius: '10px',
+          background: progress === 100 ? '#ecfdf5' : '#fef3c7',
+          color: progress === 100 ? '#059669' : '#d97706',
+          marginLeft: 'auto',
+        }}>{progress}%</span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ background: '#f1f5f9', borderRadius: '4px', height: '6px', marginBottom: '16px', overflow: 'hidden' }}>
+        <div style={{
+          width: `${progress}%`, height: '100%',
+          background: 'linear-gradient(90deg, #ef4444, #f97316)',
+          borderRadius: '4px', transition: 'width 0.5s ease',
+        }} />
+      </div>
+
+      {/* Checklist items */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
+        {items.map((item) => (
+          <div
+            key={item.key}
+            onClick={() => { if (!item.done && item.href) router.push(item.href); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 10px', borderRadius: '8px',
+              background: item.done ? '#f0fdf4' : '#f8fafc',
+              cursor: !item.done && item.href ? 'pointer' : 'default',
+              transition: 'background 0.15s',
+            }}
+          >
+            <div className={item.done ? 'checklist-check' : ''} style={{
+              width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: item.done ? '#10b981' : '#e2e8f0',
+              color: 'white', fontSize: '10px',
+            }}>
+              {item.done ? '✓' : ''}
+            </div>
+            <span style={{
+              fontSize: '13px', fontWeight: item.done ? '500' : '600',
+              color: item.done ? '#6b7280' : '#1f2937',
+              textDecoration: item.done ? 'line-through' : 'none',
+            }}>{item.label}</span>
+            {!item.done && item.href && (
+              <FaArrowRight size={10} color="#94a3b8" style={{ marginLeft: 'auto' }} />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Dynamically import HQ content (only loaded for owner/admin)
 const HeadquartersContent = dynamic(
@@ -178,7 +295,17 @@ export default function HomePage() {
 
   // Owner/Admin: render the full Headquarters dashboard
   if (isOwnerOrAdmin) {
-    return <HeadquartersContent embedded />;
+    const hasChecklist = typeof window !== 'undefined' && localStorage.getItem('onboardingChecklist');
+    return (
+      <>
+        {hasChecklist && (
+          <div style={{ padding: '20px 20px 0' }}>
+            <OnboardingChecklist />
+          </div>
+        )}
+        <HeadquartersContent embedded />
+      </>
+    );
   }
 
   // Other roles: simplified home page with quick actions + recent data

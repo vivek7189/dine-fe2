@@ -311,8 +311,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   });
   const [selectedOfferId, setSelectedOfferIdInternal] = useState(null);
   const [selectedOfferIds, setSelectedOfferIdsInternal] = useState([]);
-  const [offerDiscount, setOfferDiscount] = useState(0);
-  const [selectedOfferName, setSelectedOfferName] = useState('');
+  // offerDiscount & selectedOfferName are now derived via useMemo (see below)
+  // to avoid stale-state timing bugs in billing calculations
   const [isLoadingOffers, setIsLoadingOffers] = useState(false);
   const [autoApplied, setAutoApplied] = useState(false);
   const [firstOrderOfferRejected, setFirstOrderOfferRejected] = useState(false);
@@ -541,8 +541,9 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     return all;
   }, [selectedOfferId, selectedOfferIds, allOffers, subtotal, cart, offerSettings.allowMultipleOffers, resolvedContext]);
 
-  // Update discount when selected offers or subtotal changes
-  useEffect(() => {
+  // Derive discount & name synchronously (useMemo) to avoid stale-state
+  // timing bugs where offerDiscount updates but grandTotal hasn't recalculated yet
+  const { offerDiscount, selectedOfferName } = useMemo(() => {
     // Multi-offer mode
     if (offerSettings.allowMultipleOffers && selectedOfferIds.length > 0) {
       let totalDisc = 0;
@@ -556,28 +557,21 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       }
       // Cap combined discount at subtotal
       totalDisc = Math.min(totalDisc, subtotal);
-      setOfferDiscount(Math.round(totalDisc * 100) / 100);
-      setSelectedOfferName(names.join(', '));
-      return;
+      return { offerDiscount: Math.round(totalDisc * 100) / 100, selectedOfferName: names.join(', ') };
     }
 
     // Single offer mode
     if (!selectedOfferId) {
-      setOfferDiscount(0);
-      setSelectedOfferName('');
-      return;
+      return { offerDiscount: 0, selectedOfferName: '' };
     }
 
     const offer = allOffers.find(o => (o.id || o._id) === selectedOfferId);
     if (!offer) {
-      setOfferDiscount(0);
-      setSelectedOfferName('');
-      return;
+      return { offerDiscount: 0, selectedOfferName: '' };
     }
 
-    setSelectedOfferName(offer.name);
     const disc = calculateDiscountForOffer(offer, subtotal, cart);
-    setOfferDiscount(disc);
+    return { offerDiscount: disc, selectedOfferName: offer.name };
   }, [selectedOfferId, selectedOfferIds, subtotal, cart, allOffers, offerSettings.allowMultipleOffers]);
 
   // Auto-apply best offer(s)
@@ -643,8 +637,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     const offer = allOffers.find(o => (o.id || o._id) === selectedOfferId);
     if (offer?.isFirstOrderOnly && customerInfo.isFirstOrder === false) {
       setSelectedOfferIdInternal(null);
-      setOfferDiscount(0);
-      setSelectedOfferName('');
+      // offerDiscount & selectedOfferName auto-derive to 0/'' via useMemo
       setAutoApplied(false);
       setFirstOrderOfferRejected(true);
       wasManuallySelectedRef.current = false;
@@ -658,8 +651,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     if (cart.length === 0 && (selectedOfferId || selectedOfferIds.length > 0)) {
       setSelectedOfferIdInternal(null);
       setSelectedOfferIdsInternal([]);
-      setOfferDiscount(0);
-      setSelectedOfferName('');
+      // offerDiscount & selectedOfferName auto-derive to 0/'' via useMemo
       setAutoApplied(false);
       wasManuallySelectedRef.current = false;
     }
@@ -707,8 +699,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   const resetOffers = useCallback(() => {
     setSelectedOfferIdInternal(null);
     setSelectedOfferIdsInternal([]);
-    setOfferDiscount(0);
-    setSelectedOfferName('');
+    // offerDiscount & selectedOfferName auto-derive to 0/'' via useMemo
     setAutoApplied(false);
     setFirstOrderOfferRejected(false);
     wasManuallySelectedRef.current = false;

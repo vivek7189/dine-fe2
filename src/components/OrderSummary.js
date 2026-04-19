@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
@@ -561,9 +561,10 @@ const OrderSummary = ({
 
   }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, tipAmount, calcServiceCharge, calcRoundOff]);
   
-  // Calculate tax when cart changes
-  useEffect(() => {
-    console.log('useEffect triggered - cart length:', cart.length, 'restaurantId:', restaurantId, 'taxSettings:', taxSettings);
+  // Calculate tax when cart changes — useLayoutEffect ensures billing totals
+  // are recalculated synchronously before paint, preventing stale grandTotal
+  // when offerDiscount changes (avoids showing discount but wrong total)
+  useLayoutEffect(() => {
     if (cart.length > 0 && restaurantId && taxSettings) {
       calculateTax();
     } else {
