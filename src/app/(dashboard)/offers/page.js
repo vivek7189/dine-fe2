@@ -159,6 +159,11 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [addPhoneInput, setAddPhoneInput] = useState('');
   const [addingMember, setAddingMember] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name } of offer pending delete
+  const [deleting, setDeleting] = useState(false);
+  const [togglingId, setTogglingId] = useState(null); // offer.id currently being toggled
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(null); // { id, name } of group pending delete
+  const [deletingGroup, setDeletingGroup] = useState(false);
   const [offerErrors, setOfferErrors] = useState({
     maxOffersAllowed: '',
     discountValue: '',
@@ -433,20 +438,23 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   };
 
   const handleDelete = async (offerId) => {
-    if (!confirm('Are you sure you want to delete this offer?')) return;
-
     const currentRestaurantId = getRestaurantId();
     if (!currentRestaurantId) {
       showError('No restaurant selected. Please select a restaurant first.');
       return;
     }
 
+    setDeleting(true);
     try {
       await apiClient.delete(`/api/offers/${currentRestaurantId}/${offerId}`);
       await loadOffers(currentRestaurantId);
+      showSuccess('Offer deleted successfully');
     } catch (error) {
       console.error('Error deleting offer:', error);
       showError('Failed to delete offer');
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
     }
   };
 
@@ -457,14 +465,19 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       return;
     }
 
+    setTogglingId(offer.id);
     try {
       await apiClient.put(`/api/offers/${currentRestaurantId}/${offer.id}`, {
         ...offer,
         isActive: !offer.isActive
       });
       await loadOffers(currentRestaurantId);
+      showSuccess(offer.isActive ? 'Offer deactivated' : 'Offer activated');
     } catch (error) {
       console.error('Error toggling offer:', error);
+      showError('Failed to update offer status');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -656,14 +669,19 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     }
   };
 
-  const deleteGroup = async (group) => {
-    if (!confirm(`Delete group "${group.name}"?`)) return;
+  const deleteGroup = async (groupId) => {
     const id = getRestaurantId();
+    setDeletingGroup(true);
     try {
-      await apiClient.request(`/api/customer-groups/${id}/${group.id}`, { method: 'DELETE' });
-      setCustomerGroups(prev => prev.filter(g => g.id !== group.id));
+      await apiClient.request(`/api/customer-groups/${id}/${groupId}`, { method: 'DELETE' });
+      setCustomerGroups(prev => prev.filter(g => g.id !== groupId));
+      showSuccess('Group deleted successfully');
     } catch (err) {
       console.error('Error deleting group:', err);
+      showError('Failed to delete group');
+    } finally {
+      setDeletingGroup(false);
+      setDeleteGroupConfirm(null);
     }
   };
 
@@ -735,6 +753,126 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         <style dangerouslySetInnerHTML={{ __html: `
           input, textarea, select { font-size: 16px !important; }
         ` }} />
+      )}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes offerSpin { to { transform: rotate(360deg); } }
+        @keyframes offerModalIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+      ` }} />
+
+      {/* Delete Offer Confirmation Modal */}
+      {deleteConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 1000,
+          padding: isMobile ? '0' : '20px',
+        }} onClick={() => !deleting && setDeleteConfirm(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            backgroundColor: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+            padding: isMobile ? '20px 16px 28px' : '28px', width: isMobile ? '100%' : '380px',
+            maxWidth: '420px', animation: 'offerModalIn 0.2s ease-out',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fee2e2',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
+              }}>
+                <FaTrash size={18} color="#dc2626" />
+              </div>
+              <h3 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: '700', color: '#1f2937' }}>Delete Offer</h3>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
+                Are you sure you want to delete <strong>&ldquo;{deleteConfirm.name}&rdquo;</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #e5e7eb',
+                  backgroundColor: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#374151',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm.id)}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', border: 'none',
+                  backgroundColor: '#dc2626', color: 'white', fontSize: '14px', fontWeight: '600',
+                  cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                }}
+              >
+                {deleting ? (
+                  <>
+                    <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'offerSpin 0.7s linear infinite' }} />
+                    Deleting...
+                  </>
+                ) : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Group Confirmation Modal */}
+      {deleteGroupConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 1000,
+          padding: isMobile ? '0' : '20px',
+        }} onClick={() => !deletingGroup && setDeleteGroupConfirm(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            backgroundColor: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+            padding: isMobile ? '20px 16px 28px' : '28px', width: isMobile ? '100%' : '380px',
+            maxWidth: '420px', animation: 'offerModalIn 0.2s ease-out',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fee2e2',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
+              }}>
+                <FaTrash size={18} color="#dc2626" />
+              </div>
+              <h3 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: '700', color: '#1f2937' }}>Delete Group</h3>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
+                Are you sure you want to delete <strong>&ldquo;{deleteGroupConfirm.name}&rdquo;</strong>? Members won&apos;t be deleted.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeleteGroupConfirm(null)}
+                disabled={deletingGroup}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #e5e7eb',
+                  backgroundColor: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#374151',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteGroup(deleteGroupConfirm.id)}
+                disabled={deletingGroup}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px', border: 'none',
+                  backgroundColor: '#dc2626', color: 'white', fontSize: '14px', fontWeight: '600',
+                  cursor: deletingGroup ? 'not-allowed' : 'pointer', opacity: deletingGroup ? 0.7 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                }}
+              >
+                {deletingGroup ? (
+                  <>
+                    <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'offerSpin 0.7s linear infinite' }} />
+                    Deleting...
+                  </>
+                ) : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {view === 'list' && (
@@ -899,7 +1037,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         <FaEdit size={12} />
                       </button>
                       <button
-                        onClick={() => deleteGroup(g)}
+                        onClick={() => setDeleteGroupConfirm({ id: g.id, name: g.name })}
                         style={{ background: '#fef2f2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#dc2626' }}
                       >
                         <FaTrash size={12} />
@@ -1077,9 +1215,24 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   padding: isMobile ? '12px' : '20px',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                   border: offer.isActive ? '2px solid #10b981' : '1px solid #e5e7eb',
-                  opacity: offer.isActive ? 1 : 0.7
+                  opacity: offer.isActive ? 1 : 0.7,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
                 }}
               >
+                {togglingId === offer.id && (
+                  <div style={{
+                    position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.75)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5,
+                    borderRadius: 'inherit', backdropFilter: 'blur(2px)',
+                  }}>
+                    <div style={{
+                      width: '28px', height: '28px', border: '3px solid #e5e7eb', borderTopColor: '#10b981',
+                      borderRadius: '50%', animation: 'offerSpin 0.7s linear infinite',
+                    }} />
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
@@ -1243,7 +1396,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                       <FaEdit color="#6b7280" />
                     </button>
                     <button
-                      onClick={() => handleDelete(offer.id)}
+                      onClick={() => setDeleteConfirm({ id: offer.id, name: offer.name })}
                       style={{
                         padding: '8px',
                         backgroundColor: '#fee2e2',

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import Pusher from 'pusher-js';
 import apiClient from '../lib/api';
 
 /**
@@ -436,6 +437,43 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
     loadOffers();
   }, [restaurantId]); // Only re-fetch when restaurant changes
+
+  // Pusher: real-time offer sync — re-fetch when offers are created/updated/deleted
+  useEffect(() => {
+    if (!restaurantId) return;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
+    });
+
+    const channel = pusher.subscribe(`restaurant-${restaurantId}`);
+
+    let debounceTimer = null;
+    channel.bind('offer-updated', () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        try {
+          let offersResponse;
+          try {
+            offersResponse = await apiClient.getActiveOffersForPOS(restaurantId, customerInfo?.isFirstOrder);
+          } catch (e) {
+            offersResponse = await apiClient.getActiveOffers(restaurantId, customerInfo?.isFirstOrder);
+          }
+          const offers = (offersResponse.offers || offersResponse || []).filter(o => o.isActive !== false);
+          setAllOffers(offers);
+        } catch (err) {
+          console.error('[useOfferEngine] Pusher re-fetch failed:', err);
+        }
+      }, 1000);
+    });
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      channel.unbind_all();
+      pusher.unsubscribe(`restaurant-${restaurantId}`);
+      pusher.disconnect();
+    };
+  }, [restaurantId]);
 
   // Re-fetch offers when customerInfo.isFirstOrder changes (to filter first-order-only)
   useEffect(() => {

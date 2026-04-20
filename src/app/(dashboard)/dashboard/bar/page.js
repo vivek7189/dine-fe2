@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Pusher from 'pusher-js';
 import apiClient from '../../../../lib/api';
 import { t } from '../../../../lib/i18n';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
@@ -165,6 +166,30 @@ function BarPOSContent() {
     loadPrintSettings(selectedRestaurant.id);
     fetchOpenTabs(selectedRestaurant.id);
     loadLoyaltyAndOffers(selectedRestaurant.id);
+  }, [selectedRestaurant?.id]);
+
+  // Pusher: real-time offer sync
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+    const rid = selectedRestaurant.id;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
+    });
+    const channel = pusher.subscribe(`restaurant-${rid}`);
+
+    let debounceTimer = null;
+    channel.bind('offer-updated', () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadLoyaltyAndOffers(rid), 1000);
+    });
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      channel.unbind_all();
+      pusher.unsubscribe(`restaurant-${rid}`);
+      pusher.disconnect();
+    };
   }, [selectedRestaurant?.id]);
 
   // ─── Data Loading ───────────────────────────────────────

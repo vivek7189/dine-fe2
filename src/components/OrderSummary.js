@@ -2784,7 +2784,7 @@ const OrderSummary = ({
                           padding: isMobile ? '8px 14px' : '6px 12px',
                           borderRadius: '10px',
                           border: 'none',
-                          background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #06b6d4 100%)',
+                          background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -2794,22 +2794,22 @@ const OrderSummary = ({
                           color: '#ffffff',
                           transition: 'all 0.2s',
                           whiteSpace: 'nowrap',
-                          boxShadow: '0 2px 8px rgba(13,148,136,0.3)',
+                          boxShadow: '0 2px 8px rgba(30,41,59,0.35)',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(13,148,136,0.45)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(13,148,136,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(30,41,59,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(30,41,59,0.35)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                         title="View customer details & offers"
                       >
                         <div style={{
                           width: isMobile ? '26px' : '20px', height: isMobile ? '26px' : '20px',
-                          borderRadius: '50%', background: 'rgba(255,255,255,0.25)',
+                          borderRadius: '50%', background: 'rgba(255,255,255,0.15)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                         }}>
                           <FaUser size={isMobile ? 9 : 8} style={{ color: '#fff' }} />
                         </div>
                         {customerData.loyaltyPoints > 0 && (
-                          <span style={{ color: '#ffffff', fontWeight: 700, fontSize: isMobile ? '11px' : '10px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            <FaStar size={8} style={{ color: '#ffffff' }} />{customerData.loyaltyPoints}
+                          <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: isMobile ? '11px' : '10px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <FaStar size={8} style={{ color: '#fbbf24' }} />{customerData.loyaltyPoints}
                           </span>
                         )}
                         <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: isMobile ? '11px' : '10px' }}>
