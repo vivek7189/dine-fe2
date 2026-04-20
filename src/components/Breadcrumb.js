@@ -31,8 +31,8 @@ export default function Breadcrumb({ items }) {
           return (
             <li key={item.href || index} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               {index > 0 && <span style={{ color: '#d1d5db' }}>/</span>}
-              {isLast ? (
-                <span style={{ color: '#111827', fontWeight: '500' }}>{item.label}</span>
+              {isLast || !item.href ? (
+                <span style={{ color: isLast ? '#111827' : '#6b7280', fontWeight: isLast ? '500' : '400' }}>{item.label}</span>
               ) : (
                 <Link href={item.href} style={{ color: '#6b7280', textDecoration: 'none' }}>
                   {item.label}
