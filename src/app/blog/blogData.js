@@ -1227,6 +1227,106 @@ export const blogPosts = [
     isStatic: true,
     staticPath: '/blog/restaurant-whatsapp-marketing-india-guide.html'
   },
+  {
+    slug: 'restaurant-license-dubai-complete-guide-2026',
+    title: 'Complete Guide to Restaurant License in Dubai 2026: Costs, Process & Requirements',
+    excerpt: 'Step-by-step guide to getting a restaurant license in Dubai 2026. Costs from AED 15K-50K, DET trade license process, Dubai Municipality food permit, staff visas, and timeline.',
+    date: '2026-04-20',
+    category: 'Business Guides',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-license-dubai-complete-guide-2026.html'
+  },
+  {
+    slug: 'ghost-kitchen-license-dubai-2026',
+    title: 'Ghost Kitchen License in Dubai 2026: Is It Cheaper Than a Physical Restaurant?',
+    excerpt: 'Complete guide to ghost kitchen licensing in Dubai 2026. Compare costs vs physical restaurants, DED vs free zone options, Talabat/Deliveroo setup, and kitchen sharing.',
+    date: '2026-04-20',
+    category: 'Business Guides',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/ghost-kitchen-license-dubai-2026.html'
+  },
+  {
+    slug: 'ramadan-restaurant-guide-uae-2026',
+    title: 'Ramadan Restaurant Operating Rules in UAE 2026: Hours, Menu & Compliance',
+    excerpt: 'UAE restaurant operating rules during Ramadan 2026. Operating hours, food serving regulations, iftar/suhoor menu planning, staff scheduling, delivery demand spike, and Eid preparation.',
+    date: '2026-04-20',
+    category: 'Compliance',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/ramadan-restaurant-guide-uae-2026.html'
+  },
+  {
+    slug: 'restaurant-grants-funding-canada-2026',
+    title: 'Restaurant Grants & Funding in Canada 2026: 20+ Programs You Can Apply For',
+    excerpt: 'Discover 20+ restaurant grants and funding programs in Canada 2026. Federal CDAP grant ($2,400 for digital tools), provincial programs, BDC loans, tax credits, and step-by-step application guide.',
+    date: '2026-04-20',
+    category: 'Business Guides',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-grants-funding-canada-2026.html'
+  },
+  {
+    slug: 'food-delivery-commission-comparison-canada-2026',
+    title: 'Food Delivery Commission Comparison Canada 2026: UberEats vs DoorDash vs Skip vs Direct',
+    excerpt: 'Compare food delivery commission rates in Canada 2026. UberEats (15-30%), DoorDash (15-30%), Skip The Dishes (20-25%). Real profit calculation on a $30 order and direct ordering alternative.',
+    date: '2026-04-20',
+    category: 'Operations',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/food-delivery-commission-comparison-canada-2026.html'
+  },
+  {
+    slug: 'restaurant-energy-costs-uk-2026',
+    title: 'Restaurant Energy Costs UK 2026: How to Survive the April TNUoS Shock',
+    excerpt: 'UK restaurant energy costs surging in 2026. TNUoS charges nearly doubling, 382 pubs closed Q4 2025. 15 proven ways to cut electricity bills £3,000-8,000/year.',
+    date: '2026-04-20',
+    category: 'Operations',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-energy-costs-uk-2026.html'
+  },
+  {
+    slug: 'restaurant-business-rates-uk-2026',
+    title: 'Restaurant Business Rates UK 2026: Relief, Revaluation & How to Reduce Your Bill',
+    excerpt: 'Restaurant business rates UK 2026 guide. 70%+ rate increases in some areas after revaluation. Relief schemes, how to appeal your VOA valuation, rates by city.',
+    date: '2026-04-20',
+    category: 'Compliance',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-business-rates-uk-2026.html'
+  },
+  {
+    slug: 'restaurant-labor-shortage-solutions-2026',
+    title: 'Restaurant Labor Shortage Solutions 2026: How to Hire & Retain Staff (What Actually Works)',
+    excerpt: '228,000 restaurant jobs still unfilled in 2026. Proven strategies to hire and retain staff: competitive pay, flexible scheduling, QR ordering, AI voice ordering, retention tactics.',
+    date: '2026-04-20',
+    category: 'Operations',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/restaurant-labor-shortage-solutions-2026.html'
+  },
+  {
+    slug: 'health-inspection-checklist-restaurant-2026',
+    title: 'Health Department Inspection Prep: The Ultimate Checklist to Pass Every Time',
+    excerpt: 'Complete health inspection checklist for restaurants 2026. 10 categories inspectors check, common violations, temperature logs, food storage rules, and digital record-keeping tips.',
+    date: '2026-04-20',
+    category: 'Compliance',
+    categoryColor: '#8b5cf6',
+    isStatic: true,
+    staticPath: '/blog/health-inspection-checklist-restaurant-2026.html'
+  },
+  {
+    slug: 'hawker-stall-license-singapore-2026',
+    title: 'Opening a Hawker Stall in Singapore 2026: License, Costs & Step-by-Step Guide',
+    excerpt: 'Complete guide to opening a hawker stall in Singapore 2026. NEA license only S$32/year, stall bidding process, food safety requirements, setup costs S$15K-50K, and technology tips.',
+    date: '2026-04-20',
+    category: 'Business Guides',
+    categoryColor: '#3b82f6',
+    isStatic: true,
+    staticPath: '/blog/hawker-stall-license-singapore-2026.html'
+  },
 ];
 
 // Blog post content - for static generation

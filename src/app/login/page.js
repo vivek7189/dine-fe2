@@ -27,6 +27,7 @@ import apiClient from '../../lib/api';
 import { t } from '../../lib/i18n';
 import { redirectToSubdomain } from '../../utils/subdomain';
 import { prefetchDashboardInBackground } from '../../utils/dashboardCache';
+import { detectCountry } from '../../lib/detectCountry';
 
 // Product ref to dashboard route mapping
 // Used when users come from product pages (e.g., /login?ref=menu)
@@ -266,6 +267,15 @@ const Login = () => {
   const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Default to India
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [countrySearchTerm, setCountrySearchTerm] = useState('');
+
+  // Auto-detect country on mount for correct dial code pre-selection
+  useEffect(() => {
+    const { countryCode } = detectCountry();
+    if (countryCode) {
+      const match = countries.find(c => c.code === countryCode);
+      if (match) setSelectedCountry(match);
+    }
+  }, []);
 
   // Firebase OTP state
   const [verificationId, setVerificationId] = useState(null);
@@ -712,6 +722,7 @@ const Login = () => {
           // Store auth token and user data in both cookie (for cross-subdomain) and localStorage
           apiClient.setToken(firebaseData.token); // Stores in both cookie and localStorage
           apiClient.setUser(firebaseData.user); // Stores in both cookie and localStorage
+          if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
           triggerDashboardPrefetch();
 
           // Handle first-time user experience
@@ -764,6 +775,7 @@ const Login = () => {
           // Store auth token in both cookie (for cross-subdomain) and localStorage
           apiClient.setToken(data.token); // Stores in both cookie and localStorage
           apiClient.setUser(data.user); // Stores in both cookie and localStorage
+          if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
           triggerDashboardPrefetch();
 
           // Handle first-time user experience
@@ -930,6 +942,7 @@ const Login = () => {
       if (registerData.token) {
         apiClient.setToken(registerData.token);
         apiClient.setUser(registerData.user);
+        if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
         if (registerData.firstTimeUser) {
@@ -1011,6 +1024,7 @@ const Login = () => {
       if (loginData.token) {
         apiClient.setToken(loginData.token);
         apiClient.setUser(loginData.user);
+        if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
         if (loginData.subdomainUrl) {
@@ -1120,6 +1134,7 @@ const Login = () => {
         // Store auth token and user data in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(googleData.token); // Stores in both cookie and localStorage
         apiClient.setUser(googleData.user); // Stores in both cookie and localStorage
+        if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
         console.log('Google login successful:', googleData);
@@ -1229,7 +1244,7 @@ const Login = () => {
       if (response.ok) {
         // Store auth token in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(data.token);
-        
+
         // Store user data with restaurant and owner info
         const userData = {
           ...data.user,
@@ -1237,6 +1252,11 @@ const Login = () => {
           owner: data.owner
         };
         apiClient.setUser(userData); // Stores in both cookie and localStorage
+        // Staff: detect country if not already stored
+        if (!localStorage.getItem('selectedCountryCode')) {
+          const { countryCode } = detectCountry();
+          if (countryCode) localStorage.setItem('selectedCountryCode', countryCode);
+        }
         triggerDashboardPrefetch();
 
         // Staff goes to POS page or ref-based product page

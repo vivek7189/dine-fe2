@@ -28,6 +28,7 @@ import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // Lightweight searchable multi-select for menu items
 const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'Pick items' }) => {
+  const { getCurrencySymbol } = useCurrency();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const filtered = q
@@ -73,7 +74,7 @@ const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'P
                   <input type="checkbox" checked={isSel} onChange={() => toggle(it.id)} style={{ accentColor: '#ec4899' }} />
                   <span style={{ fontSize: '13px', color: '#1f2937', flex: 1 }}>{it.name}</span>
                   {it._categoryName && <span style={{ fontSize: '10px', color: '#9ca3af' }}>· {it._categoryName}</span>}
-                  {it.price != null && <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '4px' }}>₹{it.price}</span>}
+                  {it.price != null && <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '4px' }}>{getCurrencySymbol()}{it.price}</span>}
                 </label>
               );
             })}

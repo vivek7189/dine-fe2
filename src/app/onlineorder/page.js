@@ -227,6 +227,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
   const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
 
+  // Currency symbol derived from restaurant data
+  const cs = restaurant?.currencySymbol || '₹';
+
   // Theme state
   const [themeId, setThemeId] = useState(themeOverride || 'default');
   const [themeSheetIndex, setThemeSheetIndex] = useState(0);
@@ -1848,6 +1851,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
           menu: filteredMenu,
           categories,
           restaurant,
+          currencySymbol: cs,
         };
         // Add cart handlers for themes that support them
         if (['classic', 'carousel'].includes(themeId)) {
@@ -2298,10 +2302,10 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
                     }}>
                       {offer.discountType === 'percentage'
                         ? `${offer.discountValue}% OFF`
-                        : `₹${Number(offer.discountValue || 0).toFixed(2)} OFF`}
+                        : `${cs}${Number(offer.discountValue || 0).toFixed(2)} OFF`}
                       {offer.minOrderValue > 0 && (
                         <span style={{ fontWeight: '500', color: '#4b5563' }}>
-                          {' '}on ₹{Number(offer.minOrderValue).toFixed(2)}+
+                          {' '}on {cs}{Number(offer.minOrderValue).toFixed(2)}+
                         </span>
                       )}
                     </div>
@@ -2334,7 +2338,7 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
                       color: '#1f2937',
                       lineHeight: 1
                     }}>
-                      {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `₹${Number(offer.discountValue || 0).toFixed(2)}`}
+                      {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `${cs}${Number(offer.discountValue || 0).toFixed(2)}`}
                     </div>
                     <div style={{
                       fontSize: '9px',
@@ -2555,7 +2559,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         {/* Price + ADD button row — pushed to bottom */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
           <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>
-            ₹{Number(item.price || 0).toFixed(2)}
+            {cs}{Number(item.price || 0).toFixed(2)}
           </span>
 
           {cartQuantity > 0 ? (
@@ -2704,7 +2708,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
               {cartItemCount} item{cartItemCount !== 1 ? 's' : ''} added
             </div>
             <div style={{ fontSize: '15px', fontWeight: '700', color: 'white' }}>
-              ₹{cartSubtotal.toFixed(2)}
+              {cs}{cartSubtotal.toFixed(2)}
             </div>
           </div>
         </div>
@@ -2860,7 +2864,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
             borderRadius: '8px'
           }}>
             <span style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
-              Total: ₹{getCartTotal().toFixed(2)}
+              Total: {cs}{getCartTotal().toFixed(2)}
             </span>
           </div>
         </div>
@@ -2886,7 +2890,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               }}>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}</h4>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>₹{Number(item.price || 0).toFixed(2)} each</p>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{cs}{Number(item.price || 0).toFixed(2)} each</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button onClick={() => removeFromCart(item.id)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}>
@@ -2982,7 +2986,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               }}
             >
               <FaChevronRight size={16} />
-              Proceed to Checkout - ₹{getCartTotal().toFixed(2)}
+              Proceed to Checkout - {cs}{getCartTotal().toFixed(2)}
             </button>
           </div>
         )}
@@ -3747,7 +3751,7 @@ const CheckoutView = ({
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>Total Orders</div>
                 </div>
                 <div style={{ backgroundColor: '#fef3c7', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '28px', fontWeight: '700', color: '#92400e' }}>₹{Number(customerData?.totalSpent || 0).toFixed(2)}</div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: '#92400e' }}>{cs}{Number(customerData?.totalSpent || 0).toFixed(2)}</div>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>Total Spent</div>
                 </div>
               </div>
@@ -3876,7 +3880,7 @@ const CheckoutView = ({
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>₹{Number(order.finalAmount || order.totalAmount || 0).toFixed(2)}</div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>{cs}{Number(order.finalAmount || order.totalAmount || 0).toFixed(2)}</div>
                               {order.loyaltyPointsEarned > 0 && (
                                 <div style={{ fontSize: '10px', color: '#22c55e', fontWeight: '600' }}>
                                   +{order.loyaltyPointsEarned} pts
@@ -3916,7 +3920,7 @@ const CheckoutView = ({
                                     {item.name} <span style={{ color: '#9ca3af' }}>x{item.quantity}</span>
                                   </div>
                                   <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
-                                    ₹{Number(item.total ?? (item.price * item.quantity)).toFixed(2)}
+                                    {cs}{Number(item.total ?? (item.price * item.quantity)).toFixed(2)}
                                   </div>
                                 </div>
                               ))}
@@ -3930,18 +3934,18 @@ const CheckoutView = ({
                             }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
                                 <span>Subtotal</span>
-                                <span>₹{Number(order.subtotal || 0).toFixed(2)}</span>
+                                <span>{cs}{Number(order.subtotal || 0).toFixed(2)}</span>
                               </div>
                               {order.discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#22c55e', marginBottom: '4px' }}>
                                   <span>Offer Discount {order.appliedOffer?.name && `(${order.appliedOffer.name})`}</span>
-                                  <span>-₹{Number(order.discountAmount).toFixed(2)}</span>
+                                  <span>-{cs}{Number(order.discountAmount).toFixed(2)}</span>
                                 </div>
                               )}
                               {order.loyaltyDiscount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#7c3aed', marginBottom: '4px' }}>
                                   <span>Points Redeemed</span>
-                                  <span>-₹{Number(order.loyaltyDiscount).toFixed(2)}</span>
+                                  <span>-{cs}{Number(order.loyaltyDiscount).toFixed(2)}</span>
                                 </div>
                               )}
                               {/* Tax breakdown from saved order data */}
@@ -3949,18 +3953,18 @@ const CheckoutView = ({
                                 order.taxBreakdown.map((tax, idx) => (
                                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
                                     <span>{tax.name} ({tax.rate}%)</span>
-                                    <span>₹{Number(tax.amount || 0).toFixed(2)}</span>
+                                    <span>{cs}{Number(tax.amount || 0).toFixed(2)}</span>
                                   </div>
                                 ))
                               ) : order.taxAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
                                   <span>Tax</span>
-                                  <span>₹{Number(order.taxAmount).toFixed(2)}</span>
+                                  <span>{cs}{Number(order.taxAmount).toFixed(2)}</span>
                                 </div>
                               )}
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '700', color: '#1f2937', marginTop: '6px' }}>
                                 <span>Total</span>
-                                <span>₹{Number(order.finalAmount || order.totalAmount || 0).toFixed(2)}</span>
+                                <span>{cs}{Number(order.finalAmount || order.totalAmount || 0).toFixed(2)}</span>
                               </div>
                             </div>
 
@@ -4107,7 +4111,7 @@ const CheckoutView = ({
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>₹{Number(item.price || 0).toFixed(2)} x {item.quantity}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{cs}{Number(item.price || 0).toFixed(2)} x {item.quantity}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button onClick={() => removeFromCart(item.id)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
@@ -4206,13 +4210,13 @@ const CheckoutView = ({
                         <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{offer.name}</div>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>
                           {offer.discountType === 'percentage'
-                            ? `${offer.discountValue}% off${offer.maxDiscount ? ` (max ₹${Number(offer.maxDiscount).toFixed(2)})` : ''}`
-                            : `₹${Number(offer.discountValue || 0).toFixed(2)} off`}
-                          {offer.minOrderValue > 0 && ` on ₹${Number(offer.minOrderValue).toFixed(2)}+`}
+                            ? `${offer.discountValue}% off${offer.maxDiscount ? ` (max ${cs}${Number(offer.maxDiscount).toFixed(2)})` : ''}`
+                            : `${cs}${Number(offer.discountValue || 0).toFixed(2)} off`}
+                          {offer.minOrderValue > 0 && ` on ${cs}${Number(offer.minOrderValue).toFixed(2)}+`}
                         </div>
                         {!meetsMinOrder && (
                           <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>
-                            Add ₹{Math.max(0, Number(offer.minOrderValue) - getCartSubtotal()).toFixed(2)} more
+                            Add {cs}{Math.max(0, Number(offer.minOrderValue) - getCartSubtotal()).toFixed(2)} more
                           </div>
                         )}
                         {meetsMinOrder && !canSelectMore && !isSelected && (
@@ -4253,7 +4257,7 @@ const CheckoutView = ({
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
                     <span>Points to Redeem</span>
-                    <span style={{ fontWeight: '600', color: '#5b21b6' }}>{redeemLoyaltyPoints} pts = ₹{getLoyaltyDiscount().toFixed(2)} off</span>
+                    <span style={{ fontWeight: '600', color: '#5b21b6' }}>{redeemLoyaltyPoints} pts = {cs}{getLoyaltyDiscount().toFixed(2)} off</span>
                   </div>
                   <input
                     type="range"
@@ -4283,25 +4287,25 @@ const CheckoutView = ({
                 </h3>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
                   <span style={{ color: '#6b7280' }}>Subtotal</span>
-                  <span style={{ color: '#374151' }}>₹{getCartSubtotal().toFixed(2)}</span>
+                  <span style={{ color: '#374151' }}>{cs}{getCartSubtotal().toFixed(2)}</span>
                 </div>
                 {getOfferDiscount() > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
                     <span style={{ color: '#059669' }}>Offer Discount</span>
-                    <span style={{ color: '#059669' }}>-₹{getOfferDiscount().toFixed(2)}</span>
+                    <span style={{ color: '#059669' }}>-{cs}{getOfferDiscount().toFixed(2)}</span>
                   </div>
                 )}
                 {getLoyaltyDiscount() > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
                     <span style={{ color: '#7c3aed' }}>Points Discount</span>
-                    <span style={{ color: '#7c3aed' }}>-₹{getLoyaltyDiscount().toFixed(2)}</span>
+                    <span style={{ color: '#7c3aed' }}>-{cs}{getLoyaltyDiscount().toFixed(2)}</span>
                   </div>
                 )}
                 {/* Tax breakdown - only show if tax is enabled */}
                 {getTaxBreakdown().taxLines.map((tax, index) => (
                   <div key={index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
                     <span style={{ color: '#6b7280' }}>{tax.name} ({tax.rate}%)</span>
-                    <span style={{ color: '#374151' }}>₹{tax.amount.toFixed(2)}</span>
+                    <span style={{ color: '#374151' }}>{cs}{tax.amount.toFixed(2)}</span>
                   </div>
                 ))}
                 {/* Service Charge */}
@@ -4310,14 +4314,14 @@ const CheckoutView = ({
                     <span style={{ color: '#6b7280' }}>
                       {customerAppSettings?.billingSettings?.serviceChargeLabel || 'Service Charge'} ({customerAppSettings?.billingSettings?.serviceChargeRate}%)
                     </span>
-                    <span style={{ color: '#374151' }}>₹{getServiceCharge().toFixed(2)}</span>
+                    <span style={{ color: '#374151' }}>{cs}{getServiceCharge().toFixed(2)}</span>
                   </div>
                 )}
                 {/* Tip */}
                 {tipAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
                     <span style={{ color: '#d97706' }}>Tip</span>
-                    <span style={{ color: '#d97706' }}>₹{tipAmount.toFixed(2)}</span>
+                    <span style={{ color: '#d97706' }}>{cs}{tipAmount.toFixed(2)}</span>
                   </div>
                 )}
                 <div style={{
@@ -4330,7 +4334,7 @@ const CheckoutView = ({
                   marginTop: '8px'
                 }}>
                   <span style={{ color: '#1f2937' }}>Total</span>
-                  <span style={{ color: '#ef4444' }}>₹{getFinalTotal().toFixed(2)}</span>
+                  <span style={{ color: '#ef4444' }}>{cs}{getFinalTotal().toFixed(2)}</span>
                 </div>
                 {getLoyaltyPointsToEarn() > 0 && (
                   <div style={{
@@ -4388,12 +4392,12 @@ const CheckoutView = ({
                               transition: 'all 0.15s',
                             }}
                           >
-                            {preset}% (₹{presetAmount})
+                            {preset}% ({cs}{presetAmount})
                           </button>
                         );
                       })}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '13px', color: '#6b7280' }}>₹</span>
+                        <span style={{ fontSize: '13px', color: '#6b7280' }}>{cs}</span>
                         <input
                           type="number"
                           placeholder="Custom"
@@ -4468,7 +4472,7 @@ const CheckoutView = ({
                 ) : (
                   <>
                     <FaUtensils size={18} />
-                    Place Order - ₹{getFinalTotal().toFixed(2)}
+                    Place Order - {cs}{getFinalTotal().toFixed(2)}
                   </>
                 )}
               </button>

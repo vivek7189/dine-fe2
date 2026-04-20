@@ -11,7 +11,7 @@ const BOX_ARGS = [2.4, 2.4, 0.1]; // Smaller faces
 
 // --- Components ---
 
-const MenuItemList = ({ items }) => {
+const MenuItemList = ({ items, currencySymbol = '₹' }) => {
   // Show fewer items but larger
   const displayItems = items.slice(0, 3);
 
@@ -24,7 +24,7 @@ const MenuItemList = ({ items }) => {
               <h4 className="text-sm font-extrabold text-gray-900 leading-tight mb-0.5">{item.name}</h4>
               <p className="text-[9px] text-gray-500 font-medium line-clamp-1 leading-relaxed">{item.description}</p>
             </div>
-            <span className="text-sm font-black text-red-600 whitespace-nowrap">₹{item.price}</span>
+            <span className="text-sm font-black text-red-600 whitespace-nowrap">{currencySymbol}{item.price}</span>
           </div>
         ))}
       </div>
@@ -148,7 +148,7 @@ const MenuCube = ({ categories, menu, onCategorySelect }) => {
   );
 };
 
-const CubeMenu = ({ categories, menu, onCategorySelect }) => {
+const CubeMenu = ({ categories, menu, onCategorySelect, currencySymbol = '₹' }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

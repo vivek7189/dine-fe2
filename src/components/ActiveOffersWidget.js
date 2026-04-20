@@ -14,10 +14,10 @@
 import React from 'react';
 import { FaGift, FaLock, FaCheckCircle } from 'react-icons/fa';
 
-const formatDiscount = (offer) => {
+const formatDiscount = (offer, currencySymbol = '₹') => {
   if (offer.promotionType === 'bogo') return 'BOGO';
   if (offer.discountType === 'percentage') return `${offer.discountValue || 0}% off`;
-  return `Flat ₹${offer.discountValue || 0} off`;
+  return `Flat ${currencySymbol}${offer.discountValue || 0} off`;
 };
 
 const scopeHint = (offer) => {
@@ -34,6 +34,7 @@ const ActiveOffersWidget = ({
   onLoginClick,
   compact = false,
   title = 'Active Offers',
+  currencySymbol = '₹',
 }) => {
   if (!applicableOffers || applicableOffers.length === 0) {
     return null;
@@ -87,7 +88,7 @@ const ActiveOffersWidget = ({
                   </span>
                 </div>
                 <div style={{ fontSize: 11, color: '#6b7280' }}>
-                  {formatDiscount(offer)} {scopeHint(offer)}
+                  {formatDiscount(offer, currencySymbol)} {scopeHint(offer)}
                 </div>
               </div>
               {requiresLogin && (

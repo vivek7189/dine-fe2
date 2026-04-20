@@ -4176,7 +4176,7 @@ const MenuManagement = () => {
                         <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Dine-In</span>
                         <input
                           type="number"
-                          placeholder={formData.price ? `₹${formData.price}` : '₹0'}
+                          placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
                           value={formData.dineInPrice}
                           onChange={(e) => setFormData(prev => ({ ...prev, dineInPrice: e.target.value }))}
                           min="0" step="0.01"
@@ -4216,7 +4216,7 @@ const MenuManagement = () => {
                               <span style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', width: '80px', flexShrink: 0 }}>{rule.name}</span>
                               <input
                                 type="number"
-                                placeholder={inheritedPrice ? `₹${inheritedPrice}` : '₹0'}
+                                placeholder={inheritedPrice ? `${getCurrencySymbol()}${inheritedPrice}` : `${getCurrencySymbol()}0`}
                                 value={hasCustom ? savedPrice : ''}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -4252,7 +4252,7 @@ const MenuManagement = () => {
                         <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Takeaway</span>
                         <input
                           type="number"
-                          placeholder={formData.price ? `₹${formData.price}` : '₹0'}
+                          placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
                           value={formData.takeawayPrice}
                           onChange={(e) => setFormData(prev => ({ ...prev, takeawayPrice: e.target.value }))}
                           min="0" step="0.01"
@@ -4280,7 +4280,7 @@ const MenuManagement = () => {
                         <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Delivery</span>
                         <input
                           type="number"
-                          placeholder={formData.price ? `₹${formData.price}` : '₹0'}
+                          placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
                           value={formData.deliveryPrice}
                           onChange={(e) => setFormData(prev => ({ ...prev, deliveryPrice: e.target.value }))}
                           min="0" step="0.01"

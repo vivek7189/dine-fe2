@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaMinus, FaStar, FaLeaf, FaDrumstickBite } from 'react-icons/fa';
 import { getDisplayImage } from '../../../utils/placeholderImages';
 
-const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart }) => {
+const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -178,7 +178,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                       
                       <div className="flex items-center justify-between mt-3">
                         <div className="font-bold text-gray-900 text-lg">
-                          ₹{item.price}
+                          {currencySymbol}{item.price}
                         </div>
 
                         {qty === 0 ? (

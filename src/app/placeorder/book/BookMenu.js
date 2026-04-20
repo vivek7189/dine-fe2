@@ -41,7 +41,7 @@ const chunkCategories = (cats = []) => {
   return res;
 };
 
-const PageFace = ({ category, items }) => {
+const PageFace = ({ category, items, currencySymbol = '₹' }) => {
   const color = getPageColor(category);
   return (
     <div
@@ -127,7 +127,7 @@ const PageFace = ({ category, items }) => {
                 textAlign: 'right',
               }}
             >
-              ₹{item.price}
+              {currencySymbol}{item.price}
             </div>
           </div>
         ))}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import apiClient from '../../../lib/api';
 import { useNotification } from '../../../components/Notification.js';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
@@ -18,6 +19,7 @@ import {
 const TableManagement = () => {
   const router = useRouter();
   const { isLoading } = useLoading();
+  const { getCurrencySymbol } = useCurrency();
   const { showSuccess, showError, showWarning, NotificationContainer } = useNotification();
   const [currentLanguage, setCurrentLanguage] = useState('en');
 
@@ -682,8 +684,8 @@ const TableManagement = () => {
 
   const formatCurrency = (amount) => {
     if (!amount && amount !== 0) return null;
-    const symbol = localStorage.getItem('currencySymbol') || '₹';
-    return `${symbol}${Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+    const symbol = getCurrencySymbol();
+    return `${symbol}${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   };
 
   // ── Shimmer skeleton ───────────────────────────────────
@@ -928,7 +930,7 @@ const TableManagement = () => {
                     <span style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>{floor.name}</span>
                     {floor.areaChargeType && floor.areaChargeType !== 'none' && (
                       <span style={{ fontSize: '11px', fontWeight: '600', backgroundColor: '#fff7ed', color: '#ea580c', padding: '2px 8px', borderRadius: '6px' }}>
-                        {floor.areaChargeType === 'percentage' ? `+${floor.areaChargeValue}%` : `+₹${floor.areaChargeValue}`}
+                        {floor.areaChargeType === 'percentage' ? `+${floor.areaChargeValue}%` : `+${getCurrencySymbol()}${floor.areaChargeValue}`}
                       </span>
                     )}
                     <span style={{ fontSize: '12px', color: '#9ca3af' }}>{tables.length} tables</span>

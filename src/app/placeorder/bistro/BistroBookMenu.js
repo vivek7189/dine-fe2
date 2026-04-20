@@ -37,7 +37,7 @@ const chunkCategories = (cats = []) => {
   return res;
 };
 
-const Page = ({ category, items, isLeft, pageNumber, onAddToCart, cart = [], onRemoveFromCart }) => {
+const Page = ({ category, items, isLeft, pageNumber, onAddToCart, cart = [], onRemoveFromCart, currencySymbol = '₹' }) => {
   const color = getPageColor(category);
   
   // Helper to get item quantity from cart
@@ -125,7 +125,7 @@ const Page = ({ category, items, isLeft, pageNumber, onAddToCart, cart = [], onR
                       className="font-semibold text-lg"
                       style={{ color: '#111827', fontFamily: '"Cormorant Garamond",serif' }}
                     >
-                      {item.price ? `₹${item.price}` : '—'}
+                      {item.price ? `${currencySymbol}${item.price}` : '—'}
                     </span>
                   </div>
                   {item.description && (

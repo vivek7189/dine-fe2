@@ -112,11 +112,28 @@ const hindiStaticBlogSlugs = new Set([
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
+  // --- Geo detection: read Vercel's x-vercel-ip-country header and set cookie ---
+  // This header is provided free by Vercel Edge Network on every request.
+  // On local dev, the header is absent so the cookie is never set (client falls back to timezone).
+  let response = null;
+  const geoCountry = request.headers.get('x-vercel-ip-country');
+  if (geoCountry) {
+    response = NextResponse.next();
+    response.cookies.set('geo_country', geoCountry.toUpperCase(), {
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+      sameSite: 'lax',
+    });
+  }
+
   // Rewrite /blog/slug → /blog/slug.html for static English blog posts
   if (pathname.startsWith('/blog/') && !pathname.endsWith('.html')) {
     const slug = pathname.replace('/blog/', '');
     if (staticBlogSlugs.has(slug)) {
-      return NextResponse.rewrite(new URL(`/blog/${slug}.html`, request.url));
+      const rewrite = NextResponse.rewrite(new URL(`/blog/${slug}.html`, request.url));
+      // Copy geo cookie to rewrite response
+      if (geoCountry) rewrite.cookies.set('geo_country', geoCountry.toUpperCase(), { maxAge: 60 * 60 * 24 * 30, path: '/', sameSite: 'lax' });
+      return rewrite;
     }
   }
 
@@ -124,13 +141,30 @@ export function middleware(request) {
   if (pathname.startsWith('/hi/blog/') && !pathname.endsWith('.html')) {
     const slug = pathname.replace('/hi/blog/', '');
     if (hindiStaticBlogSlugs.has(slug)) {
-      return NextResponse.rewrite(new URL(`/hi/blog/${slug}.html`, request.url));
+      const rewrite = NextResponse.rewrite(new URL(`/hi/blog/${slug}.html`, request.url));
+      if (geoCountry) rewrite.cookies.set('geo_country', geoCountry.toUpperCase(), { maxAge: 60 * 60 * 24 * 30, path: '/', sameSite: 'lax' });
+      return rewrite;
     }
   }
 
-  return NextResponse.next();
+  return response || NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/blog/:slug*', '/hi/blog/:slug*'],
+  // Match app pages + blog rewrites. Blog slugs need rewrites; app pages need geo cookie.
+  matcher: [
+    '/blog/:slug*',
+    '/hi/blog/:slug*',
+    '/login',
+    '/local-login',
+    '/onboarding',
+    '/home',
+    '/dashboard/:path*',
+    '/menu/:path*',
+    '/orders/:path*',
+    '/admin/:path*',
+    '/customers/:path*',
+    '/billing/:path*',
+    '/inventory/:path*',
+  ],
 };

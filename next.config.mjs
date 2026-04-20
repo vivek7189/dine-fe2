@@ -218,6 +218,16 @@ const nextConfig = {
       'tipping-guide-usa-canada-uk-2026',
       'best-pos-food-truck-2026',
       'qr-code-menu-complete-guide-2026',
+      'restaurant-license-dubai-complete-guide-2026',
+      'ghost-kitchen-license-dubai-2026',
+      'ramadan-restaurant-guide-uae-2026',
+      'restaurant-grants-funding-canada-2026',
+      'food-delivery-commission-comparison-canada-2026',
+      'restaurant-energy-costs-uk-2026',
+      'restaurant-business-rates-uk-2026',
+      'restaurant-labor-shortage-solutions-2026',
+      'health-inspection-checklist-restaurant-2026',
+      'hawker-stall-license-singapore-2026',
     ];
 
     // Hindi static blog slugs (served as raw HTML files in public/hi/blog/)

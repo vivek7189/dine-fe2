@@ -23,7 +23,7 @@ const CHIP_COLORS = [
   { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200', active: 'bg-rose-500' },
 ];
 
-const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart }) => {
+const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart, currencySymbol = '₹' }) => {
   const [activeCategory, setActiveCategory] = useState(categories[0] || 'All');
   const [activeIndex, setActiveIndex] = useState(0);
   const categoriesRef = useRef(null);
@@ -325,7 +325,7 @@ const Carousel3DMenu = ({ menu, categories, restaurant, addToCart, cart }) => {
                   <div className="flex items-end justify-between w-full pt-2">
                     <div className="flex flex-col">
                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Price</span>
-                       <span className="text-lg font-black text-gray-900 leading-none">₹{item.price}</span>
+                       <span className="text-lg font-black text-gray-900 leading-none">{currencySymbol}{item.price}</span>
                     </div>
                     
                     <button

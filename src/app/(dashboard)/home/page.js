@@ -12,6 +12,7 @@ import {
   FaHashtag, FaTrophy, FaRocket
 } from 'react-icons/fa';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import apiClient from '../../../lib/api';
 
 // ─── Onboarding Checklist Widget ─────────────────────────────
@@ -165,9 +166,9 @@ function getRoleMessage(role) {
   return 'Welcome back! Here\'s your quick access panel.';
 }
 
-function formatCurrency(amount, symbol = '₹') {
+function formatCurrencyLocal(amount, symbol = '₹') {
   if (!amount && amount !== 0) return `${symbol}0`;
-  return `${symbol}${Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  return `${symbol}${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
 function parseDate(d) {
@@ -199,6 +200,7 @@ function formatTime(dateStr) {
 export default function HomePage() {
   const router = useRouter();
   const { startLoading } = useLoading();
+  const { getCurrencySymbol } = useCurrency();
   const [user, setUser] = useState(null);
   const [pageAccess, setPageAccess] = useState(null);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
@@ -236,8 +238,7 @@ export default function HomePage() {
       setRestaurantName(parsed.restaurant.name || '');
       if (parsed.restaurant.businessType === 'bar') setIsBar(true);
     }
-    const savedCurrency = localStorage.getItem('currencySymbol');
-    if (savedCurrency) setCurrencySymbol(savedCurrency);
+    setCurrencySymbol(getCurrencySymbol());
 
     // Only load data for non-owner/admin (HQ handles its own data)
     if (parsed.role !== 'owner' && parsed.role !== 'admin') {
@@ -518,7 +519,7 @@ export default function HomePage() {
                           background: status.bg, color: status.color,
                         }}>{status.label}</span>
                         <span style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', minWidth: '56px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                          {formatCurrency(total, currencySymbol)}
+                          {formatCurrencyLocal(total, currencySymbol)}
                         </span>
                       </div>
                     </div>
