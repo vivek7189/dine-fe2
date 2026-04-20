@@ -4166,7 +4166,10 @@ const OrderSummary = ({
                       fontSize: '11px', fontWeight: 600, color: '#78350f',
                       display: 'flex', alignItems: 'center', gap: '4px',
                     }}>
-                      <FaGift size={10} /> Free: {freeItems.map(f => `${f.qty}× ${f.itemId}`).join(', ')}
+                      <FaGift size={10} /> Free: {freeItems.map(f => {
+                        const match = cart.find(c => (c.menuItemId || c.id) === f.itemId);
+                        return `${f.qty}× ${match?.name || f.itemId}`;
+                      }).join(', ')}
                     </div>
                   )}
                 </div>

@@ -148,12 +148,20 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
       .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
   }
 
-  // Tier override
+  // Tier override — if offer has tiers defined but none match, discount is 0
   const appliedTier = resolveTier(offer, subtotal);
+  const hasTiers = Array.isArray(offer.tiers) && offer.tiers.length > 0;
+  if (hasTiers && !appliedTier) return { discount: 0, freeItems: [], appliedTier: null };
   const effectiveDiscountType = appliedTier ? appliedTier.discountType : offer.discountType;
   const effectiveDiscountValue = appliedTier ? Number(appliedTier.discountValue) : (offer.discountValue || 0);
 
   let baseDiscount = 0;
+
+  // Cross-item BOGO: when enabled, ONLY use free-item discount (no base discount)
+  const cross = calculateCrossItemBogo(offer, cart);
+  if (cross.discount > 0) {
+    return { discount: cross.discount, freeItems: cross.freeItems, appliedTier };
+  }
 
   // Legacy same-item BOGO
   if (offer.promotionType === 'bogo' && offer.bogoConfig) {
@@ -179,9 +187,7 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
     }
   }
 
-  // Cross-item BOGO additive
-  const cross = calculateCrossItemBogo(offer, cart);
-  const totalDiscount = Math.round((baseDiscount + cross.discount) * 100) / 100;
+  const totalDiscount = baseDiscount;
 
   return { discount: totalDiscount, freeItems: cross.freeItems, appliedTier };
 };
@@ -351,7 +357,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       setCustomerGroups([]);
       return;
     }
-    const cacheKey = `${restaurantId}|${phone || ''}|${cid || ''}`;
+    const cacheKey = `${restaurantId}|${normalizePhone(phone) || ''}|${cid || ''}`;
     if (groupLookupCacheRef.current[cacheKey]) {
       setCustomerGroupIds(groupLookupCacheRef.current[cacheKey].ids);
       setCustomerGroups(groupLookupCacheRef.current[cacheKey].groups);
@@ -476,6 +482,11 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       if (!isScheduleValid(offer)) continue;
       if (!isDateValid(offer)) continue;
       if (offer.minOrderValue && subtotal < offer.minOrderValue) continue;
+      // Tiered offers: must meet at least the lowest tier's minSubtotal
+      if (Array.isArray(offer.tiers) && offer.tiers.length > 0) {
+        const lowestMin = Math.min(...offer.tiers.filter(t => t && typeof t.minSubtotal === 'number').map(t => t.minSubtotal));
+        if (subtotal < lowestMin) continue;
+      }
       if (offer.isFirstOrderOnly && customerInfo && customerInfo.isFirstOrder === false) continue;
 
       // Scope check
@@ -551,7 +562,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       for (const oid of selectedOfferIds) {
         const offer = allOffers.find(o => (o.id || o._id) === oid);
         if (offer) {
-          totalDisc += calculateDiscountForOffer(offer, subtotal, cart);
+          totalDisc += calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
           names.push(offer.name);
         }
       }
@@ -570,9 +581,9 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       return { offerDiscount: 0, selectedOfferName: '' };
     }
 
-    const disc = calculateDiscountForOffer(offer, subtotal, cart);
+    const disc = calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
     return { offerDiscount: disc, selectedOfferName: offer.name };
-  }, [selectedOfferId, selectedOfferIds, subtotal, cart, allOffers, offerSettings.allowMultipleOffers]);
+  }, [selectedOfferId, selectedOfferIds, subtotal, cart, allOffers, offerSettings.allowMultipleOffers, resolvedContext]);
 
   // Auto-apply best offer(s)
   useEffect(() => {

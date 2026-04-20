@@ -25,6 +25,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import { useNotification } from '../../../components/Notification';
 
 // Lightweight searchable multi-select for menu items
 const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'Pick items' }) => {
@@ -91,6 +92,7 @@ const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'P
 const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = null, restaurants = [] }) => {
   const router = useRouter();
   const { getCurrencySymbol } = useCurrency();
+  const { showSuccess, showError, showWarning, NotificationContainer } = useNotification();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -300,7 +302,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const saveOfferSettings = async () => {
     const currentRestaurantId = getRestaurantId();
     if (!currentRestaurantId) {
-      alert('No restaurant selected. Please select a restaurant first.');
+      showError('No restaurant selected. Please select a restaurant first.');
       return;
     }
 
@@ -315,10 +317,10 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         offerSettings
       });
 
-      alert('Offer settings saved successfully!');
+      showSuccess('Offer settings saved successfully!');
     } catch (error) {
       console.error('Error saving offer settings:', error);
-      alert('Failed to save offer settings');
+      showError('Failed to save offer settings');
     } finally {
       setSavingSettings(false);
     }
@@ -366,13 +368,13 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
   const handleSave = async () => {
     if (!formData.name) {
-      alert('Please enter an offer name');
+      showWarning('Please enter an offer name');
       return;
     }
 
     const currentRestaurantId = getRestaurantId();
     if (!currentRestaurantId) {
-      alert('No restaurant selected. Please select a restaurant first.');
+      showError('No restaurant selected. Please select a restaurant first.');
       return;
     }
 
@@ -395,6 +397,22 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       } else if (discountMode === 'bogo_cross') {
         payload.tiers = [];
         payload.crossItemBogo = { ...payload.crossItemBogo, enabled: true };
+        // Clear base discount so engine only uses cross BOGO free-item discount
+        payload.discountValue = 0;
+        // Validate buy/get items are configured
+        const buyIds = payload.crossItemBogo?.buyItemIds || [];
+        const buyCats = payload.crossItemBogo?.buyCategoryIds || [];
+        const getIds = payload.crossItemBogo?.getItemIds || [];
+        if (buyIds.length === 0 && buyCats.length === 0) {
+          showWarning('Please select at least one "Buy" item or category for Cross BOGO');
+          setSaving(false);
+          return;
+        }
+        if (getIds.length === 0) {
+          showWarning('Please select at least one "Get Free" item for Cross BOGO');
+          setSaving(false);
+          return;
+        }
       }
       // Sync first-order flag with audience for back-compat with older engine bits
       payload.isFirstOrderOnly = payload.audience?.type === 'first_order';
@@ -408,7 +426,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       closeBuilder();
     } catch (error) {
       console.error('Error saving offer:', error);
-      alert('Failed to save offer');
+      showError('Failed to save offer');
     } finally {
       setSaving(false);
     }
@@ -419,7 +437,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
     const currentRestaurantId = getRestaurantId();
     if (!currentRestaurantId) {
-      alert('No restaurant selected. Please select a restaurant first.');
+      showError('No restaurant selected. Please select a restaurant first.');
       return;
     }
 
@@ -428,14 +446,14 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       await loadOffers(currentRestaurantId);
     } catch (error) {
       console.error('Error deleting offer:', error);
-      alert('Failed to delete offer');
+      showError('Failed to delete offer');
     }
   };
 
   const handleToggleActive = async (offer) => {
     const currentRestaurantId = getRestaurantId();
     if (!currentRestaurantId) {
-      alert('No restaurant selected. Please select a restaurant first.');
+      showError('No restaurant selected. Please select a restaurant first.');
       return;
     }
 
@@ -533,12 +551,12 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         if (g.id !== groupId) return g;
         const newIds = Array.from(new Set([...(g.customerIds || []), customer.id]));
         const newPhones = customer.phone ? Array.from(new Set([...(g.customerPhones || []), customer.phone])) : (g.customerPhones || []);
-        return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length };
+        return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length + newPhones.length };
       }));
       setMemberSearchQuery('');
     } catch (err) {
       console.error('Error adding member:', err);
-      alert('Failed to add member');
+      showError('Failed to add member');
     } finally {
       setAddingMember(false);
     }
@@ -550,7 +568,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     const groupId = editingGroup?.id;
     if (!id || !groupId || !phone?.trim()) return;
     const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
-    if (normalizedPhone.length < 10) { alert('Enter a valid 10-digit phone number'); return; }
+    if (normalizedPhone.length < 10) { showWarning('Enter a valid 10-digit phone number'); return; }
     setAddingMember(true);
     try {
       // Check if customer exists
@@ -568,7 +586,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       setAddPhoneInput('');
     } catch (err) {
       console.error('Error adding member by phone:', err);
-      alert('Failed to add member: ' + (err.message || 'Unknown error'));
+      showError('Failed to add member: ' + (err.message || 'Unknown error'));
     } finally {
       setAddingMember(false);
     }
@@ -593,11 +611,11 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         if (g.id !== groupId) return g;
         const newIds = (g.customerIds || []).filter(cid => cid !== member.id);
         const newPhones = member.phone ? (g.customerPhones || []).filter(p => p !== member.phone) : (g.customerPhones || []);
-        return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length };
+        return { ...g, customerIds: newIds, customerPhones: newPhones, customerCount: newIds.length + newPhones.length };
       }));
     } catch (err) {
       console.error('Error removing member:', err);
-      alert('Failed to remove member');
+      showError('Failed to remove member');
     } finally {
       setRemovingMemberId(null);
     }
@@ -616,7 +634,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     const id = getRestaurantId();
     if (!id || !phone?.trim()) return;
     const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
-    if (normalizedPhone.length < 10) { alert('Enter a valid 10-digit phone number'); return; }
+    if (normalizedPhone.length < 10) { showWarning('Enter a valid 10-digit phone number'); return; }
     setAddingMember(true);
     try {
       let customer = customersList.find(c => c.phone && String(c.phone).replace(/\D/g, '').slice(-10) === normalizedPhone);
@@ -632,7 +650,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       setAddPhoneInput('');
     } catch (err) {
       console.error('Error adding member by phone:', err);
-      alert('Failed to add member: ' + (err.message || 'Unknown error'));
+      showError('Failed to add member: ' + (err.message || 'Unknown error'));
     } finally {
       setAddingMember(false);
     }
@@ -711,6 +729,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#fef7f0', padding: isMobile ? '8px' : '24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      <NotificationContainer />
       {/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */}
       {isMobile && (
         <style dangerouslySetInnerHTML={{ __html: `
