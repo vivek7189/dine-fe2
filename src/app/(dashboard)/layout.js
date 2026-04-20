@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import { DineAIProvider } from '../../contexts/DineAIContext';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
@@ -11,12 +11,62 @@ import { useAutoPrint } from '../../hooks/useAutoPrint';
 import { isWeb } from '../../utils/platform';
 import apiClient from '../../lib/api';
 
+// Maps route segments to pageAccess keys — mirrors Sidebar accessMap
+const ROUTE_ACCESS_MAP = {
+  '/dashboard': 'dashboard',
+  '/orders': 'history',
+  '/orderhistory': 'history',
+  '/tables': 'tables',
+  '/customers': 'customers',
+  '/menu': 'menu',
+  '/inventory': 'inventory',
+  '/kot': 'kot',
+  '/admin': 'admin',
+  '/hotel': 'hotel',
+  '/invoice': 'invoice',
+  '/billing': 'completeBill',
+  '/books': 'admin',
+  '/dineai': 'analytics',
+  '/analytics': 'analytics',
+  '/shifts': 'admin',
+  '/offers': 'offers',
+  '/automation': 'admin',
+};
+
+// Pages accessible to everyone (no permission check needed)
+const ALWAYS_ACCESSIBLE = ['/profile', '/dashboard'];
+
+function checkRouteAccess(pathname, user, pageAccess) {
+  if (!user || !user.role) return false;
+
+  // Owner, admin, and waiter bypass pageAccess (consistent with Sidebar)
+  if (['owner', 'admin', 'waiter'].includes(user.role)) return true;
+
+  // Always-accessible pages
+  if (ALWAYS_ACCESSIBLE.some(p => pathname === p || pathname.startsWith(p + '/'))) return true;
+
+  // Find the matching route access key
+  const routeSegment = '/' + pathname.split('/').filter(Boolean)[0];
+  const accessKey = ROUTE_ACCESS_MAP[routeSegment];
+  if (!accessKey) return true; // Unknown routes default to accessible (profile, etc.)
+
+  if (!pageAccess) return false;
+
+  const accessValue = pageAccess[accessKey];
+  if (typeof accessValue === 'object' && accessValue !== null) {
+    return Object.values(accessValue).some(Boolean);
+  }
+  return !!accessValue;
+}
+
 function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const [nativePrintSettings, setNativePrintSettings] = useState(null);
   // Check if current page is dashboard
@@ -35,6 +85,35 @@ function DashboardLayoutContent({ children }) {
 
   // Auto-print on native platforms (Capacitor/Tauri) — no-op on web
   useAutoPrint(selectedRestaurantId, nativePrintSettings);
+
+  // Route guard: check if user has permission to access current page
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        router.replace('/login');
+        return;
+      }
+      const user = JSON.parse(userData);
+      if (!user || !user.role) {
+        router.replace('/login');
+        return;
+      }
+
+      // For roles that need pageAccess, check permissions
+      if (!['owner', 'admin', 'waiter'].includes(user.role)) {
+        const cached = localStorage.getItem('navPageAccess');
+        const pageAccess = cached ? JSON.parse(cached) : null;
+        if (pageAccess && !checkRouteAccess(pathname, user, pageAccess)) {
+          router.replace('/dashboard');
+          return;
+        }
+      }
+    } catch {
+      // On error, allow access (don't lock users out due to parsing errors)
+    }
+    setAccessChecked(true);
+  }, [pathname, router]);
 
   // Check if device is mobile and set client-side flag
   useEffect(() => {
@@ -128,7 +207,7 @@ function DashboardLayoutContent({ children }) {
               }}
             >
               <div key={pathname} className="dashboard-page-content" style={{ width: '100%', minHeight: '100%' }}>
-                {children}
+                {accessChecked ? children : null}
               </div>
             </main>
 

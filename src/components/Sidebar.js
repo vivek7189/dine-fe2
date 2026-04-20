@@ -77,7 +77,7 @@ export default function Sidebar({ isDashboardPage = false }) {
       if (userData) {
         const parsedUser = JSON.parse(userData);
         // For staff users, check if we have cached pageAccess
-        if (parsedUser.role === 'employee' || parsedUser.role === 'manager') {
+        if (!['owner', 'admin', 'waiter'].includes(parsedUser.role)) {
           return localStorage.getItem('navPageAccess') !== null;
         }
         // For owners/waiters, just need user data

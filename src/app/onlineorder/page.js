@@ -2567,15 +2567,16 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              border: '1.5px solid #22c55e',
+              border: 'none',
               borderRadius: '8px',
               overflow: 'hidden',
-              height: '32px'
+              height: '32px',
+              background: '#22c55e'
             }}>
               <button
                 onClick={() => onRemoveFromCart(item.id)}
                 style={{
-                  background: '#22c55e',
+                  background: 'transparent',
                   border: 'none',
                   color: 'white',
                   width: '30px',
@@ -2594,14 +2595,14 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
                 textAlign: 'center',
                 fontSize: '14px',
                 fontWeight: '700',
-                color: '#22c55e'
+                color: 'white'
               }}>
                 {cartQuantity}
               </span>
               <button
                 onClick={() => onAddToCart(item)}
                 style={{
-                  background: '#22c55e',
+                  background: 'transparent',
                   border: 'none',
                   color: 'white',
                   width: '30px',
@@ -2664,14 +2665,14 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
       <div
         onClick={onViewCart}
         style={{
-          backgroundColor: '#1f2937',
+          backgroundColor: '#dc2626',
           margin: '0 12px 12px',
           borderRadius: '16px',
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 -4px 24px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.15)',
+          boxShadow: '0 -4px 24px rgba(220,38,38,0.25), 0 8px 24px rgba(0,0,0,0.15)',
           cursor: 'pointer'
         }}
       >
@@ -2679,7 +2680,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             position: 'relative',
-            backgroundColor: '#374151',
+            backgroundColor: 'rgba(255,255,255,0.2)',
             borderRadius: '10px',
             padding: '8px',
             display: 'flex'
@@ -2718,7 +2719,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          backgroundColor: '#22c55e',
+          backgroundColor: 'rgba(255,255,255,0.2)',
           color: 'white',
           padding: '10px 16px',
           borderRadius: '12px',

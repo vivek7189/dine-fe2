@@ -3952,7 +3952,7 @@ const Admin = () => {
       phone: selectedStaff.phone || '',
       email: selectedStaff.email || '',
       role: selectedStaff.role || 'employee',
-      pageAccess: selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee,
+      pageAccess: JSON.parse(JSON.stringify(selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
     });
     setEditingStaff(true);
   };
@@ -5407,7 +5407,7 @@ const Admin = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 10002,
           padding: '16px'
         }}>
           <div style={{
@@ -5563,7 +5563,7 @@ const Admin = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 10002,
           padding: '16px'
         }}>
           <div style={{
@@ -5863,7 +5863,7 @@ const Admin = () => {
           display: 'flex',
           alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 10002,
           padding: isMobile ? '0' : '16px'
         }}>
           <div style={{
@@ -6090,7 +6090,7 @@ const Admin = () => {
                     const selectedRole = e.target.value;
                     const roleDefaults = ROLE_DEFAULT_PAGE_ACCESS[selectedRole];
                     if (roleDefaults) {
-                      setNewStaff(prev => ({ ...prev, role: selectedRole, pageAccess: { ...roleDefaults } }));
+                      setNewStaff(prev => ({ ...prev, role: selectedRole, pageAccess: JSON.parse(JSON.stringify(roleDefaults)) }));
                     } else {
                       setNewStaff(prev => ({ ...prev, role: selectedRole }));
                     }
@@ -6439,7 +6439,7 @@ const Admin = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 10002,
           padding: '16px'
         }}>
           <div style={{
@@ -6998,7 +6998,7 @@ const Admin = () => {
                             const info = getRoleInfo(role);
                             const isSelected = editStaffForm.role === role;
                             return (
-                              <button key={role} type="button" onClick={() => setEditStaffForm(f => ({ ...f, role, pageAccess: ROLE_DEFAULT_PAGE_ACCESS[role] || ROLE_DEFAULT_PAGE_ACCESS.employee }))}
+                              <button key={role} type="button" onClick={() => setEditStaffForm(f => ({ ...f, role, pageAccess: JSON.parse(JSON.stringify(ROLE_DEFAULT_PAGE_ACCESS[role] || ROLE_DEFAULT_PAGE_ACCESS.employee)) }))}
                                 style={{
                                   padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
                                   border: isSelected ? `2px solid ${info.color}` : '2px solid #e5e7eb',

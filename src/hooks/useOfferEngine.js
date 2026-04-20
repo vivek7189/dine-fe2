@@ -453,6 +453,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(async () => {
         try {
+          // Re-fetch offers
           let offersResponse;
           try {
             offersResponse = await apiClient.getActiveOffersForPOS(restaurantId, customerInfo?.isFirstOrder);
@@ -461,6 +462,19 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
           }
           const offers = (offersResponse.offers || offersResponse || []).filter(o => o.isActive !== false);
           setAllOffers(offers);
+
+          // Re-fetch offer settings (auto-apply, multi-offer, etc.)
+          try {
+            const settingsRes = await apiClient.getCustomerAppSettings(restaurantId);
+            if (settingsRes?.settings?.offerSettings) {
+              setOfferSettings(settingsRes.settings.offerSettings);
+            }
+            if (settingsRes?.settings?.loyaltySettings) {
+              setLoyaltySettings(prev => ({ ...prev, ...settingsRes.settings.loyaltySettings }));
+            }
+          } catch (e) {
+            // Settings fetch is best-effort
+          }
         } catch (err) {
           console.error('[useOfferEngine] Pusher re-fetch failed:', err);
         }

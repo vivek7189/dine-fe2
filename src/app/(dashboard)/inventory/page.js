@@ -52,7 +52,13 @@ export default function InventoryManagement() {
       if (role === 'owner' || role === 'admin') return { read: true, add: true, update: true, delete: true };
       const pa = JSON.parse(localStorage.getItem('navPageAccess') || '{}');
       return resolveFeaturePermissions(pa, 'inventory');
-    } catch { return { read: true, add: true, update: true, delete: true }; }
+    } catch {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (['owner', 'admin'].includes((u.role || '').toLowerCase())) return { read: true, add: true, update: true, delete: true };
+      } catch {}
+      return { read: true, add: false, update: false, delete: false };
+    }
   })();
 
   // Read tab from URL on mount
