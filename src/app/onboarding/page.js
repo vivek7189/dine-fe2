@@ -140,15 +140,15 @@ const FEATURES = [
 
 // Smart defaults per business type
 const FEATURE_DEFAULTS = {
-  restaurant: ['pos', 'tables', 'kot', 'orders'],
-  cafe: ['pos', 'tables', 'kot', 'orders'],
-  bar: ['pos', 'tables', 'kot', 'orders'],
-  bakery: ['pos', 'tables', 'kot', 'orders'],
-  cloud_kitchen: ['pos', 'tables', 'kot', 'orders'],
-  qsr: ['pos', 'tables', 'kot', 'orders'],
-  ice_cream: ['pos', 'tables', 'kot', 'orders'],
-  hotel: ['pos', 'tables', 'kot', 'orders'],
-  other: ['pos', 'tables', 'kot', 'orders'],
+  restaurant: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  cafe: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  bar: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  bakery: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  cloud_kitchen: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  qsr: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  ice_cream: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  hotel: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  other: ['pos', 'tables', 'kot', 'orders', 'menu'],
 };
 
 // Step backgrounds
@@ -218,7 +218,7 @@ function OnboardingContent() {
   const countryDropdownRef = useRef(null);
 
   // Step 3
-  const [selectedFeatures, setSelectedFeatures] = useState(['pos', 'tables', 'kot', 'orders']);
+  const [selectedFeatures, setSelectedFeatures] = useState(['pos', 'tables', 'kot', 'orders', 'menu']);
 
   // Step 4
   const [menuChoice, setMenuChoice] = useState(null);
@@ -439,8 +439,8 @@ function OnboardingContent() {
         });
         localStorage.setItem('selectedRestaurantId', response.restaurant.id);
         localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
-        try { await apiClient.seedDefaultMenu(response.restaurant.id); } catch {}
         const countryCode = selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN';
+        try { await apiClient.seedDefaultMenu(response.restaurant.id, countryCode); } catch {}
         try {
           const currencyData = getCurrencyByCountryCode(countryCode);
           await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
@@ -492,7 +492,7 @@ function OnboardingContent() {
         await apiClient.updateCurrencySettings(rid, currencyData);
       } catch {}
       // Auto-seed sample menu in background so the preview works immediately
-      apiClient.seedDefaultMenu(rid).then(() => setMenuSeeded(true)).catch(() => {});
+      apiClient.seedDefaultMenu(rid, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN').then(() => setMenuSeeded(true)).catch(() => {});
       goNext();
     } catch (err) {
       alert('Failed to create restaurant: ' + (err.message || 'Unknown error'));
@@ -522,7 +522,7 @@ function OnboardingContent() {
     }
     if (!restaurantId) return;
     try {
-      await apiClient.seedDefaultMenu(restaurantId);
+      await apiClient.seedDefaultMenu(restaurantId, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN');
       setMenuSeeded(true);
       setTimeout(() => goNext(), 800);
     } catch (err) {
@@ -604,7 +604,7 @@ function OnboardingContent() {
 
   const handleManualMenu = () => {
     if (!isTestMode && restaurantId) {
-      apiClient.seedDefaultMenu(restaurantId).catch(() => {});
+      apiClient.seedDefaultMenu(restaurantId, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN').catch(() => {});
     }
     goNext();
   };
@@ -634,7 +634,7 @@ function OnboardingContent() {
         const currencyData = getCurrencyByCountryCode(countryCode);
         await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
       } catch {}
-      apiClient.seedDefaultMenu(response.restaurant.id).then(() => setMenuSeeded(true)).catch(() => {});
+      apiClient.seedDefaultMenu(response.restaurant.id, selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN').then(() => setMenuSeeded(true)).catch(() => {});
       goNext();
     } catch (err) {
       alert('Failed: ' + (err.message || 'Unknown error'));
@@ -2201,7 +2201,6 @@ function OnboardingContent() {
                 const token = localStorage.getItem('authToken');
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
                 const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
-                // Mark onboarding complete in DB (fire-and-forget)
                 if (rid && token) {
                   fetch(`${apiUrl}/api/restaurants/${rid}`, {
                     method: 'PATCH',
@@ -2226,7 +2225,38 @@ function OnboardingContent() {
                 boxShadow: '0 6px 20px rgba(239,68,68,0.3)',
               }}
             >
-              Go to Dashboard <FaArrowRight size={16} />
+              Explore Your Setup <FaArrowRight size={16} />
+            </button>
+
+            <button
+              onClick={() => {
+                const token = localStorage.getItem('authToken');
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+                const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
+                if (rid && token) {
+                  fetch(`${apiUrl}/api/restaurants/${rid}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ onboardingStep: 'complete' }),
+                  }).catch(() => {});
+                }
+                if (token) {
+                  fetch(`${apiUrl}/api/user/preferences`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ setupComplete: true }),
+                  }).catch(() => {});
+                }
+                localStorage.setItem('onboarding_completed', 'true');
+                router.push(posPath);
+              }}
+              style={{
+                ...btnSecondary, fontSize: '14px', padding: '10px 24px',
+                margin: '12px auto 0', borderRadius: '12px',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}
+            >
+              <FaCashRegister size={13} /> Start Taking Orders
             </button>
 
             <p style={{ marginTop: '20px', fontSize: '14px', color: '#6b7280' }}>

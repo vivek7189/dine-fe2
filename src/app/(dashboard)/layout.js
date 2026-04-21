@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import { DineAIProvider } from '../../contexts/DineAIContext';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
 import DineAIButton from '../../components/dineai/DineAIButton';
+import BulkMenuUpload from '../../components/BulkMenuUpload';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
 import { isWeb } from '../../utils/platform';
 import apiClient from '../../lib/api';
+import { FaCloudUploadAlt, FaArrowRight, FaUtensils } from 'react-icons/fa';
 
 // Maps route segments to pageAccess keys — mirrors Sidebar accessMap
 const ROUTE_ACCESS_MAP = {
@@ -69,6 +72,8 @@ function DashboardLayoutContent({ children }) {
   const router = useRouter();
 
   const [nativePrintSettings, setNativePrintSettings] = useState(null);
+  const [hasDefaultMenu, setHasDefaultMenu] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   // Check if current page is dashboard
   const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/bar';
 
@@ -150,6 +155,29 @@ function DashboardLayoutContent({ children }) {
     };
   }, []);
 
+  // Check if restaurant has default/demo menu
+  useEffect(() => {
+    if (!selectedRestaurantId) return;
+    if (sessionStorage.getItem('demoMenuDismissed') === 'true') return;
+    apiClient.getRestaurants()
+      .then(res => {
+        const rest = res?.restaurants?.find(r => r.id === selectedRestaurantId);
+        if (rest?.hasDefaultMenu) setHasDefaultMenu(true);
+        else setHasDefaultMenu(false);
+      })
+      .catch(() => {});
+  }, [selectedRestaurantId]);
+
+  // Listen for menu uploaded event to dismiss banner
+  useEffect(() => {
+    const handleMenuUploaded = () => {
+      setHasDefaultMenu(false);
+      sessionStorage.setItem('demoMenuDismissed', 'true');
+    };
+    window.addEventListener('menuUploaded', handleMenuUploaded);
+    return () => window.removeEventListener('menuUploaded', handleMenuUploaded);
+  }, []);
+
   // Get selected restaurant ID from localStorage
   useEffect(() => {
     const getSelectedRestaurant = () => {
@@ -206,6 +234,47 @@ function DashboardLayoutContent({ children }) {
                 height: '100vh'
               }}
             >
+              {/* Demo menu banner — show on all pages except /menu */}
+              {hasDefaultMenu && pathname !== '/menu' && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  padding: '10px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                  borderBottom: '1px solid #f59e0b',
+                }}>
+                  <FaUtensils size={16} color="#92400e" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', color: '#78350f', fontWeight: '600', flex: 1, minWidth: '200px' }}>
+                    You're viewing a sample menu — upload your own to get started
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button
+                      onClick={() => setShowBulkUpload(true)}
+                      style={{
+                        padding: '6px 14px', backgroundColor: '#ef4444', color: 'white',
+                        border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '12px',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                        boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+                      }}
+                    >
+                      <FaCloudUploadAlt size={13} /> Upload Menu
+                    </button>
+                    <button
+                      onClick={() => router.push('/menu')}
+                      style={{
+                        padding: '6px 14px', backgroundColor: 'rgba(255,255,255,0.7)', color: '#92400e',
+                        border: '1px solid #f59e0b', borderRadius: '8px', fontWeight: '600', fontSize: '12px',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                      }}
+                    >
+                      Go to Menu <FaArrowRight size={10} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div key={pathname} className="dashboard-page-content" style={{ width: '100%', minHeight: '100%' }}>
                 {accessChecked ? children : null}
               </div>
@@ -213,6 +282,25 @@ function DashboardLayoutContent({ children }) {
 
             {/* DineAI Floating Button */}
             <DineAIButton />
+
+            {/* BulkMenuUpload modal — portal to body */}
+            {typeof document !== 'undefined' && createPortal(
+              <BulkMenuUpload
+                isOpen={showBulkUpload}
+                onClose={() => setShowBulkUpload(false)}
+                restaurantId={selectedRestaurantId}
+                onMenuItemsAdded={() => {
+                  setHasDefaultMenu(false);
+                  sessionStorage.setItem('demoMenuDismissed', 'true');
+                  setShowBulkUpload(false);
+                  window.dispatchEvent(new CustomEvent('menuUploaded'));
+                  // Reload current page to reflect new menu
+                  window.location.reload();
+                }}
+                currentMenuItems={[]}
+              />,
+              document.body
+            )}
           </div>
       </DineAIProvider>
     </CurrencyProvider>

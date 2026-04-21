@@ -1066,9 +1066,10 @@ class ApiClient {
     });
   }
 
-  async seedDefaultMenu(restaurantId) {
+  async seedDefaultMenu(restaurantId, countryCode = 'IN') {
     return this.request(`/api/restaurants/${restaurantId}/seed-default`, {
       method: 'POST',
+      body: { countryCode },
     });
   }
 

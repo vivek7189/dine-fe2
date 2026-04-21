@@ -3131,32 +3131,32 @@ const MenuManagement = () => {
           </div>
 
           {/* Action pills row */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
             {[
-              { icon: <FaCloudUploadAlt size={14} />, label: 'Upload', onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2' },
-              { icon: <FaCamera size={13} />, label: 'Photo', onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7' },
-              { icon: <FaQrcode size={13} />, label: 'QR Code', onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5' },
-              { icon: <FaEye size={13} />, label: 'Customize', onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); router.push(`/menu/customize${rid ? `?restaurant=${rid}` : ''}`); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe' },
+              { icon: <FaCloudUploadAlt size={16} />, label: 'Upload', onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
+              { icon: <FaCamera size={16} />, label: 'Photo', onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
+              { icon: <FaQrcode size={16} />, label: 'QR Code', onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
+              { icon: <FaEye size={16} />, label: 'Customize', onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); router.push(`/menu/customize${rid ? `?restaurant=${rid}` : ''}`); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
             ].map((action, i) => (
               <button
                 key={i}
                 onClick={action.onClick}
                 style={{
-                  padding: '6px 12px',
+                  padding: '10px 18px',
                   backgroundColor: action.bg,
                   color: action.color,
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '12px',
+                  border: `1px solid ${action.border}`,
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  fontSize: '14px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: '7px',
                   transition: 'all 0.2s',
                   whiteSpace: 'nowrap'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = action.hoverBg; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.08)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = action.hoverBg; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = action.bg; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
               >
                 {action.icon} {action.label}
