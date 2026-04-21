@@ -1027,7 +1027,9 @@ const Login = () => {
         if (selectedCountry?.code) localStorage.setItem('selectedCountryCode', selectedCountry.code);
         triggerDashboardPrefetch();
 
-        if (loginData.subdomainUrl) {
+        if (loginData.firstTimeUser) {
+          router.replace('/onboarding');
+        } else if (loginData.subdomainUrl) {
           redirectToSubdomain(loginData.subdomainUrl, loginData.token, loginData.user);
         } else {
           router.replace(loginData.redirectTo || getRefRedirectPath());
@@ -1057,7 +1059,9 @@ const Login = () => {
       if (data.success) {
         apiClient.setUser(data.user);
         triggerDashboardPrefetch();
-        if (data.subdomainUrl) {
+        if (data.firstTimeUser) {
+          router.replace('/onboarding');
+        } else if (data.subdomainUrl) {
           redirectToSubdomain(data.subdomainUrl, data.token, data.user);
         } else if (data.redirectTo) {
           router.replace(data.redirectTo);
