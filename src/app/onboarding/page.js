@@ -140,14 +140,15 @@ const FEATURES = [
 
 // Smart defaults per business type
 const FEATURE_DEFAULTS = {
-  restaurant: ['pos', 'tables', 'kot', 'inventory', 'menu', 'customers'],
-  cafe: ['pos', 'menu', 'customers'],
-  bar: ['pos', 'tables', 'inventory'],
-  bakery: ['pos', 'inventory', 'customers'],
-  cloud_kitchen: ['pos', 'kot', 'orders'],
-  qsr: ['pos', 'kot', 'orders', 'menu'],
-  ice_cream: ['pos', 'menu', 'customers'],
-  hotel: ['pos', 'hotel', 'invoice', 'tables'],
+  restaurant: ['pos', 'tables', 'kot', 'orders'],
+  cafe: ['pos', 'tables', 'kot', 'orders'],
+  bar: ['pos', 'tables', 'kot', 'orders'],
+  bakery: ['pos', 'tables', 'kot', 'orders'],
+  cloud_kitchen: ['pos', 'tables', 'kot', 'orders'],
+  qsr: ['pos', 'tables', 'kot', 'orders'],
+  ice_cream: ['pos', 'tables', 'kot', 'orders'],
+  hotel: ['pos', 'tables', 'kot', 'orders'],
+  other: ['pos', 'tables', 'kot', 'orders'],
 };
 
 // Step backgrounds
@@ -172,7 +173,8 @@ function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isTestMode = searchParams.get('test') === '1';
-  const [step, setStep] = useState(1);
+  const initialStep = parseInt(searchParams.get('step')) || 1;
+  const [step, setStep] = useState(initialStep);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState('forward');
   const [isMobile, setIsMobile] = useState(false);
@@ -216,7 +218,7 @@ function OnboardingContent() {
   const countryDropdownRef = useRef(null);
 
   // Step 3
-  const [selectedFeatures, setSelectedFeatures] = useState(['pos', 'tables', 'kot', 'menu']);
+  const [selectedFeatures, setSelectedFeatures] = useState(['pos', 'tables', 'kot', 'orders']);
 
   // Step 4
   const [menuChoice, setMenuChoice] = useState(null);
@@ -274,15 +276,57 @@ function OnboardingContent() {
     const check = () => setIsMobile(window.innerWidth <= 768);
     check();
     window.addEventListener('resize', check);
+    // Set initial step in URL if not present
+    if (!window.location.search.includes('step=')) {
+      window.history.replaceState({}, '', `/onboarding?step=${initialStep}`);
+    }
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Check auth (skip in test mode)
+  // Check auth + load saved onboarding progress
   useEffect(() => {
     if (isTestMode) return;
     const token = localStorage.getItem('authToken');
     if (!token) {
       router.replace('/login');
+      return;
+    }
+    // If already completed onboarding, redirect to home
+    if (localStorage.getItem('onboarding_completed') === 'true') {
+      router.replace('/home');
+      return;
+    }
+    // Try to restore onboarding progress from DB
+    const savedRid = localStorage.getItem('selectedRestaurantId');
+    if (savedRid) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+      fetch(`${apiUrl}/api/restaurants/${savedRid}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data) return;
+          const rest = data.restaurant || data;
+          // Redirect if onboarding was already completed
+          if (rest.onboardingStep === 'complete') {
+            localStorage.setItem('onboarding_completed', 'true');
+            router.replace('/home');
+            return;
+          }
+          // Restore state from saved restaurant
+          if (rest.businessType) setBusinessType(rest.businessType);
+          if (rest.name) setRestaurantName(rest.name);
+          setRestaurantId(savedRid);
+          // Resume from saved step (URL param takes priority)
+          const urlStep = parseInt(new URLSearchParams(window.location.search).get('step'));
+          const savedStep = typeof rest.onboardingStep === 'number' ? rest.onboardingStep : null;
+          const resumeStep = urlStep || savedStep || 1;
+          if (resumeStep > 1) {
+            setStep(resumeStep);
+            window.history.replaceState({}, '', `/onboarding?step=${resumeStep}`);
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -354,6 +398,23 @@ function OnboardingContent() {
     setTimeout(() => {
       setStep(nextStep);
       setAnimating(false);
+      // Update URL
+      const params = new URLSearchParams(window.location.search);
+      params.set('step', nextStep);
+      window.history.replaceState({}, '', `/onboarding?${params.toString()}`);
+      // Save step to DB (fire-and-forget)
+      const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
+      if (rid) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+          fetch(`${apiUrl}/api/restaurants/${rid}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ onboardingStep: nextStep }),
+          }).catch(() => {});
+        }
+      }
     }, 300);
   };
 
@@ -385,9 +446,11 @@ function OnboardingContent() {
           await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
         } catch {}
       }
+      localStorage.setItem('onboarding_completed', 'true');
       router.replace('/home');
     } catch (err) {
       console.error('Skip setup error:', err);
+      localStorage.setItem('onboarding_completed', 'true');
       router.replace('/home');
     }
   };
@@ -2134,7 +2197,28 @@ function OnboardingContent() {
 
             <button
               className="ob-btn"
-              onClick={() => router.push('/home')}
+              onClick={() => {
+                const token = localStorage.getItem('authToken');
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+                const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
+                // Mark onboarding complete in DB (fire-and-forget)
+                if (rid && token) {
+                  fetch(`${apiUrl}/api/restaurants/${rid}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ onboardingStep: 'complete' }),
+                  }).catch(() => {});
+                }
+                if (token) {
+                  fetch(`${apiUrl}/api/user/preferences`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ setupComplete: true }),
+                  }).catch(() => {});
+                }
+                localStorage.setItem('onboarding_completed', 'true');
+                router.push('/home');
+              }}
               style={{
                 ...btnPrimary, fontSize: '18px', padding: '16px 48px',
                 margin: '0 auto', borderRadius: '16px',
