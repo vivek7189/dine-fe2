@@ -814,6 +814,19 @@ function OnboardingContent() {
       {/* ═══════════ STEP 2: Restaurant Details ═══════════════ */}
       {step === 2 && (
         <div style={contentStyle}>
+          {/* Top navigation — Back left, Continue right */}
+          <div className="ob-fadeIn" style={{ maxWidth: '1000px', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
+            <button
+              className="ob-btn"
+              onClick={handleCreateRestaurant}
+              disabled={!restaurantName.trim() || creating}
+              style={{ ...btnPrimary, opacity: (!restaurantName.trim() || creating) ? 0.5 : 1, padding: '10px 24px', fontSize: '14px' }}
+            >
+              {creating ? 'Setting up...' : 'Continue'} <FaArrowRight size={12} />
+            </button>
+          </div>
+
           <div style={{
             maxWidth: '1000px', width: '100%',
             display: isMobile ? 'flex' : 'grid',
@@ -823,19 +836,6 @@ function OnboardingContent() {
           }}>
             {/* Left: Form */}
             <div className="ob-fadeIn">
-              {/* Top navigation */}
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
-                <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
-                <button
-                  className="ob-btn"
-                  onClick={handleCreateRestaurant}
-                  disabled={!restaurantName.trim() || creating}
-                  style={{ ...btnPrimary, opacity: (!restaurantName.trim() || creating) ? 0.5 : 1, padding: '10px 20px', fontSize: '14px' }}
-                >
-                  {creating ? 'Setting up...' : 'Continue'} <FaArrowRight size={12} />
-                </button>
-              </div>
-
               {heading('Tell us about your place')}
               {subheading('This appears on your bills, QR menu, and reports.')}
 
@@ -1092,7 +1092,7 @@ function OnboardingContent() {
                 </div>
 
                 {/* Cuisine */}
-                <div style={{ marginBottom: '0', borderRadius: '12px', border: '1px solid #f0f0f0', overflow: 'hidden', background: 'white' }}>
+                <div style={{ marginBottom: '0', borderRadius: '12px', border: '1px solid #f0f0f0', background: 'white', position: 'relative' }}>
                   <div
                     onClick={() => setShowCuisine(!showCuisine)}
                     style={{
@@ -1192,7 +1192,7 @@ function OnboardingContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button onClick={goBack} style={btnSecondary}>
                   <FaArrowLeft size={12} /> Back
                 </button>
@@ -1205,21 +1205,26 @@ function OnboardingContent() {
                   {creating ? 'Setting up...' : 'Continue'} <FaArrowRight size={14} />
                 </button>
               </div>
-              <button onClick={handleSkipStep2} style={skipLink}>Skip this step</button>
+              <div style={{ textAlign: 'center' }}>
+                <button onClick={handleSkipStep2} style={skipLink}>Skip this step</button>
+              </div>
             </div>
 
-            {/* Right: Feature Highlights + Receipt Preview */}
-            <div className="ob-fadeIn-d2" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Live receipt mini-preview */}
-              <div className="ob-float" style={{
+            {/* Right: Receipt + Feature Highlights */}
+            <div className="ob-fadeIn-d2" style={{
+              display: 'flex', flexDirection: 'column', gap: '20px',
+              position: isMobile ? 'relative' : 'sticky', top: isMobile ? 'auto' : '90px', alignSelf: 'start',
+            }}>
+              {/* Live receipt mini-preview — sticky */}
+              <div style={{
                 background: 'white', borderRadius: '20px',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.1)', padding: '24px 20px',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.08)', padding: '24px 20px',
                 border: '1px solid rgba(0,0,0,0.06)', position: 'relative',
               }}>
                 <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: '10px', background: 'repeating-linear-gradient(90deg, transparent, transparent 4px, #f1f5f9 4px, #f1f5f9 8px)', borderRadius: '0 0 4px 4px' }} />
 
                 <div style={{ textAlign: 'center', paddingBottom: '12px', marginBottom: '12px', borderBottom: '1.5px dashed #e5e7eb' }}>
-                  <p style={{ fontSize: '16px', fontWeight: '900', color: '#111827', margin: '6px 0 2px', letterSpacing: '-0.01em' }}>
+                  <p style={{ fontSize: '16px', fontWeight: '900', color: '#111827', margin: '6px 0 2px', letterSpacing: '-0.01em', textTransform: 'capitalize' }}>
                     {restaurantName || `Your ${businessLabel}`}
                   </p>
                   {restaurantAddress ? (
@@ -1232,6 +1237,12 @@ function OnboardingContent() {
                   )}
                   {restaurantPhone && (
                     <p style={{ fontSize: '10px', color: '#9ca3af', margin: '2px 0 0' }}>{restaurantPhone}</p>
+                  )}
+                  {restaurantEmail && (
+                    <p style={{ fontSize: '10px', color: '#9ca3af', margin: '2px 0 0' }}>{restaurantEmail}</p>
+                  )}
+                  {selectedCuisines.length > 0 && (
+                    <p style={{ fontSize: '9px', color: '#ef4444', margin: '4px 0 0', fontWeight: '600' }}>{selectedCuisines.join(' · ')}</p>
                   )}
                 </div>
 
@@ -1258,50 +1269,50 @@ function OnboardingContent() {
                 </div>
               </div>
 
-              {/* What you get — feature highlights */}
+              {/* What you get — seamless light card */}
               <div className="ob-fadeIn-d3" style={{
-                background: 'linear-gradient(135deg, #1e1b4b, #312e81)', borderRadius: '20px',
-                padding: '24px 20px', color: 'white',
+                background: 'white', borderRadius: '20px',
+                padding: '20px 18px', border: '1px solid #f0f0f0',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                  <FaBolt size={14} color="#fbbf24" />
-                  <span style={{ fontSize: '15px', fontWeight: '800', letterSpacing: '-0.01em' }}>What you get — free</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <FaBolt size={13} color="#ef4444" />
+                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#111827', letterSpacing: '-0.01em' }}>What you get — free</span>
                 </div>
 
                 {[
-                  { icon: FaCashRegister, label: 'POS & Billing', desc: 'Take orders, print bills', color: '#f87171' },
-                  { icon: FaQrcode, label: 'QR Menu', desc: 'Customers scan & order', color: '#a78bfa' },
-                  { icon: FaGlobe, label: 'Online Website', desc: 'yourname.dineopen.com', color: '#34d399' },
-                  { icon: FaChartLine, label: 'Analytics', desc: 'Revenue, bestsellers, trends', color: '#38bdf8' },
-                  { icon: FaPrint, label: 'Kitchen Display', desc: 'Auto-send KOT to kitchen', color: '#fb923c' },
-                  { icon: FaUsers, label: 'Customer CRM', desc: 'Loyalty & WhatsApp promos', color: '#f472b6' },
+                  { icon: FaCashRegister, label: 'POS & Billing', desc: 'Take orders, print bills', color: '#ef4444', bg: '#fef2f2' },
+                  { icon: FaQrcode, label: 'QR Menu', desc: 'Customers scan & order', color: '#3b82f6', bg: '#eff6ff' },
+                  { icon: FaGlobe, label: 'Online Website', desc: 'yourname.dineopen.com', color: '#10b981', bg: '#ecfdf5' },
+                  { icon: FaChartLine, label: 'Analytics', desc: 'Revenue, bestsellers, trends', color: '#0ea5e9', bg: '#f0f9ff' },
+                  { icon: FaPrint, label: 'Kitchen Display', desc: 'Auto-send KOT to kitchen', color: '#f97316', bg: '#fff7ed' },
+                  { icon: FaUsers, label: 'Customer CRM', desc: 'Loyalty & WhatsApp promos', color: '#ec4899', bg: '#fdf2f8' },
                 ].map((f, i) => (
                   <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '8px 0',
-                    borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '7px 0',
+                    borderBottom: i < 5 ? '1px solid #f5f5f5' : 'none',
                   }}>
                     <div style={{
-                      width: '32px', height: '32px', borderRadius: '8px',
-                      background: 'rgba(255,255,255,0.1)',
+                      width: '30px', height: '30px', borderRadius: '8px',
+                      background: f.bg,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <f.icon size={14} color={f.color} />
+                      <f.icon size={13} color={f.color} />
                     </div>
                     <div>
-                      <p style={{ fontSize: '13px', fontWeight: '700', margin: 0, color: 'white' }}>{f.label}</p>
-                      <p style={{ fontSize: '11px', margin: 0, color: 'rgba(255,255,255,0.55)' }}>{f.desc}</p>
+                      <p style={{ fontSize: '12px', fontWeight: '700', margin: 0, color: '#374151' }}>{f.label}</p>
+                      <p style={{ fontSize: '10px', margin: 0, color: '#9ca3af' }}>{f.desc}</p>
                     </div>
                   </div>
                 ))}
 
                 <div style={{
-                  marginTop: '16px', padding: '10px 14px', borderRadius: '10px',
-                  background: 'rgba(250,204,21,0.12)', border: '1px solid rgba(250,204,21,0.2)',
-                  display: 'flex', alignItems: 'center', gap: '8px',
+                  marginTop: '12px', padding: '8px 12px', borderRadius: '8px',
+                  background: '#f0fdf4', border: '1px solid #bbf7d0',
+                  display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
-                  <FaStar size={12} color="#fbbf24" />
-                  <span style={{ fontSize: '12px', color: '#fde68a', fontWeight: '600' }}>
+                  <FaStar size={10} color="#16a34a" />
+                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: '600' }}>
                     Zero commissions. No hidden fees. Ever.
                   </span>
                 </div>
@@ -1341,17 +1352,17 @@ function OnboardingContent() {
                     }}
                     style={{
                       padding: '18px 18px', borderRadius: '16px',
-                      border: selected ? `2px solid ${f.color}` : '2px solid #e5e7eb',
-                      backgroundColor: selected ? `${f.color}08` : 'white',
+                      border: selected ? '2px solid #ef4444' : '2px solid #1f2937',
+                      backgroundColor: selected ? '#fef2f2' : 'white',
                       display: 'flex', alignItems: 'center', gap: '16px',
                       cursor: isLocked ? 'default' : 'pointer',
-                      boxShadow: selected ? `0 4px 12px ${f.color}20` : '0 1px 3px rgba(0,0,0,0.03)',
+                      boxShadow: selected ? '0 4px 12px rgba(239,68,68,0.15)' : '0 1px 3px rgba(0,0,0,0.03)',
                       transition: 'all 0.2s',
                     }}
                   >
                     <div style={{
                       width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-                      background: `${f.color}12`,
+                      background: `${f.color}15`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <Icon size={20} color={f.color} />
@@ -1503,36 +1514,38 @@ function OnboardingContent() {
                   </div>
                 )}
 
-                {/* Sample menu status card — auto-seeded */}
-                <div
-                  style={{
-                    padding: '14px 18px', borderRadius: '14px',
-                    border: menuSeeded && !uploadedCount ? '2px solid #16a34a' : '2px solid #e5e7eb',
-                    background: menuSeeded && !uploadedCount ? '#f0fdf4' : 'white',
-                    display: 'flex', alignItems: 'center', gap: '14px',
-                  }}
-                >
-                  <div style={{
-                    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-                    background: menuSeeded && !uploadedCount ? '#dcfce7' : '#f1f5f9',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {menuSeeded && !uploadedCount ? (
-                      <FaCheck size={18} color="#16a34a" />
-                    ) : (
-                      <div style={{ width: '18px', height: '18px', border: '2.5px solid #d1d5db', borderTopColor: '#6b7280', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                    )}
+                {/* Sample menu status card — only show if user hasn't uploaded their own */}
+                {!uploadedCount && (
+                  <div
+                    style={{
+                      padding: '14px 18px', borderRadius: '14px',
+                      border: menuSeeded ? '2px solid #16a34a' : '2px solid #e5e7eb',
+                      background: menuSeeded ? '#f0fdf4' : 'white',
+                      display: 'flex', alignItems: 'center', gap: '14px',
+                    }}
+                  >
+                    <div style={{
+                      width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+                      background: menuSeeded ? '#dcfce7' : '#f1f5f9',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {menuSeeded ? (
+                        <FaCheck size={18} color="#16a34a" />
+                      ) : (
+                        <div style={{ width: '18px', height: '18px', border: '2.5px solid #d1d5db', borderTopColor: '#6b7280', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
+                        {menuSeeded ? 'Sample menu ready' : 'Setting up your menu...'}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                        {menuSeeded ? `36 popular ${businessLabel.toLowerCase()} items — edit anytime from Menu page` : 'Auto-loading sample items for your business type'}
+                      </p>
+                    </div>
+                    {menuSeeded && <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: '600' }}>Live</span>}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
-                      {menuSeeded && !uploadedCount ? 'Sample menu ready' : 'Setting up your menu...'}
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-                      {menuSeeded ? `36 popular ${businessLabel.toLowerCase()} items — edit anytime from Menu page` : 'Auto-loading sample items for your business type'}
-                    </p>
-                  </div>
-                  {menuSeeded && !uploadedCount && <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: '600' }}>Live</span>}
-                </div>
+                )}
 
                 {/* WhatsApp option */}
                 <div
@@ -1613,8 +1626,8 @@ function OnboardingContent() {
                   borderRadius: '0 0 12px 12px', zIndex: 10,
                 }} />
 
-                {/* Menu content — always show iframe for live preview */}
-                {restaurantId ? (
+                {/* Menu content — iframe once menu is seeded, static preview while loading */}
+                {(menuSeeded && restaurantId) ? (
                   <iframe
                     key={iframeKey}
                     src={`/placeorder?restaurant=${restaurantId}`}
