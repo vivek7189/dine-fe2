@@ -286,12 +286,8 @@ export default function Sidebar({ isDashboardPage = false }) {
       return item.roles.includes(user.role);
     }
 
-    // Manager, employee, cashier, sales — respect pageAccess so owner can restrict
-    if (['manager', 'employee', 'cashier', 'sales'].includes(user.role)) {
-      // First check if item's roles array includes this role
-      if (!item.roles.includes(user.role)) return false;
-      // Then check pageAccess
-      if (!pageAccess) return false;
+    // All other roles (manager, employee, cashier, sales, custom) — pageAccess is the authority
+    if (pageAccess) {
       const accessMap = {
         'pos': 'dashboard',
         'orders': 'history',

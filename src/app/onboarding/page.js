@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic } from 'react-icons/fa';
+import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt } from 'react-icons/fa';
 import QRCode from 'qrcode';
 import apiClient from '../../lib/api';
-import { getDefaultMenu } from '../../lib/defaultMenus';
+import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
 import ChatbotInterface from '../../components/ChatbotInterface';
 import { getCurrencyByCountryCode } from '../../lib/currencyData';
 import { detectAndSetCountry, formatPriceWithCurrency } from '../../lib/detectCountry';
@@ -187,6 +187,8 @@ function OnboardingContent() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [uploadedCount, setUploadedCount] = useState(0);
   const fileInputRef = useRef(null);
+  const [previewTheme, setPreviewTheme] = useState('default');
+  const [menuPreviewQr, setMenuPreviewQr] = useState('');
 
   // Step 5
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
@@ -243,6 +245,20 @@ function OnboardingContent() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Generate QR code preview for step 4
+  useEffect(() => {
+    if (step === 4) {
+      const url = restaurantId
+        ? `https://dineopen.com/placeorder?restaurant=${restaurantId}`
+        : 'https://dineopen.com/placeorder/demo';
+      QRCode.toDataURL(url, {
+        width: 160,
+        margin: 2,
+        color: { dark: '#111827', light: '#ffffff' },
+      }).then(setMenuPreviewQr).catch(() => {});
+    }
+  }, [step, restaurantId]);
 
   // Generate QR code when reaching step 5
   useEffect(() => {
@@ -1177,28 +1193,238 @@ function OnboardingContent() {
               <FaArrowRight size={14} color="#25D366" />
             </div>
 
-            {/* QR Feature Highlight */}
-            <div className="ob-fadeIn-d3" style={{
-              padding: '20px 24px', borderRadius: '16px',
-              background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-              border: '1px solid #bfdbfe', marginBottom: '24px',
-              display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: '16px',
-              flexDirection: isMobile ? 'column' : 'row',
-            }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '16px', flexShrink: 0,
-                background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-              }}>
-                <FaQrcode size={28} color="#3b82f6" />
+            {/* ── Live Menu Preview Section ── */}
+            <div className="ob-fadeIn-d3" style={{ marginBottom: '24px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <p style={{ fontWeight: '800', fontSize: '18px', color: '#111827', margin: '0 0 4px' }}>
+                  See your menu come alive
+                </p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+                  This is what your customers see when they scan your QR code
+                </p>
               </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontWeight: '800', fontSize: '15px', color: '#1e40af', margin: '0 0 4px' }}>
-                  Your customers get a FREE QR menu
+
+              {/* QR Code + Phone Mockup side by side */}
+              <div style={{
+                display: 'flex', gap: '24px', justifyContent: 'center', alignItems: 'center',
+                flexDirection: isMobile ? 'column' : 'row', marginBottom: '20px',
+              }}>
+                {/* QR Code Card */}
+                <div style={{
+                  background: 'white', borderRadius: '20px', padding: '24px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)',
+                  textAlign: 'center', flexShrink: 0,
+                }}>
+                  <p style={{ fontWeight: '700', fontSize: '14px', color: '#111827', margin: '0 0 4px' }}>Your Menu QR Code</p>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 12px' }}>Print this. Place on tables.</p>
+                  {menuPreviewQr ? (
+                    <img src={menuPreviewQr} alt="Menu QR" style={{
+                      width: '140px', height: '140px', display: 'block', margin: '0 auto 12px',
+                      borderRadius: '10px', border: '1px solid #f1f5f9',
+                    }} />
+                  ) : (
+                    <div style={{
+                      width: '140px', height: '140px', margin: '0 auto 12px',
+                      background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <FaQrcode size={50} color="#d1d5db" />
+                    </div>
+                  )}
+                  <p style={{ fontSize: '11px', color: '#3b82f6', margin: 0, fontWeight: '600' }}>
+                    Customers scan &rarr; browse &rarr; order &rarr; pay
+                  </p>
+                </div>
+
+                {/* Phone Mockup with Menu Preview */}
+                <div style={{
+                  border: '8px solid #1f2937', borderRadius: '28px',
+                  width: isMobile ? '260px' : '280px', height: isMobile ? '460px' : '500px',
+                  overflow: 'hidden', background: '#ffffff', flexShrink: 0,
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                  position: 'relative',
+                }}>
+                  {/* Notch */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                    width: '100px', height: '20px', background: '#1f2937',
+                    borderRadius: '0 0 14px 14px', zIndex: 10,
+                  }} />
+
+                  {/* Menu content inside phone */}
+                  {(menuSeeded && restaurantId) ? (
+                    <iframe
+                      src={`/placeorder?restaurant=${restaurantId}${previewTheme !== 'default' ? `&theme=${previewTheme}` : ''}`}
+                      style={{ width: '100%', height: '100%', border: 'none' }}
+                      title="Menu Preview"
+                    />
+                  ) : (
+                    <div style={{ height: '100%', overflow: 'auto', paddingTop: '24px' }}>
+                      {/* Static menu preview header */}
+                      <div style={{
+                        background: previewTheme === 'bistro' ? 'linear-gradient(135deg, #92400e, #b45309)' :
+                          previewTheme === 'classic' ? 'linear-gradient(135deg, #1f2937, #374151)' :
+                          'linear-gradient(135deg, #ef4444, #f97316)',
+                        padding: '20px 16px 14px', textAlign: 'center',
+                      }}>
+                        <p style={{
+                          color: 'white', fontWeight: '800', fontSize: '16px', margin: '0 0 2px',
+                          fontFamily: previewTheme === 'bistro' ? 'Georgia, serif' : 'inherit',
+                        }}>
+                          {restaurantName || `Your ${businessLabel}`}
+                        </p>
+                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '11px', margin: 0 }}>
+                          {previewTheme === 'bistro' ? 'Fine Dining Experience' : 'Order from your table'}
+                        </p>
+                      </div>
+
+                      {/* Category pills */}
+                      <div style={{
+                        display: 'flex', gap: '6px', padding: '10px 12px', overflowX: 'auto',
+                        borderBottom: '1px solid #f3f4f6',
+                      }}>
+                        {(getDefaultCategories(businessType || 'restaurant') || []).slice(0, 4).map((cat, i) => (
+                          <span key={cat} style={{
+                            padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '600',
+                            whiteSpace: 'nowrap', flexShrink: 0,
+                            background: i === 0 ? (previewTheme === 'bistro' ? '#92400e' : '#ef4444') : '#f3f4f6',
+                            color: i === 0 ? 'white' : '#374151',
+                          }}>
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Menu items */}
+                      <div style={{ padding: '8px 12px' }}>
+                        {(getDefaultMenu(businessType || 'restaurant') || []).slice(0, 8).map((item, i) => (
+                          <div key={item.id || i} style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '8px 0', borderBottom: i < 7 ? '1px solid #f9fafb' : 'none',
+                          }}>
+                            {/* Veg/Non-veg indicator */}
+                            <div style={{
+                              width: '14px', height: '14px', borderRadius: '3px', flexShrink: 0,
+                              border: `2px solid ${item.isVeg ? '#16a34a' : '#dc2626'}`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <div style={{
+                                width: '6px', height: '6px', borderRadius: '50%',
+                                background: item.isVeg ? '#16a34a' : '#dc2626',
+                              }} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{
+                                fontSize: '12px', fontWeight: '600', color: '#1f2937', margin: 0,
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                fontFamily: previewTheme === 'bistro' ? 'Georgia, serif' : 'inherit',
+                              }}>
+                                {item.name}
+                              </p>
+                              {item.description && (
+                                <p style={{
+                                  fontSize: '9px', color: '#9ca3af', margin: '1px 0 0', lineHeight: 1.2,
+                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                }}>
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                            <span style={{
+                              fontSize: '12px', fontWeight: '700', flexShrink: 0,
+                              color: previewTheme === 'bistro' ? '#92400e' : '#ef4444',
+                            }}>
+                              {fmtPrice(item.price)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Bottom bar */}
+                      <div style={{
+                        position: 'sticky', bottom: 0, padding: '10px 12px',
+                        background: 'white', borderTop: '1px solid #f3f4f6',
+                        textAlign: 'center',
+                      }}>
+                        <div style={{
+                          padding: '8px', borderRadius: '10px',
+                          background: previewTheme === 'bistro' ? '#92400e' : '#ef4444',
+                          color: 'white', fontSize: '11px', fontWeight: '700',
+                        }}>
+                          View Full Menu &rarr;
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Theme selector strip */}
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px', fontWeight: '600' }}>
+                  Choose a style for your menu
                 </p>
-                <p style={{ fontSize: '13px', color: '#3b82f6', margin: 0, lineHeight: 1.4 }}>
-                  Once your menu is ready, customers can scan a QR code at their table to browse your menu, place orders, and even pay — all from their phone.
+                <div style={{
+                  display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap',
+                }}>
+                  {[
+                    { id: 'default', name: 'Modern', icon: '📱' },
+                    { id: 'classic', name: 'Classic', icon: '📋' },
+                    { id: 'bistro', name: 'Elegant', icon: '📖' },
+                    { id: 'carousel', name: 'Carousel', icon: '🎠' },
+                  ].map(theme => (
+                    <button
+                      key={theme.id}
+                      onClick={() => setPreviewTheme(theme.id)}
+                      style={{
+                        padding: '8px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                        background: previewTheme === theme.id ? '#111827' : '#f3f4f6',
+                        color: previewTheme === theme.id ? 'white' : '#374151',
+                        fontSize: '12px', fontWeight: '600',
+                        display: 'flex', alignItems: 'center', gap: '5px',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <span>{theme.icon}</span> {theme.name}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: '10px', color: '#9ca3af', margin: '6px 0 0' }}>
+                  You can change this anytime from Menu &gt; Customize
                 </p>
+              </div>
+
+              {/* Value proposition cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+                gap: '10px',
+              }}>
+                {[
+                  { icon: FaGlobe, label: 'Your own website', desc: 'yourname.dineopen.com — menu always live', color: '#3b82f6', bg: '#eff6ff' },
+                  { icon: FaPercent, label: 'Zero commission', desc: 'Direct orders. No delivery app fees.', color: '#10b981', bg: '#ecfdf5' },
+                  { icon: FaMobileAlt, label: 'Works on any phone', desc: 'No app install. Just scan & order.', color: '#f59e0b', bg: '#fffbeb' },
+                ].map((card, i) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={i} style={{
+                      padding: '14px 16px', borderRadius: '14px', background: card.bg,
+                      border: `1px solid ${card.color}20`, display: 'flex', alignItems: 'center', gap: '12px',
+                    }}>
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                        background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: `0 2px 8px ${card.color}20`,
+                      }}>
+                        <Icon size={16} color={card.color} />
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: '700', fontSize: '13px', color: '#111827', margin: 0 }}>{card.label}</p>
+                        <p style={{ fontSize: '11px', color: '#6b7280', margin: '1px 0 0' }}>{card.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
