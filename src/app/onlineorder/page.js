@@ -1758,6 +1758,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
             offers={applicableOffers}
             gradientStart={offerGradientStart}
             gradientEnd={offerGradientEnd}
+            cs={cs}
           />
         </div>
       )}
@@ -1991,6 +1992,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
                     onRemoveFromCart={removeFromCart}
                     cartQuantity={cart.find(cartItem => cartItem.id === item.id)?.quantity || 0}
                     getCategoryColor={getCategoryColor}
+                    cs={cs}
                   />
                 ))}
               </div>
@@ -2038,6 +2040,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
         cartSubtotal={getCartSubtotal()}
         onViewCart={handleCartClick}
         publicMenuOnly={customerAppSettings?.pageSettings?.publicMenuOnly === true}
+        cs={cs}
       />
 
       {/* Cart Modal - Shown to logged-in users or when login not required */}
@@ -2061,6 +2064,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
           setCart={setCart}
           customerVerified={customerVerified}
           customerAppSettings={customerAppSettings}
+          cs={cs}
         />
       )}
 
@@ -2110,7 +2114,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
 };
 
 // Offers Banner Component - Shows carousel of active offers
-const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
+const OffersBanner = ({ offers, gradientStart, gradientEnd, cs = '₹' }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
@@ -2435,7 +2439,7 @@ const OffersBanner = ({ offers, gradientStart, gradientEnd }) => {
 };
 
 // Menu Item Card Component
-const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor }) => {
+const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCategoryColor, cs = '₹' }) => {
   const isVeg = item.isVeg !== false;
   const [isHovered, setIsHovered] = useState(false);
   const indicatorColor = isVeg ? '#22c55e' : '#ef4444';
@@ -2650,7 +2654,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
 };
 
 // Sticky Bottom Cart Bar — shows when items are in cart
-const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly }) => {
+const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly, cs = '₹' }) => {
   if (publicMenuOnly || cartItemCount === 0) return null;
   return (
     <div className="sticky-cart-bar-desktop-hide" style={{
@@ -2735,7 +2739,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
 };
 
 // Cart Modal Component
-const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings }) => {
+const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹' }) => {
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
 
   return (
@@ -3388,6 +3392,7 @@ const CheckoutView = ({
   getServiceCharge,
   getPreTaxTotal,
 }) => {
+  const cs = restaurant?.currencySymbol || '₹';
   const tier = customerData?.loyaltyTier || loyaltyHistory?.summary?.currentTier || 'bronze';
   const tierData = tierInfo[tier] || tierInfo.bronze;
   const tierProgress = getTierProgress();

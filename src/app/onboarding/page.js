@@ -9,6 +9,7 @@ import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
 import ChatbotInterface from '../../components/ChatbotInterface';
 import { getCurrencyByCountryCode } from '../../lib/currencyData';
 import { detectAndSetCountry, formatPriceWithCurrency } from '../../lib/detectCountry';
+import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../lib/i18n';
 
 // ─── Countries ───────────────────────────────────────────────
 const COUNTRIES = [
@@ -84,6 +85,7 @@ const BUSINESS_TYPES = [
   { id: 'qsr', label: 'QSR / Fast Food', icon: FaHamburger, color: '#10b981', bg: '#ecfdf5', desc: 'Quick service', emoji: '🍔' },
   { id: 'ice_cream', label: 'Ice Cream', icon: FaIceCream, color: '#06b6d4', bg: '#ecfeff', desc: 'Parlour & desserts', emoji: '🍦' },
   { id: 'hotel', label: 'Hotel', icon: FaHotel, color: '#3b82f6', bg: '#eff6ff', desc: 'Rooms & dining', emoji: '🏨' },
+  { id: 'other', label: 'Other', icon: FaUtensils, color: '#6b7280', bg: '#f3f4f6', desc: 'Something else', emoji: '🏪' },
 ];
 
 // Dynamic name placeholders per business type
@@ -96,6 +98,7 @@ const NAME_PLACEHOLDERS = {
   qsr: 'e.g., QuickBite Express',
   ice_cream: 'e.g., Frosty Scoops',
   hotel: 'e.g., Grand Palace Hotel',
+  other: 'e.g., My Business Name',
 };
 
 // ─── Cuisine Options ──────────────────────────────────────────
@@ -118,6 +121,7 @@ const NAME_LABELS = {
   qsr: 'Restaurant Name',
   ice_cream: 'Parlour Name',
   hotel: 'Hotel Name',
+  other: 'Business Name',
 };
 
 // ─── Feature Map ───────────────────────────────────────────────
@@ -173,6 +177,31 @@ function OnboardingContent() {
   const [direction, setDirection] = useState('forward');
   const [isMobile, setIsMobile] = useState(false);
 
+  // Language
+  const [currentLang, setCurrentLang] = useState('en');
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const langRef = useRef(null);
+
+  useEffect(() => {
+    setCurrentLang(getCurrentLanguage());
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (langRef.current && !langRef.current.contains(e.target)) setLangDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLangChange = (code) => {
+    setLanguage(code);
+    setCurrentLang(code);
+    setLangDropdownOpen(false);
+  };
+
+  const ob = (key, params) => t(`onboarding.${key}`, params);
+
   // Step 1
   const [businessType, setBusinessType] = useState('');
   const [hoveredType, setHoveredType] = useState('');
@@ -187,7 +216,7 @@ function OnboardingContent() {
   const countryDropdownRef = useRef(null);
 
   // Step 3
-  const [selectedFeatures, setSelectedFeatures] = useState(['pos']);
+  const [selectedFeatures, setSelectedFeatures] = useState(['pos', 'tables', 'kot', 'menu']);
 
   // Step 4
   const [menuChoice, setMenuChoice] = useState(null);
@@ -334,7 +363,7 @@ function OnboardingContent() {
   // POS path based on business type
   const posPath = businessType === 'bar' ? '/dashboard/bar' : '/dashboard';
 
-  const businessLabel = BUSINESS_TYPES.find(b => b.id === businessType)?.label || 'Restaurant';
+  const businessLabel = businessType === 'other' ? 'Business' : (BUSINESS_TYPES.find(b => b.id === businessType)?.label || 'Restaurant');
 
   // ─── Skip Entire Setup ──────────────────────────────────────
   const skipEntireSetup = async () => {
@@ -678,6 +707,7 @@ function OnboardingContent() {
         @keyframes confetti3 { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(-90px) rotate(180deg) translateX(20px); opacity: 0; } }
         @keyframes successRing { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
         @keyframes successCheck { 0% { stroke-dashoffset: 50; } 100% { stroke-dashoffset: 0; } }
+        @keyframes loadingBar { 0% { width: 5%; } 50% { width: 70%; } 80% { width: 85%; } 100% { width: 95%; } }
         .ob-card { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
         .ob-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); }
         .ob-card:active { transform: scale(0.98); }
@@ -699,7 +729,7 @@ function OnboardingContent() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderBottom: '1px solid rgba(0,0,0,0.06)',
         background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)',
-        position: 'sticky', top: 0, zIndex: 10,
+        position: 'sticky', top: 0, zIndex: 100,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
@@ -721,16 +751,64 @@ function OnboardingContent() {
             }} />
           </div>
           <div style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', marginTop: '3px', fontWeight: '600' }}>
-            {step} of 6
+            {step} {ob('of')} 6
           </div>
         </div>
 
-        <button onClick={skipEntireSetup} style={{
-          color: '#9ca3af', fontSize: '13px', cursor: 'pointer',
-          border: 'none', background: 'none', fontWeight: '600',
-        }}>
-          Skip all
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Language switcher */}
+          <div ref={langRef} style={{ position: 'relative' }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setLangDropdownOpen(!langDropdownOpen); }}
+              style={{
+                background: langDropdownOpen ? '#f9fafb' : 'white', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+                padding: '8px 14px', cursor: 'pointer', fontSize: '14px', fontWeight: '600',
+                color: '#374151', display: 'flex', alignItems: 'center', gap: '6px',
+                transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>{getAvailableLanguages().find(l => l.code === currentLang)?.flag || '🌐'}</span>
+              <span>{currentLang.toUpperCase()}</span>
+              <FaChevronDown size={9} color="#9ca3af" style={{ transition: 'transform 0.2s', transform: langDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+            </button>
+            {langDropdownOpen && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setLangDropdownOpen(false)} />
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: '6px', zIndex: 1000,
+                  background: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.15)', minWidth: '180px', overflow: 'hidden',
+                  padding: '4px 0',
+                }}>
+                  {getAvailableLanguages().map(lang => (
+                    <button key={lang.code} onClick={() => handleLangChange(lang.code)} style={{
+                      width: '100%', padding: '10px 16px', border: 'none',
+                      background: currentLang === lang.code ? '#fef2f2' : 'transparent',
+                      color: currentLang === lang.code ? '#ef4444' : '#374151',
+                      fontSize: '14px', fontWeight: currentLang === lang.code ? '700' : '500',
+                      cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px',
+                      transition: 'background 0.15s',
+                    }}
+                      onMouseEnter={e => { if (currentLang !== lang.code) e.currentTarget.style.background = '#f9fafb'; }}
+                      onMouseLeave={e => { if (currentLang !== lang.code) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span style={{ fontSize: '16px' }}>{lang.flag}</span>
+                      <span>{lang.nativeName}</span>
+                      {currentLang === lang.code && <FaCheck size={10} color="#ef4444" style={{ marginLeft: 'auto' }} />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <button onClick={skipEntireSetup} style={{
+            color: '#9ca3af', fontSize: '13px', cursor: 'pointer',
+            border: 'none', background: 'none', fontWeight: '600',
+          }}>
+            {ob('skipAll')}
+          </button>
+        </div>
       </div>
 
       {/* ═══════════ STEP 1: Business Type ═══════════════════ */}
@@ -738,11 +816,11 @@ function OnboardingContent() {
         <div style={contentStyle}>
           <div className="ob-fadeIn" style={{ maxWidth: '800px', width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>👋</div>
-            {heading('Welcome to DineOpen!')}
-            {subheading("Let's personalize your experience in 2 minutes.")}
+            {heading(ob('welcome'))}
+            {subheading(ob('personalizeIn2Min'))}
 
             <p style={{ fontSize: '15px', fontWeight: '700', color: '#374151', marginBottom: '20px' }}>
-              What type of business do you run?
+              {ob('whatBusiness')}
             </p>
 
             <div style={{
@@ -805,7 +883,7 @@ function OnboardingContent() {
             </div>
 
             <button onClick={skipEntireSetup} style={skipLink}>
-              Skip entire setup
+              {ob('skipEntireSetup')}
             </button>
           </div>
         </div>
@@ -814,16 +892,50 @@ function OnboardingContent() {
       {/* ═══════════ STEP 2: Restaurant Details ═══════════════ */}
       {step === 2 && (
         <div style={contentStyle}>
-          {/* Top navigation — Back left, Continue right */}
-          <div className="ob-fadeIn" style={{ maxWidth: '1000px', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
+          {/* Full-screen loading overlay when creating */}
+          {creating && (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 100,
+              background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              animation: 'fadeInUp 0.3s ease',
+            }}>
+              <div style={{
+                width: '72px', height: '72px', borderRadius: '50%', marginBottom: '20px',
+                background: 'linear-gradient(135deg, #ef4444, #f97316)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                animation: 'pulse 1.5s ease infinite',
+                boxShadow: '0 8px 30px rgba(239,68,68,0.25)',
+              }}>
+                <FaUtensils size={28} color="white" style={{ animation: 'spin 2s linear infinite' }} />
+              </div>
+              <p style={{ fontSize: '20px', fontWeight: '800', color: '#111827', margin: '0 0 6px' }}>{ob('settingUpYour', { type: businessLabel.toLowerCase() })}</p>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>{ob('creatingMenuQr')}</p>
+              <div style={{ marginTop: '24px', width: '200px', height: '4px', borderRadius: '2px', background: '#f3f4f6', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: '2px',
+                  background: 'linear-gradient(90deg, #ef4444, #f97316)',
+                  animation: 'loadingBar 2s ease infinite',
+                }} />
+              </div>
+            </div>
+          )}
+
+          {/* Sticky top navigation — Back left, Continue right */}
+          <div style={{
+            position: 'sticky', top: 0, zIndex: 20, width: '100%', maxWidth: '1000px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '12px 0', marginBottom: '8px',
+            background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)',
+          }}>
+            <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> {ob('back')}</button>
             <button
               className="ob-btn"
               onClick={handleCreateRestaurant}
               disabled={!restaurantName.trim() || creating}
               style={{ ...btnPrimary, opacity: (!restaurantName.trim() || creating) ? 0.5 : 1, padding: '10px 24px', fontSize: '14px' }}
             >
-              {creating ? 'Setting up...' : 'Continue'} <FaArrowRight size={12} />
+              {creating ? ob('settingUp') : ob('continue')} <FaArrowRight size={12} />
             </button>
           </div>
 
@@ -836,12 +948,12 @@ function OnboardingContent() {
           }}>
             {/* Left: Form */}
             <div className="ob-fadeIn">
-              {heading('Tell us about your place')}
-              {subheading('This appears on your bills, QR menu, and reports.')}
+              {heading(ob('tellUsAbout'))}
+              {subheading(ob('appearsOnBills'))}
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>
-                  {NAME_LABELS[businessType] || 'Restaurant Name'} *
+                  {NAME_LABELS[businessType] || ob('restaurantName')} *
                 </label>
                 <input
                   className="ob-input"
@@ -861,7 +973,7 @@ function OnboardingContent() {
               {/* Country dropdown */}
               <div style={{ marginBottom: '20px' }} ref={countryDropdownRef}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>
-                  Country
+                  {ob('country')}
                 </label>
                 <div
                   onClick={() => setCountryDropdownOpen(!countryDropdownOpen)}
@@ -969,7 +1081,7 @@ function OnboardingContent() {
               {/* ── Optional Expandable Sections ── */}
               <div style={{ marginBottom: '24px' }}>
                 <p style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
-                  Optional — add more details
+                  {ob('optionalDetails')}
                 </p>
 
                 {/* Timings */}
@@ -987,7 +1099,7 @@ function OnboardingContent() {
                       <FaClock size={14} color="#f59e0b" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Operating Hours</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{ob('operatingHours')}</span>
                       {!showTimings && (openTime !== '09:00' || closeTime !== '22:00') && (
                         <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{openTime} - {closeTime}</span>
                       )}
@@ -997,14 +1109,14 @@ function OnboardingContent() {
                   {showTimings && (
                     <div style={{ padding: '0 14px 14px', display: 'flex', gap: '12px', animation: 'fadeInUp 0.2s ease' }}>
                       <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>Opens at</label>
+                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>{ob('opensAt')}</label>
                         <input type="time" value={openTime} onChange={e => setOpenTime(e.target.value)}
                           className="ob-input"
                           style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>Closes at</label>
+                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>{ob('closesAt')}</label>
                         <input type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)}
                           className="ob-input"
                           style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
@@ -1029,7 +1141,7 @@ function OnboardingContent() {
                       <FaMapMarkerAlt size={14} color="#3b82f6" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Address</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{ob('address')}</span>
                       {!showAddress && restaurantAddress && (
                         <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{restaurantAddress.slice(0, 30)}{restaurantAddress.length > 30 ? '...' : ''}</span>
                       )}
@@ -1062,7 +1174,7 @@ function OnboardingContent() {
                       <FaPhone size={13} color="#22c55e" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Contact Info</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{ob('contactInfo')}</span>
                       {!showContact && (restaurantPhone || restaurantEmail) && (
                         <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{restaurantPhone || restaurantEmail}</span>
                       )}
@@ -1106,7 +1218,7 @@ function OnboardingContent() {
                       <FaUtensils size={13} color="#ef4444" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Cuisine Types</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{ob('cuisineTypes')}</span>
                       {!showCuisine && selectedCuisines.length > 0 && (
                         <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{selectedCuisines.slice(0, 3).join(', ')}{selectedCuisines.length > 3 ? ` +${selectedCuisines.length - 3}` : ''}</span>
                       )}
@@ -1139,7 +1251,7 @@ function OnboardingContent() {
                           value={cuisineSearch}
                           onChange={e => { setCuisineSearch(e.target.value); setCuisineDropdownOpen(true); }}
                           onFocus={() => setCuisineDropdownOpen(true)}
-                          placeholder="Search or type cuisine..."
+                          placeholder={ob('searchCuisine')}
                           className="ob-input"
                           style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                         />
@@ -1192,119 +1304,126 @@ function OnboardingContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button onClick={goBack} style={btnSecondary}>
-                  <FaArrowLeft size={12} /> Back
-                </button>
-                <button
-                  className="ob-btn"
-                  onClick={handleCreateRestaurant}
-                  disabled={!restaurantName.trim() || creating}
-                  style={{ ...btnPrimary, opacity: (!restaurantName.trim() || creating) ? 0.5 : 1 }}
-                >
-                  {creating ? 'Setting up...' : 'Continue'} <FaArrowRight size={14} />
-                </button>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <button onClick={handleSkipStep2} style={skipLink}>Skip this step</button>
+              <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                <button onClick={handleSkipStep2} style={skipLink}>{ob('skipThisStep')}</button>
               </div>
             </div>
 
             {/* Right: Receipt + Feature Highlights */}
             <div className="ob-fadeIn-d2" style={{
               display: 'flex', flexDirection: 'column', gap: '20px',
-              position: isMobile ? 'relative' : 'sticky', top: isMobile ? 'auto' : '90px', alignSelf: 'start',
+              position: isMobile ? 'relative' : 'sticky', top: isMobile ? 'auto' : '100px', alignSelf: 'start',
             }}>
-              {/* Live receipt mini-preview — sticky */}
+              {/* Live receipt mini-preview — modern card style */}
               <div style={{
-                background: 'white', borderRadius: '20px',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.08)', padding: '24px 20px',
-                border: '1px solid rgba(0,0,0,0.06)', position: 'relative',
+                background: 'linear-gradient(145deg, #ffffff, #fafafa)', borderRadius: '20px',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.08)', padding: '0',
+                border: '1px solid rgba(0,0,0,0.06)', position: 'relative', overflow: 'hidden',
               }}>
-                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: '10px', background: 'repeating-linear-gradient(90deg, transparent, transparent 4px, #f1f5f9 4px, #f1f5f9 8px)', borderRadius: '0 0 4px 4px' }} />
-
-                <div style={{ textAlign: 'center', paddingBottom: '12px', marginBottom: '12px', borderBottom: '1.5px dashed #e5e7eb' }}>
-                  <p style={{ fontSize: '16px', fontWeight: '900', color: '#111827', margin: '6px 0 2px', letterSpacing: '-0.01em', textTransform: 'capitalize' }}>
+                {/* Top gradient header */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #1f2937, #374151)',
+                  padding: '18px 20px 14px', textAlign: 'center', position: 'relative',
+                }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #ef4444, #f97316, #f59e0b)' }} />
+                  <p style={{ fontSize: '16px', fontWeight: '900', color: '#ffffff', margin: '0 0 2px', letterSpacing: '-0.01em', textTransform: 'capitalize' }}>
                     {restaurantName || `Your ${businessLabel}`}
                   </p>
-                  {restaurantAddress ? (
-                    <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0' }}>{restaurantAddress}</p>
-                  ) : (
-                    <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>{selectedCountry.flag} {selectedCountry.name}</p>
-                  )}
-                  {(openTime !== '09:00' || closeTime !== '22:00') && (
-                    <p style={{ fontSize: '10px', color: '#f59e0b', margin: '3px 0 0', fontWeight: '600' }}>Open {openTime} - {closeTime}</p>
-                  )}
-                  {restaurantPhone && (
-                    <p style={{ fontSize: '10px', color: '#9ca3af', margin: '2px 0 0' }}>{restaurantPhone}</p>
-                  )}
-                  {restaurantEmail && (
-                    <p style={{ fontSize: '10px', color: '#9ca3af', margin: '2px 0 0' }}>{restaurantEmail}</p>
-                  )}
                   {selectedCuisines.length > 0 && (
-                    <p style={{ fontSize: '9px', color: '#ef4444', margin: '4px 0 0', fontWeight: '600' }}>{selectedCuisines.join(' · ')}</p>
+                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {selectedCuisines.slice(0, 3).map(c => (
+                        <span key={c} style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}>{c}</span>
+                      ))}
+                    </div>
                   )}
                 </div>
 
-                {receiptItems.slice(0, 3).map((item, i) => (
-                  <div key={i} style={{
-                    display: 'flex', justifyContent: 'space-between', padding: '5px 0',
-                    borderBottom: i < 2 ? '1px dotted #f3f4f6' : 'none',
-                  }}>
-                    <span style={{ fontSize: '12px', color: '#374151', fontWeight: '500' }}>{item.name}</span>
-                    <span style={{ fontSize: '12px', color: '#374151', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{fmtPrice(item.price)}</span>
+                <div style={{ padding: '14px 18px' }}>
+                  {/* Info rows — side by side */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FaMapMarkerAlt size={9} color="#9ca3af" />
+                      <span style={{ fontSize: '10px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {restaurantAddress || `${selectedCountry.flag} ${selectedCountry.name}`}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FaClock size={9} color="#9ca3af" />
+                      <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                        {openTime} - {closeTime}
+                      </span>
+                    </div>
+                    {restaurantPhone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FaPhone size={8} color="#9ca3af" />
+                        <span style={{ fontSize: '10px', color: '#6b7280' }}>{restaurantPhone}</span>
+                      </div>
+                    )}
+                    {restaurantEmail && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FaEnvelope size={8} color="#9ca3af" />
+                        <span style={{ fontSize: '10px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{restaurantEmail}</span>
+                      </div>
+                    )}
                   </div>
-                ))}
 
-                <div style={{
-                  borderTop: '1.5px dashed #e5e7eb', marginTop: '8px', paddingTop: '8px',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}>
-                  <span style={{ fontWeight: '800', color: '#111827', fontSize: '13px' }}>Total</span>
-                  <span style={{ fontWeight: '900', color: '#ef4444', fontSize: '18px' }}>{fmtPrice(receiptTotal)}</span>
+                  <div style={{ height: '1px', background: 'repeating-linear-gradient(90deg, #e5e7eb, #e5e7eb 4px, transparent 4px, transparent 8px)', margin: '0 0 10px' }} />
+
+                  {receiptItems.slice(0, 3).map((item, i) => (
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0',
+                      borderBottom: i < 2 ? '1px solid #f5f5f5' : 'none',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '2px', background: i % 2 === 0 ? '#22c55e' : '#ef4444' }} />
+                        <span style={{ fontSize: '12px', color: '#374151', fontWeight: '500' }}>{item.name}</span>
+                      </div>
+                      <span style={{ fontSize: '12px', color: '#374151', fontWeight: '700', fontVariantNumeric: 'tabular-nums' }}>{fmtPrice(item.price)}</span>
+                    </div>
+                  ))}
+
+                  <div style={{ height: '1px', background: 'repeating-linear-gradient(90deg, #e5e7eb, #e5e7eb 4px, transparent 4px, transparent 8px)', margin: '10px 0 8px' }} />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '800', color: '#111827', fontSize: '13px' }}>Total</span>
+                    <span style={{ fontWeight: '900', color: '#ef4444', fontSize: '20px', letterSpacing: '-0.02em' }}>{fmtPrice(receiptTotal)}</span>
+                  </div>
                 </div>
 
-                <div style={{ marginTop: '10px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '9px', color: '#d1d5db', margin: 0 }}>Powered by DineOpen</p>
+                <div style={{ padding: '8px', background: '#fafafa', textAlign: 'center', borderTop: '1px solid #f3f4f6' }}>
+                  <p style={{ fontSize: '9px', color: '#d1d5db', margin: 0 }}>{ob('poweredBy')}</p>
                 </div>
               </div>
 
-              {/* What you get — seamless light card */}
+              {/* What you can also do — features grid */}
               <div className="ob-fadeIn-d3" style={{
                 background: 'white', borderRadius: '20px',
                 padding: '20px 18px', border: '1px solid #f0f0f0',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                   <FaBolt size={13} color="#ef4444" />
-                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#111827', letterSpacing: '-0.01em' }}>What you get — free</span>
+                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#111827', letterSpacing: '-0.01em' }}>{ob('everythingYouCanDo')}</span>
                 </div>
 
-                {[
-                  { icon: FaCashRegister, label: 'POS & Billing', desc: 'Take orders, print bills', color: '#ef4444', bg: '#fef2f2' },
-                  { icon: FaQrcode, label: 'QR Menu', desc: 'Customers scan & order', color: '#3b82f6', bg: '#eff6ff' },
-                  { icon: FaGlobe, label: 'Online Website', desc: 'yourname.dineopen.com', color: '#10b981', bg: '#ecfdf5' },
-                  { icon: FaChartLine, label: 'Analytics', desc: 'Revenue, bestsellers, trends', color: '#0ea5e9', bg: '#f0f9ff' },
-                  { icon: FaPrint, label: 'Kitchen Display', desc: 'Auto-send KOT to kitchen', color: '#f97316', bg: '#fff7ed' },
-                  { icon: FaUsers, label: 'Customer CRM', desc: 'Loyalty & WhatsApp promos', color: '#ec4899', bg: '#fdf2f8' },
-                ].map((f, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '7px 0',
-                    borderBottom: i < 5 ? '1px solid #f5f5f5' : 'none',
-                  }}>
-                    <div style={{
-                      width: '30px', height: '30px', borderRadius: '8px',
-                      background: f.bg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {[
+                    { icon: FaCashRegister, label: ob('posBilling'), color: '#ef4444', bg: '#fef2f2' },
+                    { icon: FaQrcode, label: ob('qrMenu'), color: '#3b82f6', bg: '#eff6ff' },
+                    { icon: FaGlobe, label: ob('website'), color: '#10b981', bg: '#ecfdf5' },
+                    { icon: FaChartLine, label: ob('analytics'), color: '#0ea5e9', bg: '#f0f9ff' },
+                    { icon: FaPrint, label: ob('kitchenKot'), color: '#f97316', bg: '#fff7ed' },
+                    { icon: FaUsers, label: ob('customerCrm'), color: '#ec4899', bg: '#fdf2f8' },
+                  ].map((f, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '8px 10px', borderRadius: '10px',
+                      background: f.bg, transition: 'transform 0.2s',
                     }}>
-                      <f.icon size={13} color={f.color} />
+                      <f.icon size={12} color={f.color} />
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: f.color }}>{f.label}</span>
                     </div>
-                    <div>
-                      <p style={{ fontSize: '12px', fontWeight: '700', margin: 0, color: '#374151' }}>{f.label}</p>
-                      <p style={{ fontSize: '10px', margin: 0, color: '#9ca3af' }}>{f.desc}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
 
                 <div style={{
                   marginTop: '12px', padding: '8px 12px', borderRadius: '8px',
@@ -1313,7 +1432,7 @@ function OnboardingContent() {
                 }}>
                   <FaStar size={10} color="#16a34a" />
                   <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: '600' }}>
-                    Zero commissions. No hidden fees. Ever.
+                    {ob('zeroCommissions')}
                   </span>
                 </div>
               </div>
@@ -1327,8 +1446,8 @@ function OnboardingContent() {
         <div style={contentStyle}>
           <div style={{ maxWidth: '860px', width: '100%', textAlign: 'center' }}>
             <div className="ob-fadeIn">
-              {heading('What would you like to use?')}
-              {subheading('Pick the features you need — change anytime from Settings.')}
+              {heading(ob('whatFeatures'))}
+              {subheading(ob('pickFeatures'))}
             </div>
 
             <div className="ob-fadeIn-d1" style={{
@@ -1393,9 +1512,9 @@ function OnboardingContent() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
+              <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> {ob('back')}</button>
               <button className="ob-btn" onClick={handleSaveFeatures} style={btnPrimary}>
-                Continue <FaArrowRight size={14} />
+                {ob('continue')} <FaArrowRight size={14} />
               </button>
             </div>
             <button onClick={() => goNext()} style={skipLink}>Skip — enable everything</button>
@@ -1416,9 +1535,9 @@ function OnboardingContent() {
             {/* Left: Upload options + actions */}
             <div>
               <div className="ob-fadeIn">
-                {heading("Your menu is live")}
+                {heading(ob('yourMenuLive'))}
                 <p style={{ fontSize: isMobile ? '14px' : '16px', color: '#6b7280', marginBottom: '24px', lineHeight: 1.5 }}>
-                  We&apos;ve added a sample menu for you. Upload your own to replace it — customers see this when they scan your QR.
+                  {ob('sampleMenuAdded')}
                 </p>
               </div>
 
@@ -1464,11 +1583,11 @@ function OnboardingContent() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
-                      {uploadedCount > 0 ? `${uploadedCount} items extracted` : uploading ? 'Analyzing...' : 'Upload your own menu'}
+                      {uploadedCount > 0 ? `${uploadedCount} items extracted` : uploading ? 'Analyzing...' : ob('uploadMenu')}
                     </p>
                     <p style={{ fontSize: '12px', color: uploading ? '#d97706' : '#6b7280', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {uploading ? uploadProgress : (uploadedCount > 0 ? 'Upload another to add more' : <>
-                        <FaMagic size={10} /> Photo or PDF — AI extracts items in 60s
+                        <FaMagic size={10} /> {ob('photoOrPdf')}
                       </>)}
                     </p>
                   </div>
@@ -1537,7 +1656,7 @@ function OnboardingContent() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
-                        {menuSeeded ? 'Sample menu ready' : 'Setting up your menu...'}
+                        {menuSeeded ? ob('sampleMenuReady') : ob('settingUp')}
                       </p>
                       <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
                         {menuSeeded ? `36 popular ${businessLabel.toLowerCase()} items — edit anytime from Menu page` : 'Auto-loading sample items for your business type'}
@@ -1566,10 +1685,10 @@ function OnboardingContent() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
-                      Send on WhatsApp
+                      {ob('sendOnWhatsApp')}
                     </p>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-                      Send a photo — we&apos;ll set it up for you
+                      {ob('wellSetItUp')}
                     </p>
                   </div>
                   <FaChevronRight size={12} color="#9ca3af" />
@@ -1590,18 +1709,18 @@ function OnboardingContent() {
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontWeight: '700', fontSize: '13px', color: '#111827', margin: '0 0 2px' }}>Your menu QR code</p>
+                  <p style={{ fontWeight: '700', fontSize: '13px', color: '#111827', margin: '0 0 2px' }}>{ob('yourQrCode')}</p>
                   <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>
-                    Print this and place on tables. Customers scan, browse, and order.
+                    {ob('printOnTables')}
                   </p>
                 </div>
               </div>
 
               {/* Navigation */}
               <div className="ob-fadeIn-d3" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
+                <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> {ob('back')}</button>
                 <button className="ob-btn" onClick={() => goNext()} style={btnPrimary}>
-                  Continue <FaArrowRight size={14} />
+                  {ob('continue')} <FaArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1614,7 +1733,7 @@ function OnboardingContent() {
             }}>
               <div style={{
                 border: '6px solid #1f2937', borderRadius: '28px',
-                width: isMobile ? '240px' : '290px', height: isMobile ? '440px' : '540px',
+                width: isMobile ? '300px' : '320px', height: isMobile ? '560px' : '600px',
                 overflow: 'hidden', background: '#ffffff', flexShrink: 0,
                 boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
                 position: 'relative', margin: '0 auto',
@@ -1723,8 +1842,8 @@ function OnboardingContent() {
                   />
                 </svg>
               </div>
-              {heading(`Your ${businessLabel.toLowerCase()} is live!`)}
-              {subheading('Your menu is ready — share with customers to start receiving orders.')}
+              {heading(ob('yourLiveIs', { type: businessLabel.toLowerCase() }))}
+              {subheading(ob('menuReadyShare'))}
             </div>
 
             {/* Live menu URL banner */}
@@ -1739,7 +1858,7 @@ function OnboardingContent() {
                   <FaGlobe size={16} color="white" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                  <p style={{ fontSize: '12px', color: '#16a34a', fontWeight: '700', margin: '0 0 2px' }}>Your live menu URL</p>
+                  <p style={{ fontSize: '12px', color: '#16a34a', fontWeight: '700', margin: '0 0 2px' }}>{ob('yourLiveMenuUrl')}</p>
                   <p style={{ fontSize: '14px', color: '#111827', fontWeight: '600', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {qrUrl.replace('https://', '')}
                   </p>
@@ -1768,7 +1887,7 @@ function OnboardingContent() {
                   transition: 'all 0.2s',
                 }}
               >
-                <FaRocket size={18} /> Start Taking Orders
+                <FaRocket size={18} /> {ob('startTakingOrders')}
               </button>
               <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '8px' }}>
                 Open your POS and take your first order now
