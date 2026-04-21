@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt } from 'react-icons/fa';
+import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaChevronRight, FaWifi, FaPrint, FaChartLine, FaBolt, FaStar } from 'react-icons/fa';
 import QRCode from 'qrcode';
 import apiClient from '../../lib/api';
 import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
@@ -115,12 +115,12 @@ const FEATURES = [
   { id: 'pos', label: 'Billing & POS', icon: FaCashRegister, desc: 'Take orders & print bills instantly', color: '#ef4444' },
   { id: 'tables', label: 'Table Management', icon: FaChair, desc: 'Visual floor plan & reservations', color: '#3b82f6' },
   { id: 'kot', label: 'Kitchen Display (KOT)', icon: FaFire, desc: 'Auto-send orders to kitchen', color: '#f97316' },
-  { id: 'menu', label: 'QR Menu & Ordering', icon: FaQrcode, desc: 'Customers scan & order from phone', color: '#8b5cf6' },
+  { id: 'menu', label: 'QR Menu & Ordering', icon: FaQrcode, desc: 'Customers scan & order from phone', color: '#0ea5e9' },
   { id: 'inventory', label: 'Inventory & Recipes', icon: FaBoxes, desc: 'Track stock, recipes & costs', color: '#059669' },
   { id: 'orders', label: 'Online Ordering', icon: FaClipboardList, desc: 'Your own ordering website', color: '#f59e0b' },
   { id: 'shifts', label: 'Staff & Shifts', icon: FaCalendarAlt, desc: 'Schedule & manage team roles', color: '#0ea5e9' },
   { id: 'customers', label: 'Customer Loyalty', icon: FaUsers, desc: 'Rewards, points & WhatsApp CRM', color: '#ec4899' },
-  { id: 'hotel', label: 'Hotel / Room Service', icon: FaHotel, desc: 'Room management & service', color: '#6366f1' },
+  { id: 'hotel', label: 'Hotel / Room Service', icon: FaHotel, desc: 'Room management & service', color: '#3b82f6' },
   { id: 'invoice', label: 'Invoice & Expenses', icon: FaFileInvoice, desc: 'Professional GST invoices', color: '#0d9488' },
 ];
 
@@ -140,7 +140,7 @@ const FEATURE_DEFAULTS = {
 const STEP_BACKGROUNDS = {
   1: 'linear-gradient(180deg, #ffffff 0%, #fff7ed 50%, #fef3c7 100%)',
   2: 'linear-gradient(180deg, #ffffff 0%, #fefce8 50%, #fef9c3 100%)',
-  3: 'linear-gradient(180deg, #ffffff 0%, #eef2ff 50%, #e0e7ff 100%)',
+  3: 'linear-gradient(180deg, #ffffff 0%, #f0fdf4 50%, #dcfce7 100%)',
   4: 'linear-gradient(180deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%)',
   5: 'linear-gradient(180deg, #ffffff 0%, #fff7ed 50%, #ffedd5 100%)',
   6: 'linear-gradient(180deg, #ffffff 0%, #fdf2f8 50%, #fce7f3 100%)',
@@ -185,7 +185,9 @@ function OnboardingContent() {
   const [menuSeeded, setMenuSeeded] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
+  const [uploadProgressPct, setUploadProgressPct] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
+  const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef(null);
   const [previewTheme, setPreviewTheme] = useState('default');
   const [menuPreviewQr, setMenuPreviewQr] = useState('');
@@ -193,6 +195,18 @@ function OnboardingContent() {
   // Step 5
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+
+  // Step 2 — optional expandable fields
+  const [showTimings, setShowTimings] = useState(false);
+  const [showAddress, setShowAddress] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [showCuisine, setShowCuisine] = useState(false);
+  const [openTime, setOpenTime] = useState('09:00');
+  const [closeTime, setCloseTime] = useState('22:00');
+  const [restaurantAddress, setRestaurantAddress] = useState('');
+  const [restaurantPhone, setRestaurantPhone] = useState('');
+  const [restaurantEmail, setRestaurantEmail] = useState('');
+  const [cuisineTypes, setCuisineTypes] = useState('');
 
   // Step 6
   const [checklistItems, setChecklistItems] = useState([]);
@@ -344,12 +358,13 @@ function OnboardingContent() {
       return;
     }
     try {
+      const parsedCuisine = cuisineTypes.trim() ? cuisineTypes.split(',').map(c => c.trim()).filter(Boolean) : ['Indian'];
       const response = await apiClient.createRestaurant({
         name: restaurantName.trim(),
         businessType: businessType || 'restaurant',
-        address: '', phone: '', email: '',
-        cuisine: ['Indian'], description: '',
-        operatingHours: { open: '09:00', close: '22:00' }
+        address: restaurantAddress.trim(), phone: restaurantPhone.trim(), email: restaurantEmail.trim(),
+        cuisine: parsedCuisine, description: '',
+        operatingHours: { open: openTime, close: closeTime }
       });
       const rid = response.restaurant.id;
       setRestaurantId(rid);
@@ -412,17 +427,20 @@ function OnboardingContent() {
 
     const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
     if (!rid && !isTestMode) {
-      alert('Please set up your restaurant first (Step 2).');
+      setUploadError('Please set up your restaurant first (Step 2).');
       return;
     }
 
     setUploading(true);
+    setUploadError('');
     setUploadProgress('Uploading menu images...');
+    setUploadProgressPct(10);
 
     if (isTestMode) {
-      setTimeout(() => { setUploadProgress('AI is analyzing your menu...'); }, 500);
-      setTimeout(() => { setUploadProgress('Saving menu items...'); }, 1200);
-      setTimeout(() => { setUploadedCount(24); setUploading(false); setUploadProgress(''); setMenuSeeded(true); }, 2000);
+      setTimeout(() => { setUploadProgress('AI is analyzing your menu...'); setUploadProgressPct(40); }, 500);
+      setTimeout(() => { setUploadProgress('Extracting items & prices...'); setUploadProgressPct(70); }, 1200);
+      setTimeout(() => { setUploadProgress('Saving to your menu...'); setUploadProgressPct(90); }, 1800);
+      setTimeout(() => { setUploadedCount(24); setUploading(false); setUploadProgress(''); setUploadProgressPct(100); setMenuSeeded(true); }, 2400);
       return;
     }
 
@@ -430,20 +448,35 @@ function OnboardingContent() {
       const formData = new FormData();
       files.forEach(file => formData.append('menuFiles', file));
 
-      setUploadProgress('AI is analyzing your menu...');
+      setUploadProgress('AI is reading your menu...');
+      setUploadProgressPct(25);
+
+      // Simulate progress while waiting for AI
+      const progressTimer = setInterval(() => {
+        setUploadProgressPct(prev => Math.min(prev + 3, 75));
+      }, 800);
+
       const response = await apiClient.bulkUploadMenu(rid, formData);
+      clearInterval(progressTimer);
 
       if (response.success && response.data?.length > 0) {
         const allMenuItems = response.data.flatMap(m => m.menuItems);
         if (allMenuItems.length > 0) {
-          setUploadProgress('Saving menu items...');
+          setUploadProgress(`Found ${allMenuItems.length} items — saving...`);
+          setUploadProgressPct(85);
           const saveResponse = await apiClient.bulkSaveMenuItems(rid, allMenuItems, response.extractedCategories || []);
           setUploadedCount(saveResponse.savedCount || allMenuItems.length);
+          setUploadProgressPct(100);
           setMenuSeeded(true);
+        } else {
+          setUploadError('no-items');
         }
+      } else {
+        setUploadError('no-items');
       }
     } catch (err) {
-      alert('Upload failed: ' + (err.message || 'Try again'));
+      console.error('Menu upload error:', err);
+      setUploadError('failed');
     } finally {
       setUploading(false);
       setUploadProgress('');
@@ -609,6 +642,7 @@ function OnboardingContent() {
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         @keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes checkPop { 0% { transform: scale(0); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
         @keyframes confetti1 { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(-80px) rotate(360deg) translateX(40px); opacity: 0; } }
         @keyframes confetti2 { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(-70px) rotate(-270deg) translateX(-30px); opacity: 0; } }
@@ -752,11 +786,11 @@ function OnboardingContent() {
       {step === 2 && (
         <div style={contentStyle}>
           <div style={{
-            maxWidth: '900px', width: '100%',
+            maxWidth: '1000px', width: '100%',
             display: isMobile ? 'flex' : 'grid',
             gridTemplateColumns: isMobile ? '1fr' : '1.1fr 0.9fr',
             flexDirection: 'column',
-            gap: isMobile ? '28px' : '48px', alignItems: 'center',
+            gap: isMobile ? '28px' : '48px', alignItems: 'start',
           }}>
             {/* Left: Form */}
             <div className="ob-fadeIn">
@@ -783,7 +817,7 @@ function OnboardingContent() {
               </div>
 
               {/* Country dropdown */}
-              <div style={{ marginBottom: '28px' }} ref={countryDropdownRef}>
+              <div style={{ marginBottom: '20px' }} ref={countryDropdownRef}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>
                   Country
                 </label>
@@ -890,6 +924,166 @@ function OnboardingContent() {
                 )}
               </div>
 
+              {/* ── Optional Expandable Sections ── */}
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+                  Optional — add more details
+                </p>
+
+                {/* Timings */}
+                <div style={{ marginBottom: '8px', borderRadius: '12px', border: '1px solid #f0f0f0', overflow: 'hidden', background: 'white' }}>
+                  <div
+                    onClick={() => setShowTimings(!showTimings)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
+                      cursor: 'pointer', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FaClock size={14} color="#f59e0b" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Operating Hours</span>
+                      {!showTimings && (openTime !== '09:00' || closeTime !== '22:00') && (
+                        <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{openTime} - {closeTime}</span>
+                      )}
+                    </div>
+                    <FaChevronDown size={10} color="#9ca3af" style={{ transition: 'transform 0.2s', transform: showTimings ? 'rotate(180deg)' : 'rotate(0)' }} />
+                  </div>
+                  {showTimings && (
+                    <div style={{ padding: '0 14px 14px', display: 'flex', gap: '12px', animation: 'fadeInUp 0.2s ease' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>Opens at</label>
+                        <input type="time" value={openTime} onChange={e => setOpenTime(e.target.value)}
+                          className="ob-input"
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>Closes at</label>
+                        <input type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)}
+                          className="ob-input"
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Address */}
+                <div style={{ marginBottom: '8px', borderRadius: '12px', border: '1px solid #f0f0f0', overflow: 'hidden', background: 'white' }}>
+                  <div
+                    onClick={() => setShowAddress(!showAddress)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
+                      cursor: 'pointer', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FaMapMarkerAlt size={14} color="#3b82f6" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Address</span>
+                      {!showAddress && restaurantAddress && (
+                        <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{restaurantAddress.slice(0, 30)}{restaurantAddress.length > 30 ? '...' : ''}</span>
+                      )}
+                    </div>
+                    <FaChevronDown size={10} color="#9ca3af" style={{ transition: 'transform 0.2s', transform: showAddress ? 'rotate(180deg)' : 'rotate(0)' }} />
+                  </div>
+                  {showAddress && (
+                    <div style={{ padding: '0 14px 14px', animation: 'fadeInUp 0.2s ease' }}>
+                      <input type="text" value={restaurantAddress} onChange={e => setRestaurantAddress(e.target.value)}
+                        placeholder="123 Main Street, City"
+                        className="ob-input"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Contact */}
+                <div style={{ marginBottom: '8px', borderRadius: '12px', border: '1px solid #f0f0f0', overflow: 'hidden', background: 'white' }}>
+                  <div
+                    onClick={() => setShowContact(!showContact)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
+                      cursor: 'pointer', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FaPhone size={13} color="#22c55e" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Contact Info</span>
+                      {!showContact && (restaurantPhone || restaurantEmail) && (
+                        <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{restaurantPhone || restaurantEmail}</span>
+                      )}
+                    </div>
+                    <FaChevronDown size={10} color="#9ca3af" style={{ transition: 'transform 0.2s', transform: showContact ? 'rotate(180deg)' : 'rotate(0)' }} />
+                  </div>
+                  {showContact && (
+                    <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '10px', animation: 'fadeInUp 0.2s ease' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FaPhone size={11} color="#9ca3af" />
+                        <input type="tel" value={restaurantPhone} onChange={e => setRestaurantPhone(e.target.value)}
+                          placeholder="Phone number"
+                          className="ob-input"
+                          style={{ flex: 1, padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FaEnvelope size={11} color="#9ca3af" />
+                        <input type="email" value={restaurantEmail} onChange={e => setRestaurantEmail(e.target.value)}
+                          placeholder="Email address"
+                          className="ob-input"
+                          style={{ flex: 1, padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cuisine */}
+                <div style={{ marginBottom: '0', borderRadius: '12px', border: '1px solid #f0f0f0', overflow: 'hidden', background: 'white' }}>
+                  <div
+                    onClick={() => setShowCuisine(!showCuisine)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
+                      cursor: 'pointer', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FaUtensils size={13} color="#ef4444" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Cuisine Types</span>
+                      {!showCuisine && cuisineTypes && (
+                        <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{cuisineTypes.slice(0, 30)}{cuisineTypes.length > 30 ? '...' : ''}</span>
+                      )}
+                    </div>
+                    <FaChevronDown size={10} color="#9ca3af" style={{ transition: 'transform 0.2s', transform: showCuisine ? 'rotate(180deg)' : 'rotate(0)' }} />
+                  </div>
+                  {showCuisine && (
+                    <div style={{ padding: '0 14px 14px', animation: 'fadeInUp 0.2s ease' }}>
+                      <input type="text" value={cuisineTypes} onChange={e => setCuisineTypes(e.target.value)}
+                        placeholder="Indian, Chinese, Continental"
+                        className="ob-input"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                      <p style={{ fontSize: '11px', color: '#9ca3af', margin: '6px 0 0' }}>Comma-separated cuisine types</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button onClick={goBack} style={btnSecondary}>
                   <FaArrowLeft size={12} /> Back
@@ -906,60 +1100,95 @@ function OnboardingContent() {
               <button onClick={handleSkipStep2} style={skipLink}>Skip this step</button>
             </div>
 
-            {/* Right: Live receipt preview */}
-            <div className="ob-fadeIn-d2 ob-float" style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{
-                width: isMobile ? '260px' : '290px', background: 'white', borderRadius: '20px',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.12)', padding: '28px 24px',
+            {/* Right: Feature Highlights + Receipt Preview */}
+            <div className="ob-fadeIn-d2" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Live receipt mini-preview */}
+              <div className="ob-float" style={{
+                background: 'white', borderRadius: '20px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.1)', padding: '24px 20px',
                 border: '1px solid rgba(0,0,0,0.06)', position: 'relative',
               }}>
-                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: '12px', background: 'repeating-linear-gradient(90deg, transparent, transparent 4px, #f1f5f9 4px, #f1f5f9 8px)', borderRadius: '0 0 4px 4px' }} />
+                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: '10px', background: 'repeating-linear-gradient(90deg, transparent, transparent 4px, #f1f5f9 4px, #f1f5f9 8px)', borderRadius: '0 0 4px 4px' }} />
 
-                <div style={{ textAlign: 'center', paddingBottom: '16px', marginBottom: '14px', borderBottom: '1.5px dashed #e5e7eb' }}>
-                  <p style={{ fontSize: '18px', fontWeight: '900', color: '#111827', margin: '8px 0 2px', letterSpacing: '-0.01em' }}>
+                <div style={{ textAlign: 'center', paddingBottom: '12px', marginBottom: '12px', borderBottom: '1.5px dashed #e5e7eb' }}>
+                  <p style={{ fontSize: '16px', fontWeight: '900', color: '#111827', margin: '6px 0 2px', letterSpacing: '-0.01em' }}>
                     {restaurantName || `Your ${businessLabel}`}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{selectedCountry.flag} {selectedCountry.name}</p>
-                  <p style={{ fontSize: '11px', color: '#d1d5db', margin: '4px 0 0' }}>
-                    {new Date().toLocaleDateString(currencyInfo?.locale || 'en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | Bill #001
-                  </p>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>{selectedCountry.flag} {selectedCountry.name}</p>
+                  {(showTimings && (openTime !== '09:00' || closeTime !== '22:00')) && (
+                    <p style={{ fontSize: '10px', color: '#f59e0b', margin: '3px 0 0', fontWeight: '600' }}>{openTime} - {closeTime}</p>
+                  )}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item</span>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</span>
-                </div>
-
-                {receiptItems.map((item, i) => (
+                {receiptItems.slice(0, 3).map((item, i) => (
                   <div key={i} style={{
-                    display: 'flex', justifyContent: 'space-between', padding: '7px 0',
-                    borderBottom: i < receiptItems.length - 1 ? '1px dotted #f3f4f6' : 'none',
+                    display: 'flex', justifyContent: 'space-between', padding: '5px 0',
+                    borderBottom: i < 2 ? '1px dotted #f3f4f6' : 'none',
                   }}>
-                    <div>
-                      <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>{item.name}</span>
-                      {item.qty > 1 && <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: '4px' }}>x{item.qty}</span>}
-                    </div>
-                    <span style={{ fontSize: '13px', color: '#374151', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{fmtPrice(item.price)}</span>
+                    <span style={{ fontSize: '12px', color: '#374151', fontWeight: '500' }}>{item.name}</span>
+                    <span style={{ fontSize: '12px', color: '#374151', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{fmtPrice(item.price)}</span>
                   </div>
                 ))}
 
                 <div style={{
-                  borderTop: '2px dashed #e5e7eb', marginTop: '12px', paddingTop: '12px',
+                  borderTop: '1.5px dashed #e5e7eb', marginTop: '8px', paddingTop: '8px',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
-                  <span style={{ fontWeight: '800', color: '#111827', fontSize: '15px' }}>Total</span>
-                  <span style={{ fontWeight: '900', color: '#ef4444', fontSize: '22px' }}>{fmtPrice(receiptTotal)}</span>
+                  <span style={{ fontWeight: '800', color: '#111827', fontSize: '13px' }}>Total</span>
+                  <span style={{ fontWeight: '900', color: '#ef4444', fontSize: '18px' }}>{fmtPrice(receiptTotal)}</span>
                 </div>
 
-                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #e5e7eb', textAlign: 'center' }}>
-                  <div style={{
-                    width: '56px', height: '56px', margin: '0 auto 6px',
-                    background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '9px', color: '#d1d5db', margin: 0 }}>Powered by DineOpen</p>
+                </div>
+              </div>
+
+              {/* What you get — feature highlights */}
+              <div className="ob-fadeIn-d3" style={{
+                background: 'linear-gradient(135deg, #1e1b4b, #312e81)', borderRadius: '20px',
+                padding: '24px 20px', color: 'white',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <FaBolt size={14} color="#fbbf24" />
+                  <span style={{ fontSize: '15px', fontWeight: '800', letterSpacing: '-0.01em' }}>What you get — free</span>
+                </div>
+
+                {[
+                  { icon: FaCashRegister, label: 'POS & Billing', desc: 'Take orders, print bills', color: '#f87171' },
+                  { icon: FaQrcode, label: 'QR Menu', desc: 'Customers scan & order', color: '#a78bfa' },
+                  { icon: FaGlobe, label: 'Online Website', desc: 'yourname.dineopen.com', color: '#34d399' },
+                  { icon: FaChartLine, label: 'Analytics', desc: 'Revenue, bestsellers, trends', color: '#38bdf8' },
+                  { icon: FaPrint, label: 'Kitchen Display', desc: 'Auto-send KOT to kitchen', color: '#fb923c' },
+                  { icon: FaUsers, label: 'Customer CRM', desc: 'Loyalty & WhatsApp promos', color: '#f472b6' },
+                ].map((f, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '8px 0',
+                    borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.08)' : 'none',
                   }}>
-                    <FaQrcode size={28} color="#d1d5db" />
+                    <div style={{
+                      width: '32px', height: '32px', borderRadius: '8px',
+                      background: 'rgba(255,255,255,0.1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <f.icon size={14} color={f.color} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '13px', fontWeight: '700', margin: 0, color: 'white' }}>{f.label}</p>
+                      <p style={{ fontSize: '11px', margin: 0, color: 'rgba(255,255,255,0.55)' }}>{f.desc}</p>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '10px', color: '#9ca3af', margin: 0 }}>Scan to pay | Powered by DineOpen</p>
+                ))}
+
+                <div style={{
+                  marginTop: '16px', padding: '10px 14px', borderRadius: '10px',
+                  background: 'rgba(250,204,21,0.12)', border: '1px solid rgba(250,204,21,0.2)',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                }}>
+                  <FaStar size={12} color="#fbbf24" />
+                  <span style={{ fontSize: '12px', color: '#fde68a', fontWeight: '600' }}>
+                    Zero commissions. No hidden fees. Ever.
+                  </span>
                 </div>
               </div>
             </div>
@@ -974,24 +1203,12 @@ function OnboardingContent() {
             <div className="ob-fadeIn">
               {heading('What would you like to use?')}
               {subheading('Pick the features you need — change anytime from Settings.')}
-
-              {/* All features FREE badge */}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '6px 16px', borderRadius: '20px',
-                background: 'linear-gradient(135deg, #fef2f2, #fff7ed)',
-                border: '1px solid #fecaca',
-                marginBottom: '24px',
-              }}>
-                <FaCrown size={12} color="#f59e0b" />
-                <span style={{ fontSize: '13px', fontWeight: '700', color: '#ef4444' }}>All features are FREE</span>
-              </div>
             </div>
 
             <div className="ob-fadeIn-d1" style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-              gap: '12px', textAlign: 'left', marginBottom: '28px',
+              gap: '14px', textAlign: 'left', marginBottom: '32px',
             }}>
               {FEATURES.map(f => {
                 const Icon = f.icon;
@@ -1008,29 +1225,30 @@ function OnboardingContent() {
                       );
                     }}
                     style={{
-                      padding: '14px 16px', borderRadius: '14px',
-                      border: selected ? `2px solid ${f.color}` : '2px solid rgba(0,0,0,0.06)',
-                      backgroundColor: selected ? `${f.color}08` : 'white',
-                      display: 'flex', alignItems: 'center', gap: '14px',
+                      padding: '18px 18px', borderRadius: '16px',
+                      border: selected ? '2px solid #111827' : '2px solid #e5e7eb',
+                      backgroundColor: selected ? '#f9fafb' : 'white',
+                      display: 'flex', alignItems: 'center', gap: '16px',
                       cursor: isLocked ? 'default' : 'pointer',
-                      boxShadow: selected ? `0 4px 16px ${f.color}15` : '0 1px 4px rgba(0,0,0,0.04)',
+                      boxShadow: selected ? '0 2px 8px rgba(0,0,0,0.06)' : '0 1px 3px rgba(0,0,0,0.03)',
+                      transition: 'all 0.2s',
                     }}
                   >
                     <div style={{
-                      width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
-                      background: selected ? `${f.color}15` : '#f8fafc',
+                      width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+                      background: '#f1f5f9',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Icon size={19} color={selected ? f.color : '#9ca3af'} />
+                      <Icon size={20} color={selected ? '#111827' : '#9ca3af'} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: '700', fontSize: '14px', color: '#111827', margin: 0 }}>{f.label}</p>
-                      <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.desc}</p>
+                      <p style={{ fontWeight: '700', fontSize: '15px', color: selected ? '#111827' : '#374151', margin: 0 }}>{f.label}</p>
+                      <p style={{ fontSize: '12px', color: '#9ca3af', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.desc}</p>
                     </div>
                     <div style={{
-                      width: '24px', height: '24px', borderRadius: '7px', flexShrink: 0,
-                      border: selected ? `2px solid ${f.color}` : '2px solid #d1d5db',
-                      background: selected ? f.color : 'white',
+                      width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
+                      border: selected ? 'none' : '2px solid #d1d5db',
+                      background: selected ? '#111827' : 'white',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.2s',
                     }}>
@@ -1041,26 +1259,11 @@ function OnboardingContent() {
               })}
             </div>
 
-            {/* Selected features summary */}
-            <div className="ob-fadeIn-d2" style={{
-              display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap',
-              marginBottom: '28px',
-            }}>
-              {selectedFeatures.map(fId => {
-                const f = FEATURES.find(x => x.id === fId);
-                if (!f) return null;
-                const Icon = f.icon;
-                return (
-                  <span key={fId} style={{
-                    padding: '5px 12px', borderRadius: '10px',
-                    background: `${f.color}10`, border: `1px solid ${f.color}30`,
-                    fontSize: '12px', fontWeight: '600', color: f.color,
-                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  }}>
-                    <Icon size={10} /> {f.label}
-                  </span>
-                );
-              })}
+            {/* Selected count */}
+            <div className="ob-fadeIn-d2" style={{ marginBottom: '28px' }}>
+              <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
+                {selectedFeatures.length} feature{selectedFeatures.length !== 1 ? 's' : ''} selected
+              </span>
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1077,364 +1280,301 @@ function OnboardingContent() {
       {/* ═══════════ STEP 4: Menu Setup ═══════════════════════ */}
       {step === 4 && (
         <div style={contentStyle}>
-          <div style={{ maxWidth: '820px', width: '100%' }}>
-            <div className="ob-fadeIn" style={{ textAlign: 'center' }}>
-              {heading("Let's get your menu ready")}
-              {subheading("Your menu powers your QR ordering, POS, and online presence.")}
-            </div>
-
-            {/* Two-column: Upload vs Ready-made */}
-            <div className="ob-fadeIn-d1" style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-              gap: '16px', marginBottom: '16px',
-            }}>
-              {/* Upload Menu */}
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="ob-card"
-                style={{
-                  padding: '24px', borderRadius: '18px', cursor: 'pointer',
-                  border: '2px solid #8b5cf6', background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                  textAlign: 'center', position: 'relative',
-                }}
-              >
-                <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple
-                  onChange={handleMenuUpload} style={{ display: 'none' }}
-                />
-                <div style={{
-                  width: '56px', height: '56px', borderRadius: '16px',
-                  background: 'white', margin: '0 auto 12px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(139,92,246,0.15)',
-                }}>
-                  <FaUpload size={22} color="#8b5cf6" />
-                </div>
-                <p style={{ fontWeight: '800', fontSize: '16px', color: '#5b21b6', margin: '0 0 6px' }}>Upload Your Menu</p>
-                <p style={{ fontSize: '13px', color: '#7c3aed', margin: 0, lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                  <FaMagic size={11} /> AI extracts all items in 60 seconds
+          <div style={{
+            maxWidth: '960px', width: '100%',
+            display: isMobile ? 'flex' : 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 320px',
+            flexDirection: 'column',
+            gap: isMobile ? '24px' : '36px', alignItems: 'start',
+          }}>
+            {/* Left: Upload options + actions */}
+            <div>
+              <div className="ob-fadeIn">
+                {heading("Your menu, live in seconds")}
+                <p style={{ fontSize: isMobile ? '14px' : '16px', color: '#6b7280', marginBottom: '24px', lineHeight: 1.5 }}>
+                  Upload your menu or start with a sample. Your customers will see this when they scan your QR code.
                 </p>
-                {uploading && (
-                  <div style={{ marginTop: '12px', padding: '8px 12px', borderRadius: '8px', background: 'white' }}>
-                    <p style={{ fontSize: '13px', color: '#7c3aed', fontWeight: '600', margin: 0 }}>{uploadProgress}</p>
+              </div>
+
+              {/* Upload options — compact row */}
+              <div className="ob-fadeIn-d1" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                {/* Upload menu card */}
+                <div
+                  onClick={() => !uploading && fileInputRef.current?.click()}
+                  className="ob-card"
+                  style={{
+                    padding: '14px 18px', borderRadius: '14px', cursor: uploading ? 'default' : 'pointer',
+                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                    background: uploadedCount > 0 ? '#f0fdf4' : uploading ? '#f0f9ff' : 'white',
+                    display: 'flex', alignItems: 'center', gap: '14px',
+                    position: 'relative', overflow: 'hidden',
+                  }}
+                >
+                  <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple
+                    onChange={handleMenuUpload} style={{ display: 'none' }}
+                  />
+                  {/* Progress bar overlay */}
+                  {uploading && (
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, height: '3px',
+                      background: 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                      width: `${uploadProgressPct}%`,
+                      transition: 'width 0.5s ease',
+                      borderRadius: '0 2px 2px 0',
+                    }} />
+                  )}
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+                    background: uploadedCount > 0 ? '#dcfce7' : uploading ? '#dbeafe' : '#f1f5f9',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {uploadedCount > 0 ? (
+                      <FaCheck size={18} color="#16a34a" />
+                    ) : uploading ? (
+                      <div style={{ width: '20px', height: '20px', border: '2.5px solid #93c5fd', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    ) : (
+                      <FaUpload size={18} color="#374151" />
+                    )}
                   </div>
-                )}
-                {uploadedCount > 0 && (
-                  <div style={{ marginTop: '12px', padding: '8px 12px', borderRadius: '8px', background: '#f0fdf4' }}>
-                    <p style={{ fontSize: '13px', color: '#16a34a', fontWeight: '700', margin: 0 }}>
-                      {uploadedCount} items extracted!
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
+                      {uploadedCount > 0 ? `${uploadedCount} items extracted` : uploading ? 'Analyzing...' : 'Upload your menu'}
+                    </p>
+                    <p style={{ fontSize: '12px', color: uploading ? '#3b82f6' : '#6b7280', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {uploading ? uploadProgress : (uploadedCount > 0 ? 'Upload another to add more' : <>
+                        <FaMagic size={10} /> Photo or PDF — AI extracts items in 60s
+                      </>)}
                     </p>
                   </div>
+                  {!uploading && <FaChevronRight size={12} color="#9ca3af" />}
+                </div>
+
+                {/* Upload error with fallback options */}
+                {uploadError && (
+                  <div style={{
+                    padding: '14px 16px', borderRadius: '12px',
+                    background: '#fef2f2', border: '1px solid #fecaca',
+                    animation: 'fadeInUp 0.3s ease',
+                  }}>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#dc2626', margin: '0 0 6px' }}>
+                      {uploadError === 'no-items' ? 'Could not extract items from this image' : 'Upload failed — please try again'}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px', lineHeight: 1.4 }}>
+                      Don&apos;t worry! You can try again, or let us set it up for you:
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button onClick={() => { setUploadError(''); fileInputRef.current?.click(); }} style={{
+                        padding: '6px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                        background: 'white', fontSize: '12px', fontWeight: '600', color: '#374151', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                      }}>
+                        <FaUpload size={10} /> Try again
+                      </button>
+                      <button onClick={() => { setUploadError(''); handleWhatsAppSetup(); }} style={{
+                        padding: '6px 14px', borderRadius: '8px', border: 'none',
+                        background: '#25D366', fontSize: '12px', fontWeight: '600', color: 'white', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                      }}>
+                        <FaWhatsapp size={12} /> Send on WhatsApp
+                      </button>
+                      <a href="mailto:info@dineopen.com?subject=Menu setup help" style={{
+                        padding: '6px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                        background: 'white', fontSize: '12px', fontWeight: '600', color: '#374151',
+                        display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none',
+                      }}>
+                        <FaEnvelope size={10} /> Email us
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sample menu card */}
+                <div
+                  onClick={!seeding && !menuSeeded ? handleSeedMenu : undefined}
+                  className="ob-card"
+                  style={{
+                    padding: '14px 18px', borderRadius: '14px',
+                    cursor: seeding || menuSeeded ? 'default' : 'pointer',
+                    border: menuSeeded && !uploadedCount ? '2px solid #16a34a' : '2px solid #e5e7eb',
+                    background: menuSeeded && !uploadedCount ? '#f0fdf4' : 'white',
+                    display: 'flex', alignItems: 'center', gap: '14px',
+                  }}
+                >
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+                    background: menuSeeded && !uploadedCount ? '#dcfce7' : '#f1f5f9',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {menuSeeded && !uploadedCount ? <FaCheck size={18} color="#16a34a" /> : <FaUtensils size={18} color="#374151" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
+                      {menuSeeded && !uploadedCount ? 'Sample menu loaded' : 'Use sample menu'}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                      {seeding ? 'Loading...' : `36 popular ${businessLabel.toLowerCase()} items. Edit anytime.`}
+                    </p>
+                  </div>
+                  {!menuSeeded && <FaChevronRight size={12} color="#9ca3af" />}
+                </div>
+
+                {/* WhatsApp option */}
+                <div
+                  onClick={handleWhatsAppSetup}
+                  className="ob-card"
+                  style={{
+                    padding: '14px 18px', borderRadius: '14px', cursor: 'pointer',
+                    border: '2px solid #e5e7eb', background: 'white',
+                    display: 'flex', alignItems: 'center', gap: '14px',
+                  }}
+                >
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+                    background: '#dcfce7',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <FaWhatsapp size={20} color="#25D366" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
+                      Send on WhatsApp
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                      Send a photo — we&apos;ll set it up for you
+                    </p>
+                  </div>
+                  <FaChevronRight size={12} color="#9ca3af" />
+                </div>
+              </div>
+
+              {/* QR + URL info */}
+              <div className="ob-fadeIn-d2" style={{
+                padding: '14px 16px', borderRadius: '14px',
+                background: '#f9fafb', border: '1px solid #f0f0f0',
+                display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px',
+              }}>
+                {menuPreviewQr ? (
+                  <img src={menuPreviewQr} alt="QR" style={{ width: '56px', height: '56px', borderRadius: '8px', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: '56px', height: '56px', borderRadius: '8px', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <FaQrcode size={24} color="#9ca3af" />
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: '700', fontSize: '13px', color: '#111827', margin: '0 0 2px' }}>Your menu QR code</p>
+                  <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>
+                    Print this and place on tables. Customers scan, browse, and order.
+                  </p>
+                </div>
+              </div>
+
+              {/* Navigation */}
+              <div className="ob-fadeIn-d3" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
+                {(menuSeeded || uploadedCount > 0) ? (
+                  <button className="ob-btn" onClick={() => goNext()} style={btnPrimary}>
+                    Continue <FaArrowRight size={14} />
+                  </button>
+                ) : (
+                  <button onClick={handleManualMenu} style={{ ...btnSecondary, color: '#6b7280' }}>
+                    I&apos;ll add later <FaArrowRight size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Phone Mockup — always visible */}
+            <div className="ob-fadeIn-d2" style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              position: isMobile ? 'relative' : 'sticky', top: isMobile ? 'auto' : '100px',
+            }}>
+              <div style={{
+                border: '8px solid #1f2937', borderRadius: '32px',
+                width: isMobile ? '260px' : '290px', height: isMobile ? '480px' : '540px',
+                overflow: 'hidden', background: '#ffffff', flexShrink: 0,
+                boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+                position: 'relative',
+              }}>
+                {/* Notch */}
+                <div style={{
+                  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                  width: '90px', height: '22px', background: '#1f2937',
+                  borderRadius: '0 0 14px 14px', zIndex: 10,
+                }} />
+
+                {/* Menu content — iframe for real menu, static for default */}
+                {(menuSeeded && restaurantId) ? (
+                  <iframe
+                    src={`/placeorder?restaurant=${restaurantId}`}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="Menu Preview"
+                  />
+                ) : (
+                  <div style={{ height: '100%', overflow: 'auto', paddingTop: '24px' }}>
+                    {/* Header */}
+                    <div style={{
+                      background: 'linear-gradient(135deg, #ef4444, #f97316)',
+                      padding: '18px 14px 12px', textAlign: 'center',
+                    }}>
+                      <p style={{ color: 'white', fontWeight: '800', fontSize: '15px', margin: '0 0 2px' }}>
+                        {restaurantName || `Your ${businessLabel}`}
+                      </p>
+                      <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '10px', margin: 0 }}>
+                        Online Ordering
+                      </p>
+                    </div>
+
+                    {/* Category pills */}
+                    <div style={{ display: 'flex', gap: '5px', padding: '8px 10px', overflowX: 'auto', borderBottom: '1px solid #f3f4f6' }}>
+                      {(getDefaultCategories(businessType || 'restaurant') || []).slice(0, 4).map((cat, i) => (
+                        <span key={cat} style={{
+                          padding: '3px 9px', borderRadius: '16px', fontSize: '9px', fontWeight: '600',
+                          whiteSpace: 'nowrap', flexShrink: 0,
+                          background: i === 0 ? '#ef4444' : '#f3f4f6',
+                          color: i === 0 ? 'white' : '#374151',
+                        }}>
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Menu items */}
+                    <div style={{ padding: '6px 10px' }}>
+                      {(getDefaultMenu(businessType || 'restaurant') || []).slice(0, 8).map((item, i) => (
+                        <div key={item.id || i} style={{
+                          display: 'flex', alignItems: 'center', gap: '7px',
+                          padding: '7px 0', borderBottom: i < 7 ? '1px solid #f9fafb' : 'none',
+                        }}>
+                          <div style={{
+                            width: '12px', height: '12px', borderRadius: '2px', flexShrink: 0,
+                            border: `1.5px solid ${item.isVeg ? '#16a34a' : '#dc2626'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: item.isVeg ? '#16a34a' : '#dc2626' }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: '11px', fontWeight: '600', color: '#1f2937', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: '700', flexShrink: 0, color: '#ef4444' }}>{fmtPrice(item.price)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bottom bar */}
+                    <div style={{ position: 'sticky', bottom: 0, padding: '8px 10px', background: 'white', borderTop: '1px solid #f3f4f6', textAlign: 'center' }}>
+                      <div style={{ padding: '7px', borderRadius: '8px', background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: '700' }}>
+                        View Full Menu
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {/* Ready-made menu */}
-              <div
-                onClick={handleSeedMenu}
-                className="ob-card"
-                style={{
-                  padding: '24px', borderRadius: '18px', cursor: 'pointer',
-                  border: '2px solid #f59e0b', background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
-                  textAlign: 'center', position: 'relative',
-                }}
-              >
-                <div style={{
-                  width: '56px', height: '56px', borderRadius: '16px',
-                  background: 'white', margin: '0 auto 12px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(245,158,11,0.15)',
-                }}>
-                  <FaUtensils size={22} color="#f59e0b" />
-                </div>
-                <p style={{ fontWeight: '800', fontSize: '16px', color: '#92400e', margin: '0 0 6px' }}>
-                  Start with Sample Menu
-                </p>
-                <p style={{ fontSize: '13px', color: '#d97706', margin: '0 0 12px', lineHeight: 1.4 }}>
-                  36 popular {businessLabel.toLowerCase()} items. Edit anytime.
-                </p>
-                {/* Mini preview */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {(getDefaultMenu(businessType || 'restaurant') || []).slice(0, 4).map((item, i) => (
-                    <span key={i} style={{
-                      padding: '3px 8px', borderRadius: '6px', background: 'white',
-                      fontSize: '11px', color: '#374151', fontWeight: '500',
-                    }}>
-                      {item.name} <span style={{ color: '#d97706', fontWeight: '700' }}>{fmtPrice(item.price)}</span>
-                    </span>
-                  ))}
-                  <span style={{ fontSize: '11px', color: '#6b7280', padding: '3px 4px' }}>+32 more</span>
-                </div>
-                {seeding && <p style={{ marginTop: '10px', color: '#d97706', fontWeight: '700', fontSize: '13px' }}>Loading menu...</p>}
-                {menuSeeded && <p style={{ marginTop: '10px', color: '#16a34a', fontWeight: '700', fontSize: '13px' }}>Menu loaded!</p>}
-              </div>
+              {/* Label below phone */}
+              <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '12px', textAlign: 'center', fontWeight: '500' }}>
+                {(menuSeeded || uploadedCount > 0) ? 'Your live menu preview' : 'Default sample menu — upload yours to replace'}
+              </p>
             </div>
-
-            {/* WhatsApp option */}
-            <div className="ob-fadeIn-d2 ob-card" onClick={handleWhatsAppSetup} style={{
-              padding: '18px 24px', borderRadius: '16px', cursor: 'pointer',
-              border: '2px solid #25D366', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-              display: 'flex', alignItems: 'center', gap: '16px',
-              marginBottom: '16px',
-            }}>
-              <div style={{
-                width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
-                background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <FaWhatsapp size={24} color="white" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontWeight: '800', fontSize: '15px', color: '#166534', margin: '0 0 2px' }}>
-                  Send menu on WhatsApp — we set it up FREE
-                </p>
-                <p style={{ fontSize: '13px', color: '#16a34a', margin: 0 }}>
-                  Just send a photo of your menu card. We&apos;ll add all items in 5 minutes.
-                </p>
-              </div>
-              <FaArrowRight size={14} color="#25D366" />
-            </div>
-
-            {/* ── Live Menu Preview Section ── */}
-            <div className="ob-fadeIn-d3" style={{ marginBottom: '24px' }}>
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <p style={{ fontWeight: '800', fontSize: '18px', color: '#111827', margin: '0 0 4px' }}>
-                  See your menu come alive
-                </p>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
-                  This is what your customers see when they scan your QR code
-                </p>
-              </div>
-
-              {/* QR Code + Phone Mockup side by side */}
-              <div style={{
-                display: 'flex', gap: '24px', justifyContent: 'center', alignItems: 'center',
-                flexDirection: isMobile ? 'column' : 'row', marginBottom: '20px',
-              }}>
-                {/* QR Code Card */}
-                <div style={{
-                  background: 'white', borderRadius: '20px', padding: '24px',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)',
-                  textAlign: 'center', flexShrink: 0,
-                }}>
-                  <p style={{ fontWeight: '700', fontSize: '14px', color: '#111827', margin: '0 0 4px' }}>Your Menu QR Code</p>
-                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 12px' }}>Print this. Place on tables.</p>
-                  {menuPreviewQr ? (
-                    <img src={menuPreviewQr} alt="Menu QR" style={{
-                      width: '140px', height: '140px', display: 'block', margin: '0 auto 12px',
-                      borderRadius: '10px', border: '1px solid #f1f5f9',
-                    }} />
-                  ) : (
-                    <div style={{
-                      width: '140px', height: '140px', margin: '0 auto 12px',
-                      background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <FaQrcode size={50} color="#d1d5db" />
-                    </div>
-                  )}
-                  <p style={{ fontSize: '11px', color: '#3b82f6', margin: 0, fontWeight: '600' }}>
-                    Customers scan &rarr; browse &rarr; order &rarr; pay
-                  </p>
-                </div>
-
-                {/* Phone Mockup with Menu Preview */}
-                <div style={{
-                  border: '8px solid #1f2937', borderRadius: '28px',
-                  width: isMobile ? '260px' : '280px', height: isMobile ? '460px' : '500px',
-                  overflow: 'hidden', background: '#ffffff', flexShrink: 0,
-                  boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-                  position: 'relative',
-                }}>
-                  {/* Notch */}
-                  <div style={{
-                    position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                    width: '100px', height: '20px', background: '#1f2937',
-                    borderRadius: '0 0 14px 14px', zIndex: 10,
-                  }} />
-
-                  {/* Menu content inside phone */}
-                  {(menuSeeded && restaurantId) ? (
-                    <iframe
-                      src={`/placeorder?restaurant=${restaurantId}${previewTheme !== 'default' ? `&theme=${previewTheme}` : ''}`}
-                      style={{ width: '100%', height: '100%', border: 'none' }}
-                      title="Menu Preview"
-                    />
-                  ) : (
-                    <div style={{ height: '100%', overflow: 'auto', paddingTop: '24px' }}>
-                      {/* Static menu preview header */}
-                      <div style={{
-                        background: previewTheme === 'bistro' ? 'linear-gradient(135deg, #92400e, #b45309)' :
-                          previewTheme === 'classic' ? 'linear-gradient(135deg, #1f2937, #374151)' :
-                          'linear-gradient(135deg, #ef4444, #f97316)',
-                        padding: '20px 16px 14px', textAlign: 'center',
-                      }}>
-                        <p style={{
-                          color: 'white', fontWeight: '800', fontSize: '16px', margin: '0 0 2px',
-                          fontFamily: previewTheme === 'bistro' ? 'Georgia, serif' : 'inherit',
-                        }}>
-                          {restaurantName || `Your ${businessLabel}`}
-                        </p>
-                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '11px', margin: 0 }}>
-                          {previewTheme === 'bistro' ? 'Fine Dining Experience' : 'Order from your table'}
-                        </p>
-                      </div>
-
-                      {/* Category pills */}
-                      <div style={{
-                        display: 'flex', gap: '6px', padding: '10px 12px', overflowX: 'auto',
-                        borderBottom: '1px solid #f3f4f6',
-                      }}>
-                        {(getDefaultCategories(businessType || 'restaurant') || []).slice(0, 4).map((cat, i) => (
-                          <span key={cat} style={{
-                            padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '600',
-                            whiteSpace: 'nowrap', flexShrink: 0,
-                            background: i === 0 ? (previewTheme === 'bistro' ? '#92400e' : '#ef4444') : '#f3f4f6',
-                            color: i === 0 ? 'white' : '#374151',
-                          }}>
-                            {cat}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Menu items */}
-                      <div style={{ padding: '8px 12px' }}>
-                        {(getDefaultMenu(businessType || 'restaurant') || []).slice(0, 8).map((item, i) => (
-                          <div key={item.id || i} style={{
-                            display: 'flex', alignItems: 'center', gap: '8px',
-                            padding: '8px 0', borderBottom: i < 7 ? '1px solid #f9fafb' : 'none',
-                          }}>
-                            {/* Veg/Non-veg indicator */}
-                            <div style={{
-                              width: '14px', height: '14px', borderRadius: '3px', flexShrink: 0,
-                              border: `2px solid ${item.isVeg ? '#16a34a' : '#dc2626'}`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              <div style={{
-                                width: '6px', height: '6px', borderRadius: '50%',
-                                background: item.isVeg ? '#16a34a' : '#dc2626',
-                              }} />
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{
-                                fontSize: '12px', fontWeight: '600', color: '#1f2937', margin: 0,
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                fontFamily: previewTheme === 'bistro' ? 'Georgia, serif' : 'inherit',
-                              }}>
-                                {item.name}
-                              </p>
-                              {item.description && (
-                                <p style={{
-                                  fontSize: '9px', color: '#9ca3af', margin: '1px 0 0', lineHeight: 1.2,
-                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                }}>
-                                  {item.description}
-                                </p>
-                              )}
-                            </div>
-                            <span style={{
-                              fontSize: '12px', fontWeight: '700', flexShrink: 0,
-                              color: previewTheme === 'bistro' ? '#92400e' : '#ef4444',
-                            }}>
-                              {fmtPrice(item.price)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Bottom bar */}
-                      <div style={{
-                        position: 'sticky', bottom: 0, padding: '10px 12px',
-                        background: 'white', borderTop: '1px solid #f3f4f6',
-                        textAlign: 'center',
-                      }}>
-                        <div style={{
-                          padding: '8px', borderRadius: '10px',
-                          background: previewTheme === 'bistro' ? '#92400e' : '#ef4444',
-                          color: 'white', fontSize: '11px', fontWeight: '700',
-                        }}>
-                          View Full Menu &rarr;
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Theme selector strip */}
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px', fontWeight: '600' }}>
-                  Choose a style for your menu
-                </p>
-                <div style={{
-                  display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap',
-                }}>
-                  {[
-                    { id: 'default', name: 'Modern', icon: '📱' },
-                    { id: 'classic', name: 'Classic', icon: '📋' },
-                    { id: 'bistro', name: 'Elegant', icon: '📖' },
-                    { id: 'carousel', name: 'Carousel', icon: '🎠' },
-                  ].map(theme => (
-                    <button
-                      key={theme.id}
-                      onClick={() => setPreviewTheme(theme.id)}
-                      style={{
-                        padding: '8px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                        background: previewTheme === theme.id ? '#111827' : '#f3f4f6',
-                        color: previewTheme === theme.id ? 'white' : '#374151',
-                        fontSize: '12px', fontWeight: '600',
-                        display: 'flex', alignItems: 'center', gap: '5px',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <span>{theme.icon}</span> {theme.name}
-                    </button>
-                  ))}
-                </div>
-                <p style={{ fontSize: '10px', color: '#9ca3af', margin: '6px 0 0' }}>
-                  You can change this anytime from Menu &gt; Customize
-                </p>
-              </div>
-
-              {/* Value proposition cards */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-                gap: '10px',
-              }}>
-                {[
-                  { icon: FaGlobe, label: 'Your own website', desc: 'yourname.dineopen.com — menu always live', color: '#3b82f6', bg: '#eff6ff' },
-                  { icon: FaPercent, label: 'Zero commission', desc: 'Direct orders. No delivery app fees.', color: '#10b981', bg: '#ecfdf5' },
-                  { icon: FaMobileAlt, label: 'Works on any phone', desc: 'No app install. Just scan & order.', color: '#f59e0b', bg: '#fffbeb' },
-                ].map((card, i) => {
-                  const Icon = card.icon;
-                  return (
-                    <div key={i} style={{
-                      padding: '14px 16px', borderRadius: '14px', background: card.bg,
-                      border: `1px solid ${card.color}20`, display: 'flex', alignItems: 'center', gap: '12px',
-                    }}>
-                      <div style={{
-                        width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-                        background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: `0 2px 8px ${card.color}20`,
-                      }}>
-                        <Icon size={16} color={card.color} />
-                      </div>
-                      <div>
-                        <p style={{ fontWeight: '700', fontSize: '13px', color: '#111827', margin: 0 }}>{card.label}</p>
-                        <p style={{ fontSize: '11px', color: '#6b7280', margin: '1px 0 0' }}>{card.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
-              <button onClick={handleManualMenu} style={{ ...skipLink, marginTop: 0, fontSize: '14px' }}>
-                I&apos;ll add items later
-              </button>
-            </div>
-            <button onClick={handleManualMenu} style={skipLink}>Skip — use demo menu</button>
           </div>
         </div>
       )}
@@ -1460,6 +1600,27 @@ function OnboardingContent() {
               </div>
               {heading(`Your ${businessLabel.toLowerCase()} is ready!`)}
               {subheading('Share your QR menu and take your first order.')}
+            </div>
+
+            {/* Start taking orders — hero button */}
+            <div className="ob-fadeIn-d1" style={{ marginBottom: '28px' }}>
+              <button
+                className="ob-btn"
+                onClick={() => router.push(posPath)}
+                style={{
+                  padding: '18px 48px', borderRadius: '16px', border: 'none',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
+                  fontWeight: '800', fontSize: '18px', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '10px',
+                  boxShadow: '0 8px 28px rgba(239,68,68,0.35)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <FaRocket size={18} /> Start Taking Orders
+              </button>
+              <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '8px' }}>
+                Open your POS and take your first order now
+              </p>
             </div>
 
             {/* Two-column: QR code + Quick actions */}
@@ -1524,7 +1685,7 @@ function OnboardingContent() {
                   { icon: FaRocket, label: 'Take your first order', desc: 'Open POS dashboard', color: '#ef4444', bg: '#fef2f2', onClick: () => router.push(posPath) },
                   { icon: FaQrcode, label: 'View your QR menu', desc: 'See what customers see', color: '#3b82f6', bg: '#eff6ff', onClick: () => qrUrl && window.open(qrUrl, '_blank') },
                   { icon: FaCashRegister, label: 'Set up printer', desc: 'Print bills & KOT', color: '#f97316', bg: '#fff7ed', onClick: () => router.push('/admin?tab=print') },
-                  { icon: FaUsers, label: 'Invite staff', desc: 'Add your team', color: '#8b5cf6', bg: '#f5f3ff', onClick: () => router.push('/admin?tab=staff') },
+                  { icon: FaUsers, label: 'Invite staff', desc: 'Add your team', color: '#0ea5e9', bg: '#f0f9ff', onClick: () => router.push('/admin?tab=staff') },
                 ].map((action, i) => {
                   const Icon = action.icon;
                   return (
@@ -1566,7 +1727,7 @@ function OnboardingContent() {
             }}>
               {[
                 { icon: FaQrcode, label: 'QR Menu', desc: 'Ready to use', color: '#3b82f6', bg: '#eff6ff' },
-                { icon: FaChair, label: 'Tables', desc: 'Floor plan ready', color: '#8b5cf6', bg: '#f5f3ff' },
+                { icon: FaChair, label: 'Tables', desc: 'Floor plan ready', color: '#0ea5e9', bg: '#f0f9ff' },
                 { icon: FaGift, label: 'Loyalty', desc: 'Reward customers', color: '#ec4899', bg: '#fdf2f8' },
                 { icon: FaCrown, label: 'AI Voice', desc: 'Voice ordering', color: '#f59e0b', bg: '#fffbeb' },
               ].map((tip, i) => {
@@ -1593,7 +1754,7 @@ function OnboardingContent() {
             <div className="ob-fadeIn" style={{ position: 'relative' }}>
               {/* Confetti */}
               <div style={{ position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
-                {['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6'].map((color, i) => (
+                {['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#0ea5e9'].map((color, i) => (
                   <div key={i} style={{
                     position: 'absolute',
                     width: '8px', height: '8px', borderRadius: i % 2 === 0 ? '50%' : '2px',

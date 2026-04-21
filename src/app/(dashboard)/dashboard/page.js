@@ -3940,17 +3940,15 @@ function RestaurantPOSContent() {
     clearTransition();
   }, [networkTransition, clearTransition]);
 
-  // Show onboarding if needed
+  // Show onboarding if needed — redirect to dedicated onboarding page
   if (showOnboarding) {
+    if (typeof window !== 'undefined') {
+      router.replace('/onboarding');
+    }
     return (
-      <>
-        <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-        </div>
-        <Onboarding 
-          onComplete={handleOnboardingComplete}
-          onSkip={handleOnboardingSkip}
-        />
-      </>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#9ca3af', fontSize: '16px' }}>Redirecting to setup...</p>
+      </div>
     );
   }
   
@@ -4149,17 +4147,15 @@ function RestaurantPOSContent() {
     );
   }
 
-  // No restaurant selected — auto-show onboarding instead of landing page
+  // No restaurant selected — redirect to onboarding
   if (!selectedRestaurant && !showOnboarding) {
+    if (typeof window !== 'undefined') {
+      router.replace('/onboarding');
+    }
     return (
-      <>
-        <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-        </div>
-        <Onboarding
-          onComplete={handleOnboardingComplete}
-          onSkip={handleOnboardingSkip}
-        />
-      </>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#9ca3af', fontSize: '16px' }}>Redirecting to setup...</p>
+      </div>
     );
   }
 
