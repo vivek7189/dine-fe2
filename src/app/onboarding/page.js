@@ -98,6 +98,16 @@ const NAME_PLACEHOLDERS = {
   hotel: 'e.g., Grand Palace Hotel',
 };
 
+// ─── Cuisine Options ──────────────────────────────────────────
+const CUISINE_OPTIONS = [
+  'Indian', 'Chinese', 'Italian', 'Mexican', 'Thai', 'Japanese', 'Korean',
+  'American', 'Mediterranean', 'French', 'Vietnamese', 'Middle Eastern',
+  'Continental', 'South Indian', 'North Indian', 'Mughlai', 'Bengali',
+  'Punjabi', 'Gujarati', 'Street Food', 'Fast Food', 'Seafood',
+  'Bakery & Desserts', 'Biryani', 'Pizza', 'Burger', 'Sushi',
+  'BBQ & Grill', 'Healthy & Salads', 'Vegan', 'Multi-Cuisine',
+];
+
 // Dynamic label for the name field
 const NAME_LABELS = {
   restaurant: 'Restaurant Name',
@@ -191,10 +201,12 @@ function OnboardingContent() {
   const fileInputRef = useRef(null);
   const [previewTheme, setPreviewTheme] = useState('default');
   const [menuPreviewQr, setMenuPreviewQr] = useState('');
+  const [iframeKey, setIframeKey] = useState(0);
 
   // Step 5
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [restaurantSlug, setRestaurantSlug] = useState('');
 
   // Step 2 — optional expandable fields
   const [showTimings, setShowTimings] = useState(false);
@@ -207,6 +219,9 @@ function OnboardingContent() {
   const [restaurantPhone, setRestaurantPhone] = useState('');
   const [restaurantEmail, setRestaurantEmail] = useState('');
   const [cuisineTypes, setCuisineTypes] = useState('');
+  const [selectedCuisines, setSelectedCuisines] = useState([]);
+  const [cuisineSearch, setCuisineSearch] = useState('');
+  const [cuisineDropdownOpen, setCuisineDropdownOpen] = useState(false);
 
   // Step 6
   const [checklistItems, setChecklistItems] = useState([]);
@@ -249,11 +264,15 @@ function OnboardingContent() {
     }
   }, [businessType]);
 
-  // Close country dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target)) {
         setCountryDropdownOpen(false);
+      }
+      // Close cuisine dropdown if clicking outside
+      if (!e.target.closest('[data-cuisine-dropdown]')) {
+        setCuisineDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -263,28 +282,32 @@ function OnboardingContent() {
   // Generate QR code preview for step 4
   useEffect(() => {
     if (step === 4) {
-      const url = restaurantId
-        ? `https://dineopen.com/placeorder?restaurant=${restaurantId}`
-        : 'https://dineopen.com/placeorder/demo';
+      const url = restaurantSlug
+        ? `https://dineopen.com/${restaurantSlug}`
+        : restaurantId
+          ? `https://dineopen.com/placeorder?restaurant=${restaurantId}`
+          : 'https://dineopen.com/placeorder/demo';
       QRCode.toDataURL(url, {
         width: 160,
         margin: 2,
         color: { dark: '#111827', light: '#ffffff' },
       }).then(setMenuPreviewQr).catch(() => {});
     }
-  }, [step, restaurantId]);
+  }, [step, restaurantId, restaurantSlug]);
 
   // Generate QR code when reaching step 5
   useEffect(() => {
     if (step === 5 && restaurantId) {
-      const url = `https://dineopen.com/placeorder/${restaurantId}`;
+      const url = restaurantSlug
+        ? `https://dineopen.com/${restaurantSlug}`
+        : `https://dineopen.com/placeorder?restaurant=${restaurantId}`;
       QRCode.toDataURL(url, {
         width: 200,
         margin: 2,
         color: { dark: '#111827', light: '#ffffff' },
       }).then(setQrCodeDataUrl).catch(() => {});
     }
-  }, [step, restaurantId]);
+  }, [step, restaurantId, restaurantSlug]);
 
   // Filter countries
   const filteredCountries = useMemo(() =>
@@ -358,7 +381,7 @@ function OnboardingContent() {
       return;
     }
     try {
-      const parsedCuisine = cuisineTypes.trim() ? cuisineTypes.split(',').map(c => c.trim()).filter(Boolean) : ['Indian'];
+      const parsedCuisine = selectedCuisines.length > 0 ? selectedCuisines : (cuisineTypes.trim() ? cuisineTypes.split(',').map(c => c.trim()).filter(Boolean) : ['Indian']);
       const response = await apiClient.createRestaurant({
         name: restaurantName.trim(),
         businessType: businessType || 'restaurant',
@@ -368,6 +391,7 @@ function OnboardingContent() {
       });
       const rid = response.restaurant.id;
       setRestaurantId(rid);
+      if (response.restaurant.urlSlug) setRestaurantSlug(response.restaurant.urlSlug);
       localStorage.setItem('selectedRestaurantId', rid);
       localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
       const countryCode = selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN';
@@ -375,6 +399,8 @@ function OnboardingContent() {
         const currencyData = getCurrencyByCountryCode(countryCode);
         await apiClient.updateCurrencySettings(rid, currencyData);
       } catch {}
+      // Auto-seed sample menu in background so the preview works immediately
+      apiClient.seedDefaultMenu(rid).then(() => setMenuSeeded(true)).catch(() => {});
       goNext();
     } catch (err) {
       alert('Failed to create restaurant: ' + (err.message || 'Unknown error'));
@@ -468,6 +494,7 @@ function OnboardingContent() {
           setUploadedCount(saveResponse.savedCount || allMenuItems.length);
           setUploadProgressPct(100);
           setMenuSeeded(true);
+          setIframeKey(k => k + 1); // Force iframe refresh to show uploaded menu
         } else {
           setUploadError('no-items');
         }
@@ -507,6 +534,7 @@ function OnboardingContent() {
         cuisine: ['Indian'], description: '', operatingHours: { open: '09:00', close: '22:00' }
       });
       setRestaurantId(response.restaurant.id);
+      if (response.restaurant.urlSlug) setRestaurantSlug(response.restaurant.urlSlug);
       localStorage.setItem('selectedRestaurantId', response.restaurant.id);
       localStorage.setItem('selectedRestaurant', JSON.stringify(response.restaurant));
       const countryCode = selectedCountry?.code || localStorage.getItem('selectedCountryCode') || 'IN';
@@ -514,6 +542,7 @@ function OnboardingContent() {
         const currencyData = getCurrencyByCountryCode(countryCode);
         await apiClient.updateCurrencySettings(response.restaurant.id, currencyData);
       } catch {}
+      apiClient.seedDefaultMenu(response.restaurant.id).then(() => setMenuSeeded(true)).catch(() => {});
       goNext();
     } catch (err) {
       alert('Failed: ' + (err.message || 'Unknown error'));
@@ -523,7 +552,7 @@ function OnboardingContent() {
   };
 
   // ─── Step 5: QR helpers ───────────────────────────────────────
-  const qrUrl = restaurantId ? `https://dineopen.com/placeorder/${restaurantId}` : '';
+  const qrUrl = restaurantSlug ? `https://dineopen.com/${restaurantSlug}` : (restaurantId ? `https://dineopen.com/placeorder?restaurant=${restaurantId}` : '');
 
   const handleDownloadQR = () => {
     if (!qrCodeDataUrl) return;
@@ -794,6 +823,19 @@ function OnboardingContent() {
           }}>
             {/* Left: Form */}
             <div className="ob-fadeIn">
+              {/* Top navigation */}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+                <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
+                <button
+                  className="ob-btn"
+                  onClick={handleCreateRestaurant}
+                  disabled={!restaurantName.trim() || creating}
+                  style={{ ...btnPrimary, opacity: (!restaurantName.trim() || creating) ? 0.5 : 1, padding: '10px 20px', fontSize: '14px' }}
+                >
+                  {creating ? 'Setting up...' : 'Continue'} <FaArrowRight size={12} />
+                </button>
+              </div>
+
               {heading('Tell us about your place')}
               {subheading('This appears on your bills, QR menu, and reports.')}
 
@@ -1065,20 +1107,86 @@ function OnboardingContent() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Cuisine Types</span>
-                      {!showCuisine && cuisineTypes && (
-                        <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{cuisineTypes.slice(0, 30)}{cuisineTypes.length > 30 ? '...' : ''}</span>
+                      {!showCuisine && selectedCuisines.length > 0 && (
+                        <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>{selectedCuisines.slice(0, 3).join(', ')}{selectedCuisines.length > 3 ? ` +${selectedCuisines.length - 3}` : ''}</span>
                       )}
                     </div>
                     <FaChevronDown size={10} color="#9ca3af" style={{ transition: 'transform 0.2s', transform: showCuisine ? 'rotate(180deg)' : 'rotate(0)' }} />
                   </div>
                   {showCuisine && (
                     <div style={{ padding: '0 14px 14px', animation: 'fadeInUp 0.2s ease' }}>
-                      <input type="text" value={cuisineTypes} onChange={e => setCuisineTypes(e.target.value)}
-                        placeholder="Indian, Chinese, Continental"
-                        className="ob-input"
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                      />
-                      <p style={{ fontSize: '11px', color: '#9ca3af', margin: '6px 0 0' }}>Comma-separated cuisine types</p>
+                      {/* Selected tags */}
+                      {selectedCuisines.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                          {selectedCuisines.map(c => (
+                            <span key={c} style={{
+                              padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '600',
+                              background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px',
+                            }}>
+                              {c}
+                              <FaTimes size={8} style={{ cursor: 'pointer' }} onClick={() => {
+                                setSelectedCuisines(prev => prev.filter(x => x !== c));
+                                setCuisineTypes(selectedCuisines.filter(x => x !== c).join(', '));
+                              }} />
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {/* Search input */}
+                      <div style={{ position: 'relative' }} data-cuisine-dropdown="true">
+                        <input
+                          type="text"
+                          value={cuisineSearch}
+                          onChange={e => { setCuisineSearch(e.target.value); setCuisineDropdownOpen(true); }}
+                          onFocus={() => setCuisineDropdownOpen(true)}
+                          placeholder="Search or type cuisine..."
+                          className="ob-input"
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                        {cuisineDropdownOpen && (
+                          <div style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
+                            marginTop: '4px', background: 'white', borderRadius: '10px',
+                            border: '1px solid #e5e7eb', boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+                            maxHeight: '180px', overflowY: 'auto',
+                          }}>
+                            {CUISINE_OPTIONS
+                              .filter(c => !selectedCuisines.includes(c) && c.toLowerCase().includes(cuisineSearch.toLowerCase()))
+                              .slice(0, 8)
+                              .map(c => (
+                                <div key={c} onClick={() => {
+                                  const updated = [...selectedCuisines, c];
+                                  setSelectedCuisines(updated);
+                                  setCuisineTypes(updated.join(', '));
+                                  setCuisineSearch('');
+                                  setCuisineDropdownOpen(false);
+                                }} style={{
+                                  padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: '#374151',
+                                  transition: 'background 0.1s',
+                                }}
+                                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  {c}
+                                </div>
+                              ))}
+                            {cuisineSearch.trim() && !CUISINE_OPTIONS.find(c => c.toLowerCase() === cuisineSearch.toLowerCase()) && (
+                              <div onClick={() => {
+                                const updated = [...selectedCuisines, cuisineSearch.trim()];
+                                setSelectedCuisines(updated);
+                                setCuisineTypes(updated.join(', '));
+                                setCuisineSearch('');
+                                setCuisineDropdownOpen(false);
+                              }} style={{
+                                padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: '#ef4444', fontWeight: '600',
+                                borderTop: '1px solid #f1f5f9',
+                              }}>
+                                + Add &quot;{cuisineSearch.trim()}&quot;
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1114,9 +1222,16 @@ function OnboardingContent() {
                   <p style={{ fontSize: '16px', fontWeight: '900', color: '#111827', margin: '6px 0 2px', letterSpacing: '-0.01em' }}>
                     {restaurantName || `Your ${businessLabel}`}
                   </p>
-                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>{selectedCountry.flag} {selectedCountry.name}</p>
-                  {(showTimings && (openTime !== '09:00' || closeTime !== '22:00')) && (
-                    <p style={{ fontSize: '10px', color: '#f59e0b', margin: '3px 0 0', fontWeight: '600' }}>{openTime} - {closeTime}</p>
+                  {restaurantAddress ? (
+                    <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0' }}>{restaurantAddress}</p>
+                  ) : (
+                    <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>{selectedCountry.flag} {selectedCountry.name}</p>
+                  )}
+                  {(openTime !== '09:00' || closeTime !== '22:00') && (
+                    <p style={{ fontSize: '10px', color: '#f59e0b', margin: '3px 0 0', fontWeight: '600' }}>Open {openTime} - {closeTime}</p>
+                  )}
+                  {restaurantPhone && (
+                    <p style={{ fontSize: '10px', color: '#9ca3af', margin: '2px 0 0' }}>{restaurantPhone}</p>
                   )}
                 </div>
 
@@ -1226,29 +1341,29 @@ function OnboardingContent() {
                     }}
                     style={{
                       padding: '18px 18px', borderRadius: '16px',
-                      border: selected ? '2px solid #111827' : '2px solid #e5e7eb',
-                      backgroundColor: selected ? '#f9fafb' : 'white',
+                      border: selected ? `2px solid ${f.color}` : '2px solid #e5e7eb',
+                      backgroundColor: selected ? `${f.color}08` : 'white',
                       display: 'flex', alignItems: 'center', gap: '16px',
                       cursor: isLocked ? 'default' : 'pointer',
-                      boxShadow: selected ? '0 2px 8px rgba(0,0,0,0.06)' : '0 1px 3px rgba(0,0,0,0.03)',
+                      boxShadow: selected ? `0 4px 12px ${f.color}20` : '0 1px 3px rgba(0,0,0,0.03)',
                       transition: 'all 0.2s',
                     }}
                   >
                     <div style={{
                       width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-                      background: '#f1f5f9',
+                      background: `${f.color}12`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Icon size={20} color={selected ? '#111827' : '#9ca3af'} />
+                      <Icon size={20} color={f.color} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: '700', fontSize: '15px', color: selected ? '#111827' : '#374151', margin: 0 }}>{f.label}</p>
-                      <p style={{ fontSize: '12px', color: '#9ca3af', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.desc}</p>
+                      <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: 0 }}>{f.label}</p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.desc}</p>
                     </div>
                     <div style={{
                       width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
                       border: selected ? 'none' : '2px solid #d1d5db',
-                      background: selected ? '#111827' : 'white',
+                      background: selected ? '#ef4444' : 'white',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.2s',
                     }}>
@@ -1290,9 +1405,9 @@ function OnboardingContent() {
             {/* Left: Upload options + actions */}
             <div>
               <div className="ob-fadeIn">
-                {heading("Your menu, live in seconds")}
+                {heading("Your menu is live")}
                 <p style={{ fontSize: isMobile ? '14px' : '16px', color: '#6b7280', marginBottom: '24px', lineHeight: 1.5 }}>
-                  Upload your menu or start with a sample. Your customers will see this when they scan your QR code.
+                  We&apos;ve added a sample menu for you. Upload your own to replace it — customers see this when they scan your QR.
                 </p>
               </div>
 
@@ -1304,8 +1419,8 @@ function OnboardingContent() {
                   className="ob-card"
                   style={{
                     padding: '14px 18px', borderRadius: '14px', cursor: uploading ? 'default' : 'pointer',
-                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #3b82f6' : '2px solid #e5e7eb',
-                    background: uploadedCount > 0 ? '#f0fdf4' : uploading ? '#f0f9ff' : 'white',
+                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #f59e0b' : '2px solid #e5e7eb',
+                    background: uploadedCount > 0 ? '#f0fdf4' : 'white',
                     display: 'flex', alignItems: 'center', gap: '14px',
                     position: 'relative', overflow: 'hidden',
                   }}
@@ -1317,7 +1432,7 @@ function OnboardingContent() {
                   {uploading && (
                     <div style={{
                       position: 'absolute', bottom: 0, left: 0, height: '3px',
-                      background: 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                      background: 'linear-gradient(90deg, #f59e0b, #ef4444)',
                       width: `${uploadProgressPct}%`,
                       transition: 'width 0.5s ease',
                       borderRadius: '0 2px 2px 0',
@@ -1325,22 +1440,22 @@ function OnboardingContent() {
                   )}
                   <div style={{
                     width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-                    background: uploadedCount > 0 ? '#dcfce7' : uploading ? '#dbeafe' : '#f1f5f9',
+                    background: uploadedCount > 0 ? '#dcfce7' : uploading ? '#fef3c7' : '#f1f5f9',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {uploadedCount > 0 ? (
                       <FaCheck size={18} color="#16a34a" />
                     ) : uploading ? (
-                      <div style={{ width: '20px', height: '20px', border: '2.5px solid #93c5fd', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      <div style={{ width: '20px', height: '20px', border: '2.5px solid #fde68a', borderTopColor: '#f59e0b', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     ) : (
                       <FaUpload size={18} color="#374151" />
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
-                      {uploadedCount > 0 ? `${uploadedCount} items extracted` : uploading ? 'Analyzing...' : 'Upload your menu'}
+                      {uploadedCount > 0 ? `${uploadedCount} items extracted` : uploading ? 'Analyzing...' : 'Upload your own menu'}
                     </p>
-                    <p style={{ fontSize: '12px', color: uploading ? '#3b82f6' : '#6b7280', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <p style={{ fontSize: '12px', color: uploading ? '#d97706' : '#6b7280', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {uploading ? uploadProgress : (uploadedCount > 0 ? 'Upload another to add more' : <>
                         <FaMagic size={10} /> Photo or PDF — AI extracts items in 60s
                       </>)}
@@ -1388,13 +1503,10 @@ function OnboardingContent() {
                   </div>
                 )}
 
-                {/* Sample menu card */}
+                {/* Sample menu status card — auto-seeded */}
                 <div
-                  onClick={!seeding && !menuSeeded ? handleSeedMenu : undefined}
-                  className="ob-card"
                   style={{
                     padding: '14px 18px', borderRadius: '14px',
-                    cursor: seeding || menuSeeded ? 'default' : 'pointer',
                     border: menuSeeded && !uploadedCount ? '2px solid #16a34a' : '2px solid #e5e7eb',
                     background: menuSeeded && !uploadedCount ? '#f0fdf4' : 'white',
                     display: 'flex', alignItems: 'center', gap: '14px',
@@ -1405,17 +1517,21 @@ function OnboardingContent() {
                     background: menuSeeded && !uploadedCount ? '#dcfce7' : '#f1f5f9',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    {menuSeeded && !uploadedCount ? <FaCheck size={18} color="#16a34a" /> : <FaUtensils size={18} color="#374151" />}
+                    {menuSeeded && !uploadedCount ? (
+                      <FaCheck size={18} color="#16a34a" />
+                    ) : (
+                      <div style={{ width: '18px', height: '18px', border: '2.5px solid #d1d5db', borderTopColor: '#6b7280', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: '700', fontSize: '15px', color: '#111827', margin: '0 0 2px' }}>
-                      {menuSeeded && !uploadedCount ? 'Sample menu loaded' : 'Use sample menu'}
+                      {menuSeeded && !uploadedCount ? 'Sample menu ready' : 'Setting up your menu...'}
                     </p>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-                      {seeding ? 'Loading...' : `36 popular ${businessLabel.toLowerCase()} items. Edit anytime.`}
+                      {menuSeeded ? `36 popular ${businessLabel.toLowerCase()} items — edit anytime from Menu page` : 'Auto-loading sample items for your business type'}
                     </p>
                   </div>
-                  {!menuSeeded && <FaChevronRight size={12} color="#9ca3af" />}
+                  {menuSeeded && !uploadedCount && <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: '600' }}>Live</span>}
                 </div>
 
                 {/* WhatsApp option */}
@@ -1471,15 +1587,9 @@ function OnboardingContent() {
               {/* Navigation */}
               <div className="ob-fadeIn-d3" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button onClick={goBack} style={btnSecondary}><FaArrowLeft size={12} /> Back</button>
-                {(menuSeeded || uploadedCount > 0) ? (
-                  <button className="ob-btn" onClick={() => goNext()} style={btnPrimary}>
-                    Continue <FaArrowRight size={14} />
-                  </button>
-                ) : (
-                  <button onClick={handleManualMenu} style={{ ...btnSecondary, color: '#6b7280' }}>
-                    I&apos;ll add later <FaArrowRight size={12} />
-                  </button>
-                )}
+                <button className="ob-btn" onClick={() => goNext()} style={btnPrimary}>
+                  Continue <FaArrowRight size={14} />
+                </button>
               </div>
             </div>
 
@@ -1487,26 +1597,28 @@ function OnboardingContent() {
             <div className="ob-fadeIn-d2" style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
               position: isMobile ? 'relative' : 'sticky', top: isMobile ? 'auto' : '100px',
+              width: isMobile ? '100%' : 'auto',
             }}>
               <div style={{
-                border: '8px solid #1f2937', borderRadius: '32px',
-                width: isMobile ? '260px' : '290px', height: isMobile ? '480px' : '540px',
+                border: '6px solid #1f2937', borderRadius: '28px',
+                width: isMobile ? '240px' : '290px', height: isMobile ? '440px' : '540px',
                 overflow: 'hidden', background: '#ffffff', flexShrink: 0,
-                boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-                position: 'relative',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
+                position: 'relative', margin: '0 auto',
               }}>
                 {/* Notch */}
                 <div style={{
                   position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                  width: '90px', height: '22px', background: '#1f2937',
-                  borderRadius: '0 0 14px 14px', zIndex: 10,
+                  width: '80px', height: '20px', background: '#1f2937',
+                  borderRadius: '0 0 12px 12px', zIndex: 10,
                 }} />
 
-                {/* Menu content — iframe for real menu, static for default */}
-                {(menuSeeded && restaurantId) ? (
+                {/* Menu content — always show iframe for live preview */}
+                {restaurantId ? (
                   <iframe
+                    key={iframeKey}
                     src={`/placeorder?restaurant=${restaurantId}`}
-                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    style={{ width: '100%', height: '100%', border: 'none', paddingTop: '22px' }}
                     title="Menu Preview"
                   />
                 ) : (
@@ -1572,7 +1684,7 @@ function OnboardingContent() {
 
               {/* Label below phone */}
               <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '12px', textAlign: 'center', fontWeight: '500' }}>
-                {(menuSeeded || uploadedCount > 0) ? 'Your live menu preview' : 'Default sample menu — upload yours to replace'}
+                {uploadedCount > 0 ? 'Your uploaded menu — live preview' : restaurantId ? 'Your live menu — upload to customize' : 'Preview of your customer menu'}
               </p>
             </div>
           </div>
@@ -1598,9 +1710,36 @@ function OnboardingContent() {
                   />
                 </svg>
               </div>
-              {heading(`Your ${businessLabel.toLowerCase()} is ready!`)}
-              {subheading('Share your QR menu and take your first order.')}
+              {heading(`Your ${businessLabel.toLowerCase()} is live!`)}
+              {subheading('Your menu is ready — share with customers to start receiving orders.')}
             </div>
+
+            {/* Live menu URL banner */}
+            {qrUrl && (
+              <div className="ob-fadeIn-d1" style={{
+                margin: '0 auto 24px', padding: '16px 20px', borderRadius: '14px',
+                background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+                border: '1px solid #bbf7d0', maxWidth: '480px',
+                display: 'flex', alignItems: 'center', gap: '12px',
+              }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FaGlobe size={16} color="white" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                  <p style={{ fontSize: '12px', color: '#16a34a', fontWeight: '700', margin: '0 0 2px' }}>Your live menu URL</p>
+                  <p style={{ fontSize: '14px', color: '#111827', fontWeight: '600', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {qrUrl.replace('https://', '')}
+                  </p>
+                </div>
+                <button onClick={handleCopyLink} style={{
+                  padding: '6px 12px', borderRadius: '8px', border: '1px solid #bbf7d0',
+                  background: 'white', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+                  color: copySuccess ? '#16a34a' : '#374151', transition: 'all 0.2s', flexShrink: 0,
+                }}>
+                  {copySuccess ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            )}
 
             {/* Start taking orders — hero button */}
             <div className="ob-fadeIn-d1" style={{ marginBottom: '28px' }}>
@@ -1636,7 +1775,8 @@ function OnboardingContent() {
                 textAlign: 'center',
               }}>
                 <p style={{ fontWeight: '800', fontSize: '16px', color: '#111827', margin: '0 0 4px' }}>Your QR Menu</p>
-                <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 16px' }}>Customers scan this to order</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px' }}>Customers scan this to order</p>
+                {qrUrl && <p style={{ fontSize: '11px', color: '#ef4444', margin: '0 0 16px', fontWeight: '600' }}>{qrUrl.replace('https://', '')}</p>}
 
                 {qrCodeDataUrl ? (
                   <img src={qrCodeDataUrl} alt="QR Code" style={{
