@@ -3772,9 +3772,13 @@ const Admin = () => {
       const response = await apiClient.createRestaurant(newRestaurant);
       const newRestId = response.restaurant?.id;
 
-      // Seed demo menu in background (same as onboarding flow)
+      // Seed demo menu so it's ready when user switches to this restaurant
       if (newRestId) {
-        apiClient.seedDefaultMenu(newRestId, 'IN').catch(() => {});
+        try {
+          await apiClient.seedDefaultMenu(newRestId, 'IN');
+        } catch (e) {
+          console.warn('Demo menu seed failed:', e);
+        }
       }
 
       // Add the new restaurant to the local state

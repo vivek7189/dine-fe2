@@ -1067,10 +1067,13 @@ class ApiClient {
   }
 
   async seedDefaultMenu(restaurantId, countryCode = 'IN') {
-    return this.request(`/api/restaurants/${restaurantId}/seed-default`, {
+    const result = await this.request(`/api/restaurants/${restaurantId}/seed-default`, {
       method: 'POST',
       body: { countryCode },
     });
+    this.invalidateCache('/api/restaurants');
+    this.invalidateCache(`/api/menus/${restaurantId}`);
+    return result;
   }
 
   async seedOrders(restaurantId) {

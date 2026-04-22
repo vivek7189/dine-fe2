@@ -1028,6 +1028,10 @@ function RestaurantPOSContent() {
           sessionStorage.removeItem('dineopen_demo_menu');
           setIsDemoMode(false);
         }
+        // If backend says this is a seeded demo menu, notify layout to show banner
+        if (response.hasDefaultMenu) {
+          window.dispatchEvent(new CustomEvent('demoModeActivated'));
+        }
       }
     } catch (error) {
       console.error('Error loading menu:', error);
