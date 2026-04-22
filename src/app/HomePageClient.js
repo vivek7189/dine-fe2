@@ -12,7 +12,8 @@ import {
   FaArrowRight, FaBars, FaTimes, FaPlay, FaShieldAlt, FaHeadset, FaRocket, FaChevronDown,
   FaRobot, FaStore, FaBoxes, FaWarehouse, FaBuilding, FaWhatsapp, FaQrcode, FaReceipt,
   FaMicrophone, FaStar, FaCamera, FaMagic, FaBolt, FaFilePdf, FaImage, FaSpinner, FaPaperPlane,
-  FaBook, FaShoppingCart, FaClipboardList, FaFileInvoice, FaCog
+  FaBook, FaShoppingCart, FaClipboardList, FaFileInvoice, FaCog,
+  FaPhone, FaEnvelope
 } from 'react-icons/fa';
 
 export default function LandingPage() {
@@ -131,6 +132,16 @@ export default function LandingPage() {
     finally { setDemoSubmitting(false); }
   };
 
+  const closeDemoModal = () => {
+    setShowDemoModal(false);
+    setDemoRestaurantName('');
+    setDemoPhone('');
+    setDemoEmail('');
+    setDemoComment('');
+    setDemoError('');
+    setDemoSuccess(false);
+  };
+
   const currencySymbols = { USD: '$', GBP: '£', INR: '₹' };
   const currencyNames = { USD: 'USD', GBP: 'GBP', INR: 'INR' };
 
@@ -155,14 +166,19 @@ export default function LandingPage() {
     },
   };
   const fmt = (n) => priceTable[currency].symbol + n.toLocaleString('en-IN');
+  // For INR annual: show yearly total directly (₹3,000/year instead of ₹250/month)
+  const showYearlyTotal = currency === 'INR' && billingCycle === 'annual';
+  const getPlanPrice = (type) => showYearlyTotal ? priceTable[currency][type].annual * 12 : priceTable[currency][type][billingCycle];
+  const getRegularPrice = (type) => showYearlyTotal ? priceTable[currency][type].regular * 12 : priceTable[currency][type].regular;
+  const pricePeriod = showYearlyTotal ? 'per year' : 'per month';
   const plans = [
     {
       name: "Starter",
       type: "starter",
-      price: fmt(priceTable[currency].starter[billingCycle]),
-      regularPrice: fmt(priceTable[currency].starter.regular),
-      discount: Math.round((1 - priceTable[currency].starter[billingCycle] / priceTable[currency].starter.regular) * 100),
-      period: 'per month',
+      price: fmt(getPlanPrice('starter')),
+      regularPrice: fmt(getRegularPrice('starter')),
+      discount: Math.round((1 - getPlanPrice('starter') / getRegularPrice('starter')) * 100),
+      period: pricePeriod,
       subPrice: 'For single-outlet restaurants',
       features: ["Complete Cloud POS", "QR Digital Menu & Ordering", "KOT Printing", "Unlimited Tables & Staff", "Basic Inventory & Reports", "1 Outlet"],
       button: "Get Started",
@@ -171,10 +187,10 @@ export default function LandingPage() {
     {
       name: "Growth",
       type: "growth",
-      price: fmt(priceTable[currency].growth[billingCycle]),
-      regularPrice: fmt(priceTable[currency].growth.regular),
-      discount: Math.round((1 - priceTable[currency].growth[billingCycle] / priceTable[currency].growth.regular) * 100),
-      period: 'per month',
+      price: fmt(getPlanPrice('growth')),
+      regularPrice: fmt(getRegularPrice('growth')),
+      discount: Math.round((1 - getPlanPrice('growth') / getRegularPrice('growth')) * 100),
+      period: pricePeriod,
       subPrice: 'For growing restaurants',
       features: ["Everything in Starter", "AI Voice Ordering 🎤", "AI Menu Generator & Insights", "Captain App + Kitchen Display", "Advanced Inventory & Recipes", "Customer Loyalty & WhatsApp", "Up to 2 Outlets"],
       button: "Get Started",
@@ -183,10 +199,10 @@ export default function LandingPage() {
     {
       name: "Pro",
       type: "pro",
-      price: fmt(priceTable[currency].pro[billingCycle]),
-      regularPrice: fmt(priceTable[currency].pro.regular),
-      discount: Math.round((1 - priceTable[currency].pro[billingCycle] / priceTable[currency].pro.regular) * 100),
-      period: 'per month',
+      price: fmt(getPlanPrice('pro')),
+      regularPrice: fmt(getRegularPrice('pro')),
+      discount: Math.round((1 - getPlanPrice('pro') / getRegularPrice('pro')) * 100),
+      period: pricePeriod,
       subPrice: 'For restaurant chains',
       features: ["Everything in Growth", "Chain Dashboard & HQ View", "Cross-Outlet Analytics", "Centralized Menu Management", "Priority 24/7 Support", "Up to 5 Outlets"],
       button: "Get Started",
@@ -2423,225 +2439,135 @@ export default function LandingPage() {
 
       {/* Demo Modal */}
       {showDemoModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '520px', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button 
-              onClick={() => {
-                setShowDemoModal(false);
-                setDemoRestaurantName('');
-                setDemoPhone('');
-                setDemoEmail('');
-                setDemoComment('');
-                setDemoError('');
-                setDemoSuccess(false);
-              }} 
-              style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#6b7280', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}
-              onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
-              onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; }}
+        <div onClick={closeDemoModal} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '20px', width: '100%', maxWidth: '440px', position: 'relative', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.3)' }}>
+            {/* Top accent bar */}
+            <div style={{ height: '4px', background: 'linear-gradient(90deg, #ef4444, #f97316, #ef4444)' }} />
+
+            {/* Close button */}
+            <button
+              onClick={closeDemoModal}
+              style={{ position: 'absolute', top: '12px', right: '12px', border: 'none', background: 'rgba(0,0,0,0.05)', fontSize: '16px', cursor: 'pointer', color: '#9ca3af', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', zIndex: 1, transition: 'all 0.2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.1)'; e.currentTarget.style.color = '#374151'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; e.currentTarget.style.color = '#9ca3af'; }}
             >
-              <FaTimes />
+              <FaTimes size={12} />
             </button>
-            
+
             {demoSuccess ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                  <FaCheckCircle size={40} color="white" />
+              <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <FaCheckCircle size={32} color="white" />
                 </div>
-                <h3 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '12px', color: '#111827' }}>Demo Request Submitted!</h3>
-                <p style={{ fontSize: '16px', color: '#6b7280' }}>We&apos;ll contact you shortly to schedule your demo.</p>
+                <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px', color: '#111827' }}>Request Submitted!</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280' }}>We&apos;ll contact you shortly to schedule your demo.</p>
               </div>
             ) : (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                  <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <FaPlay size={28} color="#ef4444" />
-                  </div>
-                  <h3 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px', color: '#111827' }}>Request a Free Demo</h3>
-                  <p style={{ fontSize: '16px', color: '#6b7280' }}>See how DineOpen can transform your restaurant</p>
+              <div style={{ padding: '24px 28px 28px' }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '4px', color: '#111827' }}>Get a Free Demo</h3>
+                  <p style={{ fontSize: '13px', color: '#9ca3af' }}>See DineOpen in action for your restaurant</p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Contact info banner */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '10px 16px', background: '#f8fafc', borderRadius: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                  <a href="mailto:info@dineopen.com" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', textDecoration: 'none', fontWeight: '500' }}>
+                    <FaEnvelope size={11} color="#ef4444" /> info@dineopen.com
+                  </a>
+                  <span style={{ color: '#d1d5db', fontSize: '12px' }}>|</span>
+                  <a href="tel:+919528632779" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', textDecoration: 'none', fontWeight: '500' }}>
+                    <FaPhone size={11} color="#ef4444" /> +91 95286 32779
+                  </a>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Contact method toggle + input in one row */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-                      Contact Method <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                       <button
                         onClick={() => { setDemoContactType('phone'); setDemoEmail(''); }}
-                        style={{
-                          flex: 1,
-                          padding: '12px 16px',
-                          borderRadius: '10px',
-                          border: `2px solid ${demoContactType === 'phone' ? '#ef4444' : '#e5e7eb'}`,
-                          background: demoContactType === 'phone' ? '#fef2f2' : 'white',
-                          color: demoContactType === 'phone' ? '#ef4444' : '#6b7280',
-                          fontWeight: '600',
-                          fontSize: '14px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
+                        style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: `1.5px solid ${demoContactType === 'phone' ? '#ef4444' : '#e5e7eb'}`, background: demoContactType === 'phone' ? '#fef2f2' : 'white', color: demoContactType === 'phone' ? '#ef4444' : '#6b7280', fontWeight: '600', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
                       >
-                        📞 Phone
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><FaPhone size={10} /> Phone</span>
                       </button>
                       <button
                         onClick={() => { setDemoContactType('email'); setDemoPhone(''); }}
-                        style={{
-                          flex: 1,
-                          padding: '12px 16px',
-                          borderRadius: '10px',
-                          border: `2px solid ${demoContactType === 'email' ? '#ef4444' : '#e5e7eb'}`,
-                          background: demoContactType === 'email' ? '#fef2f2' : 'white',
-                          color: demoContactType === 'email' ? '#ef4444' : '#6b7280',
-                          fontWeight: '600',
-                          fontSize: '14px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
+                        style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: `1.5px solid ${demoContactType === 'email' ? '#ef4444' : '#e5e7eb'}`, background: demoContactType === 'email' ? '#fef2f2' : 'white', color: demoContactType === 'email' ? '#ef4444' : '#6b7280', fontWeight: '600', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
                       >
-                        ✉️ Email
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><FaEnvelope size={10} /> Email</span>
                       </button>
                     </div>
-                  </div>
-
-                  {demoContactType === 'phone' ? (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                        Phone Number <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <input 
-                        type="tel" 
-                        placeholder="+91 98765 43210" 
-                        value={demoPhone} 
-                        onChange={(e) => setDemoPhone(e.target.value)} 
-                        style={{ 
-                          width: '100%',
-                          padding: '14px 16px', 
-                          borderRadius: '12px', 
-                          border: '1px solid #e5e7eb',
-                          fontSize: '15px',
-                          transition: 'all 0.2s'
-                        }}
-                        onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
-                        onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                    {demoContactType === 'phone' ? (
+                      <input
+                        type="tel"
+                        placeholder="+91 95286 32779"
+                        value={demoPhone}
+                        onChange={(e) => setDemoPhone(e.target.value)}
+                        style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', transition: 'all 0.2s', boxSizing: 'border-box' }}
+                        onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; e.target.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
                       />
-                    </div>
-                  ) : (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                        Email Address <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <input 
-                        type="email" 
-                        placeholder="your@email.com" 
-                        value={demoEmail} 
-                        onChange={(e) => setDemoEmail(e.target.value)} 
-                        style={{ 
-                          width: '100%',
-                          padding: '14px 16px', 
-                          borderRadius: '12px', 
-                          border: '1px solid #e5e7eb',
-                          fontSize: '15px',
-                          transition: 'all 0.2s'
-                        }}
-                        onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
-                        onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                    ) : (
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={demoEmail}
+                        onChange={(e) => setDemoEmail(e.target.value)}
+                        style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', transition: 'all 0.2s', boxSizing: 'border-box' }}
+                        onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; e.target.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
                       />
-                    </div>
-                  )}
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                      Additional Details (Optional)
-                    </label>
-                    <textarea 
-                      placeholder="Tell us about your restaurant, number of tables, current system, etc." 
-                      value={demoComment} 
-                      onChange={(e) => setDemoComment(e.target.value)} 
-                      rows={4}
-                      style={{ 
-                        width: '100%',
-                        padding: '14px 16px', 
-                        borderRadius: '12px', 
-                        border: '1px solid #e5e7eb',
-                        fontSize: '15px',
-                        fontFamily: 'inherit',
-                        resize: 'vertical',
-                        transition: 'all 0.2s'
-                      }}
-                      onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
-                      onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
-                    />
+                    )}
                   </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                      Restaurant Name (Optional)
-                    </label>
-                    <input 
-                      type="text" 
-                      placeholder="Enter your restaurant name" 
-                      value={demoRestaurantName} 
-                      onChange={(e) => setDemoRestaurantName(e.target.value)} 
-                      style={{ 
-                        width: '100%',
-                        padding: '14px 16px', 
-                        borderRadius: '12px', 
-                        border: '1px solid #e5e7eb',
-                        fontSize: '15px',
-                        transition: 'all 0.2s'
-                      }}
-                      onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; }}
-                      onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
-                    />
-                  </div>
+                  {/* Restaurant name */}
+                  <input
+                    type="text"
+                    placeholder="Restaurant name (optional)"
+                    value={demoRestaurantName}
+                    onChange={(e) => setDemoRestaurantName(e.target.value)}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', transition: 'all 0.2s', boxSizing: 'border-box' }}
+                    onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; e.target.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+                  />
+
+                  {/* Additional details */}
+                  <textarea
+                    placeholder="Tell us about your restaurant (optional)"
+                    value={demoComment}
+                    onChange={(e) => setDemoComment(e.target.value)}
+                    rows={2}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '14px', fontFamily: 'inherit', resize: 'none', transition: 'all 0.2s', boxSizing: 'border-box' }}
+                    onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.outline = 'none'; e.target.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+                  />
 
                   {demoError && (
-                    <div style={{ 
-                      padding: '12px 16px', 
-                      background: '#fef2f2', 
-                      border: '1px solid #fecaca', 
-                      borderRadius: '10px', 
-                      color: '#dc2626', 
-                      fontSize: '14px' 
-                    }}>
+                    <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '13px' }}>
                       {demoError}
                     </div>
                   )}
 
-                  <button 
+                  <button
                     onClick={handleSubmitDemoRequest}
                     disabled={demoSubmitting}
-                    style={{ 
-                      width: '100%',
-                      padding: '16px', 
-                      borderRadius: '12px', 
-                      background: demoSubmitting ? '#9ca3af' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
-                      color: 'white', 
-                      fontWeight: '700', 
-                      fontSize: '16px',
-                      border: 'none', 
-                      cursor: demoSubmitting ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                    onMouseEnter={(e) => { if (!demoSubmitting) e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.3)'; }}
-                    onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = 'none'; }}
+                    style={{ width: '100%', padding: '14px', borderRadius: '10px', background: demoSubmitting ? '#9ca3af' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', fontWeight: '700', fontSize: '15px', border: 'none', cursor: demoSubmitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    onMouseEnter={(e) => { if (!demoSubmitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.35)'; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
                   >
                     {demoSubmitting ? (
-                      <>
-                        <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Submitting...
-                      </>
+                      <><FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</>
                     ) : (
-                      <>
-                        <FaPaperPlane /> Request Demo
-                      </>
+                      <><FaPaperPlane size={13} /> Request Demo</>
                     )}
                   </button>
                 </div>
-              </>
+
+                <p style={{ textAlign: 'center', fontSize: '11px', color: '#9ca3af', marginTop: '14px', lineHeight: '1.5' }}>
+                  No spam, no commitment. We&apos;ll reach out within 24 hours.
+                </p>
+              </div>
             )}
           </div>
         </div>
