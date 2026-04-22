@@ -3770,16 +3770,22 @@ const Admin = () => {
       setLoading(true);
       
       const response = await apiClient.createRestaurant(newRestaurant);
-      
+      const newRestId = response.restaurant?.id;
+
+      // Seed demo menu in background (same as onboarding flow)
+      if (newRestId) {
+        apiClient.seedDefaultMenu(newRestId, 'IN').catch(() => {});
+      }
+
       // Add the new restaurant to the local state
       setRestaurants([...restaurants, response.restaurant]);
-      
+
       setNewRestaurant({
         name: '',
         description: ''
       });
       setShowAddRestaurantModal(false);
-      
+
       showSuccess('Restaurant added successfully!');
     } catch (error) {
       console.error('Error adding restaurant:', error);

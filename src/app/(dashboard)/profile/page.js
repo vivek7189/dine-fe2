@@ -293,11 +293,12 @@ const Profile = () => {
     }
   };
 
-  // Check if it's a test/dummy phone number
+  // Check if it's a test/dummy phone number (9000000000 - 9000000010)
+  const DUMMY_PHONES_LIST = ['9000000000','9000000001','9000000002','9000000003','9000000004','9000000005','9000000006','9000000007','9000000008','9000000009','9000000010'];
   const isDummyPhoneNumber = (phone) => {
-    const normalizedPhone = phone.replace(/\D/g, '');
-    // Test numbers: +919000000000 or similar test patterns
-    return normalizedPhone.endsWith('9000000000') || normalizedPhone.endsWith('1234567890');
+    const cleaned = phone.replace(/\D/g, '');
+    const last10 = cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
+    return DUMMY_PHONES_LIST.includes(last10);
   };
 
   // Send Phone OTP for linking using Firebase

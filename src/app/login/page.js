@@ -579,8 +579,11 @@ const Login = () => {
   };
 
   // Check if phone number is dummy account
+  const DUMMY_PHONES = ['9000000000','9000000001','9000000002','9000000003','9000000004','9000000005','9000000006','9000000007','9000000008','9000000009','9000000010'];
   const isDummyAccount = (phone) => {
-    return phone === '9000000000' || phone === '+919000000000';
+    const cleaned = phone.replace(/\D/g, '');
+    const last10 = cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
+    return DUMMY_PHONES.includes(last10);
   };
 
   // Filter countries based on search term

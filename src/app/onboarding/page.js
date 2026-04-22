@@ -1592,11 +1592,11 @@ function OnboardingContent() {
       {step === 4 && (
         <div style={contentStyle}>
           <div style={{
-            maxWidth: '960px', width: '100%',
+            maxWidth: '1100px', width: '100%',
             display: isMobile ? 'flex' : 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '1fr 320px',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 400px',
             flexDirection: 'column',
-            gap: isMobile ? '24px' : '36px', alignItems: 'start',
+            gap: isMobile ? '24px' : '48px', alignItems: 'start',
           }}>
             {/* Left: Upload options + actions */}
             <div>
@@ -1798,17 +1798,17 @@ function OnboardingContent() {
               width: isMobile ? '100%' : 'auto',
             }}>
               <div style={{
-                border: '6px solid #1f2937', borderRadius: '28px',
-                width: isMobile ? '300px' : '320px', height: isMobile ? '560px' : '600px',
+                border: '8px solid #1a1a1a', borderRadius: '44px',
+                width: isMobile ? '300px' : '375px', height: isMobile ? '560px' : '750px',
                 overflow: 'hidden', background: '#ffffff', flexShrink: 0,
-                boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(255,255,255,0.1)',
                 position: 'relative', margin: '0 auto',
               }}>
-                {/* Notch */}
+                {/* Dynamic Island */}
                 <div style={{
-                  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                  width: '80px', height: '20px', background: '#1f2937',
-                  borderRadius: '0 0 12px 12px', zIndex: 10,
+                  position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)',
+                  width: '90px', height: '24px', background: '#1a1a1a',
+                  borderRadius: '20px', zIndex: 10,
                 }} />
 
                 {/* Menu content — iframe once menu is seeded, static preview while loading */}
@@ -1816,11 +1816,11 @@ function OnboardingContent() {
                   <iframe
                     key={iframeKey}
                     src={`/placeorder?restaurant=${restaurantId}`}
-                    style={{ width: '100%', height: '100%', border: 'none', paddingTop: '22px' }}
+                    style={{ width: '100%', height: '100%', border: 'none', paddingTop: '36px' }}
                     title="Menu Preview"
                   />
                 ) : (
-                  <div style={{ height: '100%', overflow: 'auto', paddingTop: '24px' }}>
+                  <div style={{ height: '100%', overflow: 'auto', paddingTop: '38px' }}>
                     {/* Header */}
                     <div style={{
                       background: 'linear-gradient(135deg, #ef4444, #f97316)',

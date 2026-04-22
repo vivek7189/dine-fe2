@@ -156,27 +156,55 @@ function DashboardLayoutContent({ children }) {
   }, []);
 
   // Check if restaurant has default/demo menu
-  useEffect(() => {
-    if (!selectedRestaurantId) return;
-    if (sessionStorage.getItem('demoMenuDismissed') === 'true') return;
+  const checkDefaultMenu = (restId) => {
+    if (!restId) return;
+    if (sessionStorage.getItem(`demoMenuDismissed_${restId}`) === 'true') return;
     apiClient.getRestaurants()
       .then(res => {
-        const rest = res?.restaurants?.find(r => r.id === selectedRestaurantId);
+        const rest = res?.restaurants?.find(r => r.id === restId);
+        // Only set true here; client-side demo mode is handled via demoModeActivated event
         if (rest?.hasDefaultMenu) setHasDefaultMenu(true);
-        else setHasDefaultMenu(false);
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    checkDefaultMenu(selectedRestaurantId);
   }, [selectedRestaurantId]);
+
+  // Re-check on pathname change (covers fresh login redirect to dashboard)
+  useEffect(() => {
+    if (selectedRestaurantId) {
+      checkDefaultMenu(selectedRestaurantId);
+    } else {
+      // If restaurantId not set yet (just logged in), retry after short delay
+      const timer = setTimeout(() => {
+        const savedId = localStorage.getItem('selectedRestaurantId');
+        if (savedId) {
+          setSelectedRestaurantId(savedId);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname]);
 
   // Listen for menu uploaded event to dismiss banner
   useEffect(() => {
     const handleMenuUploaded = () => {
       setHasDefaultMenu(false);
-      sessionStorage.setItem('demoMenuDismissed', 'true');
+      sessionStorage.setItem(`demoMenuDismissed_${selectedRestaurantId}`, 'true');
+    };
+    // Listen for demo mode activated (dashboard loaded client-side demo menu)
+    const handleDemoMode = () => {
+      setHasDefaultMenu(true);
     };
     window.addEventListener('menuUploaded', handleMenuUploaded);
-    return () => window.removeEventListener('menuUploaded', handleMenuUploaded);
-  }, []);
+    window.addEventListener('demoModeActivated', handleDemoMode);
+    return () => {
+      window.removeEventListener('menuUploaded', handleMenuUploaded);
+      window.removeEventListener('demoModeActivated', handleDemoMode);
+    };
+  }, [selectedRestaurantId]);
 
   // Get selected restaurant ID from localStorage
   useEffect(() => {
@@ -192,6 +220,7 @@ function DashboardLayoutContent({ children }) {
     // Listen for restaurant changes
     const handleRestaurantChange = (event) => {
       console.log('Restaurant changed in layout:', event.detail);
+      setHasDefaultMenu(false); // Reset on switch; checkDefaultMenu or demoModeActivated will set true if needed
       setSelectedRestaurantId(event.detail.restaurantId);
     };
 
@@ -291,7 +320,7 @@ function DashboardLayoutContent({ children }) {
                 restaurantId={selectedRestaurantId}
                 onMenuItemsAdded={() => {
                   setHasDefaultMenu(false);
-                  sessionStorage.setItem('demoMenuDismissed', 'true');
+                  sessionStorage.setItem(`demoMenuDismissed_${selectedRestaurantId}`, 'true');
                   setShowBulkUpload(false);
                   window.dispatchEvent(new CustomEvent('menuUploaded'));
                   // Reload current page to reflect new menu

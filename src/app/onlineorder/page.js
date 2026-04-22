@@ -814,9 +814,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
 
   // OTP functions
   // Test/dummy phone numbers that bypass Firebase OTP
+  const DUMMY_PHONES_LIST = ['9000000000','9000000001','9000000002','9000000003','9000000004','9000000005','9000000006','9000000007','9000000008','9000000009','9000000010'];
   const isDummyPhone = (phone) => {
     const cleaned = phone.replace(/\D/g, '');
-    return cleaned === '9000000001' || cleaned === '919000000001';
+    const last10 = cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
+    return DUMMY_PHONES_LIST.includes(last10);
   };
 
   const sendOtp = async () => {

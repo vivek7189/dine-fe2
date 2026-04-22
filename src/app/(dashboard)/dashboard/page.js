@@ -1019,6 +1019,8 @@ function RestaurantPOSContent() {
         const defaultItems = getDefaultMenu(businessType);
         setMenuItems(defaultItems);
         setIsDemoMode(true);
+        // Notify layout to show the global yellow sample menu banner
+        window.dispatchEvent(new CustomEvent('demoModeActivated'));
       } else {
         console.log('📋 Loaded menu items:', realItems.length);
         setMenuItems(realItems);
@@ -5246,75 +5248,7 @@ function RestaurantPOSContent() {
           {/* Menu content — default menu auto-loads when real menu is empty */}
           {(menuItems || []).length > 0 || loading ? (
           <>
-            {/* Demo Mode Banner */}
-            {isDemoMode && (
-              <div style={{
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: 'white',
-                padding: '10px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <div style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <FaUtensils size={16} />
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2px' }}>
-                    <span style={{ fontWeight: '600', fontSize: '14px' }}>
-                      Sandbox Mode - Explore the App
-                    </span>
-                    <button
-                      onClick={handleExitDemo}
-                      style={{
-                        background: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        border: '1px solid rgba(255,255,255,0.5)',
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        fontWeight: '700',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
-                      }}
-                    >
-                      <FaTimes size={10} />
-                      Exit Demo
-                    </button>
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    This is sample data to help you explore.
-                    <Link
-                      href="/menu"
-                      style={{
-                        color: 'white',
-                        fontWeight: '700',
-                        textDecoration: 'underline',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Upload your menu →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Demo Mode — no separate banner here, layout handles the global yellow banner */}
 
             {/* Compact Header - Mobile Only (Desktop uses top header bar) */}
           <div style={{
