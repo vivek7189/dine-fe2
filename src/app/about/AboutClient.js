@@ -4,7 +4,7 @@ import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
 import InternalLinks from '../../components/InternalLinks';
-
+//dsfsd
 export default function AboutClient() {
   const stats = [
     { value: '1,000+', label: 'Restaurants' },
