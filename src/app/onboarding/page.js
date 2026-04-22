@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaChevronRight, FaWifi, FaPrint, FaChartLine, FaBolt, FaStar } from 'react-icons/fa';
+import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaChevronRight, FaWifi, FaPrint, FaChartLine, FaBolt, FaStar, FaRobot, FaGoogle } from 'react-icons/fa';
 import QRCode from 'qrcode';
 import apiClient from '../../lib/api';
 import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
@@ -131,11 +131,12 @@ const FEATURES = [
   { id: 'kot', label: 'Kitchen Display (KOT)', icon: FaFire, desc: 'Auto-send orders to kitchen', color: '#f97316' },
   { id: 'menu', label: 'QR Menu & Ordering', icon: FaQrcode, desc: 'Customers scan & order from phone', color: '#0ea5e9' },
   { id: 'inventory', label: 'Inventory & Recipes', icon: FaBoxes, desc: 'Track stock, recipes & costs', color: '#059669' },
-  { id: 'orders', label: 'Online Ordering', icon: FaClipboardList, desc: 'Your own ordering website', color: '#f59e0b' },
   { id: 'shifts', label: 'Staff & Shifts', icon: FaCalendarAlt, desc: 'Schedule & manage team roles', color: '#0ea5e9' },
   { id: 'customers', label: 'Customer Loyalty', icon: FaUsers, desc: 'Rewards, points & WhatsApp CRM', color: '#ec4899' },
   { id: 'hotel', label: 'Hotel / Room Service', icon: FaHotel, desc: 'Room management & service', color: '#3b82f6' },
   { id: 'invoice', label: 'Invoice & Expenses', icon: FaFileInvoice, desc: 'Professional GST invoices', color: '#0d9488' },
+  { id: 'dineai', label: 'DineAI Studio', icon: FaRobot, desc: 'AI voice ordering & insights', color: '#6366f1' },
+  { id: 'google-reviews', label: 'Google Reviews', icon: FaGoogle, desc: 'Monitor & respond to reviews', color: '#ea4335' },
 ];
 
 // Smart defaults per business type
@@ -1943,7 +1944,7 @@ function OnboardingContent() {
             <div className="ob-fadeIn-d1" style={{ marginBottom: '28px' }}>
               <button
                 className="ob-btn"
-                onClick={() => router.push(posPath)}
+                onClick={() => router.push('/home')}
                 style={{
                   padding: '18px 48px', borderRadius: '16px', border: 'none',
                   background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',

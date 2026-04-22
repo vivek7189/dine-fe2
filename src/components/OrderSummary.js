@@ -3705,7 +3705,7 @@ const OrderSummary = ({
                 ) : (
                   <>
                     <FaUtensils size={12} />
-                    {posSettings.placeOrderLabel || t('dashboard.placeOrder')}
+                    {posSettings.placeOrderLabel || 'Place Order (KOT)'}
                   </>
                 )}
               </button>

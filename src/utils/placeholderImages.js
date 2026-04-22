@@ -630,9 +630,9 @@ export function getDisplayImage(menuItem) {
     }
   }
 
-  // Priority 2: User-uploaded image (legacy string, non-Pexels)
+  // Priority 2: User-uploaded image (legacy string, skip Pexels/Unsplash stock URLs)
   if (menuItem.image && typeof menuItem.image === 'string' && menuItem.image.trim() !== '') {
-    if (!menuItem.image.includes('pexels.com')) {
+    if (!menuItem.image.includes('pexels.com') && !menuItem.image.includes('unsplash.com')) {
       return menuItem.image;
     }
   }

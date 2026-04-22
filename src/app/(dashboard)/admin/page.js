@@ -79,7 +79,7 @@ import GoogleReviews from '../../../components/GoogleReviews';
 import WhatsAppTab from '../../../components/WhatsAppTab';
 import { useNotification } from '../../../components/Notification';
 
-// Reusable confirmation modal to replace native confirm()
+// Reusable confirmation modal to replace native confirm() ff
 const ConfirmModal = ({ open, title, message, onConfirm, onCancel, confirmText = 'Delete', confirmColor = '#dc2626' }) => {
   if (!open) return null;
   return createPortal(

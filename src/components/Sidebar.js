@@ -247,7 +247,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     // --- Home (landing page for all roles) ---
     { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
     // --- Core POS ---
-    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : t('nav.dashboard'), icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : 'Dashboard Billing', icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
     { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'admin', 'manager', 'waiter'] },
     { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'waiter'] },
@@ -271,12 +271,17 @@ export default function Sidebar({ isDashboardPage = false }) {
   const navItems = getAllNavItems().filter(item => {
     if (!user || !user.role) return false;
 
+    // These pages are always visible (not hideable via feature selection)
+    // but still respect role-based access below
+    const alwaysVisibleIds = ['home', 'profile', 'orders', 'admin', 'billing'];
+
     // Check if page is in notAllowedPages array (hide for this user)
-    if (notAllowedPages && notAllowedPages.includes(item.id)) {
+    // Skip for always-visible pages
+    if (notAllowedPages && notAllowedPages.includes(item.id) && !alwaysVisibleIds.includes(item.id)) {
       return false;
     }
 
-    // Home and Profile are always accessible to all users
+    // Home and Profile are always accessible to all users (bypass role check)
     if (item.id === 'home' || item.id === 'profile') {
       return true;
     }
