@@ -804,22 +804,18 @@ function RestaurantPOSContent() {
               setIsDemoMode(false);
             }
             setFloors(freshFloors);
-            
-            // Also prefetch tables and get fresh floors data
-            const floorsRes = await apiClient.getFloors(restaurant.id).catch(() => ({ floors: [] }));
-            const freshFloorsForTables = floorsRes?.floors || floorsRes || [];
-            await prefetchTables(restaurant.id);
-            
-            // Cache the fresh data with tablesData structure
-            const freshTablesData = {
-              floors: freshFloorsForTables,
+
+            // Reuse already-fetched floors for tables (avoid duplicate getFloors call)
+            setTablesData({
+              floors: freshFloors,
               tables: [] // Tables are nested in floors
-            };
-            
+            });
+
+            // Cache the fresh data with tablesData structure
             const dataToCache = {
               menuItems: freshMenuItems,
               floors: freshFloors,
-              tablesData: freshTablesData
+              tablesData: { floors: freshFloors, tables: [] }
             };
             setCachedDashboardData(restaurant.id, dataToCache);
             // Also persist to IndexedDB for deeper offline support
@@ -889,18 +885,16 @@ function RestaurantPOSContent() {
             setIsDemoMode(false);
           }
           setFloors(fetchedFloors);
-          await prefetchTables(restaurant.id);
-          
-          // Cache the data with proper tablesData structure
-          const tablesDataToCache = {
+          // Reuse already-fetched floors for tables (avoid duplicate getFloors call)
+          setTablesData({
             floors: fetchedFloors,
             tables: [] // Tables are nested in floors
-          };
-          
+          });
+
           const dataToCache = {
             menuItems: fetchedMenuItems,
             floors: fetchedFloors,
-            tablesData: tablesDataToCache
+            tablesData: { floors: fetchedFloors, tables: [] }
           };
           setCachedDashboardData(restaurant.id, dataToCache);
           // Also persist to IndexedDB for deeper offline support

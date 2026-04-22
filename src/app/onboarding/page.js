@@ -140,15 +140,15 @@ const FEATURES = [
 
 // Smart defaults per business type
 const FEATURE_DEFAULTS = {
-  restaurant: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  cafe: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  bar: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  bakery: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  cloud_kitchen: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  qsr: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  ice_cream: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  hotel: ['pos', 'tables', 'kot', 'orders', 'menu'],
-  other: ['pos', 'tables', 'kot', 'orders', 'menu'],
+  restaurant: ['pos', 'tables', 'kot', 'menu'],
+  cafe: ['pos', 'tables', 'kot', 'menu'],
+  bar: ['pos', 'tables', 'kot', 'menu'],
+  bakery: ['pos', 'tables', 'kot', 'menu'],
+  cloud_kitchen: ['pos', 'tables', 'kot', 'menu'],
+  qsr: ['pos', 'tables', 'kot', 'menu'],
+  ice_cream: ['pos', 'tables', 'kot', 'menu'],
+  hotel: ['pos', 'tables', 'kot', 'menu'],
+  other: ['pos', 'tables', 'kot', 'menu'],
 };
 
 // Step backgrounds
@@ -218,7 +218,7 @@ function OnboardingContent() {
   const countryDropdownRef = useRef(null);
 
   // Step 3
-  const [selectedFeatures, setSelectedFeatures] = useState(['pos', 'tables', 'kot', 'orders', 'menu']);
+  const [selectedFeatures, setSelectedFeatures] = useState(['pos', 'tables', 'kot', 'menu']);
 
   // Step 4
   const [menuChoice, setMenuChoice] = useState(null);
@@ -783,6 +783,9 @@ function OnboardingContent() {
         .ob-feature-card { transition: all 0.2s; cursor: pointer; }
         .ob-feature-card:hover { transform: scale(1.02); }
         .ob-float { animation: float 3s ease-in-out infinite; }
+        @keyframes ob-nudge { 0%, 100% { transform: translateX(0); } 15% { transform: translateX(-4px); } 30% { transform: translateX(4px); } 45% { transform: translateX(-2px); } 60% { transform: translateX(2px); } }
+        .ob-upload-nudge { animation: ob-nudge 0.5s ease 1.5s 2, float 3s ease-in-out 3s infinite; box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
+        .ob-upload-nudge:not(:hover) { box-shadow: 0 4px 15px rgba(239,68,68,0.15); }
         .ob-progress-bar { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
       `}</style>
 
@@ -1609,10 +1612,10 @@ function OnboardingContent() {
                 {/* Upload menu card */}
                 <div
                   onClick={() => !uploading && fileInputRef.current?.click()}
-                  className="ob-card"
+                  className={`ob-card${uploadedCount === 0 && !uploading ? ' ob-upload-nudge' : ''}`}
                   style={{
                     padding: '14px 18px', borderRadius: '14px', cursor: uploading ? 'default' : 'pointer',
-                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #f59e0b' : '2px solid #e5e7eb',
+                    border: uploadedCount > 0 ? '2px solid #16a34a' : uploading ? '2px solid #f59e0b' : '2px solid #ef4444',
                     background: uploadedCount > 0 ? '#f0fdf4' : 'white',
                     display: 'flex', alignItems: 'center', gap: '14px',
                     position: 'relative', overflow: 'hidden',
