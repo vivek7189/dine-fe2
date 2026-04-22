@@ -1370,7 +1370,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
           </div>
 
           {/* Delete Table Reason Modal */}
-          {deletingTableId && (
+          {deletingTableId && typeof document !== 'undefined' && createPortal(
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
               background: 'rgba(0,0,0,0.4)', zIndex: 10002,
@@ -1428,7 +1428,8 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
                   </button>
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* ── Multi-Tier Pricing Section ── */}
@@ -5409,7 +5410,7 @@ const Admin = () => {
       </div>
 
       {/* Add Restaurant Modal */}
-      {showAddRestaurantModal && (
+      {showAddRestaurantModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -5561,11 +5562,12 @@ const Admin = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Restaurant Modal */}
-      {showEditRestaurantModal && (
+      {showEditRestaurantModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -5861,11 +5863,12 @@ const Admin = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Add Staff Modal */}
-      {showAddStaffModal && (
+      {showAddStaffModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -6437,11 +6440,12 @@ const Admin = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Reset Password Modal */}
-      {showResetPasswordModal && staffForReset && (
+      {showResetPasswordModal && staffForReset && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -6711,7 +6715,8 @@ const Admin = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Staff Detail Modal — only when Staff tab is active */}
