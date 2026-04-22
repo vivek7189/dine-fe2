@@ -33,6 +33,7 @@ import {
   FaIdBadge,
   FaCopy,
   FaUserCog,
+  FaUserPlus,
   FaCheck,
   FaCheckCircle,
   FaTimes,
@@ -5872,377 +5873,307 @@ const Admin = () => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
           zIndex: 10002,
-          padding: isMobile ? '0' : '16px'
+          padding: isMobile ? '0' : '20px',
+          animation: 'modalFadeIn 0.2s ease-out'
         }}>
+          <style>{`
+            @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes modalSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+            .staff-modal-input { width: 100%; padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; outline: none; background: white; transition: all 0.2s; box-sizing: border-box; font-family: inherit; }
+            .staff-modal-input:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.08); }
+            .staff-modal-input::placeholder { color: #9ca3af; }
+            .staff-modal-label { display: block; font-size: 13px; font-weight: 600; color: '#374151'; margin-bottom: 6px; letter-spacing: -0.01em; }
+          `}</style>
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setShowAddStaffModal(false); }}
+            style={{ display: 'contents' }}
+          />
           <div style={{
             backgroundColor: 'white',
-            borderRadius: isMobile ? '20px 20px 0 0' : '24px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            borderRadius: isMobile ? '20px 20px 0 0' : '20px',
+            boxShadow: '0 25px 60px -12px rgba(0,0,0,0.3)',
             width: '100%',
-            maxWidth: isMobile ? '100%' : '800px',
-            maxHeight: isMobile ? '92vh' : '90vh',
-            border: isMobile ? 'none' : '1px solid #f1f5f9',
+            maxWidth: isMobile ? '100%' : '680px',
+            maxHeight: isMobile ? '92vh' : '88vh',
             overflow: 'hidden',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            animation: 'modalSlideUp 0.25s ease-out'
           }}>
+            {/* Header */}
             <div style={{
-              padding: isMobile ? '16px 20px' : '24px',
-              borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)',
-              flexShrink: 0
+              padding: isMobile ? '16px 20px' : '20px 28px',
+              borderBottom: '1px solid #f1f5f9',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{
-                  fontSize: isMobile ? '18px' : '24px',
-                  fontWeight: 'bold',
-                  color: '#1f2937',
-                  margin: 0
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '18px'
                 }}>
-{t('admin.addNewStaff')}
-                </h2>
-                <button
-                  onClick={() => setShowAddStaffModal(false)}
-                  style={{
-                    color: '#6b7280',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    padding: '4px'
-                  }}
-                >
-                  ×
-                </button>
+                  <FaUserPlus size={16} color="#ef4444" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: '700', color: '#111827', margin: 0, letterSpacing: '-0.02em' }}>
+                    {t('admin.addNewStaff')}
+                  </h2>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0, marginTop: '2px' }}>Fill in details to create a new team member</p>
+                </div>
               </div>
+              <button
+                onClick={() => setShowAddStaffModal(false)}
+                style={{
+                  width: '32px', height: '32px', borderRadius: '10px',
+                  border: '1px solid #e5e7eb', backgroundColor: 'white',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#6b7280', fontSize: '16px', transition: 'all 0.15s'
+                }}
+                onMouseEnter={(e) => { e.target.style.backgroundColor = '#f3f4f6'; }}
+                onMouseLeave={(e) => { e.target.style.backgroundColor = 'white'; }}
+              >
+                <FaTimes size={12} />
+              </button>
             </div>
 
             <form onSubmit={handleAddStaff} style={{
-              padding: isMobile ? '16px 20px' : '24px',
+              padding: isMobile ? '16px 20px' : '20px 28px',
               overflowY: 'auto',
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
-              WebkitOverflowScrolling: 'touch'
+              WebkitOverflowScrolling: 'touch',
+              gap: '20px'
             }}>
-              {/* Form Fields - single column on mobile, two columns on desktop */}
-              <div style={{
-                display: isMobile ? 'flex' : 'grid',
-                flexDirection: 'column',
-                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                gap: isMobile ? '16px' : '20px',
-                marginBottom: '20px'
-              }}>
-                {/* Left Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#374151', 
-                      marginBottom: '8px' 
-                    }}>
-                      Full Name *
-                    </label>
-                <input
-                  type="text"
-                  required
-                  value={newStaff.name}
-                  onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Enter staff member full name"
-                />
-                  </div>
-
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#374151', 
-                      marginBottom: '8px' 
-                    }}>
-                      Phone Number *
-                    </label>
-                <input
-                  type="tel"
-                  required
-                  value={newStaff.phone}
-                  onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="+91-9876543210"
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
+              {/* Section: Personal Info */}
+              <div>
+                <div style={{
+                  fontSize: '11px', fontWeight: '700', color: '#9ca3af',
+                  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px'
+                }}>Personal Information</div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: '14px'
                 }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={newStaff.email}
-                  onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="staff@restaurant.com (used for login)"
-                />
-                  </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Username (optional)
-                </label>
-                <input
-                  type="text"
-                  value={newStaff.username}
-                  onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="e.g. john_doe — staff can log in with this or User ID"
-                />
-                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>3–50 characters, letters, numbers and underscore. Must be unique.</p>
-              </div>
-
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#374151', 
-                      marginBottom: '8px' 
-                    }}>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Full Name <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      className="staff-modal-input"
+                      type="text"
+                      required
+                      value={newStaff.name}
+                      onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  <div>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Phone <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      className="staff-modal-input"
+                      type="tel"
+                      required
+                      value={newStaff.phone}
+                      onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
+                      placeholder="+91 98765 43210"
+                    />
+                  </div>
+                  <div>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Email
+                    </label>
+                    <input
+                      className="staff-modal-input"
+                      type="email"
+                      value={newStaff.email}
+                      onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                      placeholder="staff@company.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Start Date <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      className="staff-modal-input"
+                      type="date"
+                      required
+                      value={newStaff.startDate}
+                      onChange={(e) => setNewStaff({ ...newStaff, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? undefined : '1 / -1' }}>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
                       Address
                     </label>
-                <textarea
-                  value={newStaff.address}
-                  onChange={(e) => setNewStaff({ ...newStaff, address: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box',
-                    minHeight: '80px',
-                    resize: 'vertical'
-                  }}
-                  placeholder="Staff residential address"
-                />
+                    <input
+                      className="staff-modal-input"
+                      type="text"
+                      value={newStaff.address}
+                      onChange={(e) => setNewStaff({ ...newStaff, address: e.target.value })}
+                      placeholder="Residential address"
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Full Width Fields */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
+              {/* Divider */}
+              <div style={{ height: '1px', background: '#f1f5f9' }} />
+
+              {/* Section: Login & Role */}
+              <div>
+                <div style={{
+                  fontSize: '11px', fontWeight: '700', color: '#9ca3af',
+                  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px'
+                }}>Login & Role</div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: '14px'
                 }}>
-                  Role *
-                </label>
-                <select
-                  value={newStaff.role}
-                  onChange={(e) => {
-                    const selectedRole = e.target.value;
-                    const roleDefaults = ROLE_DEFAULT_PAGE_ACCESS[selectedRole];
-                    if (roleDefaults) {
-                      setNewStaff(prev => ({ ...prev, role: selectedRole, pageAccess: JSON.parse(JSON.stringify(roleDefaults)) }));
-                    } else {
-                      setNewStaff(prev => ({ ...prev, role: selectedRole }));
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  {customRoles.map(role => {
-                    // Only show admin option to owners
-                    if (role === 'admin' && currentUserRole !== 'owner') {
-                      return null;
-                    }
-                    return (
-                      <option key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                      </option>
-                    );
-                  })}
-                  <option value="custom" style={{ fontStyle: 'italic', color: '#6b7280' }}>+ Add Custom Role</option>
-                </select>
+                  <div>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Username <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span>
+                    </label>
+                    <input
+                      className="staff-modal-input"
+                      type="text"
+                      value={newStaff.username}
+                      onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                      placeholder="john_doe"
+                    />
+                    <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 0' }}>Letters, numbers, underscore. Must be unique.</p>
+                  </div>
+                  <div>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Role <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select
+                      className="staff-modal-input"
+                      value={newStaff.role}
+                      onChange={(e) => {
+                        const selectedRole = e.target.value;
+                        const roleDefaults = ROLE_DEFAULT_PAGE_ACCESS[selectedRole];
+                        if (roleDefaults) {
+                          setNewStaff(prev => ({ ...prev, role: selectedRole, pageAccess: JSON.parse(JSON.stringify(roleDefaults)) }));
+                        } else {
+                          setNewStaff(prev => ({ ...prev, role: selectedRole }));
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {customRoles.map(role => {
+                        if (role === 'admin' && currentUserRole !== 'owner') return null;
+                        return (
+                          <option key={role} value={role}>
+                            {role.charAt(0).toUpperCase() + role.slice(1)}
+                          </option>
+                        );
+                      })}
+                      <option value="custom">+ Custom Role</option>
+                    </select>
+                  </div>
+                </div>
                 {ROLE_DESCRIPTIONS[newStaff.role] && (
                   <div style={{
-                    marginTop: '8px', padding: '10px 14px',
-                    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                    borderLeft: '3px solid #3b82f6', borderRadius: '8px',
-                    fontSize: '13px', color: '#475569', lineHeight: '1.5'
+                    marginTop: '10px', padding: '10px 14px',
+                    background: '#f0f9ff',
+                    borderLeft: '3px solid #3b82f6', borderRadius: '0 10px 10px 0',
+                    fontSize: '12px', color: '#475569', lineHeight: '1.5'
                   }}>
-                    <span style={{ fontWeight: 600, color: '#1e40af' }}>{newStaff.role?.charAt(0).toUpperCase() + newStaff.role?.slice(1)}:</span>{' '}
+                    <span style={{ fontWeight: 700, color: '#1e40af' }}>{newStaff.role?.charAt(0).toUpperCase() + newStaff.role?.slice(1)}:</span>{' '}
                     {ROLE_DESCRIPTIONS[newStaff.role]}
+                  </div>
+                )}
+
+                {/* Custom Role Input */}
+                {newStaff.role === 'custom' && (
+                  <div style={{ marginTop: '12px' }}>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Custom Role Name <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        className="staff-modal-input"
+                        type="text"
+                        value={newCustomRole}
+                        onChange={(e) => {
+                          const value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+                          if (!['owner', 'admin'].includes(value)) {
+                            setNewCustomRole(value);
+                          }
+                        }}
+                        placeholder="e.g. supervisor, cashier"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newCustomRole && !customRoles.includes(newCustomRole)) {
+                            setCustomRoles([...customRoles, newCustomRole]);
+                            setNewStaff({ ...newStaff, role: newCustomRole });
+                            setNewCustomRole('');
+                          }
+                        }}
+                        disabled={!newCustomRole || customRoles.includes(newCustomRole)}
+                        style={{
+                          padding: '10px 18px',
+                          backgroundColor: newCustomRole && !customRoles.includes(newCustomRole) ? '#10b981' : '#e5e7eb',
+                          color: newCustomRole && !customRoles.includes(newCustomRole) ? 'white' : '#9ca3af',
+                          border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
+                          cursor: newCustomRole && !customRoles.includes(newCustomRole) ? 'pointer' : 'not-allowed',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Custom Role Input */}
-              {newStaff.role === 'custom' && (
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: '14px', 
-                    fontWeight: '600', 
-                    color: '#374151', 
-                    marginBottom: '8px' 
-                  }}>
-                    Custom Role Name *
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      value={newCustomRole}
-                      onChange={(e) => {
-                        const value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        if (!['owner', 'admin'].includes(value)) {
-                          setNewCustomRole(value);
-                        }
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        backgroundColor: '#f8fafc',
-                        transition: 'all 0.2s',
-                        boxSizing: 'border-box'
-                      }}
-                      placeholder="supervisor, cashier, cook, etc."
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (newCustomRole && !customRoles.includes(newCustomRole)) {
-                          setCustomRoles([...customRoles, newCustomRole]);
-                          setNewStaff({ ...newStaff, role: newCustomRole });
-                          setNewCustomRole('');
-                        }
-                      }}
-                      disabled={!newCustomRole || customRoles.includes(newCustomRole)}
-                      style={{
-                        padding: '12px 16px',
-                        backgroundColor: newCustomRole && !customRoles.includes(newCustomRole) ? '#10b981' : '#d1d5db',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontWeight: '600',
-                        cursor: newCustomRole && !customRoles.includes(newCustomRole) ? 'pointer' : 'not-allowed'
-                      }}
-                    >
-                      Add
-                    </button>
-                  </div>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                    Note: Cannot create &apos;owner&apos; or &apos;admin&apos; roles
-                  </p>
-                </div>
-              )}
+              {/* Divider */}
+              <div style={{ height: '1px', background: '#f1f5f9' }} />
 
-              {/* Page Access Controls */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  marginBottom: '12px'
-                }}>
-                  Page Access Permissions
-                </label>
+              {/* Section: Permissions */}
+              <div>
+                <div style={{
+                  fontSize: '11px', fontWeight: '700', color: '#9ca3af',
+                  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px'
+                }}>Page Access Permissions</div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '12px',
-                  padding: '16px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb'
+                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                  gap: '8px'
                 }}>
                   {[
                     { key: 'dashboard', label: t('nav.dashboard'), icon: '🏠' },
                     { key: 'history', label: t('nav.history'), icon: '📋' },
                     { key: 'tables', label: t('nav.tables'), icon: '🪑' },
-                    { key: 'menu', label: t('nav.menu'), icon: '🍽️' },
+                    { key: 'menu', label: t('nav.menu'), icon: '🍽' },
                     { key: 'analytics', label: t('nav.analytics'), icon: '📊' },
                     { key: 'inventory', label: t('nav.inventory'), icon: '📦' },
                     { key: 'kot', label: t('nav.kot'), icon: '👨‍🍳' },
                     { key: 'admin', label: t('nav.admin'), icon: '⚙️' },
                     { key: 'invoice', label: 'Invoice', icon: '🧾' },
                     { key: 'customers', label: 'Customers', icon: '👥' },
-                    { key: 'offers', label: 'Offers', icon: '🏷️' },
-                    { key: 'orders', label: 'Orders', icon: '🧾' }
+                    { key: 'offers', label: 'Offers', icon: '🏷' },
+                    { key: 'orders', label: 'Orders', icon: '📝' }
                   ].map(({ key, label, icon }) => {
                     const hasGranular = !!FEATURE_OPS[key];
                     const isChecked = hasGranular
@@ -6257,12 +6188,22 @@ const Admin = () => {
                           alignItems: 'center',
                           gap: '8px',
                           cursor: 'pointer',
-                          padding: '8px',
-                          borderRadius: '8px',
-                          backgroundColor: isChecked ? '#dcfce7' : 'white',
-                          border: `1px solid ${isChecked ? '#10b981' : '#e5e7eb'}`,
-                          transition: 'all 0.2s'
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          backgroundColor: isChecked ? '#f0fdf4' : '#fafafa',
+                          border: `1.5px solid ${isChecked ? '#86efac' : '#f1f5f9'}`,
+                          transition: 'all 0.15s',
+                          userSelect: 'none'
                         }}>
+                          <div style={{
+                            width: '18px', height: '18px', borderRadius: '5px', flexShrink: 0,
+                            border: `2px solid ${isChecked ? '#22c55e' : '#d1d5db'}`,
+                            backgroundColor: isChecked ? '#22c55e' : 'white',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.15s'
+                          }}>
+                            {isChecked && <span style={{ color: 'white', fontSize: '11px', fontWeight: 700, lineHeight: 1 }}>&#10003;</span>}
+                          </div>
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -6288,13 +6229,13 @@ const Admin = () => {
                                 });
                               }
                             }}
-                            style={{ margin: 0 }}
+                            style={{ display: 'none' }}
                           />
-                          <span style={{ fontSize: '16px' }}>{icon}</span>
+                          <span style={{ fontSize: '14px', lineHeight: 1 }}>{icon}</span>
                           <span style={{
                             fontSize: '13px',
-                            fontWeight: '500',
-                            color: isChecked ? '#059669' : '#374151'
+                            fontWeight: isChecked ? '600' : '500',
+                            color: isChecked ? '#15803d' : '#4b5563'
                           }}>
                             {label}
                           </span>
@@ -6303,25 +6244,26 @@ const Admin = () => {
                           <div style={{
                             display: 'flex',
                             flexWrap: 'wrap',
-                            gap: '8px',
-                            marginTop: '8px',
-                            marginLeft: '16px',
-                            padding: '10px',
+                            gap: '6px',
+                            marginTop: '6px',
+                            marginLeft: '8px',
+                            padding: '8px 10px',
                             backgroundColor: '#f0fdf4',
                             borderRadius: '8px',
-                            border: '1px solid #bbf7d0'
+                            border: '1px solid #dcfce7'
                           }}>
                             {FEATURE_OPS[key].map(op => (
                               <label key={op} style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '6px',
+                                gap: '5px',
                                 cursor: 'pointer',
-                                padding: '6px 8px',
+                                padding: '4px 8px',
                                 borderRadius: '6px',
                                 backgroundColor: newStaff.pageAccess[key][op] ? '#dcfce7' : 'white',
-                                border: `1px solid ${newStaff.pageAccess[key][op] ? '#10b981' : '#e5e7eb'}`,
-                                transition: 'all 0.2s'
+                                border: `1px solid ${newStaff.pageAccess[key][op] ? '#86efac' : '#e5e7eb'}`,
+                                transition: 'all 0.15s',
+                                userSelect: 'none'
                               }}>
                                 <input
                                   type="checkbox"
@@ -6340,12 +6282,21 @@ const Admin = () => {
                                       }
                                     });
                                   }}
-                                  style={{ margin: 0 }}
+                                  style={{ display: 'none' }}
                                 />
+                                <div style={{
+                                  width: '14px', height: '14px', borderRadius: '4px', flexShrink: 0,
+                                  border: `1.5px solid ${newStaff.pageAccess[key][op] ? '#22c55e' : '#d1d5db'}`,
+                                  backgroundColor: newStaff.pageAccess[key][op] ? '#22c55e' : 'white',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  transition: 'all 0.15s'
+                                }}>
+                                  {newStaff.pageAccess[key][op] && <span style={{ color: 'white', fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>&#10003;</span>}
+                                </div>
                                 <span style={{
-                                  fontSize: '12px',
+                                  fontSize: '11px',
                                   fontWeight: '500',
-                                  color: newStaff.pageAccess[key][op] ? '#059669' : '#374151'
+                                  color: newStaff.pageAccess[key][op] ? '#15803d' : '#4b5563'
                                 }}>
                                   {key === 'admin' ? (ADMIN_TAB_LABELS[op] || op) : (OP_LABELS[op] || op)}
                                 </span>
@@ -6357,47 +6308,19 @@ const Admin = () => {
                     );
                   })}
                 </div>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '8px 0 0 0' }}>
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '8px 0 0 0' }}>
                   {t('admin.selectPageAccess')}
                 </p>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  {t('admin.startDate')} *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={newStaff.startDate}
-                  onChange={(e) => setNewStaff({ ...newStaff, startDate: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
+              {/* Footer Buttons */}
               <div style={{
                 display: 'flex',
-                gap: '12px',
+                gap: '10px',
                 marginTop: 'auto',
                 paddingTop: '16px',
-                paddingBottom: isMobile ? '20px' : '0',
-                borderTop: '1px solid #f3f4f6',
+                paddingBottom: isMobile ? '20px' : '4px',
+                borderTop: '1px solid #f1f5f9',
                 flexShrink: 0
               }}>
                 <button
@@ -6405,16 +6328,18 @@ const Admin = () => {
                   onClick={() => setShowAddStaffModal(false)}
                   style={{
                     flex: 1,
-                    backgroundColor: '#6b7280',
-                    color: 'white',
-                    padding: isMobile ? '14px 20px' : '12px 20px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    padding: isMobile ? '14px 20px' : '11px 20px',
                     borderRadius: '12px',
                     fontWeight: '600',
                     fontSize: '14px',
-                    border: 'none',
+                    border: '1.5px solid #e5e7eb',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.15s'
                   }}
+                  onMouseEnter={(e) => { e.target.style.backgroundColor = '#f9fafb'; }}
+                  onMouseLeave={(e) => { e.target.style.backgroundColor = 'white'; }}
                 >
                   Cancel
                 </button>
@@ -6422,17 +6347,18 @@ const Admin = () => {
                   type="submit"
                   disabled={loading}
                   style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    flex: 1.5,
+                    background: loading ? '#fca5a5' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                     color: 'white',
-                    padding: isMobile ? '14px 20px' : '12px 20px',
+                    padding: isMobile ? '14px 20px' : '11px 20px',
                     borderRadius: '12px',
-                    fontWeight: '600',
+                    fontWeight: '700',
                     fontSize: '14px',
                     border: 'none',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s',
-                    opacity: loading ? 0.7 : 1
+                    transition: 'all 0.15s',
+                    boxShadow: loading ? 'none' : '0 4px 14px rgba(239,68,68,0.3)',
+                    letterSpacing: '-0.01em'
                   }}
                 >
                   {loading ? 'Adding...' : 'Add Staff Member'}
