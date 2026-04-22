@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FaTag,
@@ -32,6 +32,7 @@ const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'P
   const { getCurrencySymbol } = useCurrency();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
   const filtered = q
     ? items.filter(it => (it.name || '').toLowerCase().includes(q.toLowerCase()))
     : items;
@@ -40,6 +41,19 @@ const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'P
     const next = selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id];
     onChange(next);
   };
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
   return (
     <div>
       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
@@ -55,7 +69,7 @@ const ItemMultiPicker = ({ items = [], selected = [], onChange, placeholder = 'P
           </span>
         ))}
       </div>
-      <div style={{ position: 'relative' }}>
+      <div ref={containerRef} style={{ position: 'relative' }}>
         <input
           type="text"
           value={q}
@@ -1872,20 +1886,22 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Qty</label>
                       <input
-                        type="number"
-                        min="1"
-                        value={formData.crossItemBogo?.buyQty || 1}
-                        onChange={(e) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, buyQty: parseInt(e.target.value, 10) || 1 } }))}
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.crossItemBogo?.buyQty ?? ''}
+                        onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, buyQty: v === '' ? '' : parseInt(v, 10) } })); }}
+                        onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) < 1) setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, buyQty: 1 } })); }}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
                       />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Get Qty (free)</label>
                       <input
-                        type="number"
-                        min="1"
-                        value={formData.crossItemBogo?.getQty || 1}
-                        onChange={(e) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, getQty: parseInt(e.target.value, 10) || 1 } }))}
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.crossItemBogo?.getQty ?? ''}
+                        onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, getQty: v === '' ? '' : parseInt(v, 10) } })); }}
+                        onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) < 1) setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, getQty: 1 } })); }}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
                       />
                     </div>
@@ -1911,10 +1927,10 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Max Applications (per order)</label>
                     <input
-                      type="number"
-                      min="1"
-                      value={formData.crossItemBogo?.maxApplications || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, maxApplications: e.target.value === '' ? null : (parseInt(e.target.value, 10) || 1) } }))}
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.crossItemBogo?.maxApplications ?? ''}
+                      onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setFormData(prev => ({ ...prev, crossItemBogo: { ...prev.crossItemBogo, maxApplications: v === '' ? null : parseInt(v, 10) } })); }}
                       placeholder="Unlimited"
                       style={{ width: isMobile ? '100%' : '160px', padding: '8px', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '14px', boxSizing: 'border-box' }}
                     />
@@ -1932,31 +1948,33 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Buy Qty</label>
                       <input
-                        type="number"
-                        value={formData.bogoConfig?.buyQty || 2}
-                        onChange={(e) => setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: parseInt(e.target.value) || 2, getQty: prev.bogoConfig?.getQty || 1, getDiscount: prev.bogoConfig?.getDiscount || 100 } }))}
-                        min="1"
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.bogoConfig?.buyQty ?? ''}
+                        onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: v === '' ? '' : parseInt(v, 10), getQty: prev.bogoConfig?.getQty || 1, getDiscount: prev.bogoConfig?.getDiscount || 100 } })); }}
+                        onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) < 1) setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: 2, getQty: prev.bogoConfig?.getQty || 1, getDiscount: prev.bogoConfig?.getDiscount || 100 } })); }}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
                       />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Get Qty Free</label>
                       <input
-                        type="number"
-                        value={formData.bogoConfig?.getQty || 1}
-                        onChange={(e) => setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: parseInt(e.target.value) || 1, getDiscount: prev.bogoConfig?.getDiscount || 100 } }))}
-                        min="1"
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.bogoConfig?.getQty ?? ''}
+                        onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: v === '' ? '' : parseInt(v, 10), getDiscount: prev.bogoConfig?.getDiscount || 100 } })); }}
+                        onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) < 1) setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: 1, getDiscount: prev.bogoConfig?.getDiscount || 100 } })); }}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
                       />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Discount %</label>
                       <input
-                        type="number"
-                        value={formData.bogoConfig?.getDiscount || 100}
-                        onChange={(e) => setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: prev.bogoConfig?.getQty || 1, getDiscount: parseInt(e.target.value) || 100 } }))}
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.bogoConfig?.getDiscount ?? ''}
+                        onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: prev.bogoConfig?.getQty || 1, getDiscount: v === '' ? '' : Math.min(parseInt(v, 10), 100) } })); }}
+                        onBlur={(e) => { if (!e.target.value) setFormData(prev => ({ ...prev, bogoConfig: { ...(prev.bogoConfig || {}), buyQty: prev.bogoConfig?.buyQty || 2, getQty: prev.bogoConfig?.getQty || 1, getDiscount: 100 } })); }}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
                       />
                     </div>

@@ -247,7 +247,7 @@ function DashboardLayoutContent({ children }) {
                 }}>
                   <FaUtensils size={16} color="#92400e" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: '13px', color: '#78350f', fontWeight: '600', flex: 1, minWidth: '200px' }}>
-                    You're viewing a sample menu — upload your own to get started
+                    You&apos;re viewing a sample menu — upload your own to get started
                   </span>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                     <button

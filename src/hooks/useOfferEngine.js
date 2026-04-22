@@ -14,6 +14,9 @@ const normalizePhone = (phone) => {
   return digits.slice(-10);
 };
 
+// Normalize category names for comparison — "Hot beverages", "Hot-Beverages", "hot_beverages" all match
+const normalizeCategory = (cat) => String(cat || '').toLowerCase().replace(/[-_\s]+/g, '');
+
 /**
  * Audience matcher mirroring backend services/offerEngine.js.
  * context: { customerId, customerPhone, customerGroupIds, isFirstOrder }
@@ -87,7 +90,7 @@ const calculateCrossItemBogo = (offer, cart) => {
     const cat = (item.category || item.categoryId || '').toString();
     const qty = item.quantity || 0;
     const matchById = buyItemIds.length > 0 && buyItemIds.includes(id);
-    const matchByCat = buyCategoryIds.length > 0 && buyCategoryIds.includes(cat);
+    const matchByCat = buyCategoryIds.length > 0 && buyCategoryIds.some(bc => normalizeCategory(bc) === normalizeCategory(cat));
     if (matchById || matchByCat) buyUnits += qty;
   }
 
@@ -140,8 +143,9 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
   let applicableSubtotal = subtotal;
 
   if (offerScope === 'category' && Array.isArray(offer.targetCategories) && offer.targetCategories.length > 0) {
+    const normalizedTargets = offer.targetCategories.map(normalizeCategory);
     applicableSubtotal = cart
-      .filter(item => offer.targetCategories.some(c => c.toLowerCase() === (item.category || '').toLowerCase()))
+      .filter(item => normalizedTargets.includes(normalizeCategory(item.category || '')))
       .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
   } else if (offerScope === 'item' && Array.isArray(offer.targetItems) && offer.targetItems.length > 0) {
     applicableSubtotal = cart
@@ -166,9 +170,13 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
 
   // Legacy same-item BOGO
   if (offer.promotionType === 'bogo' && offer.bogoConfig) {
-    const bogoItems = offerScope === 'item' && offer.targetItems?.length > 0
-      ? cart.filter(item => offer.targetItems.includes(item.menuItemId || item.id))
-      : cart;
+    let bogoItems = cart;
+    if (offerScope === 'item' && offer.targetItems?.length > 0) {
+      bogoItems = cart.filter(item => offer.targetItems.includes(item.menuItemId || item.id));
+    } else if (offerScope === 'category' && offer.targetCategories?.length > 0) {
+      const normalizedTargets = offer.targetCategories.map(normalizeCategory);
+      bogoItems = cart.filter(item => normalizedTargets.includes(normalizeCategory(item.category || item.categoryId || '')));
+    }
     const totalQty = bogoItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
     const buyQty = offer.bogoConfig.buyQty || 2;
     const getQty = offer.bogoConfig.getQty || 1;
@@ -212,6 +220,12 @@ const isScheduleValid = (offer) => {
   const scheduleDays = offer.schedule.days || [];
   const startTime = offer.schedule.startTime || '00:00';
   const endTime = offer.schedule.endTime || '23:59';
+  // Handle overnight ranges (e.g., 22:00–02:00)
+  if (endTime < startTime) {
+    const prevDay = (currentDay + 6) % 7;
+    return (scheduleDays.includes(currentDay) && currentTime >= startTime) ||
+           (scheduleDays.includes(prevDay) && currentTime <= endTime);
+  }
   return scheduleDays.includes(currentDay) && currentTime >= startTime && currentTime <= endTime;
 };
 
@@ -543,8 +557,9 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
       // Scope check
       if (offer.scope === 'category' && Array.isArray(offer.targetCategories) && offer.targetCategories.length > 0) {
+        const normalizedTargets = offer.targetCategories.map(normalizeCategory);
         const hasMatchingItem = cart.some(item =>
-          offer.targetCategories.some(c => c.toLowerCase() === (item.category || '').toLowerCase())
+          normalizedTargets.includes(normalizeCategory(item.category || ''))
         );
         if (!hasMatchingItem) continue;
       }
@@ -596,13 +611,14 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     if (activeIds.length === 0) return [];
     const all = [];
     for (const oid of activeIds) {
-      const offer = allOffers.find(o => (o.id || o._id) === oid);
+      // Search applicableOffers (not allOffers) so ineligible offers are excluded
+      const offer = applicableOffers.find(o => (o.id || o._id) === oid);
       if (!offer) continue;
       const res = calculateOfferResult(offer, subtotal, cart, resolvedContext || {});
       if (res.freeItems && res.freeItems.length) all.push(...res.freeItems);
     }
     return all;
-  }, [selectedOfferId, selectedOfferIds, allOffers, subtotal, cart, offerSettings.allowMultipleOffers, resolvedContext]);
+  }, [selectedOfferId, selectedOfferIds, applicableOffers, subtotal, cart, offerSettings.allowMultipleOffers, resolvedContext]);
 
   // Derive discount & name synchronously (useMemo) to avoid stale-state
   // timing bugs where offerDiscount updates but grandTotal hasn't recalculated yet
@@ -612,7 +628,8 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       let totalDisc = 0;
       const names = [];
       for (const oid of selectedOfferIds) {
-        const offer = allOffers.find(o => (o.id || o._id) === oid);
+        // Search applicableOffers so ineligible offers are excluded
+        const offer = applicableOffers.find(o => (o.id || o._id) === oid);
         if (offer) {
           totalDisc += calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
           names.push(offer.name);
@@ -628,14 +645,14 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       return { offerDiscount: 0, selectedOfferName: '' };
     }
 
-    const offer = allOffers.find(o => (o.id || o._id) === selectedOfferId);
+    const offer = applicableOffers.find(o => (o.id || o._id) === selectedOfferId);
     if (!offer) {
       return { offerDiscount: 0, selectedOfferName: '' };
     }
 
     const disc = calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
     return { offerDiscount: disc, selectedOfferName: offer.name };
-  }, [selectedOfferId, selectedOfferIds, subtotal, cart, allOffers, offerSettings.allowMultipleOffers, resolvedContext]);
+  }, [selectedOfferId, selectedOfferIds, subtotal, cart, applicableOffers, offerSettings.allowMultipleOffers, resolvedContext]);
 
   // Auto-apply best offer(s)
   useEffect(() => {
@@ -673,12 +690,12 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
         }
       }
     } else {
-      // Single offer mode: pick the one with maximum discount
+      // Single offer mode: pick the one with maximum discount (priority tiebreaking)
       let bestOffer = null;
       let bestDiscount = 0;
       for (const offer of eligible) {
         const disc = calculateDiscountForOffer(offer, subtotal, cart, resolvedContext || {});
-        if (disc > bestDiscount) {
+        if (disc > bestDiscount || (disc === bestDiscount && disc > 0 && (offer.priority || 0) > (bestOffer?.priority || 0))) {
           bestDiscount = disc;
           bestOffer = offer;
         }
