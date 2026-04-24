@@ -161,6 +161,16 @@ const OrderSummary = ({
   const [taxBreakdown, setTaxBreakdown] = useState([]);
   const [totalTax, setTotalTax] = useState(0);
   const [grandTotal, setGrandTotal] = useState(null);
+  const [restaurantCategories, setRestaurantCategories] = useState([]); // For per-item tax resolution
+
+  // Load categories when tax groups exist (needed for per-item tax resolution)
+  useEffect(() => {
+    if (restaurantId && taxSettings?.taxGroups?.length > 0) {
+      apiClient.getCategories(restaurantId).then(res => {
+        setRestaurantCategories(res?.categories || []);
+      }).catch(() => setRestaurantCategories([]));
+    }
+  }, [restaurantId, taxSettings?.taxGroups?.length]);
 
   // WhatsApp bill sending state
   const [waSending, setWaSending] = useState(false);
@@ -482,6 +492,34 @@ const OrderSummary = ({
     return (unitPrice || 0) + (extras || 0);
   };
   
+  // Resolve which taxes apply to a given item (per-item > category > restaurant default)
+  const resolveTaxesForItem = useCallback((item, settings, categories) => {
+    if (!settings?.enabled) return [];
+    const groups = settings.taxGroups || [];
+    // Priority 1: Item-level tax group
+    if (item.taxGroupId) {
+      const g = groups.find(gr => gr.id === item.taxGroupId);
+      if (g) return g.taxes || [];
+    }
+    // Priority 2: Category-level tax group
+    const catId = item.category || item.categoryId;
+    if (catId && categories && categories.length > 0) {
+      const cat = categories.find(c => c.id === catId || c.name === catId);
+      if (cat?.taxGroupId) {
+        const g = groups.find(gr => gr.id === cat.taxGroupId);
+        if (g) return g.taxes || [];
+      }
+    }
+    // Priority 3: Restaurant default taxes
+    if (settings.taxes && settings.taxes.length > 0) {
+      return settings.taxes.filter(tx => tx.enabled);
+    }
+    if (settings.defaultTaxRate) {
+      return [{ name: 'Tax', rate: settings.defaultTaxRate, type: 'percentage' }];
+    }
+    return [];
+  }, []);
+
   const calculateTax = useCallback(async () => {
     console.log('Calculating tax for cart:', cart.length, 'items, restaurantId:', restaurantId);
     if (cart.length === 0 || !restaurantId) {
@@ -520,32 +558,64 @@ const OrderSummary = ({
     // Service charge (after discounts, before tax)
     const sc = calcServiceCharge(discountedAmt);
     setServiceChargeAmount(sc);
-    const taxableAmount = discountedAmt + sc;
 
-    // Calculate tax based on restaurant's tax settings
-    const calculatedTaxes = [];
+    // Check if per-item tax is needed (taxGroups exist)
+    const hasTaxGroups = taxSettings.taxGroups && taxSettings.taxGroups.length > 0;
+
+    let calculatedTaxes = [];
     let totalTaxAmount = 0;
 
-    if (taxSettings.taxes && taxSettings.taxes.length > 0) {
-      taxSettings.taxes.forEach(tax => {
-        if (tax.enabled) {
-          const taxAmount = taxableAmount * (tax.rate / 100);
-          calculatedTaxes.push({
-            name: tax.name,
-            rate: tax.rate,
-            amount: taxAmount
-          });
-          totalTaxAmount += taxAmount;
+    if (hasTaxGroups) {
+      // Per-item tax calculation
+      const taxTotals = {};
+      for (const cartItem of cart) {
+        const itemUnitPrice = getItemUnitPrice(cartItem);
+        const itemTotal = itemUnitPrice * (cartItem.quantity || 1);
+        // Proportional discount share
+        const itemDiscShare = subtotal > 0 ? (itemTotal / subtotal) * discTotal : 0;
+        const itemTaxable = Math.max(0, itemTotal - itemDiscShare);
+        // Proportional service charge share
+        const itemSCShare = subtotal > 0 ? (itemTotal / subtotal) * sc : 0;
+        const itemTaxableWithSC = itemTaxable + itemSCShare;
+        // Resolve taxes for this item
+        const itemTaxes = resolveTaxesForItem(cartItem, taxSettings, restaurantCategories);
+        for (const tax of itemTaxes) {
+          const amt = Math.round((itemTaxableWithSC * (tax.rate || 0) / 100) * 100) / 100;
+          const key = `${tax.name || 'Tax'}|${tax.rate || 0}`;
+          if (!taxTotals[key]) taxTotals[key] = { name: tax.name || 'Tax', rate: tax.rate || 0, amount: 0 };
+          taxTotals[key].amount += amt;
+          totalTaxAmount += amt;
         }
-      });
-    } else if (taxSettings.defaultTaxRate) {
-      const taxAmount = taxableAmount * (taxSettings.defaultTaxRate / 100);
-      calculatedTaxes.push({
-        name: 'GST',
-        rate: taxSettings.defaultTaxRate,
-        amount: taxAmount
-      });
-      totalTaxAmount = taxAmount;
+      }
+      calculatedTaxes = Object.values(taxTotals).map(tx => ({
+        ...tx,
+        amount: Math.round(tx.amount * 100) / 100
+      }));
+      totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
+    } else {
+      // Flat tax calculation (original behavior — no tax groups)
+      const taxableAmount = discountedAmt + sc;
+      if (taxSettings.taxes && taxSettings.taxes.length > 0) {
+        taxSettings.taxes.forEach(tax => {
+          if (tax.enabled) {
+            const taxAmount = taxableAmount * (tax.rate / 100);
+            calculatedTaxes.push({
+              name: tax.name,
+              rate: tax.rate,
+              amount: taxAmount
+            });
+            totalTaxAmount += taxAmount;
+          }
+        });
+      } else if (taxSettings.defaultTaxRate) {
+        const taxAmount = taxableAmount * (taxSettings.defaultTaxRate / 100);
+        calculatedTaxes.push({
+          name: 'GST',
+          rate: taxSettings.defaultTaxRate,
+          amount: taxAmount
+        });
+        totalTaxAmount = taxAmount;
+      }
     }
 
     console.log('Calculated taxes:', calculatedTaxes, 'Total tax:', totalTaxAmount, 'Discount:', discTotal);
@@ -553,13 +623,13 @@ const OrderSummary = ({
     setTotalTax(totalTaxAmount);
 
     // After tax, add tip and round-off
-    const afterTax = taxableAmount + totalTaxAmount;
+    const afterTax = discountedAmt + sc + totalTaxAmount;
     const withTip = afterTax + tipAmount;
     const ro = calcRoundOff(withTip);
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, tipAmount, calcServiceCharge, calcRoundOff]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, restaurantCategories]);
   
   // Calculate tax when cart changes — useLayoutEffect ensures billing totals
   // are recalculated synchronously before paint, preventing stale grandTotal

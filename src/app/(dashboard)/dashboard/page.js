@@ -1896,12 +1896,15 @@ function RestaurantPOSContent() {
           
           console.log(`🔍 Parsed - Name: ${name}, Price: ${price}, ID: ${id}, Quantity: ${item.quantity}`);
           
+          // Look up category from menu items if not in order data
+          const matchedMenu = menuItems.find(m => m.id === id);
           return {
             id: id,
             name: name,
             price: price || 0,
             quantity: parseInt(item.quantity) || 1,
-            category: item.category || item.menuItem?.category || 'main',
+            category: item.category || item.menuItem?.category || matchedMenu?.category || '',
+            taxGroupId: item.taxGroupId || matchedMenu?.taxGroupId || null,
             // Store original data for reference
             originalData: item
           };
@@ -2082,7 +2085,7 @@ function RestaurantPOSContent() {
         setOrderSearchLoading(false);
       setIsLoadingOrder(false); // Clear flag to allow localStorage loading
       }
-  }, [selectedRestaurant?.id, searchParams]);
+  }, [selectedRestaurant?.id, searchParams, menuItems]);
 
   // Audio Visualizer Function
   const startAudioVisualizer = async () => {
@@ -2496,7 +2499,9 @@ function RestaurantPOSContent() {
             quantity: item.quantity,
             notes: '',
             name: item.name,
-            price: item.price
+            price: item.price,
+            category: item.category || '',
+            taxGroupId: item.taxGroupId || null,
           })),
           tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber) : null,
           roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber) : null, // NEW: Include room number
@@ -2672,7 +2677,9 @@ function RestaurantPOSContent() {
           // Pass configuration so backend can price and persist for KOT
           selectedVariant: item.selectedVariant || null,
           selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price
+          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
+          category: item.category || '',
+          taxGroupId: item.taxGroupId || null,
         })),
         customerInfo: {
             name: customerName || 'Walk-in Customer',
@@ -2942,18 +2949,24 @@ function RestaurantPOSContent() {
       setCart([]);
 
       // Map saved cart items to cart items
-      const cartItems = savedCart.items?.map(item => ({
-        id: item.menuItemId || item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity || 1,
-        image: item.image || null,
-        shortCode: item.shortCode || '',
-        notes: item.notes || '',
-        selectedVariant: item.selectedVariant || null,
-        selectedCustomizations: item.selectedCustomizations || [],
-        basePrice: item.basePrice || item.price
-      })) || [];
+      const cartItems = savedCart.items?.map(item => {
+        const itemId = item.menuItemId || item.id;
+        const matchedMenu = menuItems.find(m => m.id === itemId);
+        return {
+          id: itemId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity || 1,
+          image: item.image || null,
+          shortCode: item.shortCode || '',
+          notes: item.notes || '',
+          selectedVariant: item.selectedVariant || null,
+          selectedCustomizations: item.selectedCustomizations || [],
+          basePrice: item.basePrice || item.price,
+          category: item.category || matchedMenu?.category || '',
+          taxGroupId: item.taxGroupId || matchedMenu?.taxGroupId || null,
+        };
+      }) || [];
 
       setCart(cartItems);
 
@@ -3104,7 +3117,9 @@ function RestaurantPOSContent() {
           notes: item.notes || '',
           selectedVariant: item.selectedVariant || null,
           selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
-          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price
+          basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price,
+          category: item.category || '',
+          taxGroupId: item.taxGroupId || null,
         })),
         customerInfo: {
           name: customerName || null,

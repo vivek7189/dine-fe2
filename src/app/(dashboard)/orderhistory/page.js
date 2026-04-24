@@ -765,6 +765,8 @@ const OrderHistory = () => {
         selectedCustomizations: item.selectedCustomizations,
         basePrice: item.basePrice || item.price || 0,
         pricingRules: menuItem?.pricingRules || item.pricingRules || {},
+        category: item.category || menuItem?.category || '',
+        taxGroupId: item.taxGroupId || menuItem?.taxGroupId || null,
         cartId: `${item.menuItemId || item.id}-${Date.now()}-${Math.random()}`
       };
     });

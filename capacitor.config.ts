@@ -5,15 +5,10 @@ const config: CapacitorConfig = {
   appName: 'DineOpen POS',
   webDir: 'dist',
   server: {
-    // For emulator testing: 10.0.2.2 maps to host machine's localhost
-    // For production: change to https://www.dineopen.com/login
-    url: 'http://10.0.2.2:3002/login',
-    cleartext: true, // Allow HTTP for local dev
+    url: 'https://www.dineopen.com/login',
   },
   android: {
-    allowMixedContent: true, // Allow HTTP for local dev
     backgroundColor: '#ffffff',
-    webContentsDebuggingEnabled: true,
   },
   plugins: {},
 };

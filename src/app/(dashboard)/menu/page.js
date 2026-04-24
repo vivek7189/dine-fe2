@@ -2009,7 +2009,7 @@ const MenuManagement = () => {
       // Load menu items and categories in parallel
       const [menuResponse, categoriesResponse] = await Promise.all([
         apiClient.getMenu(restaurantId),
-        apiClient.getCategories(restaurantId)
+        apiClient.getCategories(restaurantId),
       ]);
       
       const freshMenuItems = menuResponse.menuItems || [];
@@ -3313,7 +3313,6 @@ const MenuManagement = () => {
         </div>
         </div>{/* END Sticky Header */}
 
-
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
@@ -4319,7 +4318,7 @@ const MenuManagement = () => {
                     onCategoryDeleted={handleCategoryDeleted}
                   />
                 </div>
-                
+
               </div>
               
               {/* Business-Type-Specific Fields — shown FIRST for relevant types */}
