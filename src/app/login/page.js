@@ -292,6 +292,11 @@ const Login = () => {
   // Firebase auth ready state
   const [isFirebaseReady, setIsFirebaseReady] = useState(false);
 
+  // Tauri desktop app detection and browser-based auth
+  const [isTauriApp, setIsTauriApp] = useState(false);
+  const [desktopSessionId, setDesktopSessionId] = useState(null);
+  const [desktopAuthPolling, setDesktopAuthPolling] = useState(false);
+
   // Capture ?ref= parameter from URL and store in sessionStorage
   // This persists through OAuth redirects and page reloads during login flow
   useEffect(() => {
@@ -301,6 +306,114 @@ const Login = () => {
       sessionStorage.setItem('loginRef', ref);
     }
   }, []);
+
+  // Detect Tauri desktop app environment
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (
+      window.__TAURI__ ||
+      window.__TAURI_INTERNALS__ ||
+      window.location.protocol === 'tauri:' ||
+      window.location.hostname === 'tauri.localhost'
+    )) {
+      setIsTauriApp(true);
+      console.log('🖥️ Tauri desktop app detected');
+    }
+  }, []);
+
+  // Poll backend for desktop auth session result
+  useEffect(() => {
+    if (!desktopAuthPolling || !desktopSessionId) return;
+
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    let cancelled = false;
+
+    const poll = async () => {
+      while (!cancelled) {
+        try {
+          const res = await fetch(`${backendUrl}/api/auth/desktop/session/${desktopSessionId}`);
+          const data = await res.json();
+
+          if (!data.pending && data.token) {
+            // Auth successful — store token and redirect
+            console.log('🖥️ Desktop auth session received!');
+            apiClient.setToken(data.token);
+            if (data.user) apiClient.setUser(data.user);
+            triggerDashboardPrefetch();
+
+            setDesktopAuthPolling(false);
+            setLoading(false);
+
+            // Fetch restaurants for the user
+            try {
+              const restaurantsRes = await fetch(`${backendUrl}/api/restaurants`, {
+                headers: { 'Authorization': `Bearer ${data.token}`, 'Content-Type': 'application/json' },
+              });
+              if (restaurantsRes.ok) {
+                const restaurantsData = await restaurantsRes.json();
+                if (restaurantsData.restaurants?.length > 0) {
+                  const defaultId = data.user?.defaultRestaurantId;
+                  const defaultRestaurant = defaultId
+                    ? restaurantsData.restaurants.find(r => r.id === defaultId) || restaurantsData.restaurants[0]
+                    : restaurantsData.restaurants[0];
+                  localStorage.setItem('selectedRestaurant', JSON.stringify(defaultRestaurant));
+                  localStorage.setItem('selectedRestaurantId', defaultRestaurant.id);
+                }
+              }
+            } catch (e) {
+              console.error('Error fetching restaurants:', e);
+            }
+
+            if (data.user && !data.user.restaurantId) {
+              router.replace('/onboarding');
+            } else {
+              router.replace(getRefRedirectPath());
+            }
+            return;
+          }
+
+          if (data.expired) {
+            setDesktopAuthPolling(false);
+            setLoading(false);
+            setError('Login session expired. Please try again.');
+            return;
+          }
+        } catch (e) {
+          console.error('Desktop auth poll error:', e);
+        }
+        // Wait 2 seconds before next poll
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    };
+
+    poll();
+    return () => { cancelled = true; };
+  }, [desktopAuthPolling, desktopSessionId, router]);
+
+  // Open browser for desktop auth (used when in Tauri app)
+  const openDesktopAuth = async () => {
+    const sessionId = crypto.randomUUID();
+    setDesktopSessionId(sessionId);
+    setDesktopAuthPolling(true);
+    setLoading(true);
+    setError('');
+
+    const authUrl = `https://www.dineopen.com/desktop-auth?session=${sessionId}`;
+
+    // Open URL in system browser using Tauri shell plugin
+    try {
+      if (window.__TAURI__?.shell?.open) {
+        await window.__TAURI__.shell.open(authUrl);
+      } else if (window.__TAURI_INTERNALS__) {
+        // Tauri v2: invoke shell open command directly
+        await window.__TAURI_INTERNALS__.invoke('plugin:shell|open', { path: authUrl });
+      } else {
+        window.open(authUrl, '_blank');
+      }
+    } catch (e) {
+      console.warn('Tauri shell open failed, using window.open:', e);
+      window.open(authUrl, '_blank');
+    }
+  };
 
   // Initialize Firebase auth state listener
   useEffect(() => {
@@ -643,10 +756,14 @@ const Login = () => {
         } else {
           setError(data.message || 'Failed to send OTP');
         }
+      } else if (isTauriApp) {
+        // Tauri desktop app: open browser for Firebase auth (reCAPTCHA doesn't work in Tauri WebView)
+        openDesktopAuth();
+        return;
       } else {
         // Use Firebase OTP for real numbers with international format
         const fullPhoneNumber = `${selectedCountry.dialCode}${phoneNumber}`;
-        
+
         try {
           const appVerifier = window.recaptchaVerifier;
           const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
@@ -1085,6 +1202,13 @@ const Login = () => {
       setGoogleLoading(true);
       setError('');
 
+      // Tauri desktop app: open browser for Google auth
+      if (isTauriApp) {
+        setGoogleLoading(false);
+        openDesktopAuth();
+        return;
+      }
+
       // Check if Firebase auth is properly initialized
       if (!isFirebaseReady || !auth) {
         // Wait a moment for auth to initialize and retry
@@ -1518,8 +1642,35 @@ const Login = () => {
             </div>
           )}
 
+          {/* Desktop Auth Polling - shown when waiting for browser login */}
+          {desktopAuthPolling && (
+            <div style={{
+              textAlign: 'center',
+              padding: '32px 16px',
+              marginBottom: '20px',
+              background: '#f0f9ff',
+              borderRadius: '12px',
+              border: '1px solid #bae6fd'
+            }}>
+              <FaSpinner className="animate-spin" style={{ fontSize: 28, color: '#0284c7', margin: '0 auto 12px' }} />
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0c4a6e', marginBottom: 6 }}>
+                Complete login in your browser
+              </h3>
+              <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                A browser window has opened. Sign in there and you&apos;ll be automatically logged in here.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setDesktopAuthPolling(false); setLoading(false); setError(''); }}
+                style={{ marginTop: 16, padding: '8px 20px', background: 'none', border: '1px solid #cbd5e1', borderRadius: 8, color: '#64748b', cursor: 'pointer', fontSize: 13 }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
           {/* Auth Method Selector for Owner Login - Always visible for Phone/Email */}
-          {loginType === 'owner' && (step === 'phone' || step === 'otp' || step === 'email-login' || step === 'email-register' || step === 'email-otp' || step === 'pin-login') && (
+          {loginType === 'owner' && !desktopAuthPolling && (step === 'phone' || step === 'otp' || step === 'email-login' || step === 'email-register' || step === 'email-otp' || step === 'pin-login') && (
             <div style={{ marginBottom: '20px' }}>
               <div style={{
                 display: 'flex',
@@ -1637,7 +1788,7 @@ const Login = () => {
           )}
 
           {/* PIN Login Form */}
-          {loginType === 'owner' && step === 'pin-login' ? (
+          {desktopAuthPolling ? null : loginType === 'owner' && step === 'pin-login' ? (
             <>
               <div style={{ textAlign: "center", marginBottom: "24px" }}>
                 <div style={{
