@@ -11,7 +11,8 @@
     "cap:open": "npx cap open android",
     "cap:run": "npx cap run android",
     "tauri:dev": "npx tauri dev",
-    "tauri:build": "npx tauri build"
+    "tauri:build": "npx tauri build",
+    "tauri:export": "node scripts/build-tauri.js"
   },
   "dependencies": {
     "@openai/agents-realtime": "^0.4.5",

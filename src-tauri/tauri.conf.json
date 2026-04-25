@@ -4,10 +4,11 @@
   "identifier": "com.dineopen.pos-desktop",
   "version": "1.0.0",
   "build": {
-    "frontendDist": "https://www.dineopen.com/login"
+    "frontendDist": "../out",
+    "beforeBuildCommand": "node scripts/build-tauri.js"
   },
   "app": {
-    "title": "DineOpen POS",
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "DineOpen POS",
@@ -19,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' https://*.dineopen.com https://*.pusher.com wss://*.pusher.com https://*.googleapis.com https://*.firebaseapp.com https://checkout.razorpay.com https://apis.google.com https://www.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.google.com https://*.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com; connect-src 'self' https://*.dineopen.com https://*.pusher.com wss://*.pusher.com https://*.googleapis.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://*.google.com https://*.gstatic.com https://checkout.razorpay.com; ipc: asset:"
+      "dangerousDisableAssetCspModification": true
     }
   },
   "bundle": {

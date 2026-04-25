@@ -1,0 +1,147 @@
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const ROOT = path.resolve(__dirname, '..');
+const APP_DIR = path.join(ROOT, 'src', 'app');
+const ORIGINAL_CONFIG = path.join(ROOT, 'next.config.mjs');
+const TAURI_CONFIG = path.join(ROOT, 'next.config.tauri.mjs');
+const BACKUP_CONFIG = path.join(ROOT, 'next.config.mjs.backup');
+const TEMP_DIR = path.join(ROOT, '.tauri-temp');
+
+const KEEP_ROUTES = new Set(['(dashboard)', 'login', 'local-login']);
+const ROOT_FILES = new Set(['layout.js', 'globals.css', 'not-found.js', 'favicon.ico', 'page.js', 'HomePageClient.js', 'page-metadata.js']);
+
+function log(msg) {
+  console.log(`[build-tauri] ${msg}`);
+}
+
+function findDynamicRoutes(dir) {
+  const results = [];
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.name.startsWith('[') && entry.name.endsWith(']')) {
+          results.push(fullPath);
+        } else {
+          results.push(...findDynamicRoutes(fullPath));
+        }
+      }
+    }
+  } catch (e) {}
+  return results;
+}
+
+function run() {
+  // Track everything we move: [{src, dest}]
+  const moved = [];
+  let configBackedUp = false;
+  let buildSuccess = false;
+
+  try {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+
+    // 1. Backup next.config.mjs
+    log('Backing up next.config.mjs...');
+    fs.copyFileSync(ORIGINAL_CONFIG, BACKUP_CONFIG);
+    configBackedUp = true;
+    fs.copyFileSync(TAURI_CONFIG, ORIGINAL_CONFIG);
+
+    // 2. Move middleware
+    const mwSrc = path.join(ROOT, 'src', 'middleware.js');
+    if (fs.existsSync(mwSrc)) {
+      const mwDest = path.join(TEMP_DIR, 'middleware.js');
+      log('Moving middleware.js...');
+      fs.renameSync(mwSrc, mwDest);
+      moved.push({ src: mwSrc, dest: mwDest });
+    }
+
+    // 3. Move non-POS directories
+    for (const entry of fs.readdirSync(APP_DIR, { withFileTypes: true })) {
+      if (entry.isDirectory() && !KEEP_ROUTES.has(entry.name)) {
+        const src = path.join(APP_DIR, entry.name);
+        const dest = path.join(TEMP_DIR, 'pages', entry.name);
+        fs.mkdirSync(path.join(TEMP_DIR, 'pages'), { recursive: true });
+        fs.renameSync(src, dest);
+        moved.push({ src, dest });
+      }
+    }
+    log('Excluded non-POS directories');
+
+    // 4. Move non-POS root files
+    for (const entry of fs.readdirSync(APP_DIR, { withFileTypes: true })) {
+      if (entry.isFile() && !ROOT_FILES.has(entry.name)) {
+        const src = path.join(APP_DIR, entry.name);
+        const dest = path.join(TEMP_DIR, 'files', entry.name);
+        fs.mkdirSync(path.join(TEMP_DIR, 'files'), { recursive: true });
+        fs.renameSync(src, dest);
+        moved.push({ src, dest });
+      }
+    }
+
+    // 5. Move dynamic [param] routes
+    const dynamicRoutes = findDynamicRoutes(path.join(APP_DIR, '(dashboard)'));
+    for (const routePath of dynamicRoutes) {
+      const rel = path.relative(path.join(APP_DIR, '(dashboard)'), routePath);
+      const dest = path.join(TEMP_DIR, 'dynamic', rel);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.renameSync(routePath, dest);
+      moved.push({ src: routePath, dest });
+      log(`Excluded dynamic: (dashboard)/${rel}`);
+    }
+
+    // 6. Build
+    log('Running next build (static export)...');
+    execSync('npx next build', {
+      cwd: ROOT,
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app',
+      },
+    });
+
+    buildSuccess = true;
+    log('Static export complete! Output in /out directory.');
+  } catch (error) {
+    console.error('[build-tauri] Build failed:', error.message);
+  }
+
+  // RESTORE everything
+  log(`Restoring ${moved.length} moved items...`);
+  for (let i = moved.length - 1; i >= 0; i--) {
+    const { src, dest } = moved[i];
+    try {
+      fs.mkdirSync(path.dirname(src), { recursive: true });
+      fs.renameSync(dest, src);
+    } catch (e) {
+      console.error(`[build-tauri] FAILED to restore: ${src}: ${e.message}`);
+    }
+  }
+
+  // Restore next.config.mjs
+  if (configBackedUp && fs.existsSync(BACKUP_CONFIG)) {
+    log('Restoring next.config.mjs...');
+    fs.copyFileSync(BACKUP_CONFIG, ORIGINAL_CONFIG);
+    fs.unlinkSync(BACKUP_CONFIG);
+  }
+
+  // Clean temp dir
+  try { fs.rmSync(TEMP_DIR, { recursive: true, force: true }); } catch (e) {}
+
+  // Verify restore
+  const mwExists = fs.existsSync(path.join(ROOT, 'src', 'middleware.js'));
+  const vsExists = fs.existsSync(path.join(APP_DIR, 'vs'));
+  const configOk = fs.readFileSync(ORIGINAL_CONFIG, 'utf8').includes('Service Worker');
+  log(`Verify: middleware=${mwExists}, vs=${vsExists}, config=${configOk}`);
+
+  if (!mwExists || !vsExists || !configOk) {
+    console.error('[build-tauri] WARNING: Some files may not have been restored! Run: git checkout -- src/app/ src/middleware.js next.config.mjs');
+  }
+
+  log('Done.');
+  if (!buildSuccess) process.exit(1);
+}
+
+run();
