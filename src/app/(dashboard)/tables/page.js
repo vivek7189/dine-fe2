@@ -9,6 +9,8 @@ import { useNotification } from '../../../components/Notification.js';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { canPerform } from '../../../lib/permissions';
 import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
+import { getCachedData, setCachedData } from '../../../lib/offlineDb';
+import OfflineBanner from '../../../components/OfflineBanner';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
@@ -354,9 +356,19 @@ const TableManagement = () => {
       }
       setError('');
 
-      const restaurantsResponse = await apiClient.getRestaurants();
-      const restaurants = restaurantsResponse.restaurants || [];
+      let restaurants = [];
       let restaurant = null;
+      try {
+        const restaurantsResponse = await apiClient.getRestaurants();
+        restaurants = restaurantsResponse.restaurants || [];
+      } catch (restErr) {
+        console.warn('🔌 Restaurants API failed, using cached data:', restErr.message);
+        const savedRestaurant = localStorage.getItem('selectedRestaurant');
+        if (savedRestaurant) {
+          const parsed = JSON.parse(savedRestaurant);
+          restaurants = [parsed];
+        }
+      }
       if (user?.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(user.role)) {
         restaurant = restaurants.find(r => r.id === user.restaurantId);
       } else if (restaurants.length > 0) {
@@ -396,9 +408,20 @@ const TableManagement = () => {
       setFloors(floorsData);
       const currentRestaurant = selectedRestaurant || { id: restaurantId };
       setCachedTablesData(restaurantId, { floors: floorsData, selectedRestaurant: currentRestaurant });
+      // Persist to IndexedDB for offline
+      setCachedData(`tables_${restaurantId}`, { floors: floorsData, selectedRestaurant: currentRestaurant }).catch(() => {});
     } catch (err) {
-      console.error('Error loading floors and tables:', err);
-      setError('Failed to load tables');
+      console.warn('🔌 Floors API failed, trying IndexedDB:', err.message);
+      try {
+        const idbData = await getCachedData(`tables_${restaurantId}`);
+        if (idbData?.floors) {
+          setFloors(idbData.floors);
+        } else {
+          setError('Failed to load tables');
+        }
+      } catch (idbErr) {
+        setError('Failed to load tables');
+      }
     }
   };
 
@@ -753,6 +776,7 @@ const TableManagement = () => {
   // ── Main render ────────────────────────────────────────
   return (
     <div style={{ height: '100vh', backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <OfflineBanner />
       <style>{`
         @keyframes tblShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes tblFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }

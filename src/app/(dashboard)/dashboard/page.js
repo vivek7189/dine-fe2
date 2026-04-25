@@ -702,9 +702,22 @@ function RestaurantPOSContent() {
       let restaurantsResponse = null;
       if (!skipRestaurantLoad && restaurants.length === 0) {
         console.log('🏢 Loading restaurants...');
-        restaurantsResponse = await apiClient.getRestaurants();
-        console.log('🏢 Restaurants loaded:', restaurantsResponse.restaurants?.length || 0, 'restaurants');
-        setRestaurants(restaurantsResponse.restaurants || []);
+        try {
+          restaurantsResponse = await apiClient.getRestaurants();
+          console.log('🏢 Restaurants loaded:', restaurantsResponse.restaurants?.length || 0, 'restaurants');
+          setRestaurants(restaurantsResponse.restaurants || []);
+        } catch (restErr) {
+          // Offline fallback: use cached restaurant from localStorage
+          console.warn('🔌 Restaurants API failed, using cached data:', restErr.message);
+          const savedRestaurant = localStorage.getItem('selectedRestaurant');
+          if (savedRestaurant) {
+            const parsed = JSON.parse(savedRestaurant);
+            restaurantsResponse = { restaurants: [parsed] };
+            setRestaurants([parsed]);
+          } else {
+            throw restErr; // No cached data — can't recover
+          }
+        }
       } else if (skipRestaurantLoad) {
         console.log('⏭️ Skipping restaurant load (already loaded or skip flag set)');
         restaurantsResponse = { restaurants: restaurants };

@@ -13,7 +13,9 @@ import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import { getCachedMenuData, setCachedMenuData } from '../../../utils/dashboardCache';
+import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
+import OfflineBanner from '../../../components/OfflineBanner';
 import { 
   FaPlus, 
   FaEdit,
@@ -2026,20 +2028,35 @@ const MenuManagement = () => {
         setFormData(prev => ({ ...prev, category: finalCategories[0].id }));
       }
 
-      // Cache the data
+      // Cache the data (localStorage + IndexedDB)
       const dataToCache = {
         menuItems: freshMenuItems,
         categories: finalCategories
       };
       setCachedMenuData(restaurantId, dataToCache);
+      setCachedData(`menu_${restaurantId}`, dataToCache).catch(() => {});
       console.log('✅ Menu data cached');
 
     } catch (error) {
       console.error('Error loading menu data:', error);
-      setError('Failed to load menu items');
-      // Only set hasInitialData to false if we truly have no data
+      // Try IndexedDB fallback before showing error
       if (menuItems.length === 0) {
-        setHasInitialData(false);
+        try {
+          const idbData = await getCachedData(`menu_${restaurantId}`);
+          if (idbData?.menuItems?.length > 0) {
+            console.log('📦 Loaded menu from IndexedDB offline cache');
+            setMenuItems(idbData.menuItems);
+            if (idbData.categories) setCategories(idbData.categories);
+            setHasInitialData(true);
+            setError('');
+          } else {
+            setError('Failed to load menu items');
+            setHasInitialData(false);
+          }
+        } catch {
+          setError('Failed to load menu items');
+          setHasInitialData(false);
+        }
       }
     } finally {
       console.log('Setting loading to false');
@@ -2081,7 +2098,15 @@ const MenuManagement = () => {
         // For owners or customers, get selected restaurant
         else {
           console.log('👑 Menu: Owner/Customer - fetching restaurants...');
-          const restaurantsResponse = await apiClient.getRestaurants();
+          let restaurantsResponse;
+          try {
+            restaurantsResponse = await apiClient.getRestaurants();
+          } catch (restErr) {
+            // Offline fallback: use cached restaurant
+            console.warn('🔌 Menu: Restaurants API failed, using cached:', restErr.message);
+            const saved = localStorage.getItem('selectedRestaurant');
+            restaurantsResponse = saved ? { restaurants: [JSON.parse(saved)] } : { restaurants: [] };
+          }
           if (restaurantsResponse.restaurants && restaurantsResponse.restaurants.length > 0) {
             const savedRestaurantId = localStorage.getItem('selectedRestaurantId');
             const defaultId = restaurantsResponse.defaultRestaurantId;
@@ -3312,6 +3337,9 @@ const MenuManagement = () => {
           </div>
         </div>
         </div>{/* END Sticky Header */}
+
+        {/* Offline Banner */}
+        <OfflineBanner />
 
         {/* Error Message */}
         {error && (

@@ -324,7 +324,8 @@ const Login = () => {
   useEffect(() => {
     if (!desktopAuthPolling || !desktopSessionId) return;
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    // Always poll production backend — desktop-auth page runs on dineopen.com and stores session there
+    const backendUrl = isTauriApp ? 'https://dine-backend-lake.vercel.app' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003');
     let cancelled = false;
 
     const poll = async () => {
@@ -736,9 +737,9 @@ const Login = () => {
     setLoading(true);
     
     try {
-      // Check if it's a dummy account (only for India +91)
-      if (selectedCountry.code === 'IN' && isDummyAccount(phoneNumber)) {
-        // Use backend OTP for dummy account
+      // Check if it's a dummy account OR Tauri desktop app — use backend OTP (reCAPTCHA doesn't work in Tauri)
+      if ((selectedCountry.code === 'IN' && isDummyAccount(phoneNumber)) || isTauriApp) {
+        // Use backend OTP (bypasses Firebase reCAPTCHA)
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
         const response = await fetch(`${backendUrl}/api/auth/phone/send-otp`, {
           method: 'POST',
@@ -749,17 +750,13 @@ const Login = () => {
         });
 
         const data = await response.json();
-        
+
         if (response.ok) {
           setIsFirebaseOTP(false);
           setStep('otp');
         } else {
           setError(data.message || 'Failed to send OTP');
         }
-      } else if (isTauriApp) {
-        // Tauri desktop app: open browser for Firebase auth (reCAPTCHA doesn't work in Tauri WebView)
-        openDesktopAuth();
-        return;
       } else {
         // Use Firebase OTP for real numbers with international format
         const fullPhoneNumber = `${selectedCountry.dialCode}${phoneNumber}`;

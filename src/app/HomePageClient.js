@@ -22,7 +22,18 @@ export default function LandingPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [showProductsDropdown, setShowProductsDropdown] = useState(false);
-  
+
+  // Tauri desktop app: redirect to /login instead of showing homepage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (
+      window.__TAURI__ || window.__TAURI_INTERNALS__ ||
+      window.location.protocol === 'tauri:' ||
+      window.location.hostname === 'tauri.localhost'
+    )) {
+      router.replace('/login');
+    }
+  }, [router]);
+
   // Animation States
   const [activeProcessStep, setActiveProcessStep] = useState(0);
   const [chatStep, setChatStep] = useState(0);

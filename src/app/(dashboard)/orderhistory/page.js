@@ -9,6 +9,7 @@ import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import { getAllOfflineOrders } from '../../../lib/offlineDb';
+import OfflineBanner from '../../../components/OfflineBanner';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS } from '../../../utils/printFontSizes';
 import { printDocument } from '../../../utils/printBridge';
@@ -1540,6 +1541,7 @@ const OrderHistory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
+      <OfflineBanner />
       {/* Header Section — on mobile: single row with title + list/grid toggle to save space */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-20">
         <div className="w-full px-3 sm:px-6 lg:px-8">

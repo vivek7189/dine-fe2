@@ -12,6 +12,17 @@ const TEMP_DIR = path.join(ROOT, '.tauri-temp');
 const KEEP_ROUTES = new Set(['(dashboard)', 'login', 'local-login']);
 const ROOT_FILES = new Set(['layout.js', 'globals.css', 'not-found.js', 'favicon.ico', 'page.js', 'HomePageClient.js', 'page-metadata.js']);
 
+// Tauri redirect page — replaces the website homepage so Tauri opens /login
+const TAURI_HOME_PAGE = `'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+export default function TauriHome() {
+  const router = useRouter();
+  useEffect(() => { router.replace('/login'); }, [router]);
+  return null;
+}
+`;
+
 function log(msg) {
   console.log(`[build-tauri] ${msg}`);
 }
@@ -91,7 +102,24 @@ function run() {
       log(`Excluded dynamic: (dashboard)/${rel}`);
     }
 
-    // 6. Build
+    // 6. Swap root page.js with Tauri redirect (opens /login instead of homepage)
+    const rootPageSrc = path.join(APP_DIR, 'page.js');
+    const rootPageBackup = path.join(TEMP_DIR, 'page.js.original');
+    const homeClientSrc = path.join(APP_DIR, 'HomePageClient.js');
+    const homeClientBackup = path.join(TEMP_DIR, 'HomePageClient.js.original');
+    if (fs.existsSync(rootPageSrc)) {
+      log('Swapping root page.js with Tauri redirect...');
+      fs.copyFileSync(rootPageSrc, rootPageBackup);
+      fs.writeFileSync(rootPageSrc, TAURI_HOME_PAGE);
+      moved.push({ src: rootPageSrc, dest: rootPageBackup, isSwap: true });
+    }
+    if (fs.existsSync(homeClientSrc)) {
+      fs.copyFileSync(homeClientSrc, homeClientBackup);
+      fs.writeFileSync(homeClientSrc, '// Excluded for Tauri build\nexport default function HomePageClient() { return null; }\n');
+      moved.push({ src: homeClientSrc, dest: homeClientBackup, isSwap: true });
+    }
+
+    // 7. Build
     log('Running next build (static export)...');
     execSync('npx next build', {
       cwd: ROOT,
@@ -111,10 +139,16 @@ function run() {
   // RESTORE everything
   log(`Restoring ${moved.length} moved items...`);
   for (let i = moved.length - 1; i >= 0; i--) {
-    const { src, dest } = moved[i];
+    const { src, dest, isSwap } = moved[i];
     try {
       fs.mkdirSync(path.dirname(src), { recursive: true });
-      fs.renameSync(dest, src);
+      if (isSwap) {
+        // For swapped files, copy backup back over the modified file
+        fs.copyFileSync(dest, src);
+        fs.unlinkSync(dest);
+      } else {
+        fs.renameSync(dest, src);
+      }
     } catch (e) {
       console.error(`[build-tauri] FAILED to restore: ${src}: ${e.message}`);
     }

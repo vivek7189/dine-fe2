@@ -29,6 +29,9 @@ import { GiChefToque } from "react-icons/gi";
 import apiClient from '../../../lib/api';
 import Notification from '../../../components/Notification';
 import { getCachedKotData, setCachedKotData } from '../../../utils/dashboardCache';
+import { getCachedData, setCachedData, getPendingOrders } from '../../../lib/offlineDb';
+import OfflineBanner from '../../../components/OfflineBanner';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 
 // ─── Tab Definitions ───
 const TABS = [
@@ -112,6 +115,7 @@ const KitchenOrderTicket = () => {
   const [transitioning, setTransitioning] = useState({}); // { orderId: { newStatus, label, targetTab } }
   const overdueAlertedRef = useRef(new Set());
   const undoTimeoutRef = useRef(null);
+  const { isOnline } = useNetworkStatus();
 
   // ─── Data Loading ───
   const loadKotData = useCallback(async (showSpinner = true, useCache = true) => {
@@ -149,9 +153,17 @@ const KitchenOrderTicket = () => {
           localStorage.setItem('selectedRestaurant', JSON.stringify(selectedRestaurant));
           setCurrentRestaurant(selectedRestaurant);
         } catch (error) {
-          console.error('Error fetching restaurants:', error);
-          setError('Failed to load restaurants');
-          return;
+          console.warn('🔌 Restaurants API failed, using cached data:', error.message);
+          const savedRestaurant = localStorage.getItem('selectedRestaurant');
+          if (savedRestaurant) {
+            const parsed = JSON.parse(savedRestaurant);
+            restaurantId = parsed.id;
+            setCurrentRestaurant(parsed);
+          } else {
+            console.error('Error fetching restaurants:', error);
+            setError('Failed to load restaurants');
+            return;
+          }
         }
       } else {
         setError('Invalid user role');
@@ -204,11 +216,40 @@ const KitchenOrderTicket = () => {
         orders: freshOrders,
         currentRestaurant: currentRestaurant || null
       });
+      // Persist to IndexedDB for offline use
+      setCachedData(`kot_${restaurantId}`, { orders: freshOrders, currentRestaurant: currentRestaurant || null }).catch(() => {});
 
     } catch (error) {
       console.error('Error loading KOT data:', error);
-      setError(error.message || 'Failed to load kitchen orders');
-      setKotOrders([]);
+      // Fall back to IndexedDB cached data
+      if (kotOrders.length === 0) {
+        try {
+          const restaurantId = localStorage.getItem('selectedRestaurantId');
+          const idbData = await getCachedData(`kot_${restaurantId}`);
+          if (idbData?.orders?.length > 0) {
+            setKotOrders(idbData.orders);
+            if (idbData.currentRestaurant) setCurrentRestaurant(idbData.currentRestaurant);
+            setError('');
+          } else {
+            // Also show any pending offline orders
+            const offlineOrders = await getPendingOrders();
+            if (offlineOrders.length > 0) {
+              const kotFormatted = offlineOrders.map(o => ({
+                ...o,
+                _isOffline: true,
+                status: o.status || 'pending',
+                createdAt: o.createdAt || new Date().toISOString()
+              }));
+              setKotOrders(kotFormatted);
+              setError('');
+            } else {
+              setError('No cached kitchen orders available');
+            }
+          }
+        } catch (idbErr) {
+          setError('Failed to load kitchen orders');
+        }
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -729,6 +770,7 @@ const KitchenOrderTicket = () => {
   // ─── Main Render ───
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #f9fafb, #f3f4f6)' }}>
+      <OfflineBanner />
       <div style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
 
         {/* ─── Background Loading Bar ─── */}

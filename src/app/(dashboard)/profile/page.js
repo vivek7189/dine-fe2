@@ -18,6 +18,7 @@ import {
 import apiClient from '../../../lib/api';
 import { auth } from '../../../../firebase';
 import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth';
+import OfflineBanner from '../../../components/OfflineBanner';
 
 const Profile = () => {
   const router = useRouter();
@@ -502,6 +503,7 @@ const Profile = () => {
       backgroundColor: '#fef7f0',
       padding: isMobile ? '16px' : '24px'
     }}>
+      <OfflineBanner />
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ 
