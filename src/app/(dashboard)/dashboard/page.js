@@ -2871,13 +2871,71 @@ function RestaurantPOSContent() {
 
     } catch (error) {
       console.error('Order processing error:', error);
-      
+
+      // If this is a network error (offline), try to queue the billing offline
+      const isNetworkError = !navigator.onLine || error.message?.includes('Load failed') || error.message?.includes('Failed to fetch') || error.message?.includes('Network');
+      if (isNetworkError) {
+        try {
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const billingData = {
+            items: cart.map(item => ({
+              menuItemId: item.id, quantity: item.quantity, notes: '',
+              name: item.name, price: item.price, category: item.category || '',
+              taxGroupId: item.taxGroupId || null,
+            })),
+            restaurantId: selectedRestaurant.id,
+            orderType, paymentMethod, status: 'completed',
+            paymentStatus: 'paid',
+            totalAmount: taxData.subtotal || getTotalAmount(),
+            taxBreakdown: taxData.taxBreakdown || [],
+            taxAmount: taxData.totalTax || 0,
+            finalAmount: taxData.finalAmount || (taxData.subtotal || getTotalAmount()) + (taxData.totalTax || 0),
+            customerInfo: {
+              name: customerName || 'Walk-in Customer',
+              phone: customerMobile || null,
+            },
+          };
+          const paymentData = {
+            paymentMethod: paymentMethod,
+            amount: billingData.finalAmount,
+            userId: currentUser.id,
+            restaurantId: selectedRestaurant.id,
+            paymentStatus: 'completed',
+          };
+          if (currentOrder) {
+            billingData._offlineAction = 'complete_billing_existing';
+            billingData._existingOrderId = currentOrder.id;
+          } else {
+            billingData._offlineAction = 'complete_billing_new';
+          }
+          billingData._paymentData = paymentData;
+          billingData.idempotencyKey = generateIdempotencyKey();
+          await queueOfflineOrder(billingData);
+          setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Network error detected. Billing saved locally — will sync when online.', show: true });
+          setTimeout(() => setNotification(null), 4000);
+          setOrderSuccess({
+            orderId: currentOrder?.id || billingData.idempotencyKey,
+            dailyOrderId: currentOrder?.dailyOrderId || null,
+            show: true,
+            message: 'Billing Complete! 💳'
+          });
+          if (currentOrder) {
+            setCurrentOrder(null);
+            setActiveSavedOrderId(null);
+          }
+          handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableNumber || selectedTable?.number) });
+          return null;
+        } catch (offlineErr) {
+          console.error('Failed to queue billing offline:', offlineErr);
+        }
+      }
+
       // Extract error message from the API response
       let errorMessage = 'Failed to process order. Please try again.';
       if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // Show notification instead of full-page error
       setNotification({
         type: 'error',
@@ -2885,12 +2943,12 @@ function RestaurantPOSContent() {
         message: errorMessage,
         show: true
       });
-      
+
       // Auto-hide notification after 5 seconds
       setTimeout(() => {
         setNotification(null);
       }, 5000);
-      
+
       return null;
     } finally {
       setProcessing(false);

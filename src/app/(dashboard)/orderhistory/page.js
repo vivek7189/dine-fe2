@@ -61,6 +61,34 @@ import {
   FaUsers,
 } from 'react-icons/fa';
 
+// Merge pending offline orders into the order list so they show immediately
+async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
+  try {
+    const offlineOrders = await getAllOfflineOrders();
+    if (offlineOrders.length === 0) return existingOrders;
+
+    const existingIds = new Set(existingOrders.map(o => o.id));
+    const offlineDisplay = offlineOrders
+      .filter(o => {
+        const rid = o.orderData?.restaurantId;
+        return rid === restaurantId && !existingIds.has(o.idempotencyKey);
+      })
+      .map(o => ({
+        id: o.idempotencyKey,
+        ...o.orderData,
+        createdAt: new Date(o.createdAt).toISOString(),
+        syncStatus: o.syncStatus,
+        _isOffline: true,
+      }));
+
+    if (offlineDisplay.length === 0) return existingOrders;
+    // Put offline orders first (most recent)
+    return [...offlineDisplay, ...existingOrders];
+  } catch (e) {
+    return existingOrders;
+  }
+}
+
 const OrderHistory = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -393,9 +421,11 @@ const OrderHistory = () => {
         return dateB - dateA;
       });
 
-      setOrders(filteredOrders);
+      // Merge any pending offline orders so they show immediately
+      const mergedOrders = await mergeOfflineOrderHistory(filteredOrders, restaurantId);
+      setOrders(mergedOrders);
       setTotalPages(response.pagination?.totalPages || 1);
-      setTotalOrders(response.pagination?.totalOrders || filteredOrders.length);
+      setTotalOrders((response.pagination?.totalOrders || filteredOrders.length) + (mergedOrders.length - filteredOrders.length));
 
       // Fetch analytics stats for stat cards (server-side, consistent with HQ page)
       try {
@@ -424,30 +454,19 @@ const OrderHistory = () => {
 
     } catch (error) {
       console.error('Error fetching orders:', error);
-      // Try IndexedDB fallback when offline
+      // Try IndexedDB fallback when offline, always merge offline orders
       try {
         const idbCached = await getCachedData(`orders_${restaurantId}_${cacheKey}`);
-        if (idbCached) {
-          setOrders(idbCached.orders || []);
-          setTotalPages(idbCached.totalPages || 1);
-          setTotalOrders(idbCached.totalOrders || 0);
-          console.log('📦 Loaded order history from IndexedDB cache');
+        const cachedOrders = idbCached?.orders || [];
+        const mergedOrders = await mergeOfflineOrderHistory(cachedOrders, restaurantId);
+        if (mergedOrders.length > 0) {
+          setOrders(mergedOrders);
+          setTotalPages(idbCached?.totalPages || 1);
+          setTotalOrders(mergedOrders.length);
+          console.log('📦 Loaded order history from cache + offline orders');
         } else {
-          // Also show any pending offline orders
-          const offlineOrders = await getAllOfflineOrders();
-          const restaurantOffline = offlineOrders.filter(o => o.orderData?.restaurantId === restaurantId);
-          if (restaurantOffline.length > 0) {
-            const offlineDisplay = restaurantOffline.map(o => ({
-              id: o.idempotencyKey,
-              ...o.orderData,
-              syncStatus: o.syncStatus,
-              _isOffline: true,
-            }));
-            setOrders(offlineDisplay);
-          } else {
-            setError(t('common.error'));
-            setOrders([]);
-          }
+          setError(t('common.error'));
+          setOrders([]);
         }
       } catch (idbErr) {
         setError(t('common.error'));
@@ -1947,7 +1966,12 @@ const OrderHistory = () => {
                                 {sourceChip.label}
                               </span>
                             )}
-                            {order.syncSource === 'offline' && (
+                            {order._isOffline && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
+                                Pending Sync
+                              </span>
+                            )}
+                            {order.syncSource === 'offline' && !order._isOffline && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
                                 <FaCloudUploadAlt className="text-[8px]" /> Offline
                               </span>

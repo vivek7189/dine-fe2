@@ -87,6 +87,37 @@ const playSound = (type) => {
   }
 };
 
+// Merge pending offline orders into the KOT list so they show immediately
+async function mergeOfflineKotOrders(existingOrders, restaurantId) {
+  try {
+    const offlineOrders = await getPendingOrders();
+    if (offlineOrders.length === 0) return existingOrders;
+
+    const existingIds = new Set(existingOrders.map(o => o.id));
+    const offlineFormatted = offlineOrders
+      .filter(o => {
+        const rid = o.orderData?.restaurantId;
+        return rid === restaurantId && !existingIds.has(o.idempotencyKey);
+      })
+      .map(o => ({
+        id: o.idempotencyKey,
+        items: o.orderData?.items || [],
+        tableNumber: o.orderData?.tableNumber || null,
+        orderType: o.orderData?.orderType || 'dine-in',
+        status: o.orderData?.status === 'completed' ? 'completed' : (o.orderData?.status || 'confirmed'),
+        kotTime: new Date(o.createdAt).toISOString(),
+        createdAt: new Date(o.createdAt).toISOString(),
+        customerInfo: o.orderData?.customerInfo || {},
+        _isOffline: true,
+        syncStatus: o.syncStatus,
+      }));
+
+    return [...existingOrders, ...offlineFormatted];
+  } catch (e) {
+    return existingOrders;
+  }
+}
+
 const KitchenOrderTicket = () => {
   const router = useRouter();
   const [kotOrders, setKotOrders] = useState([]);
@@ -210,7 +241,10 @@ const KitchenOrderTicket = () => {
 
       const kotData = await response.json();
       const freshOrders = kotData.orders || [];
-      setKotOrders(freshOrders);
+
+      // Merge any pending offline orders so they show immediately
+      const mergedOrders = await mergeOfflineKotOrders(freshOrders, restaurantId);
+      setKotOrders(mergedOrders);
 
       setCachedKotData(restaurantId, {
         orders: freshOrders,
@@ -222,33 +256,21 @@ const KitchenOrderTicket = () => {
     } catch (error) {
       console.error('Error loading KOT data:', error);
       // Fall back to IndexedDB cached data
-      if (kotOrders.length === 0) {
-        try {
-          const restaurantId = localStorage.getItem('selectedRestaurantId');
-          const idbData = await getCachedData(`kot_${restaurantId}`);
-          if (idbData?.orders?.length > 0) {
-            setKotOrders(idbData.orders);
-            if (idbData.currentRestaurant) setCurrentRestaurant(idbData.currentRestaurant);
-            setError('');
-          } else {
-            // Also show any pending offline orders
-            const offlineOrders = await getPendingOrders();
-            if (offlineOrders.length > 0) {
-              const kotFormatted = offlineOrders.map(o => ({
-                ...o,
-                _isOffline: true,
-                status: o.status || 'pending',
-                createdAt: o.createdAt || new Date().toISOString()
-              }));
-              setKotOrders(kotFormatted);
-              setError('');
-            } else {
-              setError('No cached kitchen orders available');
-            }
-          }
-        } catch (idbErr) {
-          setError('Failed to load kitchen orders');
+      try {
+        const restaurantId = localStorage.getItem('selectedRestaurantId');
+        const idbData = await getCachedData(`kot_${restaurantId}`);
+        const cachedOrders = idbData?.orders || [];
+        // Always merge offline orders with whatever cached data we have
+        const mergedOrders = await mergeOfflineKotOrders(cachedOrders, restaurantId);
+        if (mergedOrders.length > 0) {
+          setKotOrders(mergedOrders);
+          if (idbData?.currentRestaurant) setCurrentRestaurant(idbData.currentRestaurant);
+          setError('');
+        } else {
+          setError('No cached kitchen orders available');
         }
+      } catch (idbErr) {
+        setError('Failed to load kitchen orders');
       }
     } finally {
       setLoading(false);
@@ -1085,6 +1107,15 @@ const KitchenOrderTicket = () => {
                             backgroundColor: '#fce7f3', padding: '2px 6px', borderRadius: '8px'
                           }}>
                             App
+                          </span>
+                        )}
+
+                        {kot._isOffline && (
+                          <span style={{
+                            fontSize: '9px', fontWeight: '600', color: '#d97706',
+                            backgroundColor: '#fef3c7', padding: '2px 6px', borderRadius: '8px'
+                          }}>
+                            Offline - Pending Sync
                           </span>
                         )}
                       </div>
