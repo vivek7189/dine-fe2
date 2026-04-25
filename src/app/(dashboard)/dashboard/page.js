@@ -2577,7 +2577,8 @@ function RestaurantPOSContent() {
         console.log('🔄 Update data for existing order:', updateData);
 
         // OFFLINE PATH: Queue update + payment for later sync
-        if (!isOnline) {
+        // Check both isOnline state AND navigator.onLine for reliability (WebKit can be slow to fire offline events)
+        if (!isOnline || !navigator.onLine) {
           try {
             const paymentData = {
               orderId: currentOrder.id,
@@ -2744,7 +2745,7 @@ function RestaurantPOSContent() {
         console.log('🛒 Creating order with data:', orderData);
 
         // OFFLINE PATH: Queue order + payment for later sync
-        if (!isOnline) {
+        if (!isOnline || !navigator.onLine) {
           try {
             const paymentAmount = finalAmount || (subtotal || getTotalAmount()) + totalTax;
             const paymentData = {
@@ -3204,7 +3205,7 @@ function RestaurantPOSContent() {
       };
 
       // OFFLINE PATH: Queue to IndexedDB
-      if (!isOnline) {
+      if (!isOnline || !navigator.onLine) {
         try {
           await queueOfflineOrder({
             ...cartData,
@@ -3557,7 +3558,7 @@ function RestaurantPOSContent() {
         console.log('Creating order with data:', orderData);
 
         // OFFLINE PATH: If offline, queue immediately to IndexedDB
-        if (!isOnline) {
+        if (!isOnline || !navigator.onLine) {
           try {
             const cartKotItemsOffline = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' }));
             await queueOfflineOrder(orderData);

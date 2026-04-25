@@ -261,7 +261,8 @@ class ApiClient {
       return data;
     } catch (error) {
       // Network error (fetch itself failed — no response at all)
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+      // Chrome/Firefox: "Failed to fetch", Safari/WebKit/Tauri: "Load failed"
+      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Load failed') || error.message.includes('NetworkError') || error.message.includes('cancelled'))) {
         reportNetworkFailure();
       }
       // Only log if it's not a handled error to reduce console noise
