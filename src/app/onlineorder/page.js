@@ -1107,6 +1107,102 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
     return response;
   };
 
+  // Razorpay checkout flow
+  const handleRazorpayPayment = async () => {
+    try {
+      setPlacingOrder(true);
+      setError('');
+
+      const finalTotal = getFinalTotal();
+      const amountInPaise = Math.round(finalTotal * 100);
+
+      // 1. Create Razorpay order on server
+      const rzpOrder = await apiClient.createRazorpayOrder(restaurantId, {
+        amount: amountInPaise,
+        currency: 'INR',
+        receipt: `online_${Date.now()}`,
+        notes: { customerPhone: customerInfo.phone.trim(), orderType: orderType === 'table' ? 'dine_in' : 'takeaway' },
+      });
+
+      // 2. Load Razorpay script if not loaded
+      if (!window.Razorpay) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Failed to load payment gateway'));
+          document.body.appendChild(script);
+        });
+      }
+
+      // 3. Open Razorpay checkout
+      const options = {
+        key: rzpOrder.keyId,
+        amount: rzpOrder.amount,
+        currency: rzpOrder.currency,
+        name: restaurant?.name || 'Restaurant',
+        description: `Order payment`,
+        order_id: rzpOrder.orderId,
+        handler: async (response) => {
+          // Payment successful — place order with payment details
+          try {
+            const orderData = buildOrderData();
+            orderData.paymentMethod = 'razorpay';
+            orderData.razorpayPaymentId = response.razorpay_payment_id;
+            orderData.razorpayOrderId = response.razorpay_order_id;
+            orderData.razorpaySignature = response.razorpay_signature;
+
+            const result = await apiClient.placePublicOrder(restaurantId, orderData);
+
+            let successMsg = 'Payment successful! Order placed.';
+            if (result.order?.loyaltyPointsEarned > 0) {
+              successMsg += ` You earned ${result.order.loyaltyPointsEarned} loyalty points!`;
+            }
+
+            setCart([]);
+            setSelectedOffers([]);
+            setRedeemLoyaltyPoints(0);
+
+            if (firebaseUid) {
+              await lookupCustomer();
+            }
+
+            setSuccess(successMsg);
+          } catch (err) {
+            console.error('Order placement after payment error:', err);
+            setError(`Payment received (ID: ${response.razorpay_payment_id}) but order failed. Please contact the restaurant with your payment ID.`);
+          } finally {
+            setPlacingOrder(false);
+          }
+        },
+        prefill: {
+          contact: customerInfo.phone.trim(),
+          name: customerInfo.name.trim() || undefined,
+          email: customerInfo.email?.trim() || undefined,
+        },
+        theme: {
+          color: customerAppSettings?.branding?.primaryColor || '#ef4444',
+        },
+        modal: {
+          ondismiss: () => {
+            setPlacingOrder(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response) => {
+        setError(response.error?.description || 'Payment failed. Please try again.');
+        setPlacingOrder(false);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error('Razorpay payment error:', err);
+      setError(err.message || 'Failed to initiate payment. Please try again.');
+      setPlacingOrder(false);
+    }
+  };
+
   const placeOrderWithVerification = async () => {
     const loginMode = customerAppSettings?.pageSettings?.loginMode || 'optional';
 
@@ -1122,14 +1218,18 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
       return;
     }
 
+    const razorpayEnabled = customerAppSettings?.paymentSettings?.razorpayEnabled;
     const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
 
-    if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
+    if (razorpayEnabled) {
+      // Razorpay payment — verified before order creation
+      await handleRazorpayPayment();
+    } else if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
       // Show UPI modal FIRST - order will be placed via onConfirmPayment callback
       setUpiOrderAmount(getFinalTotal());
       setShowUpiModal(true);
     } else {
-      // No UPI - place order directly
+      // No payment gateway - place order directly
       await placeOrderDirect();
     }
   };

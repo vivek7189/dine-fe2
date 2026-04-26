@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaMobileAlt,
   FaQrcode,
@@ -25,6 +25,9 @@ import {
   FaPercent,
   FaRupeeSign,
   FaHandHoldingUsd,
+  FaCreditCard,
+  FaExternalLinkAlt,
+  FaUnlink,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -53,6 +56,7 @@ const getDarkerShade = (hexColor, percent = 20) => {
 
 const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId = null, section = null }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,6 +78,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
     redemptionRate: '',
     maxRedemptionPercent: ''
   });
+  const [connectingRazorpay, setConnectingRazorpay] = useState(false);
+  const [disconnectingRazorpay, setDisconnectingRazorpay] = useState(false);
 
   // Custom URL slug state
   const [urlSlug, setUrlSlug] = useState('');
@@ -104,6 +110,9 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       upiId: '',
       upiQrCodeUrl: '',
       upiDisplayName: '',
+      razorpayEnabled: false,
+      razorpayConnected: false,
+      razorpayAccountId: '',
     },
     branding: {
       primaryColor: '#ef4444',
@@ -188,6 +197,26 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
 
     loadRestaurantId();
   }, [router, embedded, propRestaurantId]);
+
+  // Handle Razorpay OAuth callback redirect
+  useEffect(() => {
+    const razorpayStatus = searchParams.get('razorpay');
+    if (razorpayStatus === 'connected') {
+      setToastMessage('Razorpay account connected successfully!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+      // Clean URL
+      router.replace('/customer-app', undefined, { shallow: true });
+      // Reload settings to get updated razorpayConnected
+      if (restaurantId) loadSettings(restaurantId);
+    } else if (razorpayStatus === 'error') {
+      const msg = searchParams.get('message') || 'Failed to connect Razorpay';
+      setToastMessage(`Razorpay: ${msg}`);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+      router.replace('/customer-app', undefined, { shallow: true });
+    }
+  }, [searchParams]);
 
   const loadSettings = async (id) => {
     try {
@@ -352,6 +381,49 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
     } else {
       // Show error - non-numeric characters detected
       setLoyaltyErrors(prev => ({ ...prev, [field]: 'Only numbers are allowed' }));
+    }
+  };
+
+  const handleRazorpayConnect = async () => {
+    try {
+      setConnectingRazorpay(true);
+      const response = await apiClient.get(`/api/razorpay-oauth/authorize-url?restaurantId=${restaurantId}`);
+      if (response.url) {
+        window.location.href = response.url;
+      }
+    } catch (error) {
+      console.error('Razorpay connect error:', error);
+      setToastMessage('Failed to initiate Razorpay connection');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+      setConnectingRazorpay(false);
+    }
+  };
+
+  const handleRazorpayDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect your Razorpay account? Customers will no longer be able to pay online.')) return;
+    try {
+      setDisconnectingRazorpay(true);
+      await apiClient.post('/api/razorpay-oauth/disconnect', { restaurantId });
+      setSettings(prev => ({
+        ...prev,
+        paymentSettings: {
+          ...prev.paymentSettings,
+          razorpayConnected: false,
+          razorpayEnabled: false,
+          razorpayAccountId: '',
+        }
+      }));
+      setToastMessage('Razorpay account disconnected');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+    } catch (error) {
+      console.error('Razorpay disconnect error:', error);
+      setToastMessage('Failed to disconnect Razorpay');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+    } finally {
+      setDisconnectingRazorpay(false);
     }
   };
 
@@ -1706,6 +1778,114 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   <li>Customer can scan QR code or tap &quot;Pay via UPI App&quot;</li>
                   <li>UPI app opens with pre-filled amount and your UPI ID</li>
                   <li>Customer can also choose &quot;Pay Later&quot; to skip</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Razorpay Payment Gateway Section */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '16px' : '24px',
+          marginTop: isMobile ? '12px' : '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden'
+        }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaCreditCard color="#0366d6" />
+            Razorpay Payment Gateway
+          </h2>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px' }}>
+            Accept UPI, Cards, Netbanking, and Wallets directly to your Razorpay account. Payments go straight to you — DineOpen never touches the funds.
+          </p>
+
+          {settings.paymentSettings?.razorpayConnected ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Connected status */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '12px 16px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0',
+              }}>
+                <FaCheck style={{ color: '#16a34a', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#15803d' }}>Connected</span>
+                  {settings.paymentSettings?.razorpayAccountId && (
+                    <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px' }}>
+                      ({settings.paymentSettings.razorpayAccountId})
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Enable toggle */}
+              <Toggle
+                value={settings.paymentSettings?.razorpayEnabled || false}
+                onChange={(v) => setSettings(prev => ({
+                  ...prev,
+                  paymentSettings: { ...prev.paymentSettings, razorpayEnabled: v }
+                }))}
+                label="Enable Razorpay on public ordering page"
+              />
+
+              {settings.paymentSettings?.razorpayEnabled && (
+                <div style={{
+                  padding: '12px 16px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe',
+                }}>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#1e40af' }}>
+                    Customers will see a &quot;Pay Now&quot; option when placing orders. Payment is verified before the order is created.
+                  </p>
+                </div>
+              )}
+
+              {/* Disconnect link */}
+              <button
+                onClick={handleRazorpayDisconnect}
+                disabled={disconnectingRazorpay}
+                style={{
+                  background: 'none', border: 'none', color: '#dc2626', fontSize: '13px',
+                  cursor: disconnectingRazorpay ? 'not-allowed' : 'pointer', padding: '4px 0',
+                  display: 'flex', alignItems: 'center', gap: '6px', opacity: disconnectingRazorpay ? 0.5 : 1,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                <FaUnlink size={12} />
+                {disconnectingRazorpay ? 'Disconnecting...' : 'Disconnect Razorpay Account'}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <button
+                onClick={handleRazorpayConnect}
+                disabled={connectingRazorpay}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  padding: '14px 24px', backgroundColor: connectingRazorpay ? '#93c5fd' : '#0366d6',
+                  color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600',
+                  cursor: connectingRazorpay ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {connectingRazorpay ? (
+                  <FaSpinner style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <FaExternalLinkAlt size={14} />
+                )}
+                {connectingRazorpay ? 'Redirecting to Razorpay...' : 'Connect Razorpay Account'}
+              </button>
+              <div style={{
+                padding: '12px 16px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb',
+              }}>
+                <p style={{ margin: '0 0 4px', fontSize: '12px', fontWeight: '600', color: '#374151' }}>
+                  How it works:
+                </p>
+                <ul style={{ margin: '0', paddingLeft: '16px', fontSize: '12px', color: '#6b7280', lineHeight: '1.8' }}>
+                  <li>Click the button above to securely connect your Razorpay account</li>
+                  <li>You&apos;ll be redirected to Razorpay to authorize DineOpen</li>
+                  <li>Payments from customers go directly to your Razorpay account</li>
+                  <li>DineOpen never handles or holds your money</li>
                 </ul>
               </div>
             </div>

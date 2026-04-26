@@ -791,6 +791,14 @@ class ApiClient {
     });
   }
 
+  // Razorpay OAuth (restaurant payment gateway - public)
+  async createRazorpayOrder(restaurantId, data) {
+    return this.request(`/api/public/razorpay/create-order/${restaurantId}`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
   // Menu Theme APIs
   async getMenuTheme(restaurantId) {
     return this.request(`/api/menu-theme/${restaurantId}`);
