@@ -1078,18 +1078,32 @@ const KitchenOrderTicket = () => {
                       borderBottom: '1px solid rgba(0,0,0,0.04)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{
-                          fontSize: '15px', fontWeight: '800', color: '#1f2937',
-                          cursor: 'pointer', letterSpacing: '-0.3px'
-                        }}
-                          onClick={() => {
-                            navigator.clipboard.writeText(kot.id);
-                            setNotification({ show: true, type: 'success', message: `Order ID copied` });
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                          <span style={{
+                            fontSize: '15px', fontWeight: '800', color: '#1f2937',
+                            cursor: 'pointer', letterSpacing: '-0.3px'
                           }}
-                          title="Click to copy"
-                        >
-                          #{kot.id.slice(-6).toUpperCase()}
-                        </span>
+                            onClick={() => {
+                              navigator.clipboard.writeText(kot.dailyOrderId?.toString() || kot.id);
+                              setNotification({ show: true, type: 'success', message: `Order number copied` });
+                            }}
+                            title="Click to copy order number"
+                          >
+                            #{kot.dailyOrderId || kot.orderNumber || kot.id.slice(-6).toUpperCase()}
+                          </span>
+                          <span style={{
+                            fontSize: '9px', fontWeight: '500', color: '#9ca3af',
+                            cursor: 'pointer', letterSpacing: '0.2px'
+                          }}
+                            onClick={() => {
+                              navigator.clipboard.writeText(kot.id);
+                              setNotification({ show: true, type: 'success', message: `Order ID copied` });
+                            }}
+                            title="Click to copy order ID"
+                          >
+                            ID: {kot.id.slice(-6).toUpperCase()}
+                          </span>
+                        </div>
 
                         {kot.tableNumber && (
                           <span style={{
@@ -1523,10 +1537,10 @@ const KitchenOrderTicket = () => {
                   </div>
                   <div>
                     <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-                      Order #{selectedKot.id.slice(-6).toUpperCase()}
+                      Order #{selectedKot.dailyOrderId || selectedKot.orderNumber || selectedKot.id.slice(-6).toUpperCase()}
                     </h2>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-                      {getOrderTypeInfo(selectedKot.orderType).label}
+                      ID: {selectedKot.id.slice(-6).toUpperCase()} · {getOrderTypeInfo(selectedKot.orderType).label}
                       {selectedKot.tableNumber && ` · Table ${selectedKot.tableNumber}`}
                       {selectedKot.waiterName && ` · ${selectedKot.waiterName}`}
                     </p>
@@ -1714,7 +1728,7 @@ const KitchenOrderTicket = () => {
 
             <div style={{ padding: '20px 24px' }}>
               <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#4b5563', lineHeight: '1.5' }}>
-                Delete order <strong style={{ color: '#1f2937' }}>#{deleteModal.orderId?.slice(-6)?.toUpperCase()}</strong>? It will be permanently removed.
+                Delete order <strong style={{ color: '#1f2937' }}>#{deleteModal.orderId?.slice(-6)?.toUpperCase()}</strong>? This cannot be undone.
               </p>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>

@@ -141,6 +141,17 @@ export async function syncPendingOrders(apiClient) {
   notifyListeners({ type: 'sync_started' });
 
   try {
+    // Recover any orders stuck in 'syncing' state (e.g. from browser crash mid-sync)
+    try {
+      const { getDb } = await import('./offlineDb');
+      const db = await getDb();
+      const allOrders = await db.getAll('offline_orders');
+      const stuckOrders = allOrders.filter(o => o.syncStatus === 'syncing' && Date.now() - (o.updatedAt || o.createdAt) > 60000);
+      for (const stuck of stuckOrders) {
+        await updateOrderSyncStatus(stuck.idempotencyKey, 'pending', { retryCount: stuck.retryCount || 0 });
+      }
+    } catch (e) { /* recovery is best-effort */ }
+
     const pending = await getPendingOrders();
     if (pending.length === 0) {
       isSyncing = false;
