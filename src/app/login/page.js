@@ -402,14 +402,9 @@ const Login = () => {
 
     // Open URL in system browser using Tauri shell plugin
     try {
-      if (window.__TAURI__?.shell?.open) {
-        await window.__TAURI__.shell.open(authUrl);
-      } else if (window.__TAURI_INTERNALS__) {
-        // Tauri v2: invoke shell open command directly
-        await window.__TAURI_INTERNALS__.invoke('plugin:shell|open', { path: authUrl });
-      } else {
-        window.open(authUrl, '_blank');
-      }
+      // Tauri v2: use @tauri-apps/plugin-shell (dynamic import to avoid breaking web)
+      const { open } = await import('@tauri-apps/plugin-shell');
+      await open(authUrl);
     } catch (e) {
       console.warn('Tauri shell open failed, using window.open:', e);
       window.open(authUrl, '_blank');
