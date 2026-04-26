@@ -64,7 +64,11 @@ import {
 // Merge pending offline orders into the order list so they show immediately
 async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
   try {
-    const offlineOrders = await getAllOfflineOrders();
+    // Timeout after 3s so a blocked IndexedDB can't hang the page forever
+    const offlineOrders = await Promise.race([
+      getAllOfflineOrders(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('IndexedDB timeout')), 3000))
+    ]);
     if (offlineOrders.length === 0) return existingOrders;
 
     const existingIds = new Set(existingOrders.map(o => o.id));
@@ -456,7 +460,10 @@ const OrderHistory = () => {
       console.error('Error fetching orders:', error);
       // Try IndexedDB fallback when offline, always merge offline orders
       try {
-        const idbCached = await getCachedData(`orders_${restaurantId}_${cacheKey}`);
+        const idbCached = await Promise.race([
+          getCachedData(`orders_${restaurantId}_${cacheKey}`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('IDB timeout')), 3000))
+        ]);
         const cachedOrders = idbCached?.orders || [];
         const mergedOrders = await mergeOfflineOrderHistory(cachedOrders, restaurantId);
         if (mergedOrders.length > 0) {

@@ -90,7 +90,11 @@ const playSound = (type) => {
 // Merge pending offline orders into the KOT list so they show immediately
 async function mergeOfflineKotOrders(existingOrders, restaurantId) {
   try {
-    const offlineOrders = await getPendingOrders();
+    // Timeout after 3s so a blocked IndexedDB can't hang the page forever
+    const offlineOrders = await Promise.race([
+      getPendingOrders(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('IndexedDB timeout')), 3000))
+    ]);
     if (offlineOrders.length === 0) return existingOrders;
 
     const existingIds = new Set(existingOrders.map(o => o.id));
@@ -258,7 +262,10 @@ const KitchenOrderTicket = () => {
       // Fall back to IndexedDB cached data
       try {
         const restaurantId = localStorage.getItem('selectedRestaurantId');
-        const idbData = await getCachedData(`kot_${restaurantId}`);
+        const idbData = await Promise.race([
+          getCachedData(`kot_${restaurantId}`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('IDB timeout')), 3000))
+        ]);
         const cachedOrders = idbData?.orders || [];
         // Always merge offline orders with whatever cached data we have
         const mergedOrders = await mergeOfflineKotOrders(cachedOrders, restaurantId);
