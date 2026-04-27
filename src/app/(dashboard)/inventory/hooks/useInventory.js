@@ -1090,6 +1090,74 @@ export default function useInventory() {
     } finally { setProcessingInvoiceOCR(false); }
   };
 
+  // Save supplier invoice to backend
+  const handleSaveInvoice = async () => {
+    if (!currentRestaurant) { setError('No restaurant selected'); return; }
+    if (!invoiceFormData.supplierId) { setError('Please select a supplier'); return; }
+    if (!invoiceFormData.invoiceNumber?.trim()) { setError('Please enter an invoice number'); return; }
+    if (!invoiceFormData.invoiceDate) { setError('Please select an invoice date'); return; }
+    if (!invoiceFormData.items || invoiceFormData.items.length === 0) { setError('Please add at least one item'); return; }
+    // Validate all items have inventoryItemId
+    const invalidItem = invoiceFormData.items.find(it => !it.inventoryItemId);
+    if (invalidItem) { setError('Please select an inventory item for each line'); return; }
+
+    try {
+      setError(null);
+      // Enrich items with names and compute totals
+      const enrichedItems = invoiceFormData.items.map(it => {
+        const invItem = inventoryItems.find(inv => inv.id === it.inventoryItemId);
+        const qty = parseFloat(it.quantity) || 0;
+        const price = parseFloat(it.unitPrice) || 0;
+        return {
+          inventoryItemId: it.inventoryItemId,
+          inventoryItemName: invItem?.name || '',
+          quantity: qty,
+          unitPrice: price,
+          tax: 0,
+          total: qty * price
+        };
+      });
+      const subtotal = enrichedItems.reduce((sum, it) => sum + it.total, 0);
+      const totalAmount = parseFloat(invoiceFormData.totalAmount) || subtotal;
+
+      // Calculate dueDate from paymentTerms (default Net 30)
+      const invoiceDate = new Date(invoiceFormData.invoiceDate);
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + 30);
+
+      await apiClient.createSupplierInvoice(currentRestaurant.id, {
+        supplierId: invoiceFormData.supplierId,
+        invoiceNumber: invoiceFormData.invoiceNumber.trim(),
+        invoiceDate: invoiceFormData.invoiceDate,
+        items: enrichedItems,
+        subtotal,
+        taxAmount: 0,
+        totalAmount,
+        paymentTerms: 'Net 30',
+        dueDate: dueDate.toISOString(),
+        paymentStatus: 'unpaid',
+        notes: invoiceFormData.notes || '',
+        imageUrl: invoiceFormData.imageUrl || null,
+      });
+
+      setSuccess('Supplier invoice saved successfully!');
+      setShowAddInvoiceModal(false);
+      // Reset form
+      setInvoiceFormData({
+        supplierId: '', invoiceNumber: '', invoiceDate: new Date().toISOString().split('T')[0],
+        items: [], totalAmount: 0, imageUrl: '', notes: ''
+      });
+      // Reload invoices
+      try {
+        const invoicesData = await apiClient.getSupplierInvoices(currentRestaurant.id);
+        setSupplierInvoices(invoicesData.invoices || []);
+      } catch (_) {}
+    } catch (error) {
+      console.error('Save invoice error:', error);
+      setError(error.message || 'Failed to save supplier invoice');
+    }
+  };
+
   // Modal style helpers
   const getModalStyles = () => ({
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -1168,7 +1236,7 @@ export default function useInventory() {
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction, handleDeleteRecipe,
     handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps, handleGenerateFullRecipe,
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
-    startVoiceListeningPO, generateReport, handleInvoiceOCR,
+    startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice,
     loadInventoryData, loadSCMData,
     handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
 
