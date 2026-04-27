@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck } from 'react-icons/fa';
+import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt } from 'react-icons/fa';
+import SmartImportModalInline from './SmartImportModal';
 
 const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
 
@@ -45,7 +46,7 @@ const rowStyle = {
 };
 
 // ─── Custom Dropdown Select ─────────────────────────────────────────────────
-function CustomSelect({ value, onChange, options, placeholder = 'Select...' }) {
+function CustomSelect({ value, onChange, options, placeholder = 'Select...', creatable = false }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
@@ -66,11 +67,21 @@ function CustomSelect({ value, onChange, options, placeholder = 'Select...' }) {
     return label.toLowerCase().includes(search.toLowerCase());
   });
 
+  // Check if search text exactly matches an existing option
+  const exactMatch = search.trim() && filtered.some(o => {
+    const label = typeof o === 'string' ? o : o.label;
+    return label.toLowerCase() === search.trim().toLowerCase();
+  });
+
+  const showCreateOption = creatable && search.trim() && !exactMatch;
+
   const selectedLabel = (() => {
     if (!value) return null;
     const found = options.find(o => (typeof o === 'string' ? o : o.value) === value);
     return found ? (typeof found === 'string' ? found : found.label) : value;
   })();
+
+  const showSearch = options.length > 5 || creatable;
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -94,15 +105,15 @@ function CustomSelect({ value, onChange, options, placeholder = 'Select...' }) {
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
           backgroundColor: 'white', borderRadius: '12px', border: '1.5px solid #e8ecf1',
           boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden',
-          maxHeight: '220px', display: 'flex', flexDirection: 'column',
+          maxHeight: '260px', display: 'flex', flexDirection: 'column',
         }}>
-          {options.length > 5 && (
+          {showSearch && (
             <div style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
               <input
                 ref={searchRef}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder={creatable ? 'Search or type new...' : 'Search...'}
                 style={{
                   width: '100%', padding: '7px 10px', border: '1.5px solid #e8ecf1', borderRadius: '8px',
                   fontSize: '13px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc',
@@ -112,8 +123,8 @@ function CustomSelect({ value, onChange, options, placeholder = 'Select...' }) {
               />
             </div>
           )}
-          <div style={{ overflowY: 'auto', maxHeight: '180px' }}>
-            {filtered.length === 0 && (
+          <div style={{ overflowY: 'auto', maxHeight: '200px' }}>
+            {filtered.length === 0 && !showCreateOption && (
               <div style={{ padding: '12px 14px', color: '#94a3b8', fontSize: '13px', textAlign: 'center' }}>No options</div>
             )}
             {filtered.map((o, i) => {
@@ -141,6 +152,24 @@ function CustomSelect({ value, onChange, options, placeholder = 'Select...' }) {
                 </button>
               );
             })}
+            {showCreateOption && (
+              <button
+                type="button"
+                onClick={() => { onChange(search.trim()); setOpen(false); setSearch(''); }}
+                style={{
+                  width: '100%', padding: '10px 14px', border: 'none', textAlign: 'left',
+                  backgroundColor: '#f0fdf4', cursor: 'pointer',
+                  fontSize: '13px', fontWeight: 600, color: '#059669',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  borderTop: filtered.length > 0 ? '1px solid #e8ecf1' : 'none',
+                  transition: 'background-color 0.1s',
+                }}
+                onMouseEnter={e => { e.target.style.backgroundColor = '#dcfce7'; }}
+                onMouseLeave={e => { e.target.style.backgroundColor = '#f0fdf4'; }}
+              >
+                <FaPlus size={10} /> Create &quot;{search.trim()}&quot;
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -237,18 +266,8 @@ function SectionHeader({ icon, title }) {
   );
 }
 
-// ─── Add / Edit Item Modal ───────────────────────────────────────────────────
-function AddEditItemModal(props) {
-  const {
-    showAddModal, setShowAddModal, showEditModal, setShowEditModal,
-    formData, setFormData, categories, suppliers, editingItem,
-    handleAddItem, handleUpdateItem, getModalStyles, getModalContentStyles
-  } = props;
-
-  const isOpen = showAddModal || showEditModal;
-  const isEdit = showEditModal && editingItem;
-
-  const close = () => { isEdit ? setShowEditModal(false) : setShowAddModal(false); };
+// ─── Manual Item Form (shared between Add & Edit) ───────────────────────────
+function ManualItemForm({ formData, setFormData, categories, suppliers }) {
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
   const updateMulti = (fields) => setFormData(prev => ({ ...prev, ...fields }));
 
@@ -257,117 +276,276 @@ function AddEditItemModal(props) {
   const supplierOptions = suppliers.map(s => ({ value: s.name || s.id, label: s.name }));
 
   return (
-    <ModalShell show={isOpen} onClose={close} title={isEdit ? 'Edit Inventory Item' : 'Add Inventory Item'}
-      getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={close}>Cancel</button>
-          <button style={primaryBtn} onClick={isEdit ? handleUpdateItem : handleAddItem}>
-            <FaSave /> {isEdit ? 'Update Item' : 'Add Item'}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
+      <SectionHeader icon={<FaBoxes size={10} color="white" />} title="Basic Info" />
+      <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
+        <label style={labelStyle}>Name *</label>
+        <FocusInput value={formData.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Tomatoes, Olive Oil, Flour" />
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Category</label>
+        <CustomSelect value={formData.category} onChange={v => update('category', v)} options={categoryOptions} placeholder="Select category" creatable />
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Unit</label>
+        <CustomSelect value={formData.unit} onChange={v => update('unit', v)} options={unitOptions} placeholder="Select unit" />
+      </div>
+      <SectionHeader icon={<FaClipboardList size={10} color="white" />} title="Stock & Pricing" />
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Current Stock</label>
+        <FocusInput type="number" value={formData.currentStock} onChange={e => update('currentStock', parseFloat(e.target.value) || 0)} />
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Cost Per Unit</label>
+        <FocusInput type="number" step="0.01" value={formData.costPerUnit} onChange={e => update('costPerUnit', parseFloat(e.target.value) || 0)} />
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Min Stock</label>
+        <FocusInput type="number" value={formData.minStock} onChange={e => update('minStock', parseFloat(e.target.value) || 0)} placeholder="Low stock alert" />
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Max Stock</label>
+        <FocusInput type="number" value={formData.maxStock} onChange={e => update('maxStock', parseFloat(e.target.value) || 0)} placeholder="Maximum capacity" />
+      </div>
+      <SectionHeader icon={<FaReceipt size={10} color="white" />} title="Tracking" />
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Supplier</label>
+        <CustomSelect value={formData.supplier} onChange={v => update('supplier', v)} options={supplierOptions} placeholder="Select supplier" />
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Barcode</label>
+        <FocusInput value={formData.barcode} onChange={e => update('barcode', e.target.value)} placeholder="Scan or enter barcode" />
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>MFG Date</label>
+        <FocusInput type="date" value={formData.mfgDate} onChange={e => {
+          const mfg = e.target.value;
+          const updates = { mfgDate: mfg };
+          if (mfg && formData.expiryDays && formData.expiryMethod === 'days') {
+            const d = new Date(mfg);
+            d.setDate(d.getDate() + parseInt(formData.expiryDays));
+            updates.expiryDate = d.toISOString().split('T')[0];
+          }
+          updateMulti(updates);
+        }} />
+      </div>
+      <div style={fieldWrap}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <span style={labelStyle}>{formData.expiryMethod === 'days' ? 'Expiry Days' : 'Expiry Date'}</span>
+          <button type="button" onClick={() => {
+            if (formData.expiryMethod === 'days') {
+              updateMulti({ expiryMethod: 'date', expiryDays: '', expiryDate: '' });
+            } else {
+              updateMulti({ expiryMethod: 'days', expiryDays: '', expiryDate: '' });
+            }
+          }} style={{
+            background: 'none', border: 'none', color: '#059669', fontSize: '11px', fontWeight: 600,
+            cursor: 'pointer', padding: 0
+          }}>
+            Use {formData.expiryMethod === 'days' ? 'date' : 'days'} instead
           </button>
         </div>
-      }>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
-        {/* Basic Info */}
-        <SectionHeader icon={<FaBoxes size={10} color="white" />} title="Basic Info" />
-        <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
-          <label style={labelStyle}>Name *</label>
-          <FocusInput value={formData.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Tomatoes, Olive Oil, Flour" />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Category</label>
-          <CustomSelect value={formData.category} onChange={v => update('category', v)} options={categoryOptions} placeholder="Select category" />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Unit</label>
-          <CustomSelect value={formData.unit} onChange={v => update('unit', v)} options={unitOptions} placeholder="Select unit" />
-        </div>
-
-        {/* Stock & Pricing */}
-        <SectionHeader icon={<FaClipboardList size={10} color="white" />} title="Stock & Pricing" />
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Current Stock</label>
-          <FocusInput type="number" value={formData.currentStock} onChange={e => update('currentStock', parseFloat(e.target.value) || 0)} />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Cost Per Unit</label>
-          <FocusInput type="number" step="0.01" value={formData.costPerUnit} onChange={e => update('costPerUnit', parseFloat(e.target.value) || 0)} />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Min Stock</label>
-          <FocusInput type="number" value={formData.minStock} onChange={e => update('minStock', parseFloat(e.target.value) || 0)} placeholder="Low stock alert" />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Max Stock</label>
-          <FocusInput type="number" value={formData.maxStock} onChange={e => update('maxStock', parseFloat(e.target.value) || 0)} placeholder="Maximum capacity" />
-        </div>
-
-        {/* Supplier & Tracking */}
-        <SectionHeader icon={<FaReceipt size={10} color="white" />} title="Tracking" />
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Supplier</label>
-          <CustomSelect value={formData.supplier} onChange={v => update('supplier', v)} options={supplierOptions} placeholder="Select supplier" />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Barcode</label>
-          <FocusInput value={formData.barcode} onChange={e => update('barcode', e.target.value)} placeholder="Scan or enter barcode" />
-        </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>MFG Date</label>
-          <FocusInput type="date" value={formData.mfgDate} onChange={e => {
-            const mfg = e.target.value;
-            const updates = { mfgDate: mfg };
-            if (mfg && formData.expiryDays && formData.expiryMethod === 'days') {
-              const d = new Date(mfg);
-              d.setDate(d.getDate() + parseInt(formData.expiryDays));
+        {formData.expiryMethod === 'days' ? (
+          <FocusInput type="number" min="1" value={formData.expiryDays} onChange={e => {
+            const days = e.target.value;
+            const updates = { expiryDays: days };
+            if (formData.mfgDate && days) {
+              const d = new Date(formData.mfgDate);
+              d.setDate(d.getDate() + parseInt(days));
               updates.expiryDate = d.toISOString().split('T')[0];
+            } else {
+              updates.expiryDate = '';
             }
             updateMulti(updates);
-          }} />
-        </div>
-        <div style={fieldWrap}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={labelStyle}>{formData.expiryMethod === 'days' ? 'Expiry Days' : 'Expiry Date'}</span>
-            <button type="button" onClick={() => {
-              if (formData.expiryMethod === 'days') {
-                updateMulti({ expiryMethod: 'date', expiryDays: '', expiryDate: '' });
-              } else {
-                updateMulti({ expiryMethod: 'days', expiryDays: '', expiryDate: '' });
-              }
-            }} style={{
-              background: 'none', border: 'none', color: '#059669', fontSize: '11px', fontWeight: 600,
-              cursor: 'pointer', padding: 0
-            }}>
-              Use {formData.expiryMethod === 'days' ? 'date' : 'days'} instead
+          }} placeholder="e.g. 3" />
+        ) : (
+          <FocusInput type="date" value={formData.expiryDate} onChange={e => update('expiryDate', e.target.value)} />
+        )}
+      </div>
+      <div style={fieldWrap}>
+        <label style={labelStyle}>Location</label>
+        <FocusInput value={formData.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Walk-in cooler, Shelf A" />
+      </div>
+      <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
+        <label style={labelStyle}>Description</label>
+        <FocusTextarea value={formData.description} onChange={e => update('description', e.target.value)} placeholder="Optional notes about this item" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Add / Edit Item Modal ───────────────────────────────────────────────────
+function AddEditItemModal(props) {
+  const {
+    showAddModal, setShowAddModal, showEditModal, setShowEditModal,
+    formData, setFormData, categories, suppliers, editingItem,
+    handleAddItem, handleUpdateItem, getModalStyles, getModalContentStyles,
+    currentRestaurant, loadInventoryData,
+  } = props;
+
+  const [addTab, setAddTab] = useState('manual');
+  const [smartImportOpen, setSmartImportOpen] = useState(false);
+  const [smartImportMode, setSmartImportMode] = useState('image');
+
+  const isOpen = showAddModal || showEditModal;
+  const isEdit = showEditModal && editingItem;
+
+  const close = () => {
+    isEdit ? setShowEditModal(false) : setShowAddModal(false);
+    setAddTab('manual');
+  };
+
+  // For edit mode, render the simple form
+  if (isEdit) {
+    return (
+      <ModalShell show={isOpen} onClose={close} title="Edit Inventory Item"
+        getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button style={secondaryBtn} onClick={close}>Cancel</button>
+            <button style={primaryBtn} onClick={handleUpdateItem}>
+              <FaSave /> Update Item
             </button>
           </div>
-          {formData.expiryMethod === 'days' ? (
-            <FocusInput type="number" min="1" value={formData.expiryDays} onChange={e => {
-              const days = e.target.value;
-              const updates = { expiryDays: days };
-              if (formData.mfgDate && days) {
-                const d = new Date(formData.mfgDate);
-                d.setDate(d.getDate() + parseInt(days));
-                updates.expiryDate = d.toISOString().split('T')[0];
-              } else {
-                updates.expiryDate = '';
-              }
-              updateMulti(updates);
-            }} placeholder="e.g. 3" />
-          ) : (
-            <FocusInput type="date" value={formData.expiryDate} onChange={e => update('expiryDate', e.target.value)} />
-          )}
+        }>
+        <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} />
+      </ModalShell>
+    );
+  }
+
+  // Add mode — tabbed interface
+  const addTabs = [
+    { id: 'manual', label: 'Manual', icon: FaPlus, desc: 'Add one item' },
+    { id: 'invoice', label: 'Scan Invoice', icon: FaFileImage, desc: 'Upload photo' },
+    { id: 'paste', label: 'Paste Text', icon: FaKeyboard, desc: 'Bulk import' },
+  ];
+
+  const handleOpenSmartImport = (mode) => {
+    setSmartImportMode(mode);
+    setSmartImportOpen(true);
+  };
+
+  return (
+    <>
+      <ModalShell show={isOpen} onClose={close} title="Add Inventory Items"
+        getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
+        footer={
+          addTab === 'manual' ? (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button style={secondaryBtn} onClick={close}>Cancel</button>
+              <button style={primaryBtn} onClick={handleAddItem}>
+                <FaSave /> Add Item
+              </button>
+            </div>
+          ) : null
+        }>
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '18px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+          {addTabs.map(tab => {
+            const Icon = tab.icon;
+            const isActive = addTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setAddTab(tab.id)}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: '8px', border: 'none',
+                  background: isActive ? '#fff' : 'transparent',
+                  color: isActive ? '#059669' : '#64748b',
+                  fontSize: '13px', fontWeight: isActive ? 700 : 500, cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+                  boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Icon size={12} /> {tab.label}
+                </div>
+                <span style={{ fontSize: '10px', color: isActive ? '#6b7280' : '#94a3b8', fontWeight: 400 }}>
+                  {tab.desc}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <div style={fieldWrap}>
-          <label style={labelStyle}>Location</label>
-          <FocusInput value={formData.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Walk-in cooler, Shelf A" />
-        </div>
-        <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
-          <label style={labelStyle}>Description</label>
-          <FocusTextarea value={formData.description} onChange={e => update('description', e.target.value)} placeholder="Optional notes about this item" />
-        </div>
-      </div>
-    </ModalShell>
+
+        {/* Tab content */}
+        {addTab === 'manual' && (
+          <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} />
+        )}
+
+        {addTab === 'invoice' && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <FaFileImage size={24} style={{ color: 'white' }} />
+            </div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 700, color: '#1f2937' }}>
+              Scan Supplier Invoice
+            </h3>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#6b7280', lineHeight: 1.6, maxWidth: 400, marginLeft: 'auto', marginRight: 'auto' }}>
+              Upload a photo of your supplier invoice or purchase bill. AI will extract all items with quantities, costs, and categories — ready for review.
+            </p>
+            <button
+              onClick={() => handleOpenSmartImport('image')}
+              style={{
+                ...primaryBtn,
+                padding: '14px 32px', fontSize: '14px',
+                background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+                boxShadow: '0 4px 12px rgba(14,165,233,0.3)',
+              }}
+            >
+              <FaCloudUploadAlt size={16} /> Upload Invoice Photo
+            </button>
+          </div>
+        )}
+
+        {addTab === 'paste' && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <FaKeyboard size={24} style={{ color: 'white' }} />
+            </div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 700, color: '#1f2937' }}>
+              Bulk Import from Text
+            </h3>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#6b7280', lineHeight: 1.6, maxWidth: 400, marginLeft: 'auto', marginRight: 'auto' }}>
+              Paste your ingredient list, recipe, or menu data. AI will extract and categorize all items automatically.
+            </p>
+            <button
+              onClick={() => handleOpenSmartImport('text')}
+              style={{
+                ...primaryBtn,
+                padding: '14px 32px', fontSize: '14px',
+                background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                boxShadow: '0 4px 12px rgba(139,92,246,0.3)',
+              }}
+            >
+              <FaMagic size={14} /> Open Smart Import
+            </button>
+          </div>
+        )}
+      </ModalShell>
+
+      {/* Smart Import Modal (opened from invoice/paste tabs) */}
+      {smartImportOpen && currentRestaurant && (
+        <SmartImportModalInline
+          isOpen={smartImportOpen}
+          onClose={() => setSmartImportOpen(false)}
+          restaurantId={currentRestaurant.id}
+          onSuccess={() => { loadInventoryData?.(); close(); }}
+          initialMode={smartImportMode}
+        />
+      )}
+    </>
   );
 }
 
@@ -502,17 +680,65 @@ function AddPurchaseOrderModal(props) {
 function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
   addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
   addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
-  handleGenerateRecipeSteps, generatingSteps }) {
+  handleGenerateRecipeSteps, generatingSteps,
+  handleGenerateFullRecipe, generatingFullRecipe }) {
 
   const update = (field, value) => setRecipeFormData({ ...recipeFormData, [field]: value });
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
-          <label style={labelStyle}>Recipe Name *</label>
-          <FocusInput value={recipeFormData.name} onChange={e => update('name', e.target.value)} placeholder="Recipe name" />
+      {/* AI Generation Section */}
+      {handleGenerateFullRecipe && (
+        <div style={{
+          padding: '14px 16px', marginBottom: 16, borderRadius: 12,
+          background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
+          border: '1px solid #bbf7d0',
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#166534', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FaMagic size={11} /> AI Recipe Generator — Enter name & servings, then generate
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 2, minWidth: 180 }}>
+              <label style={{ ...labelStyle, fontSize: 11, marginBottom: 4 }}>Recipe Name *</label>
+              <FocusInput value={recipeFormData.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Paneer Butter Masala" />
+            </div>
+            <div style={{ flex: 0, minWidth: 80, maxWidth: 100 }}>
+              <label style={{ ...labelStyle, fontSize: 11, marginBottom: 4 }}>Servings</label>
+              <FocusInput type="number" value={recipeFormData.servings} onChange={e => update('servings', parseInt(e.target.value) || 1)} placeholder="4" />
+            </div>
+            <button
+              style={{
+                ...secondaryBtn,
+                background: recipeFormData.name ? 'linear-gradient(135deg, #059669, #10b981)' : '#d1d5db',
+                color: recipeFormData.name ? '#fff' : '#9ca3af',
+                cursor: recipeFormData.name ? 'pointer' : 'not-allowed',
+                whiteSpace: 'nowrap', padding: '10px 18px', fontSize: 13,
+                border: 'none', opacity: generatingFullRecipe ? 0.7 : 1,
+                boxShadow: recipeFormData.name ? '0 2px 8px rgba(5,150,105,0.3)' : 'none',
+              }}
+              onClick={handleGenerateFullRecipe}
+              disabled={!recipeFormData.name || generatingFullRecipe}
+            >
+              {generatingFullRecipe ? (
+                <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Generating...</>
+              ) : (
+                <><FaMagic size={12} /> Generate with AI</>
+              )}
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
+            AI will fill category, description, ingredients (auto-added to inventory), prep/cook time & instructions
+          </div>
         </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {!handleGenerateFullRecipe && (
+          <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Recipe Name *</label>
+            <FocusInput value={recipeFormData.name} onChange={e => update('name', e.target.value)} placeholder="Recipe name" />
+          </div>
+        )}
         <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
           <label style={labelStyle}>Description</label>
           <FocusTextarea value={recipeFormData.description} onChange={e => update('description', e.target.value)}
@@ -543,21 +769,28 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
           <button style={secondaryBtn} onClick={addRecipeIngredient}><FaPlus /> Add Ingredient</button>
         </div>
         {recipeFormData.ingredients.map((ing, index) => (
-          <div key={index} style={rowStyle}>
-            <FocusSelect style={{ ...inputStyle, flex: 2 }} value={ing.inventoryItemId}
-              onChange={e => updateRecipeIngredient(index, 'inventoryItemId', e.target.value)}>
-              <option value="">Select item</option>
-              {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
-            </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder="Qty"
-              value={ing.quantity} onChange={e => updateRecipeIngredient(index, 'quantity', parseFloat(e.target.value) || 0)} />
-            <FocusSelect style={{ ...inputStyle, flex: 1 }} value={ing.unit}
-              onChange={e => updateRecipeIngredient(index, 'unit', e.target.value)}>
-              <option value="">Unit</option>
-              {units.map(u => <option key={u} value={u}>{u}</option>)}
-            </FocusSelect>
+          <div key={index}>
+            <div style={rowStyle}>
+              <FocusSelect style={{ ...inputStyle, flex: 2, ...(ing._unmatched && !ing.inventoryItemId ? { borderColor: '#f59e0b', backgroundColor: '#fffbeb' } : {}) }} value={ing.inventoryItemId}
+                onChange={e => updateRecipeIngredient(index, 'inventoryItemId', e.target.value)}>
+                <option value="">{ing._unmatched ? `⚠ ${ing.inventoryItemName || 'Select item'}` : 'Select item'}</option>
+                {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
+              </FocusSelect>
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder="Qty"
+                value={ing.quantity} onChange={e => updateRecipeIngredient(index, 'quantity', parseFloat(e.target.value) || 0)} />
+              <FocusSelect style={{ ...inputStyle, flex: 1 }} value={ing.unit}
+                onChange={e => updateRecipeIngredient(index, 'unit', e.target.value)}>
+                <option value="">Unit</option>
+                {units.map(u => <option key={u} value={u}>{u}</option>)}
+              </FocusSelect>
             {recipeFormData.ingredients.length > 1 && (
               <button style={dangerBtn} onClick={() => removeRecipeIngredient(index)}><FaTrash /></button>
+            )}
+            </div>
+            {ing._unmatched && !ing.inventoryItemId && (
+              <div style={{ fontSize: 11, color: '#d97706', marginTop: 2, marginBottom: 4, paddingLeft: 4 }}>
+                Not in inventory — please select a matching item or add &quot;{ing.inventoryItemName}&quot; to inventory first
+              </div>
             )}
           </div>
         ))}
@@ -615,6 +848,7 @@ function AddRecipeModal(props) {
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
     inventoryItems, isMobile,
     handleGenerateRecipeSteps, generatingSteps,
+    handleGenerateFullRecipe, generatingFullRecipe,
     loading, error,
   } = props;
 
@@ -662,6 +896,7 @@ function AddRecipeModal(props) {
             addRecipeInstruction={addRecipeInstruction} removeRecipeInstruction={removeRecipeInstruction}
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
+            handleGenerateFullRecipe={handleGenerateFullRecipe} generatingFullRecipe={generatingFullRecipe}
           />
         </div>
         {error && (
@@ -1774,6 +2009,7 @@ function EditRecipeModal(props) {
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
     inventoryItems, isMobile,
     handleGenerateRecipeSteps, generatingSteps,
+    handleGenerateFullRecipe, generatingFullRecipe,
     loading, error,
   } = props;
 
@@ -1823,6 +2059,7 @@ function EditRecipeModal(props) {
             addRecipeInstruction={addRecipeInstruction} removeRecipeInstruction={removeRecipeInstruction}
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
+            handleGenerateFullRecipe={handleGenerateFullRecipe} generatingFullRecipe={generatingFullRecipe}
           />
         </div>
         {error && (
@@ -2017,6 +2254,35 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
     );
   };
 
+  const priceTrendBadge = (current, previous) => {
+    if (current == null || !current || previous == null) return null;
+    const curr = parseFloat(current);
+    const prev = parseFloat(previous);
+    if (!prev && !curr) return null;
+    if (!prev && curr > 0) return null; // first purchase, no comparison
+    const diff = curr - prev;
+    const pct = prev > 0 ? ((diff / prev) * 100).toFixed(1) : 0;
+    if (Math.abs(diff) < 0.01) {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, backgroundColor: '#f0fdf4', color: '#166534' }}>
+          = Same price
+        </span>
+      );
+    }
+    if (diff > 0) {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, backgroundColor: '#fef2f2', color: '#dc2626' }}>
+          ▲ +{pct}% ({formatCurrency(diff)} more)
+        </span>
+      );
+    }
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, backgroundColor: '#dcfce7', color: '#166534' }}>
+        ▼ {pct}% ({formatCurrency(Math.abs(diff))} less)
+      </span>
+    );
+  };
+
   const fmtDate = (d) => {
     if (!d) return '—';
     const dt = new Date(d);
@@ -2040,6 +2306,14 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
     return diff;
   };
 
+  // Compute price trend summary from batches (sorted oldest → newest)
+  const pricedBatches = [...batches].filter(b => b.costPerUnit > 0).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const priceHistory = pricedBatches.map(b => ({ cost: b.costPerUnit, date: b.createdAt, supplier: b.supplier }));
+  const latestPrice = priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].cost : null;
+  const previousPrice = priceHistory.length > 1 ? priceHistory[priceHistory.length - 2].cost : null;
+  const lowestPrice = priceHistory.length > 0 ? Math.min(...priceHistory.map(p => p.cost)) : null;
+  const highestPrice = priceHistory.length > 0 ? Math.max(...priceHistory.map(p => p.cost)) : null;
+
   return (
     <ModalShell
       show={showStockHistoryModal}
@@ -2053,6 +2327,61 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
         </div>
       }
     >
+      {/* ── Price Trend Summary ── */}
+      {priceHistory.length > 0 && (
+        <div style={{ marginBottom: '20px', padding: '14px 16px', borderRadius: '12px', background: 'linear-gradient(135deg, #f0f9ff, #eff6ff)', border: '1px solid #bfdbfe' }}>
+          <label style={{ ...labelStyle, fontSize: '13px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            Price Trend
+            {latestPrice && previousPrice && priceTrendBadge(latestPrice, previousPrice)}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px' }}>
+            <div style={{ textAlign: 'center', padding: '8px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '2px' }}>Current</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#1f2937' }}>{formatCurrency(latestPrice)}</div>
+              <div style={{ fontSize: '10px', color: '#9ca3af' }}>per {stockHistoryItem?.unit || 'unit'}</div>
+            </div>
+            {previousPrice && (
+              <div style={{ textAlign: 'center', padding: '8px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '2px' }}>Previous</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#6b7280' }}>{formatCurrency(previousPrice)}</div>
+                <div style={{ fontSize: '10px', color: '#9ca3af' }}>per {stockHistoryItem?.unit || 'unit'}</div>
+              </div>
+            )}
+            {lowestPrice !== highestPrice && (
+              <>
+                <div style={{ textAlign: 'center', padding: '8px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dcfce7' }}>
+                  <div style={{ fontSize: '11px', color: '#059669', marginBottom: '2px' }}>Lowest</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#059669' }}>{formatCurrency(lowestPrice)}</div>
+                  <div style={{ fontSize: '10px', color: '#9ca3af' }}>all time</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '8px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                  <div style={{ fontSize: '11px', color: '#dc2626', marginBottom: '2px' }}>Highest</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#dc2626' }}>{formatCurrency(highestPrice)}</div>
+                  <div style={{ fontSize: '10px', color: '#9ca3af' }}>all time</div>
+                </div>
+              </>
+            )}
+          </div>
+          {/* Mini price timeline */}
+          {priceHistory.length > 1 && (
+            <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+              {priceHistory.map((p, i) => {
+                const prev = i > 0 ? priceHistory[i - 1].cost : null;
+                const trendIcon = prev === null ? '' : p.cost > prev ? '▲' : p.cost < prev ? '▼' : '=';
+                const trendColor = prev === null ? '#6b7280' : p.cost > prev ? '#dc2626' : p.cost < prev ? '#059669' : '#6b7280';
+                return (
+                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '11px', padding: '2px 6px', borderRadius: '6px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                    <span style={{ color: trendColor, fontWeight: 700 }}>{trendIcon}</span>
+                    <span style={{ fontWeight: 600 }}>{formatCurrency(p.cost)}</span>
+                    <span style={{ color: '#9ca3af', fontSize: '10px' }}>{fmtShortDate(p.date)}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Transaction Timeline ── */}
       <div style={{ marginBottom: '24px' }}>
         <label style={{ ...labelStyle, fontSize: '13px', marginBottom: '12px' }}>Transaction Timeline</label>
@@ -2065,8 +2394,9 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
               const isDeduct = tx.type === 'DEDUCTION';
               const qtyColor = isDeduct ? '#ef4444' : '#059669';
               const qtyPrefix = isDeduct ? '' : '+';
+              const qty = tx.quantityChange != null ? Math.abs(tx.quantityChange) : tx.quantity;
               return (
-                <div key={tx._id || i} style={{
+                <div key={tx._id || tx.id || i} style={{
                   padding: '12px 14px', borderLeft: '3px solid #e5e7eb',
                   marginLeft: '8px', position: 'relative',
                   backgroundColor: i === 0 ? '#f0fdf4' : 'transparent',
@@ -2083,12 +2413,20 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>{fmtDate(tx.date || tx.createdAt)}</span>
                     {typeBadge(tx.type)}
                     <span style={{ fontWeight: 700, fontSize: '13px', color: qtyColor }}>
-                      {qtyPrefix}{tx.quantity} {tx.unit || stockHistoryItem?.unit || ''}
+                      {qtyPrefix}{qty} {tx.unit || stockHistoryItem?.unit || ''}
                     </span>
                   </div>
                   {(tx.previousStock != null && tx.newStock != null) && (
                     <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '2px' }}>
                       Stock: {tx.previousStock} → {tx.newStock}
+                    </div>
+                  )}
+                  {/* Price info */}
+                  {tx.costPerUnit > 0 && (
+                    <div style={{ fontSize: '12px', color: '#374151', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span>@ {formatCurrency(tx.costPerUnit)}/{stockHistoryItem?.unit || 'unit'}</span>
+                      {tx.totalCost > 0 && <span style={{ color: '#6b7280' }}>= {formatCurrency(tx.totalCost)} total</span>}
+                      {priceTrendBadge(tx.costPerUnit, tx.previousCostPerUnit)}
                     </div>
                   )}
                   {tx.notes && (
@@ -2117,11 +2455,12 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
               <thead>
                 <tr style={{ backgroundColor: '#f9fafb', textAlign: 'left' }}>
                   <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Batch #</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>MFG Date</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Expiry Date</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Date</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Cost/Unit</th>
                   <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Remaining / Original</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Batch Value</th>
                   <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Status</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Days to Expiry</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Expiry</th>
                 </tr>
               </thead>
               <tbody>
@@ -2129,15 +2468,26 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
                   const status = batchStatus(batch);
                   const dte = daysToExpiry(batch.expiryDate);
                   const dteColor = dte === null ? '#9ca3af' : dte <= 0 ? '#ef4444' : dte <= 3 ? '#f59e0b' : '#374151';
+                  const batchValue = (batch.remainingQty || 0) * (batch.costPerUnit || 0);
+                  // Find previous batch for price comparison
+                  const prevBatch = i < batches.length - 1 ? batches[i + 1] : null; // batches sorted newest first
                   return (
-                    <tr key={batch._id || i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '8px 10px', fontWeight: 600 }}>{i + 1}</td>
-                      <td style={{ padding: '8px 10px' }}>{fmtShortDate(batch.mfgDate)}</td>
-                      <td style={{ padding: '8px 10px' }}>{fmtShortDate(batch.expiryDate)}</td>
+                    <tr key={batch._id || batch.id || i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 600 }}>{batches.length - i}</td>
+                      <td style={{ padding: '8px 10px' }}>{fmtShortDate(batch.createdAt)}</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontWeight: 700 }}>{batch.costPerUnit ? formatCurrency(batch.costPerUnit) : '—'}</span>
+                          {prevBatch?.costPerUnit > 0 && batch.costPerUnit > 0 && priceTrendBadge(batch.costPerUnit, prevBatch.costPerUnit)}
+                        </div>
+                      </td>
                       <td style={{ padding: '8px 10px' }}>
                         <span style={{ fontWeight: 600 }}>{batch.remainingQty}</span>
-                        <span style={{ color: '#9ca3af' }}> / {batch.originalQty}</span>
+                        <span style={{ color: '#9ca3af' }}> / {batch.quantity || batch.originalQty}</span>
                         <span style={{ color: '#9ca3af', marginLeft: '4px' }}>{batch.unit || stockHistoryItem?.unit || ''}</span>
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: batchValue > 0 ? '#1f2937' : '#9ca3af' }}>
+                        {batchValue > 0 ? formatCurrency(batchValue) : '—'}
                       </td>
                       <td style={{ padding: '8px 10px' }}>
                         <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, backgroundColor: status.bg, color: status.color }}>

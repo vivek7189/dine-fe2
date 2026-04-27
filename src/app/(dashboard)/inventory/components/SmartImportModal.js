@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FaMagic, FaTrash, FaCheck, FaTimes, FaArrowLeft, FaChevronDown, FaChevronUp, FaExclamationTriangle, FaLeaf, FaDrumstickBite } from 'react-icons/fa';
+import { FaMagic, FaTrash, FaCheck, FaTimes, FaArrowLeft, FaChevronDown, FaChevronUp, FaExclamationTriangle, FaLeaf, FaDrumstickBite, FaFileImage, FaCloudUploadAlt, FaPaste, FaKeyboard, FaCamera, FaTruck } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 
 const primaryBtn = {
@@ -61,27 +61,212 @@ function Spinner() {
   );
 }
 
-// ─── Step 1: Input ──────────────────────────────────────────────────────────
+// ─── Step 1: Input (Text or Image) ──────────────────────────────────────────
 
-function StepInput({ text, setText, onParse, loading, error }) {
+function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInputMode, onParse, onParseImage, loading, error }) {
+  const fileInputRef = useRef(null);
+  const dropZoneRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFiles = useCallback((files) => {
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const valid = [];
+    for (const f of files) {
+      if (!validTypes.includes(f.type) && !f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i)) continue;
+      if (f.size > maxSize) continue;
+      valid.push(f);
+    }
+    if (valid.length > 0) {
+      setImageFiles(prev => [...prev, ...valid].slice(0, 5)); // max 5 images
+    }
+  }, [setImageFiles]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFiles(e.dataTransfer.files);
+  }, [handleFiles]);
+
+  const handlePaste = useCallback((e) => {
+    if (inputMode !== 'image') return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files = [];
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length > 0) {
+      handleFiles(files);
+      e.preventDefault();
+    }
+  }, [inputMode, handleFiles]);
+
+  useEffect(() => {
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
+  const removeImage = (idx) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const tabs = [
+    { id: 'text', label: 'Paste Text', icon: FaKeyboard },
+    { id: 'image', label: 'Upload Invoice', icon: FaCamera },
+  ];
+
   return (
     <div>
-      <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 14px 0', lineHeight: 1.6 }}>
-        Paste your recipe, ingredient list, menu data, or any text. Our AI will extract inventory items, menu items, categories, and recipes automatically.
-      </p>
-      <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder={"Example:\n\nPaneer Butter Masala\nIngredients: Paneer 250g, Butter 50g, Tomato puree 200ml, Cream 100ml, Kasuri methi 1 tsp\nPrice: ₹320, Veg\n\nChicken Biryani\nIngredients: Basmati rice 300g, Chicken 500g, Onion 200g, Yogurt 100g, Biryani masala 2 tbsp\nPrice: ₹380, Non-veg"}
-        style={{
-          width: '100%', minHeight: '260px', padding: '16px', borderRadius: '12px',
-          border: '1.5px solid #e8ecf1', fontSize: '14px', lineHeight: 1.7, resize: 'vertical',
-          outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
-          backgroundColor: '#fafcfe', color: '#1f2937', transition: 'border-color 0.2s'
-        }}
-        onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.08)'; }}
-        onBlur={e => { e.target.style.borderColor = '#e8ecf1'; e.target.style.boxShadow = 'none'; }}
-      />
+      {/* Mode Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = inputMode === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setInputMode(tab.id)}
+              style={{
+                flex: 1, padding: '9px 14px', borderRadius: '8px', border: 'none',
+                background: isActive ? '#fff' : 'transparent',
+                color: isActive ? '#059669' : '#64748b',
+                fontSize: '13px', fontWeight: isActive ? 700 : 500, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Icon size={12} /> {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Text Mode */}
+      {inputMode === 'text' && (
+        <>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 14px 0', lineHeight: 1.6 }}>
+            Paste your recipe, ingredient list, menu data, or any text. Our AI will extract inventory items, menu items, categories, and recipes automatically.
+          </p>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder={"Example:\n\nPaneer Butter Masala\nIngredients: Paneer 250g, Butter 50g, Tomato puree 200ml, Cream 100ml, Kasuri methi 1 tsp\nPrice: ₹320, Veg\n\nChicken Biryani\nIngredients: Basmati rice 300g, Chicken 500g, Onion 200g, Yogurt 100g, Biryani masala 2 tbsp\nPrice: ₹380, Non-veg"}
+            style={{
+              width: '100%', minHeight: '240px', padding: '16px', borderRadius: '12px',
+              border: '1.5px solid #e8ecf1', fontSize: '14px', lineHeight: 1.7, resize: 'vertical',
+              outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+              backgroundColor: '#fafcfe', color: '#1f2937', transition: 'border-color 0.2s'
+            }}
+            onFocus={e => { e.target.style.borderColor = '#059669'; e.target.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.08)'; }}
+            onBlur={e => { e.target.style.borderColor = '#e8ecf1'; e.target.style.boxShadow = 'none'; }}
+          />
+        </>
+      )}
+
+      {/* Image Mode */}
+      {inputMode === 'image' && (
+        <>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 14px 0', lineHeight: 1.6 }}>
+            Upload a supplier invoice, purchase bill, or any document image. AI will extract all items with quantities, costs, and categories. You can also <strong>paste (Ctrl+V)</strong> a screenshot.
+          </p>
+          <div
+            ref={dropZoneRef}
+            onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: `2px dashed ${isDragging ? '#059669' : '#d1d5db'}`,
+              borderRadius: '14px', padding: imageFiles.length > 0 ? '16px' : '48px 24px',
+              textAlign: 'center', cursor: 'pointer',
+              backgroundColor: isDragging ? '#f0fdf4' : '#fafcfe',
+              transition: 'all 0.2s',
+              minHeight: imageFiles.length > 0 ? 'auto' : '200px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.heic,.heif"
+              multiple
+              style={{ display: 'none' }}
+              onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
+            />
+            {imageFiles.length === 0 ? (
+              <>
+                <FaCloudUploadAlt size={36} style={{ color: '#94a3b8', marginBottom: '12px' }} />
+                <div style={{ fontSize: '15px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                  Drop invoice image here or click to upload
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  JPG, PNG, WebP &bull; Max 10MB &bull; Up to 5 images
+                </div>
+                <div style={{
+                  marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px', backgroundColor: '#f0fdf4', borderRadius: '8px',
+                  fontSize: '12px', color: '#059669', fontWeight: 500
+                }}>
+                  <FaPaste size={10} /> Tip: You can also paste (Ctrl+V) a screenshot
+                </div>
+              </>
+            ) : (
+              <div style={{ width: '100%' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                  {imageFiles.map((file, idx) => (
+                    <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e8ecf1' }}>
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Invoice ${idx + 1}`}
+                        style={{ width: '100%', height: '100px', objectFit: 'cover', display: 'block' }}
+                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                        style={{
+                          position: 'absolute', top: '4px', right: '4px',
+                          background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none',
+                          borderRadius: '50%', width: '22px', height: '22px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', fontSize: '10px'
+                        }}
+                      >
+                        <FaTimes size={8} />
+                      </button>
+                      <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        background: 'rgba(0,0,0,0.5)', color: 'white', padding: '3px 6px',
+                        fontSize: '10px', textAlign: 'center'
+                      }}>
+                        {(file.size / 1024).toFixed(0)} KB
+                      </div>
+                    </div>
+                  ))}
+                  {imageFiles.length < 5 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                      style={{
+                        height: '100px', borderRadius: '10px', border: '2px dashed #d1d5db',
+                        background: '#f9fafb', cursor: 'pointer', display: 'flex',
+                        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        gap: '4px', color: '#94a3b8', fontSize: '12px',
+                      }}
+                    >
+                      <FaCloudUploadAlt size={18} />
+                      Add more
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {error && (
         <div style={{ marginTop: '10px', padding: '10px 14px', backgroundColor: '#fef2f2', borderRadius: '8px', color: '#dc2626', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaExclamationTriangle size={12} /> {error}
@@ -89,17 +274,17 @@ function StepInput({ text, setText, onParse, loading, error }) {
       )}
       <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
         <button
-          onClick={onParse}
-          disabled={!text.trim() || loading}
+          onClick={inputMode === 'text' ? onParse : onParseImage}
+          disabled={(inputMode === 'text' ? !text.trim() : imageFiles.length === 0) || loading}
           style={{
             ...primaryBtn,
-            opacity: (!text.trim() || loading) ? 0.6 : 1,
-            cursor: (!text.trim() || loading) ? 'not-allowed' : 'pointer',
+            opacity: ((inputMode === 'text' ? !text.trim() : imageFiles.length === 0) || loading) ? 0.6 : 1,
+            cursor: ((inputMode === 'text' ? !text.trim() : imageFiles.length === 0) || loading) ? 'not-allowed' : 'pointer',
             padding: '12px 28px', fontSize: '14px'
           }}
         >
           {loading ? <Spinner /> : <FaMagic size={14} />}
-          {loading ? 'Parsing...' : 'Parse with AI'}
+          {loading ? 'Analyzing...' : inputMode === 'image' ? 'Extract with AI' : 'Parse with AI'}
         </button>
       </div>
     </div>
@@ -107,6 +292,78 @@ function StepInput({ text, setText, onParse, loading, error }) {
 }
 
 // ─── Step 2: Preview ────────────────────────────────────────────────────────
+
+function InvoiceInventorySection({ items, onRemove, onChange, supplierInfo }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      {supplierInfo && (supplierInfo.name || supplierInfo.invoiceNumber) && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px',
+          backgroundColor: '#eff6ff', borderRadius: '10px', marginBottom: '14px',
+          fontSize: '13px', color: '#1e40af', fontWeight: 500
+        }}>
+          <FaTruck size={12} />
+          <span>Supplier: <strong>{supplierInfo.name || 'Unknown'}</strong></span>
+          {supplierInfo.invoiceNumber && <span style={{ color: '#64748b' }}>&bull; Invoice #{supplierInfo.invoiceNumber}</span>}
+          {supplierInfo.date && <span style={{ color: '#64748b' }}>&bull; {supplierInfo.date}</span>}
+          {supplierInfo.total && <span style={{ color: '#64748b' }}>&bull; Total: ₹{supplierInfo.total}</span>}
+        </div>
+      )}
+      <h3 style={sectionTitleStyle}>
+        <span style={{ width: '24px', height: '24px', borderRadius: '6px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px' }}>📦</span>
+        </span>
+        Inventory Items
+        <span style={{ fontSize: '12px', fontWeight: 500, color: '#64748b' }}>({items.length})</span>
+      </h3>
+      <div style={{ borderRadius: '10px', border: '1px solid #e8ecf1', overflow: 'hidden', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '650px' }}>
+          <thead>
+            <tr>
+              <th style={tableHeaderStyle}>Name</th>
+              <th style={tableHeaderStyle}>Category</th>
+              <th style={tableHeaderStyle}>Unit</th>
+              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Qty</th>
+              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Cost/Unit (₹)</th>
+              <th style={{ ...tableHeaderStyle, width: '40px' }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => {
+              const missingName = !item.name?.trim();
+              return (
+                <tr key={i} style={{ backgroundColor: item.isDuplicate ? '#fffbeb' : missingName ? '#fef2f2' : (i % 2 === 0 ? '#fff' : '#fafcfe') }}>
+                  <td style={tableCellStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input value={item.name || ''} onChange={e => onChange(i, 'name', e.target.value)} style={{ ...inputStyle, padding: '6px 8px', borderColor: missingName ? '#fca5a5' : '#e8ecf1' }} placeholder="Item name *" />
+                      {item.isDuplicate && <span style={badgeWarning}><FaExclamationTriangle size={9} /> Exists</span>}
+                    </div>
+                  </td>
+                  <td style={tableCellStyle}>
+                    <input value={item.category || ''} onChange={e => onChange(i, 'category', e.target.value)} style={{ ...inputStyle, padding: '6px 8px', width: '100px' }} />
+                  </td>
+                  <td style={tableCellStyle}>
+                    <input value={item.unit || ''} onChange={e => onChange(i, 'unit', e.target.value)} style={{ ...inputStyle, padding: '6px 8px', width: '70px' }} />
+                  </td>
+                  <td style={{ ...tableCellStyle, textAlign: 'right' }}>
+                    <input type="number" value={item.quantity || ''} onChange={e => onChange(i, 'quantity', e.target.value)} style={{ ...inputStyle, padding: '6px 8px', width: '70px', textAlign: 'right' }} />
+                  </td>
+                  <td style={{ ...tableCellStyle, textAlign: 'right' }}>
+                    <input type="number" value={item.costPerUnit || ''} onChange={e => onChange(i, 'costPerUnit', e.target.value)} style={{ ...inputStyle, padding: '6px 8px', width: '80px', textAlign: 'right' }} />
+                  </td>
+                  <td style={tableCellStyle}>
+                    <button onClick={() => onRemove(i)} style={dangerBtn} title="Remove"><FaTrash size={10} /></button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 function InventoryItemsSection({ items, onRemove, onChange }) {
   if (!items || items.length === 0) return null;
@@ -340,7 +597,7 @@ function RecipesSection({ recipes, onRemove }) {
   );
 }
 
-function StepPreview({ data, setData, onBack, onConfirm, loading, error }) {
+function StepPreview({ data, setData, onBack, onConfirm, loading, error, isInvoiceMode }) {
   const removeInventoryItem = (index) => {
     setData(prev => ({ ...prev, inventoryItems: prev.inventoryItems.filter((_, i) => i !== index) }));
   };
@@ -378,7 +635,16 @@ function StepPreview({ data, setData, onBack, onConfirm, loading, error }) {
         AI found {totalItems} item{totalItems !== 1 ? 's' : ''} to import. Review and edit before confirming.
       </div>
 
-      <InventoryItemsSection items={data.inventoryItems} onRemove={removeInventoryItem} onChange={changeInventoryItem} />
+      {isInvoiceMode ? (
+        <InvoiceInventorySection
+          items={data.inventoryItems}
+          onRemove={removeInventoryItem}
+          onChange={changeInventoryItem}
+          supplierInfo={data.supplierInfo}
+        />
+      ) : (
+        <InventoryItemsSection items={data.inventoryItems} onRemove={removeInventoryItem} onChange={changeInventoryItem} />
+      )}
       <MenuCategoriesSection categories={data.menuCategories} onRemove={removeCategory} />
       <MenuItemsSection items={data.menuItems} onRemove={removeMenuItem} onChange={changeMenuItem} />
       <RecipesSection recipes={data.recipes} onRemove={removeRecipe} />
@@ -487,21 +753,34 @@ function StepResult({ result, onDone }) {
 
 // ─── Main Modal ─────────────────────────────────────────────────────────────
 
-export default function SmartImportModal({ isOpen, onClose, restaurantId, onSuccess }) {
+export default function SmartImportModal({ isOpen, onClose, restaurantId, onSuccess, initialMode }) {
   const [step, setStep] = useState(1);
   const [text, setText] = useState('');
+  const [imageFiles, setImageFiles] = useState([]);
+  const [inputMode, setInputMode] = useState(initialMode || 'text'); // 'text' or 'image'
   const [parsedData, setParsedData] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isInvoiceMode, setIsInvoiceMode] = useState(false);
+
+  // Sync inputMode when initialMode changes (e.g. opening via "Scan Invoice" button)
+  useEffect(() => {
+    if (isOpen && initialMode) {
+      setInputMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
 
   const reset = () => {
     setStep(1);
     setText('');
+    setImageFiles([]);
+    setInputMode(initialMode || 'text');
     setParsedData(null);
     setResult(null);
     setLoading(false);
     setError('');
+    setIsInvoiceMode(false);
   };
 
   const handleClose = () => {
@@ -518,9 +797,51 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
         body: JSON.stringify({ text }),
       });
       setParsedData(res.data);
+      setIsInvoiceMode(false);
       setStep(2);
     } catch (err) {
       setError(err.message || 'Failed to parse text. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleParseImage = async () => {
+    if (imageFiles.length === 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFiles[0]);
+      formData.append('mode', 'invoice');
+      // If multiple images, append extras as additional context
+      if (imageFiles.length > 1) {
+        for (let i = 1; i < imageFiles.length; i++) {
+          formData.append(`image_${i}`, imageFiles[i]);
+        }
+      }
+
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const response = await fetch(`${baseUrl}/api/inventory/${restaurantId}/smart-import/parse`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || errData.message || 'Failed to analyze image');
+      }
+
+      const res = await response.json();
+      setParsedData(res.data);
+      setIsInvoiceMode(true);
+      setStep(2);
+    } catch (err) {
+      setError(err.message || 'Failed to analyze invoice image. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -530,9 +851,14 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
     setLoading(true);
     setError('');
     try {
+      // For invoice mode, include supplierInfo and quantities
+      const payload = { ...parsedData };
+      if (isInvoiceMode && parsedData.supplierInfo) {
+        payload.supplierInfo = parsedData.supplierInfo;
+      }
       const res = await apiClient.request(`/api/inventory/${restaurantId}/smart-import/confirm`, {
         method: 'POST',
-        body: JSON.stringify(parsedData),
+        body: JSON.stringify(payload),
       });
       setResult(res);
       setStep(3);
@@ -562,7 +888,7 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
       onClick={e => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <div style={{
-        backgroundColor: 'white', borderRadius: '16px', width: '90%', maxWidth: '800px',
+        backgroundColor: 'white', borderRadius: '16px', width: '90%', maxWidth: '860px',
         maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
         boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)'
       }}>
@@ -597,7 +923,18 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
         {/* Body */}
         <div style={{ padding: '22px', overflowY: 'auto', flex: 1, backgroundColor: '#fafcfe' }}>
           {step === 1 && (
-            <StepInput text={text} setText={setText} onParse={handleParse} loading={loading} error={error} />
+            <StepInput
+              text={text}
+              setText={setText}
+              imageFiles={imageFiles}
+              setImageFiles={setImageFiles}
+              inputMode={inputMode}
+              setInputMode={setInputMode}
+              onParse={handleParse}
+              onParseImage={handleParseImage}
+              loading={loading}
+              error={error}
+            />
           )}
           {step === 2 && parsedData && (
             <StepPreview
@@ -607,6 +944,7 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
               onConfirm={handleConfirm}
               loading={loading}
               error={error}
+              isInvoiceMode={isInvoiceMode}
             />
           )}
           {step === 3 && result && (

@@ -1639,6 +1639,13 @@ class ApiClient {
     });
   }
 
+  async generateFullRecipe(restaurantId, data) {
+    return this.request(`/api/recipes/${restaurantId}/generate-full`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async deleteRecipe(restaurantId, recipeId) {
     return this.request(`/api/recipes/${restaurantId}/${recipeId}`, {
       method: 'DELETE',

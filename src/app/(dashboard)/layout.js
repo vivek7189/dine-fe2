@@ -32,6 +32,7 @@ const ROUTE_ACCESS_MAP = {
   '/dineai': 'analytics',
   '/analytics': 'analytics',
   '/shifts': 'admin',
+  '/attendance': 'admin',
   '/offers': 'offers',
   '/automation': 'admin',
 };

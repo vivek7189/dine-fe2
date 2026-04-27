@@ -16,7 +16,7 @@ import InsightsTab from './components/InsightsTab';
 import WasteTab from './components/WasteTab';
 import InventoryModals from './components/InventoryModals';
 import WasteModals from './components/WasteModals';
-import SmartImportModal from './components/SmartImportModal';
+// SmartImportModal is now integrated into AddEditItemModal (InventoryModals.js)
 
 const tabs = [
   { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
@@ -33,7 +33,7 @@ const validTabIds = tabs.map(t => t.id);
 export default function InventoryManagement() {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
   const inventory = useInventory();
-  const [showSmartImport, setShowSmartImport] = useState(false);
+  // SmartImport is now integrated into the Add Item modal tabs
   const waste = useWaste(inventory.currentRestaurant, inventory.inventoryItems);
   const { loading, isMobile, activeTab, setActiveTab, error: invError, setError: setInvError, success: invSuccess, setSuccess: setInvSuccess } = inventory;
   const error = invError || waste.error;
@@ -135,7 +135,7 @@ export default function InventoryManagement() {
           {permissions.add && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
-                onClick={() => setShowSmartImport(true)}
+                onClick={() => inventory.setShowAddModal(true)}
                 style={{
                   padding: '10px 18px',
                   background: 'linear-gradient(135deg, #059669, #10b981)',
@@ -376,12 +376,6 @@ export default function InventoryManagement() {
       {/* All Modals */}
       <InventoryModals {...inventory} formatCurrency={formatCurrency} />
       <WasteModals waste={waste} inventoryItems={inventory.inventoryItems} recipes={inventory.recipes} formatCurrency={formatCurrency} />
-      <SmartImportModal
-        isOpen={showSmartImport}
-        onClose={() => setShowSmartImport(false)}
-        restaurantId={inventory.currentRestaurant?.id}
-        onSuccess={() => inventory.loadInventoryData()}
-      />
     </div>
   );
 }

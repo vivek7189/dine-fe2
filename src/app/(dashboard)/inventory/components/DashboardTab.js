@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  FaPlus, FaBoxes, FaExclamationTriangle, FaChartLine,
-  FaWarehouse, FaBolt, FaArrowRight, FaClipboardList, FaTrash, FaTimes, FaClock
+  FaPlus, FaBoxes, FaExclamationTriangle, FaWarehouse,
+  FaBolt, FaArrowRight, FaClipboardList, FaTrash, FaTimes, FaClock
 } from 'react-icons/fa';
 
 export default function DashboardTab({
@@ -100,14 +100,12 @@ export default function DashboardTab({
       {/* Quick Actions */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
+        gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(3, 1fr)',
         gap: isMobile ? '10px' : '12px',
       }}>
         {[
           permissions.add && { label: 'Add Item', icon: FaPlus, gradient: 'linear-gradient(135deg, #059669, #10b981)', action: () => setShowAddModal(true) },
           permissions.update && { label: 'Quick Stock', icon: FaBolt, gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)', action: () => setShowQuickStockModal(true) },
-          { label: 'View Stock', icon: FaWarehouse, gradient: 'linear-gradient(135deg, #3b82f6, #60a5fa)', action: () => setActiveTab('stock') },
-          { label: 'AI Insights', icon: FaChartLine, gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', action: () => setActiveTab('insights') },
           permissions.update && { label: 'Log Waste', icon: FaTrash, gradient: 'linear-gradient(135deg, #ef4444, #f87171)', action: onLogWaste },
         ].filter(Boolean).map((btn) => (
           <button

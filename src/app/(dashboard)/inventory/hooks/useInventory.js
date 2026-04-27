@@ -37,6 +37,7 @@ export default function useInventory() {
   const [showViewRecipeModal, setShowViewRecipeModal] = useState(false);
   const [viewingRecipe, setViewingRecipe] = useState(null);
   const [generatingSteps, setGeneratingSteps] = useState(false);
+  const [generatingFullRecipe, setGeneratingFullRecipe] = useState(false);
 
   // Stock history
   const [showStockHistoryModal, setShowStockHistoryModal] = useState(false);
@@ -831,6 +832,101 @@ export default function useInventory() {
     }
   };
 
+  const handleGenerateFullRecipe = async () => {
+    if (!currentRestaurant || !recipeFormData.name) return;
+    try {
+      setGeneratingFullRecipe(true); setError(null);
+      const existingItems = inventoryItems.map(item => ({
+        name: item.name, id: item.id, unit: item.unit,
+      }));
+      const result = await apiClient.generateFullRecipe(currentRestaurant.id, {
+        name: recipeFormData.name,
+        servings: recipeFormData.servings || 4,
+        existingInventoryItems: existingItems,
+      });
+      if (result) {
+        // Map AI ingredients to existing inventory items via fuzzy name match
+        const unmatchedToCreate = [];
+        const mappedIngredients = (result.ingredients || []).map(aiIng => {
+          const normalizedName = (aiIng.itemName || '').toLowerCase().trim();
+          const match = inventoryItems.find(inv => {
+            const invName = inv.name.toLowerCase().trim();
+            return invName === normalizedName ||
+              invName.includes(normalizedName) ||
+              normalizedName.includes(invName);
+          });
+          if (!match) {
+            unmatchedToCreate.push({
+              name: aiIng.itemName,
+              unit: aiIng.unit || 'g',
+              category: result.category || 'Other',
+            });
+          }
+          return {
+            inventoryItemId: match ? match.id : '',
+            inventoryItemName: match ? match.name : aiIng.itemName,
+            quantity: aiIng.quantity || 0,
+            unit: aiIng.unit || '',
+            _unmatched: !match,
+          };
+        });
+
+        // Auto-create unmatched ingredients as new inventory items (stock = 0)
+        let createdCount = 0;
+        if (unmatchedToCreate.length > 0) {
+          for (const newItem of unmatchedToCreate) {
+            try {
+              const created = await apiClient.createInventoryItem(currentRestaurant.id, {
+                name: newItem.name,
+                unit: newItem.unit,
+                category: newItem.category,
+                currentStock: 0,
+                minStock: 0,
+                costPerUnit: 0,
+              });
+              // Update mapped ingredient with the new inventory item ID
+              const idx = mappedIngredients.findIndex(m => m._unmatched && m.inventoryItemName === newItem.name);
+              const newId = created?.item?.id || created?.id;
+              if (idx !== -1 && newId) {
+                mappedIngredients[idx].inventoryItemId = newId;
+                mappedIngredients[idx]._unmatched = false;
+              }
+              createdCount++;
+            } catch (e) {
+              console.warn(`Failed to create inventory item "${newItem.name}":`, e);
+            }
+          }
+          // Reload inventory to include new items
+          if (createdCount > 0) {
+            loadInventoryData();
+          }
+        }
+
+        setRecipeFormData(prev => ({
+          ...prev,
+          category: result.category || prev.category,
+          servings: result.servings || prev.servings,
+          prepTime: result.prepTime || prev.prepTime,
+          cookTime: result.cookTime || prev.cookTime,
+          description: result.description || prev.description,
+          instructions: result.instructions && result.instructions.length > 0 ? result.instructions : prev.instructions,
+          ingredients: mappedIngredients.length > 0 ? mappedIngredients : prev.ingredients,
+        }));
+
+        if (createdCount > 0) {
+          setSuccess(`AI generated recipe for ${result.servings || 4} servings! ${createdCount} new ingredient(s) added to inventory.`);
+        } else {
+          setSuccess(`AI generated complete recipe for ${result.servings || 4} servings!`);
+        }
+      }
+    } catch (error) {
+      console.error('Error generating full recipe:', error);
+      setError(error.message || 'Failed to generate recipe with AI');
+    } finally {
+      setGeneratingFullRecipe(false);
+    }
+  };
+
   const handleDeleteRecipe = async (recipeId) => {
     if (!currentRestaurant) return;
     if (confirm('Are you sure you want to delete this recipe?')) {
@@ -1030,7 +1126,7 @@ export default function useInventory() {
     showEditRecipeModal, setShowEditRecipeModal, editingRecipe, setEditingRecipe,
     showViewRecipeModal, setShowViewRecipeModal, viewingRecipe, setViewingRecipe,
     showStockHistoryModal, setShowStockHistoryModal, stockHistoryItem, stockHistoryData,
-    generatingSteps,
+    generatingSteps, generatingFullRecipe,
     showQuickOrderModal, setShowQuickOrderModal,
     quickOrderMode, setQuickOrderMode,
     quickOrderText, setQuickOrderText,
@@ -1070,7 +1166,7 @@ export default function useInventory() {
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
     handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
     addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction, handleDeleteRecipe,
-    handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps,
+    handleEditRecipe, handleUpdateRecipe, handleViewRecipe, handleGenerateRecipeSteps, handleGenerateFullRecipe,
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
     startVoiceListeningPO, generateReport, handleInvoiceOCR,
     loadInventoryData, loadSCMData,

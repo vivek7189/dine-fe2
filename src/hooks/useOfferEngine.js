@@ -17,6 +17,18 @@ const normalizePhone = (phone) => {
 // Normalize category names for comparison — "Hot beverages", "Hot-Beverages", "hot_beverages" all match
 const normalizeCategory = (cat) => String(cat || '').toLowerCase().replace(/[-_\s]+/g, '');
 
+// Check if an item is excluded from a specific offer
+const isItemExcluded = (item, offer) => {
+  if (Array.isArray(offer.excludedItems) && offer.excludedItems.length > 0) {
+    if (offer.excludedItems.includes(item.menuItemId || item.id)) return true;
+  }
+  if (Array.isArray(offer.excludedCategories) && offer.excludedCategories.length > 0) {
+    const normalizedExcluded = offer.excludedCategories.map(normalizeCategory);
+    if (normalizedExcluded.includes(normalizeCategory(item.category || item.categoryId || ''))) return true;
+  }
+  return false;
+};
+
 /**
  * Audience matcher mirroring backend services/offerEngine.js.
  * context: { customerId, customerPhone, customerGroupIds, isFirstOrder }
@@ -86,6 +98,7 @@ const calculateCrossItemBogo = (offer, cart) => {
 
   let buyUnits = 0;
   for (const item of cart) {
+    if (isItemExcluded(item, offer)) continue;
     const id = item.menuItemId || item.id;
     const cat = (item.category || item.categoryId || '').toString();
     const qty = item.quantity || 0;
@@ -99,6 +112,7 @@ const calculateCrossItemBogo = (offer, cart) => {
 
   const pool = [];
   for (const item of cart) {
+    if (isItemExcluded(item, offer)) continue;
     const id = item.menuItemId || item.id;
     if (!getItemIds.includes(id)) continue;
     const qty = item.quantity || 0;
@@ -145,11 +159,18 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
   if (offerScope === 'category' && Array.isArray(offer.targetCategories) && offer.targetCategories.length > 0) {
     const normalizedTargets = offer.targetCategories.map(normalizeCategory);
     applicableSubtotal = cart
+      .filter(item => !isItemExcluded(item, offer))
       .filter(item => normalizedTargets.includes(normalizeCategory(item.category || '')))
       .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
   } else if (offerScope === 'item' && Array.isArray(offer.targetItems) && offer.targetItems.length > 0) {
     applicableSubtotal = cart
+      .filter(item => !isItemExcluded(item, offer))
       .filter(item => offer.targetItems.includes(item.menuItemId || item.id))
+      .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
+  } else {
+    // Order-level scope: filter out offer-excluded items
+    applicableSubtotal = cart
+      .filter(item => !isItemExcluded(item, offer))
       .reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
   }
 
@@ -170,7 +191,7 @@ export const calculateOfferResult = (offer, subtotal, cart = [], context = {}) =
 
   // Legacy same-item BOGO
   if (offer.promotionType === 'bogo' && offer.bogoConfig) {
-    let bogoItems = cart;
+    let bogoItems = cart.filter(item => !isItemExcluded(item, offer));
     if (offerScope === 'item' && offer.targetItems?.length > 0) {
       bogoItems = cart.filter(item => offer.targetItems.includes(item.menuItemId || item.id));
     } else if (offerScope === 'category' && offer.targetCategories?.length > 0) {

@@ -149,6 +149,9 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     crossItemBogo: { enabled: false, buyItemIds: [], buyCategoryIds: [], buyQty: 1, getItemIds: [], getQty: 1, maxApplications: null },
     usageLimitPerCustomer: null,
     priority: 0,
+    // Exclusions: items/categories excluded from this offer
+    excludedCategories: [],
+    excludedItems: [],
     // Internal UI flag: one of 'simple' | 'tiered' | 'bogo_same' | 'bogo_cross'
     discountMode: 'simple',
   };
@@ -365,6 +368,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
         crossItemBogo: offer.crossItemBogo || { enabled: false, buyItemIds: [], buyCategoryIds: [], buyQty: 1, getItemIds: [], getQty: 1, maxApplications: null },
         usageLimitPerCustomer: offer.usageLimitPerCustomer ?? null,
         priority: offer.priority ?? 0,
+        excludedCategories: offer.excludedCategories || [],
+        excludedItems: offer.excludedItems || [],
         discountMode: inferDiscountMode(offer),
       });
     } else {
@@ -399,8 +404,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
     setSaving(true);
     try {
-      // Build payload: strip UI-only flag, normalize sections based on discountMode
-      const { discountMode, ...rest } = formData;
+      // Build payload: strip UI-only flags, normalize sections based on discountMode
+      const { discountMode, _showExclusions, ...rest } = formData;
       const payload = { ...rest };
       if (discountMode === 'simple') {
         payload.tiers = [];
@@ -2145,6 +2150,64 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   )}
                 </div>
               )}
+
+              {/* Exclusions (Optional) */}
+              {(() => {
+                const hasExclusions = (formData.excludedCategories?.length > 0 || formData.excludedItems?.length > 0);
+                const allCategories = [...new Set(menuItems.map(it => it.category || it._categoryName).filter(Boolean))];
+                const catItems = allCategories.map(c => ({ id: c, name: c }));
+                return (
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '8px' }}
+                      onClick={() => { ensureMenuLoaded(); }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={hasExclusions || formData._showExclusions}
+                        onChange={(e) => {
+                          if (!e.target.checked) {
+                            setFormData(prev => ({ ...prev, excludedCategories: [], excludedItems: [], _showExclusions: false }));
+                          } else {
+                            setFormData(prev => ({ ...prev, _showExclusions: true }));
+                            ensureMenuLoaded();
+                          }
+                        }}
+                        style={{ width: '18px', height: '18px', accentColor: '#ec4899' }}
+                      />
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Exclude items/categories from this offer</span>
+                    </label>
+                    {(hasExclusions || formData._showExclusions) && (
+                      <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                        <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: 0 }}>
+                          These items or categories won&apos;t receive the discount even if they match the offer scope.
+                        </p>
+                        <div style={{ marginBottom: '10px' }}>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                            Exclude Categories
+                          </label>
+                          <ItemMultiPicker
+                            items={catItems}
+                            selected={formData.excludedCategories || []}
+                            onChange={(ids) => setFormData(prev => ({ ...prev, excludedCategories: ids }))}
+                            placeholder="Search categories to exclude..."
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                            Exclude Items
+                          </label>
+                          <ItemMultiPicker
+                            items={menuItems}
+                            selected={formData.excludedItems || []}
+                            onChange={(ids) => setFormData(prev => ({ ...prev, excludedItems: ids }))}
+                            placeholder="Search items to exclude..."
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Schedule (Happy Hour) */}
               <div>

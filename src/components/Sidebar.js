@@ -26,7 +26,8 @@ import {
   FaCalendarAlt,
   FaFileInvoice,
   FaGoogle,
-  FaBook
+  FaBook,
+  FaUserClock
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -256,6 +257,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
     { id: 'shifts', name: 'Shifts', icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'admin', 'manager'] },
+    { id: 'attendance', name: 'Attendance', icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Tools & Extras ---
     { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
@@ -308,6 +310,7 @@ export default function Sidebar({ isDashboardPage = false }) {
         'books': 'admin',
         'dineai': 'analytics',
         'shifts': 'admin',
+        'attendance': 'admin',
         'google-reviews': 'admin',
       };
       const accessKey = accessMap[item.id];

@@ -342,6 +342,23 @@ export default function PayrollTab({
                           <div style={{ fontSize: '11px', color: '#9ca3af' }}>Base: {formatCurrency(slip.baseSalary)}</div>
                         </div>
                       </div>
+                      {slip.attendanceSummary && (
+                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f3f4f6' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '6px' }}>Attendance Summary</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', fontSize: '12px' }}>
+                            <div><span style={{ color: '#9ca3af' }}>Present:</span> <span style={{ fontWeight: 600, color: '#059669' }}>{slip.attendanceSummary.presentDays}</span></div>
+                            <div><span style={{ color: '#9ca3af' }}>Leaves:</span> <span style={{ fontWeight: 600, color: '#3b82f6' }}>{slip.attendanceSummary.paidLeaveDays}</span></div>
+                            <div><span style={{ color: '#9ca3af' }}>LOP:</span> <span style={{ fontWeight: 600, color: '#dc2626' }}>{slip.attendanceSummary.lopDays}</span></div>
+                            <div><span style={{ color: '#9ca3af' }}>OT Hrs:</span> <span style={{ fontWeight: 600, color: '#f59e0b' }}>{slip.attendanceSummary.overtimeHours}</span></div>
+                          </div>
+                          {(slip.lopDeduction > 0 || slip.overtimePay > 0) && (
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '12px' }}>
+                              {slip.lopDeduction > 0 && <span style={{ color: '#dc2626' }}>LOP Deduction: -{formatCurrency(slip.lopDeduction)}</span>}
+                              {slip.overtimePay > 0 && <span style={{ color: '#059669' }}>OT Pay: +{formatCurrency(slip.overtimePay)}</span>}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

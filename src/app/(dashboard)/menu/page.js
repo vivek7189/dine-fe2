@@ -47,7 +47,8 @@ import {
   FaTimes,
   FaQrcode,
   FaCamera,
-  FaCheckCircle
+  FaCheckCircle,
+  FaFlask
 } from 'react-icons/fa';
 
 // Enhanced Category Dropdown Component with Management
@@ -490,7 +491,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, style = {} }) =
 };
 
 // Ultra Compact Menu Item Card Component
-const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp }) => {
+const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability, onToggleFavorite, onGenerateRecipe, generatingRecipeFor, hasRecipe, getCategoryEmoji, onItemClick, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
 
@@ -941,6 +942,51 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               <FaEdit size={12} />
           </button>}
 
+          {onGenerateRecipe && <button
+              type="button"
+              disabled={generatingRecipeFor === item.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (!hasRecipe) onGenerateRecipe(item);
+              }}
+              style={{
+                padding: '6px',
+                background: generatingRecipeFor === item.id
+                  ? '#d1d5db'
+                  : hasRecipe
+                    ? '#f0fdf4'
+                    : 'linear-gradient(135deg, #059669, #10b981)',
+                color: hasRecipe ? '#059669' : 'white',
+                border: hasRecipe ? '1.5px solid #bbf7d0' : 'none',
+                borderRadius: '8px',
+                cursor: generatingRecipeFor === item.id ? 'wait' : hasRecipe ? 'default' : 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: hasRecipe ? 'none' : '0 2px 4px rgba(5, 150, 105, 0.2)',
+                opacity: generatingRecipeFor === item.id ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (generatingRecipeFor !== item.id && !hasRecipe) {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(5, 150, 105, 0.3)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = hasRecipe ? 'none' : '0 2px 4px rgba(5, 150, 105, 0.2)';
+              }}
+              title={generatingRecipeFor === item.id ? 'Generating recipe...' : hasRecipe ? 'Recipe linked' : 'Generate Recipe & Link Inventory'}
+            >
+              {generatingRecipeFor === item.id
+                ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                : hasRecipe
+                  ? <FaCheckCircle size={12} />
+                  : <FaFlask size={12} />}
+          </button>}
+
           {onToggleAvailability && <button
               type="button"
               onClick={(e) => {
@@ -1305,15 +1351,14 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
 };
 
 // Item Detail Modal Component
-const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp }) => {
+const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, onToggleAvailability, getCategoryEmoji, multiPricingEnabled, activePricingRules, formatCurrency: formatCurrencyProp, recipe }) => {
   const { formatCurrency: formatCurrencyHook } = useCurrency();
   const formatCurrency = formatCurrencyProp || formatCurrencyHook;
   if (!isOpen || !item) return null;
+  if (typeof document === 'undefined') return null;
   const category = categories.find(c => c.id === item.category);
 
-  return (
-    <>
-      {/* Backdrop */}
+  return createPortal(
       <div
         style={{
           position: 'fixed',
@@ -1327,22 +1372,22 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           alignItems: 'flex-start',
           justifyContent: 'center',
           padding: '20px',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          animation: 'fadeIn 0.2s ease-out'
         }}
         onClick={onClose}
       >
-        {/* Modal Content */}
         <div
           style={{
             backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            maxWidth: '500px',
+            borderRadius: '20px',
+            maxWidth: '520px',
             width: '100%',
             marginTop: '20px',
             marginBottom: '20px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
             position: 'relative',
-            animation: 'slideInFromRight 0.3s ease-out'
+            animation: 'slideInUp 0.3s ease-out'
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1692,6 +1737,76 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
             </div>
           )}
 
+          {/* Recipe Section */}
+          {recipe && (
+            <div style={{ padding: '0 24px', marginBottom: '20px' }}>
+              <div style={{
+                padding: '16px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
+                border: '1px solid #bbf7d0'
+              }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#059669', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaFlask size={14} /> Recipe Linked
+                </h3>
+                {/* Recipe meta */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  {recipe.servings && (
+                    <span style={{ fontSize: '12px', color: '#374151', backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      {recipe.servings} servings
+                    </span>
+                  )}
+                  {recipe.prepTime > 0 && (
+                    <span style={{ fontSize: '12px', color: '#374151', backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      Prep: {recipe.prepTime}min
+                    </span>
+                  )}
+                  {recipe.cookTime > 0 && (
+                    <span style={{ fontSize: '12px', color: '#374151', backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      Cook: {recipe.cookTime}min
+                    </span>
+                  )}
+                </div>
+                {/* Ingredients */}
+                {recipe.ingredients && recipe.ingredients.length > 0 && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Ingredients ({recipe.ingredients.length})
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      {recipe.ingredients.map((ing, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '4px 8px', backgroundColor: 'white', borderRadius: '6px' }}>
+                          <span style={{ color: '#374151' }}>{ing.inventoryItemName || ing.itemName || ing.name}</span>
+                          <span style={{ color: '#6b7280', fontWeight: 600, whiteSpace: 'nowrap' }}>{ing.quantity} {ing.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Instructions summary */}
+                {recipe.instructions && recipe.instructions.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Steps ({recipe.instructions.length})
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#374151', lineHeight: 1.5 }}>
+                      {recipe.instructions.slice(0, 3).map((step, i) => (
+                        <div key={i} style={{ display: 'flex', gap: '6px', marginBottom: '2px' }}>
+                          <span style={{ color: '#059669', fontWeight: 700, minWidth: '16px' }}>{i + 1}.</span>
+                          <span>{step}</span>
+                        </div>
+                      ))}
+                      {recipe.instructions.length > 3 && (
+                        <div style={{ color: '#9ca3af', fontSize: '11px', marginTop: '2px' }}>
+                          +{recipe.instructions.length - 3} more steps
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           {(onEdit || onToggleAvailability || onDelete) && <div style={{
             padding: '16px 24px 24px 24px',
@@ -1815,34 +1930,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
             </button>}
           </div>}
         </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes slideInFromRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          @keyframes slideInFromRight {
-            from {
-              transform: translateY(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-        }
-      `}</style>
-    </>
+      </div>, document.body
   );
 };
 
@@ -1895,6 +1983,9 @@ const MenuManagement = () => {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [photoSuccess, setPhotoSuccess] = useState(false);
+  const [generatingRecipeFor, setGeneratingRecipeFor] = useState(null); // menu item ID currently generating recipe
+  const [recipeConfirmItem, setRecipeConfirmItem] = useState(null); // item pending recipe generation confirmation
+  const [menuItemRecipes, setMenuItemRecipes] = useState({}); // menuItemId → recipe data
   const cameraInputRef = useRef(null);
 
   // Permission gating
@@ -2036,6 +2127,19 @@ const MenuManagement = () => {
       setCachedMenuData(restaurantId, dataToCache);
       setCachedData(`menu_${restaurantId}`, dataToCache).catch(() => {});
       console.log('✅ Menu data cached');
+
+      // Load recipes for menu items (for recipe icon status)
+      try {
+        const recipesRes = await apiClient.getRecipes(restaurantId);
+        const recipes = recipesRes.recipes || recipesRes || [];
+        const recipeMap = {};
+        recipes.forEach(r => {
+          if (r.menuItemId) recipeMap[r.menuItemId] = r;
+        });
+        setMenuItemRecipes(recipeMap);
+      } catch (e) {
+        console.warn('Could not load recipes for menu items:', e);
+      }
 
     } catch (error) {
       console.error('Error loading menu data:', error);
@@ -2632,6 +2736,124 @@ const MenuManagement = () => {
       setError('Failed to update item availability');
     } finally {
       setOperationLoading(false);
+    }
+  };
+
+  const handleGenerateRecipe = (item) => {
+    if (!currentRestaurant?.id) {
+      setError('No restaurant selected');
+      return;
+    }
+    setRecipeConfirmItem(item);
+  };
+
+  const confirmGenerateRecipe = async () => {
+    const item = recipeConfirmItem;
+    if (!item) return;
+    setRecipeConfirmItem(null);
+
+    try {
+      setGeneratingRecipeFor(item.id);
+
+      // 1. Generate recipe via AI
+      const result = await apiClient.generateFullRecipe(currentRestaurant.id, {
+        name: item.name,
+        servings: 1,
+        menuItemId: item.id,
+      });
+
+      const recipe = result.recipe || result;
+      const ingredients = recipe.ingredients || [];
+
+      // 2. Load existing inventory items for matching
+      const invResponse = await apiClient.getInventoryItems(currentRestaurant.id);
+      const inventoryItems = invResponse.items || invResponse || [];
+
+      // 3. Map ingredients — fuzzy match to existing inventory, auto-create missing ones
+      const mappedIngredients = [];
+      for (const ing of ingredients) {
+        const ingName = (ing.itemName || ing.name || '').toLowerCase().trim();
+        const match = inventoryItems.find(inv => {
+          const invName = (inv.name || '').toLowerCase().trim();
+          return invName === ingName || invName.includes(ingName) || ingName.includes(invName);
+        });
+
+        if (match) {
+          mappedIngredients.push({
+            inventoryItemId: match.id,
+            inventoryItemName: match.name,
+            quantity: ing.quantity || 0,
+            unit: ing.unit || match.unit || '',
+          });
+        } else {
+          // Auto-create inventory item with stock 0
+          try {
+            const created = await apiClient.createInventoryItem(currentRestaurant.id, {
+              name: ing.itemName || ing.name,
+              category: recipe.category || 'General',
+              unit: ing.unit || 'pcs',
+              currentStock: 0,
+              minimumStock: 0,
+              costPerUnit: 0,
+            });
+            const newId = created?.item?.id || created?.id || '';
+            mappedIngredients.push({
+              inventoryItemId: newId,
+              inventoryItemName: ing.itemName || ing.name,
+              quantity: ing.quantity || 0,
+              unit: ing.unit || 'pcs',
+            });
+          } catch (createErr) {
+            console.warn(`Could not auto-create inventory item: ${ing.itemName}`, createErr);
+            mappedIngredients.push({
+              inventoryItemId: '',
+              inventoryItemName: ing.itemName || ing.name,
+              quantity: ing.quantity || 0,
+              unit: ing.unit || '',
+            });
+          }
+        }
+      }
+
+      // 4. Save the recipe linked to this menu item
+      await apiClient.createRecipe(currentRestaurant.id, {
+        name: item.name,
+        menuItemId: item.id,
+        menuItemName: item.name,
+        category: recipe.category || '',
+        servings: recipe.servings || 1,
+        prepTime: recipe.prepTime || 0,
+        cookTime: recipe.cookTime || 0,
+        description: recipe.description || '',
+        ingredients: mappedIngredients,
+        instructions: recipe.instructions || [],
+        isActive: true,
+      });
+
+      // Update recipe map so icon changes immediately
+      setMenuItemRecipes(prev => ({
+        ...prev,
+        [item.id]: {
+          name: item.name,
+          menuItemId: item.id,
+          category: recipe.category || '',
+          servings: recipe.servings || 1,
+          prepTime: recipe.prepTime || 0,
+          cookTime: recipe.cookTime || 0,
+          description: recipe.description || '',
+          ingredients: mappedIngredients,
+          instructions: recipe.instructions || [],
+        }
+      }));
+
+      setSuccessMessage(`Recipe created for "${item.name}" with ${mappedIngredients.length} ingredients linked to inventory`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Error generating recipe:', error);
+      setError('Failed to generate recipe: ' + (error.message || 'Unknown error'));
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setGeneratingRecipeFor(null);
     }
   };
 
@@ -3520,6 +3742,9 @@ const MenuManagement = () => {
                   onDelete={canDeleteMenuItem ? handleDelete : undefined}
                   onToggleAvailability={canMarkOutOfStock ? handleToggleAvailability : undefined}
                   onToggleFavorite={handleToggleFavorite}
+                  onGenerateRecipe={canAddMenuItem ? handleGenerateRecipe : undefined}
+                  generatingRecipeFor={generatingRecipeFor}
+                  hasRecipe={!!menuItemRecipes[item.id]}
                   getCategoryEmoji={getCategoryEmoji}
                   onItemClick={handleItemClick}
                   multiPricingEnabled={multiPricingEnabled}
@@ -3692,6 +3917,7 @@ const MenuManagement = () => {
                       {[
                         { icon: <FaStar size={11} />, color: item.isFavorite ? '#f59e0b' : '#cbd5e1', hoverColor: '#f59e0b', title: 'Favorite', handler: (e) => { e.stopPropagation(); handleToggleFavorite(item); } },
                         canEditMenuItem && { icon: <FaEdit size={11} />, color: '#94a3b8', hoverColor: '#3b82f6', title: 'Edit', handler: (e) => { e.stopPropagation(); handleEdit(item); } },
+                        canAddMenuItem && { icon: generatingRecipeFor === item.id ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : menuItemRecipes[item.id] ? <FaCheckCircle size={11} /> : <FaFlask size={11} />, color: menuItemRecipes[item.id] ? '#059669' : '#94a3b8', hoverColor: '#059669', title: generatingRecipeFor === item.id ? 'Generating...' : menuItemRecipes[item.id] ? 'Recipe linked' : 'Generate Recipe', handler: (e) => { e.stopPropagation(); if (!menuItemRecipes[item.id]) handleGenerateRecipe(item); } },
                         canMarkOutOfStock && { icon: <FaMinus size={11} />, color: '#94a3b8', hoverColor: '#f59e0b', title: item.isAvailable ? 'Mark unavailable' : 'Mark available', handler: (e) => { e.stopPropagation(); handleToggleAvailability(item); } },
                         canDeleteMenuItem && { icon: <FaTrash size={11} />, color: '#94a3b8', hoverColor: '#ef4444', title: 'Delete', handler: (e) => { e.stopPropagation(); handleDelete(item.id); } },
                       ].filter(Boolean).map((action, i) => (
@@ -5178,6 +5404,111 @@ const MenuManagement = () => {
         document.body
       )}
 
+      {/* Recipe Generation Confirm Modal */}
+      {recipeConfirmItem && typeof document !== 'undefined' && createPortal(
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10002, padding: '20px',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '20px', padding: '32px',
+            maxWidth: '440px', width: '100%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+            animation: 'slideInUp 0.3s ease-out'
+          }}>
+            {/* Icon */}
+            <div style={{
+              width: '64px', height: '64px', margin: '0 auto 20px',
+              background: 'linear-gradient(135deg, #059669, #10b981)',
+              borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
+            }}>
+              <FaFlask size={28} color="white" />
+            </div>
+
+            {/* Title */}
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1f2937', textAlign: 'center', margin: '0 0 8px' }}>
+              Generate AI Recipe
+            </h3>
+
+            {/* Item name */}
+            <div style={{
+              textAlign: 'center', margin: '0 0 16px',
+              padding: '8px 16px', backgroundColor: '#f0fdf4', borderRadius: '10px',
+              border: '1px solid #bbf7d0'
+            }}>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#059669' }}>
+                {recipeConfirmItem.name}
+              </span>
+            </div>
+
+            {/* Description */}
+            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', margin: '0 0 24px', lineHeight: 1.5 }}>
+              AI will generate a full recipe with ingredients and link this item to inventory for <strong style={{ color: '#374151' }}>automatic stock tracking</strong> when orders are placed.
+            </p>
+
+            {/* What will happen */}
+            <div style={{
+              padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb', marginBottom: '24px', fontSize: '12px', color: '#374151'
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: '6px', fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>What happens:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FaCheckCircle size={10} color="#059669" />
+                  <span>AI generates ingredients, quantities & cooking steps</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FaCheckCircle size={10} color="#059669" />
+                  <span>Missing ingredients auto-added to inventory</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FaCheckCircle size={10} color="#059669" />
+                  <span>Stock auto-deducts when this item is ordered</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setRecipeConfirmItem(null)}
+                style={{
+                  flex: 1, padding: '12px', backgroundColor: '#f3f4f6', color: '#374151',
+                  border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmGenerateRecipe}
+                style={{
+                  flex: 1, padding: '12px',
+                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  color: 'white', border: 'none', borderRadius: '10px',
+                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                  transition: 'all 0.2s', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '6px',
+                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.3)'
+                }}
+                onMouseEnter={(e) => e.target.style.boxShadow = '0 4px 12px rgba(5, 150, 105, 0.4)'}
+                onMouseLeave={(e) => e.target.style.boxShadow = '0 2px 8px rgba(5, 150, 105, 0.3)'}
+              >
+                <FaFlask size={14} />
+                Generate Recipe
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Hidden Camera Input */}
       <input
         ref={cameraInputRef}
@@ -5374,6 +5705,14 @@ const MenuManagement = () => {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(180deg); }
         }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideInUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         @keyframes fadeInUp {
           from {
             opacity: 0;
@@ -5428,6 +5767,7 @@ const MenuManagement = () => {
         multiPricingEnabled={multiPricingEnabled}
         activePricingRules={activePricingRules}
         formatCurrency={formatCurrency}
+        recipe={selectedItem ? menuItemRecipes[selectedItem.id] : null}
       />
     </div>
   );
