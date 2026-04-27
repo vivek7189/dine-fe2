@@ -218,7 +218,8 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     const newGroup = {
       id: `tg_${Date.now()}`,
       name: newGroupName.trim(),
-      taxes: newGroupTaxes.filter(t => t.name.trim() && t.rate > 0)
+      taxes: newGroupTaxes.filter(t => t.name.trim() && t.rate > 0),
+      alsoApplyGlobalTax: false
     };
     setTaxSettings(prev => ({
       ...prev,
@@ -448,6 +449,19 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                               <FaTrash size={12} />
                             </button>
                           </div>
+
+                          {/* Also apply global taxes checkbox */}
+                          {group.id !== 'tax-exempt' && (group.taxes || []).length > 0 && (taxSettings.taxes || []).some(t => t.enabled) && (
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '12px', color: '#6b7280', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={group.alsoApplyGlobalTax || false}
+                                onChange={(e) => updateTaxGroup(group.id, { alsoApplyGlobalTax: e.target.checked })}
+                                style={{ accentColor: '#7c3aed' }}
+                              />
+                              Also apply global taxes ({(taxSettings.taxes || []).filter(t => t.enabled).map(t => `${t.name} ${t.rate}%`).join(', ')})
+                            </label>
+                          )}
 
                           {/* Applied To — Categories */}
                           {categories.length > 0 && (

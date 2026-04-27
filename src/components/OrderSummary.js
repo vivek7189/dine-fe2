@@ -493,13 +493,32 @@ const OrderSummary = ({
   };
   
   // Resolve which taxes apply to a given item (per-item > category > restaurant default)
+  // When a tax group has alsoApplyGlobalTax: true, both group taxes AND global taxes apply.
   const resolveTaxesForItem = useCallback((item, settings, categories) => {
     if (!settings?.enabled) return [];
     const groups = settings.taxGroups || [];
+    const globalTaxes = (settings.taxes && settings.taxes.length > 0)
+      ? settings.taxes.filter(tx => tx.enabled)
+      : (settings.defaultTaxRate
+        ? [{ name: 'Tax', rate: settings.defaultTaxRate, type: 'percentage' }]
+        : []);
+
+    const resolveGroup = (group) => {
+      const groupTaxes = group.taxes || [];
+      if (group.alsoApplyGlobalTax && globalTaxes.length > 0) {
+        const merged = [...groupTaxes];
+        for (const gt of globalTaxes) {
+          if (!merged.some(t => t.name === gt.name && t.rate === gt.rate)) merged.push(gt);
+        }
+        return merged;
+      }
+      return groupTaxes;
+    };
+
     // Priority 1: Item-level tax group
     if (item.taxGroupId) {
       const g = groups.find(gr => gr.id === item.taxGroupId);
-      if (g) return g.taxes || [];
+      if (g) return resolveGroup(g);
     }
     // Priority 2: Category-level tax group
     const catId = item.category || item.categoryId;
@@ -507,17 +526,11 @@ const OrderSummary = ({
       const cat = categories.find(c => c.id === catId || c.name === catId);
       if (cat?.taxGroupId) {
         const g = groups.find(gr => gr.id === cat.taxGroupId);
-        if (g) return g.taxes || [];
+        if (g) return resolveGroup(g);
       }
     }
-    // Priority 3: Restaurant default taxes
-    if (settings.taxes && settings.taxes.length > 0) {
-      return settings.taxes.filter(tx => tx.enabled);
-    }
-    if (settings.defaultTaxRate) {
-      return [{ name: 'Tax', rate: settings.defaultTaxRate, type: 'percentage' }];
-    }
-    return [];
+    // Priority 3: Restaurant default taxes (global)
+    return globalTaxes;
   }, []);
 
   const calculateTax = useCallback(async () => {
@@ -566,15 +579,24 @@ const OrderSummary = ({
     let totalTaxAmount = 0;
 
     if (hasTaxGroups) {
-      // Per-item tax calculation
+      // Per-item tax calculation with discountApplicable support
+      // Discountable subtotal: only items where discountApplicable !== false
+      const discountableSubtotal = cart.reduce((sum, cartItem) => {
+        if (cartItem.discountApplicable === false) return sum;
+        return sum + getItemUnitPrice(cartItem) * (cartItem.quantity || 1);
+      }, 0);
+
       const taxTotals = {};
       for (const cartItem of cart) {
         const itemUnitPrice = getItemUnitPrice(cartItem);
         const itemTotal = itemUnitPrice * (cartItem.quantity || 1);
-        // Proportional discount share
-        const itemDiscShare = subtotal > 0 ? (itemTotal / subtotal) * discTotal : 0;
+        const isDiscountable = cartItem.discountApplicable !== false;
+        // Proportional discount share: only among discountable items
+        const itemDiscShare = (isDiscountable && discountableSubtotal > 0)
+          ? (itemTotal / discountableSubtotal) * discTotal
+          : 0;
         const itemTaxable = Math.max(0, itemTotal - itemDiscShare);
-        // Proportional service charge share
+        // Service charge distributed across all items
         const itemSCShare = subtotal > 0 ? (itemTotal / subtotal) * sc : 0;
         const itemTaxableWithSC = itemTaxable + itemSCShare;
         // Resolve taxes for this item
