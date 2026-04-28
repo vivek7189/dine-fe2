@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import apiClient from '../../../lib/api';
 import * as attendanceApi from '../../../services/attendanceApi';
+import Pusher from 'pusher-js';
 import {
   FaCalendarAlt, FaClock, FaUmbrellaBeach, FaCog, FaSpinner, FaStore,
   FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaPlus, FaChevronLeft,
-  FaChevronRight, FaSave, FaTrash, FaEdit, FaUserClock
+  FaChevronRight, FaSave, FaTrash, FaEdit, FaUserClock, FaMapMarkerAlt
 } from 'react-icons/fa';
+
+// Leaflet doesn't support SSR — dynamic import
+const StaffTrackingMap = dynamic(() => import('../../../components/StaffTrackingMap'), { ssr: false });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -216,6 +221,17 @@ export default function AttendancePage() {
   const [newHoliday, setNewHoliday] = useState({ date: '', name: '' });
   const [editingLeaveTypeIdx, setEditingLeaveTypeIdx] = useState(null);
 
+  // Tracking tab
+  const [liveLocations, setLiveLocations] = useState([]);
+  const [trackingConfig, setTrackingConfig] = useState({ enabledStaffIds: [], enabledRoles: [] });
+  const [routeHistory, setRouteHistory] = useState([]);
+  const [selectedTrackingStaff, setSelectedTrackingStaff] = useState(null);
+  const [trackingDate, setTrackingDate] = useState(toISODate(new Date()));
+  const [trackingMapMode, setTrackingMapMode] = useState('live'); // 'live' | 'route'
+  const [loadingTracking, setLoadingTracking] = useState(false);
+  const [savingTrackingConfig, setSavingTrackingConfig] = useState(false);
+  const liveRefreshRef = useRef(null);
+
   // Responsive
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768);
@@ -382,6 +398,36 @@ export default function AttendancePage() {
     }
   }, [restaurantId]);
 
+  // ── Tracking Tab Loaders ──────────────────────────────────────────────
+
+  const loadTrackingData = useCallback(async () => {
+    if (!restaurantId) return;
+    setLoadingTracking(true);
+    try {
+      const [liveRes, configRes] = await Promise.all([
+        attendanceApi.getLiveLocations(restaurantId),
+        attendanceApi.getTrackingConfig(restaurantId),
+      ]);
+      setLiveLocations(liveRes?.locations || []);
+      setTrackingConfig(configRes || { enabledStaffIds: [], enabledRoles: [] });
+    } catch (err) {
+      console.error('Error loading tracking data:', err);
+    } finally {
+      setLoadingTracking(false);
+    }
+  }, [restaurantId]);
+
+  const loadRouteHistory = useCallback(async (staffId, date) => {
+    if (!restaurantId || !staffId || !date) return;
+    try {
+      const res = await attendanceApi.getLocationHistory(restaurantId, staffId, date);
+      setRouteHistory(res?.locations || []);
+    } catch (err) {
+      console.error('Error loading route history:', err);
+      setRouteHistory([]);
+    }
+  }, [restaurantId]);
+
   // Load data on mount and tab change
   useEffect(() => {
     if (!restaurantId) return;
@@ -389,7 +435,95 @@ export default function AttendancePage() {
     if (activeTab === 'calendar') loadCalendar();
     if (activeTab === 'leave') loadLeave();
     if (activeTab === 'settings') loadSettings();
-  }, [activeTab, restaurantId, loadToday, loadCalendar, loadLeave, loadSettings]);
+    if (activeTab === 'tracking') loadTrackingData();
+  }, [activeTab, restaurantId, loadToday, loadCalendar, loadLeave, loadSettings, loadTrackingData]);
+
+  // Auto-refresh live locations every 30s when on tracking tab
+  useEffect(() => {
+    if (activeTab === 'tracking' && restaurantId) {
+      liveRefreshRef.current = setInterval(() => {
+        attendanceApi.getLiveLocations(restaurantId).then(res => {
+          setLiveLocations(res?.locations || []);
+        }).catch(() => {});
+      }, 30000);
+      return () => clearInterval(liveRefreshRef.current);
+    }
+    return () => clearInterval(liveRefreshRef.current);
+  }, [activeTab, restaurantId]);
+
+  // Pusher real-time location updates
+  useEffect(() => {
+    if (activeTab !== 'tracking' || !restaurantId) return;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
+    });
+    const channel = pusher.subscribe(`restaurant-${restaurantId}`);
+
+    channel.bind('staff-location-updated', (data) => {
+      setLiveLocations(prev => {
+        const idx = prev.findIndex(l => l.staffId === data.staffId);
+        const updated = {
+          staffId: data.staffId,
+          staffName: data.staffName,
+          lat: data.lat,
+          lng: data.lng,
+          speed: data.speed,
+          heading: data.heading,
+          timestamp: data.timestamp,
+        };
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], ...updated };
+          return copy;
+        }
+        return [...prev, updated];
+      });
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(`restaurant-${restaurantId}`);
+      pusher.disconnect();
+    };
+  }, [activeTab, restaurantId]);
+
+  // ── Tracking Handlers ────────────────────────────────────────────────────
+
+  const handleToggleStaffTracking = (staffId) => {
+    setTrackingConfig(prev => {
+      const ids = [...(prev.enabledStaffIds || [])];
+      const idx = ids.indexOf(staffId);
+      if (idx >= 0) ids.splice(idx, 1);
+      else ids.push(staffId);
+      return { ...prev, enabledStaffIds: ids };
+    });
+  };
+
+  const handleSaveTrackingConfig = async () => {
+    if (!restaurantId) return;
+    setSavingTrackingConfig(true);
+    try {
+      await attendanceApi.saveTrackingConfig(restaurantId, trackingConfig);
+      showToast('Tracking config saved', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to save tracking config', 'error');
+    } finally {
+      setSavingTrackingConfig(false);
+    }
+  };
+
+  const handleViewRoute = (staffId) => {
+    setSelectedTrackingStaff(staffId);
+    setTrackingMapMode('route');
+    loadRouteHistory(staffId, trackingDate);
+  };
+
+  const handleBackToLive = () => {
+    setSelectedTrackingStaff(null);
+    setTrackingMapMode('live');
+    setRouteHistory([]);
+  };
 
   // ── Action Handlers ──────────────────────────────────────────────────────
 
@@ -548,12 +682,14 @@ export default function AttendancePage() {
 
   // ── Tab Config ───────────────────────────────────────────────────────────
 
-  const tabs = [
+  const allTabs = [
     { id: 'today', label: "Today's Attendance", mobileLabel: 'Today', icon: FaUserClock },
     { id: 'calendar', label: 'Calendar', mobileLabel: 'Calendar', icon: FaCalendarAlt },
     { id: 'leave', label: 'Leave', mobileLabel: 'Leave', icon: FaUmbrellaBeach },
+    ...(isAdmin ? [{ id: 'tracking', label: 'Live Tracking', mobileLabel: 'Tracking', icon: FaMapMarkerAlt }] : []),
     { id: 'settings', label: 'Settings', mobileLabel: 'Settings', icon: FaCog },
   ];
+  const tabs = allTabs;
 
   // ── No Restaurant ────────────────────────────────────────────────────────
 
@@ -660,6 +796,7 @@ export default function AttendancePage() {
       {!loading && activeTab === 'today' && renderTodayTab()}
       {!loading && activeTab === 'calendar' && renderCalendarTab()}
       {!loading && activeTab === 'leave' && renderLeaveTab()}
+      {!loading && activeTab === 'tracking' && isAdmin && renderTrackingTab()}
       {!loading && activeTab === 'settings' && renderSettingsTab()}
     </div>
   );
@@ -1395,6 +1532,232 @@ export default function AttendancePage() {
             {savingSettings ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSave size={14} />}
             {savingSettings ? 'Saving...' : 'Save Settings'}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  TAB 5: LIVE TRACKING
+  // ══════════════════════════════════════════════════════════════════════════
+
+  function renderTrackingTab() {
+    const restaurantLoc = settingsForm.geoFence.lat && settingsForm.geoFence.lng
+      ? { lat: parseFloat(settingsForm.geoFence.lat), lng: parseFloat(settingsForm.geoFence.lng) }
+      : null;
+    const geoRadius = parseInt(settingsForm.geoFence.radius) || 150;
+
+    // Load geofence from config if not in settingsForm yet
+    if (!restaurantLoc && leaveConfig) {
+      const gf = leaveConfig.geoFenceLocation || leaveConfig.geoFence;
+      if (gf?.lat && gf?.lng) {
+        // will use leaveConfig values
+      }
+    }
+    const effectiveLoc = restaurantLoc || (leaveConfig?.geoFenceLocation?.lat ? {
+      lat: leaveConfig.geoFenceLocation.lat,
+      lng: leaveConfig.geoFenceLocation.lng,
+    } : null);
+
+    const selectedStaffName = staffList.find(s => s._id === selectedTrackingStaff)?.name || '';
+
+    return (
+      <div style={{ display: 'flex', gap: '16px', flexDirection: isMobile ? 'column' : 'row', minHeight: '500px' }}>
+        {/* Left Panel — Staff List & Config */}
+        <div style={{ width: isMobile ? '100%' : '340px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+          {/* Mode Toggle */}
+          <div style={{ ...cardStyle, padding: '12px 16px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                style={{
+                  ...btnPrimary,
+                  flex: 1,
+                  background: trackingMapMode === 'live' ? '#3b82f6' : '#f3f4f6',
+                  color: trackingMapMode === 'live' ? '#fff' : '#374151',
+                  padding: '8px 12px', fontSize: '13px', justifyContent: 'center',
+                }}
+                onClick={handleBackToLive}
+              >
+                <FaMapMarkerAlt size={12} /> Live Map
+              </button>
+              <button
+                style={{
+                  ...btnPrimary,
+                  flex: 1,
+                  background: trackingMapMode === 'route' ? '#3b82f6' : '#f3f4f6',
+                  color: trackingMapMode === 'route' ? '#fff' : '#374151',
+                  padding: '8px 12px', fontSize: '13px', justifyContent: 'center',
+                }}
+                onClick={() => setTrackingMapMode('route')}
+              >
+                <FaClock size={12} /> Route Replay
+              </button>
+            </div>
+          </div>
+
+          {/* Route Replay Controls */}
+          {trackingMapMode === 'route' && (
+            <div style={cardStyle}>
+              <label style={labelStyle}>Select Staff</label>
+              <select
+                style={{ ...selectStyle, marginBottom: '10px' }}
+                value={selectedTrackingStaff || ''}
+                onChange={(e) => {
+                  setSelectedTrackingStaff(e.target.value);
+                  if (e.target.value && trackingDate) {
+                    loadRouteHistory(e.target.value, trackingDate);
+                  }
+                }}
+              >
+                <option value="">Choose staff...</option>
+                {staffList.map(s => (
+                  <option key={s._id} value={s._id}>{s.name} ({s.role})</option>
+                ))}
+              </select>
+              <label style={labelStyle}>Date</label>
+              <input
+                type="date"
+                style={inputStyle}
+                value={trackingDate}
+                onChange={(e) => {
+                  setTrackingDate(e.target.value);
+                  if (selectedTrackingStaff && e.target.value) {
+                    loadRouteHistory(selectedTrackingStaff, e.target.value);
+                  }
+                }}
+              />
+              {selectedTrackingStaff && (
+                <div style={{ marginTop: '10px', fontSize: '13px', color: '#6b7280' }}>
+                  Showing route for <strong>{selectedStaffName}</strong> on {trackingDate}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tracking Config — Enable/Disable per staff */}
+          <div style={{ ...cardStyle, flex: 1, overflow: 'auto', maxHeight: isMobile ? '300px' : '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: 0 }}>Staff Tracking</h3>
+              <button
+                style={{ ...btnPrimary, padding: '6px 12px', fontSize: '12px' }}
+                onClick={handleSaveTrackingConfig}
+                disabled={savingTrackingConfig}
+              >
+                {savingTrackingConfig ? <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSave size={10} />}
+                Save
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {staffList.map(staff => {
+                const isEnabled = (trackingConfig.enabledStaffIds || []).includes(staff._id);
+                const isOnline = liveLocations.some(l => l.staffId === staff._id);
+                const isClockedIn = todayData.attendance.some(a => a.staffId === staff._id && a.clockIn && !a.clockOut);
+                return (
+                  <div key={staff._id} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '8px 10px', borderRadius: '8px',
+                    background: isOnline ? '#f0fdf4' : '#fff',
+                    cursor: 'pointer',
+                  }} onClick={() => {
+                    if (trackingMapMode === 'route') {
+                      handleViewRoute(staff._id);
+                    }
+                  }}>
+                    {/* Avatar */}
+                    <div style={{
+                      width: '32px', height: '32px', borderRadius: '50%',
+                      background: isOnline ? '#d1fae5' : '#f3f4f6',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '13px', fontWeight: 700,
+                      color: isOnline ? '#059669' : '#9ca3af',
+                      position: 'relative',
+                    }}>
+                      {(staff.name || 'S').charAt(0).toUpperCase()}
+                      {isOnline && (
+                        <div style={{
+                          position: 'absolute', bottom: '-1px', right: '-1px',
+                          width: '10px', height: '10px', borderRadius: '50%',
+                          background: '#10b981', border: '2px solid #fff',
+                        }} />
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {staff.name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                        {staff.role}
+                        {isClockedIn && <span style={{ color: '#10b981', marginLeft: '6px' }}>Clocked in</span>}
+                        {isOnline && <span style={{ color: '#3b82f6', marginLeft: '6px' }}>Live</span>}
+                      </div>
+                    </div>
+                    {/* Toggle */}
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => handleToggleStaffTracking(staff._id)}
+                        style={{ width: '16px', height: '16px', accentColor: '#3b82f6', cursor: 'pointer' }}
+                      />
+                    </label>
+                  </div>
+                );
+              })}
+              {staffList.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af', fontSize: '13px' }}>
+                  No staff found
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Live count indicator */}
+          {trackingMapMode === 'live' && (
+            <div style={{
+              ...cardStyle, padding: '10px 16px',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: liveLocations.length > 0 ? '#f0fdf4' : '#f8fafc',
+            }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: liveLocations.length > 0 ? '#10b981' : '#d1d5db',
+              }} />
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                {liveLocations.length} staff tracked live
+              </span>
+              <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: 'auto' }}>
+                Updates every 30s
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel — Map */}
+        <div style={{
+          flex: 1, minHeight: isMobile ? '350px' : '500px',
+          borderRadius: '12px', overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        }}>
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+          />
+          {loadingTracking ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#f8fafc' }}>
+              <FaSpinner size={24} style={{ color: '#3b82f6', animation: 'spin 1s linear infinite' }} />
+            </div>
+          ) : (
+            <StaffTrackingMap
+              mode={trackingMapMode}
+              liveLocations={liveLocations}
+              routeHistory={routeHistory}
+              selectedStaff={selectedTrackingStaff}
+              restaurantLocation={effectiveLoc}
+              geoFenceRadius={geoRadius}
+            />
+          )}
         </div>
       </div>
     );

@@ -130,3 +130,28 @@ export function getPayrollData(restaurantId, month) {
   if (month) params.append('month', month);
   return fetchWithAuth(`${base(restaurantId)}/payroll-data?${params}`);
 }
+
+// ── Location Tracking APIs ──────────────────────────────────
+
+// GET /live-locations
+export function getLiveLocations(restaurantId) {
+  return fetchWithAuth(`${base(restaurantId)}/live-locations`);
+}
+
+// GET /location-history/:staffId?date=YYYY-MM-DD
+export function getLocationHistory(restaurantId, staffId, date) {
+  return fetchWithAuth(`${base(restaurantId)}/location-history/${staffId}?date=${date}`);
+}
+
+// GET /tracking-config
+export function getTrackingConfig(restaurantId) {
+  return fetchWithAuth(`${base(restaurantId)}/tracking-config`);
+}
+
+// PUT /tracking-config
+export function saveTrackingConfig(restaurantId, config) {
+  return fetchWithAuth(`${base(restaurantId)}/tracking-config`, {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  });
+}
