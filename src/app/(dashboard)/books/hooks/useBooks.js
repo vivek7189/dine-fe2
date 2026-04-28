@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
 
-const EXPENSE_CATEGORIES = [
+const DEFAULT_EXPENSE_CATEGORIES = [
   { value: 'rent', label: 'Rent' },
   { value: 'utilities', label: 'Utilities' },
   { value: 'salaries', label: 'Salaries & Wages' },
@@ -69,6 +69,10 @@ export default function useBooks() {
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [expenseFormData, setExpenseFormData] = useState({ ...defaultExpenseForm });
+
+  // Custom categories
+  const [customCategories, setCustomCategories] = useState([]);
+  const [showManageCategories, setShowManageCategories] = useState(false);
 
   // Filters
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('');
@@ -136,6 +140,43 @@ export default function useBooks() {
     } catch (err) { console.error('Expenses fetch error:', err); }
     setLoadingExpenses(false);
   }, [restaurantId, getParams, expenseCategoryFilter]);
+
+  // Merged categories: defaults + custom
+  const EXPENSE_CATEGORIES = (() => {
+    const merged = [...DEFAULT_EXPENSE_CATEGORIES];
+    for (const cc of customCategories) {
+      if (!merged.some(d => d.value === cc.value)) {
+        merged.push(cc);
+      }
+    }
+    return merged;
+  })();
+
+  // Build label/color lookup from merged categories
+  const CATEGORY_LABELS_MAP = {};
+  const CATEGORY_COLORS_MAP = {};
+  for (const cat of EXPENSE_CATEGORIES) {
+    CATEGORY_LABELS_MAP[cat.value] = cat.label;
+    if (cat.color) CATEGORY_COLORS_MAP[cat.value] = cat.color;
+  }
+
+  const fetchExpenseCategories = useCallback(async () => {
+    if (!restaurantId) return;
+    try {
+      const res = await apiClient.getExpenseCategories(restaurantId);
+      if (res.success) setCustomCategories(res.categories || []);
+    } catch (err) { console.error('Fetch expense categories error:', err); }
+  }, [restaurantId]);
+
+  const handleSaveCustomCategories = async (categories) => {
+    try {
+      const res = await apiClient.saveExpenseCategories(restaurantId, categories);
+      if (res.success) {
+        setCustomCategories(categories);
+        setSuccess('Categories saved');
+      }
+    } catch (err) { setError('Failed to save categories'); }
+  };
 
   const fetchSupplierDues = useCallback(async () => {
     if (!restaurantId) return;
@@ -221,8 +262,8 @@ export default function useBooks() {
     } catch (err) { setError('Failed to record payment'); }
   };
 
-  // Load overview on mount
-  useEffect(() => { fetchOverview(); }, [fetchOverview]);
+  // Load overview + custom categories on mount
+  useEffect(() => { fetchOverview(); fetchExpenseCategories(); }, [fetchOverview, fetchExpenseCategories]);
 
   // Load tab data on tab switch
   useEffect(() => {
@@ -322,5 +363,7 @@ export default function useBooks() {
     getModalStyles, getModalContentStyles,
     restaurantId, apiClient,
     EXPENSE_CATEGORIES, PAYMENT_METHODS, PERIODS,
+    customCategories, showManageCategories, setShowManageCategories,
+    handleSaveCustomCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP,
   };
 }

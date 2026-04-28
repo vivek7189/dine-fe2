@@ -8,7 +8,7 @@ const cardStyle = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6',
 };
 
-const CATEGORY_LABELS = {
+const DEFAULT_CATEGORY_LABELS = {
   rent: 'Rent', utilities: 'Utilities', salaries: 'Salaries & Wages', marketing: 'Marketing',
   repairs: 'Repairs & Maintenance', supplies: 'Supplies', insurance: 'Insurance', licenses: 'Licenses & Permits',
   equipment: 'Equipment', miscellaneous: 'Miscellaneous',
@@ -54,7 +54,7 @@ function exportPnlCSV(pnlData, formatCurrency) {
     [`Gross Margin`, `${grossMargin}%`],
     [],
     ['Less: Operating Expenses'],
-    ...Object.entries(expensesByCategory || {}).map(([cat, amt]) => [`  ${CATEGORY_LABELS[cat] || cat}`, -amt]),
+    ...Object.entries(expensesByCategory || {}).map(([cat, amt]) => [`  ${getCatLabel(cat)}`, -amt]),
     ['Total Expenses', -expenses],
     [],
     ['Supplier Credits', supplierCredits],
@@ -72,7 +72,8 @@ function exportPnlCSV(pnlData, formatCurrency) {
   URL.revokeObjectURL(url);
 }
 
-export default function ProfitLossTab({ pnlData, loadingPnl, isMobile, formatCurrency }) {
+export default function ProfitLossTab({ pnlData, loadingPnl, isMobile, formatCurrency, CATEGORY_LABELS_MAP }) {
+  const getCatLabel = (key) => CATEGORY_LABELS_MAP?.[key] || DEFAULT_CATEGORY_LABELS[key] || key;
   if (loadingPnl && !pnlData) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
@@ -146,7 +147,7 @@ export default function ProfitLossTab({ pnlData, loadingPnl, isMobile, formatCur
           </div>
           {expenseEntries.length > 0 ? (
             expenseEntries.map(([cat, amount]) => (
-              <PnlRow key={cat} label={CATEGORY_LABELS[cat] || cat} value={amount} formatCurrency={formatCurrency} indent negative />
+              <PnlRow key={cat} label={getCatLabel(cat)} value={amount} formatCurrency={formatCurrency} indent negative />
             ))
           ) : (
             <div style={{ padding: '8px 0 8px 24px', fontSize: '13px', color: '#9ca3af' }}>No expenses recorded</div>

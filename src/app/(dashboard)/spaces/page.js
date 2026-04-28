@@ -3,48 +3,58 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   FaCalendarAlt, FaClock, FaUser, FaPhone, FaBuilding, FaCheck, FaTimes,
-  FaPlay, FaFlag, FaSearch, FaChevronDown, FaCog, FaQrcode, FaRupeeSign,
-  FaSpinner, FaExclamationCircle, FaChevronLeft, FaChevronRight, FaEye
+  FaPlay, FaFlag, FaCog, FaQrcode, FaPlus, FaMapMarkerAlt, FaEnvelope,
+  FaSpinner, FaChevronLeft, FaChevronRight, FaEye, FaEllipsisV, FaDoorOpen,
+  FaRupeeSign, FaStickyNote, FaExternalLinkAlt, FaCopy
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import QRCodeModal from '../../../components/QRCodeModal';
 
 const PRIMARY = '#0d9488';
+const PRIMARY_DARK = '#0f766e';
 const PRIMARY_LIGHT = '#ccfbf1';
+const PRIMARY_BG = '#f0fdfa';
 
-// ─── Helpers ────────────────────────────────────────────
 function formatTime(t) {
   if (!t) return '';
   const [h, m] = t.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
-function statusColor(s) {
+function statusBadge(s) {
   const map = {
-    requested: { bg: '#fef3c7', text: '#92400e' },
-    confirmed: { bg: '#dbeafe', text: '#1e40af' },
-    in_use: { bg: '#dcfce7', text: '#166534' },
-    completed: { bg: '#f1f5f9', text: '#475569' },
-    cancelled: { bg: '#fee2e2', text: '#991b1b' },
-    rejected: { bg: '#fee2e2', text: '#991b1b' },
+    requested: { bg: '#fef3c7', text: '#92400e', dot: '#f59e0b', label: 'Pending' },
+    confirmed: { bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6', label: 'Confirmed' },
+    in_use: { bg: '#dcfce7', text: '#166534', dot: '#22c55e', label: 'In Use' },
+    completed: { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8', label: 'Completed' },
+    cancelled: { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444', label: 'Cancelled' },
+    rejected: { bg: '#fce7f3', text: '#9d174d', dot: '#ec4899', label: 'Rejected' },
   };
-  return map[s] || { bg: '#f1f5f9', text: '#475569' };
+  return map[s] || { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8', label: s };
 }
 
-function Shimmer({ width = '100%', height = 20, borderRadius = 8 }) {
-  return <div style={{ width, height, borderRadius, background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite' }} />;
+function Shimmer({ w = '100%', h = 20, r = 8, style = {} }) {
+  return <div style={{ width: w, height: h, borderRadius: r, background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', ...style }} />;
 }
 
-// ═════════════════════════════════════════════════════════
-// Admin Spaces Dashboard
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (dateStr === today.toISOString().split('T')[0]) return 'Today';
+  if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 // ═════════════════════════════════════════════════════════
 export default function SpacesAdminPage() {
-  const [tab, setTab] = useState('bookings'); // bookings | settings
+  const [tab, setTab] = useState('bookings');
   const [spaces, setSpaces] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Filters
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
@@ -52,27 +62,46 @@ export default function SpacesAdminPage() {
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
 
   // Modals
-  const [rejectModal, setRejectModal] = useState(null); // { bookingId }
+  const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [actionLoading, setActionLoading] = useState(null); // bookingId being actioned
-  const [qrModal, setQrModal] = useState(null); // { spaceId, spaceName }
+  const [actionLoading, setActionLoading] = useState(null);
+  const [qrModal, setQrModal] = useState(null);
+  const [createModal, setCreateModal] = useState(false);
+  const [expandedBooking, setExpandedBooking] = useState(null);
+
+  // Create space form
+  const [newSpace, setNewSpace] = useState({ name: '', address: '', city: '', phone: '', email: '', description: '' });
+  const [creating, setCreating] = useState(false);
 
   // Settings edit
-  const [editingSettings, setEditingSettings] = useState({}); // { spaceId: { ...settings } }
+  const [editingSettings, setEditingSettings] = useState({});
   const [savingSettings, setSavingSettings] = useState(null);
+  const [copiedUrl, setCopiedUrl] = useState(null);
+
+  // ─── Responsive ───────────────────────────────────────
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // ─── Load spaces ──────────────────────────────────────
-  useEffect(() => {
-    apiClient.getOwnerSpaces()
-      .then(data => {
-        setSpaces(data.spaces || []);
-        if (data.spaces?.length > 0 && !selectedSpaceId) {
-          setSelectedSpaceId(data.spaces[0].id);
-        }
-      })
-      .catch(e => console.error('Failed to load spaces:', e))
-      .finally(() => setLoading(false));
+  const loadSpaces = useCallback(async () => {
+    try {
+      const data = await apiClient.getOwnerSpaces();
+      setSpaces(data.spaces || []);
+      if (data.spaces?.length > 0 && !selectedSpaceId) {
+        setSelectedSpaceId(data.spaces[0].id);
+      }
+    } catch (e) {
+      console.error('Failed to load spaces:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { loadSpaces(); }, [loadSpaces]);
 
   // ─── Load bookings ───────────────────────────────────
   const loadBookings = useCallback(async () => {
@@ -94,6 +123,31 @@ export default function SpacesAdminPage() {
   useEffect(() => {
     if (tab === 'bookings') loadBookings();
   }, [tab, loadBookings]);
+
+  // ─── Create space ─────────────────────────────────────
+  const handleCreateSpace = async () => {
+    if (!newSpace.name.trim()) return;
+    setCreating(true);
+    try {
+      await apiClient.createRestaurant({
+        name: newSpace.name.trim(),
+        address: newSpace.address.trim() || undefined,
+        city: newSpace.city.trim() || undefined,
+        phone: newSpace.phone.trim() || undefined,
+        email: newSpace.email.trim() || undefined,
+        description: newSpace.description.trim() || undefined,
+        businessType: 'space'
+      });
+      setCreateModal(false);
+      setNewSpace({ name: '', address: '', city: '', phone: '', email: '', description: '' });
+      await loadSpaces();
+      setTab('settings');
+    } catch (e) {
+      alert(e.message || 'Failed to create space');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   // ─── Actions ──────────────────────────────────────────
   const handleStatusUpdate = async (bookingId, status, rejectionReason) => {
@@ -117,7 +171,6 @@ export default function SpacesAdminPage() {
     try {
       const s = editingSettings[spaceId];
       await apiClient.updateSpaceSettings(spaceId, s);
-      // Update local spaces
       setSpaces(prev => prev.map(sp => sp.id === spaceId ? { ...sp, spaceSettings: { ...sp.spaceSettings, ...s } } : sp));
       setEditingSettings(prev => { const n = { ...prev }; delete n[spaceId]; return n; });
     } catch (e) {
@@ -141,242 +194,380 @@ export default function SpacesAdminPage() {
     }));
   };
 
+  const copyUrl = (url, id) => {
+    navigator.clipboard.writeText(url).catch(() => {});
+    setCopiedUrl(id);
+    setTimeout(() => setCopiedUrl(null), 2000);
+  };
+
   const dateNav = (delta) => {
     const d = new Date(dateFilter);
     d.setDate(d.getDate() + delta);
     setDateFilter(d.toISOString().split('T')[0]);
   };
 
-  // ═════════════════════════════════════════════════════════
-  // RENDER
+  const pendingCount = bookings.filter(b => b.status === 'requested').length;
+
   // ═════════════════════════════════════════════════════════
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? '16px 12px' : '24px 20px', maxWidth: 1100, margin: '0 auto' }}>
       <style>{`
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        input:focus, select:focus { outline: none; border-color: ${PRIMARY} !important; box-shadow: 0 0 0 3px ${PRIMARY_LIGHT} !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+        .sp-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 14px; color: #1e293b; background: #fff; box-sizing: border-box; transition: border 0.15s, box-shadow 0.15s; font-family: inherit; }
+        .sp-input:focus { outline: none; border-color: ${PRIMARY}; box-shadow: 0 0 0 3px ${PRIMARY_LIGHT}; }
+        .sp-btn { padding: 8px 16px; border-radius: 10px; border: none; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+        .sp-btn:active { transform: scale(0.97); }
+        .sp-card { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); animation: fadeIn 0.3s ease; }
+        .sp-label { font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 5px; }
       `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', margin: 0 }}>Space Bookings</h1>
-          <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>Manage venue bookings and space settings</p>
+      {/* ─── Header ─── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        marginBottom: 20, flexWrap: 'wrap', gap: 12
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: PRIMARY_BG,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <FaDoorOpen size={20} color={PRIMARY} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: '#1e293b', margin: 0 }}>Spaces</h1>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+              {spaces.length} space{spaces.length !== 1 ? 's' : ''} configured
+            </p>
+          </div>
         </div>
+        <button onClick={() => setCreateModal(true)} className="sp-btn" style={{
+          background: PRIMARY, color: '#fff', padding: '10px 18px', fontSize: 14, borderRadius: 12
+        }}>
+          <FaPlus size={12} /> Add Space
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#f1f5f9', borderRadius: 10, padding: 4 }}>
+      {/* ─── Tabs ─── */}
+      <div style={{
+        display: 'flex', gap: 2, marginBottom: 20, background: '#f1f5f9',
+        borderRadius: 14, padding: 3, position: 'relative'
+      }}>
         {[
-          { id: 'bookings', label: 'Bookings', icon: FaCalendarAlt },
-          { id: 'settings', label: 'Space Settings', icon: FaCog }
+          { id: 'bookings', label: 'Bookings', icon: FaCalendarAlt, badge: pendingCount },
+          { id: 'settings', label: 'Settings', icon: FaCog }
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
-            flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none',
+            flex: 1, padding: isMobile ? '10px 8px' : '11px 20px', borderRadius: 12, border: 'none',
             background: tab === t.id ? '#fff' : 'transparent',
             color: tab === t.id ? PRIMARY : '#64748b',
-            fontWeight: 600, fontSize: 14, cursor: 'pointer',
-            boxShadow: tab === t.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+            fontWeight: 600, fontSize: isMobile ? 13 : 14, cursor: 'pointer',
+            boxShadow: tab === t.id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            transition: 'all 0.15s'
+            transition: 'all 0.2s'
           }}>
-            <t.icon size={14} /> {t.label}
+            <t.icon size={14} />
+            {t.label}
+            {t.badge > 0 && (
+              <span style={{
+                background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700,
+                padding: '1px 6px', borderRadius: 10, marginLeft: 2
+              }}>{t.badge}</span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* ═══ Bookings Tab ═══ */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* BOOKINGS TAB */}
+      {/* ═══════════════════════════════════════════════════ */}
       {tab === 'bookings' && (
         <>
-          {/* Filters Row */}
+          {/* Filters */}
           <div style={{
-            display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center'
+            display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center'
           }}>
             {/* Date nav */}
             <div style={{
-              display: 'flex', alignItems: 'center', background: '#fff', borderRadius: 10,
-              border: '1px solid #e2e8f0', overflow: 'hidden'
+              display: 'flex', alignItems: 'center', background: '#fff', borderRadius: 12,
+              border: '1.5px solid #e2e8f0', overflow: 'hidden', flex: isMobile ? '1 1 100%' : '0 0 auto'
             }}>
-              <button onClick={() => dateNav(-1)} style={{ padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
-                <FaChevronLeft size={12} />
-              </button>
-              <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-                style={{ border: 'none', padding: '8px 4px', fontSize: 14, fontWeight: 500, color: '#1e293b', background: 'transparent', cursor: 'pointer' }}
-              />
-              <button onClick={() => dateNav(1)} style={{ padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
-                <FaChevronRight size={12} />
-              </button>
+              <button onClick={() => dateNav(-1)} style={{
+                padding: '9px 12px', border: 'none', background: 'none', cursor: 'pointer', color: '#64748b'
+              }}><FaChevronLeft size={12} /></button>
+              <div style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>
+                  {formatDate(dateFilter)}
+                </span>
+                <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+                  style={{
+                    border: 'none', fontSize: 13, color: '#94a3b8', background: 'transparent',
+                    cursor: 'pointer', width: 20, padding: 0, opacity: 0.6
+                  }}
+                />
+              </div>
+              <button onClick={() => dateNav(1)} style={{
+                padding: '9px 12px', border: 'none', background: 'none', cursor: 'pointer', color: '#64748b'
+              }}><FaChevronRight size={12} /></button>
             </div>
 
-            {/* Space filter */}
-            {spaces.length > 1 && (
-              <select value={selectedSpaceId} onChange={e => setSelectedSpaceId(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 14, color: '#1e293b', background: '#fff', cursor: 'pointer' }}
-              >
-                <option value="">All Spaces</option>
-                {spaces.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            )}
-
-            {/* Status filter */}
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 14, color: '#1e293b', background: '#fff', cursor: 'pointer' }}
-            >
-              <option value="">All Status</option>
-              {['requested', 'confirmed', 'in_use', 'completed', 'cancelled', 'rejected'].map(s => (
-                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1).replace('_', ' ')}</option>
+            {/* Quick date buttons */}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[
+                { label: 'Today', date: new Date().toISOString().split('T')[0] },
+                { label: 'Tomorrow', date: (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() }
+              ].map(d => (
+                <button key={d.label} onClick={() => setDateFilter(d.date)} className="sp-btn" style={{
+                  background: dateFilter === d.date ? PRIMARY_LIGHT : '#fff',
+                  color: dateFilter === d.date ? PRIMARY_DARK : '#64748b',
+                  border: dateFilter === d.date ? `1.5px solid ${PRIMARY}` : '1.5px solid #e2e8f0',
+                  padding: '7px 12px', borderRadius: 10
+                }}>{d.label}</button>
               ))}
-            </select>
+            </div>
 
-            {/* Today button */}
-            <button onClick={() => setDateFilter(new Date().toISOString().split('T')[0])} style={{
-              padding: '8px 14px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff',
-              fontSize: 13, fontWeight: 500, color: '#475569', cursor: 'pointer'
-            }}>Today</button>
+            {/* Space & Status filters */}
+            <div style={{ display: 'flex', gap: 6, flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
+              {spaces.length > 1 && (
+                <select value={selectedSpaceId} onChange={e => setSelectedSpaceId(e.target.value)} className="sp-input"
+                  style={{ flex: 1, padding: '8px 10px', borderRadius: 10 }}>
+                  <option value="">All Spaces</option>
+                  {spaces.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              )}
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="sp-input"
+                style={{ flex: 1, padding: '8px 10px', borderRadius: 10 }}>
+                <option value="">All Status</option>
+                {['requested', 'confirmed', 'in_use', 'completed', 'cancelled', 'rejected'].map(s => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1).replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Bookings List */}
           {bookingsLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {Array.from({ length: 4 }, (_, i) => (
-                <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 16, border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <Shimmer width={80} height={40} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[1, 2, 3].map(i => (
+                <div key={i} className="sp-card" style={{ padding: 16 }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <Shimmer w={48} h={48} r={12} />
                     <div style={{ flex: 1 }}>
-                      <Shimmer width="50%" height={16} />
-                      <Shimmer width="30%" height={14} borderRadius={4} />
+                      <Shimmer w="60%" h={16} />
+                      <Shimmer w="35%" h={13} style={{ marginTop: 6 }} />
                     </div>
-                    <Shimmer width={70} height={24} borderRadius={12} />
+                    <Shimmer w={72} h={26} r={20} />
                   </div>
                 </div>
               ))}
             </div>
           ) : bookings.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-              <FaCalendarAlt size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
-              <div style={{ fontSize: 16, fontWeight: 500 }}>No bookings found</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Try changing the date or filters</div>
+            <div className="sp-card" style={{ textAlign: 'center', padding: isMobile ? '40px 20px' : '60px 40px' }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 20, background: '#f1f5f9',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+              }}>
+                <FaCalendarAlt size={28} color="#cbd5e1" />
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: '#475569' }}>No bookings for {formatDate(dateFilter)}</div>
+              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
+                {spaces.length === 0 ? 'Create a space first to start receiving bookings' : 'Try selecting a different date'}
+              </div>
+              {spaces.length === 0 && (
+                <button onClick={() => setCreateModal(true)} className="sp-btn" style={{
+                  background: PRIMARY, color: '#fff', marginTop: 16, padding: '10px 20px', borderRadius: 12
+                }}>
+                  <FaPlus size={12} /> Create Your First Space
+                </button>
+              )}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {bookings.map(b => {
-                const sc = statusColor(b.status);
+                const sb = statusBadge(b.status);
                 const isActioning = actionLoading === b.id;
+                const isExpanded = expandedBooking === b.id;
 
                 return (
-                  <div key={b.id} style={{
-                    background: '#fff', borderRadius: 14, padding: '14px 16px',
-                    border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    transition: 'box-shadow 0.15s'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-                      {/* Left: time + customer */}
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <FaClock size={13} color={PRIMARY} />
-                          <span style={{ fontSize: 15, fontWeight: 600, color: '#1e293b' }}>
-                            {formatTime(b.startTime)} – {formatTime(b.endTime)}
+                  <div key={b.id} className="sp-card" style={{ overflow: 'hidden' }}>
+                    {/* Main row — always visible */}
+                    <div
+                      onClick={() => isMobile && setExpandedBooking(isExpanded ? null : b.id)}
+                      style={{
+                        padding: isMobile ? '12px 14px' : '14px 18px',
+                        cursor: isMobile ? 'pointer' : 'default',
+                        display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14
+                      }}
+                    >
+                      {/* Time block */}
+                      <div style={{
+                        width: isMobile ? 52 : 64, flexShrink: 0, textAlign: 'center',
+                        padding: '8px 4px', borderRadius: 12, background: PRIMARY_BG
+                      }}>
+                        <div style={{ fontSize: isMobile ? 13 : 15, fontWeight: 700, color: PRIMARY_DARK, lineHeight: 1.1 }}>
+                          {formatTime(b.startTime)}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#94a3b8', margin: '2px 0' }}>to</div>
+                        <div style={{ fontSize: isMobile ? 11 : 12, fontWeight: 600, color: '#64748b' }}>
+                          {formatTime(b.endTime)}
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: isMobile ? 14 : 15, fontWeight: 600, color: '#1e293b' }}>
+                            {b.customerInfo?.name || 'Unknown'}
                           </span>
-                          <span style={{ fontSize: 12, color: '#94a3b8' }}>({b.duration}h)</span>
+                          {b.customerInfo?.company && (
+                            <span style={{
+                              fontSize: 11, color: '#64748b', background: '#f1f5f9',
+                              padding: '1px 8px', borderRadius: 6
+                            }}>{b.customerInfo.company}</span>
+                          )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: '#475569' }}>
-                          <FaUser size={11} color="#94a3b8" />
-                          <span style={{ fontWeight: 500 }}>{b.customerInfo?.name}</span>
-                          {b.customerInfo?.company && <span style={{ color: '#94a3b8' }}>• {b.customerInfo.company}</span>}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#94a3b8', marginTop: 2 }}>
-                          <FaPhone size={10} /> {b.customerInfo?.phone}
-                          {b.customerInfo?.email && <span>• {b.customerInfo.email}</span>}
-                        </div>
-                        {b.amenities?.length > 0 && (
-                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                            Amenities: {b.amenities.map(a => `${a.name} ×${a.quantity}`).join(', ')}
-                          </div>
-                        )}
-                        {b.notes && (
-                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, fontStyle: 'italic' }}>
-                            Note: {b.notes}
+                        {!isMobile && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 3, fontSize: 13, color: '#94a3b8' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <FaPhone size={10} /> {b.customerInfo?.phone}
+                            </span>
+                            {b.customerInfo?.email && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <FaEnvelope size={10} /> {b.customerInfo.email}
+                              </span>
+                            )}
+                            <span>{b.duration}h</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Right: status + amount */}
-                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                      {/* Right side */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                         <div style={{
-                          display: 'inline-block', padding: '3px 10px', borderRadius: 20,
-                          background: sc.bg, color: sc.text, fontSize: 11, fontWeight: 700,
-                          textTransform: 'uppercase', letterSpacing: 0.5
+                          display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px',
+                          borderRadius: 20, background: sb.bg, fontSize: 11, fontWeight: 700, color: sb.text
                         }}>
-                          {b.status.replace('_', ' ')}
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: sb.dot }} />
+                          {sb.label}
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>₹{b.totalAmount}</div>
-                        {b.rejectionReason && (
-                          <div style={{ fontSize: 11, color: '#ef4444', maxWidth: 180, textAlign: 'right' }}>
-                            Reason: {b.rejectionReason}
-                          </div>
-                        )}
+                        <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: '#1e293b' }}>
+                          ₹{b.totalAmount}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    {(b.status === 'requested' || b.status === 'confirmed' || b.status === 'in_use') && (
+                    {/* Expanded details (mobile) or always show actions (desktop) */}
+                    {((!isMobile) || isExpanded) && (
                       <div style={{
-                        display: 'flex', gap: 8, marginTop: 12, paddingTop: 12,
-                        borderTop: '1px solid #f1f5f9', flexWrap: 'wrap'
+                        padding: isMobile ? '0 14px 14px' : '0 18px 14px',
+                        animation: isMobile ? 'fadeIn 0.2s ease' : 'none'
                       }}>
-                        {b.status === 'requested' && (
-                          <>
-                            <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'confirmed')}
-                              style={{
-                                padding: '7px 14px', borderRadius: 8, border: 'none',
-                                background: '#059669', color: '#fff', fontWeight: 600, fontSize: 13,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-                                opacity: isActioning ? 0.6 : 1
-                              }}>
-                              {isActioning ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheck size={12} />} Approve
-                            </button>
-                            <button disabled={isActioning} onClick={() => { setRejectModal({ bookingId: b.id }); setRejectReason(''); }}
-                              style={{
-                                padding: '7px 14px', borderRadius: 8, border: '1px solid #fecaca',
-                                background: '#fff', color: '#dc2626', fontWeight: 600, fontSize: 13,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
-                              }}>
-                              <FaTimes size={12} /> Reject
-                            </button>
-                          </>
+                        {/* Mobile-only details */}
+                        {isMobile && (
+                          <div style={{
+                            padding: '10px 12px', background: '#f8fafc', borderRadius: 10,
+                            marginBottom: 10, fontSize: 13, color: '#64748b',
+                            display: 'flex', flexDirection: 'column', gap: 4
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <FaPhone size={10} color="#94a3b8" /> {b.customerInfo?.phone}
+                            </div>
+                            {b.customerInfo?.email && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <FaEnvelope size={10} color="#94a3b8" /> {b.customerInfo.email}
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <FaClock size={10} color="#94a3b8" /> {b.duration} hour{b.duration !== 1 ? 's' : ''}
+                            </div>
+                          </div>
                         )}
-                        {b.status === 'confirmed' && (
-                          <>
-                            <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'in_use')}
-                              style={{
-                                padding: '7px 14px', borderRadius: 8, border: 'none',
-                                background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: 13,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-                                opacity: isActioning ? 0.6 : 1
-                              }}>
-                              <FaPlay size={10} /> Mark In Use
-                            </button>
-                            <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'cancelled')}
-                              style={{
-                                padding: '7px 14px', borderRadius: 8, border: '1px solid #e2e8f0',
-                                background: '#fff', color: '#64748b', fontWeight: 600, fontSize: 13,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
-                              }}>
-                              <FaTimes size={12} /> Cancel
-                            </button>
-                          </>
+
+                        {/* Amenities */}
+                        {b.amenities?.length > 0 && (
+                          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {b.amenities.map((a, i) => (
+                              <span key={i} style={{
+                                background: '#f1f5f9', padding: '2px 8px', borderRadius: 6
+                              }}>{a.name} ×{a.quantity}</span>
+                            ))}
+                          </div>
                         )}
-                        {b.status === 'in_use' && (
-                          <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'completed')}
-                            style={{
-                              padding: '7px 14px', borderRadius: 8, border: 'none',
-                              background: '#475569', color: '#fff', fontWeight: 600, fontSize: 13,
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-                              opacity: isActioning ? 0.6 : 1
-                            }}>
-                            <FaFlag size={10} /> Complete
-                          </button>
+
+                        {/* Notes */}
+                        {b.notes && (
+                          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, fontStyle: 'italic', display: 'flex', gap: 4 }}>
+                            <FaStickyNote size={10} color="#cbd5e1" style={{ marginTop: 2, flexShrink: 0 }} />
+                            {b.notes}
+                          </div>
+                        )}
+
+                        {/* Rejection reason */}
+                        {b.rejectionReason && (
+                          <div style={{
+                            fontSize: 12, color: '#dc2626', background: '#fef2f2', padding: '6px 10px',
+                            borderRadius: 8, marginBottom: 8
+                          }}>Reason: {b.rejectionReason}</div>
+                        )}
+
+                        {/* Action buttons */}
+                        {(b.status === 'requested' || b.status === 'confirmed' || b.status === 'in_use') && (
+                          <div style={{
+                            display: 'flex', gap: 8, paddingTop: 10,
+                            borderTop: '1px solid #f1f5f9', flexWrap: 'wrap'
+                          }}>
+                            {b.status === 'requested' && (
+                              <>
+                                <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'confirmed')}
+                                  className="sp-btn" style={{
+                                    background: '#059669', color: '#fff', flex: isMobile ? 1 : 'none',
+                                    justifyContent: 'center', padding: '9px 16px', opacity: isActioning ? 0.6 : 1
+                                  }}>
+                                  {isActioning ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheck size={12} />}
+                                  Approve
+                                </button>
+                                <button disabled={isActioning}
+                                  onClick={() => { setRejectModal({ bookingId: b.id }); setRejectReason(''); }}
+                                  className="sp-btn" style={{
+                                    background: '#fff', color: '#dc2626', border: '1.5px solid #fecaca',
+                                    flex: isMobile ? 1 : 'none', justifyContent: 'center', padding: '9px 16px'
+                                  }}>
+                                  <FaTimes size={12} /> Reject
+                                </button>
+                              </>
+                            )}
+                            {b.status === 'confirmed' && (
+                              <>
+                                <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'in_use')}
+                                  className="sp-btn" style={{
+                                    background: '#2563eb', color: '#fff', flex: isMobile ? 1 : 'none',
+                                    justifyContent: 'center', padding: '9px 16px', opacity: isActioning ? 0.6 : 1
+                                  }}>
+                                  <FaPlay size={10} /> Mark In Use
+                                </button>
+                                <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'cancelled')}
+                                  className="sp-btn" style={{
+                                    background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0',
+                                    flex: isMobile ? 1 : 'none', justifyContent: 'center', padding: '9px 16px'
+                                  }}>
+                                  <FaTimes size={12} /> Cancel
+                                </button>
+                              </>
+                            )}
+                            {b.status === 'in_use' && (
+                              <button disabled={isActioning} onClick={() => handleStatusUpdate(b.id, 'completed')}
+                                className="sp-btn" style={{
+                                  background: '#475569', color: '#fff', flex: isMobile ? 1 : 'none',
+                                  justifyContent: 'center', padding: '9px 16px', opacity: isActioning ? 0.6 : 1
+                                }}>
+                                <FaFlag size={10} /> Complete
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
@@ -388,26 +579,40 @@ export default function SpacesAdminPage() {
         </>
       )}
 
-      {/* ═══ Settings Tab ═══ */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* SETTINGS TAB */}
+      {/* ═══════════════════════════════════════════════════ */}
       {tab === 'settings' && (
         <>
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[1, 2].map(i => (
-                <div key={i} style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0' }}>
-                  <Shimmer width="40%" height={20} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
-                    <Shimmer height={40} /><Shimmer height={40} />
-                    <Shimmer height={40} /><Shimmer height={40} />
+                <div key={i} className="sp-card" style={{ padding: 20 }}>
+                  <Shimmer w="40%" h={22} />
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginTop: 16 }}>
+                    <Shimmer h={44} /><Shimmer h={44} />
+                    <Shimmer h={44} /><Shimmer h={44} />
                   </div>
                 </div>
               ))}
             </div>
           ) : spaces.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-              <FaBuilding size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
-              <div style={{ fontSize: 16, fontWeight: 500 }}>No spaces found</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Create a restaurant with business type &quot;space&quot; to get started</div>
+            <div className="sp-card" style={{ textAlign: 'center', padding: isMobile ? '48px 20px' : '64px 40px' }}>
+              <div style={{
+                width: 80, height: 80, borderRadius: 24, background: PRIMARY_BG,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px'
+              }}>
+                <FaDoorOpen size={36} color={PRIMARY} />
+              </div>
+              <div style={{ fontSize: 19, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>No spaces yet</div>
+              <div style={{ fontSize: 14, color: '#94a3b8', maxWidth: 320, margin: '0 auto 20px' }}>
+                Create your first space to start accepting bookings from tenants and visitors
+              </div>
+              <button onClick={() => setCreateModal(true)} className="sp-btn" style={{
+                background: PRIMARY, color: '#fff', padding: '12px 24px', fontSize: 15, borderRadius: 14
+              }}>
+                <FaPlus size={13} /> Create Space
+              </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -416,154 +621,189 @@ export default function SpacesAdminPage() {
                 const s = editing || space.spaceSettings || {};
                 const isSaving = savingSettings === space.id;
                 const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://dineopen.com';
+                const bookingUrl = `${frontendUrl}/book-space/${space.id}`;
 
                 return (
-                  <div key={space.id} style={{
-                    background: '#fff', borderRadius: 14, padding: 20,
-                    border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-                  }}>
-                    {/* Space Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div key={space.id} className="sp-card" style={{ overflow: 'hidden' }}>
+                    {/* Space card header */}
+                    <div style={{
+                      padding: isMobile ? '14px 14px 12px' : '18px 20px 14px',
+                      background: `linear-gradient(135deg, ${PRIMARY_BG} 0%, #fff 100%)`,
+                      borderBottom: '1px solid #e2e8f0',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                      flexWrap: 'wrap', gap: 10
+                    }}>
                       <div>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: '#1e293b' }}>{space.name}</div>
-                        {space.address && <div style={{ fontSize: 13, color: '#64748b' }}>{space.address}{space.city ? `, ${space.city}` : ''}</div>}
+                        <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: '#1e293b' }}>{space.name}</div>
+                        {space.address && (
+                          <div style={{ fontSize: 13, color: '#64748b', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <FaMapMarkerAlt size={10} /> {space.address}{space.city ? `, ${space.city}` : ''}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button onClick={() => setQrModal({ spaceId: space.id, spaceName: space.name })}
-                          style={{
-                            padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e8f0',
-                            background: '#fff', color: '#475569', fontWeight: 500, fontSize: 13,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
+                          className="sp-btn" style={{
+                            background: '#fff', color: '#475569', border: '1.5px solid #e2e8f0', padding: '7px 12px'
                           }}>
-                          <FaQrcode size={13} /> QR Code
+                          <FaQrcode size={13} /> {!isMobile && 'QR Code'}
                         </button>
                         <a href={`/spaces/availability/${space.id}`} target="_blank" rel="noopener noreferrer"
-                          style={{
-                            padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e8f0',
-                            background: '#fff', color: '#475569', fontWeight: 500, fontSize: 13,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-                            textDecoration: 'none'
+                          className="sp-btn" style={{
+                            background: '#fff', color: '#475569', border: '1.5px solid #e2e8f0',
+                            textDecoration: 'none', padding: '7px 12px'
                           }}>
-                          <FaEye size={13} /> Display Board
+                          <FaEye size={13} /> {!isMobile && 'Display'}
+                        </a>
+                        <a href={`/book-space/${space.id}`} target="_blank" rel="noopener noreferrer"
+                          className="sp-btn" style={{
+                            background: PRIMARY, color: '#fff', textDecoration: 'none', padding: '7px 12px'
+                          }}>
+                          <FaExternalLinkAlt size={11} /> {!isMobile && 'Book Page'}
                         </a>
                       </div>
                     </div>
 
-                    {/* Settings Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-                      {/* Hourly Rate */}
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Hourly Rate (₹)</label>
-                        <input type="number" value={s.hourlyRate ?? 0}
-                          onChange={e => {
-                            if (!editing) startEditing(space);
-                            setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), hourlyRate: Number(e.target.value) } }));
-                          }}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}
-                        />
-                      </div>
-
-                      {/* Slot Duration */}
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Slot Duration (min)</label>
-                        <select value={s.slotDurationMinutes ?? 60}
-                          onChange={e => {
-                            if (!editing) startEditing(space);
-                            setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), slotDurationMinutes: Number(e.target.value) } }));
-                          }}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
-                        >
-                          {[15, 30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
-                        </select>
-                      </div>
-
-                      {/* Operating Hours Start */}
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Opens At</label>
-                        <input type="time" value={s.operatingHours?.start || '08:00'}
-                          onChange={e => {
-                            if (!editing) startEditing(space);
-                            setEditingSettings(p => ({
-                              ...p, [space.id]: {
-                                ...(p[space.id] || s),
-                                operatingHours: { ...(p[space.id]?.operatingHours || s.operatingHours || {}), start: e.target.value }
-                              }
-                            }));
-                          }}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}
-                        />
-                      </div>
-
-                      {/* Operating Hours End */}
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Closes At</label>
-                        <input type="time" value={s.operatingHours?.end || '22:00'}
-                          onChange={e => {
-                            if (!editing) startEditing(space);
-                            setEditingSettings(p => ({
-                              ...p, [space.id]: {
-                                ...(p[space.id] || s),
-                                operatingHours: { ...(p[space.id]?.operatingHours || s.operatingHours || {}), end: e.target.value }
-                              }
-                            }));
-                          }}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}
-                        />
-                      </div>
-
-                      {/* Advance % */}
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Advance Payment (%)</label>
-                        <input type="number" min={0} max={100} value={s.advancePercentage ?? 50}
-                          onChange={e => {
-                            if (!editing) startEditing(space);
-                            setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), advancePercentage: Number(e.target.value) } }));
-                          }}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}
-                        />
-                      </div>
-
-                      {/* Auto Approve */}
-                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: '#1e293b' }}>
-                          <input type="checkbox" checked={s.autoApprove || false}
+                    {/* Settings form */}
+                    <div style={{ padding: isMobile ? '14px' : '18px 20px' }}>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)',
+                        gap: isMobile ? 10 : 14
+                      }}>
+                        {/* Hourly Rate */}
+                        <div>
+                          <label className="sp-label">Hourly Rate (₹)</label>
+                          <input type="number" value={s.hourlyRate ?? 0} className="sp-input"
                             onChange={e => {
                               if (!editing) startEditing(space);
-                              setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), autoApprove: e.target.checked } }));
+                              setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), hourlyRate: Number(e.target.value) } }));
                             }}
-                            style={{ width: 18, height: 18, accentColor: PRIMARY, cursor: 'pointer' }}
                           />
-                          Auto-approve bookings
-                        </label>
-                      </div>
-                    </div>
+                        </div>
 
-                    {/* Save button */}
-                    {editing && (
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14, gap: 8 }}>
-                        <button onClick={() => setEditingSettings(p => { const n = { ...p }; delete n[space.id]; return n; })}
-                          style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-                          Cancel
-                        </button>
-                        <button disabled={isSaving} onClick={() => handleSaveSettings(space.id)}
-                          style={{
-                            padding: '8px 20px', borderRadius: 8, border: 'none',
-                            background: PRIMARY, color: '#fff', fontWeight: 600, fontSize: 13,
-                            cursor: isSaving ? 'not-allowed' : 'pointer', opacity: isSaving ? 0.7 : 1,
-                            display: 'flex', alignItems: 'center', gap: 5
+                        {/* Slot Duration */}
+                        <div>
+                          <label className="sp-label">Slot Duration</label>
+                          <select value={s.slotDurationMinutes ?? 60} className="sp-input"
+                            onChange={e => {
+                              if (!editing) startEditing(space);
+                              setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), slotDurationMinutes: Number(e.target.value) } }));
+                            }}>
+                            {[15, 30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
+                          </select>
+                        </div>
+
+                        {/* Advance % */}
+                        <div>
+                          <label className="sp-label">Advance (%)</label>
+                          <input type="number" min={0} max={100} value={s.advancePercentage ?? 50} className="sp-input"
+                            onChange={e => {
+                              if (!editing) startEditing(space);
+                              setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), advancePercentage: Number(e.target.value) } }));
+                            }}
+                          />
+                        </div>
+
+                        {/* Opens At */}
+                        <div>
+                          <label className="sp-label">Opens At</label>
+                          <input type="time" value={s.operatingHours?.start || '08:00'} className="sp-input"
+                            onChange={e => {
+                              if (!editing) startEditing(space);
+                              setEditingSettings(p => ({
+                                ...p, [space.id]: {
+                                  ...(p[space.id] || s),
+                                  operatingHours: { ...(p[space.id]?.operatingHours || s.operatingHours || {}), start: e.target.value }
+                                }
+                              }));
+                            }}
+                          />
+                        </div>
+
+                        {/* Closes At */}
+                        <div>
+                          <label className="sp-label">Closes At</label>
+                          <input type="time" value={s.operatingHours?.end || '22:00'} className="sp-input"
+                            onChange={e => {
+                              if (!editing) startEditing(space);
+                              setEditingSettings(p => ({
+                                ...p, [space.id]: {
+                                  ...(p[space.id] || s),
+                                  operatingHours: { ...(p[space.id]?.operatingHours || s.operatingHours || {}), end: e.target.value }
+                                }
+                              }));
+                            }}
+                          />
+                        </div>
+
+                        {/* Auto Approve */}
+                        <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+                          <label style={{
+                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                            fontSize: 14, color: '#1e293b', padding: '10px 0'
                           }}>
-                          {isSaving ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheck size={12} />} Save Settings
+                            <div style={{
+                              width: 42, height: 24, borderRadius: 12, position: 'relative',
+                              background: (s.autoApprove) ? PRIMARY : '#cbd5e1', transition: 'background 0.2s',
+                              cursor: 'pointer'
+                            }} onClick={(e) => {
+                              e.preventDefault();
+                              if (!editing) startEditing(space);
+                              setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), autoApprove: !(p[space.id]?.autoApprove ?? s.autoApprove) } }));
+                            }}>
+                              <div style={{
+                                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                                position: 'absolute', top: 2,
+                                left: (s.autoApprove) ? 20 : 2,
+                                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                              }} />
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 500 }}>Auto-approve</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Save / Cancel */}
+                      {editing && (
+                        <div style={{
+                          display: 'flex', justifyContent: 'flex-end', marginTop: 16, gap: 8,
+                          paddingTop: 14, borderTop: '1px solid #f1f5f9'
+                        }}>
+                          <button onClick={() => setEditingSettings(p => { const n = { ...p }; delete n[space.id]; return n; })}
+                            className="sp-btn" style={{
+                              background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', padding: '9px 16px'
+                            }}>Cancel</button>
+                          <button disabled={isSaving} onClick={() => handleSaveSettings(space.id)}
+                            className="sp-btn" style={{
+                              background: PRIMARY, color: '#fff', padding: '9px 20px',
+                              opacity: isSaving ? 0.7 : 1
+                            }}>
+                            {isSaving ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheck size={12} />}
+                            Save
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Booking URL */}
+                      <div style={{
+                        marginTop: 14, padding: '10px 14px', background: '#f8fafc', borderRadius: 10,
+                        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap'
+                      }}>
+                        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>Booking URL</span>
+                        <code style={{
+                          flex: 1, fontSize: 12, color: PRIMARY_DARK, fontWeight: 600,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                        }}>{bookingUrl}</code>
+                        <button onClick={() => copyUrl(bookingUrl, space.id)}
+                          className="sp-btn" style={{
+                            background: copiedUrl === space.id ? '#dcfce7' : '#fff',
+                            color: copiedUrl === space.id ? '#166534' : '#64748b',
+                            border: '1px solid #e2e8f0', padding: '4px 10px', fontSize: 12
+                          }}>
+                          {copiedUrl === space.id ? <><FaCheck size={10} /> Copied</> : <><FaCopy size={10} /> Copy</>}
                         </button>
                       </div>
-                    )}
-
-                    {/* Booking URL */}
-                    <div style={{
-                      marginTop: 14, padding: '10px 14px', background: '#f8fafc', borderRadius: 8,
-                      fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6
-                    }}>
-                      <span style={{ fontWeight: 500 }}>Booking URL:</span>
-                      <code style={{ color: PRIMARY, fontWeight: 600 }}>{frontendUrl}/book-space/{space.id}</code>
                     </div>
                   </div>
                 );
@@ -573,39 +813,131 @@ export default function SpacesAdminPage() {
         </>
       )}
 
+      {/* ═══ Create Space Modal ═══ */}
+      {createModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+          zIndex: 1000, display: 'flex',
+          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center'
+        }} onClick={() => setCreateModal(false)}>
+          <div style={{
+            background: '#fff', width: '100%', maxWidth: 480,
+            borderRadius: isMobile ? '20px 20px 0 0' : 20,
+            padding: isMobile ? '20px 16px 32px' : '28px 28px',
+            maxHeight: '90vh', overflowY: 'auto',
+            animation: isMobile ? 'slideUp 0.3s ease' : 'fadeIn 0.2s ease',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
+          }} onClick={e => e.stopPropagation()}>
+            {/* Drag handle on mobile */}
+            {isMobile && (
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e2e8f0', margin: '0 auto 16px' }} />
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, background: PRIMARY_BG,
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <FaDoorOpen size={18} color={PRIMARY} />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1e293b' }}>Create New Space</h2>
+                <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>Add a bookable venue or meeting room</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label className="sp-label">Space Name *</label>
+                <input value={newSpace.name} onChange={e => setNewSpace(p => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Conference Room A" className="sp-input" autoFocus />
+              </div>
+              <div>
+                <label className="sp-label">Description</label>
+                <input value={newSpace.description} onChange={e => setNewSpace(p => ({ ...p, description: e.target.value }))}
+                  placeholder="50-seater hall with projector" className="sp-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label className="sp-label">City</label>
+                  <input value={newSpace.city} onChange={e => setNewSpace(p => ({ ...p, city: e.target.value }))}
+                    placeholder="Mumbai" className="sp-input" />
+                </div>
+                <div>
+                  <label className="sp-label">Phone</label>
+                  <input value={newSpace.phone} onChange={e => setNewSpace(p => ({ ...p, phone: e.target.value }))}
+                    placeholder="9876543210" className="sp-input" type="tel" />
+                </div>
+              </div>
+              <div>
+                <label className="sp-label">Address</label>
+                <input value={newSpace.address} onChange={e => setNewSpace(p => ({ ...p, address: e.target.value }))}
+                  placeholder="Building name, Floor, Area" className="sp-input" />
+              </div>
+              <div>
+                <label className="sp-label">Email</label>
+                <input value={newSpace.email} onChange={e => setNewSpace(p => ({ ...p, email: e.target.value }))}
+                  placeholder="admin@building.com" className="sp-input" type="email" />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button onClick={() => setCreateModal(false)} className="sp-btn" style={{
+                flex: 1, background: '#f1f5f9', color: '#64748b', padding: '12px 16px',
+                justifyContent: 'center', fontSize: 14, borderRadius: 12
+              }}>Cancel</button>
+              <button disabled={!newSpace.name.trim() || creating} onClick={handleCreateSpace}
+                className="sp-btn" style={{
+                  flex: 2, background: (!newSpace.name.trim() || creating) ? '#94a3b8' : PRIMARY,
+                  color: '#fff', padding: '12px 16px', justifyContent: 'center',
+                  fontSize: 14, borderRadius: 12
+                }}>
+                {creating ? <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <FaPlus size={12} />}
+                {creating ? 'Creating...' : 'Create Space'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ Reject Modal ═══ */}
       {rejectModal && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+          zIndex: 1000, display: 'flex',
+          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center'
         }} onClick={() => setRejectModal(null)}>
           <div style={{
-            background: '#fff', borderRadius: 16, padding: 24, maxWidth: 400, width: '100%',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            background: '#fff', maxWidth: 420, width: '100%',
+            borderRadius: isMobile ? '20px 20px 0 0' : 20,
+            padding: isMobile ? '20px 16px 32px' : '24px',
+            animation: isMobile ? 'slideUp 0.3s ease' : 'fadeIn 0.2s ease',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
           }} onClick={e => e.stopPropagation()}>
+            {isMobile && (
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e2e8f0', margin: '0 auto 16px' }} />
+            )}
             <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: '#1e293b' }}>Reject Booking</h3>
             <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
-              placeholder="Reason for rejection (optional)..."
-              rows={3}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0',
-                fontSize: 14, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box'
-              }}
+              placeholder="Reason for rejection (optional)..." rows={3} className="sp-input"
+              style={{ resize: 'vertical' }}
             />
-            <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
-              <button onClick={() => setRejectModal(null)} style={{
-                padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0',
-                background: '#fff', color: '#64748b', fontWeight: 600, fontSize: 13, cursor: 'pointer'
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setRejectModal(null)} className="sp-btn" style={{
+                flex: 1, background: '#f1f5f9', color: '#64748b', padding: '11px 16px',
+                justifyContent: 'center', borderRadius: 12
               }}>Cancel</button>
               <button onClick={() => handleStatusUpdate(rejectModal.bookingId, 'rejected', rejectReason)}
                 disabled={actionLoading === rejectModal.bookingId}
-                style={{
-                  padding: '8px 20px', borderRadius: 8, border: 'none',
-                  background: '#dc2626', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                  opacity: actionLoading === rejectModal.bookingId ? 0.7 : 1,
-                  display: 'flex', alignItems: 'center', gap: 5
+                className="sp-btn" style={{
+                  flex: 1, background: '#dc2626', color: '#fff', padding: '11px 16px',
+                  justifyContent: 'center', borderRadius: 12,
+                  opacity: actionLoading === rejectModal.bookingId ? 0.7 : 1
                 }}>
-                {actionLoading === rejectModal.bookingId ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaTimes size={12} />} Reject
+                {actionLoading === rejectModal.bookingId
+                  ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                  : <FaTimes size={12} />}
+                Reject
               </button>
             </div>
           </div>
@@ -614,12 +946,8 @@ export default function SpacesAdminPage() {
 
       {/* ═══ QR Code Modal ═══ */}
       {qrModal && (
-        <QRCodeModal
-          isOpen={true}
-          onClose={() => setQrModal(null)}
-          restaurantId={qrModal.spaceId}
-          restaurantName={qrModal.spaceName}
-        />
+        <QRCodeModal isOpen={true} onClose={() => setQrModal(null)}
+          restaurantId={qrModal.spaceId} restaurantName={qrModal.spaceName} />
       )}
     </div>
   );

@@ -1,29 +1,27 @@
 'use client';
 
-import { FaPlus, FaReceipt, FaEdit, FaTrash, FaSync } from 'react-icons/fa';
+import { FaPlus, FaReceipt, FaEdit, FaTrash, FaSync, FaCog } from 'react-icons/fa';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6',
 };
 
-const CATEGORY_COLORS = {
+const DEFAULT_CATEGORY_COLORS = {
   rent: '#2563eb', utilities: '#f59e0b', salaries: '#059669', marketing: '#8b5cf6',
   repairs: '#ef4444', supplies: '#06b6d4', insurance: '#ec4899', licenses: '#6366f1',
   equipment: '#14b8a6', miscellaneous: '#6b7280',
-};
-
-const CATEGORY_LABELS = {
-  rent: 'Rent', utilities: 'Utilities', salaries: 'Salaries & Wages', marketing: 'Marketing',
-  repairs: 'Repairs', supplies: 'Supplies', insurance: 'Insurance', licenses: 'Licenses',
-  equipment: 'Equipment', miscellaneous: 'Miscellaneous',
 };
 
 export default function ExpensesTab({
   expensesList, expensesSummary, loadingExpenses, isMobile, formatCurrency,
   setShowAddExpenseModal, handleEditExpense, handleDeleteExpense,
   expenseCategoryFilter, setExpenseCategoryFilter, EXPENSE_CATEGORIES,
+  setShowManageCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP,
 }) {
+  const getCatLabel = (key) => CATEGORY_LABELS_MAP?.[key] || key;
+  const getCatColor = (key) => CATEGORY_COLORS_MAP?.[key] || DEFAULT_CATEGORY_COLORS[key] || '#6b7280';
+
   const { total, byCategory, count } = expensesSummary || {};
 
   const categoryData = Object.entries(byCategory || {}).map(([key, val]) => ({ name: key, amount: val })).sort((a, b) => b.amount - a.amount);
@@ -53,17 +51,29 @@ export default function ExpensesTab({
             {EXPENSE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </div>
-        <button
-          onClick={() => setShowAddExpenseModal(true)}
-          style={{
-            padding: '10px 20px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px',
-            fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-            boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
-          }}
-        >
-          <FaPlus size={11} /> Add Expense
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setShowManageCategories(true)}
+            style={{
+              padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#475569',
+              border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px',
+              fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            <FaCog size={11} /> Categories
+          </button>
+          <button
+            onClick={() => setShowAddExpenseModal(true)}
+            style={{
+              padding: '10px 20px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px',
+              fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+            }}
+          >
+            <FaPlus size={11} /> Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -79,7 +89,7 @@ export default function ExpensesTab({
         </div>
         <div style={{ ...cardStyle, padding: '14px 18px' }}>
           <div style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '6px' }}>Top Category</div>
-          <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827', textTransform: 'capitalize' }}>{topCategory ? (CATEGORY_LABELS[topCategory.name] || topCategory.name) : '—'}</div>
+          <div style={{ fontSize: '16px', fontWeight: 800, color: '#111827', textTransform: 'capitalize' }}>{topCategory ? (getCatLabel(topCategory.name)) : '—'}</div>
           {topCategory && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{formatCurrency(topCategory.amount)}</div>}
         </div>
       </div>
@@ -95,11 +105,11 @@ export default function ExpensesTab({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {categoryData.map((cat, i) => {
                 const pct = maxCat > 0 ? (cat.amount / maxCat) * 100 : 0;
-                const color = CATEGORY_COLORS[cat.name] || '#6b7280';
+                const color = getCatColor(cat.name);
                 return (
                   <div key={i}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', textTransform: 'capitalize' }}>{CATEGORY_LABELS[cat.name] || cat.name}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', textTransform: 'capitalize' }}>{getCatLabel(cat.name)}</span>
                       <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{formatCurrency(cat.amount)}</span>
                     </div>
                     <div style={{ height: '6px', borderRadius: '3px', backgroundColor: '#e5e7eb', overflow: 'hidden' }}>
@@ -123,7 +133,7 @@ export default function ExpensesTab({
           {expensesList?.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {expensesList.map((expense) => {
-                const color = CATEGORY_COLORS[expense.category] || '#6b7280';
+                const color = getCatColor(expense.category);
                 return (
                   <div key={expense.id} style={{
                     padding: '12px 14px', backgroundColor: '#fafafa', borderRadius: '10px',
@@ -136,7 +146,7 @@ export default function ExpensesTab({
                           textTransform: 'uppercase', letterSpacing: '0.03em',
                           backgroundColor: `${color}18`, color: color,
                         }}>
-                          {CATEGORY_LABELS[expense.category] || expense.category}
+                          {getCatLabel(expense.category)}
                         </span>
                         {expense.isRecurring && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#8b5cf6', fontWeight: 600 }}>

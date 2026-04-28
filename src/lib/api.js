@@ -2915,6 +2915,12 @@ class ApiClient {
   async deleteBooksExpense(restaurantId, expenseId) {
     return this.request(`/api/books/${restaurantId}/expenses/${expenseId}`, { method: 'DELETE' });
   }
+  async getExpenseCategories(restaurantId) {
+    return this.request(`/api/books/${restaurantId}/expense-categories`);
+  }
+  async saveExpenseCategories(restaurantId, categories) {
+    return this.request(`/api/books/${restaurantId}/expense-categories`, { method: 'PUT', body: JSON.stringify({ categories }) });
+  }
   async getBooksSupplierDues(restaurantId) {
     return this.request(`/api/books/${restaurantId}/supplier-dues`);
   }
