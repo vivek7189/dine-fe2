@@ -111,11 +111,28 @@ export default function DashboardTablesPanel({
   // Track which tables are currently printing
   const [printingTables, setPrintingTables] = useState({});
 
+  // Sort tables: alphabetic names first (sorted A-Z), then numeric names (sorted 1,2,3...)
+  const sortTables = (tablesArr) => {
+    return [...tablesArr].sort((a, b) => {
+      const nameA = (a.name || a.number || '').toString().trim();
+      const nameB = (b.name || b.number || '').toString().trim();
+      const numA = Number(nameA);
+      const numB = Number(nameB);
+      const isNumA = nameA !== '' && !isNaN(numA);
+      const isNumB = nameB !== '' && !isNaN(numB);
+      // Alphabetic names come before numeric names
+      if (!isNumA && !isNumB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      if (!isNumA && isNumB) return -1;
+      if (isNumA && !isNumB) return 1;
+      return numA - numB;
+    });
+  };
+
   // Prefer floor.tables if present; fall back to flat tables prop
   const grouped = useMemo(() => {
     let allGroups = [];
     if (Array.isArray(floors) && floors.length > 0 && floors.some(f => Array.isArray(f.tables))) {
-      allGroups = floors.map(f => ({ info: { id: f.id, name: f.name || f.floorName || 'Floor' }, tables: f.tables || [] }));
+      allGroups = floors.map(f => ({ info: { id: f.id, name: f.name || f.floorName || 'Floor' }, tables: sortTables(f.tables || []) }));
     } else {
       // Group flat tables by floor
       const byFloor = {};
@@ -125,7 +142,7 @@ export default function DashboardTablesPanel({
         if (!byFloor[key]) byFloor[key] = { info: { name: t.floorName || t.floor || 'Floor' }, tables: [] };
         byFloor[key].tables.push(t);
       });
-      allGroups = Object.values(byFloor);
+      allGroups = Object.values(byFloor).map(g => ({ ...g, tables: sortTables(g.tables) }));
     }
     // Filter out floors with no tables
     return allGroups.filter(group => group.tables && group.tables.length > 0);

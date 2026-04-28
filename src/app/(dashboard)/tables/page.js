@@ -679,7 +679,24 @@ const TableManagement = () => {
     other: 0,
   };
 
-  const filteredFloors = selectedFloorId === 'all' ? floors : floors.filter(f => f.id === selectedFloorId);
+  // Sort tables: alphabetic names first (sorted A-Z), then numeric names (sorted 1,2,3...)
+  const sortTables = (tablesArr) => {
+    return [...tablesArr].sort((a, b) => {
+      const nameA = (a.name || a.number || '').toString().trim();
+      const nameB = (b.name || b.number || '').toString().trim();
+      const numA = Number(nameA);
+      const numB = Number(nameB);
+      const isNumA = nameA !== '' && !isNaN(numA);
+      const isNumB = nameB !== '' && !isNaN(numB);
+      if (!isNumA && !isNumB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      if (!isNumA && isNumB) return -1;
+      if (isNumA && !isNumB) return 1;
+      return numA - numB;
+    });
+  };
+
+  const filteredFloors = (selectedFloorId === 'all' ? floors : floors.filter(f => f.id === selectedFloorId))
+    .map(f => ({ ...f, tables: sortTables(f.tables || []) }));
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
