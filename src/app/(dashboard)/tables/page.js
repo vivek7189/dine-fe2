@@ -15,7 +15,7 @@ import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
-  FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner
+  FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown
 } from 'react-icons/fa';
 
 const TableManagement = () => {
@@ -58,6 +58,9 @@ const TableManagement = () => {
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false); // loading for add/edit table, floor, reset, status change
   const [hoveredTableId, setHoveredTableId] = useState(null);
+  const [floorModalTab, setFloorModalTab] = useState('details'); // 'details' | 'order'
+  const [floorOrderList, setFloorOrderList] = useState([]); // for reordering
+  const [savingFloorOrder, setSavingFloorOrder] = useState(false);
 
   // Dropdown state
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -507,7 +510,31 @@ const TableManagement = () => {
   const startEditFloor = (floor) => {
     setEditingFloor(floor);
     setNewFloor({ name: floor.name, description: floor.description || '', section: floor.section || '', areaChargeType: floor.areaChargeType || 'none', areaChargeValue: floor.areaChargeValue || '' });
+    setFloorModalTab('details');
+    setFloorOrderList(floors.map(f => ({ id: f.id, name: f.name })));
     setShowEditFloor(true);
+  };
+
+  const moveFloorOrder = (index, direction) => {
+    const newOrder = [...floorOrderList];
+    const swapIndex = index + direction;
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+    setFloorOrderList(newOrder);
+  };
+
+  const saveFloorOrder = async () => {
+    if (!selectedRestaurant?.id) return;
+    setSavingFloorOrder(true);
+    try {
+      await apiClient.reorderFloors(selectedRestaurant.id, floorOrderList.map(f => f.id));
+      // Reorder local floors state to match
+      const orderMap = {};
+      floorOrderList.forEach((f, i) => { orderMap[f.id] = i; });
+      setFloors(prev => [...prev].sort((a, b) => (orderMap[a.id] ?? Infinity) - (orderMap[b.id] ?? Infinity)));
+      showSuccess('Floor order updated!');
+    } catch (err) { showError(`Failed to update floor order: ${err.message}`); }
+    finally { setSavingFloorOrder(false); }
   };
 
   const addTable = async () => {
@@ -1583,32 +1610,88 @@ const TableManagement = () => {
 
       {/* ─── ADD/EDIT FLOOR MODAL ─── */}
       {(showAddFloor || showEditFloor) && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowAddFloor(false); setShowEditFloor(false); }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => { setShowAddFloor(false); setShowEditFloor(false); setFloorModalTab('details'); }}>
           <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '420px', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{showEditFloor ? 'Edit Floor' : 'Add Floor'}</h3>
-                <button onClick={() => { setShowAddFloor(false); setShowEditFloor(false); }} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
+                <button onClick={() => { setShowAddFloor(false); setShowEditFloor(false); setFloorModalTab('details'); }} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
               </div>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Floor Name *</label>
-              <input value={newFloor.name} onChange={e => setNewFloor(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Ground Floor, Terrace" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Description</label>
-              <input value={newFloor.description} onChange={e => setNewFloor(p => ({ ...p, description: e.target.value }))} placeholder="Optional description" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Area Charge</label>
-              <select value={newFloor.areaChargeType} onChange={e => setNewFloor(p => ({ ...p, areaChargeType: e.target.value }))} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '12px', outline: 'none' }}>
-                <option value="none">None</option>
-                <option value="percentage">Percentage (%)</option>
-                <option value="flat">Flat Amount</option>
-              </select>
-              {newFloor.areaChargeType !== 'none' && (
-                <input type="number" value={newFloor.areaChargeValue} onChange={e => setNewFloor(p => ({ ...p, areaChargeValue: e.target.value }))} placeholder={newFloor.areaChargeType === 'percentage' ? 'e.g. 10' : 'e.g. 50'} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
+
+              {/* Tabs - only show "Floor Order" tab when editing */}
+              {showEditFloor && (
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+                  <button onClick={() => setFloorModalTab('details')} style={{
+                    flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                    backgroundColor: floorModalTab === 'details' ? 'white' : 'transparent',
+                    color: floorModalTab === 'details' ? '#1f2937' : '#6b7280',
+                    boxShadow: floorModalTab === 'details' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}><FaEdit size={11} style={{ marginRight: '6px' }} />Details</button>
+                  <button onClick={() => setFloorModalTab('order')} style={{
+                    flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                    backgroundColor: floorModalTab === 'order' ? 'white' : 'transparent',
+                    color: floorModalTab === 'order' ? '#1f2937' : '#6b7280',
+                    boxShadow: floorModalTab === 'order' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}><FaSortAmountDown size={11} style={{ marginRight: '6px' }} />Floor Order</button>
+                </div>
               )}
-              <button onClick={showEditFloor ? editFloor : addFloor} disabled={actionLoading || !newFloor.name.trim()} style={{
-                width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer', marginTop: '8px',
-                background: newFloor.name.trim() && !actionLoading ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
-                color: newFloor.name.trim() && !actionLoading ? 'white' : '#9ca3af',
-                opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> {showEditFloor ? 'Updating...' : 'Adding...'}</> : (showEditFloor ? 'Update Floor' : 'Add Floor')}</button>
+
+              {/* Details tab */}
+              {floorModalTab === 'details' && (<>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Floor Name *</label>
+                <input value={newFloor.name} onChange={e => setNewFloor(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Ground Floor, Terrace" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Description</label>
+                <input value={newFloor.description} onChange={e => setNewFloor(p => ({ ...p, description: e.target.value }))} placeholder="Optional description" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Area Charge</label>
+                <select value={newFloor.areaChargeType} onChange={e => setNewFloor(p => ({ ...p, areaChargeType: e.target.value }))} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '12px', outline: 'none' }}>
+                  <option value="none">None</option>
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="flat">Flat Amount</option>
+                </select>
+                {newFloor.areaChargeType !== 'none' && (
+                  <input type="number" value={newFloor.areaChargeValue} onChange={e => setNewFloor(p => ({ ...p, areaChargeValue: e.target.value }))} placeholder={newFloor.areaChargeType === 'percentage' ? 'e.g. 10' : 'e.g. 50'} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
+                )}
+                <button onClick={showEditFloor ? editFloor : addFloor} disabled={actionLoading || !newFloor.name.trim()} style={{
+                  width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer', marginTop: '8px',
+                  background: newFloor.name.trim() && !actionLoading ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
+                  color: newFloor.name.trim() && !actionLoading ? 'white' : '#9ca3af',
+                  opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> {showEditFloor ? 'Updating...' : 'Adding...'}</> : (showEditFloor ? 'Update Floor' : 'Add Floor')}</button>
+              </>)}
+
+              {/* Floor Order tab */}
+              {floorModalTab === 'order' && (<>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginTop: 0, marginBottom: '16px' }}>Drag floors up or down to set display order on dashboard and tables page.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                  {floorOrderList.map((floor, index) => (
+                    <div key={floor.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
+                      backgroundColor: floor.id === editingFloor?.id ? '#fef2f2' : '#f8fafc',
+                      border: floor.id === editingFloor?.id ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                    }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#9ca3af', minWidth: '20px' }}>{index + 1}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', flex: 1 }}>{floor.name}</span>
+                      <button onClick={() => moveFloorOrder(index, -1)} disabled={index === 0} style={{
+                        width: '28px', height: '28px', borderRadius: '6px', border: 'none', cursor: index === 0 ? 'default' : 'pointer',
+                        backgroundColor: index === 0 ? '#f1f5f9' : '#e0f2fe', color: index === 0 ? '#d1d5db' : '#0284c7',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}><FaArrowUp size={10} /></button>
+                      <button onClick={() => moveFloorOrder(index, 1)} disabled={index === floorOrderList.length - 1} style={{
+                        width: '28px', height: '28px', borderRadius: '6px', border: 'none', cursor: index === floorOrderList.length - 1 ? 'default' : 'pointer',
+                        backgroundColor: index === floorOrderList.length - 1 ? '#f1f5f9' : '#e0f2fe', color: index === floorOrderList.length - 1 ? '#d1d5db' : '#0284c7',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}><FaArrowDown size={10} /></button>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={saveFloorOrder} disabled={savingFloorOrder} style={{
+                  width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer',
+                  background: !savingFloorOrder ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
+                  color: !savingFloorOrder ? 'white' : '#9ca3af',
+                  opacity: savingFloorOrder ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                }}>{savingFloorOrder ? <><FaSpinner size={14} className="animate-spin" /> Saving...</> : 'Save Order'}</button>
+              </>)}
             </div>
           </div>
         </div>

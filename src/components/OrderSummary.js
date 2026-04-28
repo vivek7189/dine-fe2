@@ -1867,8 +1867,34 @@ const OrderSummary = ({
                 <>
                   <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
                     <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- {bLabels.billTitle} ---</div>
-                    <div style={{ marginBottom: '6px', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>{invoice?.restaurantName || 'Restaurant'}</div>
-                    <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
+                    <div style={{ marginBottom: '2px', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>{invoice?.restaurantName || 'Restaurant'}</div>
+                    {invoice?.restaurantLegalName && invoice.restaurantLegalName !== invoice.restaurantName && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>{invoice.restaurantLegalName}</div>
+                    )}
+                    {invoice?.restaurantAddress && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>{invoice.restaurantAddress}</div>
+                    )}
+                    {invoice?.restaurantPhone && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>Tel: {invoice.restaurantPhone}</div>
+                    )}
+                    {/* India: GSTIN & FSSAI */}
+                    {invoice?.showGstOnInvoice && invoice?.gstin && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>GSTIN:</strong> {invoice.gstin}</div>
+                    )}
+                    {invoice?.showFssaiOnInvoice && invoice?.fssai && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>FSSAI:</strong> {invoice.fssai}</div>
+                    )}
+                    {/* International: VAT/Tax ID */}
+                    {invoice?.showTaxIdOnInvoice && invoice?.vatNumber && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'GB' ? 'VAT' : invoice?.countryCode === 'CA' ? 'GST/HST' : invoice?.countryCode === 'AE' ? 'TRN' : invoice?.countryCode === 'DE' ? 'USt-IdNr' : invoice?.countryCode === 'FR' ? 'TVA' : 'Tax ID'}:</strong> {invoice.vatNumber}</div>
+                    )}
+                    {invoice?.showTaxIdOnInvoice && invoice?.taxId && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>{invoice?.countryCode === 'AU' ? 'ABN' : 'Tax ID'}:</strong> {invoice.taxId}</div>
+                    )}
+                    {invoice?.showTaxIdOnInvoice && invoice?.businessRegistrationNumber && (
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '1px' }}><strong>Reg#:</strong> {invoice.businessRegistrationNumber}</div>
+                    )}
+                    <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px', marginTop: '6px' }}>
                       {invoice?.dailyOrderId != null && <div><strong>{bLabels.billLabel} #:</strong> {invoice.dailyOrderId}</div>}
                       {invoice?.orderId && <div><strong>ID:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
                       <div><strong>Date:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
@@ -2037,7 +2063,19 @@ const OrderSummary = ({
                       const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Cash Received:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Change:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
                       const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">Partial Payment:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Paid:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>Outstanding:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
                       const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+                      // Build identity lines for print header
+                      const identityLines = [];
+                      if (invoice?.restaurantLegalName && invoice.restaurantLegalName !== invoice.restaurantName) identityLines.push(invoice.restaurantLegalName.replace(/</g,'&lt;'));
+                      if (invoice?.restaurantAddress) identityLines.push(invoice.restaurantAddress.replace(/</g,'&lt;'));
+                      if (invoice?.restaurantPhone) identityLines.push('Tel: ' + invoice.restaurantPhone);
+                      if (invoice?.showGstOnInvoice && invoice?.gstin) identityLines.push('GSTIN: ' + invoice.gstin);
+                      if (invoice?.showFssaiOnInvoice && invoice?.fssai) identityLines.push('FSSAI: ' + invoice.fssai);
+                      if (invoice?.showTaxIdOnInvoice && invoice?.vatNumber) identityLines.push((invoice?.countryCode === 'GB' ? 'VAT: ' : invoice?.countryCode === 'CA' ? 'GST/HST: ' : invoice?.countryCode === 'AE' ? 'TRN: ' : 'Tax ID: ') + invoice.vatNumber);
+                      if (invoice?.showTaxIdOnInvoice && invoice?.taxId) identityLines.push((invoice?.countryCode === 'AU' ? 'ABN: ' : 'Tax ID: ') + invoice.taxId);
+                      if (invoice?.showTaxIdOnInvoice && invoice?.businessRegistrationNumber) identityLines.push('Reg#: ' + invoice.businessRegistrationNumber);
+                      const identityHtml = identityLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
+
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="bill-header"><div class="restaurant-name">${(invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div>${identityHtml}<div class="bill-title">--- ${bLabels.billTitle} ---</div></div><div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();

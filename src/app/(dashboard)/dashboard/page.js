@@ -77,6 +77,7 @@ function RestaurantPOSContent() {
   // Permission gating
   const dashUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
   const canCompleteBill = canPerform(dashUserData, dashUserData.pageAccess, 'orders', 'completeBill');
+  const dashCanDeleteTable = canPerform(dashUserData, dashUserData.pageAccess, 'tables', 'delete');
 
   // Core state
   const [selectedCategory, setSelectedCategory] = useState('all-items');
@@ -6339,6 +6340,19 @@ function RestaurantPOSContent() {
                 setActivePricingRuleId={setActivePricingRuleId}
                 countryCode={selectedRestaurant?.countryCode || 'IN'}
                 businessType={selectedRestaurant?.businessType || 'restaurant'}
+                canDeleteTable={dashCanDeleteTable}
+                onDeleteTable={async (tableId) => {
+                  try {
+                    await apiClient.deleteTable(tableId, selectedRestaurant?.id);
+                    // Remove from local state
+                    setTablesData(prev => ({
+                      ...prev,
+                      floors: prev.floors.map(f => ({ ...f, tables: (f.tables || []).filter(t => t.id !== tableId) })),
+                    }));
+                  } catch (err) {
+                    alert(`Failed to delete table: ${err.message}`);
+                  }
+                }}
                 onRefreshTables={() => {
                   // Refresh tables in background after billing completion
                   if (selectedRestaurant?.id) {

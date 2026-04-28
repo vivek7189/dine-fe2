@@ -63,6 +63,8 @@ export default function DashboardTablesPanel({
   setActivePricingRuleId,
   countryCode = 'IN',
   businessType = 'restaurant',
+  canDeleteTable = false,
+  onDeleteTable,
 }) {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -506,6 +508,14 @@ export default function DashboardTablesPanel({
 <body>
   <div class="bill-header">
     <div class="restaurant-name">${(restaurantName || 'Restaurant').replace(/</g, '&lt;')}</div>
+    ${selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName ? `<div style="font-size:11px;">${selectedRestaurant.legalBusinessName.replace(/</g, '&lt;')}</div>` : ''}
+    ${selectedRestaurant?.address ? `<div style="font-size:11px;">${selectedRestaurant.address.replace(/</g, '&lt;')}</div>` : ''}
+    ${selectedRestaurant?.phone ? `<div style="font-size:11px;">Tel: ${selectedRestaurant.phone}</div>` : ''}
+    ${selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin ? `<div style="font-size:11px;">GSTIN: ${selectedRestaurant.gstin}</div>` : ''}
+    ${selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai ? `<div style="font-size:11px;">FSSAI: ${selectedRestaurant.fssai}</div>` : ''}
+    ${selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber ? `<div style="font-size:11px;">Tax ID: ${selectedRestaurant.vatNumber}</div>` : ''}
+    ${selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId ? `<div style="font-size:11px;">Tax ID: ${selectedRestaurant.taxId}</div>` : ''}
+    ${selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber ? `<div style="font-size:11px;">Reg#: ${selectedRestaurant.businessRegistrationNumber}</div>` : ''}
     <div class="bill-title">--- BILL / INVOICE ---</div>
   </div>
   <div class="divider">--------------------------------</div>
@@ -977,35 +987,59 @@ export default function DashboardTablesPanel({
                     {/* Actions */}
                     <div style={{ marginTop: '8px' }}>
                       {isAvailable ? (
-                        <button
-                          className="btn-action"
-                          onClick={() => handleTakeOrderGuarded(t, group.info?.name)}
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            background: '#059669',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.background = '#047857';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.background = '#059669';
-                          }}
-                        >
-                          <FaReceipt size={10} />
-                          Take Order
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            className="btn-action"
+                            onClick={() => handleTakeOrderGuarded(t, group.info?.name)}
+                            style={{
+                              flex: 1,
+                              padding: '8px 12px',
+                              background: '#059669',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = '#047857';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = '#059669';
+                            }}
+                          >
+                            <FaReceipt size={10} />
+                            Take Order
+                          </button>
+                          {canDeleteTable && onDeleteTable && (
+                            <button
+                              className="btn-action"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete table "${t.name || t.number}"?`)) {
+                                  onDeleteTable(t.id);
+                                }
+                              }}
+                              style={{
+                                width: '32px', height: '32px', padding: 0,
+                                background: '#ffffff', color: '#ef4444', border: '1px solid #fecaca',
+                                borderRadius: '6px', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
+                              title="Delete table"
+                            >
+                              <FaTrash size={10} />
+                            </button>
+                          )}
+                        </div>
                       ) : isOutOfService ? (
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button

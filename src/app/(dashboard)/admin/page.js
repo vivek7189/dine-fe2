@@ -107,42 +107,52 @@ import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS } from '../../../utils/printFontSizes';
 
-// Tax Management Component
-const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+// Tax & Business Identity Combined Component
+const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
   const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
+  const [activeSection, setActiveSection] = useState('tax'); // 'tax' or 'identity'
+
+  // --- Tax state ---
   const [taxSettings, setTaxSettings] = useState({
     enabled: true,
-    taxes: [
-      {
-        id: 'gst',
-        name: 'GST',
-        rate: 5,
-        enabled: true,
-        type: 'percentage'
-      }
-    ],
+    taxes: [{ id: 'gst', name: 'GST', rate: 5, enabled: true, type: 'percentage' }],
     defaultTaxRate: 5,
-    taxGroups: []
+    taxGroups: [],
+    taxComplianceAccepted: true,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editingGroup, setEditingGroup] = useState(null); // null or group object being edited
+  const [editingGroup, setEditingGroup] = useState(null);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupTaxes, setNewGroupTaxes] = useState([]);
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [categories, setCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
-  const [showItemPicker, setShowItemPicker] = useState(null); // groupId when item picker is open
+  const [showItemPicker, setShowItemPicker] = useState(null);
 
-  const loadTaxSettings = async (restaurantId) => {
-    if (!restaurantId) return;
+  // --- Business Identity state ---
+  const [biSettings, setBiSettings] = useState({
+    legalBusinessName: '', gstin: '', fssai: '', address: '',
+    showLegalNameOnInvoice: false, showGstOnInvoice: false, showFssaiOnInvoice: false,
+    vatNumber: '', taxId: '', businessRegistrationNumber: '',
+    showTaxIdOnInvoice: false,
+  });
+  const [biLoading, setBiLoading] = useState(true);
+  const [biSaving, setBiSaving] = useState(false);
+  const [biMessage, setBiMessage] = useState(null);
+  const [countryCode, setCountryCode] = useState('IN');
 
+  const restaurantId = selectedRestaurant?.id;
+
+  // Load tax settings
+  const loadTaxSettings = async (rid) => {
+    if (!rid) return;
     setLoading(true);
     try {
       const [taxRes, catsRes, menuRes] = await Promise.all([
-        apiClient.getTaxSettings(restaurantId),
-        apiClient.getCategories(restaurantId).catch(() => ({ categories: [] })),
-        apiClient.getMenu(restaurantId).catch(() => ({ menuItems: [] })),
+        apiClient.getTaxSettings(rid),
+        apiClient.getCategories(rid).catch(() => ({ categories: [] })),
+        apiClient.getMenu(rid).catch(() => ({ menuItems: [] })),
       ]);
       if (taxRes.success) {
         setTaxSettings({ ...taxRes.taxSettings, taxGroups: taxRes.taxSettings.taxGroups || [] });
@@ -151,160 +161,142 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       setMenuItems(menuRes?.menuItems || []);
     } catch (error) {
       console.error('Error loading tax settings:', error);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const saveTaxSettings = async () => {
-    if (!selectedRestaurant?.id) return;
+  // Load business identity
+  const loadBusinessSettings = async (rid) => {
+    if (!rid) return;
+    setBiLoading(true);
+    const cc = selectedRestaurant?.currencySettings?.countryCode || selectedRestaurant?.countryCode || 'IN';
+    setCountryCode(cc);
+    try {
+      const res = await apiClient.getBusinessSettings(rid);
+      if (res?.businessSettings) setBiSettings(s => ({ ...s, ...res.businessSettings }));
+    } catch {} finally { setBiLoading(false); }
+  };
 
+  useEffect(() => {
+    if (restaurantId) {
+      loadTaxSettings(restaurantId);
+      loadBusinessSettings(restaurantId);
+    }
+  }, [restaurantId]);
+
+  // Tax save
+  const saveTaxSettings = async () => {
+    if (!restaurantId) return;
     setSaving(true);
     try {
-      const response = await apiClient.updateTaxSettings(selectedRestaurant.id, taxSettings);
-      if (response.success) {
-        showSuccess('Tax settings saved successfully!');
-      }
+      const response = await apiClient.updateTaxSettings(restaurantId, taxSettings);
+      if (response.success) showSuccess('Tax settings saved successfully!');
     } catch (error) {
       console.error('Error saving tax settings:', error);
       showError('Error saving tax settings');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
+  // Business identity save
+  const handleBiSave = async () => {
+    setBiSaving(true);
+    setBiMessage(null);
+    try {
+      if (biSettings.gstin && countryCode === 'IN') {
+        const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+        if (!gstinRegex.test(biSettings.gstin.toUpperCase())) {
+          setBiMessage({ type: 'error', text: 'Invalid GSTIN format. Must be 15 characters (e.g., 29ABCDE1234F1Z5)' });
+          setBiSaving(false);
+          return;
+        }
+      }
+      if (biSettings.fssai && countryCode === 'IN') {
+        if (!/^[0-9]{14}$/.test(biSettings.fssai)) {
+          setBiMessage({ type: 'error', text: 'Invalid FSSAI number. Must be exactly 14 digits.' });
+          setBiSaving(false);
+          return;
+        }
+      }
+      await apiClient.updateBusinessSettings(restaurantId, biSettings);
+      showSuccess('Business identity saved successfully!');
+      setBiMessage({ type: 'success', text: 'Business identity saved!' });
+      setTimeout(() => setBiMessage(null), 3000);
+    } catch (err) {
+      setBiMessage({ type: 'error', text: err.message || 'Failed to save' });
+    } finally { setBiSaving(false); }
+  };
+
+  // Tax CRUD helpers
   const addTax = () => {
-    const newTax = {
-      id: `tax_${Date.now()}`,
-      name: 'New Tax',
-      rate: 0,
-      enabled: true,
-      type: 'percentage'
-    };
-    setTaxSettings(prev => ({
-      ...prev,
-      taxes: [...prev.taxes, newTax]
-    }));
+    setTaxSettings(prev => ({ ...prev, taxes: [...prev.taxes, { id: `tax_${Date.now()}`, name: 'New Tax', rate: 0, enabled: true, type: 'percentage' }] }));
   };
-
   const updateTax = (index, field, value) => {
-    setTaxSettings(prev => ({
-      ...prev,
-      taxes: prev.taxes.map((tax, i) =>
-        i === index ? { ...tax, [field]: value } : tax
-      )
-    }));
+    setTaxSettings(prev => ({ ...prev, taxes: prev.taxes.map((tax, i) => i === index ? { ...tax, [field]: value } : tax) }));
   };
-
   const removeTax = (index) => {
-    setTaxSettings(prev => ({
-      ...prev,
-      taxes: prev.taxes.filter((_, i) => i !== index)
-    }));
+    setTaxSettings(prev => ({ ...prev, taxes: prev.taxes.filter((_, i) => i !== index) }));
   };
-
   const toggleTaxEnabled = (index) => {
-    setTaxSettings(prev => ({
-      ...prev,
-      taxes: prev.taxes.map((tax, i) =>
-        i === index ? { ...tax, enabled: !tax.enabled } : tax
-      )
-    }));
+    setTaxSettings(prev => ({ ...prev, taxes: prev.taxes.map((tax, i) => i === index ? { ...tax, enabled: !tax.enabled } : tax) }));
   };
-
-  // Tax Group CRUD
   const addTaxGroup = () => {
     if (!newGroupName.trim()) return;
-    const newGroup = {
-      id: `tg_${Date.now()}`,
-      name: newGroupName.trim(),
-      taxes: newGroupTaxes.filter(t => t.name.trim() && t.rate > 0),
-      alsoApplyGlobalTax: false
-    };
-    setTaxSettings(prev => ({
-      ...prev,
-      taxGroups: [...(prev.taxGroups || []), newGroup]
-    }));
-    setNewGroupName('');
-    setNewGroupTaxes([]);
-    setShowAddGroup(false);
+    const newGroup = { id: `tg_${Date.now()}`, name: newGroupName.trim(), taxes: newGroupTaxes.filter(t => t.name.trim() && t.rate > 0), alsoApplyGlobalTax: false };
+    setTaxSettings(prev => ({ ...prev, taxGroups: [...(prev.taxGroups || []), newGroup] }));
+    setNewGroupName(''); setNewGroupTaxes([]); setShowAddGroup(false);
   };
-
   const addTaxExemptGroup = () => {
     const exists = (taxSettings.taxGroups || []).some(g => g.id === 'tax-exempt');
     if (exists) return;
-    setTaxSettings(prev => ({
-      ...prev,
-      taxGroups: [...(prev.taxGroups || []), { id: 'tax-exempt', name: 'Tax Exempt', taxes: [] }]
-    }));
+    setTaxSettings(prev => ({ ...prev, taxGroups: [...(prev.taxGroups || []), { id: 'tax-exempt', name: 'Tax Exempt', taxes: [] }] }));
   };
-
   const removeTaxGroup = (groupId) => {
-    setTaxSettings(prev => ({
-      ...prev,
-      taxGroups: (prev.taxGroups || []).filter(g => g.id !== groupId)
-    }));
+    setTaxSettings(prev => ({ ...prev, taxGroups: (prev.taxGroups || []).filter(g => g.id !== groupId) }));
   };
-
   const updateTaxGroup = (groupId, updatedGroup) => {
-    setTaxSettings(prev => ({
-      ...prev,
-      taxGroups: (prev.taxGroups || []).map(g => g.id === groupId ? { ...g, ...updatedGroup } : g)
-    }));
+    setTaxSettings(prev => ({ ...prev, taxGroups: (prev.taxGroups || []).map(g => g.id === groupId ? { ...g, ...updatedGroup } : g) }));
     setEditingGroup(null);
   };
-
-  // Toggle a category's tax group assignment
   const toggleCategoryTaxGroup = async (catId, groupId) => {
     const cat = categories.find(c => c.id === catId);
     const newTaxGroupId = cat?.taxGroupId === groupId ? null : groupId;
     try {
       await apiClient.updateCategory(selectedRestaurant.id, catId, { taxGroupId: newTaxGroupId });
       setCategories(prev => prev.map(c => c.id === catId ? { ...c, taxGroupId: newTaxGroupId } : c));
-    } catch (error) {
-      showError('Failed to update category tax group');
-    }
+    } catch (error) { showError('Failed to update category tax group'); }
   };
-
-  // Assign/remove an item's tax group
   const setItemTaxGroup = async (itemId, groupId) => {
     try {
       await apiClient.updateMenuItem(itemId, { taxGroupId: groupId || null }, selectedRestaurant.id);
       setMenuItems(prev => prev.map(item => item.id === itemId ? { ...item, taxGroupId: groupId || null } : item));
-    } catch (error) {
-      showError('Failed to update item tax group');
-    }
+    } catch (error) { showError('Failed to update item tax group'); }
   };
 
-  const addNewGroupTaxEntry = () => {
-    setNewGroupTaxes(prev => [...prev, { id: `gt_${Date.now()}`, name: '', rate: 0, type: 'percentage' }]);
-  };
+  const identityConfig = COUNTRY_IDENTITY_FIELDS[countryCode] || DEFAULT_IDENTITY_FIELDS;
+  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', outline: 'none', boxSizing: 'border-box' };
 
-  // Load tax settings when restaurant changes
-  useEffect(() => {
-    if (selectedRestaurant?.id) {
-      loadTaxSettings(selectedRestaurant.id);
-    }
-  }, [selectedRestaurant?.id]);
+  const sectionTabs = [
+    { id: 'tax', label: 'Tax Rates', icon: <FaPercentage size={13} /> },
+    { id: 'identity', label: 'Business Identity', icon: <FaIdBadge size={13} /> },
+  ];
 
   return (
     <div>
       <TaxNotifications />
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FaPercentage size={20} />
-          Tax Management
+
+      {/* Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FaPercentage size={18} />
+          Tax & Business Identity
         </h2>
-        <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-          Configure tax rates and settings for your restaurant
+        <p style={{ color: '#6b7280', margin: 0, fontSize: '13px' }}>
+          Configure tax rates, business registration, and legal identity for your restaurants
         </p>
       </div>
 
       {/* Restaurant Selection */}
-      <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
-          Select Restaurant
-        </h3>
+      <div style={{ marginBottom: '20px' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Select Restaurant</p>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {restaurants.map((restaurant) => (
             <button
@@ -313,462 +305,512 @@ const TaxManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               style={{
                 backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
                 color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontWeight: 500,
-                fontSize: '13px',
+                padding: '6px 14px', borderRadius: '8px', fontWeight: 500, fontSize: '13px',
                 border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
               }}
             >
-              <FaStore size={12} style={{ marginRight: '6px' }} />
+              <FaStore size={12} />
               {restaurant.name}
             </button>
           ))}
         </div>
       </div>
 
+      {!selectedRestaurant && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
+          <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+          <p style={{ fontSize: '16px', margin: 0 }}>Please select a restaurant to manage settings</p>
+        </div>
+      )}
+
       {selectedRestaurant && (
         <div>
-          {/* Tax Enable/Disable */}
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
-              <input
-                type="checkbox"
-                checked={taxSettings.enabled}
-                onChange={(e) => setTaxSettings(prev => ({ ...prev, enabled: e.target.checked }))}
-                style={{ width: '18px', height: '18px' }}
-              />
-              Enable Tax Calculation
-            </label>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-              When enabled, taxes will be automatically calculated and added to orders
-            </p>
+          {/* Tax Compliance Disclaimer */}
+          <div style={{
+            padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
+            backgroundColor: taxSettings.taxComplianceAccepted === false ? '#fffbeb' : '#f0fdf4',
+            border: `1px solid ${taxSettings.taxComplianceAccepted === false ? '#fde68a' : '#bbf7d0'}`,
+            display: 'flex', alignItems: 'flex-start', gap: '10px',
+          }}>
+            <input
+              type="checkbox"
+              checked={taxSettings.taxComplianceAccepted !== false}
+              onChange={(e) => setTaxSettings(prev => ({ ...prev, taxComplianceAccepted: e.target.checked }))}
+              style={{ width: '16px', height: '16px', marginTop: '2px', flexShrink: 0, accentColor: '#059669', cursor: 'pointer' }}
+            />
+            <div style={{ fontSize: '12px', color: '#374151', lineHeight: '1.5' }}>
+              <span style={{ fontWeight: 600 }}>Tax Compliance Notice:</span>{' '}
+              Tax rates configured here must comply with your country&#39;s current GST/VAT/sales tax regulations. It is your responsibility to ensure accurate tax setup as per applicable laws. DineOpen is a restaurant management tool and does not provide tax, legal, or financial advice. We are not liable for any tax misconfiguration, notices, penalties, or compliance issues. Please consult your Chartered Accountant (CA) or tax advisor for guidance.
+            </div>
           </div>
 
-          {taxSettings.enabled && (
+          {/* Section Tabs */}
+          <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderBottom: '2px solid #e5e7eb' }}>
+            {sectionTabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSection(tab.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '10px 20px', fontSize: '14px', fontWeight: activeSection === tab.id ? 700 : 500,
+                  color: activeSection === tab.id ? '#ef4444' : '#6b7280',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  borderBottom: activeSection === tab.id ? '2px solid #ef4444' : '2px solid transparent',
+                  marginBottom: '-2px', transition: 'all 0.2s',
+                }}
+              >
+                {tab.icon}
+                <span style={{ display: 'inline' }}>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* ===== TAX RATES SECTION ===== */}
+          {activeSection === 'tax' && (
             <div>
-              {/* Unified Taxes Section */}
+              {/* Tax Enable/Disable */}
               <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>Taxes</h3>
-                    <p style={{ color: '#9ca3af', fontSize: '12px', margin: '4px 0 0 0' }}>
-                      Add taxes and optionally assign them to specific categories or items
-                    </p>
-                  </div>
-                  <button onClick={addTax}
-                    style={{ backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '14px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaPlus size={12} /> Add Tax
-                  </button>
-                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
+                  <input type="checkbox" checked={taxSettings.enabled} onChange={(e) => setTaxSettings(prev => ({ ...prev, enabled: e.target.checked }))} style={{ width: '18px', height: '18px' }} />
+                  Enable Tax Calculation
+                </label>
+                <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+                  When enabled, taxes will be automatically calculated and added to orders
+                </p>
+              </div>
 
-                {/* Default taxes (apply to all items) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {taxSettings.taxes.map((tax, index) => (
-                    <div key={tax.id} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <input type="checkbox" checked={tax.enabled} onChange={() => toggleTaxEnabled(index)} style={{ width: '18px', height: '18px' }} />
-                        <input type="text" value={tax.name} onChange={(e) => updateTax(index, 'name', e.target.value)}
-                          style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                          placeholder="Tax Name (e.g., GST, VAT)" />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <input type="number" value={tax.rate} onChange={(e) => updateTax(index, 'rate', parseFloat(e.target.value) || 0)}
-                            min="0" max="100" step="0.1"
-                            style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
-                          <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
-                        </div>
-                        <button onClick={() => removeTax(index)}
-                          style={{ backgroundColor: '#ef4444', color: 'white', padding: '8px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <FaTrash size={12} />
-                        </button>
+              {taxSettings.enabled && (
+                <div>
+                  {/* Taxes */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>Taxes</h3>
+                        <p style={{ color: '#9ca3af', fontSize: '12px', margin: '4px 0 0 0' }}>
+                          Add taxes and optionally assign them to specific categories or items
+                        </p>
                       </div>
-                      <div style={{ marginTop: '8px', paddingLeft: '30px' }}>
-                        <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 500 }}>Applied to all items</span>
-                      </div>
+                      <button onClick={addTax}
+                        style={{ backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '14px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FaPlus size={12} /> Add Tax
+                      </button>
                     </div>
-                  ))}
 
-                  {/* Category/Item-specific taxes (from taxGroups) */}
-                  {(taxSettings.taxGroups || []).map((group) => (
-                    <div key={group.id} style={{
-                      backgroundColor: group.id === 'tax-exempt' ? '#fef2f2' : '#f8fafc',
-                      border: `1px solid ${group.id === 'tax-exempt' ? '#fecaca' : '#e2e8f0'}`,
-                      borderRadius: '12px', padding: '16px'
-                    }}>
-                      {editingGroup?.id === group.id ? (
-                        <div>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                            <input type="text" value={editingGroup.name}
-                              onChange={(e) => setEditingGroup(prev => ({ ...prev, name: e.target.value }))}
-                              placeholder="Tax name" style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
-                            {editingGroup.taxes.length > 0 && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <input type="number" value={editingGroup.taxes[0]?.rate || 0} min="0" max="100" step="0.1"
-                                  onChange={(e) => setEditingGroup(prev => ({ ...prev, taxes: prev.taxes.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0 } : t) }))}
-                                  style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
-                                <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                            <button onClick={() => setEditingGroup(null)}
-                              style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>
-                              Cancel
-                            </button>
-                            <button onClick={() => updateTaxGroup(group.id, { name: editingGroup.name, taxes: editingGroup.taxes })}
-                              style={{ backgroundColor: '#7c3aed', color: 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>
-                              Save
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontWeight: 600, fontSize: '14px', color: '#1f2937' }}>{group.name}</span>
-                                {group.taxes.length === 0 ? (
-                                  <span style={{ fontSize: '12px', color: '#ef4444', backgroundColor: '#fef2f2', padding: '1px 8px', borderRadius: '4px' }}>Tax Exempt</span>
-                                ) : (
-                                  <span style={{ fontSize: '13px', color: '#6b7280' }}>
-                                    {group.taxes.map(gt => `${gt.rate}%`).join(' + ')}
-                                  </span>
-                                )}
-                              </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {taxSettings.taxes.map((tax, index) => (
+                        <div key={tax.id} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <input type="checkbox" checked={tax.enabled} onChange={() => toggleTaxEnabled(index)} style={{ width: '18px', height: '18px', flexShrink: 0 }} />
+                            <input type="text" value={tax.name} onChange={(e) => updateTax(index, 'name', e.target.value)}
+                              style={{ flex: 1, minWidth: '120px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                              placeholder="Tax Name (e.g., GST, VAT)" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <input type="number" value={tax.rate} onChange={(e) => updateTax(index, 'rate', parseFloat(e.target.value) || 0)}
+                                min="0" max="100" step="0.1"
+                                style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
+                              <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
                             </div>
-                            {group.id !== 'tax-exempt' && (
-                              <button onClick={() => setEditingGroup({ ...group, taxes: [...group.taxes] })}
-                                style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: '6px' }}>
-                                <FaEdit size={13} />
-                              </button>
-                            )}
-                            <button onClick={() => removeTaxGroup(group.id)}
-                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px' }}>
+                            <button onClick={() => removeTax(index)}
+                              style={{ backgroundColor: '#ef4444', color: 'white', padding: '8px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <FaTrash size={12} />
                             </button>
                           </div>
+                          <div style={{ marginTop: '8px', paddingLeft: '30px' }}>
+                            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 500 }}>Applied to all items</span>
+                          </div>
+                        </div>
+                      ))}
 
-                          {/* Also apply global taxes checkbox */}
-                          {group.id !== 'tax-exempt' && (group.taxes || []).length > 0 && (taxSettings.taxes || []).some(t => t.enabled) && (
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '12px', color: '#6b7280', cursor: 'pointer' }}>
-                              <input
-                                type="checkbox"
-                                checked={group.alsoApplyGlobalTax || false}
-                                onChange={(e) => updateTaxGroup(group.id, { alsoApplyGlobalTax: e.target.checked })}
-                                style={{ accentColor: '#7c3aed' }}
-                              />
-                              Also apply global taxes ({(taxSettings.taxes || []).filter(t => t.enabled).map(t => `${t.name} ${t.rate}%`).join(', ')})
-                            </label>
-                          )}
-
-                          {/* Applied To — Categories */}
-                          {categories.length > 0 && (
-                            <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #e5e7eb' }}>
-                              <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 6px 0' }}>Apply to categories:</p>
-                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                {categories.map(cat => {
-                                  const isAssigned = cat.taxGroupId === group.id;
-                                  const assignedElsewhere = cat.taxGroupId && cat.taxGroupId !== group.id;
-                                  const otherGroup = assignedElsewhere ? (taxSettings.taxGroups || []).find(g => g.id === cat.taxGroupId) : null;
-                                  return (
-                                    <button key={cat.id} onClick={() => toggleCategoryTaxGroup(cat.id, group.id)}
-                                      title={assignedElsewhere ? `Currently: ${otherGroup?.name || '?'}` : ''}
-                                      style={{
-                                        padding: '3px 10px', borderRadius: '14px', fontSize: '12px',
-                                        fontWeight: isAssigned ? 600 : 400,
-                                        backgroundColor: isAssigned ? '#7c3aed' : assignedElsewhere ? '#fef3c7' : '#f3f4f6',
-                                        color: isAssigned ? 'white' : assignedElsewhere ? '#92400e' : '#374151',
-                                        border: `1px solid ${isAssigned ? '#7c3aed' : assignedElsewhere ? '#fcd34d' : '#d1d5db'}`,
-                                        cursor: 'pointer', transition: 'all 0.15s'
-                                      }}>
-                                      {cat.emoji || ''} {cat.name}
-                                      {assignedElsewhere && ` (${otherGroup?.name || '?'})`}
-                                    </button>
-                                  );
-                                })}
+                      {/* Category/Item-specific taxes (from taxGroups) */}
+                      {(taxSettings.taxGroups || []).map((group) => (
+                        <div key={group.id} style={{
+                          backgroundColor: group.id === 'tax-exempt' ? '#fef2f2' : '#f8fafc',
+                          border: `1px solid ${group.id === 'tax-exempt' ? '#fecaca' : '#e2e8f0'}`,
+                          borderRadius: '12px', padding: '16px'
+                        }}>
+                          {editingGroup?.id === group.id ? (
+                            <div>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                <input type="text" value={editingGroup.name}
+                                  onChange={(e) => setEditingGroup(prev => ({ ...prev, name: e.target.value }))}
+                                  placeholder="Tax name" style={{ flex: 1, minWidth: '120px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
+                                {editingGroup.taxes.length > 0 && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <input type="number" value={editingGroup.taxes[0]?.rate || 0} min="0" max="100" step="0.1"
+                                      onChange={(e) => setEditingGroup(prev => ({ ...prev, taxes: prev.taxes.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0 } : t) }))}
+                                      style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
+                                    <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                <button onClick={() => setEditingGroup(null)}
+                                  style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                                <button onClick={() => updateTaxGroup(group.id, { name: editingGroup.name, taxes: editingGroup.taxes })}
+                                  style={{ backgroundColor: '#7c3aed', color: 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>Save</button>
                               </div>
                             </div>
-                          )}
-
-                          {/* Applied To — Item Overrides */}
-                          {menuItems.length > 0 && (
-                            <div style={{ marginTop: '6px' }}>
-                              {(() => {
-                                const assignedItems = menuItems.filter(item => item.taxGroupId === group.id);
-                                return (
-                                  <>
-                                    {assignedItems.length > 0 && (
-                                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                                        <span style={{ fontSize: '11px', color: '#6b7280', alignSelf: 'center' }}>Items:</span>
-                                        {assignedItems.map(item => (
-                                          <span key={item.id} style={{ fontSize: '11px', color: '#7c3aed', backgroundColor: '#f5f3ff', padding: '2px 8px', borderRadius: '10px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            {item.name}
-                                            <button onClick={() => setItemTaxGroup(item.id, null)}
-                                              style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0, fontSize: '14px', lineHeight: 1 }}>×</button>
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {showItemPicker === group.id ? (
-                                      <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                        <select defaultValue="" onChange={(e) => { if (e.target.value) { setItemTaxGroup(e.target.value, group.id); setShowItemPicker(null); } }}
-                                          style={{ flex: 1, padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none' }}>
-                                          <option value="">Select an item...</option>
-                                          {menuItems.filter(item => item.taxGroupId !== group.id).map(item => (
-                                            <option key={item.id} value={item.id}>{item.name} {item.category ? `(${item.category})` : ''}</option>
-                                          ))}
-                                        </select>
-                                        <button onClick={() => setShowItemPicker(null)}
-                                          style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
-                                      </div>
+                          ) : (
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#1f2937' }}>{group.name}</span>
+                                    {group.taxes.length === 0 ? (
+                                      <span style={{ fontSize: '12px', color: '#ef4444', backgroundColor: '#fef2f2', padding: '1px 8px', borderRadius: '4px' }}>Tax Exempt</span>
                                     ) : (
-                                      <button onClick={() => setShowItemPicker(group.id)}
-                                        style={{ marginTop: '4px', background: 'none', border: '1px dashed #c4b5fd', color: '#7c3aed', padding: '2px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
-                                        + Add item
-                                      </button>
+                                      <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                                        {group.taxes.map(gt => `${gt.rate}%`).join(' + ')}
+                                      </span>
                                     )}
-                                  </>
-                                );
-                              })()}
+                                  </div>
+                                </div>
+                                {group.id !== 'tax-exempt' && (
+                                  <button onClick={() => setEditingGroup({ ...group, taxes: [...group.taxes] })}
+                                    style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: '6px' }}>
+                                    <FaEdit size={13} />
+                                  </button>
+                                )}
+                                <button onClick={() => removeTaxGroup(group.id)}
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px' }}>
+                                  <FaTrash size={12} />
+                                </button>
+                              </div>
+
+                              {group.id !== 'tax-exempt' && (group.taxes || []).length > 0 && (taxSettings.taxes || []).some(t => t.enabled) && (
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '12px', color: '#6b7280', cursor: 'pointer' }}>
+                                  <input type="checkbox" checked={group.alsoApplyGlobalTax || false}
+                                    onChange={(e) => updateTaxGroup(group.id, { alsoApplyGlobalTax: e.target.checked })}
+                                    style={{ accentColor: '#7c3aed' }} />
+                                  Also apply global taxes ({(taxSettings.taxes || []).filter(t => t.enabled).map(t => `${t.name} ${t.rate}%`).join(', ')})
+                                </label>
+                              )}
+
+                              {categories.length > 0 && (
+                                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #e5e7eb' }}>
+                                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 6px 0' }}>Apply to categories:</p>
+                                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                    {categories.map(cat => {
+                                      const isAssigned = cat.taxGroupId === group.id;
+                                      const assignedElsewhere = cat.taxGroupId && cat.taxGroupId !== group.id;
+                                      const otherGroup = assignedElsewhere ? (taxSettings.taxGroups || []).find(g => g.id === cat.taxGroupId) : null;
+                                      return (
+                                        <button key={cat.id} onClick={() => toggleCategoryTaxGroup(cat.id, group.id)}
+                                          title={assignedElsewhere ? `Currently: ${otherGroup?.name || '?'}` : ''}
+                                          style={{
+                                            padding: '3px 10px', borderRadius: '14px', fontSize: '12px',
+                                            fontWeight: isAssigned ? 600 : 400,
+                                            backgroundColor: isAssigned ? '#7c3aed' : assignedElsewhere ? '#fef3c7' : '#f3f4f6',
+                                            color: isAssigned ? 'white' : assignedElsewhere ? '#92400e' : '#374151',
+                                            border: `1px solid ${isAssigned ? '#7c3aed' : assignedElsewhere ? '#fcd34d' : '#d1d5db'}`,
+                                            cursor: 'pointer', transition: 'all 0.15s'
+                                          }}>
+                                          {cat.emoji || ''} {cat.name}
+                                          {assignedElsewhere && ` (${otherGroup?.name || '?'})`}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {menuItems.length > 0 && (
+                                <div style={{ marginTop: '6px' }}>
+                                  {(() => {
+                                    const assignedItems = menuItems.filter(item => item.taxGroupId === group.id);
+                                    return (
+                                      <>
+                                        {assignedItems.length > 0 && (
+                                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                            <span style={{ fontSize: '11px', color: '#6b7280', alignSelf: 'center' }}>Items:</span>
+                                            {assignedItems.map(item => (
+                                              <span key={item.id} style={{ fontSize: '11px', color: '#7c3aed', backgroundColor: '#f5f3ff', padding: '2px 8px', borderRadius: '10px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                {item.name}
+                                                <button onClick={() => setItemTaxGroup(item.id, null)}
+                                                  style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0, fontSize: '14px', lineHeight: 1 }}>x</button>
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {showItemPicker === group.id ? (
+                                          <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            <select defaultValue="" onChange={(e) => { if (e.target.value) { setItemTaxGroup(e.target.value, group.id); setShowItemPicker(null); } }}
+                                              style={{ flex: 1, minWidth: '150px', padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none' }}>
+                                              <option value="">Select an item...</option>
+                                              {menuItems.filter(item => item.taxGroupId !== group.id).map(item => (
+                                                <option key={item.id} value={item.id}>{item.name} {item.category ? `(${item.category})` : ''}</option>
+                                              ))}
+                                            </select>
+                                            <button onClick={() => setShowItemPicker(null)}
+                                              style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
+                                          </div>
+                                        ) : (
+                                          <button onClick={() => setShowItemPicker(group.id)}
+                                            style={{ marginTop: '4px', background: 'none', border: '1px dashed #c4b5fd', color: '#7c3aed', padding: '2px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
+                                            + Add item
+                                          </button>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
+                      ))}
+
+                      {taxSettings.taxes.length === 0 && (taxSettings.taxGroups || []).length === 0 && (
+                        <p style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>
+                          No taxes configured. Click &ldquo;Add Tax&rdquo; to create one.
+                        </p>
                       )}
                     </div>
-                  ))}
 
-                  {taxSettings.taxes.length === 0 && (taxSettings.taxGroups || []).length === 0 && (
-                    <p style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>
-                      No taxes configured. Click &ldquo;Add Tax&rdquo; to create one.
-                    </p>
-                  )}
-                </div>
-
-                {/* Add specific tax (replaces old "Add Tax Group") */}
-                {showAddGroup ? (
-                  <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: '12px', padding: '16px', marginTop: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                      <input type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}
-                        placeholder="Tax name (e.g., State VAT, Liquor Tax)"
-                        style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                      {newGroupTaxes.length > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <input type="number" value={newGroupTaxes[0]?.rate || 0} min="0" max="100" step="0.1"
-                            onChange={(e) => setNewGroupTaxes(prev => prev.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0, name: newGroupName || t.name } : t))}
-                            style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
-                          <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
+                    {/* Add specific tax */}
+                    {showAddGroup ? (
+                      <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: '12px', padding: '16px', marginTop: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                          <input type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}
+                            placeholder="Tax name (e.g., State VAT, Liquor Tax)"
+                            style={{ flex: 1, minWidth: '150px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                          {newGroupTaxes.length > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <input type="number" value={newGroupTaxes[0]?.rate || 0} min="0" max="100" step="0.1"
+                                onChange={(e) => setNewGroupTaxes(prev => prev.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0, name: newGroupName || t.name } : t))}
+                                style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
+                              <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <p style={{ fontSize: '11px', color: '#7c3aed', margin: '0 0 8px 0' }}>
-                      This tax will only apply to categories or items you select after adding it
-                    </p>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => setShowAddGroup(false)}
-                        style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                        Cancel
-                      </button>
-                      <button onClick={() => {
-                        if (!newGroupName.trim()) return;
-                        const rate = newGroupTaxes[0]?.rate || 0;
-                        const newGroup = { id: `tg_${Date.now()}`, name: newGroupName.trim(), taxes: [{ id: `gt_${Date.now()}`, name: newGroupName.trim(), rate, type: 'percentage' }] };
-                        setTaxSettings(prev => ({ ...prev, taxGroups: [...(prev.taxGroups || []), newGroup] }));
-                        setNewGroupName(''); setNewGroupTaxes([]); setShowAddGroup(false);
-                      }} disabled={!newGroupName.trim()}
-                        style={{ backgroundColor: newGroupName.trim() ? '#7c3aed' : '#d1d5db', color: 'white', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: newGroupName.trim() ? 'pointer' : 'not-allowed' }}>
-                        Add Tax
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                    <button onClick={() => { setShowAddGroup(true); setNewGroupName(''); setNewGroupTaxes([{ id: `gt_${Date.now()}`, name: '', rate: 0, type: 'percentage' }]); }}
-                      style={{ backgroundColor: '#7c3aed', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '13px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <FaPlus size={12} /> Add Tax for Specific Categories/Items
-                    </button>
-                    {!(taxSettings.taxGroups || []).some(g => g.id === 'tax-exempt') && (
-                      <button onClick={addTaxExemptGroup}
-                        style={{ backgroundColor: 'white', color: '#6b7280', padding: '8px 14px', borderRadius: '8px', fontWeight: '600', fontSize: '13px', border: '1px solid #d1d5db', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <FaPlus size={10} /> Tax Exempt
-                      </button>
+                        <p style={{ fontSize: '11px', color: '#7c3aed', margin: '0 0 8px 0' }}>
+                          This tax will only apply to categories or items you select after adding it
+                        </p>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button onClick={() => setShowAddGroup(false)}
+                            style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+                          <button onClick={() => {
+                            if (!newGroupName.trim()) return;
+                            const rate = newGroupTaxes[0]?.rate || 0;
+                            const newGroup = { id: `tg_${Date.now()}`, name: newGroupName.trim(), taxes: [{ id: `gt_${Date.now()}`, name: newGroupName.trim(), rate, type: 'percentage' }] };
+                            setTaxSettings(prev => ({ ...prev, taxGroups: [...(prev.taxGroups || []), newGroup] }));
+                            setNewGroupName(''); setNewGroupTaxes([]); setShowAddGroup(false);
+                          }} disabled={!newGroupName.trim()}
+                            style={{ backgroundColor: newGroupName.trim() ? '#7c3aed' : '#d1d5db', color: 'white', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: newGroupName.trim() ? 'pointer' : 'not-allowed' }}>
+                            Add Tax
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                        <button onClick={() => { setShowAddGroup(true); setNewGroupName(''); setNewGroupTaxes([{ id: `gt_${Date.now()}`, name: '', rate: 0, type: 'percentage' }]); }}
+                          style={{ backgroundColor: '#7c3aed', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '13px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <FaPlus size={12} /> Add Tax for Specific Categories/Items
+                        </button>
+                        {!(taxSettings.taxGroups || []).some(g => g.id === 'tax-exempt') && (
+                          <button onClick={addTaxExemptGroup}
+                            style={{ backgroundColor: 'white', color: '#6b7280', padding: '8px 14px', borderRadius: '8px', fontWeight: '600', fontSize: '13px', border: '1px solid #d1d5db', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <FaPlus size={10} /> Tax Exempt
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* Save Button */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={saveTaxSettings}
-                  disabled={saving}
-                  style={{
-                    backgroundColor: saving ? '#9ca3af' : '#ef4444',
-                    color: 'white',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    border: 'none',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {saving ? (
-                    <>
-                      <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FaSave size={14} />
-                      Save Tax Settings
-                    </>
-                  )}
-                </button>
+                  {/* Save Tax Button */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={saveTaxSettings} disabled={saving}
+                      style={{
+                        backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '12px 24px', borderRadius: '8px',
+                        fontWeight: '600', fontSize: '14px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
+                      }}>
+                      {saving ? <><FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><FaSave size={14} /> Save Tax Settings</>}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Discount Settings */}
+              <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaPercentage size={14} />
+                  Discount Settings
+                </h3>
+                <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 16px 0' }}>
+                  Control how discounts work on the billing screen
+                </p>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '16px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={taxSettings.discountSettings?.enabled || false}
+                    onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, enabled: e.target.checked } }))}
+                    style={{ width: '18px', height: '18px' }} />
+                  Enable Discounts on Dashboard
+                </label>
+
+                {taxSettings.discountSettings?.enabled && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={taxSettings.discountSettings?.allowManualDiscount !== false}
+                        onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, allowManualDiscount: e.target.checked } }))}
+                        style={{ width: '16px', height: '16px' }} />
+                      Allow Manual Discount Input
+                    </label>
+
+                    {taxSettings.discountSettings?.allowManualDiscount !== false && (
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 8px 0' }}>Who can apply manual discounts?</p>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {['owner', 'manager', 'admin', 'cashier', 'waiter'].map(role => {
+                            const roles = taxSettings.discountSettings?.manualDiscountRoles || ['owner'];
+                            const isSelected = roles.includes(role);
+                            return (
+                              <button key={role} onClick={() => {
+                                setTaxSettings(prev => {
+                                  const current = prev.discountSettings?.manualDiscountRoles || ['owner'];
+                                  const updated = isSelected ? current.filter(r => r !== role) : [...current, role];
+                                  return { ...prev, discountSettings: { ...prev.discountSettings, manualDiscountRoles: updated.length > 0 ? updated : ['owner'] } };
+                                });
+                              }} style={{
+                                padding: '5px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 600,
+                                border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
+                                backgroundColor: isSelected ? '#111827' : 'white',
+                                color: isSelected ? 'white' : '#6b7280',
+                                cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s'
+                              }}>{role}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <div>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max % Discount</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <input type="number" min="1" max="100" step="1"
+                            value={taxSettings.discountSettings?.maxDiscountPercent || 100}
+                            onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountPercent: parseInt(e.target.value) || 100 } }))}
+                            style={{ width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }} />
+                          <span style={{ fontSize: '13px', color: '#6b7280' }}>%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max Flat Discount</p>
+                        <input type="number" min="0" step="1" placeholder="No limit"
+                          value={taxSettings.discountSettings?.maxDiscountAmount || ''}
+                          onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountAmount: e.target.value ? parseInt(e.target.value) : null } }))}
+                          style={{ width: '100px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Discount Settings */}
-          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaPercentage size={14} />
-              Discount Settings
-            </h3>
-            <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 16px 0' }}>
-              Control how discounts work on the billing screen
-            </p>
-
-            {/* Enable Discounts Toggle */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '16px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={taxSettings.discountSettings?.enabled || false}
-                onChange={(e) => setTaxSettings(prev => ({
-                  ...prev,
-                  discountSettings: { ...prev.discountSettings, enabled: e.target.checked }
-                }))}
-                style={{ width: '18px', height: '18px' }}
-              />
-              Enable Discounts on Dashboard
-            </label>
-
-            {taxSettings.discountSettings?.enabled && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                {/* Manual Discount Toggle */}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={taxSettings.discountSettings?.allowManualDiscount !== false}
-                    onChange={(e) => setTaxSettings(prev => ({
-                      ...prev,
-                      discountSettings: { ...prev.discountSettings, allowManualDiscount: e.target.checked }
-                    }))}
-                    style={{ width: '16px', height: '16px' }}
-                  />
-                  Allow Manual Discount Input
-                </label>
-
-                {/* Roles that can apply manual discount */}
-                {taxSettings.discountSettings?.allowManualDiscount !== false && (
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 8px 0' }}>
-                      Who can apply manual discounts?
+          {/* ===== BUSINESS IDENTITY SECTION ===== */}
+          {activeSection === 'identity' && (
+            <div>
+              {biLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}><FaSpinner className="animate-spin" style={{ marginRight: '8px' }} />Loading...</div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+                    <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+                      Tax registration and legal identity shown on invoices.
                     </p>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {['owner', 'manager', 'admin', 'cashier', 'waiter'].map(role => {
-                        const roles = taxSettings.discountSettings?.manualDiscountRoles || ['owner'];
-                        const isSelected = roles.includes(role);
-                        return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FaGlobe size={13} style={{ color: '#6b7280' }} />
+                      <select
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: '#374151', backgroundColor: '#f8fafc', outline: 'none', cursor: 'pointer' }}
+                      >
+                        {Object.entries(COUNTRY_IDENTITY_FIELDS).map(([code, config]) => (
+                          <option key={code} value={code}>{config.label} ({code})</option>
+                        ))}
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {biMessage && (
+                    <div style={{ padding: '10px 14px', borderRadius: '10px', marginBottom: '16px', fontSize: '13px', fontWeight: '600',
+                      backgroundColor: biMessage.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                      color: biMessage.type === 'success' ? '#059669' : '#dc2626',
+                      border: `1px solid ${biMessage.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+                    }}>{biMessage.text}</div>
+                  )}
+
+                  {/* Legal Business Name */}
+                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Legal Business Name</label>
+                    <input value={biSettings.legalBusinessName} onChange={e => setBiSettings(s => ({ ...s, legalBusinessName: e.target.value }))} placeholder="Registered company/firm name" style={inputStyle} />
+                    <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>The official registered name of your business entity</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+                      <button
+                        onClick={() => setBiSettings(s => ({ ...s, showLegalNameOnInvoice: !s.showLegalNameOnInvoice }))}
+                        style={{
+                          width: '40px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
+                          backgroundColor: biSettings.showLegalNameOnInvoice ? '#059669' : '#d1d5db',
+                        }}
+                      >
+                        <div style={{
+                          width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'white', position: 'absolute', top: '2px', transition: 'left 0.2s',
+                          left: biSettings.showLegalNameOnInvoice ? '20px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        }} />
+                      </button>
+                      <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Show Legal Name on Invoice</span>
+                    </div>
+                  </div>
+
+                  {/* Country-specific fields */}
+                  {identityConfig.fields.map(field => (
+                    <div key={field.key} style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>{field.label}</label>
+                      <input
+                        value={biSettings[field.key] || ''}
+                        onChange={e => {
+                          const val = field.transform ? field.transform(e.target.value) : e.target.value;
+                          setBiSettings(s => ({ ...s, [field.key]: val }));
+                        }}
+                        placeholder={field.placeholder}
+                        style={inputStyle}
+                      />
+                      {field.hint && <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{field.hint}</p>}
+
+                      {field.showKey && field.showLabel && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
                           <button
-                            key={role}
-                            onClick={() => {
-                              setTaxSettings(prev => {
-                                const current = prev.discountSettings?.manualDiscountRoles || ['owner'];
-                                const updated = isSelected
-                                  ? current.filter(r => r !== role)
-                                  : [...current, role];
-                                return {
-                                  ...prev,
-                                  discountSettings: { ...prev.discountSettings, manualDiscountRoles: updated.length > 0 ? updated : ['owner'] }
-                                };
-                              });
-                            }}
+                            onClick={() => setBiSettings(s => ({ ...s, [field.showKey]: !s[field.showKey] }))}
                             style={{
-                              padding: '5px 12px',
-                              borderRadius: '16px',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
-                              backgroundColor: isSelected ? '#111827' : 'white',
-                              color: isSelected ? 'white' : '#6b7280',
-                              cursor: 'pointer',
-                              textTransform: 'capitalize',
-                              transition: 'all 0.15s'
+                              width: '40px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
+                              backgroundColor: biSettings[field.showKey] ? '#059669' : '#d1d5db',
                             }}
                           >
-                            {role}
+                            <div style={{
+                              width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'white', position: 'absolute', top: '2px', transition: 'left 0.2s',
+                              left: biSettings[field.showKey] ? '20px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                            }} />
                           </button>
-                        );
-                      })}
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>{field.showLabel}</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  ))}
 
-                {/* Discount Limits */}
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max % Discount</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <input
-                        type="number"
-                        min="1" max="100" step="1"
-                        value={taxSettings.discountSettings?.maxDiscountPercent || 100}
-                        onChange={(e) => setTaxSettings(prev => ({
-                          ...prev,
-                          discountSettings: { ...prev.discountSettings, maxDiscountPercent: parseInt(e.target.value) || 100 }
-                        }))}
-                        style={{ width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }}
-                      />
-                      <span style={{ fontSize: '13px', color: '#6b7280' }}>%</span>
-                    </div>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max Flat Discount</p>
-                    <input
-                      type="number"
-                      min="0" step="1"
-                      placeholder="No limit"
-                      value={taxSettings.discountSettings?.maxDiscountAmount || ''}
-                      onChange={(e) => setTaxSettings(prev => ({
-                        ...prev,
-                        discountSettings: { ...prev.discountSettings, maxDiscountAmount: e.target.value ? parseInt(e.target.value) : null }
-                      }))}
-                      style={{ width: '100px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {!selectedRestaurant && (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px 20px',
-          color: '#6b7280'
-        }}>
-          <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-          <p style={{ fontSize: '16px', margin: 0 }}>
-            Please select a restaurant to manage tax settings
-          </p>
+                  <button onClick={handleBiSave} disabled={biSaving} style={{
+                    width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer', marginTop: '8px',
+                    background: !biSaving ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
+                    color: !biSaving ? 'white' : '#9ca3af',
+                    opacity: biSaving ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}>{biSaving ? <><FaSpinner className="animate-spin" size={14} /> Saving...</> : 'Save Business Identity'}</button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -2074,6 +2116,92 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
     </div>
   );
 };
+
+// Country-specific identity field definitions
+const COUNTRY_IDENTITY_FIELDS = {
+  IN: {
+    label: 'India',
+    fields: [
+      { key: 'gstin', label: 'GSTIN (GST Number)', placeholder: '22AAAAA0000A1Z5', showKey: 'showGstOnInvoice', showLabel: 'Show GSTIN on Invoice', validation: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, hint: '15-character GST Identification Number', transform: v => v.toUpperCase() },
+      { key: 'fssai', label: 'FSSAI License Number', placeholder: '10016011000001', showKey: 'showFssaiOnInvoice', showLabel: 'Show FSSAI on Invoice', validation: /^[0-9]{14}$/, hint: '14-digit FSSAI food safety license number' },
+    ]
+  },
+  GB: {
+    label: 'United Kingdom',
+    fields: [
+      { key: 'vatNumber', label: 'VAT Number', placeholder: 'GB 123 4567 89', showKey: 'showTaxIdOnInvoice', showLabel: 'Show VAT Number on Invoice', hint: 'UK VAT Registration Number' },
+    ]
+  },
+  US: {
+    label: 'United States',
+    fields: [
+      { key: 'taxId', label: 'State Tax Permit Number', placeholder: 'State sales tax permit', showKey: 'showTaxIdOnInvoice', showLabel: 'Show Tax Permit on Invoice', hint: 'State sales tax permit/registration number (varies by state)' },
+    ]
+  },
+  CA: {
+    label: 'Canada',
+    fields: [
+      { key: 'vatNumber', label: 'GST/HST Number', placeholder: '123456789RT0001', showKey: 'showTaxIdOnInvoice', showLabel: 'Show GST/HST Number on Invoice', hint: 'Business Number + RT + account number' },
+    ]
+  },
+  AU: {
+    label: 'Australia',
+    fields: [
+      { key: 'taxId', label: 'ABN (Australian Business Number)', placeholder: 'XX XXX XXX XXX', showKey: 'showTaxIdOnInvoice', showLabel: 'Show ABN on Invoice', hint: '11-digit Australian Business Number' },
+    ]
+  },
+  AE: {
+    label: 'UAE',
+    fields: [
+      { key: 'vatNumber', label: 'TRN (Tax Registration Number)', placeholder: '100XXXXXXXXX003', showKey: 'showTaxIdOnInvoice', showLabel: 'Show TRN on Invoice', hint: '15-digit Tax Registration Number' },
+    ]
+  },
+  SA: {
+    label: 'Saudi Arabia',
+    fields: [
+      { key: 'vatNumber', label: 'VAT TIN', placeholder: '15-digit VAT number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show VAT TIN on Invoice', hint: '15-digit VAT Tax Identification Number' },
+      { key: 'businessRegistrationNumber', label: 'Commercial Registration (CR) Number', placeholder: 'CR number', showKey: 'showTaxIdOnInvoice', hint: 'Mandatory CR number for invoicing' },
+    ]
+  },
+  SG: {
+    label: 'Singapore',
+    fields: [
+      { key: 'vatNumber', label: 'GST Registration Number', placeholder: 'M9XXXXXXX', showKey: 'showTaxIdOnInvoice', showLabel: 'Show GST Number on Invoice', hint: 'IRAS GST registration number' },
+      { key: 'businessRegistrationNumber', label: 'UEN (Unique Entity Number)', placeholder: '202012345A', showKey: 'showTaxIdOnInvoice', hint: '9-10 character Unique Entity Number' },
+    ]
+  },
+  MY: {
+    label: 'Malaysia',
+    fields: [
+      { key: 'taxId', label: 'TIN (Tax Identification Number)', placeholder: 'TIN number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show TIN on Invoice', hint: 'Inland Revenue Board TIN' },
+      { key: 'businessRegistrationNumber', label: 'SST Registration Number', placeholder: 'SST number', showKey: 'showTaxIdOnInvoice', hint: 'Sales & Service Tax registration' },
+    ]
+  },
+  DE: {
+    label: 'Germany',
+    fields: [
+      { key: 'vatNumber', label: 'USt-IdNr (VAT ID)', placeholder: 'DE123456789', showKey: 'showTaxIdOnInvoice', showLabel: 'Show VAT ID on Invoice', hint: 'Umsatzsteuer-Identifikationsnummer' },
+    ]
+  },
+  FR: {
+    label: 'France',
+    fields: [
+      { key: 'vatNumber', label: 'TVA Number (VAT ID)', placeholder: 'FR12345678901', showKey: 'showTaxIdOnInvoice', showLabel: 'Show TVA Number on Invoice', hint: 'Taxe sur la Valeur Ajoutée ID' },
+      { key: 'businessRegistrationNumber', label: 'SIRET Number', placeholder: '12345678901234', showKey: 'showTaxIdOnInvoice', hint: '14-digit SIRET business registration' },
+    ]
+  },
+};
+
+// Default fields for countries not explicitly listed
+const DEFAULT_IDENTITY_FIELDS = {
+  label: 'Other',
+  fields: [
+    { key: 'vatNumber', label: 'Tax Registration Number', placeholder: 'Tax/VAT number', showKey: 'showTaxIdOnInvoice', showLabel: 'Show Tax Number on Invoice', hint: 'Your country\'s tax registration number' },
+    { key: 'businessRegistrationNumber', label: 'Business Registration Number', placeholder: 'Business registration', showKey: 'showTaxIdOnInvoice', hint: 'Company/business registration number' },
+  ]
+};
+
+// BusinessIdentitySettings removed — merged into TaxAndBusinessIdentity above
 
 // Currency Management Component
 const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
@@ -3604,7 +3732,7 @@ const Admin = () => {
   const navGroups = [
     { label: 'SETTINGS', items: [
       { id: 'settings', label: 'General', icon: FaUserCog },
-      { id: 'tax', label: 'Tax Management', icon: FaPercentage },
+      { id: 'tax', label: 'Tax & Identity', icon: FaPercentage },
       { id: 'pricing', label: 'Pricing Rules', icon: FaSlidersH },
       { id: 'payments', label: 'Payment Settings', icon: FaCreditCard },
       { id: 'billing-settings', label: 'Billing', icon: FaFileInvoice },
@@ -8981,7 +9109,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Tax Management Section */}
+      {/* Tax & Business Identity Section */}
       {activeTab === 'tax' && (
         <div style={{
           backgroundColor: 'white',
@@ -8990,7 +9118,7 @@ const Admin = () => {
           padding: '24px',
           border: '1px solid #f1f5f9'
         }}>
-          <TaxManagement
+          <TaxAndBusinessIdentity
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}

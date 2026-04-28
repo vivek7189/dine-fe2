@@ -31,7 +31,7 @@ export const OP_LABELS = {
 
 export const ADMIN_TAB_LABELS = {
   settings: 'General',
-  tax: 'Tax Management',
+  tax: 'Tax & Identity',
   pricing: 'Pricing Rules',
   payments: 'Payment Settings',
   billingSettings: 'Billing',

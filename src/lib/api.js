@@ -1033,6 +1033,15 @@ class ApiClient {
     return result;
   }
 
+  async reorderFloors(restaurantId, floorOrder) {
+    const result = await this.request(`/api/floors/reorder/${restaurantId}`, {
+      method: 'PATCH',
+      body: { floorOrder },
+    });
+    this.invalidateCache('/api/floors/');
+    return result;
+  }
+
   async deleteFloor(floorId, restaurantId) {
     const result = await this.request(`/api/floors/${floorId}?restaurantId=${restaurantId}`, {
       method: 'DELETE',
@@ -1973,6 +1982,18 @@ class ApiClient {
       body: { printSettings },
     });
     this.invalidateCache(`/api/admin/print-settings/${restaurantId}`);
+    return result;
+  }
+
+  async getBusinessSettings(restaurantId) {
+    return this.request(`/api/admin/business/${restaurantId}`);
+  }
+
+  async updateBusinessSettings(restaurantId, settings) {
+    const result = await this.request(`/api/admin/business/${restaurantId}`, {
+      method: 'PUT',
+      body: settings,
+    });
     return result;
   }
 
