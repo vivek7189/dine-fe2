@@ -200,6 +200,11 @@ export function HeadquartersContent({ embedded = false }) {
   // Business type for CTA routing
   const [businessType, setBusinessType] = useState('restaurant');
 
+  // Tab loading states
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [loadingMenu, setLoadingMenu] = useState(false);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+
   // UI state
   const [refreshing, setRefreshing] = useState(false);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -404,6 +409,7 @@ export function HeadquartersContent({ embedded = false }) {
   // Load staff
   const loadStaff = async () => {
     try {
+      setLoadingStaff(true);
       const response = await apiClient.getOwnerStaff({
         page: staffPage,
         limit: STAFF_PAGE_SIZE,
@@ -415,12 +421,15 @@ export function HeadquartersContent({ embedded = false }) {
       if (response.success) setStaffData(response);
     } catch (error) {
       console.error('Error loading staff:', error);
+    } finally {
+      setLoadingStaff(false);
     }
   };
 
   // Load menu
   const loadMenuItems = async () => {
     try {
+      setLoadingMenu(true);
       const response = await apiClient.getOwnerMenuItems({
         page: menuPage,
         limit: MENU_PAGE_SIZE,
@@ -431,12 +440,15 @@ export function HeadquartersContent({ embedded = false }) {
       if (response.success) setMenuData(response);
     } catch (error) {
       console.error('Error loading menu:', error);
+    } finally {
+      setLoadingMenu(false);
     }
   };
 
   // Load inventory
   const loadInventory = async () => {
     try {
+      setLoadingInventory(true);
       const response = await apiClient.getOwnerInventory({
         page: inventoryPage,
         limit: INVENTORY_PAGE_SIZE,
@@ -448,6 +460,8 @@ export function HeadquartersContent({ embedded = false }) {
       if (response.success) setInventoryData(response);
     } catch (error) {
       console.error('Error loading inventory:', error);
+    } finally {
+      setLoadingInventory(false);
     }
   };
 
@@ -578,11 +592,35 @@ export function HeadquartersContent({ embedded = false }) {
   if (!authorized) return null;
 
   // ============================================
+  // SHIMMER HELPERS
+
+  const shimmerStyle = { background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite', borderRadius: '8px' };
+
+  const TableShimmer = ({ rows = 6, cols = 4 }) => (
+    <div style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+      {/* Header row */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '16px', padding: '14px 20px', backgroundColor: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+        {Array.from({ length: cols }).map((_, i) => (
+          <div key={i} style={{ ...shimmerStyle, height: '14px', width: `${60 + (i % 3) * 15}%`, animationDelay: `${i * 0.05}s` }} />
+        ))}
+      </div>
+      {/* Data rows */}
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '16px', padding: '14px 20px', borderBottom: r < rows - 1 ? '1px solid #f8fafc' : 'none' }}>
+          {Array.from({ length: cols }).map((_, c) => (
+            <div key={c} style={{ ...shimmerStyle, height: '12px', width: `${50 + ((r + c) % 4) * 12}%`, animationDelay: `${(r * cols + c) * 0.03}s` }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+
+  // ============================================
   // COMPONENTS
   // ============================================
 
   // Shimmer placeholder for loading states
-  const isDataLoading = !dashboardData;
+  const isDataLoading = !dashboardData || refreshing;
 
   // Metric Card — shows shimmer when data not yet loaded
   const MetricCard = ({ icon: Icon, label, value, subtitle, color = '#ef4444' }) => (
@@ -1634,22 +1672,26 @@ export function HeadquartersContent({ embedded = false }) {
                   {dateRange.preset === 'today' ? 'Hourly' : 'Daily'} breakdown
                 </span>
               </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '20px'
-              }}>
-                <FaRupeeSign size={12} style={{ color: '#16a34a' }} />
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#16a34a' }}>
-                  {formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
-                </span>
-              </div>
+              {refreshing ? (
+                <div style={{ width: '90px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#dcfce7',
+                  borderRadius: '20px'
+                }}>
+                  <FaRupeeSign size={12} style={{ color: '#16a34a' }} />
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#16a34a' }}>
+                    {formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
+                  </span>
+                </div>
+              )}
             </div>
             <div style={{ height: 180, width: '100%' }}>
-              {!analyticsData ? (
+              {(!analyticsData || refreshing) ? (
                 <div style={{ height: '100%', borderRadius: '12px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
               ) : revenueChartData.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
@@ -1717,22 +1759,26 @@ export function HeadquartersContent({ embedded = false }) {
                   {dateRange.preset === 'today' ? 'Hourly' : 'Daily'} breakdown
                 </span>
               </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#dbeafe',
-                borderRadius: '20px'
-              }}>
-                <FaShoppingCart size={12} style={{ color: '#3b82f6' }} />
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>
-                  {filteredTotalOrders} orders
-                </span>
-              </div>
+              {refreshing ? (
+                <div style={{ width: '80px', height: '28px', borderRadius: '20px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite 0.1s' }} />
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#dbeafe',
+                  borderRadius: '20px'
+                }}>
+                  <FaShoppingCart size={12} style={{ color: '#3b82f6' }} />
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>
+                    {filteredTotalOrders} orders
+                  </span>
+                </div>
+              )}
             </div>
             <div style={{ height: 180, width: '100%' }}>
-              {!analyticsData ? (
+              {(!analyticsData || refreshing) ? (
                 <div style={{ height: '100%', borderRadius: '12px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite 0.2s' }} />
               ) : ordersChartData.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
@@ -1849,45 +1895,69 @@ export function HeadquartersContent({ embedded = false }) {
             {/* Order Types */}
             <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '16px' }}>Order Types</h3>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <DonutChart data={orderTypeData} size={140} />
-              </div>
-              <div style={{ marginTop: '16px' }}>
-                {analyticsData?.ordersByType?.slice(0, 3).map((type, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
-                    <span style={{ fontSize: '13px', color: '#6b7280', textTransform: 'capitalize' }}>{type.type.replace('_', ' ')}</span>
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{type.percentage}%</span>
+              {isDataLoading ? (
+                <div>
+                  <div style={{ width: '140px', height: '140px', borderRadius: '50%', margin: '0 auto 16px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
+                  {[0,1,2].map(i => <div key={i} style={{ height: '28px', borderRadius: '6px', marginBottom: '8px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: `hqShimmer 1.5s ease-in-out infinite ${i * 0.1}s` }} />)}
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <DonutChart data={orderTypeData} size={140} />
                   </div>
-                ))}
-              </div>
+                  <div style={{ marginTop: '16px' }}>
+                    {analyticsData?.ordersByType?.slice(0, 3).map((type, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                        <span style={{ fontSize: '13px', color: '#6b7280', textTransform: 'capitalize' }}>{type.type.replace('_', ' ')}</span>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{type.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Top Items */}
             <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '16px' }}>Top Sellers</h3>
-              {analyticsData?.popularItems?.slice(0, 4).map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
-                  <div style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '8px',
-                    background: i < 3 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#f1f5f9',
-                    color: i < 3 ? 'white' : '#6b7280',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: '700'
-                  }}>{i + 1}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.name}</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.orders} sold</div>
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>
-                    {formatCurrency ? formatCurrency(item.revenue) : `₹${item.revenue}`}
-                  </div>
+              {isDataLoading ? (
+                <div>
+                  {[0,1,2,3].map(i => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: `hqShimmer 1.5s ease-in-out infinite ${i * 0.1}s`, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ width: '70%', height: '14px', borderRadius: '4px', marginBottom: '6px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: `hqShimmer 1.5s ease-in-out infinite ${i * 0.1}s` }} />
+                        <div style={{ width: '40%', height: '10px', borderRadius: '4px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: `hqShimmer 1.5s ease-in-out infinite ${i * 0.15}s` }} />
+                      </div>
+                      <div style={{ width: '50px', height: '14px', borderRadius: '4px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: `hqShimmer 1.5s ease-in-out infinite ${i * 0.1}s` }} />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                analyticsData?.popularItems?.slice(0, 4).map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      background: i < 3 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#f1f5f9',
+                      color: i < 3 ? 'white' : '#6b7280',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: '700'
+                    }}>{i + 1}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.name}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.orders} sold</div>
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>
+                      {formatCurrency ? formatCurrency(item.revenue) : `₹${item.revenue}`}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Alerts */}
@@ -1984,18 +2054,24 @@ export function HeadquartersContent({ embedded = false }) {
             <option value="inactive">Inactive</option>
           </select>
         </div>
-        {staffData.pagination?.total > 0 && (
-          <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
-            Showing {((staffPage - 1) * STAFF_PAGE_SIZE) + 1} - {Math.min(staffPage * STAFF_PAGE_SIZE, staffData.pagination.total)} of {staffData.pagination.total}
-          </div>
-        )}
-        <DataTable columns={columns} data={staffData.staff || []} emptyMessage="No staff found" />
-        {staffData.pagination?.totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-            <button onClick={() => setStaffPage(p => Math.max(1, p - 1))} disabled={staffPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === 1 ? 'not-allowed' : 'pointer', opacity: staffPage === 1 ? 0.5 : 1 }}>Previous</button>
-            <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {staffPage} of {staffData.pagination.totalPages}</span>
-            <button onClick={() => setStaffPage(p => Math.min(staffData.pagination.totalPages, p + 1))} disabled={staffPage === staffData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === staffData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: staffPage === staffData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
-          </div>
+        {loadingStaff ? (
+          <TableShimmer rows={6} cols={isMobile ? 3 : 6} />
+        ) : (
+          <>
+            {staffData.pagination?.total > 0 && (
+              <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
+                Showing {((staffPage - 1) * STAFF_PAGE_SIZE) + 1} - {Math.min(staffPage * STAFF_PAGE_SIZE, staffData.pagination.total)} of {staffData.pagination.total}
+              </div>
+            )}
+            <DataTable columns={columns} data={staffData.staff || []} emptyMessage="No staff found" />
+            {staffData.pagination?.totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                <button onClick={() => setStaffPage(p => Math.max(1, p - 1))} disabled={staffPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === 1 ? 'not-allowed' : 'pointer', opacity: staffPage === 1 ? 0.5 : 1 }}>Previous</button>
+                <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {staffPage} of {staffData.pagination.totalPages}</span>
+                <button onClick={() => setStaffPage(p => Math.min(staffData.pagination.totalPages, p + 1))} disabled={staffPage === staffData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === staffData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: staffPage === staffData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -2030,18 +2106,24 @@ export function HeadquartersContent({ embedded = false }) {
             {menuData.categories?.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
-        {menuData.pagination?.total > 0 && (
-          <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
-            Showing {((menuPage - 1) * MENU_PAGE_SIZE) + 1} - {Math.min(menuPage * MENU_PAGE_SIZE, menuData.pagination.total)} of {menuData.pagination.total}
-          </div>
-        )}
-        <DataTable columns={columns} data={menuData.menuItems || []} emptyMessage="No menu items found" />
-        {menuData.pagination?.totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-            <button onClick={() => setMenuPage(p => Math.max(1, p - 1))} disabled={menuPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === 1 ? 'not-allowed' : 'pointer', opacity: menuPage === 1 ? 0.5 : 1 }}>Previous</button>
-            <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {menuPage} of {menuData.pagination.totalPages}</span>
-            <button onClick={() => setMenuPage(p => Math.min(menuData.pagination.totalPages, p + 1))} disabled={menuPage === menuData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === menuData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: menuPage === menuData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
-          </div>
+        {loadingMenu ? (
+          <TableShimmer rows={8} cols={isMobile ? 2 : 4} />
+        ) : (
+          <>
+            {menuData.pagination?.total > 0 && (
+              <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
+                Showing {((menuPage - 1) * MENU_PAGE_SIZE) + 1} - {Math.min(menuPage * MENU_PAGE_SIZE, menuData.pagination.total)} of {menuData.pagination.total}
+              </div>
+            )}
+            <DataTable columns={columns} data={menuData.menuItems || []} emptyMessage="No menu items found" />
+            {menuData.pagination?.totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                <button onClick={() => setMenuPage(p => Math.max(1, p - 1))} disabled={menuPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === 1 ? 'not-allowed' : 'pointer', opacity: menuPage === 1 ? 0.5 : 1 }}>Previous</button>
+                <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {menuPage} of {menuData.pagination.totalPages}</span>
+                <button onClick={() => setMenuPage(p => Math.min(menuData.pagination.totalPages, p + 1))} disabled={menuPage === menuData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === menuData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: menuPage === menuData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -2097,18 +2179,24 @@ export function HeadquartersContent({ embedded = false }) {
             {inventoryData.categories?.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
-        {inventoryData.pagination?.total > 0 && (
-          <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
-            Showing {((inventoryPage - 1) * INVENTORY_PAGE_SIZE) + 1} - {Math.min(inventoryPage * INVENTORY_PAGE_SIZE, inventoryData.pagination.total)} of {inventoryData.pagination.total}
-          </div>
-        )}
-        <DataTable columns={columns} data={inventoryData.inventory || []} emptyMessage="No inventory found" />
-        {inventoryData.pagination?.totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-            <button onClick={() => setInventoryPage(p => Math.max(1, p - 1))} disabled={inventoryPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === 1 ? 'not-allowed' : 'pointer', opacity: inventoryPage === 1 ? 0.5 : 1 }}>Previous</button>
-            <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {inventoryPage} of {inventoryData.pagination.totalPages}</span>
-            <button onClick={() => setInventoryPage(p => Math.min(inventoryData.pagination.totalPages, p + 1))} disabled={inventoryPage === inventoryData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === inventoryData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: inventoryPage === inventoryData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
-          </div>
+        {loadingInventory ? (
+          <TableShimmer rows={6} cols={isMobile ? 3 : 5} />
+        ) : (
+          <>
+            {inventoryData.pagination?.total > 0 && (
+              <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
+                Showing {((inventoryPage - 1) * INVENTORY_PAGE_SIZE) + 1} - {Math.min(inventoryPage * INVENTORY_PAGE_SIZE, inventoryData.pagination.total)} of {inventoryData.pagination.total}
+              </div>
+            )}
+            <DataTable columns={columns} data={inventoryData.inventory || []} emptyMessage="No inventory found" />
+            {inventoryData.pagination?.totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                <button onClick={() => setInventoryPage(p => Math.max(1, p - 1))} disabled={inventoryPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === 1 ? 'not-allowed' : 'pointer', opacity: inventoryPage === 1 ? 0.5 : 1 }}>Previous</button>
+                <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {inventoryPage} of {inventoryData.pagination.totalPages}</span>
+                <button onClick={() => setInventoryPage(p => Math.min(inventoryData.pagination.totalPages, p + 1))} disabled={inventoryPage === inventoryData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === inventoryData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: inventoryPage === inventoryData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
+              </div>
+            )}
+          </>
         )}
       </div>
     );

@@ -107,11 +107,52 @@ import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS } from '../../../utils/printFontSizes';
 
-// Tax & Business Identity Combined Component
-const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
-  const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
-  const [activeSection, setActiveSection] = useState('tax'); // 'tax' or 'identity'
+// Reusable shimmer skeleton for tab content while restaurants load
+const AdminTabSkeleton = ({ variant = 'single' }) => (
+  <div>
+    <style>{`
+      @keyframes adminShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+      .admin-skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 400px 100%; animation: adminShimmer 1.5s infinite; border-radius: 8px; }
+    `}</style>
+    {/* Title skeleton */}
+    <div style={{ marginBottom: '24px' }}>
+      <div className="admin-skeleton" style={{ width: '180px', height: '20px', marginBottom: '8px' }} />
+      <div className="admin-skeleton" style={{ width: '300px', height: '13px' }} />
+    </div>
+    {/* Restaurant buttons skeleton */}
+    <div style={{ marginBottom: '24px' }}>
+      <div className="admin-skeleton" style={{ width: '110px', height: '14px', marginBottom: '10px' }} />
+      <div style={{ display: 'flex', gap: '8px' }}>
+        {[1, 2, 3].map(i => <div key={i} className="admin-skeleton" style={{ width: '90px', height: '34px', borderRadius: '8px' }} />)}
+      </div>
+    </div>
+    {/* Content skeleton */}
+    {variant === 'two-panel' ? (
+      <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+        {[1, 2].map(i => (
+          <div key={i} style={{ flex: 1, minWidth: '280px', padding: '20px', backgroundColor: '#fff', borderRadius: '14px', border: '1px solid #e5e7eb' }}>
+            <div className="admin-skeleton" style={{ width: '120px', height: '16px', marginBottom: '8px' }} />
+            <div className="admin-skeleton" style={{ width: '200px', height: '12px', marginBottom: '20px' }} />
+            <div className="admin-skeleton" style={{ width: '100%', height: '44px', marginBottom: '12px' }} />
+            <div className="admin-skeleton" style={{ width: '100%', height: '44px', marginBottom: '12px' }} />
+            <div className="admin-skeleton" style={{ width: '100%', height: '44px' }} />
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div>
+        <div className="admin-skeleton" style={{ width: '100%', height: '50px', marginBottom: '12px' }} />
+        <div className="admin-skeleton" style={{ width: '100%', height: '50px', marginBottom: '12px' }} />
+        <div className="admin-skeleton" style={{ width: '100%', height: '50px', marginBottom: '12px' }} />
+        <div className="admin-skeleton" style={{ width: '60%', height: '50px' }} />
+      </div>
+    )}
+  </div>
+);
 
+// Tax & Business Identity Combined Component
+const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading }) => {
+  const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
   // --- Tax state ---
   const [taxSettings, setTaxSettings] = useState({
     enabled: true,
@@ -274,10 +315,6 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   const identityConfig = COUNTRY_IDENTITY_FIELDS[countryCode] || DEFAULT_IDENTITY_FIELDS;
   const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', outline: 'none', boxSizing: 'border-box' };
 
-  const sectionTabs = [
-    { id: 'tax', label: 'Tax Rates', icon: <FaPercentage size={13} /> },
-    { id: 'identity', label: 'Business Identity', icon: <FaIdBadge size={13} /> },
-  ];
 
   return (
     <div>
@@ -294,34 +331,41 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
         </p>
       </div>
 
-      {/* Restaurant Selection */}
-      <div style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Select Restaurant</p>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {restaurants.map((restaurant) => (
-            <button
-              key={restaurant.id}
-              onClick={() => setSelectedRestaurant(restaurant)}
-              style={{
-                backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
-                color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
-                padding: '6px 14px', borderRadius: '8px', fontWeight: 500, fontSize: '13px',
-                border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
-                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
-              }}
-            >
-              <FaStore size={12} />
-              {restaurant.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Loading skeleton while restaurants are being fetched */}
+      {initialLoading && restaurants.length === 0 && <AdminTabSkeleton variant="two-panel" />}
 
-      {!selectedRestaurant && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
-          <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-          <p style={{ fontSize: '16px', margin: 0 }}>Please select a restaurant to manage settings</p>
-        </div>
+      {/* Restaurant Selection */}
+      {!(initialLoading && restaurants.length === 0) && (
+        <>
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Select Restaurant</p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {restaurants.map((restaurant) => (
+                <button
+                  key={restaurant.id}
+                  onClick={() => setSelectedRestaurant(restaurant)}
+                  style={{
+                    backgroundColor: selectedRestaurant?.id === restaurant.id ? '#111827' : 'white',
+                    color: selectedRestaurant?.id === restaurant.id ? 'white' : '#374151',
+                    padding: '6px 14px', borderRadius: '8px', fontWeight: 500, fontSize: '13px',
+                    border: selectedRestaurant?.id === restaurant.id ? '1px solid #111827' : '1px solid #e5e7eb',
+                    cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <FaStore size={12} />
+                  {restaurant.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {!selectedRestaurant && (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
+              <FaStore size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+              <p style={{ fontSize: '16px', margin: 0 }}>Please select a restaurant to manage settings</p>
+            </div>
+          )}
+        </>
       )}
 
       {selectedRestaurant && (
@@ -345,472 +389,461 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
             </div>
           </div>
 
-          {/* Section Tabs */}
-          <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderBottom: '2px solid #e5e7eb' }}>
-            {sectionTabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveSection(tab.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '10px 20px', fontSize: '14px', fontWeight: activeSection === tab.id ? 700 : 500,
-                  color: activeSection === tab.id ? '#ef4444' : '#6b7280',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  borderBottom: activeSection === tab.id ? '2px solid #ef4444' : '2px solid transparent',
-                  marginBottom: '-2px', transition: 'all 0.2s',
-                }}
-              >
-                {tab.icon}
-                <span style={{ display: 'inline' }}>{tab.label}</span>
-              </button>
-            ))}
-          </div>
+          {/* ===== SIDE-BY-SIDE LAYOUT: Tax Rates (left) | Business Identity (right) ===== */}
+          {/* Stacks vertically on mobile via CSS media query class */}
+          <style>{`
+            @media (max-width: 900px) {
+              .tax-identity-grid { flex-direction: column !important; }
+              .tax-identity-grid > div { min-width: 0 !important; }
+            }
+          `}</style>
+          <div className="tax-identity-grid" style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
 
-          {/* ===== TAX RATES SECTION ===== */}
-          {activeSection === 'tax' && (
-            <div>
-              {/* Tax Enable/Disable */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
-                  <input type="checkbox" checked={taxSettings.enabled} onChange={(e) => setTaxSettings(prev => ({ ...prev, enabled: e.target.checked }))} style={{ width: '18px', height: '18px' }} />
-                  Enable Tax Calculation
-                </label>
-                <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-                  When enabled, taxes will be automatically calculated and added to orders
-                </p>
-              </div>
+            {/* ===== LEFT: TAX RATES ===== */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '14px', border: '1px solid #e5e7eb' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaPercentage size={14} style={{ color: '#ef4444' }} />
+                  Tax Rates
+                </h3>
+                <p style={{ color: '#9ca3af', fontSize: '12px', margin: '0 0 16px' }}>Configure tax rates for this restaurant</p>
 
-              {taxSettings.enabled && (
-                <div>
-                  {/* Taxes */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                      <div>
-                        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>Taxes</h3>
-                        <p style={{ color: '#9ca3af', fontSize: '12px', margin: '4px 0 0 0' }}>
-                          Add taxes and optionally assign them to specific categories or items
-                        </p>
+                {/* Tax Enable/Disable */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={taxSettings.enabled} onChange={(e) => setTaxSettings(prev => ({ ...prev, enabled: e.target.checked }))} style={{ width: '16px', height: '16px' }} />
+                    Enable Tax Calculation
+                  </label>
+                  <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0 24px' }}>Automatically calculate and add taxes to orders</p>
+                </div>
+
+                {taxSettings.enabled && (
+                  <div>
+                    {/* Taxes */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Taxes</span>
+                        <button onClick={addTax}
+                          style={{ backgroundColor: '#10b981', color: 'white', padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <FaPlus size={10} /> Add Tax
+                        </button>
                       </div>
-                      <button onClick={addTax}
-                        style={{ backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '14px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <FaPlus size={12} /> Add Tax
-                      </button>
-                    </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {taxSettings.taxes.map((tax, index) => (
-                        <div key={tax.id} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                            <input type="checkbox" checked={tax.enabled} onChange={() => toggleTaxEnabled(index)} style={{ width: '18px', height: '18px', flexShrink: 0 }} />
-                            <input type="text" value={tax.name} onChange={(e) => updateTax(index, 'name', e.target.value)}
-                              style={{ flex: 1, minWidth: '120px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                              placeholder="Tax Name (e.g., GST, VAT)" />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <input type="number" value={tax.rate} onChange={(e) => updateTax(index, 'rate', parseFloat(e.target.value) || 0)}
-                                min="0" max="100" step="0.1"
-                                style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
-                              <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {taxSettings.taxes.map((tax, index) => (
+                          <div key={tax.id} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <input type="checkbox" checked={tax.enabled} onChange={() => toggleTaxEnabled(index)} style={{ width: '16px', height: '16px', flexShrink: 0 }} />
+                              <input type="text" value={tax.name} onChange={(e) => updateTax(index, 'name', e.target.value)}
+                                style={{ flex: 1, minWidth: '80px', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none' }}
+                                placeholder="Tax Name" />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <input type="number" value={tax.rate} onChange={(e) => updateTax(index, 'rate', parseFloat(e.target.value) || 0)}
+                                  min="0" max="100" step="0.1"
+                                  style={{ width: '65px', padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center', outline: 'none' }} />
+                                <span style={{ fontSize: '13px', color: '#6b7280' }}>%</span>
+                              </div>
+                              <button onClick={() => removeTax(index)}
+                                style={{ backgroundColor: '#ef4444', color: 'white', padding: '6px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <FaTrash size={10} />
+                              </button>
                             </div>
-                            <button onClick={() => removeTax(index)}
-                              style={{ backgroundColor: '#ef4444', color: 'white', padding: '8px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <FaTrash size={12} />
+                            <div style={{ marginTop: '6px', paddingLeft: '24px' }}>
+                              <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>Applied to all items</span>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Category/Item-specific taxes (from taxGroups) */}
+                        {(taxSettings.taxGroups || []).map((group) => (
+                          <div key={group.id} style={{
+                            backgroundColor: group.id === 'tax-exempt' ? '#fef2f2' : '#f8fafc',
+                            border: `1px solid ${group.id === 'tax-exempt' ? '#fecaca' : '#e2e8f0'}`,
+                            borderRadius: '10px', padding: '12px'
+                          }}>
+                            {editingGroup?.id === group.id ? (
+                              <div>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                  <input type="text" value={editingGroup.name}
+                                    onChange={(e) => setEditingGroup(prev => ({ ...prev, name: e.target.value }))}
+                                    placeholder="Tax name" style={{ flex: 1, minWidth: '80px', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none' }} />
+                                  {editingGroup.taxes.length > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                      <input type="number" value={editingGroup.taxes[0]?.rate || 0} min="0" max="100" step="0.1"
+                                        onChange={(e) => setEditingGroup(prev => ({ ...prev, taxes: prev.taxes.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0 } : t) }))}
+                                        style={{ width: '65px', padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center', outline: 'none' }} />
+                                      <span style={{ fontSize: '13px', color: '#6b7280' }}>%</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                  <button onClick={() => setEditingGroup(null)}
+                                    style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
+                                  <button onClick={() => updateTaxGroup(group.id, { name: editingGroup.name, taxes: editingGroup.taxes })}
+                                    style={{ backgroundColor: '#7c3aed', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>Save</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                      <span style={{ fontWeight: 600, fontSize: '13px', color: '#1f2937' }}>{group.name}</span>
+                                      {group.taxes.length === 0 ? (
+                                        <span style={{ fontSize: '11px', color: '#ef4444', backgroundColor: '#fef2f2', padding: '1px 6px', borderRadius: '4px' }}>Tax Exempt</span>
+                                      ) : (
+                                        <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                                          {group.taxes.map(gt => `${gt.rate}%`).join(' + ')}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {group.id !== 'tax-exempt' && (
+                                    <button onClick={() => setEditingGroup({ ...group, taxes: [...group.taxes] })}
+                                      style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: '4px' }}>
+                                      <FaEdit size={12} />
+                                    </button>
+                                  )}
+                                  <button onClick={() => removeTaxGroup(group.id)}
+                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
+                                    <FaTrash size={11} />
+                                  </button>
+                                </div>
+
+                                {group.id !== 'tax-exempt' && (group.taxes || []).length > 0 && (taxSettings.taxes || []).some(t => t.enabled) && (
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '11px', color: '#6b7280', cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={group.alsoApplyGlobalTax || false}
+                                      onChange={(e) => updateTaxGroup(group.id, { alsoApplyGlobalTax: e.target.checked })}
+                                      style={{ accentColor: '#7c3aed' }} />
+                                    Also apply global taxes ({(taxSettings.taxes || []).filter(t => t.enabled).map(t => `${t.name} ${t.rate}%`).join(', ')})
+                                  </label>
+                                )}
+
+                                {categories.length > 0 && (
+                                  <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #e5e7eb' }}>
+                                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', margin: '0 0 5px 0' }}>Apply to categories:</p>
+                                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                      {categories.map(cat => {
+                                        const isAssigned = cat.taxGroupId === group.id;
+                                        const assignedElsewhere = cat.taxGroupId && cat.taxGroupId !== group.id;
+                                        const otherGroup = assignedElsewhere ? (taxSettings.taxGroups || []).find(g => g.id === cat.taxGroupId) : null;
+                                        return (
+                                          <button key={cat.id} onClick={() => toggleCategoryTaxGroup(cat.id, group.id)}
+                                            title={assignedElsewhere ? `Currently: ${otherGroup?.name || '?'}` : ''}
+                                            style={{
+                                              padding: '2px 8px', borderRadius: '12px', fontSize: '11px',
+                                              fontWeight: isAssigned ? 600 : 400,
+                                              backgroundColor: isAssigned ? '#7c3aed' : assignedElsewhere ? '#fef3c7' : '#f3f4f6',
+                                              color: isAssigned ? 'white' : assignedElsewhere ? '#92400e' : '#374151',
+                                              border: `1px solid ${isAssigned ? '#7c3aed' : assignedElsewhere ? '#fcd34d' : '#d1d5db'}`,
+                                              cursor: 'pointer', transition: 'all 0.15s'
+                                            }}>
+                                            {cat.emoji || ''} {cat.name}
+                                            {assignedElsewhere && ` (${otherGroup?.name || '?'})`}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {menuItems.length > 0 && (
+                                  <div style={{ marginTop: '4px' }}>
+                                    {(() => {
+                                      const assignedItems = menuItems.filter(item => item.taxGroupId === group.id);
+                                      return (
+                                        <>
+                                          {assignedItems.length > 0 && (
+                                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                              <span style={{ fontSize: '10px', color: '#6b7280', alignSelf: 'center' }}>Items:</span>
+                                              {assignedItems.map(item => (
+                                                <span key={item.id} style={{ fontSize: '10px', color: '#7c3aed', backgroundColor: '#f5f3ff', padding: '2px 6px', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                  {item.name}
+                                                  <button onClick={() => setItemTaxGroup(item.id, null)}
+                                                    style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0, fontSize: '12px', lineHeight: 1 }}>x</button>
+                                                </span>
+                                              ))}
+                                            </div>
+                                          )}
+                                          {showItemPicker === group.id ? (
+                                            <div style={{ marginTop: '4px', display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                              <select defaultValue="" onChange={(e) => { if (e.target.value) { setItemTaxGroup(e.target.value, group.id); setShowItemPicker(null); } }}
+                                                style={{ flex: 1, minWidth: '120px', padding: '3px 6px', fontSize: '11px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none' }}>
+                                                <option value="">Select an item...</option>
+                                                {menuItems.filter(item => item.taxGroupId !== group.id).map(item => (
+                                                  <option key={item.id} value={item.id}>{item.name} {item.category ? `(${item.category})` : ''}</option>
+                                                ))}
+                                              </select>
+                                              <button onClick={() => setShowItemPicker(null)}
+                                                style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Cancel</button>
+                                            </div>
+                                          ) : (
+                                            <button onClick={() => setShowItemPicker(group.id)}
+                                              style={{ marginTop: '3px', background: 'none', border: '1px dashed #c4b5fd', color: '#7c3aed', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>
+                                              + Add item
+                                            </button>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {taxSettings.taxes.length === 0 && (taxSettings.taxGroups || []).length === 0 && (
+                          <p style={{ color: '#9ca3af', fontSize: '12px', textAlign: 'center', padding: '12px 0' }}>
+                            No taxes configured. Click &ldquo;Add Tax&rdquo; to create one.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Add specific tax */}
+                      {showAddGroup ? (
+                        <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: '10px', padding: '12px', marginTop: '10px' }}>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap' }}>
+                            <input type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}
+                              placeholder="Tax name (e.g., State VAT)"
+                              style={{ flex: 1, minWidth: '120px', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                            {newGroupTaxes.length > 0 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <input type="number" value={newGroupTaxes[0]?.rate || 0} min="0" max="100" step="0.1"
+                                  onChange={(e) => setNewGroupTaxes(prev => prev.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0, name: newGroupName || t.name } : t))}
+                                  style={{ width: '65px', padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center', outline: 'none' }} />
+                                <span style={{ fontSize: '13px', color: '#6b7280' }}>%</span>
+                              </div>
+                            )}
+                          </div>
+                          <p style={{ fontSize: '10px', color: '#7c3aed', margin: '0 0 6px 0' }}>Only applies to categories/items you select</p>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setShowAddGroup(false)}
+                              style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={() => {
+                              if (!newGroupName.trim()) return;
+                              const rate = newGroupTaxes[0]?.rate || 0;
+                              const newGroup = { id: `tg_${Date.now()}`, name: newGroupName.trim(), taxes: [{ id: `gt_${Date.now()}`, name: newGroupName.trim(), rate, type: 'percentage' }] };
+                              setTaxSettings(prev => ({ ...prev, taxGroups: [...(prev.taxGroups || []), newGroup] }));
+                              setNewGroupName(''); setNewGroupTaxes([]); setShowAddGroup(false);
+                            }} disabled={!newGroupName.trim()}
+                              style={{ backgroundColor: newGroupName.trim() ? '#7c3aed' : '#d1d5db', color: 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', border: 'none', cursor: newGroupName.trim() ? 'pointer' : 'not-allowed' }}>
+                              Add Tax
                             </button>
                           </div>
-                          <div style={{ marginTop: '8px', paddingLeft: '30px' }}>
-                            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 500 }}>Applied to all items</span>
-                          </div>
                         </div>
-                      ))}
-
-                      {/* Category/Item-specific taxes (from taxGroups) */}
-                      {(taxSettings.taxGroups || []).map((group) => (
-                        <div key={group.id} style={{
-                          backgroundColor: group.id === 'tax-exempt' ? '#fef2f2' : '#f8fafc',
-                          border: `1px solid ${group.id === 'tax-exempt' ? '#fecaca' : '#e2e8f0'}`,
-                          borderRadius: '12px', padding: '16px'
-                        }}>
-                          {editingGroup?.id === group.id ? (
-                            <div>
-                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
-                                <input type="text" value={editingGroup.name}
-                                  onChange={(e) => setEditingGroup(prev => ({ ...prev, name: e.target.value }))}
-                                  placeholder="Tax name" style={{ flex: 1, minWidth: '120px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
-                                {editingGroup.taxes.length > 0 && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <input type="number" value={editingGroup.taxes[0]?.rate || 0} min="0" max="100" step="0.1"
-                                      onChange={(e) => setEditingGroup(prev => ({ ...prev, taxes: prev.taxes.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0 } : t) }))}
-                                      style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
-                                    <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                                <button onClick={() => setEditingGroup(null)}
-                                  style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
-                                <button onClick={() => updateTaxGroup(group.id, { name: editingGroup.name, taxes: editingGroup.taxes })}
-                                  style={{ backgroundColor: '#7c3aed', color: 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>Save</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#1f2937' }}>{group.name}</span>
-                                    {group.taxes.length === 0 ? (
-                                      <span style={{ fontSize: '12px', color: '#ef4444', backgroundColor: '#fef2f2', padding: '1px 8px', borderRadius: '4px' }}>Tax Exempt</span>
-                                    ) : (
-                                      <span style={{ fontSize: '13px', color: '#6b7280' }}>
-                                        {group.taxes.map(gt => `${gt.rate}%`).join(' + ')}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                {group.id !== 'tax-exempt' && (
-                                  <button onClick={() => setEditingGroup({ ...group, taxes: [...group.taxes] })}
-                                    style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: '6px' }}>
-                                    <FaEdit size={13} />
-                                  </button>
-                                )}
-                                <button onClick={() => removeTaxGroup(group.id)}
-                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px' }}>
-                                  <FaTrash size={12} />
-                                </button>
-                              </div>
-
-                              {group.id !== 'tax-exempt' && (group.taxes || []).length > 0 && (taxSettings.taxes || []).some(t => t.enabled) && (
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '12px', color: '#6b7280', cursor: 'pointer' }}>
-                                  <input type="checkbox" checked={group.alsoApplyGlobalTax || false}
-                                    onChange={(e) => updateTaxGroup(group.id, { alsoApplyGlobalTax: e.target.checked })}
-                                    style={{ accentColor: '#7c3aed' }} />
-                                  Also apply global taxes ({(taxSettings.taxes || []).filter(t => t.enabled).map(t => `${t.name} ${t.rate}%`).join(', ')})
-                                </label>
-                              )}
-
-                              {categories.length > 0 && (
-                                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #e5e7eb' }}>
-                                  <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 6px 0' }}>Apply to categories:</p>
-                                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                    {categories.map(cat => {
-                                      const isAssigned = cat.taxGroupId === group.id;
-                                      const assignedElsewhere = cat.taxGroupId && cat.taxGroupId !== group.id;
-                                      const otherGroup = assignedElsewhere ? (taxSettings.taxGroups || []).find(g => g.id === cat.taxGroupId) : null;
-                                      return (
-                                        <button key={cat.id} onClick={() => toggleCategoryTaxGroup(cat.id, group.id)}
-                                          title={assignedElsewhere ? `Currently: ${otherGroup?.name || '?'}` : ''}
-                                          style={{
-                                            padding: '3px 10px', borderRadius: '14px', fontSize: '12px',
-                                            fontWeight: isAssigned ? 600 : 400,
-                                            backgroundColor: isAssigned ? '#7c3aed' : assignedElsewhere ? '#fef3c7' : '#f3f4f6',
-                                            color: isAssigned ? 'white' : assignedElsewhere ? '#92400e' : '#374151',
-                                            border: `1px solid ${isAssigned ? '#7c3aed' : assignedElsewhere ? '#fcd34d' : '#d1d5db'}`,
-                                            cursor: 'pointer', transition: 'all 0.15s'
-                                          }}>
-                                          {cat.emoji || ''} {cat.name}
-                                          {assignedElsewhere && ` (${otherGroup?.name || '?'})`}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-
-                              {menuItems.length > 0 && (
-                                <div style={{ marginTop: '6px' }}>
-                                  {(() => {
-                                    const assignedItems = menuItems.filter(item => item.taxGroupId === group.id);
-                                    return (
-                                      <>
-                                        {assignedItems.length > 0 && (
-                                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                                            <span style={{ fontSize: '11px', color: '#6b7280', alignSelf: 'center' }}>Items:</span>
-                                            {assignedItems.map(item => (
-                                              <span key={item.id} style={{ fontSize: '11px', color: '#7c3aed', backgroundColor: '#f5f3ff', padding: '2px 8px', borderRadius: '10px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                {item.name}
-                                                <button onClick={() => setItemTaxGroup(item.id, null)}
-                                                  style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0, fontSize: '14px', lineHeight: 1 }}>x</button>
-                                              </span>
-                                            ))}
-                                          </div>
-                                        )}
-                                        {showItemPicker === group.id ? (
-                                          <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                            <select defaultValue="" onChange={(e) => { if (e.target.value) { setItemTaxGroup(e.target.value, group.id); setShowItemPicker(null); } }}
-                                              style={{ flex: 1, minWidth: '150px', padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none' }}>
-                                              <option value="">Select an item...</option>
-                                              {menuItems.filter(item => item.taxGroupId !== group.id).map(item => (
-                                                <option key={item.id} value={item.id}>{item.name} {item.category ? `(${item.category})` : ''}</option>
-                                              ))}
-                                            </select>
-                                            <button onClick={() => setShowItemPicker(null)}
-                                              style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
-                                          </div>
-                                        ) : (
-                                          <button onClick={() => setShowItemPicker(group.id)}
-                                            style={{ marginTop: '4px', background: 'none', border: '1px dashed #c4b5fd', color: '#7c3aed', padding: '2px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
-                                            + Add item
-                                          </button>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              )}
-                            </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                          <button onClick={() => { setShowAddGroup(true); setNewGroupName(''); setNewGroupTaxes([{ id: `gt_${Date.now()}`, name: '', rate: 0, type: 'percentage' }]); }}
+                            style={{ backgroundColor: '#7c3aed', color: 'white', padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <FaPlus size={10} /> Category/Item Tax
+                          </button>
+                          {!(taxSettings.taxGroups || []).some(g => g.id === 'tax-exempt') && (
+                            <button onClick={addTaxExemptGroup}
+                              style={{ backgroundColor: 'white', color: '#6b7280', padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '12px', border: '1px solid #d1d5db', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <FaPlus size={9} /> Tax Exempt
+                            </button>
                           )}
                         </div>
-                      ))}
-
-                      {taxSettings.taxes.length === 0 && (taxSettings.taxGroups || []).length === 0 && (
-                        <p style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>
-                          No taxes configured. Click &ldquo;Add Tax&rdquo; to create one.
-                        </p>
                       )}
                     </div>
 
-                    {/* Add specific tax */}
-                    {showAddGroup ? (
-                      <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: '12px', padding: '16px', marginTop: '12px' }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
-                          <input type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}
-                            placeholder="Tax name (e.g., State VAT, Liquor Tax)"
-                            style={{ flex: 1, minWidth: '150px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                          {newGroupTaxes.length > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <input type="number" value={newGroupTaxes[0]?.rate || 0} min="0" max="100" step="0.1"
-                                onChange={(e) => setNewGroupTaxes(prev => prev.map((t, i) => i === 0 ? { ...t, rate: parseFloat(e.target.value) || 0, name: newGroupName || t.name } : t))}
-                                style={{ width: '80px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', textAlign: 'center', outline: 'none' }} />
-                              <span style={{ fontSize: '14px', color: '#6b7280' }}>%</span>
-                            </div>
-                          )}
-                        </div>
-                        <p style={{ fontSize: '11px', color: '#7c3aed', margin: '0 0 8px 0' }}>
-                          This tax will only apply to categories or items you select after adding it
-                        </p>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button onClick={() => setShowAddGroup(false)}
-                            style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
-                          <button onClick={() => {
-                            if (!newGroupName.trim()) return;
-                            const rate = newGroupTaxes[0]?.rate || 0;
-                            const newGroup = { id: `tg_${Date.now()}`, name: newGroupName.trim(), taxes: [{ id: `gt_${Date.now()}`, name: newGroupName.trim(), rate, type: 'percentage' }] };
-                            setTaxSettings(prev => ({ ...prev, taxGroups: [...(prev.taxGroups || []), newGroup] }));
-                            setNewGroupName(''); setNewGroupTaxes([]); setShowAddGroup(false);
-                          }} disabled={!newGroupName.trim()}
-                            style={{ backgroundColor: newGroupName.trim() ? '#7c3aed' : '#d1d5db', color: 'white', padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: newGroupName.trim() ? 'pointer' : 'not-allowed' }}>
-                            Add Tax
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                        <button onClick={() => { setShowAddGroup(true); setNewGroupName(''); setNewGroupTaxes([{ id: `gt_${Date.now()}`, name: '', rate: 0, type: 'percentage' }]); }}
-                          style={{ backgroundColor: '#7c3aed', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '13px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <FaPlus size={12} /> Add Tax for Specific Categories/Items
-                        </button>
-                        {!(taxSettings.taxGroups || []).some(g => g.id === 'tax-exempt') && (
-                          <button onClick={addTaxExemptGroup}
-                            style={{ backgroundColor: 'white', color: '#6b7280', padding: '8px 14px', borderRadius: '8px', fontWeight: '600', fontSize: '13px', border: '1px solid #d1d5db', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <FaPlus size={10} /> Tax Exempt
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Save Tax Button */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={saveTaxSettings} disabled={saving}
-                      style={{
-                        backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '12px 24px', borderRadius: '8px',
-                        fontWeight: '600', fontSize: '14px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
-                      }}>
-                      {saving ? <><FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><FaSave size={14} /> Save Tax Settings</>}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Discount Settings */}
-              <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FaPercentage size={14} />
-                  Discount Settings
-                </h3>
-                <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 16px 0' }}>
-                  Control how discounts work on the billing screen
-                </p>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '16px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={taxSettings.discountSettings?.enabled || false}
-                    onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, enabled: e.target.checked } }))}
-                    style={{ width: '18px', height: '18px' }} />
-                  Enable Discounts on Dashboard
-                </label>
-
-                {taxSettings.discountSettings?.enabled && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={taxSettings.discountSettings?.allowManualDiscount !== false}
-                        onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, allowManualDiscount: e.target.checked } }))}
-                        style={{ width: '16px', height: '16px' }} />
-                      Allow Manual Discount Input
-                    </label>
-
-                    {taxSettings.discountSettings?.allowManualDiscount !== false && (
-                      <div>
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 8px 0' }}>Who can apply manual discounts?</p>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                          {['owner', 'manager', 'admin', 'cashier', 'waiter'].map(role => {
-                            const roles = taxSettings.discountSettings?.manualDiscountRoles || ['owner'];
-                            const isSelected = roles.includes(role);
-                            return (
-                              <button key={role} onClick={() => {
-                                setTaxSettings(prev => {
-                                  const current = prev.discountSettings?.manualDiscountRoles || ['owner'];
-                                  const updated = isSelected ? current.filter(r => r !== role) : [...current, role];
-                                  return { ...prev, discountSettings: { ...prev.discountSettings, manualDiscountRoles: updated.length > 0 ? updated : ['owner'] } };
-                                });
-                              }} style={{
-                                padding: '5px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 600,
-                                border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
-                                backgroundColor: isSelected ? '#111827' : 'white',
-                                color: isSelected ? 'white' : '#6b7280',
-                                cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s'
-                              }}>{role}</button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      <div>
-                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max % Discount</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <input type="number" min="1" max="100" step="1"
-                            value={taxSettings.discountSettings?.maxDiscountPercent || 100}
-                            onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountPercent: parseInt(e.target.value) || 100 } }))}
-                            style={{ width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }} />
-                          <span style={{ fontSize: '13px', color: '#6b7280' }}>%</span>
-                        </div>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max Flat Discount</p>
-                        <input type="number" min="0" step="1" placeholder="No limit"
-                          value={taxSettings.discountSettings?.maxDiscountAmount || ''}
-                          onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountAmount: e.target.value ? parseInt(e.target.value) : null } }))}
-                          style={{ width: '100px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }} />
-                      </div>
+                    {/* Save Tax Button */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                      <button onClick={saveTaxSettings} disabled={saving}
+                        style={{
+                          backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '10px 20px', borderRadius: '8px',
+                          fontWeight: '600', fontSize: '13px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
+                        }}>
+                        {saving ? <><FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><FaSave size={12} /> Save Tax Settings</>}
+                      </button>
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
 
-          {/* ===== BUSINESS IDENTITY SECTION ===== */}
-          {activeSection === 'identity' && (
-            <div>
-              {biLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}><FaSpinner className="animate-spin" style={{ marginRight: '8px' }} />Loading...</div>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-                    <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
-                      Tax registration and legal identity shown on invoices.
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FaGlobe size={13} style={{ color: '#6b7280' }} />
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: '#374151', backgroundColor: '#f8fafc', outline: 'none', cursor: 'pointer' }}
-                      >
-                        {Object.entries(COUNTRY_IDENTITY_FIELDS).map(([code, config]) => (
-                          <option key={code} value={code}>{config.label} ({code})</option>
-                        ))}
-                        <option value="OTHER">Other</option>
-                      </select>
-                    </div>
-                  </div>
+                {/* Discount Settings */}
+                <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaPercentage size={12} />
+                    Discount Settings
+                  </h4>
+                  <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 12px 0' }}>Control how discounts work on billing</p>
 
-                  {biMessage && (
-                    <div style={{ padding: '10px 14px', borderRadius: '10px', marginBottom: '16px', fontSize: '13px', fontWeight: '600',
-                      backgroundColor: biMessage.type === 'success' ? '#ecfdf5' : '#fef2f2',
-                      color: biMessage.type === 'success' ? '#059669' : '#dc2626',
-                      border: `1px solid ${biMessage.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
-                    }}>{biMessage.text}</div>
-                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '12px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={taxSettings.discountSettings?.enabled || false}
+                      onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, enabled: e.target.checked } }))}
+                      style={{ width: '16px', height: '16px' }} />
+                    Enable Discounts on Dashboard
+                  </label>
 
-                  {/* Legal Business Name */}
-                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Legal Business Name</label>
-                    <input value={biSettings.legalBusinessName} onChange={e => setBiSettings(s => ({ ...s, legalBusinessName: e.target.value }))} placeholder="Registered company/firm name" style={inputStyle} />
-                    <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>The official registered name of your business entity</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-                      <button
-                        onClick={() => setBiSettings(s => ({ ...s, showLegalNameOnInvoice: !s.showLegalNameOnInvoice }))}
-                        style={{
-                          width: '40px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
-                          backgroundColor: biSettings.showLegalNameOnInvoice ? '#059669' : '#d1d5db',
-                        }}
-                      >
-                        <div style={{
-                          width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'white', position: 'absolute', top: '2px', transition: 'left 0.2s',
-                          left: biSettings.showLegalNameOnInvoice ? '20px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                        }} />
-                      </button>
-                      <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Show Legal Name on Invoice</span>
-                    </div>
-                  </div>
+                  {taxSettings.discountSettings?.enabled && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={taxSettings.discountSettings?.allowManualDiscount !== false}
+                          onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, allowManualDiscount: e.target.checked } }))}
+                          style={{ width: '15px', height: '15px' }} />
+                        Allow Manual Discount Input
+                      </label>
 
-                  {/* Country-specific fields */}
-                  {identityConfig.fields.map(field => (
-                    <div key={field.key} style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>{field.label}</label>
-                      <input
-                        value={biSettings[field.key] || ''}
-                        onChange={e => {
-                          const val = field.transform ? field.transform(e.target.value) : e.target.value;
-                          setBiSettings(s => ({ ...s, [field.key]: val }));
-                        }}
-                        placeholder={field.placeholder}
-                        style={inputStyle}
-                      />
-                      {field.hint && <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{field.hint}</p>}
-
-                      {field.showKey && field.showLabel && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-                          <button
-                            onClick={() => setBiSettings(s => ({ ...s, [field.showKey]: !s[field.showKey] }))}
-                            style={{
-                              width: '40px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
-                              backgroundColor: biSettings[field.showKey] ? '#059669' : '#d1d5db',
-                            }}
-                          >
-                            <div style={{
-                              width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'white', position: 'absolute', top: '2px', transition: 'left 0.2s',
-                              left: biSettings[field.showKey] ? '20px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                            }} />
-                          </button>
-                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>{field.showLabel}</span>
+                      {taxSettings.discountSettings?.allowManualDiscount !== false && (
+                        <div>
+                          <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 6px 0' }}>Who can apply manual discounts?</p>
+                          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                            {['owner', 'manager', 'admin', 'cashier', 'waiter'].map(role => {
+                              const roles = taxSettings.discountSettings?.manualDiscountRoles || ['owner'];
+                              const isSelected = roles.includes(role);
+                              return (
+                                <button key={role} onClick={() => {
+                                  setTaxSettings(prev => {
+                                    const current = prev.discountSettings?.manualDiscountRoles || ['owner'];
+                                    const updated = isSelected ? current.filter(r => r !== role) : [...current, role];
+                                    return { ...prev, discountSettings: { ...prev.discountSettings, manualDiscountRoles: updated.length > 0 ? updated : ['owner'] } };
+                                  });
+                                }} style={{
+                                  padding: '4px 10px', borderRadius: '14px', fontSize: '11px', fontWeight: 600,
+                                  border: isSelected ? '1px solid #111827' : '1px solid #d1d5db',
+                                  backgroundColor: isSelected ? '#111827' : 'white',
+                                  color: isSelected ? 'white' : '#6b7280',
+                                  cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s'
+                                }}>{role}</button>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
-                    </div>
-                  ))}
 
-                  <button onClick={handleBiSave} disabled={biSaving} style={{
-                    width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer', marginTop: '8px',
-                    background: !biSaving ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
-                    color: !biSaving ? 'white' : '#9ca3af',
-                    opacity: biSaving ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  }}>{biSaving ? <><FaSpinner className="animate-spin" size={14} /> Saving...</> : 'Save Business Identity'}</button>
-                </>
-              )}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        <div>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max % Discount</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <input type="number" min="1" max="100" step="1"
+                              value={taxSettings.discountSettings?.maxDiscountPercent || 100}
+                              onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountPercent: parseInt(e.target.value) || 100 } }))}
+                              style={{ width: '60px', padding: '5px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }} />
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px 0' }}>Max Flat Discount</p>
+                          <input type="number" min="0" step="1" placeholder="No limit"
+                            value={taxSettings.discountSettings?.maxDiscountAmount || ''}
+                            onChange={(e) => setTaxSettings(prev => ({ ...prev, discountSettings: { ...prev.discountSettings, maxDiscountAmount: e.target.value ? parseInt(e.target.value) : null } }))}
+                            style={{ width: '90px', padding: '5px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* ===== RIGHT: BUSINESS IDENTITY ===== */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '14px', border: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1f2937', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FaIdBadge size={14} style={{ color: '#ef4444' }} />
+                      Business Identity
+                    </h3>
+                    <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0 }}>Legal identity shown on invoices</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaGlobe size={12} style={{ color: '#6b7280' }} />
+                    <select
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      style={{ padding: '5px 8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#374151', backgroundColor: '#f8fafc', outline: 'none', cursor: 'pointer' }}
+                    >
+                      {Object.entries(COUNTRY_IDENTITY_FIELDS).map(([code, config]) => (
+                        <option key={code} value={code}>{config.label} ({code})</option>
+                      ))}
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                {biLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}><FaSpinner className="animate-spin" style={{ marginRight: '8px' }} />Loading...</div>
+                ) : (
+                  <>
+                    {biMessage && (
+                      <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', fontSize: '12px', fontWeight: '600',
+                        backgroundColor: biMessage.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                        color: biMessage.type === 'success' ? '#059669' : '#dc2626',
+                        border: `1px solid ${biMessage.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+                      }}>{biMessage.text}</div>
+                    )}
+
+                    {/* Legal Business Name */}
+                    <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>Legal Business Name</label>
+                      <input value={biSettings.legalBusinessName} onChange={e => setBiSettings(s => ({ ...s, legalBusinessName: e.target.value }))} placeholder="Registered company/firm name" style={inputStyle} />
+                      <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '3px' }}>The official registered name of your business entity</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+                        <button
+                          onClick={() => setBiSettings(s => ({ ...s, showLegalNameOnInvoice: !s.showLegalNameOnInvoice }))}
+                          style={{
+                            width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
+                            backgroundColor: biSettings.showLegalNameOnInvoice ? '#059669' : '#d1d5db',
+                          }}
+                        >
+                          <div style={{
+                            width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white', position: 'absolute', top: '2px', transition: 'left 0.2s',
+                            left: biSettings.showLegalNameOnInvoice ? '18px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                          }} />
+                        </button>
+                        <span style={{ fontSize: '12px', color: '#374151', fontWeight: '500' }}>Show on Invoice</span>
+                      </div>
+                    </div>
+
+                    {/* Country-specific fields */}
+                    {identityConfig.fields.map(field => (
+                      <div key={field.key} style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>{field.label}</label>
+                        <input
+                          value={biSettings[field.key] || ''}
+                          onChange={e => {
+                            const val = field.transform ? field.transform(e.target.value) : e.target.value;
+                            setBiSettings(s => ({ ...s, [field.key]: val }));
+                          }}
+                          placeholder={field.placeholder}
+                          style={inputStyle}
+                        />
+                        {field.hint && <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '3px' }}>{field.hint}</p>}
+
+                        {field.showKey && field.showLabel && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+                            <button
+                              onClick={() => setBiSettings(s => ({ ...s, [field.showKey]: !s[field.showKey] }))}
+                              style={{
+                                width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
+                                backgroundColor: biSettings[field.showKey] ? '#059669' : '#d1d5db',
+                              }}
+                            >
+                              <div style={{
+                                width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white', position: 'absolute', top: '2px', transition: 'left 0.2s',
+                                left: biSettings[field.showKey] ? '18px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                              }} />
+                            </button>
+                            <span style={{ fontSize: '12px', color: '#374151', fontWeight: '500' }}>{field.showLabel}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    <button onClick={handleBiSave} disabled={biSaving} style={{
+                      width: '100%', padding: '12px', borderRadius: '10px', border: 'none', fontWeight: '600', fontSize: '14px', cursor: 'pointer', marginTop: '4px',
+                      background: !biSaving ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
+                      color: !biSaving ? 'white' : '#9ca3af',
+                      opacity: biSaving ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    }}>{biSaving ? <><FaSpinner className="animate-spin" size={13} /> Saving...</> : 'Save Business Identity'}</button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1096,7 +1129,7 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
 };
 
 // Pricing Management Component (Multi-Tier + Legacy Zone Pricing)
-const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading }) => {
   const [pricingSettings, setPricingSettings] = useState({
     zonePricing: { enabled: false, zones: [] },
     multiPricing: { enabled: false, rules: [] }
@@ -1374,6 +1407,10 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
     <div>
       <PricingNotifications />
       <ConfirmModal open={confirmModal.open} title={confirmModal.title} message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, open: false }))} />
+
+      {initialLoading && restaurants.length === 0 && <AdminTabSkeleton variant="single" />}
+
+      {!(initialLoading && restaurants.length === 0) && (<>
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaSlidersH size={20} />
@@ -2113,6 +2150,7 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
           <p style={{ fontSize: '16px', margin: 0 }}>Please select a restaurant to manage pricing settings</p>
         </div>
       )}
+      </>)}
     </div>
   );
 };
@@ -2204,7 +2242,7 @@ const DEFAULT_IDENTITY_FIELDS = {
 // BusinessIdentitySettings removed — merged into TaxAndBusinessIdentity above
 
 // Currency Management Component
-const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant }) => {
+const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading }) => {
   const [currencySettings, setCurrencySettings] = useState({
     countryCode: 'IN',
     currencyCode: 'INR',
@@ -2326,6 +2364,10 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
   return (
     <div>
       <CurrencyNotifications />
+
+      {initialLoading && restaurants.length === 0 && <AdminTabSkeleton variant="single" />}
+
+      {!(initialLoading && restaurants.length === 0) && (<>
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FaMoneyBillWave size={20} />
@@ -2596,6 +2638,7 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
           </p>
         </div>
       )}
+      </>)}
     </div>
   );
 };
@@ -3441,8 +3484,9 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [authorized, setAuthorized] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState({
-    name: '',
-    description: ''
+    name: '', description: '', address: '', city: '',
+    phone: '', email: '', cuisine: '', businessType: 'restaurant',
+    legalBusinessName: '', gstin: '', staffCount: '', seatingCapacity: ''
   });
   const [showEditRestaurantModal, setShowEditRestaurantModal] = useState(false);
   const [editRestaurant, setEditRestaurant] = useState({
@@ -4127,7 +4171,20 @@ const Admin = () => {
     try {
       setLoading(true);
       
-      const response = await apiClient.createRestaurant(newRestaurant);
+      // Clean up fields
+      const cleaned = {};
+      Object.entries(newRestaurant).forEach(([key, value]) => {
+        if (key === 'cuisine') {
+          const arr = typeof value === 'string'
+            ? value.split(',').map(c => c.trim()).filter(Boolean) : (Array.isArray(value) ? value : []);
+          if (arr.length > 0) cleaned.cuisine = arr;
+        } else if (key === 'staffCount' || key === 'seatingCapacity') {
+          if (value !== '' && value !== null && value !== undefined) cleaned[key] = Number(value);
+        } else if (value !== '' && value !== null && value !== undefined) {
+          cleaned[key] = value;
+        }
+      });
+      const response = await apiClient.createRestaurant(cleaned);
       const newRestId = response.restaurant?.id;
 
       // Seed demo menu so it's ready when user switches to this restaurant
@@ -4143,8 +4200,9 @@ const Admin = () => {
       setRestaurants([...restaurants, response.restaurant]);
 
       setNewRestaurant({
-        name: '',
-        description: ''
+        name: '', description: '', address: '', city: '',
+        phone: '', email: '', cuisine: '', businessType: 'restaurant',
+        legalBusinessName: '', gstin: '', staffCount: '', seatingCapacity: ''
       });
       setShowAddRestaurantModal(false);
 
@@ -4990,118 +5048,180 @@ const Admin = () => {
           }}>
             {filteredRestaurants.map(function(restaurant) {
               var initials = restaurant.name ? restaurant.name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase() : 'R';
+              var bgColors = ['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+              var colorIdx = restaurant.name ? restaurant.name.charCodeAt(0) % bgColors.length : 0;
+              var avatarBg = bgColors[colorIdx];
+              var hasCuisine = restaurant.cuisine && Array.isArray(restaurant.cuisine) && restaurant.cuisine.length > 0;
+              var hasDetails = restaurant.phone || restaurant.email || restaurant.address || (restaurant.businessType && restaurant.businessType !== 'restaurant');
+              var typeLabel = restaurant.businessType ? restaurant.businessType.replace('_', ' ') : 'restaurant';
               return (
               <div key={restaurant.id} style={{
                 backgroundColor: 'white',
-                borderRadius: '12px',
-                transition: 'all 0.2s ease',
+                borderRadius: '16px',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                 border: '1px solid #e5e7eb',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 position: 'relative',
+                overflow: 'hidden',
               }}
               onMouseEnter={function(e) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)';
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)';
+                e.currentTarget.style.borderColor = '#d1d5db';
               }}
               onMouseLeave={function(e) {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
+                e.currentTarget.style.borderColor = '#e5e7eb';
               }}>
-                <div style={{ padding: '20px' }}>
+                {/* Gradient header strip */}
+                <div style={{
+                  height: '6px',
+                  background: 'linear-gradient(90deg, ' + avatarBg + ', ' + avatarBg + '88)',
+                }} />
+
+                <div style={{ padding: '20px 20px 16px' }}>
                   {/* Identity row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
                     <div style={{
-                      width: '40px', height: '40px', borderRadius: '10px',
-                      backgroundColor: '#fef2f2', color: '#dc2626',
+                      width: '48px', height: '48px', borderRadius: '14px',
+                      background: 'linear-gradient(135deg, ' + avatarBg + ', ' + avatarBg + 'cc)',
+                      color: 'white',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '14px', fontWeight: 700, flexShrink: 0
+                      fontSize: '16px', fontWeight: 800, flexShrink: 0,
+                      letterSpacing: '0.5px',
+                      boxShadow: '0 4px 12px ' + avatarBg + '40',
                     }}>
                       {initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{restaurant.name}</div>
-                      <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '1px' }}>{restaurant.city || 'No location'}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{restaurant.name}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                          backgroundColor: '#f0fdf4', color: '#15803d',
+                          textTransform: 'capitalize'
+                        }}>{typeLabel}</span>
+                        {restaurant.city && (
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{restaurant.city}</span>
+                        )}
+                      </div>
                     </div>
                     <span style={{
-                      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+                      padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
                       backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0',
-                      flexShrink: 0
+                      flexShrink: 0, letterSpacing: '0.3px', textTransform: 'uppercase'
                     }}>Active</span>
                   </div>
 
-                  {/* Details */}
-                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '14px', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {restaurant.businessType && restaurant.businessType !== 'restaurant' && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>Type</span>
-                          <span style={{ fontSize: '12px', color: '#374151', fontWeight: 600, textTransform: 'capitalize' }}>{restaurant.businessType.replace('_', ' ')}</span>
-                        </div>
-                      )}
-                      {restaurant.phone && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>Phone</span>
-                          <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>{restaurant.phone}</span>
-                        </div>
-                      )}
-                      {restaurant.cuisine && Array.isArray(restaurant.cuisine) && restaurant.cuisine.length > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500 }}>Cuisine</span>
-                          <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>{restaurant.cuisine.join(', ')}</span>
-                        </div>
-                      )}
-                      {!restaurant.phone && !(restaurant.cuisine && restaurant.cuisine.length > 0) && !(restaurant.businessType && restaurant.businessType !== 'restaurant') && (
-                        <div style={{ fontSize: '12px', color: '#d1d5db', textAlign: 'center', padding: '4px 0' }}>No details added</div>
+                  {/* Cuisine tags */}
+                  {hasCuisine && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                      {restaurant.cuisine.slice(0, 4).map(function(c, i) {
+                        return <span key={i} style={{
+                          padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                          backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca'
+                        }}>{c}</span>;
+                      })}
+                      {restaurant.cuisine.length > 4 && (
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, backgroundColor: '#f3f4f6', color: '#6b7280' }}>+{restaurant.cuisine.length - 4}</span>
                       )}
                     </div>
+                  )}
+
+                  {/* Info rows */}
+                  <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '12px', marginBottom: '14px' }}>
+                    {restaurant.phone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                        <FaPhone size={10} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                        <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>{restaurant.phone}</span>
+                      </div>
+                    )}
+                    {restaurant.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                        <FaEnvelope size={10} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                        <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{restaurant.email}</span>
+                      </div>
+                    )}
+                    {restaurant.address && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                        <FaMapMarkerAlt size={10} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                        <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{restaurant.address}</span>
+                      </div>
+                    )}
+                    {!hasDetails && !hasCuisine && !restaurant.phone && !restaurant.email && !restaurant.address && (
+                      <div style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', padding: '2px 0', fontStyle: 'italic' }}>No details added yet</div>
+                    )}
                   </div>
 
-                  {/* Footer actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '14px' }}>
-                    <button
-                      onClick={function() { setSelectedRestaurant(restaurant); setActiveTab('staff'); }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        padding: '0', fontSize: '13px', fontWeight: 500,
-                        backgroundColor: 'transparent', color: '#6b7280', border: 'none',
-                        cursor: 'pointer', transition: 'color 0.15s'
-                      }}
-                      onMouseEnter={function(e) { e.currentTarget.style.color = '#111827'; }}
-                      onMouseLeave={function(e) { e.currentTarget.style.color = '#6b7280'; }}
-                    >
-                      <FaUsers size={12} /> View Staff
-                    </button>
-                    <button
-                      onClick={function() {
-                        setEditRestaurant({
-                          id: restaurant.id,
-                          name: restaurant.name || '',
-                          description: restaurant.description || '',
-                          address: restaurant.address || '',
-                          city: restaurant.city || '',
-                          phone: restaurant.phone || '',
-                          email: restaurant.email || '',
-                          cuisine: Array.isArray(restaurant.cuisine) ? restaurant.cuisine.join(', ') : (restaurant.cuisine || ''),
-                          businessType: restaurant.businessType || 'restaurant',
-                          legalBusinessName: restaurant.legalBusinessName || '',
-                          gstin: restaurant.gstin || '',
-                          staffCount: restaurant.staffCount || '',
-                          seatingCapacity: restaurant.seatingCapacity || ''
-                        });
-                        setShowEditRestaurantModal(true);
-                      }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        padding: '0', fontSize: '13px', fontWeight: 500,
-                        backgroundColor: 'transparent', color: '#6b7280', border: 'none',
-                        cursor: 'pointer', transition: 'color 0.15s'
-                      }}
-                      onMouseEnter={function(e) { e.currentTarget.style.color = '#111827'; }}
-                      onMouseLeave={function(e) { e.currentTarget.style.color = '#6b7280'; }}
-                    >
-                      <FaEdit size={12} /> Edit Details
-                    </button>
-                  </div>
+                  {/* Stats row */}
+                  {(restaurant.staffCount || restaurant.seatingCapacity) && (
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+                      {restaurant.staffCount && (
+                        <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: '8px', backgroundColor: '#eff6ff', border: '1px solid #dbeafe' }}>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: '#1e40af' }}>{restaurant.staffCount}</div>
+                          <div style={{ fontSize: '10px', fontWeight: 600, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Staff</div>
+                        </div>
+                      )}
+                      {restaurant.seatingCapacity && (
+                        <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: '8px', backgroundColor: '#f5f3ff', border: '1px solid #ede9fe' }}>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: '#5b21b6' }}>{restaurant.seatingCapacity}</div>
+                          <div style={{ fontSize: '10px', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Seats</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer actions */}
+                <div style={{ display: 'flex', borderTop: '1px solid #f1f5f9' }}>
+                  <button
+                    onClick={function() { setSelectedRestaurant(restaurant); setActiveTab('staff'); }}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      padding: '12px', fontSize: '13px', fontWeight: 600,
+                      backgroundColor: 'transparent', color: '#6b7280', border: 'none',
+                      borderRight: '1px solid #f1f5f9',
+                      cursor: 'pointer', transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={function(e) { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#111827'; }}
+                    onMouseLeave={function(e) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
+                  >
+                    <FaUsers size={12} /> View Staff
+                  </button>
+                  <button
+                    onClick={function() {
+                      setEditRestaurant({
+                        id: restaurant.id,
+                        name: restaurant.name || '',
+                        description: restaurant.description || '',
+                        address: restaurant.address || '',
+                        city: restaurant.city || '',
+                        phone: restaurant.phone || '',
+                        email: restaurant.email || '',
+                        cuisine: Array.isArray(restaurant.cuisine) ? restaurant.cuisine.join(', ') : (restaurant.cuisine || ''),
+                        businessType: restaurant.businessType || 'restaurant',
+                        legalBusinessName: restaurant.legalBusinessName || '',
+                        gstin: restaurant.gstin || '',
+                        staffCount: restaurant.staffCount || '',
+                        seatingCapacity: restaurant.seatingCapacity || ''
+                      });
+                      setShowEditRestaurantModal(true);
+                    }}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      padding: '12px', fontSize: '13px', fontWeight: 600,
+                      backgroundColor: 'transparent', color: '#6b7280', border: 'none',
+                      cursor: 'pointer', transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={function(e) { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.color = '#dc2626'; }}
+                    onMouseLeave={function(e) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
+                  >
+                    <FaEdit size={12} /> Edit Details
+                  </button>
                 </div>
               </div>
               );
@@ -5771,149 +5891,198 @@ const Admin = () => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
           zIndex: 10002,
-          padding: '16px'
+          padding: isMobile ? '0' : '16px'
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            borderRadius: isMobile ? '20px 20px 0 0' : '20px',
+            boxShadow: '0 25px 60px -12px rgba(0,0,0,0.3)',
             width: '100%',
-            maxWidth: '400px',
-            border: '1px solid #f1f5f9'
+            maxWidth: '640px',
+            maxHeight: isMobile ? '92vh' : '90vh',
+            overflow: 'auto',
+            border: '1px solid #e5e7eb'
           }}>
+            {/* Header */}
             <div style={{
-              padding: '24px',
-              borderBottom: '1px solid #f3f4f6',
-              background: 'linear-gradient(135deg, #f8fafc, #fef2f2)'
+              padding: '20px 24px',
+              borderBottom: '1px solid #f1f5f9',
+              background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+              borderRadius: isMobile ? '20px 20px 0 0' : '20px 20px 0 0',
+              position: 'sticky', top: 0, zIndex: 1
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  color: '#1f2937',
-                  margin: 0
-                }}>
-                  Add New Restaurant
-                </h2>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1f2937', margin: 0 }}>Add New Restaurant</h2>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0' }}>Fill in the details for your new location</p>
+                </div>
                 <button
                   onClick={() => setShowAddRestaurantModal(false)}
                   style={{
-                    color: '#6b7280',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    padding: '4px'
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#6b7280', fontSize: '18px', fontWeight: 'bold',
+                    border: '1px solid #e5e7eb', backgroundColor: 'white',
+                    cursor: 'pointer', transition: 'all 0.15s'
                   }}
+                  onMouseEnter={function(e) { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                  onMouseLeave={function(e) { e.currentTarget.style.backgroundColor = 'white'; }}
                 >
-                  ×
+                  &times;
                 </button>
               </div>
             </div>
-            
-            <form onSubmit={handleAddRestaurant} style={{ padding: '20px' }}>
+
+            <form onSubmit={handleAddRestaurant} style={{ padding: '20px 24px' }}>
+              {/* Section: Basic Info */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  Restaurant Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newRestaurant.name}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Enter restaurant name"
-                />
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Basic Information</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Restaurant Name *</label>
+                    <input type="text" required value={newRestaurant.name}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, name: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb', transition: 'border-color 0.2s' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="e.g. Pizza Paradise" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Business Type</label>
+                    <select value={newRestaurant.businessType}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, businessType: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb', cursor: 'pointer' }}>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="cafe">Cafe</option>
+                      <option value="bar">Bar</option>
+                      <option value="bakery">Bakery</option>
+                      <option value="ice_cream">Ice Cream</option>
+                      <option value="qsr">QSR / Fast Food</option>
+                      <option value="cloud_kitchen">Cloud Kitchen</option>
+                      <option value="food_truck">Food Truck</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Cuisine</label>
+                    <input type="text" value={newRestaurant.cuisine}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, cuisine: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Indian, Chinese, Italian" />
+                    <span style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', display: 'block' }}>Separate multiple cuisines with commas</span>
+                  </div>
+                  <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Description</label>
+                    <textarea value={newRestaurant.description}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, description: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb', minHeight: '60px', resize: 'vertical' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Brief description of your restaurant" />
+                  </div>
+                </div>
               </div>
 
+              {/* Section: Contact & Location */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Contact & Location</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Phone</label>
+                    <input type="tel" value={newRestaurant.phone}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, phone: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="+91 98765 43210" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Email</label>
+                    <input type="email" value={newRestaurant.email}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, email: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="hello@restaurant.com" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>City</label>
+                    <input type="text" value={newRestaurant.city}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, city: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Mumbai" />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Address</label>
+                    <input type="text" value={newRestaurant.address}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, address: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Full address" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Business Details */}
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  Description
-                </label>
-                <textarea
-                  value={newRestaurant.description}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, description: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box',
-                    minHeight: '80px',
-                    resize: 'vertical'
-                  }}
-                  placeholder="Brief description of your restaurant"
-                />
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Business Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Legal Business Name</label>
+                    <input type="text" value={newRestaurant.legalBusinessName}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, legalBusinessName: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Legal entity name" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>GSTIN</label>
+                    <input type="text" value={newRestaurant.gstin}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, gstin: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="22AAAAA0000A1Z5" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Staff Count</label>
+                    <input type="number" value={newRestaurant.staffCount}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, staffCount: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      placeholder="10" min="0" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Seating Capacity</label>
+                    <input type="number" value={newRestaurant.seatingCapacity}
+                      onChange={(e) => setNewRestaurant({ ...newRestaurant, seatingCapacity: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      placeholder="50" min="0" />
+                  </div>
+                </div>
               </div>
 
+              {/* Buttons */}
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAddRestaurantModal(false)}
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#6b7280',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: '12px',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
+                <button type="button" onClick={() => setShowAddRestaurantModal(false)}
+                  style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#374151', padding: '12px 20px', borderRadius: '12px', fontWeight: 600, fontSize: '14px', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={function(e) { e.currentTarget.style.backgroundColor = '#e5e7eb'; }}
+                  onMouseLeave={function(e) { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: '12px',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    border: 'none',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s',
-                    opacity: loading ? 0.7 : 1
-                  }}
-                >
+                <button type="submit" disabled={loading}
+                  style={{ flex: 1, background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', padding: '12px 20px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loading ? 0.7 : 1, boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>
                   {loading ? t('admin.adding') : t('admin.addRestaurant')}
                 </button>
               </div>
@@ -5928,47 +6097,49 @@ const Admin = () => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
           zIndex: 10002,
-          padding: '16px'
+          padding: isMobile ? '0' : '16px'
         }}>
           <div style={{
             backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            borderRadius: isMobile ? '20px 20px 0 0' : '20px',
+            boxShadow: '0 25px 60px -12px rgba(0,0,0,0.3)',
             width: '100%',
             maxWidth: '640px',
-            maxHeight: '90vh',
-            overflow: 'auto'
+            maxHeight: isMobile ? '92vh' : '90vh',
+            overflow: 'auto',
+            border: '1px solid #e5e7eb'
           }}>
+            {/* Header */}
             <div style={{
               padding: '20px 24px',
-              borderBottom: '1px solid #f3f4f6',
+              borderBottom: '1px solid #f1f5f9',
               background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
-              borderRadius: '16px 16px 0 0',
-              position: 'sticky',
-              top: 0,
-              zIndex: 1
+              borderRadius: isMobile ? '20px 20px 0 0' : '20px 20px 0 0',
+              position: 'sticky', top: 0, zIndex: 1
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                  Edit Restaurant
-                </h2>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1f2937', margin: 0 }}>Edit Restaurant</h2>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0' }}>Update your restaurant details</p>
+                </div>
                 <button
                   onClick={() => setShowEditRestaurantModal(false)}
                   style={{
-                    color: '#6b7280',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    lineHeight: 1
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#6b7280', fontSize: '18px', fontWeight: 'bold',
+                    border: '1px solid #e5e7eb', backgroundColor: 'white',
+                    cursor: 'pointer', transition: 'all 0.15s'
                   }}
+                  onMouseEnter={function(e) { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                  onMouseLeave={function(e) { e.currentTarget.style.backgroundColor = 'white'; }}
                 >
                   &times;
                 </button>
@@ -5976,245 +6147,148 @@ const Admin = () => {
             </div>
 
             <form onSubmit={handleEditRestaurant} style={{ padding: '20px 24px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                {/* Name */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editRestaurant.name}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, name: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="Restaurant name"
-                  />
+              {/* Section: Basic Info */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Basic Information</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Restaurant Name *</label>
+                    <input type="text" required value={editRestaurant.name}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, name: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb', transition: 'border-color 0.2s' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Restaurant name" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Business Type</label>
+                    <select value={editRestaurant.businessType}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, businessType: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb', cursor: 'pointer' }}>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="cafe">Cafe</option>
+                      <option value="bar">Bar</option>
+                      <option value="bakery">Bakery</option>
+                      <option value="ice_cream">Ice Cream</option>
+                      <option value="qsr">QSR / Fast Food</option>
+                      <option value="cloud_kitchen">Cloud Kitchen</option>
+                      <option value="food_truck">Food Truck</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Cuisine</label>
+                    <input type="text" value={editRestaurant.cuisine}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, cuisine: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Indian, Chinese, Italian" />
+                    <span style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', display: 'block' }}>Separate multiple cuisines with commas</span>
+                  </div>
+                  <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Description</label>
+                    <textarea value={editRestaurant.description}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, description: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb', minHeight: '60px', resize: 'vertical' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Brief description of your restaurant" />
+                  </div>
                 </div>
-                {/* Phone */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={editRestaurant.phone}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, phone: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="+91 98765 43210"
-                  />
+              </div>
+
+              {/* Section: Contact & Location */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Contact & Location</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Phone</label>
+                    <input type="tel" value={editRestaurant.phone}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, phone: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="+91 98765 43210" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Email</label>
+                    <input type="email" value={editRestaurant.email}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, email: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="hello@restaurant.com" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>City</label>
+                    <input type="text" value={editRestaurant.city}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, city: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Mumbai" />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Address</label>
+                    <input type="text" value={editRestaurant.address}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, address: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Full address" />
+                  </div>
                 </div>
-                {/* Email */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={editRestaurant.email}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, email: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="hello@restaurant.com"
-                  />
-                </div>
-                {/* City */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    value={editRestaurant.city}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, city: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="Mumbai"
-                  />
-                </div>
-                {/* Address - full width */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    value={editRestaurant.address}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, address: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="Full address"
-                  />
-                </div>
-                {/* Business Type */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Business Type
-                  </label>
-                  <select
-                    value={editRestaurant.businessType}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, businessType: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb', cursor: 'pointer'
-                    }}
-                  >
-                    <option value="restaurant">Restaurant</option>
-                    <option value="cafe">Cafe</option>
-                    <option value="bar">Bar</option>
-                    <option value="bakery">Bakery</option>
-                    <option value="ice_cream">Ice Cream</option>
-                    <option value="qsr">QSR / Fast Food</option>
-                    <option value="cloud_kitchen">Cloud Kitchen</option>
-                    <option value="food_truck">Food Truck</option>
-                  </select>
-                </div>
-                {/* Cuisine */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Cuisine (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={editRestaurant.cuisine}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, cuisine: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="Indian, Chinese, Italian"
-                  />
-                </div>
-                {/* Legal Business Name */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Legal Business Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editRestaurant.legalBusinessName}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, legalBusinessName: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="Legal entity name"
-                  />
-                </div>
-                {/* GSTIN */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    GSTIN
-                  </label>
-                  <input
-                    type="text"
-                    value={editRestaurant.gstin}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, gstin: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="22AAAAA0000A1Z5"
-                  />
-                </div>
-                {/* Staff Count */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Staff Count
-                  </label>
-                  <input
-                    type="number"
-                    value={editRestaurant.staffCount}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, staffCount: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="10"
-                    min="0"
-                  />
-                </div>
-                {/* Seating Capacity */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Seating Capacity
-                  </label>
-                  <input
-                    type="number"
-                    value={editRestaurant.seatingCapacity}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, seatingCapacity: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb'
-                    }}
-                    placeholder="50"
-                    min="0"
-                  />
-                </div>
-                {/* Description - full width */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                    Description
-                  </label>
-                  <textarea
-                    value={editRestaurant.description}
-                    onChange={(e) => setEditRestaurant({ ...editRestaurant, description: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-                      backgroundColor: '#f9fafb', minHeight: '70px', resize: 'vertical'
-                    }}
-                    placeholder="Brief description of your restaurant"
-                  />
+              </div>
+
+              {/* Section: Business Details */}
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Business Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Legal Business Name</label>
+                    <input type="text" value={editRestaurant.legalBusinessName}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, legalBusinessName: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="Legal entity name" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>GSTIN</label>
+                    <input type="text" value={editRestaurant.gstin}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, gstin: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      onFocus={function(e) { e.target.style.borderColor = '#ef4444'; e.target.style.backgroundColor = '#fff'; }}
+                      onBlur={function(e) { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#f9fafb'; }}
+                      placeholder="22AAAAA0000A1Z5" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Staff Count</label>
+                    <input type="number" value={editRestaurant.staffCount}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, staffCount: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      placeholder="10" min="0" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Seating Capacity</label>
+                    <input type="number" value={editRestaurant.seatingCapacity}
+                      onChange={(e) => setEditRestaurant({ ...editRestaurant, seatingCapacity: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f9fafb' }}
+                      placeholder="50" min="0" />
+                  </div>
                 </div>
               </div>
 
               {/* Buttons */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowEditRestaurantModal(false)}
-                  style={{
-                    flex: 1, backgroundColor: '#f3f4f6', color: '#374151',
-                    padding: '12px 20px', borderRadius: '10px', fontWeight: '600',
-                    fontSize: '14px', border: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                  }}
-                >
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => setShowEditRestaurantModal(false)}
+                  style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#374151', padding: '12px 20px', borderRadius: '12px', fontWeight: 600, fontSize: '14px', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={function(e) { e.currentTarget.style.backgroundColor = '#e5e7eb'; }}
+                  onMouseLeave={function(e) { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={editLoading}
-                  style={{
-                    flex: 1, background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
-                    padding: '12px 20px', borderRadius: '10px', fontWeight: '600',
-                    fontSize: '14px', border: 'none', cursor: editLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s', opacity: editLoading ? 0.7 : 1
-                  }}
-                >
+                <button type="submit" disabled={editLoading}
+                  style={{ flex: 1, background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', padding: '12px 20px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', border: 'none', cursor: editLoading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: editLoading ? 0.7 : 1, boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>
                   {editLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -7625,8 +7699,15 @@ const Admin = () => {
         document.body
       )}
 
+      {/* Global shimmer skeleton for all settings tabs while restaurants load */}
+      {loading && restaurants.length === 0 && !['restaurants', 'staff'].includes(activeTab) && (
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '24px', border: '1px solid #f1f5f9' }}>
+          <AdminTabSkeleton variant={activeTab === 'settings' || activeTab === 'tax' ? 'two-panel' : 'single'} />
+        </div>
+      )}
+
       {/* Settings: Language + Default Restaurant + Dashboard Customization */}
-      {activeTab === 'settings' && (
+      {activeTab === 'settings' && !(loading && restaurants.length === 0) && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -8597,7 +8678,7 @@ const Admin = () => {
       )}
 
       {/* Features Toggle Section */}
-      {activeTab === 'billing-settings' && (
+      {activeTab === 'billing-settings' && !(loading && restaurants.length === 0) && (
         <div>
           {/* Compact Header */}
           <div style={{
@@ -8945,7 +9026,7 @@ const Admin = () => {
         </div>
       )}
 
-      {activeTab === 'features' && (
+      {activeTab === 'features' && !(loading && restaurants.length === 0) && (
         <div>
           {/* Header */}
           <div style={{
@@ -9110,7 +9191,7 @@ const Admin = () => {
       )}
 
       {/* Tax & Business Identity Section */}
-      {activeTab === 'tax' && (
+      {activeTab === 'tax' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -9122,12 +9203,13 @@ const Admin = () => {
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}
+            initialLoading={loading}
           />
         </div>
       )}
 
       {/* Zone Pricing Settings Section */}
-      {activeTab === 'pricing' && (
+      {activeTab === 'pricing' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -9139,12 +9221,13 @@ const Admin = () => {
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}
+            initialLoading={loading}
           />
         </div>
       )}
 
       {/* Payment Settings Section */}
-      {activeTab === 'payments' && (
+      {activeTab === 'payments' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -9161,7 +9244,7 @@ const Admin = () => {
       )}
 
       {/* Currency Settings Section */}
-      {activeTab === 'currency' && (
+      {activeTab === 'currency' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -9173,12 +9256,13 @@ const Admin = () => {
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}
+            initialLoading={loading}
           />
         </div>
       )}
 
       {/* Print Settings Section */}
-      {activeTab === 'print' && (
+      {activeTab === 'print' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -9195,7 +9279,7 @@ const Admin = () => {
       )}
 
       {/* Order Management Section */}
-      {activeTab === 'order-management' && (
+      {activeTab === 'order-management' && !(loading && restaurants.length === 0) && (
         <div style={{
           maxWidth: '560px',
           margin: '0 auto'
@@ -9383,7 +9467,7 @@ const Admin = () => {
       )}
 
       {/* Offers & Discounts Section */}
-      {activeTab === 'offers' && (
+      {activeTab === 'offers' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: isMobile ? '12px' : '16px',
@@ -9439,7 +9523,7 @@ const Admin = () => {
       )}
 
       {/* Loyalty Program Section */}
-      {activeTab === 'loyalty' && (
+      {activeTab === 'loyalty' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: isMobile ? '12px' : '16px',
@@ -9493,7 +9577,7 @@ const Admin = () => {
       )}
 
       {/* Google Reviews Section */}
-      {activeTab === 'google-reviews' && (
+      {activeTab === 'google-reviews' && !(loading && restaurants.length === 0) && (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '12px',
@@ -9523,7 +9607,7 @@ const Admin = () => {
         </div>
       )}
 
-      {activeTab === 'whatsapp' && (
+      {activeTab === 'whatsapp' && !(loading && restaurants.length === 0) && (
         <WhatsAppTab
           selectedRestaurant={selectedRestaurant}
         />

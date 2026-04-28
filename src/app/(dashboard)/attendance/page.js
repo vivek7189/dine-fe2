@@ -1008,7 +1008,7 @@ export default function AttendancePage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
               {leaveRequests.map(req => (
-                <div key={req._id} style={{ ...cardStyle, border: '1px solid #fef3c7' }}>
+                <div key={req.id} style={{ ...cardStyle, border: '1px solid #fef3c7' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>{req.staffName}</div>
@@ -1026,7 +1026,7 @@ export default function AttendancePage() {
                   {req.reason && <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0' }}>Reason: {req.reason}</p>}
                   {isAdmin && (
                     <div style={{ marginTop: '12px' }}>
-                      {rejectingId === req._id ? (
+                      {rejectingId === req.id ? (
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                           <input
                             type="text"
@@ -1035,7 +1035,7 @@ export default function AttendancePage() {
                             value={rejectReason}
                             onChange={e => setRejectReason(e.target.value)}
                           />
-                          <button style={{ ...btnDanger, padding: '6px 16px', fontSize: '13px' }} onClick={() => handleRejectLeave(req._id, rejectReason)}>
+                          <button style={{ ...btnDanger, padding: '6px 16px', fontSize: '13px' }} onClick={() => handleRejectLeave(req.id, rejectReason)}>
                             Confirm Reject
                           </button>
                           <button style={{ ...btnSecondary, padding: '6px 16px', fontSize: '13px' }} onClick={() => { setRejectingId(null); setRejectReason(''); }}>
@@ -1044,10 +1044,10 @@ export default function AttendancePage() {
                         </div>
                       ) : (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button style={{ ...btnSuccess, padding: '6px 16px', fontSize: '13px' }} onClick={() => handleApproveLeave(req._id)}>
+                          <button style={{ ...btnSuccess, padding: '6px 16px', fontSize: '13px' }} onClick={() => handleApproveLeave(req.id)}>
                             <FaCheckCircle size={12} /> Approve
                           </button>
-                          <button style={{ ...btnDanger, padding: '6px 16px', fontSize: '13px' }} onClick={() => setRejectingId(req._id)}>
+                          <button style={{ ...btnDanger, padding: '6px 16px', fontSize: '13px' }} onClick={() => setRejectingId(req.id)}>
                             <FaTimesCircle size={12} /> Reject
                           </button>
                         </div>
@@ -1082,7 +1082,7 @@ export default function AttendancePage() {
                     const endD = new Date(req.endDate);
                     const days = Math.max(1, Math.ceil((endD - startD) / 86400000) + 1);
                     return (
-                      <tr key={req._id || i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <tr key={req.id || i} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '10px 12px' }}>{req.staffName}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, backgroundColor: '#fee2e2', color: '#991b1b' }}>
