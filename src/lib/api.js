@@ -1077,6 +1077,31 @@ class ApiClient {
     });
   }
 
+  // Space booking endpoints
+  async getOwnerSpaces() {
+    return this.request('/api/space-booking/spaces');
+  }
+
+  async updateSpaceSettings(spaceId, settings) {
+    return this.request(`/api/space-booking/spaces/${spaceId}/settings`, {
+      method: 'PATCH',
+      body: settings,
+    });
+  }
+
+  async getSpaceBookings(filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    const queryString = query ? `?${query}` : '';
+    return this.request(`/api/space-booking/bookings${queryString}`);
+  }
+
+  async updateSpaceBookingStatus(bookingId, data) {
+    return this.request(`/api/space-booking/bookings/${bookingId}/status`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
   // Utility endpoints
   async seedData(restaurantId) {
     return this.request(`/api/seed-data/${restaurantId}`, {
