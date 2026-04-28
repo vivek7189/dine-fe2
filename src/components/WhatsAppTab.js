@@ -16,7 +16,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [sendingReply, setSendingReply] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [testPhone, setTestPhone] = useState('');
-  const [testMessage, setTestMessage] = useState('Test message from DineOpen');
+  const [testMessage, setTestMessage] = useState('hello_world');
+  const [testAsTemplate, setTestAsTemplate] = useState(true);
   const [testSending, setTestSending] = useState(false);
   const [connectMode, setConnectMode] = useState('dineopen');
   const [ownCredentials, setOwnCredentials] = useState({ accessToken: '', phoneNumberId: '', businessAccountId: '' });
@@ -138,7 +139,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     if (!testPhone) return alert('Enter a phone number');
     setTestSending(true);
     try {
-      await apiClient.testWhatsAppMessage(restaurantId, { phoneNumber: testPhone, message: testMessage });
+      await apiClient.testWhatsAppMessage(restaurantId, testAsTemplate
+        ? { phoneNumber: testPhone, templateName: testMessage, templateLanguage: 'en_US' }
+        : { phoneNumber: testPhone, message: testMessage }
+      );
       setStatusMsg({ type: 'success', text: 'Test message sent!' });
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.error || 'Failed to send test message' });
@@ -439,6 +443,11 @@ export default function WhatsAppTab({ selectedRestaurant }) {
               {waSettings?.connected && (
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>Send Test Message</h4>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <button onClick={() => setTestAsTemplate(true)} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '500', cursor: 'pointer', backgroundColor: testAsTemplate ? '#25D366' : '#fff', color: testAsTemplate ? '#fff' : '#374151' }}>Template</button>
+                    <button onClick={() => setTestAsTemplate(false)} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '500', cursor: 'pointer', backgroundColor: !testAsTemplate ? '#25D366' : '#fff', color: !testAsTemplate ? '#fff' : '#374151' }}>Text</button>
+                    <span style={{ fontSize: '11px', color: '#9ca3af', alignSelf: 'center' }}>{testAsTemplate ? 'Templates can reach any customer' : 'Text only works within 24h of customer messaging you'}</span>
+                  </div>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Phone (with country code)</label>
@@ -450,11 +459,11 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                       />
                     </div>
                     <div style={{ flex: 2 }}>
-                      <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Message</label>
+                      <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>{testAsTemplate ? 'Template Name' : 'Message'}</label>
                       <input
                         value={testMessage}
                         onChange={e => setTestMessage(e.target.value)}
-                        placeholder="Test message"
+                        placeholder={testAsTemplate ? 'hello_world' : 'Test message'}
                         style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
                       />
                     </div>
