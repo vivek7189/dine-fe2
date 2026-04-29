@@ -6362,7 +6362,7 @@ function RestaurantPOSContent() {
                 setActivePricingRuleId={setActivePricingRuleId}
                 countryCode={selectedRestaurant?.countryCode || 'IN'}
                 businessType={selectedRestaurant?.businessType || 'restaurant'}
-                canDeleteTable={dashCanDeleteTable}
+                canDeleteTable={false}
                 onDeleteTable={async (tableId) => {
                   try {
                     await apiClient.deleteTable(tableId, selectedRestaurant?.id);

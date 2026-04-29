@@ -8,7 +8,8 @@ import apiClient from '../../../lib/api';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
-import { getAllOfflineOrders } from '../../../lib/offlineDb';
+import { getAllOfflineOrders, updateOrderSyncStatus } from '../../../lib/offlineDb';
+import { syncPendingOrders } from '../../../lib/syncEngine';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS } from '../../../utils/printFontSizes';
@@ -54,6 +55,7 @@ import {
   FaGlobe,
   FaCalendarAlt,
   FaRedo,
+  FaSync,
   FaChartPie,
   FaClipboardList,
   FaSortAmountDown,
@@ -79,6 +81,7 @@ async function mergeOfflineOrderHistory(existingOrders, restaurantId) {
       })
       .map(o => ({
         id: o.idempotencyKey,
+        idempotencyKey: o.idempotencyKey,
         ...o.orderData,
         createdAt: new Date(o.createdAt).toISOString(),
         syncStatus: o.syncStatus,
@@ -955,6 +958,21 @@ const OrderHistory = () => {
 
   const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit&from=orderhistory`);
 
+  const [syncingOrderKey, setSyncingOrderKey] = useState(null);
+  const handleRetrySync = async (order) => {
+    if (!order?.idempotencyKey) return;
+    setSyncingOrderKey(order.idempotencyKey);
+    try {
+      await updateOrderSyncStatus(order.idempotencyKey, 'pending', { retryCount: 0 });
+      await syncPendingOrders(apiClient);
+      await fetchOrders();
+    } catch (err) {
+      console.error('Retry sync failed:', err);
+    } finally {
+      setSyncingOrderKey(null);
+    }
+  };
+
   const handleDeleteOrder = (orderId) => {
     setDeleteError(null);
     setDeleteConfirmOrderId(orderId);
@@ -1492,12 +1510,14 @@ const OrderHistory = () => {
                 <FaWallet /> Mark as Paid
               </button>
             )}
+            {order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
             <button
               onClick={() => { handleEditOrder(order.id); onClose(); }}
               className="flex-1 px-4 py-2.5 bg-gray-900 text-white font-medium text-sm rounded-lg hover:bg-gray-800 transition-colors"
             >
               {t('orderHistory.editOrder')}
             </button>
+            )}
           </div>
         </div>
       </div>
@@ -1990,6 +2010,17 @@ const OrderHistory = () => {
                                 Pending Sync
                               </span>
                             )}
+                            {order._isOffline && order.syncStatus === 'failed' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
+                                disabled={syncingOrderKey === order.idempotencyKey}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
+                                title="Retry sync"
+                              >
+                                <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
+                                {syncingOrderKey === order.idempotencyKey ? 'Syncing...' : 'Retry'}
+                              </button>
+                            )}
                             {order.syncSource === 'offline' && !order._isOffline && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
                                 <FaCloudUploadAlt className="text-[8px]" /> Offline
@@ -2069,10 +2100,10 @@ const OrderHistory = () => {
                             >
                               <FaEye size={12} />
                             </button>
-                            {order.status !== 'deleted' && (
-                            <button 
-                              onClick={() => handleEditOrder(order.id)} 
-                              className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-sm" 
+                            {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
+                            <button
+                              onClick={() => handleEditOrder(order.id)}
+                              className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-sm"
                               title={t('orderHistory.edit')}
                             >
                               <FaEdit size={12} />
@@ -2162,6 +2193,17 @@ const OrderHistory = () => {
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
                                   <FaCloudUploadAlt className="text-[8px]" /> Offline
                                 </span>
+                              )}
+                              {order._isOffline && order.syncStatus === 'failed' && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
+                                  disabled={syncingOrderKey === order.idempotencyKey}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
+                                  title="Retry sync"
+                                >
+                                  <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
+                                  {syncingOrderKey === order.idempotencyKey ? 'Syncing...' : 'Retry'}
+                                </button>
                               )}
                             </div>
                             <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -2324,7 +2366,7 @@ const OrderHistory = () => {
                                 <FaTimesCircle /> {t('orderHistory.cancel')}
                               </button>
                             )}
-                            {order.status !== 'deleted' && (
+                            {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
                               <button
                                 onClick={() => handleEditOrder(order.id)}
                                 className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
