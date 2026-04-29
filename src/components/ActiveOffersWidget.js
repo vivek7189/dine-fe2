@@ -9,7 +9,7 @@
  *  - Free items chip (cross-item BOGO)
  *  - "Login required" chips for audience-gated offers
  *
- * Purely presentational — parent passes pre-computed values from the hook.
+ * Purely presentational — parent passes pre-computed values from the hook.dfd
  */
 import React from 'react';
 import { FaGift, FaLock, FaCheckCircle } from 'react-icons/fa';
