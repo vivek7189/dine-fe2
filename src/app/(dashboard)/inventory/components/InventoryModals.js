@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt } from 'react-icons/fa';
+import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt, FaLink } from 'react-icons/fa';
 import SmartImportModalInline from './SmartImportModal';
+import { convertUnits } from '../utils/unitConversion';
 
 const units = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen', 'bunch', 'bottle', 'can', 'bag', 'box', 'pack'];
 
@@ -296,7 +297,7 @@ function ManualItemForm({ formData, setFormData, categories, suppliers }) {
         <FocusInput type="number" value={formData.currentStock} onChange={e => update('currentStock', parseFloat(e.target.value) || 0)} />
       </div>
       <div style={fieldWrap}>
-        <label style={labelStyle}>Cost Per Unit</label>
+        <label style={labelStyle}>Cost Per {formData.unit || 'Unit'}</label>
         <FocusInput type="number" step="0.01" value={formData.costPerUnit} onChange={e => update('costPerUnit', parseFloat(e.target.value) || 0)} />
       </div>
       <div style={fieldWrap}>
@@ -681,7 +682,8 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
   addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
   addRecipeInstruction, removeRecipeInstruction, updateRecipeInstruction,
   handleGenerateRecipeSteps, generatingSteps,
-  handleGenerateFullRecipe, generatingFullRecipe }) {
+  handleGenerateFullRecipe, generatingFullRecipe,
+  recipes = [], editingRecipeId = null }) {
 
   const update = (field, value) => setRecipeFormData({ ...recipeFormData, [field]: value });
 
@@ -768,32 +770,64 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
           <label style={{ ...labelStyle, marginBottom: 0 }}>Ingredients *</label>
           <button style={secondaryBtn} onClick={addRecipeIngredient}><FaPlus /> Add Ingredient</button>
         </div>
-        {recipeFormData.ingredients.map((ing, index) => (
+        {recipeFormData.ingredients.map((ing, index) => {
+          const isSubRecipe = ing.type === 'recipe';
+          const availableRecipes = recipes.filter(r => (r._id || r.id) !== editingRecipeId);
+          return (
           <div key={index}>
             <div style={rowStyle}>
-              <FocusSelect style={{ ...inputStyle, flex: 2, ...(ing._unmatched && !ing.inventoryItemId ? { borderColor: '#f59e0b', backgroundColor: '#fffbeb' } : {}) }} value={ing.inventoryItemId}
-                onChange={e => updateRecipeIngredient(index, 'inventoryItemId', e.target.value)}>
-                <option value="">{ing._unmatched ? `⚠ ${ing.inventoryItemName || 'Select item'}` : 'Select item'}</option>
-                {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
+              {/* Type toggle */}
+              <FocusSelect style={{ ...inputStyle, flex: 0, minWidth: 80, maxWidth: 90, fontSize: 12,
+                ...(isSubRecipe ? { borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' } : {}) }}
+                value={ing.type || 'inventory'}
+                onChange={e => updateRecipeIngredient(index, 'type', e.target.value)}>
+                <option value="inventory">Item</option>
+                <option value="recipe">Recipe</option>
               </FocusSelect>
-              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder="Qty"
+
+              {isSubRecipe ? (
+                /* Sub-recipe dropdown */
+                <FocusSelect style={{ ...inputStyle, flex: 2, borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' }}
+                  value={ing.subRecipeId || ''}
+                  onChange={e => updateRecipeIngredient(index, 'subRecipeId', e.target.value)}>
+                  <option value="">Select recipe</option>
+                  {availableRecipes.map(r => <option key={r._id || r.id} value={r._id || r.id}>{r.name}</option>)}
+                </FocusSelect>
+              ) : (
+                /* Inventory item dropdown */
+                <FocusSelect style={{ ...inputStyle, flex: 2, ...(ing._unmatched && !ing.inventoryItemId ? { borderColor: '#f59e0b', backgroundColor: '#fffbeb' } : {}) }}
+                  value={ing.inventoryItemId}
+                  onChange={e => updateRecipeIngredient(index, 'inventoryItemId', e.target.value)}>
+                  <option value="">{ing._unmatched ? `⚠ ${ing.inventoryItemName || 'Select item'}` : 'Select item'}</option>
+                  {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
+                </FocusSelect>
+              )}
+
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder={isSubRecipe ? 'Servings' : 'Qty'}
                 value={ing.quantity} onChange={e => updateRecipeIngredient(index, 'quantity', parseFloat(e.target.value) || 0)} />
-              <FocusSelect style={{ ...inputStyle, flex: 1 }} value={ing.unit}
-                onChange={e => updateRecipeIngredient(index, 'unit', e.target.value)}>
-                <option value="">Unit</option>
-                {units.map(u => <option key={u} value={u}>{u}</option>)}
-              </FocusSelect>
+
+              {isSubRecipe ? (
+                <span style={{ flex: 0.8, fontSize: 12, color: '#7c3aed', fontWeight: 600, alignSelf: 'center', textAlign: 'center', minWidth: 60 }}>servings</span>
+              ) : (
+                <FocusSelect style={{ ...inputStyle, flex: 1 }} value={ing.unit}
+                  onChange={e => updateRecipeIngredient(index, 'unit', e.target.value)}>
+                  <option value="">Unit</option>
+                  {units.map(u => <option key={u} value={u}>{u}</option>)}
+                </FocusSelect>
+              )}
+
             {recipeFormData.ingredients.length > 1 && (
               <button style={dangerBtn} onClick={() => removeRecipeIngredient(index)}><FaTrash /></button>
             )}
             </div>
-            {ing._unmatched && !ing.inventoryItemId && (
+            {!isSubRecipe && ing._unmatched && !ing.inventoryItemId && (
               <div style={{ fontSize: 11, color: '#d97706', marginTop: 2, marginBottom: 4, paddingLeft: 4 }}>
                 Not in inventory — please select a matching item or add &quot;{ing.inventoryItemName}&quot; to inventory first
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Instructions */}
@@ -897,6 +931,7 @@ function AddRecipeModal(props) {
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
             handleGenerateFullRecipe={handleGenerateFullRecipe} generatingFullRecipe={generatingFullRecipe}
+            recipes={props.recipes || []} editingRecipeId={props.editingRecipe?._id || props.editingRecipe?.id || null}
           />
         </div>
         {error && (
@@ -2061,6 +2096,7 @@ function EditRecipeModal(props) {
             updateRecipeInstruction={updateRecipeInstruction}
             handleGenerateRecipeSteps={handleGenerateRecipeSteps} generatingSteps={generatingSteps}
             handleGenerateFullRecipe={handleGenerateFullRecipe} generatingFullRecipe={generatingFullRecipe}
+            recipes={props.recipes || []} editingRecipeId={props.editingRecipe?._id || props.editingRecipe?.id || null}
           />
         </div>
         {error && (
@@ -2084,16 +2120,27 @@ function EditRecipeModal(props) {
 
 // ─── View Recipe Detail Modal (Portal) ──────────────────────────────────────
 function ViewRecipeModal(props) {
-  const { showViewRecipeModal, setShowViewRecipeModal, viewingRecipe, isMobile, formatCurrency, inventoryItems } = props;
+  const { showViewRecipeModal, setShowViewRecipeModal, viewingRecipe, isMobile, formatCurrency, inventoryItems, recipes = [] } = props;
 
   if (!showViewRecipeModal || !viewingRecipe || typeof document === 'undefined') return null;
 
   const ingredients = viewingRecipe.ingredients || [];
   const instructions = viewingRecipe.instructions || [];
 
-  const getIngCost = (ing) => {
+  const getIngCost = (ing, visited = new Set()) => {
+    if (ing.type === 'recipe' && ing.subRecipeId) {
+      if (visited.has(ing.subRecipeId)) return 0;
+      visited.add(ing.subRecipeId);
+      const sub = recipes.find(r => (r._id || r.id) === ing.subRecipeId);
+      if (!sub) return 0;
+      const subTotal = (sub.ingredients || []).reduce((s, i) => s + getIngCost(i, new Set(visited)), 0);
+      const perServing = sub.servings > 0 ? subTotal / sub.servings : subTotal;
+      return perServing * (ing.quantity || 0);
+    }
     const item = inventoryItems.find(i => i.id === ing.inventoryItemId || i._id === ing.inventoryItemId);
-    return item ? (ing.quantity || 0) * (item.costPerUnit || 0) : 0;
+    if (!item) return 0;
+    const convertedQty = convertUnits(ing.quantity || 0, ing.unit, item.unit);
+    return convertedQty * (item.costPerUnit || 0);
   };
   const totalCost = ingredients.reduce((s, i) => s + getIngCost(i), 0);
   const costPerServing = viewingRecipe.servings > 0 ? totalCost / viewingRecipe.servings : totalCost;
@@ -2180,21 +2227,29 @@ function ViewRecipeModal(props) {
                 Ingredients ({ingredients.length})
               </h4>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 6 }}>
-                {ingredients.map((ing, idx) => (
+                {ingredients.map((ing, idx) => {
+                  const isSubRecipe = ing.type === 'recipe';
+                  return (
                   <div key={idx} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                    backgroundColor: '#f9fafb', borderRadius: 8, fontSize: 14,
+                    backgroundColor: isSubRecipe ? '#f5f3ff' : '#f9fafb', borderRadius: 8, fontSize: 14,
+                    border: isSubRecipe ? '1px solid #e9e5ff' : 'none',
                   }}>
-                    <span style={{
-                      width: 8, height: 8, borderRadius: '50%',
-                      backgroundColor: '#059669', flexShrink: 0,
-                    }} />
-                    <span style={{ fontWeight: 600, color: '#374151' }}>
-                      {ing.quantity} {ing.unit}
+                    {isSubRecipe ? (
+                      <FaLink size={10} style={{ color: '#7c3aed', flexShrink: 0 }} />
+                    ) : (
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#059669', flexShrink: 0 }} />
+                    )}
+                    <span style={{ fontWeight: 600, color: isSubRecipe ? '#7c3aed' : '#374151' }}>
+                      {ing.quantity} {isSubRecipe ? 'srv' : ing.unit}
                     </span>
-                    <span style={{ color: '#6b7280' }}>{ing.inventoryItemName || 'Unknown'}</span>
+                    <span style={{ color: isSubRecipe ? '#7c3aed' : '#6b7280' }}>
+                      {ing.inventoryItemName || 'Unknown'}
+                      {isSubRecipe && <span style={{ fontSize: 11, marginLeft: 4, opacity: 0.7 }}>(sub-recipe)</span>}
+                    </span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -2573,6 +2628,8 @@ function DeleteConfirmModal({ deleteConfirmModal, setDeleteConfirmModal, confirm
     </div>
   );
 }
+
+export { RecipeFormBody, units as recipeUnits, inputStyle as recipeInputStyle, labelStyle as recipeLabelStyle, fieldWrap as recipeFieldWrap, primaryBtn as recipePrimaryBtn, secondaryBtn as recipeSecondaryBtn };
 
 export default function InventoryModals(props) {
   return (

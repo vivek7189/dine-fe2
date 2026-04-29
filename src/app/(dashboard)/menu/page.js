@@ -50,6 +50,7 @@ import {
   FaCheckCircle,
   FaFlask
 } from 'react-icons/fa';
+import { RecipeFormBody } from '../inventory/components/InventoryModals';
 
 // Enhanced Category Dropdown Component with Management
 const CategoryDropdown = ({ 
@@ -948,7 +949,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                if (!hasRecipe) onGenerateRecipe(item);
+                onGenerateRecipe(item);
               }}
               style={{
                 padding: '6px',
@@ -960,7 +961,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
                 color: hasRecipe ? '#059669' : 'white',
                 border: hasRecipe ? '1.5px solid #bbf7d0' : 'none',
                 borderRadius: '8px',
-                cursor: generatingRecipeFor === item.id ? 'wait' : hasRecipe ? 'default' : 'pointer',
+                cursor: generatingRecipeFor === item.id ? 'wait' : 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
@@ -969,7 +970,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
                 opacity: generatingRecipeFor === item.id ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                if (generatingRecipeFor !== item.id && !hasRecipe) {
+                if (generatingRecipeFor !== item.id) {
                   e.currentTarget.style.transform = 'translateY(-1px)';
                   e.currentTarget.style.boxShadow = '0 4px 8px rgba(5, 150, 105, 0.3)';
                 }
@@ -978,7 +979,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = hasRecipe ? 'none' : '0 2px 4px rgba(5, 150, 105, 0.2)';
               }}
-              title={generatingRecipeFor === item.id ? 'Generating recipe...' : hasRecipe ? 'Recipe linked' : 'Generate Recipe & Link Inventory'}
+              title={generatingRecipeFor === item.id ? 'Generating recipe...' : hasRecipe ? 'View Recipe' : 'Generate Recipe & Link Inventory'}
             >
               {generatingRecipeFor === item.id
                 ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
@@ -1984,7 +1985,7 @@ const MenuManagement = () => {
   const [photoError, setPhotoError] = useState('');
   const [photoSuccess, setPhotoSuccess] = useState(false);
   const [generatingRecipeFor, setGeneratingRecipeFor] = useState(null); // menu item ID currently generating recipe
-  const [recipeConfirmItem, setRecipeConfirmItem] = useState(null); // item pending recipe generation confirmation
+  // recipeConfirmItem removed — replaced by showMenuRecipeModal
   const [menuItemRecipes, setMenuItemRecipes] = useState({}); // menuItemId → recipe data
   const cameraInputRef = useRef(null);
 
@@ -2739,122 +2740,246 @@ const MenuManagement = () => {
     }
   };
 
-  const handleGenerateRecipe = (item) => {
+  // ─── Recipe Modal State & Handlers (reuses RecipeFormBody from Inventory) ───
+  const [showMenuRecipeModal, setShowMenuRecipeModal] = useState(false);
+  const [menuRecipeItem, setMenuRecipeItem] = useState(null); // the menu item this recipe is for
+  const [menuRecipeFormData, setMenuRecipeFormData] = useState({
+    name: '', description: '', category: '', servings: 1, prepTime: 0, cookTime: 0,
+    ingredients: [{ inventoryItemId: '', inventoryItemName: '', quantity: 1, unit: '' }],
+    instructions: [''], notes: '',
+  });
+  const [menuRecipeInventoryItems, setMenuRecipeInventoryItems] = useState([]);
+  const [menuRecipeGenerating, setMenuRecipeGenerating] = useState(false);
+  const [menuRecipeGeneratingSteps, setMenuRecipeGeneratingSteps] = useState(false);
+  const [menuRecipeSaving, setMenuRecipeSaving] = useState(false);
+  const [menuRecipeError, setMenuRecipeError] = useState(null);
+
+  const menuRecipeAddIngredient = () => {
+    setMenuRecipeFormData(prev => ({
+      ...prev, ingredients: [...prev.ingredients, { inventoryItemId: '', inventoryItemName: '', quantity: 1, unit: '', type: 'inventory', subRecipeId: null }]
+    }));
+  };
+  const menuRecipeRemoveIngredient = (index) => {
+    setMenuRecipeFormData(prev => ({
+      ...prev, ingredients: prev.ingredients.filter((_, i) => i !== index)
+    }));
+  };
+  const menuRecipeUpdateIngredient = (index, field, value) => {
+    setMenuRecipeFormData(prev => {
+      const newIngredients = [...prev.ingredients];
+      newIngredients[index] = { ...newIngredients[index], [field]: value };
+      if (field === 'type') {
+        // Reset fields when switching between inventory item and sub-recipe
+        if (value === 'recipe') {
+          newIngredients[index].inventoryItemId = '';
+          newIngredients[index].inventoryItemName = '';
+          newIngredients[index].unit = 'servings';
+        } else {
+          newIngredients[index].subRecipeId = null;
+          newIngredients[index].unit = '';
+        }
+      } else if (field === 'inventoryItemId') {
+        const selectedItem = menuRecipeInventoryItems.find(item => item.id === value);
+        newIngredients[index].inventoryItemName = selectedItem ? selectedItem.name : '';
+      } else if (field === 'subRecipeId') {
+        const allRecipesList = Object.values(menuItemRecipes);
+        const selectedRecipe = allRecipesList.find(r => r.id === value);
+        newIngredients[index].inventoryItemName = selectedRecipe ? selectedRecipe.name : '';
+      }
+      return { ...prev, ingredients: newIngredients };
+    });
+  };
+  const menuRecipeAddInstruction = () => {
+    setMenuRecipeFormData(prev => ({ ...prev, instructions: [...prev.instructions, ''] }));
+  };
+  const menuRecipeRemoveInstruction = (index) => {
+    setMenuRecipeFormData(prev => ({ ...prev, instructions: prev.instructions.filter((_, i) => i !== index) }));
+  };
+  const menuRecipeUpdateInstruction = (index, value) => {
+    setMenuRecipeFormData(prev => {
+      const newInstructions = [...prev.instructions];
+      newInstructions[index] = value;
+      return { ...prev, instructions: newInstructions };
+    });
+  };
+
+  // AI generate full recipe (same logic as inventory page)
+  const menuRecipeGenerateFull = async () => {
+    if (!currentRestaurant?.id || !menuRecipeFormData.name) return;
+    try {
+      setMenuRecipeGenerating(true); setMenuRecipeError(null);
+      const result = await apiClient.generateFullRecipe(currentRestaurant.id, {
+        name: menuRecipeFormData.name,
+        servings: menuRecipeFormData.servings || 1,
+      });
+      if (result) {
+        const unmatchedToCreate = [];
+        const mappedIngredients = (result.ingredients || []).map(aiIng => {
+          const normalizedName = (aiIng.itemName || '').toLowerCase().trim();
+          const match = menuRecipeInventoryItems.find(inv => {
+            const invName = (inv.name || '').toLowerCase().trim();
+            return invName === normalizedName || invName.includes(normalizedName) || normalizedName.includes(invName);
+          });
+          if (!match) {
+            unmatchedToCreate.push({ name: aiIng.itemName, unit: aiIng.unit || 'g', category: result.category || 'Other' });
+          }
+          return {
+            inventoryItemId: match ? match.id : '',
+            inventoryItemName: match ? match.name : aiIng.itemName,
+            quantity: aiIng.quantity || 0,
+            unit: aiIng.unit || '',
+            type: 'inventory',
+            subRecipeId: null,
+            _unmatched: !match,
+          };
+        });
+
+        // Auto-create missing inventory items
+        for (const newItem of unmatchedToCreate) {
+          try {
+            const created = await apiClient.createInventoryItem(currentRestaurant.id, {
+              name: newItem.name, unit: newItem.unit, category: newItem.category,
+              currentStock: 0, minimumStock: 0, costPerUnit: 0,
+            });
+            const newId = created?.item?.id || created?.id;
+            const idx = mappedIngredients.findIndex(m => m._unmatched && m.inventoryItemName === newItem.name);
+            if (idx !== -1 && newId) {
+              mappedIngredients[idx].inventoryItemId = newId;
+              mappedIngredients[idx]._unmatched = false;
+              menuRecipeInventoryItems.push({ id: newId, name: newItem.name, unit: newItem.unit });
+            }
+          } catch (e) { console.warn(`Failed to create inventory item "${newItem.name}":`, e); }
+        }
+
+        // Reload inventory items to include newly created ones
+        try {
+          const invResponse = await apiClient.getInventoryItems(currentRestaurant.id);
+          setMenuRecipeInventoryItems(invResponse.items || invResponse || []);
+        } catch (e) { /* keep existing */ }
+
+        setMenuRecipeFormData(prev => ({
+          ...prev,
+          category: result.category || prev.category,
+          servings: result.servings || prev.servings,
+          prepTime: result.prepTime || prev.prepTime,
+          cookTime: result.cookTime || prev.cookTime,
+          description: result.description || prev.description,
+          instructions: result.instructions?.length > 0 ? result.instructions : prev.instructions,
+          ingredients: mappedIngredients.length > 0 ? mappedIngredients : prev.ingredients,
+        }));
+      }
+    } catch (error) {
+      console.error('Error generating full recipe:', error);
+      setMenuRecipeError(error.message || 'Failed to generate recipe with AI');
+    } finally { setMenuRecipeGenerating(false); }
+  };
+
+  // AI generate steps only
+  const menuRecipeGenerateSteps = async () => {
+    if (!currentRestaurant?.id || !menuRecipeFormData.name) return;
+    try {
+      setMenuRecipeGeneratingSteps(true);
+      const ingredientList = menuRecipeFormData.ingredients
+        .filter(i => i.inventoryItemId)
+        .map(i => `${i.quantity} ${i.unit} ${i.inventoryItemName}`).join(', ');
+      const result = await apiClient.generateRecipeSteps(currentRestaurant.id, {
+        name: menuRecipeFormData.name, category: menuRecipeFormData.category,
+        description: menuRecipeFormData.description, ingredients: ingredientList,
+        servings: menuRecipeFormData.servings,
+      });
+      if (result.steps?.length > 0) {
+        setMenuRecipeFormData(prev => ({ ...prev, instructions: result.steps }));
+      }
+    } catch (error) {
+      setMenuRecipeError('Failed to generate recipe steps');
+    } finally { setMenuRecipeGeneratingSteps(false); }
+  };
+
+  // Save/update recipe from menu page modal
+  const menuRecipeSave = async () => {
+    if (!currentRestaurant?.id || !menuRecipeItem) return;
+    if (!menuRecipeFormData.name || menuRecipeFormData.ingredients.length === 0) {
+      setMenuRecipeError('Recipe name and at least one ingredient required'); return;
+    }
+    try {
+      setMenuRecipeSaving(true); setMenuRecipeError(null);
+      const saveData = {
+        ...menuRecipeFormData,
+        menuItemId: menuRecipeItem.id,
+        menuItemName: menuRecipeItem.name,
+        ingredients: menuRecipeFormData.ingredients.map(ing => ({
+          inventoryItemId: ing.inventoryItemId || '',
+          inventoryItemName: ing.inventoryItemName || '',
+          quantity: parseFloat(ing.quantity) || 0,
+          unit: ing.unit || '',
+          type: ing.type || 'inventory',
+          subRecipeId: ing.subRecipeId || null,
+        })),
+        instructions: menuRecipeFormData.instructions.filter(i => typeof i === 'string' && i.trim()),
+        isActive: true,
+      };
+      // Backend upsert — replaces existing if menuItemId matches
+      await apiClient.createRecipe(currentRestaurant.id, saveData);
+
+      // Update recipe map
+      setMenuItemRecipes(prev => ({ ...prev, [menuRecipeItem.id]: saveData }));
+      setShowMenuRecipeModal(false);
+      setSuccessMessage(`Recipe saved for "${menuRecipeItem.name}"`);
+      setTimeout(() => setSuccessMessage(''), 4000);
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      setMenuRecipeError(error.message || 'Failed to save recipe');
+    } finally { setMenuRecipeSaving(false); }
+  };
+
+  const handleGenerateRecipe = async (item) => {
     if (!currentRestaurant?.id) {
       setError('No restaurant selected');
       return;
     }
-    setRecipeConfirmItem(item);
-  };
 
-  const confirmGenerateRecipe = async () => {
-    const item = recipeConfirmItem;
-    if (!item) return;
-    setRecipeConfirmItem(null);
-
+    // Load inventory items for the modal
+    let invItems = [];
     try {
-      setGeneratingRecipeFor(item.id);
-
-      // 1. Generate recipe via AI
-      const result = await apiClient.generateFullRecipe(currentRestaurant.id, {
-        name: item.name,
-        servings: 1,
-        menuItemId: item.id,
-      });
-
-      const recipe = result.recipe || result;
-      const ingredients = recipe.ingredients || [];
-
-      // 2. Load existing inventory items for matching
       const invResponse = await apiClient.getInventoryItems(currentRestaurant.id);
-      const inventoryItems = invResponse.items || invResponse || [];
+      invItems = invResponse.items || invResponse || [];
+    } catch (e) { console.warn('Could not load inventory items:', e); }
+    setMenuRecipeInventoryItems(invItems);
 
-      // 3. Map ingredients — fuzzy match to existing inventory, auto-create missing ones
-      const mappedIngredients = [];
-      for (const ing of ingredients) {
-        const ingName = (ing.itemName || ing.name || '').toLowerCase().trim();
-        const match = inventoryItems.find(inv => {
-          const invName = (inv.name || '').toLowerCase().trim();
-          return invName === ingName || invName.includes(ingName) || ingName.includes(invName);
-        });
+    const existingRecipe = menuItemRecipes[item.id];
+    setMenuRecipeItem(item);
 
-        if (match) {
-          mappedIngredients.push({
-            inventoryItemId: match.id,
-            inventoryItemName: match.name,
-            quantity: ing.quantity || 0,
-            unit: ing.unit || match.unit || '',
-          });
-        } else {
-          // Auto-create inventory item with stock 0
-          try {
-            const created = await apiClient.createInventoryItem(currentRestaurant.id, {
-              name: ing.itemName || ing.name,
-              category: recipe.category || 'General',
-              unit: ing.unit || 'pcs',
-              currentStock: 0,
-              minimumStock: 0,
-              costPerUnit: 0,
-            });
-            const newId = created?.item?.id || created?.id || '';
-            mappedIngredients.push({
-              inventoryItemId: newId,
-              inventoryItemName: ing.itemName || ing.name,
-              quantity: ing.quantity || 0,
-              unit: ing.unit || 'pcs',
-            });
-          } catch (createErr) {
-            console.warn(`Could not auto-create inventory item: ${ing.itemName}`, createErr);
-            mappedIngredients.push({
-              inventoryItemId: '',
-              inventoryItemName: ing.itemName || ing.name,
-              quantity: ing.quantity || 0,
-              unit: ing.unit || '',
-            });
-          }
-        }
-      }
-
-      // 4. Save the recipe linked to this menu item
-      await apiClient.createRecipe(currentRestaurant.id, {
-        name: item.name,
-        menuItemId: item.id,
-        menuItemName: item.name,
-        category: recipe.category || '',
-        servings: recipe.servings || 1,
-        prepTime: recipe.prepTime || 0,
-        cookTime: recipe.cookTime || 0,
-        description: recipe.description || '',
-        ingredients: mappedIngredients,
-        instructions: recipe.instructions || [],
-        isActive: true,
+    if (existingRecipe) {
+      // Pre-fill form with existing recipe data
+      setMenuRecipeFormData({
+        name: existingRecipe.name || item.name,
+        description: existingRecipe.description || '',
+        category: existingRecipe.category || '',
+        servings: existingRecipe.servings || 1,
+        prepTime: existingRecipe.prepTime || 0,
+        cookTime: existingRecipe.cookTime || 0,
+        ingredients: (existingRecipe.ingredients || []).map(ing => ({
+          inventoryItemId: ing.inventoryItemId || '',
+          inventoryItemName: ing.inventoryItemName || '',
+          quantity: ing.quantity || 0,
+          unit: ing.unit || '',
+          type: ing.type || 'inventory',
+          subRecipeId: ing.subRecipeId || null,
+        })),
+        instructions: existingRecipe.instructions?.length > 0 ? existingRecipe.instructions : [''],
+        notes: existingRecipe.notes || '',
       });
-
-      // Update recipe map so icon changes immediately
-      setMenuItemRecipes(prev => ({
-        ...prev,
-        [item.id]: {
-          name: item.name,
-          menuItemId: item.id,
-          category: recipe.category || '',
-          servings: recipe.servings || 1,
-          prepTime: recipe.prepTime || 0,
-          cookTime: recipe.cookTime || 0,
-          description: recipe.description || '',
-          ingredients: mappedIngredients,
-          instructions: recipe.instructions || [],
-        }
-      }));
-
-      setSuccessMessage(`Recipe created for "${item.name}" with ${mappedIngredients.length} ingredients linked to inventory`);
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      console.error('Error generating recipe:', error);
-      setError('Failed to generate recipe: ' + (error.message || 'Unknown error'));
-      setTimeout(() => setError(''), 5000);
-    } finally {
-      setGeneratingRecipeFor(null);
+    } else {
+      // New recipe — pre-fill name only
+      setMenuRecipeFormData({
+        name: item.name, description: '', category: '', servings: 1, prepTime: 0, cookTime: 0,
+        ingredients: [{ inventoryItemId: '', inventoryItemName: '', quantity: 1, unit: '', type: 'inventory', subRecipeId: null }],
+        instructions: [''], notes: '',
+      });
     }
+
+    setMenuRecipeError(null);
+    setShowMenuRecipeModal(true);
   };
 
   const handleItemClick = (item) => {
@@ -5404,104 +5529,96 @@ const MenuManagement = () => {
         document.body
       )}
 
-      {/* Recipe Generation Confirm Modal */}
-      {recipeConfirmItem && typeof document !== 'undefined' && createPortal(
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10002, padding: '20px',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
+      {/* Menu Recipe Modal — same style as Inventory Add Recipe */}
+      {showMenuRecipeModal && menuRecipeItem && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            zIndex: 10002, padding: 20, overflowY: 'auto',
+          }}
+          onClick={e => { if (e.target === e.currentTarget) setShowMenuRecipeModal(false); }}
+        >
           <div style={{
-            backgroundColor: 'white', borderRadius: '20px', padding: '32px',
-            maxWidth: '440px', width: '100%',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
-            animation: 'slideInUp 0.3s ease-out'
+            backgroundColor: 'white', borderRadius: 14,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            width: '100%', maxWidth: '820px',
+            marginTop: 20, marginBottom: 20,
+            display: 'flex', flexDirection: 'column', maxHeight: '90vh',
+            overflow: 'hidden',
           }}>
-            {/* Icon */}
             <div style={{
-              width: '64px', height: '64px', margin: '0 auto 20px',
-              background: 'linear-gradient(135deg, #059669, #10b981)',
-              borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
+              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+              padding: '16px 20px', borderRadius: '14px 14px 0 0',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexShrink: 0,
             }}>
-              <FaFlask size={28} color="white" />
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>
+                {menuItemRecipes[menuRecipeItem.id] ? 'Recipe' : 'Add Recipe'} — {menuRecipeItem.name}
+              </h2>
+              <button onClick={() => setShowMenuRecipeModal(false)} style={{
+                background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+                cursor: 'pointer', padding: 6, borderRadius: 8, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)',
+              }}>
+                <FaTimes size={14} />
+              </button>
             </div>
-
-            {/* Title */}
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1f2937', textAlign: 'center', margin: '0 0 8px' }}>
-              Generate AI Recipe
-            </h3>
-
-            {/* Item name */}
-            <div style={{
-              textAlign: 'center', margin: '0 0 16px',
-              padding: '8px 16px', backgroundColor: '#f0fdf4', borderRadius: '10px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <span style={{ fontSize: '16px', fontWeight: 700, color: '#059669' }}>
-                {recipeConfirmItem.name}
-              </span>
+            <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              <RecipeFormBody
+                recipeFormData={menuRecipeFormData}
+                setRecipeFormData={setMenuRecipeFormData}
+                inventoryItems={menuRecipeInventoryItems}
+                addRecipeIngredient={menuRecipeAddIngredient}
+                removeRecipeIngredient={menuRecipeRemoveIngredient}
+                updateRecipeIngredient={menuRecipeUpdateIngredient}
+                addRecipeInstruction={menuRecipeAddInstruction}
+                removeRecipeInstruction={menuRecipeRemoveInstruction}
+                updateRecipeInstruction={menuRecipeUpdateInstruction}
+                handleGenerateRecipeSteps={menuRecipeGenerateSteps}
+                generatingSteps={menuRecipeGeneratingSteps}
+                handleGenerateFullRecipe={menuRecipeGenerateFull}
+                generatingFullRecipe={menuRecipeGenerating}
+                recipes={Object.values(menuItemRecipes)}
+                editingRecipeId={menuItemRecipes[menuRecipeItem?.id]?.id || null}
+              />
             </div>
-
-            {/* Description */}
-            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', margin: '0 0 24px', lineHeight: 1.5 }}>
-              AI will generate a full recipe with ingredients and link this item to inventory for <strong style={{ color: '#374151' }}>automatic stock tracking</strong> when orders are placed.
-            </p>
-
-            {/* What will happen */}
-            <div style={{
-              padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f9fafb',
-              border: '1px solid #e5e7eb', marginBottom: '24px', fontSize: '12px', color: '#374151'
-            }}>
-              <div style={{ fontWeight: 700, marginBottom: '6px', fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>What happens:</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FaCheckCircle size={10} color="#059669" />
-                  <span>AI generates ingredients, quantities & cooking steps</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FaCheckCircle size={10} color="#059669" />
-                  <span>Missing ingredients auto-added to inventory</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FaCheckCircle size={10} color="#059669" />
-                  <span>Stock auto-deducts when this item is ordered</span>
-                </div>
+            {menuRecipeError && (
+              <div style={{
+                margin: '0 20px', padding: '10px 14px', backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626',
+                fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ fontSize: 15 }}>⚠</span> {menuRecipeError}
               </div>
-            </div>
-
-            {/* Buttons */}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            )}
+            <div style={{
+              padding: '14px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: 'white',
+              flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '10px'
+            }}>
               <button
-                onClick={() => setRecipeConfirmItem(null)}
                 style={{
-                  flex: 1, padding: '12px', backgroundColor: '#f3f4f6', color: '#374151',
-                  border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.2s'
+                  padding: '11px 20px', backgroundColor: '#f1f5f9', color: '#374151', border: '1px solid #e2e8f0',
+                  borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onClick={() => setShowMenuRecipeModal(false)}
               >
                 Cancel
               </button>
               <button
-                onClick={confirmGenerateRecipe}
                 style={{
-                  flex: 1, padding: '12px',
-                  background: 'linear-gradient(135deg, #059669, #10b981)',
-                  color: 'white', border: 'none', borderRadius: '10px',
-                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-                  transition: 'all 0.2s', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: '6px',
-                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.3)'
+                  padding: '11px 24px', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white',
+                  border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+                  opacity: menuRecipeSaving ? 0.6 : 1, pointerEvents: menuRecipeSaving ? 'none' : 'auto',
                 }}
-                onMouseEnter={(e) => e.target.style.boxShadow = '0 4px 12px rgba(5, 150, 105, 0.4)'}
-                onMouseLeave={(e) => e.target.style.boxShadow = '0 2px 8px rgba(5, 150, 105, 0.3)'}
+                onClick={menuRecipeSave}
+                disabled={menuRecipeSaving}
               >
-                <FaFlask size={14} />
-                Generate Recipe
+                {menuRecipeSaving ? 'Saving...' : <><FaSave /> Save Recipe</>}
               </button>
             </div>
           </div>

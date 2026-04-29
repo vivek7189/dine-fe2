@@ -467,13 +467,18 @@ export default function useInventory() {
     if (!currentRestaurant) return;
     const item = inventoryItems.find(i => (i._id || i.id) === itemId);
     if (item?.linkedMenuItemId) {
-      setDeleteConfirmModal({
-        show: true,
-        itemId: null,
-        itemName: item.linkedMenuItemName || item.name,
-        linkedMessage: `This inventory item is linked to menu item "${item.linkedMenuItemName || item.name}". To delete it, first disable stock tracking on the menu item in the Menu page.`,
-      });
-      return;
+      // Verify the menu item actually still has stock tracking enabled (link may be stale)
+      const linkedMenu = menuItems.find(m => m.id === item.linkedMenuItemId);
+      if (linkedMenu && linkedMenu.isStockManaged) {
+        setDeleteConfirmModal({
+          show: true,
+          itemId: null,
+          itemName: item.linkedMenuItemName || item.name,
+          linkedMessage: `This inventory item is linked to menu item "${item.linkedMenuItemName || item.name}". To delete it, first disable stock tracking on the menu item in the Menu page.`,
+        });
+        return;
+      }
+      // Link is stale (menu item no longer tracking stock) — allow deletion
     }
     setDeleteConfirmModal({ show: true, itemId, itemName: item?.name || '', linkedMessage: '' });
   };
@@ -722,7 +727,7 @@ export default function useInventory() {
   const addRecipeIngredient = () => {
     setRecipeFormData({
       ...recipeFormData,
-      ingredients: [...recipeFormData.ingredients, { inventoryItemId: '', inventoryItemName: '', quantity: 1, unit: '' }]
+      ingredients: [...recipeFormData.ingredients, { inventoryItemId: '', inventoryItemName: '', quantity: 1, unit: '', type: 'inventory', subRecipeId: null }]
     });
   };
 
@@ -735,11 +740,31 @@ export default function useInventory() {
 
   const updateRecipeIngredient = (index, field, value) => {
     const newIngredients = [...recipeFormData.ingredients];
-    newIngredients[index][field] = value;
+    newIngredients[index] = { ...newIngredients[index], [field]: value };
+
+    if (field === 'type') {
+      // Reset fields when switching type
+      if (value === 'recipe') {
+        newIngredients[index].inventoryItemId = '';
+        newIngredients[index].inventoryItemName = '';
+        newIngredients[index].subRecipeId = '';
+        newIngredients[index].unit = 'servings';
+      } else {
+        newIngredients[index].subRecipeId = null;
+        newIngredients[index].unit = '';
+      }
+    }
+
     if (field === 'inventoryItemId') {
       const selectedItem = inventoryItems.find(item => item.id === value);
       newIngredients[index].inventoryItemName = selectedItem ? selectedItem.name : '';
     }
+
+    if (field === 'subRecipeId') {
+      const selectedRecipe = recipes.find(r => (r._id || r.id) === value);
+      newIngredients[index].inventoryItemName = selectedRecipe ? selectedRecipe.name : '';
+    }
+
     setRecipeFormData({ ...recipeFormData, ingredients: newIngredients });
   };
 

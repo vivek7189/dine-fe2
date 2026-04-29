@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FaPlus, FaTrash, FaClock, FaUtensils, FaUsers, FaSearch, FaEdit, FaEye, FaLeaf, FaCoffee, FaFlask } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaClock, FaUtensils, FaUsers, FaSearch, FaEdit, FaEye, FaLeaf, FaCoffee, FaFlask, FaLink } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
+import { convertUnits } from '../utils/unitConversion';
 const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
 const categoryColors = {
@@ -44,10 +45,25 @@ export default function RecipesTab({
     return filtered;
   }, [recipes, searchTerm, selectedCategory]);
 
-  const getIngredientCost = (ingredient) => {
+  const getIngredientCost = (ingredient, visited = new Set()) => {
+    // Sub-recipe ingredient — recursively calculate its cost
+    if ((ingredient.type === 'recipe') && ingredient.subRecipeId) {
+      if (visited.has(ingredient.subRecipeId)) return 0; // circular protection
+      visited.add(ingredient.subRecipeId);
+      const subRecipe = recipes.find(r => (r._id || r.id) === ingredient.subRecipeId);
+      if (!subRecipe) return 0;
+      const subTotal = (subRecipe.ingredients || []).reduce(
+        (sum, ing) => sum + getIngredientCost(ing, new Set(visited)), 0
+      );
+      const costPerSubServing = subRecipe.servings > 0 ? subTotal / subRecipe.servings : subTotal;
+      return costPerSubServing * (ingredient.quantity || 0);
+    }
+
+    // Regular inventory item — convert units then multiply by cost
     const item = inventoryItems.find(i => i._id === ingredient.inventoryItemId || i.id === ingredient.inventoryItemId);
     if (!item) return 0;
-    return (ingredient.quantity || 0) * (item.costPerUnit || 0);
+    const convertedQty = convertUnits(ingredient.quantity || 0, ingredient.unit, item.unit);
+    return convertedQty * (item.costPerUnit || 0);
   };
 
   const getCostPerServing = (recipe) => {
@@ -295,10 +311,14 @@ export default function RecipesTab({
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {ingredients.map((ing, idx) => (
                           <span key={idx} style={{
-                            fontSize: 12, color: '#374151', backgroundColor: '#f3f4f6',
+                            fontSize: 12,
+                            color: ing.type === 'recipe' ? '#7c3aed' : '#374151',
+                            backgroundColor: ing.type === 'recipe' ? '#ede9fe' : '#f3f4f6',
                             padding: '3px 8px', borderRadius: 6,
+                            display: 'inline-flex', alignItems: 'center', gap: 3,
                           }}>
-                            {ing.quantity}{ing.unit} {ing.inventoryItemName || '?'}
+                            {ing.type === 'recipe' && <FaLink size={8} />}
+                            {ing.quantity}{ing.type === 'recipe' ? ' srv' : ing.unit} {ing.inventoryItemName || '?'}
                           </span>
                         ))}
                       </div>
