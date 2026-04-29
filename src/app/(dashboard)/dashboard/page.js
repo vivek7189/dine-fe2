@@ -1255,7 +1255,7 @@ function RestaurantPOSContent() {
     }
   };
 
-  // Handle table parameters from URL
+  // Handle table parameters from URL (e.g. coming from /tables page)
   useEffect(() => {
     // Support both param formats: tables page (tableId/tableNo/floorId/floorName) and direct (table/floor/capacity)
     const tableParam = searchParams.get('table') || searchParams.get('tableNo');
@@ -1270,7 +1270,21 @@ function RestaurantPOSContent() {
         floor: floorParam || null,
         capacity: capacityParam
       });
+      setTableNumber(tableParam); // Auto-fill the table number input field
       setOrderType('dine-in'); // Force dine-in when table is selected
+
+      // Clean table params from URL to prevent stale data on subsequent actions
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('tableId');
+        url.searchParams.delete('tableNo');
+        url.searchParams.delete('table');
+        url.searchParams.delete('floorId');
+        url.searchParams.delete('floorName');
+        url.searchParams.delete('floor');
+        url.searchParams.delete('capacity');
+        window.history.replaceState({}, '', url.toString());
+      }
     }
   }, [searchParams]);
 
@@ -3854,13 +3868,21 @@ function RestaurantPOSContent() {
     } else {
       // User came from order history, edit mode, or no specific source - stay on orders view
       clearCart({ keepOrderSuccess, preserveUrl: true });
-      // Clean up URL params - remove view param for clean URL (orders is default)
+      // Clean up URL params - remove view param and any stale table params for clean URL
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
         url.searchParams.delete('orderId');
         url.searchParams.delete('mode');
         url.searchParams.delete('from');
-        url.searchParams.delete('view'); // Remove view param for clean URL
+        url.searchParams.delete('view');
+        // Also clean table-related params in case they weren't removed earlier
+        url.searchParams.delete('tableId');
+        url.searchParams.delete('tableNo');
+        url.searchParams.delete('table');
+        url.searchParams.delete('floorId');
+        url.searchParams.delete('floorName');
+        url.searchParams.delete('floor');
+        url.searchParams.delete('capacity');
         window.history.replaceState({}, '', url.toString());
       }
     }
