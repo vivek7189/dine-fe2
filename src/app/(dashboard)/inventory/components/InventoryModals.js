@@ -2510,6 +2510,70 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
   );
 }
 
+function DeleteConfirmModal({ deleteConfirmModal, setDeleteConfirmModal, confirmDeleteItem, getModalStyles }) {
+  if (!deleteConfirmModal?.show) return null;
+  const isLinked = !!deleteConfirmModal.linkedMessage;
+
+  return (
+    <div style={getModalStyles()} onClick={() => setDeleteConfirmModal({ show: false, itemId: null, itemName: '', linkedMessage: '' })}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '32px',
+          maxWidth: '440px',
+          width: '100%',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        <div style={{
+          width: '56px', height: '56px', margin: '0 auto 20px',
+          backgroundColor: isLinked ? '#fef3c7' : '#fee2e2',
+          borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '24px',
+        }}>
+          {isLinked ? '🔗' : '🗑️'}
+        </div>
+
+        <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1f2937', textAlign: 'center', marginBottom: '12px' }}>
+          {isLinked ? 'Cannot Delete Item' : 'Delete Item?'}
+        </h3>
+
+        <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', lineHeight: '1.6', marginBottom: '24px' }}>
+          {isLinked
+            ? deleteConfirmModal.linkedMessage
+            : <>Are you sure you want to delete <strong style={{ color: '#1f2937' }}>{deleteConfirmModal.itemName}</strong>? This action cannot be undone.</>
+          }
+        </p>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button
+            onClick={() => setDeleteConfirmModal({ show: false, itemId: null, itemName: '', linkedMessage: '' })}
+            style={{
+              padding: '10px 24px', backgroundColor: '#f3f4f6', color: '#374151',
+              border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            {isLinked ? 'OK' : 'Cancel'}
+          </button>
+          {!isLinked && (
+            <button
+              onClick={confirmDeleteItem}
+              style={{
+                padding: '10px 24px', backgroundColor: '#dc2626', color: 'white',
+                border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function InventoryModals(props) {
   return (
     <>
@@ -2527,6 +2591,7 @@ export default function InventoryModals(props) {
       <AddTransferModal {...props} />
       <QuickOrderModal {...props} />
       <StockHistoryModal {...props} />
+      <DeleteConfirmModal {...props} />
     </>
   );
 }

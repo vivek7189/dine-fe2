@@ -39,6 +39,9 @@ export default function useInventory() {
   const [generatingSteps, setGeneratingSteps] = useState(false);
   const [generatingFullRecipe, setGeneratingFullRecipe] = useState(false);
 
+  // Delete confirmation modal
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ show: false, itemId: null, itemName: '', linkedMessage: '' });
+
   // Stock history
   const [showStockHistoryModal, setShowStockHistoryModal] = useState(false);
   const [stockHistoryItem, setStockHistoryItem] = useState(null);
@@ -464,20 +467,30 @@ export default function useInventory() {
     if (!currentRestaurant) return;
     const item = inventoryItems.find(i => (i._id || i.id) === itemId);
     if (item?.linkedMenuItemId) {
-      alert(`This inventory item is linked to menu item "${item.linkedMenuItemName || item.name}". To delete it, first disable stock tracking on the menu item in the Menu page.`);
+      setDeleteConfirmModal({
+        show: true,
+        itemId: null,
+        itemName: item.linkedMenuItemName || item.name,
+        linkedMessage: `This inventory item is linked to menu item "${item.linkedMenuItemName || item.name}". To delete it, first disable stock tracking on the menu item in the Menu page.`,
+      });
       return;
     }
-    if (confirm('Are you sure you want to delete this item?')) {
-      try {
-        setLoading(true); setError(null);
-        await apiClient.deleteInventoryItem(currentRestaurant.id, itemId);
-        setSuccess('Item deleted successfully!');
-        loadInventoryData();
-      } catch (error) {
-        console.error('Error deleting item:', error);
-        setError(error.message || 'Failed to delete item');
-      } finally { setLoading(false); }
-    }
+    setDeleteConfirmModal({ show: true, itemId, itemName: item?.name || '', linkedMessage: '' });
+  };
+
+  const confirmDeleteItem = async () => {
+    const itemId = deleteConfirmModal.itemId;
+    setDeleteConfirmModal({ show: false, itemId: null, itemName: '', linkedMessage: '' });
+    if (!itemId || !currentRestaurant) return;
+    try {
+      setLoading(true); setError(null);
+      await apiClient.deleteInventoryItem(currentRestaurant.id, itemId);
+      setSuccess('Item deleted successfully!');
+      loadInventoryData();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      setError(error.message || 'Failed to delete item');
+    } finally { setLoading(false); }
   };
 
   // View stock history for an item
@@ -1229,7 +1242,8 @@ export default function useInventory() {
     quickStockItems, setQuickStockItems,
 
     // Handlers
-    handleAddItem, handleEditItem, handleUpdateItem, handleDeleteItem, handleViewHistory,
+    handleAddItem, handleEditItem, handleUpdateItem, handleDeleteItem, confirmDeleteItem, handleViewHistory,
+    deleteConfirmModal, setDeleteConfirmModal,
     handleQuickStockUpdate, handleAddSupplier, handleDeleteSupplier,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
     handleAddRecipe, addRecipeIngredient, removeRecipeIngredient, updateRecipeIngredient,
