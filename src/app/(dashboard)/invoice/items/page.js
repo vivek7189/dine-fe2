@@ -58,7 +58,7 @@ export default function ItemsPage() {
 
     // Fetch menu items
     try {
-      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') : null;
+      const restaurantId = typeof window !== 'undefined' ? (localStorage.getItem('inv_restaurantId') || localStorage.getItem('selectedRestaurantId')) : null;
       if (restaurantId) {
         const menuData = await apiClient.getMenu(restaurantId);
         const allMenuItems = (menuData.items || menuData.menuItems || [])

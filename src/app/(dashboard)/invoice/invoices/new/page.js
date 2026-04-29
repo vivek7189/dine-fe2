@@ -299,7 +299,7 @@ export default function NewInvoicePage() {
       }
 
       // Also fetch DineOpen restaurant customers if restaurantId is available
-      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') : null;
+      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') || localStorage.getItem('selectedRestaurantId') : null;
 
       // Fetch menu items and merge into items list
       if (restaurantId) {

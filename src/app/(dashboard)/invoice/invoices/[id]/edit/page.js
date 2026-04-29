@@ -289,7 +289,7 @@ export default function EditInvoicePage() {
         console.error('Failed to load invoice items:', err);
       }
 
-      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') : null;
+      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') || localStorage.getItem('selectedRestaurantId') : null;
 
       // Fetch menu items and merge into items list
       if (restaurantId) {
