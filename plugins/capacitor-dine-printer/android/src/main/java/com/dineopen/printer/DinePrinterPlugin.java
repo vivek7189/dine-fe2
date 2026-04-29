@@ -11,8 +11,13 @@ import android.os.Build;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
+import android.print.PrinterDiscoverySession;
+import android.print.PrinterId;
+import android.print.PrinterInfo;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -24,6 +29,9 @@ import com.getcapacitor.annotation.Permission;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -60,7 +68,13 @@ public class DinePrinterPlugin extends Plugin {
         String defaultAddress = getDefaultPrinterAddress();
 
         if (defaultAddress != null) {
-            // Try Bluetooth thermal printer first
+            if (defaultAddress.startsWith("usb:")) {
+                // USB printer — use system print dialog (handles USB/network printers)
+                printViaSystem(html, type, call);
+                return;
+            }
+
+            // Try Bluetooth thermal printer
             try {
                 for (int i = 0; i < copies; i++) {
                     printViaBluetooth(defaultAddress, html);
@@ -78,31 +92,58 @@ public class DinePrinterPlugin extends Plugin {
 
     @PluginMethod
     public void scanPrinters(PluginCall call) {
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         JSArray printers = new JSArray();
+        Set<String> addedAddresses = new HashSet<>();
 
-        if (adapter == null) {
-            JSObject result = new JSObject();
-            result.put("printers", printers);
-            call.resolve(result);
-            return;
+        // 1. Scan paired Bluetooth devices
+        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+        if (adapter != null) {
+            try {
+                Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
+                if (pairedDevices != null) {
+                    for (BluetoothDevice device : pairedDevices) {
+                        String address = device.getAddress();
+                        if (address != null && !addedAddresses.contains(address)) {
+                            JSObject printer = new JSObject();
+                            printer.put("name", device.getName() != null ? device.getName() : "Unknown");
+                            printer.put("address", address);
+                            printer.put("type", "bluetooth");
+                            printers.put(printer);
+                            addedAddresses.add(address);
+                        }
+                    }
+                }
+            } catch (SecurityException e) {
+                // Bluetooth permission not granted, continue with USB
+            }
         }
 
+        // 2. Scan USB connected devices (printers/serial devices)
         try {
-            Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
-            if (pairedDevices != null) {
-                for (BluetoothDevice device : pairedDevices) {
-                    // Filter for likely printers (major class: Imaging)
-                    JSObject printer = new JSObject();
-                    printer.put("name", device.getName() != null ? device.getName() : "Unknown");
-                    printer.put("address", device.getAddress());
-                    printer.put("type", "bluetooth");
-                    printers.put(printer);
+            UsbManager usbManager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
+            if (usbManager != null) {
+                HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+                if (deviceList != null) {
+                    for (Map.Entry<String, UsbDevice> entry : deviceList.entrySet()) {
+                        UsbDevice device = entry.getValue();
+                        String address = "usb:" + device.getVendorId() + ":" + device.getProductId();
+                        if (!addedAddresses.contains(address)) {
+                            JSObject printer = new JSObject();
+                            String name = device.getProductName();
+                            if (name == null || name.isEmpty()) {
+                                name = "USB Device (" + device.getVendorId() + ":" + device.getProductId() + ")";
+                            }
+                            printer.put("name", name);
+                            printer.put("address", address);
+                            printer.put("type", "usb");
+                            printers.put(printer);
+                            addedAddresses.add(address);
+                        }
+                    }
                 }
             }
-        } catch (SecurityException e) {
-            call.reject("Bluetooth permission required");
-            return;
+        } catch (Exception e) {
+            // USB scan failed, continue
         }
 
         JSObject result = new JSObject();
@@ -131,6 +172,42 @@ public class DinePrinterPlugin extends Plugin {
             return;
         }
 
+        // Check if it's a USB printer
+        if (address.startsWith("usb:")) {
+            try {
+                UsbManager usbManager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
+                if (usbManager != null) {
+                    String[] parts = address.replace("usb:", "").split(":");
+                    int vendorId = Integer.parseInt(parts[0]);
+                    int productId = Integer.parseInt(parts[1]);
+                    for (UsbDevice device : usbManager.getDeviceList().values()) {
+                        if (device.getVendorId() == vendorId && device.getProductId() == productId) {
+                            JSObject printer = new JSObject();
+                            String name = device.getProductName();
+                            if (name == null || name.isEmpty()) {
+                                name = "USB Device (" + vendorId + ":" + productId + ")";
+                            }
+                            printer.put("name", name);
+                            printer.put("address", address);
+                            printer.put("type", "usb");
+                            call.resolve(printer);
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Fall through
+            }
+            // USB device not found currently, return stored info
+            JSObject printer = new JSObject();
+            printer.put("name", "USB Printer");
+            printer.put("address", address);
+            printer.put("type", "usb");
+            call.resolve(printer);
+            return;
+        }
+
+        // Bluetooth printer
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter != null) {
             try {
@@ -166,9 +243,33 @@ public class DinePrinterPlugin extends Plugin {
             return;
         }
 
-        // Check if device is still paired (basic connectivity check)
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         boolean connected = false;
+
+        // Check USB printer
+        if (address.startsWith("usb:")) {
+            try {
+                UsbManager usbManager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
+                if (usbManager != null) {
+                    String[] parts = address.replace("usb:", "").split(":");
+                    int vendorId = Integer.parseInt(parts[0]);
+                    int productId = Integer.parseInt(parts[1]);
+                    for (UsbDevice device : usbManager.getDeviceList().values()) {
+                        if (device.getVendorId() == vendorId && device.getProductId() == productId) {
+                            connected = true;
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Fall through
+            }
+            result.put("connected", connected);
+            call.resolve(result);
+            return;
+        }
+
+        // Check Bluetooth printer
+        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter != null) {
             try {
                 Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();

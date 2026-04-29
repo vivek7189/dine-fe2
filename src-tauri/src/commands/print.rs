@@ -66,16 +66,40 @@ fn direct_print(file_path: &str, printer_name: &str) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Windows: use print verb to send to specific printer
-        // For thermal printers with drivers, printing HTML via the default association works
-        Command::new("cmd")
-            .args([
-                "/C",
-                &format!("print /d:\"{}\" \"{}\"", printer_name, file_path),
-            ])
-            .output()
-            .map_err(|e| format!("Failed to print: {}", e))?;
-        Ok(())
+        // Windows: use PowerShell to set the target printer and print the HTML file.
+        // Start-Process with -Verb Print tells Windows to use the default "print"
+        // handler for .html files. We temporarily set the default printer so it
+        // goes to the right device (important for thermal printers).
+        let ps_cmd = format!(
+            r#"
+            $prev = (Get-WmiObject -Query "SELECT * FROM Win32_Printer WHERE Default=TRUE").Name
+            $p = Get-WmiObject -Query "SELECT * FROM Win32_Printer WHERE Name='{name}'"
+            if ($p) {{ $p.SetDefaultPrinter() | Out-Null }}
+            Start-Process '{path}' -Verb Print -WindowStyle Hidden
+            Start-Sleep -Seconds 3
+            if ($prev) {{
+                $old = Get-WmiObject -Query "SELECT * FROM Win32_Printer WHERE Name='$prev'"
+                if ($old) {{ $old.SetDefaultPrinter() | Out-Null }}
+            }}
+            "#,
+            name = printer_name.replace("'", "''"),
+            path = file_path.replace("'", "''"),
+        );
+
+        let result = Command::new("powershell")
+            .args(["-NoProfile", "-Command", &ps_cmd])
+            .output();
+
+        match result {
+            Ok(output) if output.status.success() => Ok(()),
+            _ => {
+                // Fallback: open in default browser for manual print
+                let _ = Command::new("cmd")
+                    .args(["/C", "start", "", file_path])
+                    .spawn();
+                Ok(())
+            }
+        }
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -143,21 +167,49 @@ pub async fn list_printers() -> Result<Vec<PrinterInfo>, String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Use PowerShell for more reliable printer listing
-        let output = Command::new("powershell")
-            .args(["-Command", "Get-Printer | Select-Object -ExpandProperty Name"])
-            .output()
-            .map_err(|e| format!("Failed to list printers: {}", e))?;
+        // Try wmic first (works on all Windows editions including Home)
+        let wmic_result = Command::new("wmic")
+            .args(["printer", "get", "Name"])
+            .output();
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.lines() {
-            let name = line.trim().to_string();
-            if !name.is_empty() {
-                printers.push(PrinterInfo {
-                    name: name.clone(),
-                    address: name,
-                    printer_type: "usb".to_string(),
-                });
+        let mut found = false;
+        if let Ok(output) = wmic_result {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines().skip(1) {
+                // skip header line "Name"
+                let name = line.trim().to_string();
+                if !name.is_empty() {
+                    printers.push(PrinterInfo {
+                        name: name.clone(),
+                        address: name,
+                        printer_type: "usb".to_string(),
+                    });
+                    found = true;
+                }
+            }
+        }
+
+        // Fallback to PowerShell Get-Printer (available on Pro/Enterprise)
+        if !found {
+            if let Ok(output) = Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-Command",
+                    "(Get-WmiObject -Query \"SELECT Name FROM Win32_Printer\").Name",
+                ])
+                .output()
+            {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    let name = line.trim().to_string();
+                    if !name.is_empty() {
+                        printers.push(PrinterInfo {
+                            name: name.clone(),
+                            address: name,
+                            printer_type: "usb".to_string(),
+                        });
+                    }
+                }
             }
         }
     }

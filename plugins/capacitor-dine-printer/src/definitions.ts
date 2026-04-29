@@ -16,8 +16,8 @@ export interface PrinterInfo {
   name: string;
   /** Bluetooth MAC address or USB identifier */
   address: string;
-  /** Connection type */
-  type: 'bluetooth' | 'usb';
+  /** Connection type: bluetooth, usb, or network */
+  type: 'bluetooth' | 'usb' | 'network';
 }
 
 export interface DinePrinterPlugin {

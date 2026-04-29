@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isWeb, isCapacitor, isTauri } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
-import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb } from 'react-icons/fa';
+import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi } from 'react-icons/fa';
 
 export default function NativePrinterSettings({ restaurantId }) {
   const [printers, setPrinters] = useState([]);
@@ -147,7 +147,7 @@ export default function NativePrinterSettings({ restaurantId }) {
           alignItems: 'center',
           gap: '8px',
         }}>
-          {selectedPrinter.type === 'bluetooth' ? <FaBluetooth style={{ color: '#3b82f6' }} /> : <FaUsb style={{ color: '#6b7280' }} />}
+          {selectedPrinter.type === 'bluetooth' ? <FaBluetooth style={{ color: '#3b82f6' }} /> : selectedPrinter.type === 'network' ? <FaWifi style={{ color: '#8b5cf6' }} /> : <FaUsb style={{ color: '#6b7280' }} />}
           <span style={{ fontWeight: 500 }}>{selectedPrinter.name}</span>
           <span style={{ color: '#9ca3af', fontSize: '11px' }}>{selectedPrinter.address}</span>
         </div>
@@ -204,7 +204,7 @@ export default function NativePrinterSettings({ restaurantId }) {
                 }),
               }}
             >
-              {printer.type === 'bluetooth' ? <FaBluetooth style={{ color: '#3b82f6' }} /> : <FaUsb style={{ color: '#6b7280' }} />}
+              {printer.type === 'bluetooth' ? <FaBluetooth style={{ color: '#3b82f6' }} /> : printer.type === 'network' ? <FaWifi style={{ color: '#8b5cf6' }} /> : <FaUsb style={{ color: '#6b7280' }} />}
               <div>
                 <div style={{ fontWeight: 500 }}>{printer.name}</div>
                 <div style={{ fontSize: '11px', color: '#9ca3af' }}>{printer.address}</div>
