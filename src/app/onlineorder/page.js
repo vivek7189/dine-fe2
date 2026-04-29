@@ -1644,13 +1644,17 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
                 {/* Restaurant Name & Tagline */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h1 style={{
-                    fontSize: isScrolled ? '15px' : '20px',
+                    fontSize: isScrolled ? '15px' : '18px',
                     fontWeight: '700',
                     color: ['gradient', 'solid'].includes(headerStyle) ? textColor : '#1f2937',
                     margin: 0,
+                    lineHeight: isScrolled ? 1.2 : 1.3,
                     overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    textOverflow: isScrolled ? 'ellipsis' : 'unset',
+                    whiteSpace: isScrolled ? 'nowrap' : 'normal',
+                    display: isScrolled ? 'block' : '-webkit-box',
+                    WebkitLineClamp: isScrolled ? 'unset' : 2,
+                    WebkitBoxOrient: 'vertical',
                     textShadow: ['gradient', 'solid'].includes(headerStyle) ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                     letterSpacing: '-0.3px',
                     transition: 'font-size 0.25s ease'
