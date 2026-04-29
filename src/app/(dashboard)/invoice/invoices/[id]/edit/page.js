@@ -194,8 +194,11 @@ function ItemSearchSelect({ items, value, onSelect, onCustomItem }) {
                 setSearch('');
               }}
             >
-              <div className="flex justify-between">
-                <span>{item.name}</span>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  {item.name}
+                  {item._isMenu && <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-purple-100 text-purple-600">Menu</span>}
+                </span>
                 <span className="text-gray-400">{formatCurrency(item.sellingPrice || item.rate || item.price || 0)}</span>
               </div>
             </button>
@@ -278,14 +281,38 @@ export default function EditInvoicePage() {
         console.error('Failed to load invoice customers:', err);
       }
 
+      let allItems = [];
       try {
         const itemsData = await apiClient.getInvoiceItems();
-        setItemsList(itemsData.items || itemsData || []);
+        allItems = itemsData.items || itemsData || [];
       } catch (err) {
         console.error('Failed to load invoice items:', err);
       }
 
       const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('inv_restaurantId') : null;
+
+      // Fetch menu items and merge into items list
+      if (restaurantId) {
+        try {
+          const menuData = await apiClient.getMenu(restaurantId);
+          const menuItems = (menuData.items || menuData.menuItems || [])
+            .filter(m => m.available !== false)
+            .map(m => ({
+              id: m.id || m._id,
+              name: m.name,
+              sellingPrice: m.price || 0,
+              taxRate: 0,
+              type: 'goods',
+              _isMenu: true,
+            }));
+          const existingNames = new Set(allItems.map(i => i.name.toLowerCase()));
+          const newMenuItems = menuItems.filter(m => !existingNames.has(m.name.toLowerCase()));
+          allItems = [...allItems, ...newMenuItems];
+        } catch {
+          // Menu items unavailable, continue with invoice items only
+        }
+      }
+      setItemsList(allItems);
       if (restaurantId) {
         try {
           const dineData = await apiClient.getInvoiceDineopenCustomers(restaurantId);
