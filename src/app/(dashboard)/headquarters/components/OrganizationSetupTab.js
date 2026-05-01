@@ -878,7 +878,7 @@ const OrganizationManagement = ({ orgData, outlets, onRefresh }) => {
           }}>
             <FaStore size={24} color="#d1d5db" style={{ marginBottom: '8px' }} />
             <div>No outlets in this organization yet.</div>
-            <div style={{ fontSize: '12px', marginTop: '4px' }}>Click "Add Outlet" to get started.</div>
+            <div style={{ fontSize: '12px', marginTop: '4px' }}>Click &quot;Add Outlet&quot; to get started.</div>
           </div>
         ) : (
           <div style={{

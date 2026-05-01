@@ -601,7 +601,7 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
           </div>
 
           <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
-            This will create a new template from the selected outlet's current menu.
+            This will create a new template from the selected outlet&apos;s current menu.
           </p>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -701,7 +701,7 @@ const CentralMenuTab = ({ orgData, outlets, formatCurrency }) => {
             <div>
               <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Overwrite existing items</span>
               <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>
-                Replace matching items in the outlet's menu
+                Replace matching items in the outlet&apos;s menu
               </p>
             </div>
           </label>
