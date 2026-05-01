@@ -9,7 +9,7 @@ import {
   getCurrencySymbol as getCurrencySymbolUtil,
   formatCurrencyHtml as formatCurrencyHtmlUtil
 } from '../utils/currency';
-
+// jjh
 const CurrencyContext = createContext(null);
 
 export function CurrencyProvider({ children }) {
