@@ -72,11 +72,13 @@ import {
   FaBan,
   FaUndo,
   FaLock,
-  FaMobileAlt
+  FaMobileAlt,
+  FaDatabase
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
 import GoogleReviews from '../../../components/GoogleReviews';
+import OfflineDataTab from '../../../components/OfflineDataTab';
 import WhatsAppTab from '../../../components/WhatsAppTab';
 import { useNotification } from '../../../components/Notification';
 
@@ -3783,6 +3785,7 @@ const Admin = () => {
       { id: 'currency', label: 'Currency', icon: FaMoneyBillWave },
       { id: 'print', label: 'Print Settings', icon: FaPrint },
       { id: 'features', label: 'Features', icon: FaToggleOn },
+      { id: 'offline-data', label: 'Offline Data', icon: FaDatabase },
     ]},
     { label: 'MANAGE', items: [
       { id: 'restaurants', label: 'Restaurants', icon: FaStore },
@@ -9611,6 +9614,10 @@ const Admin = () => {
         <WhatsAppTab
           selectedRestaurant={selectedRestaurant}
         />
+      )}
+
+      {activeTab === 'offline-data' && (
+        <OfflineDataTab />
       )}
 
       <style jsx>{`

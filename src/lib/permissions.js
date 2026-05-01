@@ -3,7 +3,7 @@
 
 export const ADMIN_TAB_OPS = [
   'settings', 'tax', 'pricing', 'payments', 'billingSettings',
-  'currency', 'print', 'features', 'restaurants', 'staff',
+  'currency', 'print', 'features', 'offlineData', 'restaurants', 'staff',
   'orderManagement', 'offers', 'loyalty', 'googleReviews', 'whatsapp'
 ];
 
@@ -38,6 +38,7 @@ export const ADMIN_TAB_LABELS = {
   currency: 'Currency',
   print: 'Print Settings',
   features: 'Features',
+  offlineData: 'Offline Data',
   restaurants: 'Restaurants',
   staff: 'Staff',
   orderManagement: 'Order Management',
@@ -56,6 +57,7 @@ export const ADMIN_TAB_ID_TO_KEY = {
   'currency': 'currency',
   'print': 'print',
   'features': 'features',
+  'offline-data': 'offlineData',
   'restaurants': 'restaurants',
   'staff': 'staff',
   'order-management': 'orderManagement',

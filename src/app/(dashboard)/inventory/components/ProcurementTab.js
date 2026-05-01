@@ -1,8 +1,10 @@
 'use client';
 
-import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes } from 'react-icons/fa';
+import { useState, useEffect, useCallback } from 'react';
+import apiClient from '../../../../lib/api';
+import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes, FaWarehouse, FaIndustry, FaSpinner } from 'react-icons/fa';
 
-const SUB_TABS = [
+const BASE_SUB_TABS = [
   { key: 'suppliers', label: 'Suppliers' },
   { key: 'orders', label: 'Purchase Orders' },
   { key: 'requisitions', label: 'Requisitions' },
@@ -94,7 +96,204 @@ export default function ProcurementTab({
   smartSuggestions, loadingSuggestions,
   selectedPOForGRN, setSelectedPOForGRN,
   permissions = { read: true, add: true, update: true, delete: true },
+  currentRestaurant = null,
 }) {
+  // === Enterprise: Org detection + indent/delivery state ===
+  const [orgSettings, setOrgSettings] = useState(null);
+  const [orgId, setOrgId] = useState(null);
+  const [indents, setIndents] = useState([]);
+  const [indentsLoading, setIndentsLoading] = useState(false);
+  const [deliveries, setDeliveries] = useState([]);
+  const [deliveriesLoading, setDeliveriesLoading] = useState(false);
+  const [warehouseStock, setWarehouseStock] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [showCreateIndent, setShowCreateIndent] = useState(false);
+  const [indentForm, setIndentForm] = useState({ warehouseId: '', priority: 'medium', items: [{ name: '', quantity: '', unit: 'kg' }] });
+  const [indentSubmitting, setIndentSubmitting] = useState(false);
+  const [receiveLoading, setReceiveLoading] = useState({});
+  const [toast, setToast] = useState(null);
+
+  // Detect org membership from currentRestaurant
+  useEffect(() => {
+    if (!currentRestaurant?.organizationId) {
+      setOrgSettings(null);
+      setOrgId(null);
+      return;
+    }
+    const loadOrg = async () => {
+      try {
+        const res = await apiClient.getOrganization(currentRestaurant.organizationId);
+        if (res.success) {
+          setOrgSettings(res.organization?.settings || {});
+          setOrgId(res.organization?.id || currentRestaurant.organizationId);
+          // Extract warehouses from outlets
+          const wh = (res.outlets?.warehouses || []);
+          setWarehouses(wh);
+        }
+      } catch (e) {
+        console.error('Error loading org for procurement:', e);
+      }
+    };
+    loadOrg();
+  }, [currentRestaurant?.organizationId]);
+
+  const hasWarehouse = orgSettings?.centralWarehouse && orgId;
+  const hasKitchen = orgSettings?.centralKitchen && orgId;
+
+  // Load indents for this outlet
+  const loadIndents = useCallback(async () => {
+    if (!orgId || !currentRestaurant?.id) return;
+    try {
+      setIndentsLoading(true);
+      const res = await apiClient.getIndents(orgId, { requestingOutletId: currentRestaurant.id });
+      if (res.success) setIndents(res.indents || []);
+    } catch (e) {
+      console.error('Error loading indents:', e);
+    } finally {
+      setIndentsLoading(false);
+    }
+  }, [orgId, currentRestaurant?.id]);
+
+  // Load distribution plans with allocations for this outlet
+  const loadDeliveries = useCallback(async () => {
+    if (!orgId || !currentRestaurant?.id) return;
+    try {
+      setDeliveriesLoading(true);
+      const res = await apiClient.getDistributionPlans(orgId, {});
+      if (res.success) {
+        // Filter plans that have allocations for this outlet
+        const myDeliveries = (res.distributionPlans || []).filter(plan =>
+          plan.allocations?.some(a => a.outletId === currentRestaurant.id)
+        ).map(plan => ({
+          ...plan,
+          myAllocation: plan.allocations.find(a => a.outletId === currentRestaurant.id)
+        }));
+        setDeliveries(myDeliveries);
+      }
+    } catch (e) {
+      console.error('Error loading deliveries:', e);
+    } finally {
+      setDeliveriesLoading(false);
+    }
+  }, [orgId, currentRestaurant?.id]);
+
+  // Load data when sub-tab changes
+  useEffect(() => {
+    if (procurementSubTab === 'indents' && hasWarehouse) loadIndents();
+    if (procurementSubTab === 'deliveries' && hasKitchen) loadDeliveries();
+  }, [procurementSubTab, hasWarehouse, hasKitchen, loadIndents, loadDeliveries]);
+
+  // Load warehouse stock when creating indent
+  useEffect(() => {
+    if (!showCreateIndent || !indentForm.warehouseId || !orgId) return;
+    const load = async () => {
+      try {
+        const res = await apiClient.getWarehouseStock(orgId, indentForm.warehouseId);
+        if (res.success) setWarehouseStock(res.inventory || []);
+      } catch (e) {
+        console.error('Error loading warehouse stock:', e);
+      }
+    };
+    load();
+  }, [showCreateIndent, indentForm.warehouseId, orgId]);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  // Indent handlers
+  const handleCreateIndent = async () => {
+    if (!indentForm.warehouseId) return showToast('Select a warehouse', 'error');
+    const validItems = indentForm.items.filter(i => i.name?.trim() && Number(i.quantity) > 0);
+    if (!validItems.length) return showToast('Add at least one item with quantity', 'error');
+    try {
+      setIndentSubmitting(true);
+      const res = await apiClient.createIndent(orgId, {
+        requestingOutletId: currentRestaurant.id,
+        warehouseId: indentForm.warehouseId,
+        priority: indentForm.priority,
+        items: validItems.map(i => ({
+          inventoryItemName: i.name.trim(),
+          inventoryItemId: i.inventoryItemId || null,
+          requestedQty: Number(i.quantity),
+          unit: i.unit || 'kg',
+        })),
+      });
+      if (res.success) {
+        showToast(`Indent ${res.indent?.indentNumber || ''} created`);
+        setShowCreateIndent(false);
+        setIndentForm({ warehouseId: '', priority: 'medium', items: [{ name: '', quantity: '', unit: 'kg' }] });
+        loadIndents();
+      }
+    } catch (e) {
+      showToast(e.message || 'Failed to create indent', 'error');
+    } finally {
+      setIndentSubmitting(false);
+    }
+  };
+
+  const handleReceiveIndent = async (indent) => {
+    try {
+      setReceiveLoading(prev => ({ ...prev, [indent.id]: true }));
+      const items = indent.items.map(i => ({
+        inventoryItemId: i.inventoryItemId,
+        inventoryItemName: i.inventoryItemName,
+        receivedQty: i.pickedQty || i.approvedQty || i.requestedQty,
+        unit: i.unit,
+      }));
+      const res = await apiClient.receiveIndent(orgId, indent.id, { items });
+      if (res.success) {
+        showToast(`Indent ${indent.indentNumber} received — stock updated`);
+        loadIndents();
+      }
+    } catch (e) {
+      showToast(e.message || 'Failed to receive indent', 'error');
+    } finally {
+      setReceiveLoading(prev => ({ ...prev, [indent.id]: false }));
+    }
+  };
+
+  const handleCancelIndent = async (indent) => {
+    if (!confirm(`Cancel indent ${indent.indentNumber}?`)) return;
+    try {
+      const res = await apiClient.cancelIndent(orgId, indent.id);
+      if (res.success) {
+        showToast(`Indent ${indent.indentNumber} cancelled`);
+        loadIndents();
+      }
+    } catch (e) {
+      showToast(e.message || 'Failed to cancel indent', 'error');
+    }
+  };
+
+  const handleReceiveDelivery = async (plan) => {
+    try {
+      setReceiveLoading(prev => ({ ...prev, [`del_${plan.id}`]: true }));
+      const alloc = plan.myAllocation;
+      const res = await apiClient.receiveDistribution(orgId, plan.id, currentRestaurant.id, {
+        actualReceivedQty: alloc.quantity,
+      });
+      if (res.success) {
+        showToast(`${plan.itemName} received — stock updated`);
+        loadDeliveries();
+      }
+    } catch (e) {
+      showToast(e.message || 'Failed to receive delivery', 'error');
+    } finally {
+      setReceiveLoading(prev => ({ ...prev, [`del_${plan.id}`]: false }));
+    }
+  };
+
+  const indentStatusColor = (s) => {
+    const map = {
+      requested: '#d97706', approved: '#2563eb', picking: '#7c3aed',
+      dispatched: '#059669', in_transit: '#0891b2', received: '#16a34a',
+      rejected: '#dc2626', cancelled: '#6b7280',
+    };
+    return map[s] || '#6b7280';
+  };
+
   const tableWrap = { width: '100%', overflowX: 'auto' };
   const table = { width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? 600 : 'auto' };
 
@@ -365,6 +564,267 @@ export default function ProcurementTab({
     </div>
   );
 
+  // === Warehouse Indents (outlet side) ===
+  const renderIndents = () => (
+    <div>
+      {toast && (
+        <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13, fontWeight: 500,
+          background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+          color: toast.type === 'error' ? '#dc2626' : '#059669',
+          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+        }}>
+          {toast.msg}
+        </div>
+      )}
+
+      {!showCreateIndent ? (
+        <>
+          {sectionHeader('Warehouse Indents', 'Request Stock', () => setShowCreateIndent(true), null, permissions.add)}
+
+          {indentsLoading ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
+              <FaSpinner size={20} style={{ animation: 'spin 1s linear infinite' }} />
+              <div style={{ marginTop: 8, fontSize: 13 }}>Loading indents...</div>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : indents.length === 0 ? (
+            emptyState('No indent requests yet. Request stock from your warehouse.')
+          ) : (
+            <div style={tableWrap}>
+              <table style={table}>
+                <thead><tr>
+                  <th style={th}>Indent #</th><th style={th}>Warehouse</th><th style={th}>Items</th>
+                  <th style={th}>Priority</th><th style={th}>Status</th><th style={th}>Date</th><th style={th}>Actions</th>
+                </tr></thead>
+                <tbody>
+                  {indents.map(ind => {
+                    const color = indentStatusColor(ind.status);
+                    return (
+                      <tr key={ind.id}>
+                        <td style={{ ...td, fontWeight: 600 }}>{ind.indentNumber || ind.id}</td>
+                        <td style={td}>{ind.warehouseName || warehouses.find(w => w.id === ind.warehouseId)?.name || ind.warehouseId || '-'}</td>
+                        <td style={td}>{ind.items?.length || 0}</td>
+                        <td style={td}>{priorityBadge(ind.priority || 'medium')}</td>
+                        <td style={td}>
+                          <span style={badge(`${color}18`, color)}>{ind.status}</span>
+                        </td>
+                        <td style={td}>{ind.createdAt ? new Date(ind.createdAt._seconds ? ind.createdAt._seconds * 1000 : ind.createdAt).toLocaleDateString() : '-'}</td>
+                        <td style={td}>
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            {(ind.status === 'dispatched' || ind.status === 'in_transit') && (
+                              <button
+                                style={btnSmall('#d1fae5', '#065f46')}
+                                onClick={() => handleReceiveIndent(ind)}
+                                disabled={receiveLoading[ind.id]}
+                              >
+                                {receiveLoading[ind.id] ? <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheck size={10} />}
+                                {' '}Receive
+                              </button>
+                            )}
+                            {ind.status === 'requested' && (
+                              <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleCancelIndent(ind)}>
+                                <FaTimes size={10} /> Cancel
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Create Indent Form */
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>Request Stock from Warehouse</h3>
+            <button style={btnSmall()} onClick={() => setShowCreateIndent(false)}>
+              <FaTimes size={10} /> Cancel
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Warehouse</label>
+              <select
+                value={indentForm.warehouseId}
+                onChange={e => setIndentForm(f => ({ ...f, warehouseId: e.target.value }))}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13 }}
+              >
+                <option value="">Select warehouse...</option>
+                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+            <div style={{ minWidth: 140 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Priority</label>
+              <select
+                value={indentForm.priority}
+                onChange={e => setIndentForm(f => ({ ...f, priority: e.target.value }))}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13 }}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Warehouse stock hint */}
+          {indentForm.warehouseId && warehouseStock.length > 0 && (
+            <div style={{ padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, marginBottom: 12, fontSize: 12, color: '#065f46' }}>
+              <strong>{warehouseStock.length}</strong> items available in this warehouse. Pick items below or type freely.
+            </div>
+          )}
+
+          {/* Items */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>Items</label>
+            {indentForm.items.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ flex: 2, minWidth: 160 }}>
+                  <input
+                    type="text"
+                    placeholder="Item name"
+                    list={`wh-stock-${idx}`}
+                    value={item.name}
+                    onChange={e => {
+                      const items = [...indentForm.items];
+                      items[idx].name = e.target.value;
+                      // Auto-fill inventoryItemId if matching warehouse stock
+                      const match = warehouseStock.find(s => s.name === e.target.value);
+                      if (match) {
+                        items[idx].inventoryItemId = match.id;
+                        items[idx].unit = match.unit || items[idx].unit;
+                      }
+                      setIndentForm(f => ({ ...f, items }));
+                    }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
+                  />
+                  <datalist id={`wh-stock-${idx}`}>
+                    {warehouseStock.map(s => <option key={s.id} value={s.name}>{s.name} ({s.currentStock} {s.unit})</option>)}
+                  </datalist>
+                </div>
+                <input
+                  type="number" placeholder="Qty" min="0" step="0.01"
+                  value={item.quantity}
+                  onChange={e => { const items = [...indentForm.items]; items[idx].quantity = e.target.value; setIndentForm(f => ({ ...f, items })); }}
+                  style={{ width: 80, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
+                />
+                <select
+                  value={item.unit}
+                  onChange={e => { const items = [...indentForm.items]; items[idx].unit = e.target.value; setIndentForm(f => ({ ...f, items })); }}
+                  style={{ width: 70, padding: '8px 6px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
+                >
+                  {['kg', 'g', 'l', 'ml', 'pcs', 'box', 'pack', 'dozen'].map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+                {indentForm.items.length > 1 && (
+                  <button
+                    onClick={() => { const items = indentForm.items.filter((_, i) => i !== idx); setIndentForm(f => ({ ...f, items })); }}
+                    style={{ ...btnSmall('#fef2f2', '#991b1b'), padding: '6px 8px' }}
+                  >
+                    <FaTimes size={10} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={() => setIndentForm(f => ({ ...f, items: [...f.items, { name: '', quantity: '', unit: 'kg' }] }))}
+              style={{ ...btnSmall('#f0fdf4', '#059669'), marginTop: 4 }}
+            >
+              <FaPlus size={10} /> Add Item
+            </button>
+          </div>
+
+          <button
+            onClick={handleCreateIndent}
+            disabled={indentSubmitting}
+            style={{ ...btnPrimary, opacity: indentSubmitting ? 0.6 : 1 }}
+          >
+            {indentSubmitting ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaWarehouse size={12} />}
+            {' '}Submit Indent Request
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  // === Central Kitchen Deliveries (outlet side) ===
+  const renderDeliveries = () => (
+    <div>
+      {toast && (
+        <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13, fontWeight: 500,
+          background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+          color: toast.type === 'error' ? '#dc2626' : '#059669',
+          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+        }}>
+          {toast.msg}
+        </div>
+      )}
+
+      {sectionHeader('Kitchen Deliveries', '', null, null, false)}
+
+      {deliveriesLoading ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
+          <FaSpinner size={20} style={{ animation: 'spin 1s linear infinite' }} />
+          <div style={{ marginTop: 8, fontSize: 13 }}>Loading deliveries...</div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : deliveries.length === 0 ? (
+        emptyState('No deliveries from central kitchen yet.')
+      ) : (
+        <div style={tableWrap}>
+          <table style={table}>
+            <thead><tr>
+              <th style={th}>Item</th><th style={th}>From Kitchen</th><th style={th}>Quantity</th>
+              <th style={th}>Status</th><th style={th}>Dispatched</th><th style={th}>Actions</th>
+            </tr></thead>
+            <tbody>
+              {deliveries.map(plan => {
+                const alloc = plan.myAllocation;
+                const color = indentStatusColor(alloc.status);
+                return (
+                  <tr key={plan.id}>
+                    <td style={{ ...td, fontWeight: 600 }}>{plan.itemName || '-'}</td>
+                    <td style={td}>{plan.centralKitchenName || plan.centralKitchenId || '-'}</td>
+                    <td style={td}>{alloc.quantity} {plan.unit || ''}</td>
+                    <td style={td}>
+                      <span style={badge(`${color}18`, color)}>{alloc.status}</span>
+                    </td>
+                    <td style={td}>
+                      {alloc.dispatchedAt
+                        ? new Date(alloc.dispatchedAt._seconds ? alloc.dispatchedAt._seconds * 1000 : alloc.dispatchedAt).toLocaleDateString()
+                        : '-'}
+                    </td>
+                    <td style={td}>
+                      {(alloc.status === 'dispatched' || alloc.status === 'in_transit') ? (
+                        <button
+                          style={btnSmall('#d1fae5', '#065f46')}
+                          onClick={() => handleReceiveDelivery(plan)}
+                          disabled={receiveLoading[`del_${plan.id}`]}
+                        >
+                          {receiveLoading[`del_${plan.id}`] ? <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheck size={10} />}
+                          {' '}Receive
+                        </button>
+                      ) : alloc.status === 'received' ? (
+                        <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 500 }}>Received{alloc.actualReceivedQty ? ` (${alloc.actualReceivedQty})` : ''}</span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#9ca3af' }}>Pending dispatch</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+
   const subTabContent = {
     suppliers: renderSuppliers,
     orders: renderPurchaseOrders,
@@ -373,7 +833,16 @@ export default function ProcurementTab({
     invoices: renderInvoices,
     returns: renderReturns,
     transfers: renderTransfers,
+    indents: renderIndents,
+    deliveries: renderDeliveries,
   };
+
+  // Build dynamic sub-tabs list based on org features
+  const subTabs = [
+    ...BASE_SUB_TABS,
+    ...(hasWarehouse ? [{ key: 'indents', label: 'Indents', icon: FaWarehouse }] : []),
+    ...(hasKitchen ? [{ key: 'deliveries', label: 'Deliveries', icon: FaIndustry }] : []),
+  ];
 
   return (
     <div>
@@ -382,12 +851,13 @@ export default function ProcurementTab({
         display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 20,
         WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
       }}>
-        {SUB_TABS.map(t => (
+        {subTabs.map(t => (
           <button
             key={t.key}
             style={pillStyle(procurementSubTab === t.key)}
             onClick={() => setProcurementSubTab(t.key)}
           >
+            {t.icon && <t.icon size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />}
             {t.label}
           </button>
         ))}

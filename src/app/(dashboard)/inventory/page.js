@@ -344,6 +344,7 @@ export default function InventoryManagement() {
             selectedPOForGRN={inventory.selectedPOForGRN}
             setSelectedPOForGRN={inventory.setSelectedPOForGRN}
             permissions={permissions}
+            currentRestaurant={inventory.currentRestaurant}
           />
         )}
 

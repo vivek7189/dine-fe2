@@ -3060,6 +3060,110 @@ class ApiClient {
   // AI
   getInvoiceExpenseCategories() { return this._invUnwrap(this.request('/api/invoice/ai/expense-categories')); }
   invoiceAIChat(data) { return this._invUnwrap(this.request('/api/invoice/ai/chat', { method: 'POST', body: data })); }
+
+  // ==================== CHAIN / ENTERPRISE APIs ====================
+
+  // --- Organization Management ---
+  createOrganization(data) { return this.request('/api/organizations', { method: 'POST', body: data }); }
+  getOrganizations() { return this.request('/api/organizations'); }
+  getOrganization(orgId) { return this.request(`/api/organizations/${orgId}`); }
+  updateOrganization(orgId, data) { return this.request(`/api/organizations/${orgId}`, { method: 'PATCH', body: data }); }
+  addOutletToOrg(orgId, data) { return this.request(`/api/organizations/${orgId}/outlets`, { method: 'POST', body: data }); }
+  removeOutletFromOrg(orgId, restaurantId) { return this.request(`/api/organizations/${orgId}/outlets/${restaurantId}`, { method: 'DELETE' }); }
+  changeOutletType(orgId, restaurantId, data) { return this.request(`/api/organizations/${orgId}/outlets/${restaurantId}/type`, { method: 'PATCH', body: data }); }
+  getOrgOutlets(orgId) { return this.request(`/api/organizations/${orgId}/outlets`); }
+
+  // --- Central Menu Management ---
+  createMenuTemplate(orgId, data) { return this.request(`/api/org-menu/${orgId}/templates`, { method: 'POST', body: data }); }
+  getMenuTemplates(orgId) { return this.request(`/api/org-menu/${orgId}/templates`); }
+  getMenuTemplate(orgId, templateId) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}`); }
+  updateMenuTemplate(orgId, templateId, data) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}`, { method: 'PATCH', body: data }); }
+  archiveMenuTemplate(orgId, templateId) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}`, { method: 'DELETE' }); }
+  addMenuTemplateItem(orgId, templateId, data) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/items`, { method: 'POST', body: data }); }
+  updateMenuTemplateItem(orgId, templateId, itemId, data) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/items/${itemId}`, { method: 'PATCH', body: data }); }
+  deleteMenuTemplateItem(orgId, templateId, itemId) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/items/${itemId}`, { method: 'DELETE' }); }
+  pushMenuTemplate(orgId, templateId, data) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/push`, { method: 'POST', body: data }); }
+  syncMenuTemplate(orgId, templateId) { return this.request(`/api/org-menu/${orgId}/templates/${templateId}/sync`, { method: 'POST' }); }
+  getMenuSyncStatus(orgId) { return this.request(`/api/org-menu/${orgId}/sync-status`); }
+  toggleMenuItemLock(orgId, itemId, data) { return this.request(`/api/org-menu/${orgId}/items/${itemId}/lock`, { method: 'POST', body: data }); }
+  importMenuFromOutlet(orgId, restaurantId) { return this.request(`/api/org-menu/${orgId}/import-from-outlet/${restaurantId}`, { method: 'POST' }); }
+
+  // --- Warehouse / Indent System ---
+  createIndent(orgId, data) { return this.request(`/api/warehouse/${orgId}/indents`, { method: 'POST', body: data }); }
+  async getIndents(orgId, params = {}) {
+    const q = new URLSearchParams();
+    if (params.status) q.append('status', params.status);
+    if (params.requestingOutletId) q.append('requestingOutletId', params.requestingOutletId);
+    if (params.warehouseId) q.append('warehouseId', params.warehouseId);
+    if (params.page) q.append('page', params.page);
+    if (params.limit) q.append('limit', params.limit);
+    const qs = q.toString();
+    return this.request(`/api/warehouse/${orgId}/indents${qs ? `?${qs}` : ''}`);
+  }
+  getIndent(orgId, indentId) { return this.request(`/api/warehouse/${orgId}/indents/${indentId}`); }
+  receiveIndent(orgId, indentId, data) { return this.request(`/api/warehouse/${orgId}/indents/${indentId}/receive`, { method: 'PATCH', body: data }); }
+  cancelIndent(orgId, indentId) { return this.request(`/api/warehouse/${orgId}/indents/${indentId}`, { method: 'DELETE' }); }
+  approveIndent(orgId, indentId, data) { return this.request(`/api/warehouse/${orgId}/indents/${indentId}/approve`, { method: 'PATCH', body: data }); }
+  rejectIndent(orgId, indentId, data) { return this.request(`/api/warehouse/${orgId}/indents/${indentId}/reject`, { method: 'PATCH', body: data }); }
+  pickIndent(orgId, indentId) { return this.request(`/api/warehouse/${orgId}/indents/${indentId}/pick`, { method: 'PATCH' }); }
+  dispatchIndent(orgId, indentId, data) { return this.request(`/api/warehouse/${orgId}/indents/${indentId}/dispatch`, { method: 'PATCH', body: data }); }
+  getWarehouseStock(orgId, warehouseId) { return this.request(`/api/warehouse/${orgId}/warehouse/${warehouseId}/stock`); }
+  getWarehousePending(orgId, warehouseId) { return this.request(`/api/warehouse/${orgId}/warehouse/${warehouseId}/pending`); }
+
+  // --- Central Kitchen / Production ---
+  createProductionOrder(orgId, data) { return this.request(`/api/central-kitchen/${orgId}/production-orders`, { method: 'POST', body: data }); }
+  async getProductionOrders(orgId, params = {}) {
+    const q = new URLSearchParams();
+    if (params.status) q.append('status', params.status);
+    if (params.centralKitchenId) q.append('centralKitchenId', params.centralKitchenId);
+    if (params.startDate) q.append('startDate', params.startDate);
+    if (params.endDate) q.append('endDate', params.endDate);
+    if (params.page) q.append('page', params.page);
+    if (params.limit) q.append('limit', params.limit);
+    const qs = q.toString();
+    return this.request(`/api/central-kitchen/${orgId}/production-orders${qs ? `?${qs}` : ''}`);
+  }
+  getProductionOrder(orgId, orderId) { return this.request(`/api/central-kitchen/${orgId}/production-orders/${orderId}`); }
+  startProduction(orgId, orderId) { return this.request(`/api/central-kitchen/${orgId}/production-orders/${orderId}/start`, { method: 'PATCH' }); }
+  completeProduction(orgId, orderId, data) { return this.request(`/api/central-kitchen/${orgId}/production-orders/${orderId}/complete`, { method: 'PATCH', body: data }); }
+  cancelProductionOrder(orgId, orderId) { return this.request(`/api/central-kitchen/${orgId}/production-orders/${orderId}/cancel`, { method: 'PATCH' }); }
+  createDistributionPlan(orgId, data) { return this.request(`/api/central-kitchen/${orgId}/distribution-plans`, { method: 'POST', body: data }); }
+  async getDistributionPlans(orgId, params = {}) {
+    const q = new URLSearchParams();
+    if (params.status) q.append('status', params.status);
+    if (params.centralKitchenId) q.append('centralKitchenId', params.centralKitchenId);
+    if (params.page) q.append('page', params.page);
+    if (params.limit) q.append('limit', params.limit);
+    const qs = q.toString();
+    return this.request(`/api/central-kitchen/${orgId}/distribution-plans${qs ? `?${qs}` : ''}`);
+  }
+  getDistributionPlan(orgId, planId) { return this.request(`/api/central-kitchen/${orgId}/distribution-plans/${planId}`); }
+  dispatchDistribution(orgId, planId, outletId) { return this.request(`/api/central-kitchen/${orgId}/distribution-plans/${planId}/dispatch/${outletId}`, { method: 'PATCH' }); }
+  receiveDistribution(orgId, planId, outletId, data) { return this.request(`/api/central-kitchen/${orgId}/distribution-plans/${planId}/receive/${outletId}`, { method: 'PATCH', body: data }); }
+  getKitchenDashboard(orgId, kitchenId) { return this.request(`/api/central-kitchen/${orgId}/kitchen/${kitchenId}/dashboard`); }
+
+  // --- HQ Reports ---
+  async getHQReport(orgId, reportType, params = {}) {
+    const q = new URLSearchParams();
+    if (params.startDate) q.append('startDate', params.startDate);
+    if (params.endDate) q.append('endDate', params.endDate);
+    const qs = q.toString();
+    return this.request(`/api/hq-reports/${orgId}/${reportType}${qs ? `?${qs}` : ''}`);
+  }
+  getInventoryComparison(orgId) { return this.request(`/api/hq-reports/${orgId}/inventory-comparison`); }
+  getConsolidatedPL(orgId, params = {}) { return this.getHQReport(orgId, 'consolidated-pl', params); }
+  getKitchenReports(orgId, params = {}) { return this.getHQReport(orgId, 'kitchen-reports', params); }
+  getWarehouseMetrics(orgId, params = {}) { return this.getHQReport(orgId, 'warehouse-metrics', params); }
+  getIndentTracking(orgId) { return this.request(`/api/hq-reports/${orgId}/indent-tracking`); }
+  getMenuPerformance(orgId, params = {}) { return this.getHQReport(orgId, 'menu-performance', params); }
+  getOutletRanking(orgId, params = {}) { return this.getHQReport(orgId, 'outlet-ranking', params); }
+  exportHQReport(orgId, reportType, params = {}) {
+    const q = new URLSearchParams();
+    if (params.startDate) q.append('startDate', params.startDate);
+    if (params.endDate) q.append('endDate', params.endDate);
+    const qs = q.toString();
+    return this.request(`/api/hq-reports/${orgId}/export/${reportType}${qs ? `?${qs}` : ''}`, { rawResponse: true });
+  }
 }
 
 const apiClient = new ApiClient();

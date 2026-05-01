@@ -72,7 +72,7 @@ function RestaurantPOSContent() {
   const { isLoading } = useLoading();
 
   // Offline sync engine
-  const { pendingCount, isOnline, isSyncing, lastSyncEvent, networkTransition, clearTransition, manualSync, queueOfflineOrder, generateIdempotencyKey } = useSyncEngine(apiClient);
+  const { pendingCount, isOnline, isSyncing, lastSyncEvent, networkTransition, clearTransition, manualSync, queueOfflineOrder, generateIdempotencyKey, offlineEnabled } = useSyncEngine(apiClient);
 
   // Permission gating
   const dashUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
@@ -2594,6 +2594,12 @@ function RestaurantPOSContent() {
         // OFFLINE PATH: Queue update + payment for later sync
         // Check both isOnline state AND navigator.onLine for reliability (WebKit can be slow to fire offline events)
         if (!isOnline || !navigator.onLine) {
+          if (!offlineEnabled) {
+            setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+            setTimeout(() => setNotification(null), 4000);
+            setBillingLoading(false);
+            return;
+          }
           try {
             const paymentData = {
               orderId: currentOrder.id,
@@ -2761,6 +2767,12 @@ function RestaurantPOSContent() {
 
         // OFFLINE PATH: Queue order + payment for later sync
         if (!isOnline || !navigator.onLine) {
+          if (!offlineEnabled) {
+            setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+            setTimeout(() => setNotification(null), 4000);
+            setBillingLoading(false);
+            return;
+          }
           try {
             const paymentAmount = finalAmount || (subtotal || getTotalAmount()) + totalTax;
             const paymentData = {
@@ -2890,7 +2902,7 @@ function RestaurantPOSContent() {
 
       // If this is a network error (offline), try to queue the billing offline
       const isNetworkError = !navigator.onLine || error.message?.includes('Load failed') || error.message?.includes('Failed to fetch') || error.message?.includes('Network');
-      if (isNetworkError) {
+      if (isNetworkError && offlineEnabled) {
         try {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           const billingData = {
@@ -3221,6 +3233,11 @@ function RestaurantPOSContent() {
 
       // OFFLINE PATH: Queue to IndexedDB
       if (!isOnline || !navigator.onLine) {
+        if (!offlineEnabled) {
+          setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+          setTimeout(() => setNotification(null), 4000);
+          return;
+        }
         try {
           await queueOfflineOrder({
             ...cartData,
@@ -3274,6 +3291,11 @@ function RestaurantPOSContent() {
     } catch (error) {
       console.error('Save cart error:', error);
       // Fallback: try to queue offline if API failed
+      if (!offlineEnabled) {
+        setNotification({ type: 'error', title: 'Save Failed', message: error.message || 'Could not save order. Please check your internet connection.', show: true });
+        setTimeout(() => setNotification(null), 4000);
+        return;
+      }
       try {
         await queueOfflineOrder({
           ...cartData,
@@ -3574,6 +3596,12 @@ function RestaurantPOSContent() {
 
         // OFFLINE PATH: If offline, queue immediately to IndexedDB
         if (!isOnline || !navigator.onLine) {
+          if (!offlineEnabled) {
+            setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+            setTimeout(() => setNotification(null), 4000);
+            setPlacingOrder(false);
+            return;
+          }
           try {
             const cartKotItemsOffline = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' }));
             await queueOfflineOrder(orderData);
@@ -3713,7 +3741,7 @@ function RestaurantPOSContent() {
 
           // Queue for offline sync instead of failing
           try {
-            if (typeof queueOfflineOrder === 'function') {
+            if (typeof queueOfflineOrder === 'function' && offlineEnabled) {
               await queueOfflineOrder(orderData);
               // Update summary to show queued instead of processing
               setOrderSuccess(prev => prev ? { ...prev, processing: false, queued: true } : prev);

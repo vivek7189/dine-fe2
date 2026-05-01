@@ -2,8 +2,23 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNetworkStatus } from './useNetworkStatus';
-import { syncPendingOrders, onSyncStatusChange, queueOfflineOrder, generateIdempotencyKey, isSyncInProgress } from '../lib/syncEngine';
+import { syncPendingOrders, onSyncStatusChange, queueOfflineOrder as _queueOfflineOrder, generateIdempotencyKey, isSyncInProgress } from '../lib/syncEngine';
 import { getOfflineOrderCount } from '../lib/offlineDb';
+
+const OFFLINE_ENABLED_KEY = 'dine_offline_engine_enabled';
+
+export function getOfflineEngineEnabled() {
+  try {
+    const val = localStorage.getItem(OFFLINE_ENABLED_KEY);
+    return val === null ? true : val === 'true'; // default: enabled
+  } catch { return true; }
+}
+
+export function setOfflineEngineEnabled(enabled) {
+  try {
+    localStorage.setItem(OFFLINE_ENABLED_KEY, String(!!enabled));
+  } catch { /* ignore */ }
+}
 
 /**
  * Hook that manages the offline sync engine.
@@ -15,8 +30,14 @@ export function useSyncEngine(apiClient) {
   const [pendingCount, setPendingCount] = useState(0);
   const [lastSyncEvent, setLastSyncEvent] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [offlineEnabled, _setOfflineEnabled] = useState(() => getOfflineEngineEnabled());
   const syncTimeoutRef = useRef(null);
   const periodicSyncRef = useRef(null);
+
+  const setOfflineEnabled = useCallback((enabled) => {
+    _setOfflineEnabled(enabled);
+    setOfflineEngineEnabled(enabled);
+  }, []);
 
   // Listen for sync status changes
   useEffect(() => {
@@ -38,7 +59,7 @@ export function useSyncEngine(apiClient) {
     return unsub;
   }, []);
 
-  // Auto-sync when coming back online
+  // Auto-sync when coming back online (syncs even if engine is disabled, to flush existing queued orders)
   useEffect(() => {
     if (isOnline && pendingCount > 0 && apiClient) {
       // Debounce to avoid rapid-fire syncs
@@ -74,6 +95,12 @@ export function useSyncEngine(apiClient) {
     }
   }, [isOnline, apiClient]);
 
+  // Wrapped queueOfflineOrder that respects the enabled flag
+  const queueOfflineOrder = useCallback(async (orderData) => {
+    if (!offlineEnabled) return null; // Engine disabled — don't queue
+    return _queueOfflineOrder(orderData);
+  }, [offlineEnabled]);
+
   return {
     pendingCount,
     isOnline,
@@ -84,5 +111,7 @@ export function useSyncEngine(apiClient) {
     manualSync,
     queueOfflineOrder,
     generateIdempotencyKey,
+    offlineEnabled,
+    setOfflineEnabled,
   };
 }

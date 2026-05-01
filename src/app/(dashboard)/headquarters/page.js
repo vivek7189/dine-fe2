@@ -37,8 +37,18 @@ import {
   FaChartBar,
   FaChartPie,
   FaExternalLinkAlt,
-  FaMagic
+  FaMagic,
+  FaSitemap,
+  FaClipboardList,
+  FaWarehouse,
+  FaIndustry,
+  FaFileAlt
 } from 'react-icons/fa';
+import OrganizationSetupTab from './components/OrganizationSetupTab';
+import CentralMenuTab from './components/CentralMenuTab';
+import WarehouseTab from './components/WarehouseTab';
+import CentralKitchenTab from './components/CentralKitchenTab';
+import HQReportsTab from './components/HQReportsTab';
 
 // ============================================
 // HEADQUARTERS - Owner Command Center
@@ -175,6 +185,11 @@ export function HeadquartersContent({ embedded = false }) {
   const [staffData, setStaffData] = useState({ staff: [], pagination: {} });
   const [menuData, setMenuData] = useState({ menuItems: [], categories: [], pagination: {} });
   const [inventoryData, setInventoryData] = useState({ inventory: [], alerts: {}, categories: [], pagination: {} });
+
+  // Organization / enterprise state
+  const [orgData, setOrgData] = useState(null);
+  const [orgOutlets, setOrgOutlets] = useState([]);
+  const [orgLoading, setOrgLoading] = useState(false);
 
   // Filter state - load from localStorage
   const [selectedRestaurants, setSelectedRestaurants] = useState(() => {
@@ -465,16 +480,46 @@ export function HeadquartersContent({ embedded = false }) {
     }
   };
 
+  // Load organization data for enterprise tabs
+  const loadOrgData = async () => {
+    try {
+      setOrgLoading(true);
+      const response = await apiClient.getOrganizations();
+      if (response.success && response.organizations?.length > 0) {
+        const org = response.organizations[0]; // Primary org
+        setOrgData(org);
+        // Load outlets for this org
+        try {
+          const outletsRes = await apiClient.getOrgOutlets(org.id);
+          if (outletsRes.success) {
+            setOrgOutlets(outletsRes.outlets || []);
+          }
+        } catch (e) {
+          console.error('Error loading org outlets:', e);
+        }
+      } else {
+        setOrgData(null);
+        setOrgOutlets([]);
+      }
+    } catch (error) {
+      console.error('Error loading org data:', error);
+      setOrgData(null);
+    } finally {
+      setOrgLoading(false);
+    }
+  };
+
   // Refs to prevent duplicate fetches on mount
   const filtersInitialized = useRef(false);
   const initialLoadDone = useRef(false);
 
-  // P0: Dashboard + Analytics — fire in parallel as soon as authorized
+  // P0: Dashboard + Analytics + Org data — fire in parallel as soon as authorized
   useEffect(() => {
     if (!authorized) return;
     filtersInitialized.current = true;
     loadDashboard();
     loadAnalytics();
+    loadOrgData();
   }, [authorized]);
 
   // P2: Email prefs + AI usage — deferred, not needed for initial render
@@ -500,6 +545,13 @@ export function HeadquartersContent({ embedded = false }) {
       case 'staff': loadStaff(); break;
       case 'menu': loadMenuItems(); break;
       case 'inventory': loadInventory(); break;
+      case 'org-setup':
+      case 'central-menu':
+      case 'warehouse':
+      case 'central-kitchen':
+      case 'hq-reports':
+        if (!orgData && !orgLoading) loadOrgData();
+        break;
     }
   }, [activeTab]);
 
@@ -2324,6 +2376,20 @@ export function HeadquartersContent({ embedded = false }) {
           <TabButton id="staff" icon={FaUsers} label="Staff" active={activeTab === 'staff'} />
           <TabButton id="menu" icon={FaUtensils} label="Menu" active={activeTab === 'menu'} />
           <TabButton id="inventory" icon={FaBoxes} label="Inventory" active={activeTab === 'inventory'} />
+          {/* Enterprise / Chain Management Tabs */}
+          <TabButton id="org-setup" icon={FaSitemap} label="Setup" active={activeTab === 'org-setup'} />
+          {orgData?.settings?.centralizedMenu && (
+            <TabButton id="central-menu" icon={FaClipboardList} label="Central Menu" active={activeTab === 'central-menu'} />
+          )}
+          {orgData?.settings?.centralWarehouse && (
+            <TabButton id="warehouse" icon={FaWarehouse} label="Warehouse" active={activeTab === 'warehouse'} />
+          )}
+          {orgData?.settings?.centralKitchen && (
+            <TabButton id="central-kitchen" icon={FaIndustry} label="Kitchen" active={activeTab === 'central-kitchen'} />
+          )}
+          {orgData && (
+            <TabButton id="hq-reports" icon={FaFileAlt} label="Reports" active={activeTab === 'hq-reports'} />
+          )}
         </div>
 
         {/* Right: Filter Chips - Only show when filtering (not all selected) */}
@@ -2412,6 +2478,21 @@ export function HeadquartersContent({ embedded = false }) {
         {activeTab === 'staff' && renderStaffTab()}
         {activeTab === 'menu' && renderMenuTab()}
         {activeTab === 'inventory' && renderInventoryTab()}
+        {activeTab === 'org-setup' && (
+          <OrganizationSetupTab orgData={orgData} outlets={orgOutlets} onRefresh={loadOrgData} formatCurrency={formatCurrency} />
+        )}
+        {activeTab === 'central-menu' && orgData && (
+          <CentralMenuTab orgData={orgData} outlets={orgOutlets} formatCurrency={formatCurrency} />
+        )}
+        {activeTab === 'warehouse' && orgData && (
+          <WarehouseTab orgData={orgData} outlets={orgOutlets} formatCurrency={formatCurrency} />
+        )}
+        {activeTab === 'central-kitchen' && orgData && (
+          <CentralKitchenTab orgData={orgData} outlets={orgOutlets} formatCurrency={formatCurrency} />
+        )}
+        {activeTab === 'hq-reports' && orgData && (
+          <HQReportsTab orgData={orgData} outlets={orgOutlets} formatCurrency={formatCurrency} />
+        )}
       </div>
 
       {/* Modals */}
