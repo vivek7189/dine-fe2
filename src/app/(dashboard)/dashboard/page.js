@@ -183,7 +183,16 @@ function RestaurantPOSContent() {
     if (selectedRestaurant?.id && selectedRestaurant.id !== appliedDefaultOrderTypeRef.current) {
       const ps = selectedRestaurant?.posSettings;
       if (ps?.defaultOrderType) {
-        setOrderType(ps.defaultOrderType);
+        // Validate the default order type is still enabled
+        const types = Array.isArray(ps.orderTypes)
+          ? ps.orderTypes
+          : [{ id: 'dine-in', enabled: true }, { id: 'takeaway', enabled: true }, { id: 'delivery', enabled: true }];
+        const enabledIds = types.filter(t => t.enabled).map(t => t.id);
+        if (enabledIds.includes(ps.defaultOrderType)) {
+          setOrderType(ps.defaultOrderType);
+        } else if (enabledIds.length > 0) {
+          setOrderType(enabledIds[0]);
+        }
       }
       if (ps?.defaultPaymentMethod) {
         setPaymentMethod(ps.defaultPaymentMethod);
@@ -2472,7 +2481,8 @@ function RestaurantPOSContent() {
       redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
-      partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null
+      partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
+      deliveryInfo: deliveryInfoData = null
     } = taxData;
 
     // Check if order is completed and disable action
@@ -2546,6 +2556,8 @@ function RestaurantPOSContent() {
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
+          // Delivery info
+          deliveryInfo: deliveryInfoData || null,
           // Billing feature fields
           serviceChargeRate: serviceChargeRate || null,
           serviceChargeAmount: scAmount || null,
@@ -2742,6 +2754,8 @@ function RestaurantPOSContent() {
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
         notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
+        // Delivery info
+        deliveryInfo: deliveryInfoData || null,
         // Multi-tier pricing rule
         pricingRuleId: activePricingRuleId || null,
         // Billing feature fields
@@ -3412,7 +3426,8 @@ function RestaurantPOSContent() {
       redeemLoyaltyPoints = 0, loyaltyDiscount: loyaltyDiscAmt = 0,
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
-      partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null
+      partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
+      deliveryInfo: deliveryInfoData = null
     } = taxData;
 
     try {
@@ -3458,6 +3473,8 @@ function RestaurantPOSContent() {
           finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
+          // Delivery info
+          deliveryInfo: deliveryInfoData || null,
           updatedAt: new Date().toISOString(),
           lastUpdatedBy: {
             name: 'Staff Member',
@@ -3568,6 +3585,8 @@ function RestaurantPOSContent() {
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
           notes: isRoomOrder ? `Room order for Room ${roomNumber}` : '',
+          // Delivery info
+          deliveryInfo: deliveryInfoData || null,
           status: 'confirmed', // Place order to kitchen
           // Multi-tier pricing rule
           pricingRuleId: activePricingRuleId || null,

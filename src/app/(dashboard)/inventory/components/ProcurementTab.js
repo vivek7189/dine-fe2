@@ -837,12 +837,32 @@ export default function ProcurementTab({
     deliveries: renderDeliveries,
   };
 
-  // Build dynamic sub-tabs list based on org features
+  // Build dynamic sub-tabs list based on org features and outlet type
+  const outletType = currentRestaurant?.outletType || 'outlet';
+  const isWarehouseOrKitchen = outletType === 'warehouse' || outletType === 'central_kitchen';
+  const allowOutletProcurement = orgSettings?.allowOutletProcurement !== false; // default true if not set
+
+  // Determine which base tabs to show:
+  // - Standalone restaurants or warehouse/kitchen: always show all base tabs
+  // - Outlets in org with centralWarehouse ON and allowOutletProcurement OFF: hide external procurement tabs
+  const showExternalProcurement = !orgId || isWarehouseOrKitchen || allowOutletProcurement || !orgSettings?.centralWarehouse;
+
+  const baseTabs = showExternalProcurement
+    ? BASE_SUB_TABS
+    : [{ key: 'transfers', label: 'Transfers' }]; // only transfers when external procurement disabled
+
   const subTabs = [
-    ...BASE_SUB_TABS,
-    ...(hasWarehouse ? [{ key: 'indents', label: 'Indents', icon: FaWarehouse }] : []),
-    ...(hasKitchen ? [{ key: 'deliveries', label: 'Deliveries', icon: FaIndustry }] : []),
+    ...baseTabs,
+    ...(hasWarehouse && !isWarehouseOrKitchen ? [{ key: 'indents', label: 'Indents', icon: FaWarehouse }] : []),
+    ...(hasKitchen && outletType === 'outlet' ? [{ key: 'deliveries', label: 'Deliveries', icon: FaIndustry }] : []),
   ];
+
+  // Auto-switch to first valid tab if current tab is no longer visible
+  useEffect(() => {
+    if (subTabs.length > 0 && !subTabs.find(t => t.key === procurementSubTab)) {
+      setProcurementSubTab(subTabs[0].key);
+    }
+  }, [subTabs.length, showExternalProcurement]);
 
   return (
     <div>

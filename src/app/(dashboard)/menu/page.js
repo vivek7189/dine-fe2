@@ -4987,6 +4987,7 @@ const MenuManagement = () => {
                     }))]}
                       maxImages={4}
                       disabled={uploadingImages}
+                      uploading={uploadingImages}
                     />
               </div>
 

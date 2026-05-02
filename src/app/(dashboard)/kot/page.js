@@ -32,6 +32,7 @@ import { getCachedKotData, setCachedKotData } from '../../../utils/dashboardCach
 import { getCachedData, setCachedData, getPendingOrders } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // ─── Tab Definitions ───
 const TABS = [
@@ -124,6 +125,7 @@ async function mergeOfflineKotOrders(existingOrders, restaurantId) {
 
 const KitchenOrderTicket = () => {
   const router = useRouter();
+  const { formatCurrency } = useCurrency();
   const [kotOrders, setKotOrders] = useState([]);
   const [selectedTab, setSelectedTab] = useState('new');
   const [dateFilter, setDateFilter] = useState('today');
@@ -1218,6 +1220,11 @@ const KitchenOrderTicket = () => {
                                   {isUpdatedItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#f59e0b', padding: '1px 4px', borderRadius: '3px' }}>UPD</span>}
                                   {item.spiceLevel && item.spiceLevel !== 'mild' && (
                                     <FaFire size={10} style={{ color: item.spiceLevel === 'hot' ? '#ef4444' : '#f59e0b' }} />
+                                  )}
+                                  {currentRestaurant?.posSettings?.showPriceOnKot && item.price != null && (
+                                    <span style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginLeft: 'auto' }}>
+                                      {formatCurrency(item.price)}
+                                    </span>
                                   )}
                                 </div>
                                 {/* Variant + Toppings */}

@@ -2593,6 +2593,8 @@ const OrderHistory = () => {
                     setActivePricingRuleId={setActivePricingRuleId}
                     upiSettings={upiSettings}
                     whatsappConnected={whatsappConnected}
+                    posSettings={restaurant?.posSettings || {}}
+                    userRole={(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'; } catch { return 'waiter'; } })()}
                   />
                 </div>
               ) : (

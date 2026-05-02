@@ -23,7 +23,11 @@ const BulkMenuUpload = ({
   onClose,
   restaurantId,
   onMenuItemsAdded,
-  currentMenuItems = []
+  currentMenuItems = [],
+  // Template mode props (for central menu)
+  mode = 'outlet', // 'outlet' | 'template'
+  orgId = null,
+  templateId = null,
 }) => {
   const { formatCurrency } = useCurrency();
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -176,30 +180,57 @@ const BulkMenuUpload = ({
           try {
             console.log('Auto-saving extracted menu items to database...');
             setSuccess('Saving menu items to database...');
-            setProcessing(true); // Show loading state during save
-            const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, allMenuItems, response.extractedCategories || []);
-            
-            if (saveResponse.savedCount > 0) {
+            setProcessing(true);
+
+            let savedCount = 0;
+
+            if (mode === 'template' && orgId && templateId) {
+              // Template mode: save each item to central menu template
+              for (const item of allMenuItems) {
+                try {
+                  await apiClient.addMenuTemplateItem(orgId, templateId, {
+                    name: item.name || '',
+                    category: item.category || 'Uncategorized',
+                    basePrice: item.price || 0,
+                    description: item.description || '',
+                    isVeg: item.isVeg !== undefined ? item.isVeg : true,
+                    variants: item.variants || [],
+                    customizations: item.customizations || [],
+                    shortCode: item.shortCode || '',
+                    images: [],
+                  });
+                  savedCount++;
+                } catch (itemErr) {
+                  console.error('Failed to save template item:', item.name, itemErr);
+                }
+              }
+            } else {
+              // Outlet mode: existing bulk save
+              const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, allMenuItems, response.extractedCategories || []);
+              savedCount = saveResponse.savedCount || 0;
+            }
+
+            if (savedCount > 0) {
               // Create detailed success message
-              let successMessage = `✅ ${saveResponse.savedCount} menu items extracted and saved successfully!`;
-              
+              let successMessage = `${savedCount} menu items extracted and saved successfully!`;
+
               if (successfulFiles.length > 0) {
-                successMessage += `\n📄 Files processed: ${successfulFiles.map(f => f.file).join(', ')}`;
+                successMessage += `\nFiles processed: ${successfulFiles.map(f => f.file).join(', ')}`;
               }
-              
+
               if (noMenuDataFiles.length > 0) {
-                successMessage += `\n⚠️ No menu data found in: ${noMenuDataFiles.map(f => f.file).join(', ')}`;
+                successMessage += `\nNo menu data found in: ${noMenuDataFiles.map(f => f.file).join(', ')}`;
               }
-              
+
               if (failedFiles.length > 0) {
-                successMessage += `\n❌ Failed to process: ${failedFiles.map(f => f.file).join(', ')}`;
+                successMessage += `\nFailed to process: ${failedFiles.map(f => f.file).join(', ')}`;
               }
-              
+
               setSuccess(successMessage);
-              
+
               // Refresh the menu page
               onMenuItemsAdded && onMenuItemsAdded();
-              
+
               // Close modal after a short delay
               setTimeout(() => {
                 onClose();
@@ -214,7 +245,7 @@ const BulkMenuUpload = ({
             setPreviewMode(true); // Show preview as fallback
             setSuccess('Menu items extracted successfully. You can review and save them manually below.');
           } finally {
-            setProcessing(false); // Reset processing state
+            setProcessing(false);
           }
         } else {
           // No menu items found in any file
@@ -287,15 +318,40 @@ const BulkMenuUpload = ({
       setProcessing(true);
       setError('');
 
-      const response = await apiClient.bulkSaveMenuItems(restaurantId, selectedItems, extractedCategories);
+      let savedCount = 0;
 
-      if (response.success === false) {
-        setError(response.error || 'Save failed');
-        return;
+      if (mode === 'template' && orgId && templateId) {
+        // Template mode: save selected items to central menu template
+        for (const item of selectedItems) {
+          try {
+            await apiClient.addMenuTemplateItem(orgId, templateId, {
+              name: item.name || '',
+              category: item.category || 'Uncategorized',
+              basePrice: item.price || 0,
+              description: item.description || '',
+              isVeg: item.isVeg !== undefined ? item.isVeg : true,
+              variants: item.variants || [],
+              customizations: item.customizations || [],
+              shortCode: item.shortCode || '',
+              images: [],
+            });
+            savedCount++;
+          } catch (itemErr) {
+            console.error('Failed to save template item:', item.name, itemErr);
+          }
+        }
+      } else {
+        // Outlet mode: existing bulk save
+        const response = await apiClient.bulkSaveMenuItems(restaurantId, selectedItems, extractedCategories);
+        if (response.success === false) {
+          setError(response.error || 'Save failed');
+          return;
+        }
+        savedCount = response.savedCount || 0;
       }
 
-      if (response.savedCount > 0) {
-        setSuccess(`Successfully saved ${response.savedCount} menu items!`);
+      if (savedCount > 0) {
+        setSuccess(`Successfully saved ${savedCount} menu items!`);
         onMenuItemsAdded && onMenuItemsAdded();
         setTimeout(() => {
           onClose();
@@ -306,16 +362,16 @@ const BulkMenuUpload = ({
       }
     } catch (error) {
       console.error('Save error:', error);
-      
+
       let errorMessage = 'Save failed';
-      
+
       if (error.response?.data) {
         const errorData = error.response.data;
         errorMessage = errorData.error || errorData.message || 'Failed to save menu items';
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setProcessing(false);

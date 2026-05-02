@@ -3,15 +3,17 @@
 import { useState, useRef } from 'react';
 import { FaCloudUploadAlt, FaTimes, FaImage, FaSpinner } from 'react-icons/fa';
 
-const ImageUpload = ({ 
-  onImagesUploaded, 
-  onImageDeleted, 
-  existingImages = [], 
+const ImageUpload = ({
+  onImagesUploaded,
+  onImageDeleted,
+  existingImages = [],
   maxImages = 4,
   className = '',
-  disabled = false
+  disabled = false,
+  uploading: externalUploading = false
 }) => {
-  const [uploading, setUploading] = useState(false);
+  const [internalUploading, setInternalUploading] = useState(false);
+  const uploading = externalUploading || internalUploading;
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 

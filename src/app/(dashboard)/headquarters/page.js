@@ -188,7 +188,7 @@ export function HeadquartersContent({ embedded = false }) {
 
   // Organization / enterprise state
   const [orgData, setOrgData] = useState(null);
-  const [orgOutlets, setOrgOutlets] = useState([]);
+  const [orgOutlets, setOrgOutlets] = useState({ outlet: [], central_kitchen: [], warehouse: [] });
   const [orgLoading, setOrgLoading] = useState(false);
 
   // Filter state - load from localStorage
@@ -492,14 +492,14 @@ export function HeadquartersContent({ embedded = false }) {
         try {
           const outletsRes = await apiClient.getOrgOutlets(org.id);
           if (outletsRes.success) {
-            setOrgOutlets(outletsRes.outlets || []);
+            setOrgOutlets(outletsRes.grouped || { outlet: [], central_kitchen: [], warehouse: [] });
           }
         } catch (e) {
           console.error('Error loading org outlets:', e);
         }
       } else {
         setOrgData(null);
-        setOrgOutlets([]);
+        setOrgOutlets({ outlet: [], central_kitchen: [], warehouse: [] });
       }
     } catch (error) {
       console.error('Error loading org data:', error);

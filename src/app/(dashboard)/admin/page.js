@@ -7991,17 +7991,142 @@ const Admin = () => {
               </p>
             </div>
 
-            {/* Default Order Type */}
+            {/* Order Types */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
+                Order Types
+              </label>
+
+              {(() => {
+                const types = Array.isArray(posSettings.orderTypes)
+                  ? posSettings.orderTypes
+                  : [
+                      { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
+                      { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
+                      { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
+                    ];
+                const builtInIds = ['dine-in', 'takeaway', 'delivery'];
+                const enabledCount = types.filter(t => t.enabled).length;
+                return types.map((ot) => {
+                  const isBuiltIn = builtInIds.includes(ot.id) || ot.builtIn;
+                  const isLastEnabled = ot.enabled && enabledCount <= 1;
+                  return (
+                    <div key={ot.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isLastEnabled) return;
+                          setPosSettings(prev => {
+                            const list = (Array.isArray(prev.orderTypes) ? prev.orderTypes : [
+                              { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
+                              { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
+                              { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
+                            ]).map(t => t.id === ot.id ? { ...t, enabled: !t.enabled } : t);
+                            const updates = { ...prev, orderTypes: list };
+                            if (!list.find(t => t.id === ot.id)?.enabled && prev.defaultOrderType === ot.id) {
+                              updates.defaultOrderType = list.find(t => t.enabled)?.id || 'dine-in';
+                            }
+                            return updates;
+                          });
+                        }}
+                        style={{ background: 'none', border: 'none', cursor: isLastEnabled ? 'not-allowed' : 'pointer', padding: 0, lineHeight: 1 }}
+                      >
+                        {ot.enabled ? <FaToggleOn size={28} color="#ef4444" /> : <FaToggleOff size={28} color="#d1d5db" />}
+                      </button>
+                      <span style={{ fontSize: '13px', color: '#374151' }}>{ot.label}</span>
+                      {isLastEnabled && <span style={{ fontSize: '11px', color: '#9ca3af' }}>(must keep at least one)</span>}
+                      {!isBuiltIn && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPosSettings(prev => {
+                              const list = (Array.isArray(prev.orderTypes) ? prev.orderTypes : []).filter(t => t.id !== ot.id);
+                              const updates = { ...prev, orderTypes: list };
+                              if (prev.defaultOrderType === ot.id) updates.defaultOrderType = list.find(t => t.enabled)?.id || 'dine-in';
+                              return updates;
+                            });
+                          }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#ef4444' }}
+                        >
+                          <FaTrash size={12} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+
+              {/* Add custom order type */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                <input
+                  type="text"
+                  placeholder="Add type (e.g. Room Service)"
+                  id="newOrderTypeInput"
+                  style={{
+                    flex: 1, padding: '6px 10px', border: '1px solid #e5e7eb',
+                    borderRadius: '8px', fontSize: '12px', backgroundColor: '#fafafa'
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const label = e.target.value.trim();
+                      if (!label) return;
+                      const id = label.toLowerCase().replace(/\s+/g, '-');
+                      setPosSettings(prev => {
+                        const list = Array.isArray(prev.orderTypes) ? [...prev.orderTypes] : [
+                          { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
+                          { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
+                          { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
+                        ];
+                        if (list.some(t => t.id === id)) return prev;
+                        list.push({ id, label, enabled: true });
+                        return { ...prev, orderTypes: list };
+                      });
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById('newOrderTypeInput');
+                    const label = input?.value?.trim();
+                    if (!label) return;
+                    const id = label.toLowerCase().replace(/\s+/g, '-');
+                    setPosSettings(prev => {
+                      const list = Array.isArray(prev.orderTypes) ? [...prev.orderTypes] : [
+                        { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
+                        { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
+                        { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
+                      ];
+                      if (list.some(t => t.id === id)) return prev;
+                      list.push({ id, label, enabled: true });
+                      return { ...prev, orderTypes: list };
+                    });
+                    if (input) input.value = '';
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+                    border: '1px solid #e5e7eb', background: 'white', color: '#374151', cursor: 'pointer'
+                  }}
+                >
+                  + Add
+                </button>
+              </div>
+
+              {/* Default Order Type */}
+              <label style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '6px', display: 'block' }}>
                 Default Order Type
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[
-                  { id: 'dine-in', label: 'Dine-in' },
-                  { id: 'takeaway', label: 'Takeaway' },
-                  { id: 'delivery', label: 'Delivery' },
-                ].map((ot) => (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(Array.isArray(posSettings.orderTypes)
+                  ? posSettings.orderTypes
+                  : [
+                      { id: 'dine-in', label: 'Dine-in', enabled: true },
+                      { id: 'takeaway', label: 'Takeaway', enabled: true },
+                      { id: 'delivery', label: 'Delivery', enabled: true },
+                    ]
+                ).filter(t => t.enabled).map((ot) => (
                   <button
                     key={ot.id}
                     type="button"
@@ -8234,57 +8359,164 @@ const Admin = () => {
             {/* Divider */}
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
 
+            {/* KOT Settings */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
+                KOT / Kitchen Display
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, showPriceOnKot: !prev.showPriceOnKot }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.showPriceOnKot
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <span style={{ fontSize: '13px', color: '#374151' }}>Show Price on KOT</span>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
+
             {/* Payment Methods */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
                 Payment Methods
               </label>
 
-              {/* Cash - always on */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <FaToggleOn size={28} color="#9ca3af" style={{ opacity: 0.5 }} />
-                <span style={{ fontSize: '13px', color: '#374151' }}>Cash</span>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>(always enabled)</span>
-              </div>
+              {(() => {
+                const methods = Array.isArray(posSettings.paymentMethods)
+                  ? posSettings.paymentMethods
+                  : [
+                      { id: 'cash', label: 'Cash', enabled: true },
+                      { id: 'upi', label: 'UPI', enabled: !posSettings.hideUPI },
+                      { id: 'card', label: 'Card', enabled: !posSettings.hideCard },
+                    ];
+                const builtInIds = ['cash', 'upi', 'card'];
+                return methods.map((pm) => {
+                  const isCash = pm.id === 'cash';
+                  const isBuiltIn = builtInIds.includes(pm.id);
+                  return (
+                    <div key={pm.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      {isCash ? (
+                        <FaToggleOn size={28} color="#9ca3af" style={{ opacity: 0.5 }} />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPosSettings(prev => {
+                              const list = Array.isArray(prev.paymentMethods) ? [...prev.paymentMethods] : [
+                                { id: 'cash', label: 'Cash', enabled: true },
+                                { id: 'upi', label: 'UPI', enabled: !prev.hideUPI },
+                                { id: 'card', label: 'Card', enabled: !prev.hideCard },
+                              ];
+                              const i = list.findIndex(m => m.id === pm.id);
+                              if (i >= 0) list[i] = { ...list[i], enabled: !list[i].enabled };
+                              return { ...prev, paymentMethods: list };
+                            });
+                          }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                        >
+                          {pm.enabled ? <FaToggleOn size={28} color="#ef4444" /> : <FaToggleOff size={28} color="#d1d5db" />}
+                        </button>
+                      )}
+                      <span style={{ fontSize: '13px', color: '#374151' }}>{pm.label}</span>
+                      {isCash && <span style={{ fontSize: '11px', color: '#9ca3af' }}>(always enabled)</span>}
+                      {!isBuiltIn && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPosSettings(prev => {
+                              const list = (Array.isArray(prev.paymentMethods) ? prev.paymentMethods : []).filter(m => m.id !== pm.id);
+                              const updates = { ...prev, paymentMethods: list };
+                              if (prev.defaultPaymentMethod === pm.id) updates.defaultPaymentMethod = 'cash';
+                              return updates;
+                            });
+                          }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#ef4444' }}
+                        >
+                          <FaTrash size={12} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
 
-              {/* UPI */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              {/* Add custom payment method */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                <input
+                  type="text"
+                  placeholder="Add method (e.g. Paytm)"
+                  id="newPaymentMethodInput"
+                  style={{
+                    flex: 1, padding: '6px 10px', border: '1px solid #e5e7eb',
+                    borderRadius: '8px', fontSize: '12px', backgroundColor: '#fafafa'
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const label = e.target.value.trim();
+                      if (!label) return;
+                      const id = label.toLowerCase().replace(/\s+/g, '_');
+                      setPosSettings(prev => {
+                        const list = Array.isArray(prev.paymentMethods) ? [...prev.paymentMethods] : [
+                          { id: 'cash', label: 'Cash', enabled: true },
+                          { id: 'upi', label: 'UPI', enabled: !prev.hideUPI },
+                          { id: 'card', label: 'Card', enabled: !prev.hideCard },
+                        ];
+                        if (list.some(m => m.id === id)) return prev;
+                        list.push({ id, label, enabled: true });
+                        return { ...prev, paymentMethods: list };
+                      });
+                      e.target.value = '';
+                    }
+                  }}
+                />
                 <button
                   type="button"
-                  onClick={() => setPosSettings(prev => ({ ...prev, hideUPI: !prev.hideUPI }))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                  onClick={() => {
+                    const input = document.getElementById('newPaymentMethodInput');
+                    const label = input?.value?.trim();
+                    if (!label) return;
+                    const id = label.toLowerCase().replace(/\s+/g, '_');
+                    setPosSettings(prev => {
+                      const list = Array.isArray(prev.paymentMethods) ? [...prev.paymentMethods] : [
+                        { id: 'cash', label: 'Cash', enabled: true },
+                        { id: 'upi', label: 'UPI', enabled: !prev.hideUPI },
+                        { id: 'card', label: 'Card', enabled: !prev.hideCard },
+                      ];
+                      if (list.some(m => m.id === id)) return prev;
+                      list.push({ id, label, enabled: true });
+                      return { ...prev, paymentMethods: list };
+                    });
+                    if (input) input.value = '';
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+                    border: '1px solid #e5e7eb', background: 'white', color: '#374151', cursor: 'pointer'
+                  }}
                 >
-                  {posSettings.hideUPI
-                    ? <FaToggleOff size={28} color="#d1d5db" />
-                    : <FaToggleOn size={28} color="#ef4444" />}
+                  + Add
                 </button>
-                <span style={{ fontSize: '13px', color: '#374151' }}>UPI</span>
-              </div>
-
-              {/* Card */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setPosSettings(prev => ({ ...prev, hideCard: !prev.hideCard }))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-                >
-                  {posSettings.hideCard
-                    ? <FaToggleOff size={28} color="#d1d5db" />
-                    : <FaToggleOn size={28} color="#ef4444" />}
-                </button>
-                <span style={{ fontSize: '13px', color: '#374151' }}>Card</span>
               </div>
 
               {/* Default Payment Method */}
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '6px', display: 'block' }}>
                 Default Payment Method
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[
-                  { id: 'cash', label: 'Cash' },
-                  ...(!posSettings.hideUPI ? [{ id: 'upi', label: 'UPI' }] : []),
-                  ...(!posSettings.hideCard ? [{ id: 'card', label: 'Card' }] : []),
-                ].map((pm) => (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(Array.isArray(posSettings.paymentMethods)
+                  ? posSettings.paymentMethods
+                  : [
+                      { id: 'cash', label: 'Cash', enabled: true },
+                      ...(!posSettings.hideUPI ? [{ id: 'upi', label: 'UPI', enabled: true }] : []),
+                      ...(!posSettings.hideCard ? [{ id: 'card', label: 'Card', enabled: true }] : []),
+                    ]
+                ).filter(pm => pm.enabled).map((pm) => (
                   <button
                     key={pm.id}
                     type="button"

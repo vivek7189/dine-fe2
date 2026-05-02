@@ -1370,6 +1370,13 @@ class ApiClient {
     });
   }
 
+  // Cash Register / Shift Management
+  openRegister(restaurantId, data) { return this.request(`/api/register/${restaurantId}/open`, { method: 'POST', body: data }); }
+  getCurrentRegister(restaurantId) { return this.request(`/api/register/${restaurantId}/current`); }
+  registerTransaction(registerId, data) { return this.request(`/api/register/${registerId}/transaction`, { method: 'POST', body: data }); }
+  closeRegister(registerId, data) { return this.request(`/api/register/${registerId}/close`, { method: 'POST', body: data }); }
+  getRegisterHistory(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/register/${restaurantId}/history${qs}`); }
+
   // Google Reviews APIs
   async getGoogleReviewSettings(restaurantId) {
     return this.request(`/api/google-reviews/settings/${restaurantId}`);
@@ -3157,6 +3164,12 @@ class ApiClient {
   getIndentTracking(orgId) { return this.request(`/api/hq-reports/${orgId}/indent-tracking`); }
   getMenuPerformance(orgId, params = {}) { return this.getHQReport(orgId, 'menu-performance', params); }
   getOutletRanking(orgId, params = {}) { return this.getHQReport(orgId, 'outlet-ranking', params); }
+  getSalesSummary(orgId, params = {}) { return this.getHQReport(orgId, 'sales-summary', params); }
+  getStaffPerformance(orgId, params = {}) { return this.getHQReport(orgId, 'staff-performance', params); }
+  getCategorySales(orgId, params = {}) { return this.getHQReport(orgId, 'category-sales', params); }
+  getDiscountReport(orgId, params = {}) { return this.getHQReport(orgId, 'discount-report', params); }
+  getTaxSummary(orgId, params = {}) { return this.getHQReport(orgId, 'tax-summary', params); }
+  getCustomerInsights(orgId, params = {}) { return this.getHQReport(orgId, 'customer-insights', params); }
   exportHQReport(orgId, reportType, params = {}) {
     const q = new URLSearchParams();
     if (params.startDate) q.append('startDate', params.startDate);

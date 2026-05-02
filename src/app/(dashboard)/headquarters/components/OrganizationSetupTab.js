@@ -460,6 +460,268 @@ const CreateOrganizationForm = ({ onRefresh }) => {
 };
 
 // ============================================
+// OUTLETS CHIP SECTION — Simple chip-based add/remove + type assignment
+// ============================================
+const OutletsChipSection = ({ orgData, allOutlets, onRefresh, isMobile }) => {
+  const [allRestaurants, setAllRestaurants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  // Track pending changes: { restaurantId: { selected: bool, type: string } }
+  const [pendingState, setPendingState] = useState({});
+
+  // Load all owner restaurants on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const data = await apiClient.getOwnerDashboard();
+        setAllRestaurants(data.restaurants || []);
+      } catch (e) {
+        console.error('Failed to load restaurants:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Build current state from allOutlets
+  const currentOutletIds = new Set(allOutlets.map(o => o.id));
+  const outletTypeMap = {};
+  allOutlets.forEach(o => { outletTypeMap[o.id] = o.outletType || 'outlet'; });
+
+  // Effective state (current + pending overrides)
+  const isSelected = (id) => {
+    if (pendingState[id] !== undefined) return pendingState[id].selected;
+    return currentOutletIds.has(id);
+  };
+  const getType = (id) => {
+    if (pendingState[id]?.type) return pendingState[id].type;
+    return outletTypeMap[id] || 'outlet';
+  };
+
+  const toggleChip = (id) => {
+    setPendingState(prev => {
+      const wasSelected = prev[id] !== undefined ? prev[id].selected : currentOutletIds.has(id);
+      const newSelected = !wasSelected;
+      // If reverting to original state, remove from pending
+      const originalSelected = currentOutletIds.has(id);
+      const originalType = outletTypeMap[id] || 'outlet';
+      if (newSelected === originalSelected && (!prev[id]?.type || prev[id].type === originalType)) {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }
+      return { ...prev, [id]: { selected: newSelected, type: prev[id]?.type || originalType } };
+    });
+  };
+
+  const changeType = (id, newType) => {
+    setPendingState(prev => {
+      const currentSelected = prev[id] !== undefined ? prev[id].selected : currentOutletIds.has(id);
+      const originalSelected = currentOutletIds.has(id);
+      const originalType = outletTypeMap[id] || 'outlet';
+      // If reverting to original state, remove from pending
+      if (currentSelected === originalSelected && newType === originalType) {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }
+      return { ...prev, [id]: { selected: currentSelected, type: newType } };
+    });
+  };
+
+  const hasPendingChanges = Object.keys(pendingState).length > 0;
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const ops = [];
+
+      for (const [restaurantId, state] of Object.entries(pendingState)) {
+        const wasInOrg = currentOutletIds.has(restaurantId);
+
+        if (state.selected && !wasInOrg) {
+          // Add to org
+          ops.push(apiClient.addOutletToOrg(orgData.id, { restaurantId, outletType: state.type || 'outlet' }));
+        } else if (!state.selected && wasInOrg) {
+          // Remove from org
+          ops.push(apiClient.removeOutletFromOrg(orgData.id, restaurantId));
+        } else if (state.selected && wasInOrg && state.type && state.type !== (outletTypeMap[restaurantId] || 'outlet')) {
+          // Type changed
+          ops.push(apiClient.changeOutletType(orgData.id, restaurantId, { outletType: state.type }));
+        }
+      }
+
+      if (ops.length > 0) {
+        const results = await Promise.all(ops);
+        // Check if any outlet got auto-pushed with central menu
+        const autoPushed = results.filter(r => r?.menuAutoPushed);
+        if (autoPushed.length > 0) {
+          const tplName = autoPushed[0].templateName || 'Central Menu';
+          setToast({ msg: `${ops.length} change${ops.length > 1 ? 's' : ''} saved. Central menu "${tplName}" auto-pushed to ${autoPushed.length} outlet${autoPushed.length > 1 ? 's' : ''}.`, type: 'success' });
+        } else {
+          setToast({ msg: `${ops.length} change${ops.length > 1 ? 's' : ''} saved`, type: 'success' });
+        }
+      }
+
+      setPendingState({});
+      onRefresh();
+    } catch (e) {
+      setToast({ msg: e.message || 'Failed to save changes', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDiscard = () => setPendingState({});
+
+  const typeColors = {
+    outlet: { bg: '#dbeafe', text: '#1d4ed8', label: 'Outlet' },
+    central_kitchen: { bg: '#fef3c7', text: '#92400e', label: 'Kitchen' },
+    warehouse: { bg: '#ede9fe', text: '#5b21b6', label: 'Warehouse' },
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <FaStore size={16} color="#6b7280" />
+          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1f2937', fontFamily: FONT_STACK }}>Outlets</h4>
+        </div>
+        <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af' }}>
+          <FaSpinner size={16} style={{ animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontSize: '13px', marginTop: '8px', fontFamily: FONT_STACK }}>Loading restaurants...</div>
+        </div>
+      </Card>
+    );
+  }
+
+  const selectedCount = allRestaurants.filter(r => isSelected(r._id || r.id)).length;
+
+  return (
+    <Card>
+      {toast && (
+        <div style={{
+          padding: '10px 14px', borderRadius: '10px', marginBottom: '14px', fontSize: '13px', fontWeight: 500, fontFamily: FONT_STACK,
+          background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+          color: toast.type === 'error' ? '#dc2626' : '#059669',
+          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+        }}>
+          {toast.msg}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <FaStore size={16} color="#6b7280" />
+          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1f2937', fontFamily: FONT_STACK }}>
+            Outlets
+          </h4>
+          <span style={{
+            fontSize: '11px', fontWeight: 600, color: '#6b7280', backgroundColor: '#f3f4f6',
+            padding: '2px 8px', borderRadius: '10px', fontFamily: FONT_STACK
+          }}>
+            {selectedCount} selected
+          </span>
+        </div>
+        {hasPendingChanges && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleDiscard}
+              style={{
+                padding: '7px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: '#fff',
+                color: '#6b7280', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: FONT_STACK,
+              }}
+            >
+              Discard
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                padding: '7px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#16a34a',
+                color: '#fff', fontSize: '12px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+                fontFamily: FONT_STACK, display: 'flex', alignItems: 'center', gap: '6px', opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving && <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} />}
+              Save Changes
+            </button>
+          </div>
+        )}
+      </div>
+
+      <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 14px', fontFamily: FONT_STACK }}>
+        Click to select/deselect restaurants. Assign a type, then save.
+      </p>
+
+      {/* Chip Grid */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {allRestaurants.map(r => {
+          const id = r._id || r.id;
+          const selected = isSelected(id);
+          const type = getType(id);
+          const tc = typeColors[type] || typeColors.outlet;
+          const isPending = pendingState[id] !== undefined;
+
+          return (
+            <div key={id} style={{
+              display: 'flex', alignItems: 'center', gap: '0',
+              borderRadius: '10px', overflow: 'hidden',
+              border: selected ? `2px solid ${tc.text}` : '2px solid #e5e7eb',
+              backgroundColor: selected ? tc.bg : '#fff',
+              transition: 'all 0.15s',
+              boxShadow: isPending ? '0 0 0 2px rgba(22,163,74,0.2)' : 'none',
+            }}>
+              {/* Main chip — click to toggle */}
+              <button
+                onClick={() => toggleChip(id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 12px', border: 'none', backgroundColor: 'transparent',
+                  cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: FONT_STACK,
+                  color: selected ? tc.text : '#6b7280',
+                }}
+              >
+                {selected ? <FaCheck size={10} /> : <FaPlus size={10} />}
+                {r.name || r.restaurantName || 'Unnamed'}
+              </button>
+
+              {/* Type selector — only for selected */}
+              {selected && (
+                <select
+                  value={type}
+                  onChange={e => { e.stopPropagation(); changeType(id, e.target.value); }}
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    padding: '6px 4px 6px 6px', border: 'none', borderLeft: `1px solid ${tc.text}33`,
+                    backgroundColor: 'transparent', fontSize: '11px', fontWeight: 600,
+                    color: tc.text, cursor: 'pointer', fontFamily: FONT_STACK, outline: 'none',
+                    appearance: 'auto',
+                  }}
+                >
+                  <option value="outlet">Outlet</option>
+                  <option value="central_kitchen">Kitchen</option>
+                  <option value="warehouse">Warehouse</option>
+                </select>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {allRestaurants.length === 0 && (
+        <div style={{ padding: '30px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '13px', fontFamily: FONT_STACK }}>
+          No restaurants found. Create a restaurant first.
+        </div>
+      )}
+    </Card>
+  );
+};
+
+// ============================================
 // ORGANIZATION MANAGEMENT VIEW
 // ============================================
 const OrganizationManagement = ({ orgData, outlets, onRefresh }) => {
@@ -467,12 +729,6 @@ const OrganizationManagement = ({ orgData, outlets, onRefresh }) => {
   const [orgName, setOrgName] = useState(orgData.name || '');
   const [savingName, setSavingName] = useState(false);
   const [savingSetting, setSavingSetting] = useState(null);
-  const [changingType, setChangingType] = useState(null);
-  const [removingOutlet, setRemovingOutlet] = useState(null);
-  const [showAddOutlet, setShowAddOutlet] = useState(false);
-  const [availableRestaurants, setAvailableRestaurants] = useState([]);
-  const [loadingAvailable, setLoadingAvailable] = useState(false);
-  const [addingOutlet, setAddingOutlet] = useState(null);
   const [toast, setToast] = useState({ message: '', type: '' });
   const [isMobile, setIsMobile] = useState(false);
 
@@ -499,6 +755,7 @@ const OrganizationManagement = ({ orgData, outlets, onRefresh }) => {
     { key: 'centralizedMenu', label: 'Centralized Menu', description: 'Manage one menu across all outlets' },
     { key: 'centralKitchen', label: 'Central Kitchen', description: 'Route orders through a central kitchen' },
     { key: 'centralWarehouse', label: 'Central Warehouse', description: 'Unified inventory and stock management' },
+    { key: 'allowOutletProcurement', label: 'Allow Outlet Procurement', description: 'Let outlets buy directly from external suppliers. When off, outlets can only request via warehouse indents.' },
     { key: 'menuLocking', label: 'Menu Locking', description: 'Prevent outlets from modifying shared menu' },
     { key: 'autoSyncMenu', label: 'Auto Sync Menu', description: 'Automatically push menu changes to all outlets' }
   ];
@@ -535,70 +792,6 @@ const OrganizationManagement = ({ orgData, outlets, onRefresh }) => {
       setToast({ message: 'Failed to update setting: ' + (err.message || 'Unknown error'), type: 'error' });
     } finally {
       setSavingSetting(null);
-    }
-  };
-
-  // ------ Change outlet type ------
-  const handleChangeOutletType = async (outletId, newType) => {
-    try {
-      setChangingType(outletId);
-      await apiClient.changeOutletType(orgData.id, outletId, { outletType: newType });
-      setToast({ message: 'Outlet type updated', type: 'success' });
-      onRefresh();
-    } catch (err) {
-      setToast({ message: 'Failed to change outlet type: ' + (err.message || 'Unknown error'), type: 'error' });
-    } finally {
-      setChangingType(null);
-    }
-  };
-
-  // ------ Remove outlet ------
-  const handleRemoveOutlet = async (outletId, outletName) => {
-    if (!window.confirm(`Remove "${outletName}" from this organization?`)) return;
-    try {
-      setRemovingOutlet(outletId);
-      await apiClient.removeOutletFromOrg(orgData.id, outletId);
-      setToast({ message: `${outletName} removed from organization`, type: 'success' });
-      onRefresh();
-    } catch (err) {
-      setToast({ message: 'Failed to remove outlet: ' + (err.message || 'Unknown error'), type: 'error' });
-    } finally {
-      setRemovingOutlet(null);
-    }
-  };
-
-  // ------ Load available restaurants for adding ------
-  const handleShowAddOutlet = async () => {
-    if (showAddOutlet) {
-      setShowAddOutlet(false);
-      return;
-    }
-    try {
-      setLoadingAvailable(true);
-      setShowAddOutlet(true);
-      const data = await apiClient.getOwnerDashboard();
-      const existingIds = new Set(allOutlets.map(o => o.id));
-      const available = (data.restaurants || []).filter(r => !existingIds.has(r._id || r.id));
-      setAvailableRestaurants(available);
-    } catch (err) {
-      setToast({ message: 'Failed to load restaurants: ' + (err.message || 'Unknown error'), type: 'error' });
-    } finally {
-      setLoadingAvailable(false);
-    }
-  };
-
-  // ------ Add outlet ------
-  const handleAddOutlet = async (restaurantId) => {
-    try {
-      setAddingOutlet(restaurantId);
-      await apiClient.addOutletToOrg(orgData.id, { restaurantId });
-      setToast({ message: 'Outlet added to organization', type: 'success' });
-      setShowAddOutlet(false);
-      onRefresh();
-    } catch (err) {
-      setToast({ message: 'Failed to add outlet: ' + (err.message || 'Unknown error'), type: 'error' });
-    } finally {
-      setAddingOutlet(null);
     }
   };
 
@@ -740,294 +933,13 @@ const OrganizationManagement = ({ orgData, outlets, onRefresh }) => {
         ))}
       </Card>
 
-      {/* Outlets Grid */}
-      <Card>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '16px',
-          flexWrap: 'wrap',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FaStore size={16} color="#6b7280" />
-            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1f2937', fontFamily: FONT_STACK }}>
-              Outlets
-            </h4>
-          </div>
-          <button
-            onClick={handleShowAddOutlet}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              border: showAddOutlet ? '1px solid #e5e7eb' : 'none',
-              backgroundColor: showAddOutlet ? '#fff' : '#16a34a',
-              color: showAddOutlet ? '#374151' : '#fff',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: FONT_STACK,
-              transition: 'all 0.2s'
-            }}
-          >
-            <FaPlus size={11} />
-            {showAddOutlet ? 'Cancel' : 'Add Outlet'}
-          </button>
-        </div>
-
-        {/* Add Outlet Dropdown */}
-        {showAddOutlet && (
-          <div style={{
-            marginBottom: '16px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '12px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              padding: '10px 16px',
-              backgroundColor: '#f9fafb',
-              borderBottom: '1px solid #f3f4f6',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#6b7280',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              fontFamily: FONT_STACK
-            }}>
-              Available Restaurants
-            </div>
-            {loadingAvailable ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '20px', color: '#9ca3af' }}>
-                <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '13px', fontFamily: FONT_STACK }}>Loading...</span>
-              </div>
-            ) : availableRestaurants.length === 0 ? (
-              <div style={{
-                padding: '20px',
-                textAlign: 'center',
-                color: '#9ca3af',
-                fontSize: '13px',
-                fontFamily: FONT_STACK
-              }}>
-                All your restaurants are already in this organization.
-              </div>
-            ) : (
-              availableRestaurants.map((r, idx) => (
-                <div
-                  key={r._id || r.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    borderBottom: idx < availableRestaurants.length - 1 ? '1px solid #f3f4f6' : 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <FaStore size={13} color="#9ca3af" />
-                    <span style={{ fontSize: '14px', color: '#374151', fontFamily: FONT_STACK }}>
-                      {r.name || r.restaurantName || 'Unnamed Restaurant'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleAddOutlet(r._id || r.id)}
-                    disabled={addingOutlet === (r._id || r.id)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      backgroundColor: '#16a34a',
-                      color: '#fff',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: addingOutlet === (r._id || r.id) ? 'not-allowed' : 'pointer',
-                      fontFamily: FONT_STACK,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      opacity: addingOutlet === (r._id || r.id) ? 0.7 : 1
-                    }}
-                  >
-                    {addingOutlet === (r._id || r.id) ? (
-                      <FaSpinner size={10} style={{ animation: 'spin 1s linear infinite' }} />
-                    ) : (
-                      <FaPlus size={10} />
-                    )}
-                    Add
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Outlet Cards */}
-        {allOutlets.length === 0 ? (
-          <div style={{
-            padding: '40px 20px',
-            textAlign: 'center',
-            color: '#9ca3af',
-            fontSize: '14px',
-            fontFamily: FONT_STACK,
-            border: '1px dashed #e5e7eb',
-            borderRadius: '12px'
-          }}>
-            <FaStore size={24} color="#d1d5db" style={{ marginBottom: '8px' }} />
-            <div>No outlets in this organization yet.</div>
-            <div style={{ fontSize: '12px', marginTop: '4px' }}>Click &quot;Add Outlet&quot; to get started.</div>
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '12px'
-          }}>
-            {allOutlets.map(outlet => {
-              const outletId = outlet.id;
-              const isChangingType = changingType === outletId;
-              const isRemoving = removingOutlet === outletId;
-
-              return (
-                <div
-                  key={outletId}
-                  style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    backgroundColor: isRemoving ? '#fef2f2' : '#fff',
-                    opacity: isRemoving ? 0.6 : 1,
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {/* Outlet Header */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: '#1f2937',
-                        fontFamily: FONT_STACK,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {outlet.name}
-                      </div>
-                      {outlet.outletCode && (
-                        <div style={{
-                          fontSize: '11px',
-                          color: '#9ca3af',
-                          fontFamily: 'monospace',
-                          marginTop: '2px'
-                        }}>
-                          {outlet.outletCode}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => handleRemoveOutlet(outletId, outlet.name)}
-                      disabled={isRemoving}
-                      title="Remove from organization"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: isRemoving ? 'not-allowed' : 'pointer',
-                        padding: '4px',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#d1d5db',
-                        transition: 'color 0.2s'
-                      }}
-                      onMouseEnter={(e) => { if (!isRemoving) e.currentTarget.style.color = '#ef4444'; }}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                    >
-                      {isRemoving ? (
-                        <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                      ) : (
-                        <FaTrash size={13} />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Type Badge */}
-                  <div style={{ marginBottom: '10px' }}>
-                    <TypeBadge type={outlet.outletType} />
-                  </div>
-
-                  {/* Type Selector */}
-                  <div>
-                    <label style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: '#9ca3af',
-                      display: 'block',
-                      marginBottom: '4px',
-                      fontFamily: FONT_STACK
-                    }}>
-                      Change Type
-                    </label>
-                    <select
-                      value={outlet.outletType}
-                      onChange={(e) => handleChangeOutletType(outletId, e.target.value)}
-                      disabled={isChangingType}
-                      style={{
-                        width: '100%',
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        fontSize: '12px',
-                        fontFamily: FONT_STACK,
-                        backgroundColor: isChangingType ? '#f9fafb' : '#fff',
-                        cursor: isChangingType ? 'not-allowed' : 'pointer',
-                        appearance: 'auto',
-                        outline: 'none',
-                        color: '#374151'
-                      }}
-                    >
-                      {OUTLET_TYPES.map(t => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Status */}
-                  {outlet.status && (
-                    <div style={{
-                      marginTop: '10px',
-                      fontSize: '11px',
-                      color: outlet.status === 'active' ? '#16a34a' : '#f59e0b',
-                      fontFamily: FONT_STACK,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      <span style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: outlet.status === 'active' ? '#16a34a' : '#f59e0b',
-                        display: 'inline-block'
-                      }} />
-                      {outlet.status.charAt(0).toUpperCase() + outlet.status.slice(1)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
+      {/* Outlets — Chip-based UI */}
+      <OutletsChipSection
+        orgData={orgData}
+        allOutlets={allOutlets}
+        onRefresh={onRefresh}
+        isMobile={isMobile}
+      />
 
       {/* Spinner keyframes */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

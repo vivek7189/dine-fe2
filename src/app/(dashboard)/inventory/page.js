@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic } from 'react-icons/fa';
+import { FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
@@ -14,21 +14,12 @@ import UsageTab from './components/UsageTab';
 import ProcurementTab from './components/ProcurementTab';
 import InsightsTab from './components/InsightsTab';
 import WasteTab from './components/WasteTab';
+import IndentQueueTab from './components/IndentQueueTab';
+import ProductionTab from './components/ProductionTab';
+import DistributionTab from './components/DistributionTab';
 import InventoryModals from './components/InventoryModals';
 import WasteModals from './components/WasteModals';
 // SmartImportModal is now integrated into AddEditItemModal (InventoryModals.js)
-
-const tabs = [
-  { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
-  { id: 'stock', name: 'Stock', icon: FaBoxes },
-  { id: 'recipes', name: 'Recipes', icon: FaClipboardList },
-  { id: 'usage', name: 'Usage', icon: FaHistory },
-  { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
-  { id: 'insights', name: 'AI Insights', icon: FaChartLine },
-  { id: 'waste', name: 'Waste', icon: FaRecycle },
-];
-
-const validTabIds = tabs.map(t => t.id);
 
 export default function InventoryManagement() {
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -61,6 +52,25 @@ export default function InventoryManagement() {
     }
   })();
 
+  // Dynamic tabs based on outlet type (warehouse/kitchen get extra tabs, recipes hidden for warehouse)
+  const outletType = inventory.currentRestaurant?.outletType || 'outlet';
+  const tabs = useMemo(() => [
+    { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
+    { id: 'stock', name: 'Stock', icon: FaBoxes },
+    ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),
+    { id: 'usage', name: 'Usage', icon: FaHistory },
+    { id: 'procurement', name: 'Procurement', icon: FaShoppingCart },
+    ...(outletType === 'warehouse' ? [{ id: 'indent-queue', name: 'Indent Queue', icon: FaTruck }] : []),
+    ...(outletType === 'central_kitchen' ? [
+      { id: 'production', name: 'Production', icon: FaIndustry },
+      { id: 'distribution', name: 'Distribution', icon: FaRoute },
+    ] : []),
+    { id: 'insights', name: 'AI Insights', icon: FaChartLine },
+    { id: 'waste', name: 'Waste', icon: FaRecycle },
+  ], [outletType]);
+
+  const validTabIds = useMemo(() => tabs.map(t => t.id), [tabs]);
+
   // Read tab from URL on mount
   useEffect(() => {
     const urlTab = searchParams.get('tab');
@@ -68,6 +78,14 @@ export default function InventoryManagement() {
       setActiveTab(urlTab);
     }
   }, []);
+
+  // Reset to dashboard if current tab becomes invalid (e.g., switched from warehouse to regular outlet)
+  useEffect(() => {
+    if (activeTab && !validTabIds.includes(activeTab)) {
+      setActiveTab('dashboard');
+      router.replace('/inventory', { scroll: false });
+    }
+  }, [validTabIds, activeTab, setActiveTab, router]);
 
   // Load waste data when waste tab is active
   useEffect(() => {
@@ -369,6 +387,30 @@ export default function InventoryManagement() {
             inventoryItems={inventory.inventoryItems}
             isMobile={isMobile}
             formatCurrency={formatCurrency}
+            permissions={permissions}
+          />
+        )}
+
+        {activeTab === 'indent-queue' && (
+          <IndentQueueTab
+            currentRestaurant={inventory.currentRestaurant}
+            isMobile={isMobile}
+            permissions={permissions}
+          />
+        )}
+
+        {activeTab === 'production' && (
+          <ProductionTab
+            currentRestaurant={inventory.currentRestaurant}
+            isMobile={isMobile}
+            permissions={permissions}
+          />
+        )}
+
+        {activeTab === 'distribution' && (
+          <DistributionTab
+            currentRestaurant={inventory.currentRestaurant}
+            isMobile={isMobile}
             permissions={permissions}
           />
         )}

@@ -1482,6 +1482,8 @@ export default function DashboardTablesPanel({
                   businessType={businessType}
                   upiSettings={upiSettings}
                   whatsappConnected={whatsappConnected}
+                  posSettings={selectedRestaurant?.posSettings || {}}
+                  userRole={(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'; } catch { return 'waiter'; } })()}
                 />
               </div>
             ) : (

@@ -238,6 +238,12 @@ const OrderSummary = ({
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
 
+  // Delivery Person Info
+  const [deliveryInfo, setDeliveryInfo] = useState({ personName: '', personPhone: '', cashHandedOver: false });
+  const [staffList, setStaffList] = useState([]);
+  const [staffListLoaded, setStaffListLoaded] = useState(false);
+  const [showStaffDropdown, setShowStaffDropdown] = useState(false);
+
   // Loyalty Points Redemption State
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
   const [sliderDragging, setSliderDragging] = useState(false);
@@ -296,6 +302,23 @@ const OrderSummary = ({
       onCustomerNameChange?.(customerData.name);
     }
   }, [customerData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch staff list when delivery is selected (for delivery person search)
+  useEffect(() => {
+    if (orderType === 'delivery' && restaurantId && !staffListLoaded) {
+      apiClient.getStaff(restaurantId).then(res => {
+        setStaffList(res?.staff || []);
+        setStaffListLoaded(true);
+      }).catch(() => setStaffListLoaded(true));
+    }
+  }, [orderType, restaurantId, staffListLoaded]);
+
+  // Reset delivery info when switching away from delivery
+  useEffect(() => {
+    if (orderType !== 'delivery') {
+      setDeliveryInfo({ personName: '', personPhone: '', cashHandedOver: false });
+    }
+  }, [orderType]);
 
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
@@ -954,6 +977,11 @@ const OrderSummary = ({
       voidItems: compVoidItems.filter(cv => cv.type === 'void').length > 0 ? compVoidItems.filter(cv => cv.type === 'void') : null,
       partialPayAmount: parseFloat(partialPayAmount) > 0 ? parseFloat(partialPayAmount) : null,
       managerPin: managerPin || null,
+      deliveryInfo: orderType === 'delivery' ? {
+        personName: deliveryInfo.personName || null,
+        personPhone: deliveryInfo.personPhone || null,
+        cashHandedOver: deliveryInfo.cashHandedOver || false,
+      } : null,
     };
   };
 
@@ -1123,84 +1151,51 @@ const OrderSummary = ({
           )}
           
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px' }}>
-            {/* Order Type Selector - Text Based */}
+            {/* Order Type Selector - Dynamic */}
             {(() => {
               const hasTable = !!(tableNumber || selectedTable?.name);
+              const enabledTypes = (Array.isArray(posSettings.orderTypes)
+                ? posSettings.orderTypes
+                : [
+                    { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
+                    { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
+                    { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
+                  ]
+              ).filter(ot => ot.enabled);
+              const i18nMap = { 'dine-in': t('dashboard.dineIn'), 'takeaway': t('dashboard.takeaway') };
               return (
             <div style={{ display: 'flex', gap: isMobile ? '3px' : '4px' }}>
-              <button
-                onClick={() => setOrderType('dine-in')}
-                style={{
-                  backgroundColor: orderType === 'dine-in'
-                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
-                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
-                  color: billingMode ? '#334155' : 'white',
-                  border: orderType === 'dine-in'
-                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
-                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
-                  borderRadius: isMobile ? '4px' : '6px',
-                  padding: isMobile ? '4px 6px' : '6px 12px',
-                  fontSize: isMobile ? '9px' : '10px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: orderType === 'dine-in' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                  whiteSpace: 'nowrap'
-                }}
-                title="Dine In"
-              >
-                {isMobile ? 'DINE IN' : t('dashboard.dineIn')}
-              </button>
-              <button
-                onClick={() => { if (!hasTable) setOrderType('takeaway'); }}
-                disabled={hasTable}
-                style={{
-                  backgroundColor: orderType === 'takeaway'
-                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
-                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
-                  color: billingMode ? '#334155' : 'white',
-                  border: orderType === 'takeaway'
-                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
-                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
-                  borderRadius: isMobile ? '4px' : '6px',
-                  padding: isMobile ? '4px 6px' : '6px 12px',
-                  fontSize: isMobile ? '9px' : '10px',
-                  fontWeight: '700',
-                  cursor: hasTable ? 'not-allowed' : 'pointer',
-                  opacity: hasTable ? 0.4 : 1,
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: orderType === 'takeaway' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                  whiteSpace: 'nowrap'
-                }}
-                title={hasTable ? 'Remove table to switch to Takeaway' : 'Takeaway'}
-              >
-                {isMobile ? 'TAKEAWAY' : t('dashboard.takeaway')}
-              </button>
-              <button
-                onClick={() => { if (!hasTable) setOrderType('delivery'); }}
-                disabled={hasTable}
-                style={{
-                  backgroundColor: orderType === 'delivery'
-                    ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
-                    : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
-                  color: billingMode ? '#334155' : 'white',
-                  border: orderType === 'delivery'
-                    ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
-                    : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
-                  borderRadius: isMobile ? '4px' : '6px',
-                  padding: isMobile ? '4px 6px' : '6px 12px',
-                  fontSize: isMobile ? '9px' : '10px',
-                  fontWeight: '700',
-                  cursor: hasTable ? 'not-allowed' : 'pointer',
-                  opacity: hasTable ? 0.4 : 1,
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: orderType === 'delivery' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                  whiteSpace: 'nowrap'
-                }}
-                title={hasTable ? 'Remove table to switch to Delivery' : 'Delivery'}
-              >
-                {isMobile ? 'DELIVERY' : 'Delivery'}
-              </button>
+              {enabledTypes.map((ot) => {
+                const isDisabled = hasTable && ot.id !== 'dine-in';
+                return (
+                  <button
+                    key={ot.id}
+                    onClick={() => { if (!isDisabled) setOrderType(ot.id); }}
+                    disabled={isDisabled}
+                    style={{
+                      backgroundColor: orderType === ot.id
+                        ? (billingMode ? '#e2e8f0' : 'rgba(255,255,255,0.5)')
+                        : (billingMode ? 'transparent' : 'rgba(255,255,255,0.1)'),
+                      color: billingMode ? '#334155' : 'white',
+                      border: orderType === ot.id
+                        ? (billingMode ? '2px solid #94a3b8' : '2px solid white')
+                        : (billingMode ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)'),
+                      borderRadius: isMobile ? '4px' : '6px',
+                      padding: isMobile ? '4px 6px' : '6px 12px',
+                      fontSize: isMobile ? '9px' : '10px',
+                      fontWeight: '700',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      opacity: isDisabled ? 0.4 : 1,
+                      backdropFilter: 'blur(10px)',
+                      boxShadow: orderType === ot.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title={isDisabled ? 'Remove table to switch type' : ot.label}
+                  >
+                    {isMobile ? ot.label.toUpperCase() : (i18nMap[ot.id] || ot.label)}
+                  </button>
+                );
+              })}
             </div>
               );
             })()}
@@ -1255,6 +1250,110 @@ const OrderSummary = ({
           </div>
         </div>
       </div>
+
+      {/* Delivery Person Info — shown when delivery order type is selected */}
+      {orderType === 'delivery' && (
+        <div style={{
+          display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap',
+          padding: isMobile ? '6px 10px' : '6px 16px',
+          background: billingMode ? '#f8fafc' : 'rgba(0,0,0,0.08)',
+          borderBottom: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
+          flexShrink: 0,
+        }}>
+          {/* Person name with staff search */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '90px' }}>
+            <input
+              type="text"
+              placeholder="Delivery person"
+              value={deliveryInfo.personName}
+              onChange={(e) => {
+                setDeliveryInfo(prev => ({ ...prev, personName: e.target.value }));
+                setShowStaffDropdown(true);
+              }}
+              onFocus={() => setShowStaffDropdown(true)}
+              onBlur={() => setTimeout(() => setShowStaffDropdown(false), 200)}
+              style={{
+                width: '100%', padding: '5px 8px',
+                border: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '6px', fontSize: '11px',
+                backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.1)',
+                color: billingMode ? '#374151' : 'white', outline: 'none',
+              }}
+            />
+            {showStaffDropdown && staffList.length > 0 && (() => {
+              const q = (deliveryInfo.personName || '').toLowerCase();
+              const filtered = staffList.filter(s =>
+                (s.name || '').toLowerCase().includes(q)
+              );
+              if (filtered.length === 0 || (filtered.length === 1 && filtered[0].name === deliveryInfo.personName)) return null;
+              return (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                  background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px',
+                  maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  marginTop: '2px',
+                }}>
+                  {filtered.slice(0, 8).map(s => (
+                    <div key={s.id || s.name} onMouseDown={() => {
+                      setDeliveryInfo(prev => ({
+                        ...prev, personName: s.name, personPhone: s.phone || prev.personPhone
+                      }));
+                      setShowStaffDropdown(false);
+                    }} style={{
+                      padding: '6px 8px', fontSize: '11px', cursor: 'pointer',
+                      color: '#374151', borderBottom: '1px solid #f3f4f6',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
+                    >
+                      {s.name} {s.phone ? <span style={{ color: '#9ca3af' }}>({s.phone})</span> : ''}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Phone */}
+          <input
+            type="tel"
+            placeholder="Phone"
+            value={deliveryInfo.personPhone}
+            onChange={(e) => setDeliveryInfo(prev => ({ ...prev, personPhone: e.target.value.replace(/\D/g, '') }))}
+            style={{
+              width: '80px', padding: '5px 8px',
+              border: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '6px', fontSize: '11px',
+              backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.1)',
+              color: billingMode ? '#374151' : 'white', outline: 'none',
+            }}
+          />
+
+          {/* Cash handed over toggle */}
+          <button
+            type="button"
+            onClick={() => setDeliveryInfo(prev => ({ ...prev, cashHandedOver: !prev.cashHandedOver }))}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '3px',
+              padding: '5px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
+              border: deliveryInfo.cashHandedOver
+                ? '1px solid #22c55e'
+                : (billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.2)'),
+              background: deliveryInfo.cashHandedOver
+                ? 'rgba(34,197,94,0.15)'
+                : (billingMode ? 'white' : 'rgba(255,255,255,0.1)'),
+              color: deliveryInfo.cashHandedOver
+                ? '#16a34a'
+                : (billingMode ? '#6b7280' : 'rgba(255,255,255,0.6)'),
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+            title="Cash handed over to delivery person"
+          >
+            <FaMoneyBillWave size={10} />
+            {deliveryInfo.cashHandedOver ? 'Cash ✓' : 'Cash'}
+          </button>
+        </div>
+      )}
 
       {/* Multi-Pricing Area Selector — only for Dine-In when multi-pricing enabled, hidden when table auto-selects */}
       {multiPricingEnabled && orderType === 'dine-in' && !autoSelectedRule && (() => {
@@ -2639,12 +2738,14 @@ const OrderSummary = ({
           {/* Actions Section */}
           {!shouldShowOrderSummary() && (
             <div style={{ padding: '6px 12px 12px 12px' }}>
-              {/* Offers & Rewards Summary Row — opens unified detail modal */}
+              {/* Offers & Discount Row — side by side */}
               {(() => {
                 const hasOffers = genericOffers.length > 0 || personalizedOffers.length > 0;
                 const hasLoyalty = loyaltySettings?.enabled && customerData && lookupStatus === 'found';
                 const hasAnything = hasOffers || hasLoyalty || totalDiscountAmount > 0 || specialInstructions;
-                if (!hasAnything || cart.length === 0) return null;
+                const showOffers = hasAnything && cart.length > 0;
+                const showDiscount = canEditManualDiscount && cart.length > 0;
+                if (!showOffers && !showDiscount) return null;
 
                 const activeOfferCount = (offerSettings?.allowMultipleOffers ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : [])).length;
                 const loyaltyDisc = getLoyaltyDiscountAmount();
@@ -2652,79 +2753,86 @@ const OrderSummary = ({
                 const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0;
 
                 return (
-                  <button
-                    onClick={() => setShowOffersModal(true)}
-                    style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '10px',
-                      border: hasApplied ? '1.5px solid #86efac' : '1.5px dashed #d1d5db',
-                      background: hasApplied
-                        ? 'linear-gradient(135deg, #f0fdf4, #ecfdf5)'
-                        : 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px',
-                      marginBottom: '6px', transition: 'all 0.2s',
-                      boxShadow: hasApplied ? '0 2px 8px rgba(22,163,74,0.08)' : '0 1px 3px rgba(0,0,0,0.04)',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = hasApplied ? '0 4px 12px rgba(22,163,74,0.12)' : '0 3px 8px rgba(0,0,0,0.08)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = hasApplied ? '0 2px 8px rgba(22,163,74,0.08)' : '0 1px 3px rgba(0,0,0,0.04)'; }}
-                  >
-                    <div style={{
-                      width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
-                      background: hasApplied ? '#dcfce7' : '#f1f5f9',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <FaTag size={11} style={{ color: hasApplied ? '#16a34a' : '#9ca3af' }} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                      {hasApplied ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#15803d' }}>
-                            Saving {formatCurrency(totalDiscountAmount)}
-                          </span>
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                            {activeOfferCount > 0 && (
-                              <span style={{ fontSize: '10px', fontWeight: 500, color: '#16a34a' }}>
-                                {activeOfferCount} offer{activeOfferCount > 1 ? 's' : ''}
-                              </span>
-                            )}
-                            {loyaltyDisc > 0 && (
-                              <span style={{ fontSize: '10px', fontWeight: 500, color: '#b45309' }}>
-                                {redeemLoyaltyPoints}pts redeemed
-                              </span>
-                            )}
-                            {specialInstructions && (
-                              <span style={{ fontSize: '10px', fontWeight: 500, color: '#d97706', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                <FaStickyNote size={7} /> Note
-                              </span>
-                            )}
-                          </div>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', marginBottom: '6px' }}>
+                    {showOffers && (
+                      <button
+                        onClick={() => setShowOffersModal(true)}
+                        style={{
+                          flex: 1, minWidth: 0, padding: '4px 6px', borderRadius: '8px',
+                          border: hasApplied ? '1.5px solid #86efac' : '1.5px dashed #d1d5db',
+                          background: hasApplied
+                            ? 'linear-gradient(135deg, #f0fdf4, #ecfdf5)'
+                            : 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                          transition: 'all 0.2s',
+                          boxShadow: hasApplied ? '0 1px 4px rgba(22,163,74,0.08)' : '0 1px 2px rgba(0,0,0,0.04)',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; }}
+                      >
+                        <FaTag size={9} style={{ color: hasApplied ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                          {hasApplied ? (
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', whiteSpace: 'nowrap' }}>
+                              -{formatCurrency(totalDiscountAmount)}
+                              {activeOfferCount > 0 && <span style={{ fontWeight: 500 }}> · {activeOfferCount} offer{activeOfferCount > 1 ? 's' : ''}</span>}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '10px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                              Offers{hasOffers ? ` (${applicableOffers.length})` : ''}
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>
-                            Offers & Rewards
-                          </span>
-                          <span style={{ fontSize: '10px', color: '#9ca3af' }}>
-                            {hasOffers ? `${applicableOffers.length} offer${applicableOffers.length > 1 ? 's' : ''} available` : ''}
-                            {hasOffers && hasLoyalty ? ' · ' : ''}
-                            {hasLoyalty ? `${customerData.loyaltyPoints || 0} pts` : ''}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {earnPts > 0 && (
-                      <span style={{
-                        fontSize: '9px', fontWeight: 600, color: '#16a34a', flexShrink: 0,
-                        background: '#dcfce7', padding: '2px 7px', borderRadius: '10px',
-                      }}>+{earnPts}pts</span>
+                        <FaChevronDown size={7} style={{ color: hasApplied ? '#15803d' : '#9ca3af', flexShrink: 0 }} />
+                      </button>
                     )}
-                    <div style={{
-                      width: '24px', height: '24px', borderRadius: '6px', flexShrink: 0,
-                      background: hasApplied ? '#bbf7d0' : '#e5e7eb',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <FaChevronDown size={8} style={{ color: hasApplied ? '#15803d' : '#6b7280' }} />
-                    </div>
-                  </button>
+                    {showDiscount && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '4px', flex: 1,
+                        padding: '4px 8px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fafafa',
+                        minWidth: 0,
+                      }}>
+                        <span style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>Discount</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0"
+                          value={manualDiscountValue}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) {
+                              const num = parseFloat(v) || 0;
+                              if (manualDiscountTypeState === 'percentage' && discountSettings.maxDiscountPercent && num > discountSettings.maxDiscountPercent) return;
+                              if (manualDiscountTypeState === 'flat' && discountSettings.maxDiscountAmount && num > discountSettings.maxDiscountAmount) return;
+                              setManualDiscountValue(v);
+                            }
+                          }}
+                          style={{
+                            width: '48px', padding: '4px 6px',
+                            border: '1px solid #e5e7eb', borderRadius: '6px',
+                            fontSize: '11px', textAlign: 'right', outline: 'none',
+                            backgroundColor: 'white',
+                          }}
+                        />
+                        <select
+                          value={manualDiscountTypeState}
+                          onChange={(e) => { setManualDiscountTypeState(e.target.value); setManualDiscountValue(''); }}
+                          style={{
+                            padding: '4px 4px', border: '1px solid #e5e7eb', borderRadius: '6px',
+                            fontSize: '11px', backgroundColor: 'white', cursor: 'pointer', outline: 'none',
+                          }}
+                        >
+                          <option value="flat">{getCurrencySymbol()}</option>
+                          <option value="percentage">%</option>
+                        </select>
+                        {getManualDiscountAmount() > 0 && (
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                            -{formatCurrency(getManualDiscountAmount())}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })()}
 
@@ -3135,11 +3243,14 @@ const OrderSummary = ({
                   {t('dashboard.paymentMethod')}
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  {[
-                    { id: 'cash', label: t('dashboard.cash') },
-                    ...(!posSettings.hideUPI ? [{ id: 'upi', label: t('dashboard.upi') }] : []),
-                    ...(!posSettings.hideCard ? [{ id: 'card', label: t('dashboard.card') }] : [])
-                  ].map((method) => {
+                  {(Array.isArray(posSettings.paymentMethods)
+                    ? posSettings.paymentMethods.filter(pm => pm.enabled)
+                    : [
+                        { id: 'cash', label: t('dashboard.cash') },
+                        ...(!posSettings.hideUPI ? [{ id: 'upi', label: t('dashboard.upi') }] : []),
+                        ...(!posSettings.hideCard ? [{ id: 'card', label: t('dashboard.card') }] : [])
+                      ]
+                  ).map((method) => {
                     const isSelected = paymentMethod === method.id;
                     return (
                       <button

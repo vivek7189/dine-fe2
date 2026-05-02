@@ -258,6 +258,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
     { id: 'shifts', name: 'Shifts', icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'admin', 'manager'] },
+    { id: 'register', name: 'Register', icon: FaCashRegister, href: '/register', color: '#16a34a', roles: ['owner', 'admin', 'manager', 'cashier'] },
     { id: 'attendance', name: 'Attendance', icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Tools & Extras ---
@@ -312,6 +313,7 @@ export default function Sidebar({ isDashboardPage = false }) {
         'books': 'admin',
         'dineai': 'analytics',
         'shifts': 'admin',
+        'register': 'completeBill',
         'attendance': 'admin',
         'google-reviews': 'admin',
         'spaces': 'admin',
