@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -73,7 +73,9 @@ import {
   FaUndo,
   FaLock,
   FaMobileAlt,
-  FaDatabase
+  FaDatabase,
+  FaCloudUploadAlt,
+  FaImage
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -2757,6 +2759,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveNotification, setSaveNotification] = useState(null); // { type: 'success'|'error', message }
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoFileRef = useRef(null);
   const [installerUrls, setInstallerUrls] = useState({ windowsUrl: null, macUrl: null });
   const [installerUrlsLoading, setInstallerUrlsLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -3047,6 +3051,183 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                 padding: '20px',
                 backgroundColor: '#fafafa'
               }}>
+                {/* Receipt Logo Section */}
+                <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Receipt Logo
+                  </p>
+                  <p style={{ color: '#9ca3af', margin: '0 0 12px 0', fontSize: '12px' }}>
+                    Upload your restaurant logo to display on printed bills and receipts.
+                  </p>
+
+                  {/* Logo Upload / Preview */}
+                  {printSettings.receiptLogo?.url ? (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '10px', background: 'white' }}>
+                        <img
+                          src={printSettings.receiptLogo.url}
+                          alt="Receipt logo"
+                          style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #f3f4f6' }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#374151' }}>Logo uploaded</p>
+                          <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#9ca3af' }}>Click replace to change</p>
+                        </div>
+                        <button
+                          onClick={() => logoFileRef.current?.click()}
+                          disabled={logoUploading}
+                          style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '6px', background: 'white', color: '#374151', cursor: 'pointer' }}
+                        >
+                          Replace
+                        </button>
+                        <button
+                          onClick={() => setPrintSettings(prev => ({ ...prev, receiptLogo: { ...prev.receiptLogo, url: '', enabled: false } }))}
+                          style={{ padding: '6px', border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}
+                        >
+                          <FaTimes size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => !logoUploading && logoFileRef.current?.click()}
+                      style={{
+                        border: '2px dashed #d1d5db', borderRadius: '10px', padding: '20px', textAlign: 'center',
+                        cursor: logoUploading ? 'wait' : 'pointer', marginBottom: '12px',
+                        transition: 'all 0.2s', background: 'white'
+                      }}
+                    >
+                      {logoUploading ? (
+                        <FaSpinner className="spin" size={24} style={{ color: '#ef4444', marginBottom: '6px' }} />
+                      ) : (
+                        <FaCloudUploadAlt size={24} style={{ color: '#9ca3af', marginBottom: '6px' }} />
+                      )}
+                      <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>
+                        {logoUploading ? 'Uploading...' : 'Click to upload logo'}
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#9ca3af' }}>
+                        JPEG, PNG, WebP — Max 5MB
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    ref={logoFileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/webp"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!file) return;
+                      const allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+                      if (!allowed.includes(file.type)) { alert('Only JPEG, PNG, WebP images allowed.'); return; }
+                      if (file.size > 5 * 1024 * 1024) { alert('File too large. Max 5MB.'); return; }
+                      setLogoUploading(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        const res = await apiClient.uploadImage(formData);
+                        if (res.imageUrl) {
+                          setPrintSettings(prev => ({
+                            ...prev,
+                            receiptLogo: { ...(prev.receiptLogo || {}), url: res.imageUrl, enabled: true, position: prev.receiptLogo?.position || 'center', size: prev.receiptLogo?.size || 60, nameAlignment: prev.receiptLogo?.nameAlignment || 'center' }
+                          }));
+                        }
+                      } catch (err) {
+                        console.error('Logo upload error:', err);
+                        alert('Failed to upload logo. Please try again.');
+                      } finally {
+                        setLogoUploading(false);
+                      }
+                    }}
+                  />
+
+                  {/* Enable toggle */}
+                  {printSettings.receiptLogo?.url && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>Show logo on receipt</span>
+                      <button
+                        onClick={() => setPrintSettings(prev => ({ ...prev, receiptLogo: { ...prev.receiptLogo, enabled: !prev.receiptLogo?.enabled } }))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        {printSettings.receiptLogo?.enabled
+                          ? <FaToggleOn size={24} style={{ color: '#16a34a' }} />
+                          : <FaToggleOff size={24} style={{ color: '#d1d5db' }} />
+                        }
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Logo Position */}
+                  {printSettings.receiptLogo?.url && printSettings.receiptLogo?.enabled && (
+                    <>
+                      <div style={{ marginBottom: '12px' }}>
+                        <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 6px 0' }}>Logo Position</p>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {['left', 'center', 'right'].map(pos => (
+                            <button
+                              key={pos}
+                              onClick={() => setPrintSettings(prev => ({ ...prev, receiptLogo: { ...prev.receiptLogo, position: pos } }))}
+                              style={{
+                                flex: 1, padding: '6px 0', fontSize: '11px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer',
+                                border: (printSettings.receiptLogo?.position || 'center') === pos ? '2px solid #111827' : '1px solid #e5e7eb',
+                                background: (printSettings.receiptLogo?.position || 'center') === pos ? '#f9fafb' : 'white',
+                                color: (printSettings.receiptLogo?.position || 'center') === pos ? '#111827' : '#6b7280',
+                                textTransform: 'capitalize'
+                              }}
+                            >
+                              {pos}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Logo Size */}
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: 0 }}>Logo Size</p>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#111827' }}>{printSettings.receiptLogo?.size || 60}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="30"
+                          max="120"
+                          step="5"
+                          value={printSettings.receiptLogo?.size || 60}
+                          onChange={(e) => setPrintSettings(prev => ({ ...prev, receiptLogo: { ...prev.receiptLogo, size: parseInt(e.target.value) } }))}
+                          style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', WebkitAppearance: 'none', background: '#e5e7eb', outline: 'none', cursor: 'pointer' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                          <span style={{ fontSize: '9px', color: '#9ca3af' }}>30px</span>
+                          <span style={{ fontSize: '9px', color: '#9ca3af' }}>120px</span>
+                        </div>
+                      </div>
+
+                      {/* Restaurant Name Alignment */}
+                      <div>
+                        <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 6px 0' }}>Restaurant Name Alignment</p>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {['left', 'center', 'right'].map(pos => (
+                            <button
+                              key={pos}
+                              onClick={() => setPrintSettings(prev => ({ ...prev, receiptLogo: { ...prev.receiptLogo, nameAlignment: pos } }))}
+                              style={{
+                                flex: 1, padding: '6px 0', fontSize: '11px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer',
+                                border: (printSettings.receiptLogo?.nameAlignment || 'center') === pos ? '2px solid #111827' : '1px solid #e5e7eb',
+                                background: (printSettings.receiptLogo?.nameAlignment || 'center') === pos ? '#f9fafb' : 'white',
+                                color: (printSettings.receiptLogo?.nameAlignment || 'center') === pos ? '#111827' : '#6b7280',
+                                textTransform: 'capitalize'
+                              }}
+                            >
+                              {pos}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Bill Print Font Size
                 </p>
@@ -3176,10 +3357,29 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         lineHeight: f.lineHeight,
                         boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}>
-                        <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                          <div style={{ fontSize: f.restaurantName, fontWeight: 'bold', textTransform: 'uppercase' }}>{rName}</div>
-                          <div style={{ fontSize: f.billTitle, fontWeight: 'bold', marginTop: '4px' }}>--- BILL ---</div>
-                        </div>
+                        {(() => {
+                          const logo = printSettings.receiptLogo;
+                          const hasLogo = logo?.enabled && logo?.url;
+                          const logoPos = logo?.position || 'center';
+                          const nameAlign = logo?.nameAlignment || 'center';
+                          const logoSize = logo?.size || 60;
+                          const nameEl = <div style={{ fontSize: f.restaurantName, fontWeight: 'bold', textTransform: 'uppercase', textAlign: nameAlign }}>{rName}</div>;
+                          const titleEl = <div style={{ fontSize: f.billTitle, fontWeight: 'bold', marginTop: '4px', textAlign: nameAlign }}>--- BILL ---</div>;
+                          const logoEl = hasLogo ? <img src={logo.url} alt="" style={{ width: `${logoSize}px`, height: 'auto', objectFit: 'contain', ...(logoPos === 'center' ? { margin: '0 auto 4px', display: 'block' } : { flexShrink: 0 }) }} /> : null;
+
+                          if (hasLogo && logoPos === 'center') {
+                            return <div style={{ textAlign: 'center', marginBottom: '8px' }}>{logoEl}{nameEl}{titleEl}</div>;
+                          }
+                          if (hasLogo && (logoPos === 'left' || logoPos === 'right')) {
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexDirection: logoPos === 'right' ? 'row-reverse' : 'row' }}>
+                                {logoEl}
+                                <div style={{ flex: 1, textAlign: nameAlign }}>{nameEl}{titleEl}</div>
+                              </div>
+                            );
+                          }
+                          return <div style={{ textAlign: nameAlign, marginBottom: '8px' }}>{nameEl}{titleEl}</div>;
+                        })()}
                         <div style={{ textAlign: 'center', margin: '6px 0', color: '#9ca3af', fontSize: f.info }}>- - - - - - - - - - - - - - - -</div>
                         <div style={{ margin: '8px 0', fontSize: f.info }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}><span>Bill#:</span><span><strong>1042</strong></span></div>

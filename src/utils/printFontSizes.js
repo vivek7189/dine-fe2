@@ -77,7 +77,35 @@ export const getPrintFontFamily = (fontId) => {
 export const getBillPrintCSS = (scaleOrPreset, fontId) => {
   const f = getPrintFontSizes(scaleOrPreset);
   const ff = getPrintFontFamily(fontId);
-  return `@page{size:80mm auto;margin:0;}body{font-family:${ff};margin:16px;font-size:${f.body};line-height:${f.lineHeight};max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;margin:3px 0;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:${f.th};} td{font-size:${f.td};padding:${f.tdPadding};} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;font-size:${f.totalSection};} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:${f.footer};}`;
+  return `@page{size:80mm auto;margin:0;}body{font-family:${ff};margin:16px;font-size:${f.body};line-height:${f.lineHeight};max-width:80mm;} .bill-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;} .bill-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .bill-logo{max-width:100%;height:auto;display:block;} .divider{text-align:center;margin:6px 0;} .bill-info{margin:8px 0;font-size:${f.info};} .bill-info div{display:flex;justify-content:space-between;margin:3px 0;} .info-row{display:flex;justify-content:space-between;margin:2px 0;} table{width:100%;border-collapse:collapse;margin:8px 0;} th{text-align:left;border-bottom:1px dashed #000;padding:4px;font-size:${f.th};} td{font-size:${f.td};padding:${f.tdPadding};} .total-section{border-top:1px dashed #000;margin-top:8px;padding-top:4px;font-size:${f.totalSection};} .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:${f.totalRow};margin-top:4px;} .bill-footer{margin-top:12px;text-align:center;font-size:${f.footer};}`;
+};
+
+// Generate bill header HTML with optional logo and configurable alignment.
+// Used by all bill print locations (OrderSummary, bar, order history).
+// restaurantName: escaped HTML string, identityHtml: pre-built identity lines,
+// receiptLogo: { url, position, size, nameAlignment, enabled }, billTitle: e.g. "--- BILL ---"
+export const getBillHeaderHTML = (restaurantName, identityHtml, receiptLogo, billTitle = '--- BILL ---') => {
+  const logo = receiptLogo?.enabled ? receiptLogo : null;
+  const nameAlign = logo?.nameAlignment || receiptLogo?.nameAlignment || 'center';
+  const logoSize = logo?.size || 60;
+  const logoPos = logo?.position || 'center';
+
+  const logoImg = logo?.url
+    ? `<img src="${logo.url}" class="bill-logo" style="width:${logoSize}px;height:auto;object-fit:contain;${logoPos === 'center' ? 'margin:0 auto 4px;' : ''}" />`
+    : '';
+
+  const nameBlock = `<div class="restaurant-name" style="text-align:${nameAlign};">${restaurantName}</div>${identityHtml ? `<div style="text-align:${nameAlign};">${identityHtml}</div>` : ''}<div class="bill-title" style="text-align:${nameAlign};">${billTitle}</div>`;
+
+  if (!logoImg) {
+    return `<div class="bill-header" style="text-align:${nameAlign};margin-bottom:8px;">${nameBlock}</div>`;
+  }
+
+  if (logoPos === 'center') {
+    return `<div class="bill-header" style="text-align:center;margin-bottom:8px;">${logoImg}${nameBlock}</div>`;
+  }
+
+  const dir = logoPos === 'right' ? 'row-reverse' : 'row';
+  return `<div class="bill-header" style="display:flex;align-items:center;gap:8px;flex-direction:${dir};margin-bottom:8px;">${logoImg}<div style="flex:1;text-align:${nameAlign};">${nameBlock}</div></div>`;
 };
 
 // Generate the common CSS <style> block for KOT print templates

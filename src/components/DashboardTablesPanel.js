@@ -6,7 +6,7 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { getBillPrintCSS } from '../utils/printFontSizes';
+import { getBillPrintCSS, getBillHeaderHTML } from '../utils/printFontSizes';
 
 export default function DashboardTablesPanel({
   floors = [],
@@ -499,6 +499,18 @@ export default function DashboardTablesPanel({
       </tr>`
     ).join('');
 
+    const _tpIdLines = [];
+    if (selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName) _tpIdLines.push(selectedRestaurant.legalBusinessName.replace(/</g, '&lt;'));
+    if (selectedRestaurant?.address) _tpIdLines.push(selectedRestaurant.address.replace(/</g, '&lt;'));
+    if (selectedRestaurant?.phone) _tpIdLines.push('Tel: ' + selectedRestaurant.phone);
+    if (selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin) _tpIdLines.push('GSTIN: ' + selectedRestaurant.gstin);
+    if (selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai) _tpIdLines.push('FSSAI: ' + selectedRestaurant.fssai);
+    if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber) _tpIdLines.push('Tax ID: ' + selectedRestaurant.vatNumber);
+    if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId) _tpIdLines.push('Tax ID: ' + selectedRestaurant.taxId);
+    if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber) _tpIdLines.push('Reg#: ' + selectedRestaurant.businessRegistrationNumber);
+    const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
+    const _tpHeaderHtml = getBillHeaderHTML((restaurantName || 'Restaurant').replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
+
     const billContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -506,18 +518,7 @@ export default function DashboardTablesPanel({
   <style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style>
 </head>
 <body>
-  <div class="bill-header">
-    <div class="restaurant-name">${(restaurantName || 'Restaurant').replace(/</g, '&lt;')}</div>
-    ${selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName ? `<div style="font-size:11px;">${selectedRestaurant.legalBusinessName.replace(/</g, '&lt;')}</div>` : ''}
-    ${selectedRestaurant?.address ? `<div style="font-size:11px;">${selectedRestaurant.address.replace(/</g, '&lt;')}</div>` : ''}
-    ${selectedRestaurant?.phone ? `<div style="font-size:11px;">Tel: ${selectedRestaurant.phone}</div>` : ''}
-    ${selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin ? `<div style="font-size:11px;">GSTIN: ${selectedRestaurant.gstin}</div>` : ''}
-    ${selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai ? `<div style="font-size:11px;">FSSAI: ${selectedRestaurant.fssai}</div>` : ''}
-    ${selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber ? `<div style="font-size:11px;">Tax ID: ${selectedRestaurant.vatNumber}</div>` : ''}
-    ${selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId ? `<div style="font-size:11px;">Tax ID: ${selectedRestaurant.taxId}</div>` : ''}
-    ${selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber ? `<div style="font-size:11px;">Reg#: ${selectedRestaurant.businessRegistrationNumber}</div>` : ''}
-    <div class="bill-title">--- BILL / INVOICE ---</div>
-  </div>
+  ${_tpHeaderHtml}
   <div class="divider">--------------------------------</div>
   <div class="bill-info">
     <div><span>Bill#:</span><span><strong>${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</strong></span></div>
