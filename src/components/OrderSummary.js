@@ -126,14 +126,14 @@ const OrderSummary = ({
   upiSettings = {},
   whatsappConnected = false,
 }) => {
-  // Business-type-aware billing labels
+  // Business-type-aware billing labels (i18n — Arabic gets bilingual ar/en)
   const billingLabels = {
-    restaurant: { billTitle: 'BILL / INVOICE', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Customer', footer: 'Thank you for dining with us!', billLabel: 'Bill' },
-    bar: { billTitle: 'BAR TAB', itemCol: 'Drink / Item', qtyCol: 'Qty', customerLabel: 'Guest', footer: 'Thank you for visiting! Cheers!', billLabel: 'Tab' },
-    bakery: { billTitle: 'RECEIPT', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Customer', footer: 'Thank you! Enjoy your fresh bakes!', billLabel: 'Receipt' },
-    ice_cream: { billTitle: 'RECEIPT', itemCol: 'Item / Flavor', qtyCol: 'Qty', customerLabel: 'Customer', footer: 'Thank you! Stay cool, visit again!', billLabel: 'Receipt' },
-    cafe: { billTitle: 'RECEIPT', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Name', footer: 'Thanks for stopping by! See you soon.', billLabel: 'Receipt' },
-    qsr: { billTitle: 'ORDER RECEIPT', itemCol: 'Item', qtyCol: 'Qty', customerLabel: 'Token', footer: 'Thank you! Visit again.', billLabel: 'Receipt' }
+    restaurant: { billTitle: t('invoice.billInvoice'), itemCol: t('invoice.item'), qtyCol: t('invoice.qty'), customerLabel: t('invoice.customer'), footer: t('invoice.footerRestaurant'), billLabel: t('invoice.bill') },
+    bar: { billTitle: t('invoice.barTab'), itemCol: t('invoice.drinkItem'), qtyCol: t('invoice.qty'), customerLabel: t('invoice.guest'), footer: t('invoice.footerBar'), billLabel: t('invoice.tab') },
+    bakery: { billTitle: t('invoice.receipt'), itemCol: t('invoice.item'), qtyCol: t('invoice.qty'), customerLabel: t('invoice.customer'), footer: t('invoice.footerBakery'), billLabel: t('invoice.bill') },
+    ice_cream: { billTitle: t('invoice.receipt'), itemCol: t('invoice.itemFlavor'), qtyCol: t('invoice.qty'), customerLabel: t('invoice.customer'), footer: t('invoice.footerIceCream'), billLabel: t('invoice.bill') },
+    cafe: { billTitle: t('invoice.receipt'), itemCol: t('invoice.item'), qtyCol: t('invoice.qty'), customerLabel: t('invoice.name'), footer: t('invoice.footerCafe'), billLabel: t('invoice.bill') },
+    qsr: { billTitle: t('invoice.orderReceipt'), itemCol: t('invoice.item'), qtyCol: t('invoice.qty'), customerLabel: t('invoice.token'), footer: t('invoice.footerQsr'), billLabel: t('invoice.bill') }
   };
   const bLabels = billingLabels[businessType] || billingLabels.restaurant;
 
@@ -1874,7 +1874,7 @@ const OrderSummary = ({
                   borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#166534',
                 }}>
                   <FaCheckCircle size={10} />
-                  Confirmed
+                  {t('invoice.confirmed')}
                 </div>
               )}
               {(() => {
@@ -1882,10 +1882,10 @@ const OrderSummary = ({
                 return (
                   <>
                     <div style={{ fontSize: '14px', color: '#166534', marginBottom: '12px', fontWeight: '600' }}>
-                      {bLabels.billLabel} #{orderSuccess.dailyOrderId ?? orderSuccess.orderId ?? '—'} {isKitchenOrder ? 'sent to kitchen' : 'completed'}
+                      {bLabels.billLabel} #{orderSuccess.dailyOrderId ?? orderSuccess.orderId ?? '—'} {isKitchenOrder ? t('invoice.sentToKitchen') : t('invoice.completed')}
                     </div>
                     <div style={{ fontSize: '12px', color: '#166534', marginBottom: '16px' }}>
-                      {isKitchenOrder ? 'Your order has been sent to the kitchen for preparation.' : 'Payment processed successfully. Thank you for your order!'}
+                      {isKitchenOrder ? t('invoice.orderSentToKitchen') : t('invoice.paymentProcessed')}
                     </div>
                   </>
                 );
@@ -1893,24 +1893,24 @@ const OrderSummary = ({
               {orderSuccess?.kotData && (orderSuccess?.message?.includes('placed') || orderSuccess?.message?.includes('Updated') || orderSuccess?.message?.includes('Kitchen')) && (
                 <>
                   <div style={{ textAlign: 'center', marginBottom: '12px', padding: '12px', backgroundColor: '#fff', borderRadius: '8px', border: '2px dashed #22c55e', fontFamily: 'monospace', fontSize: '14px', color: '#14532d' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- KITCHEN ORDER ---</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', borderBottom: '2px dashed #22c55e', paddingBottom: '6px', marginBottom: '8px' }}>--- {t('invoice.kitchenOrder')} ---</div>
                     <div style={{ marginBottom: '6px', fontSize: '14px' }}>{orderSuccess.kotData.restaurantName || 'Restaurant'}</div>
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px' }}>
-                      <div><strong>Order #:</strong> {orderSuccess.kotData.dailyOrderId ?? orderSuccess.kotData.orderId ?? '—'}</div>
-                      {orderSuccess.kotData.orderId && <div><strong>ID:</strong> {String(orderSuccess.kotData.orderId).slice(-8).toUpperCase()}</div>}
-                      <div><strong>Date:</strong> {new Date().toLocaleString()}</div>
+                      <div><strong>{t('invoice.orderHash')}:</strong> {orderSuccess.kotData.dailyOrderId ?? orderSuccess.kotData.orderId ?? '—'}</div>
+                      {orderSuccess.kotData.orderId && <div><strong>{t('invoice.id')}:</strong> {String(orderSuccess.kotData.orderId).slice(-8).toUpperCase()}</div>}
+                      <div><strong>{t('invoice.date')}:</strong> {new Date().toLocaleString()}</div>
                       {(orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber) && (
-                        <div><strong>{orderSuccess.kotData.roomNumber ? 'Room' : 'Table'}:</strong> {orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber}</div>
+                        <div><strong>{orderSuccess.kotData.roomNumber ? t('invoice.room') : t('invoice.table')}:</strong> {orderSuccess.kotData.roomNumber || orderSuccess.kotData.tableNumber}</div>
                       )}
-                      {orderSuccess.kotData.customerName && <div><strong>Customer:</strong> {orderSuccess.kotData.customerName}</div>}
-                      {orderSuccess.kotData.orderType && <div><strong>Type:</strong> {orderSuccess.kotData.orderType}</div>}
+                      {orderSuccess.kotData.customerName && <div><strong>{t('invoice.customer')}:</strong> {orderSuccess.kotData.customerName}</div>}
+                      {orderSuccess.kotData.orderType && <div><strong>{t('invoice.type')}:</strong> {orderSuccess.kotData.orderType}</div>}
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #86efac' }}>
-                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>Item</th>
-                          <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '36px' }}>Qty</th>
-                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>Note</th>
+                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.item')}</th>
+                          <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '36px' }}>{t('invoice.qty')}</th>
+                          <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{t('invoice.note')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1925,11 +1925,11 @@ const OrderSummary = ({
                     </table>
                     {orderSuccess.kotData.specialInstructions && (
                       <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fef3c7', border: '1px dashed #f59e0b', borderRadius: '4px', textAlign: 'left' }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#92400e', marginBottom: '4px' }}>*** SPECIAL INSTRUCTIONS ***</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#92400e', marginBottom: '4px' }}>*** {t('invoice.specialInstructions')} ***</div>
                         <div style={{ fontSize: '12px', color: '#78350f' }}>{orderSuccess.kotData.specialInstructions}</div>
                       </div>
                     )}
-                    <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>Thank you - DineOpen KOT</div>
+                    <div style={{ marginTop: '8px', fontSize: '12px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>{t('invoice.kotFooter')}</div>
                   </div>
                   {shouldShowManualPrint() && (
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
@@ -1942,10 +1942,10 @@ const OrderSummary = ({
                         return;
                       }
                       const k = orderSuccess.kotData;
-                      const tableOrRoom = k.roomNumber ? `Room: ${k.roomNumber}` : (k.tableNumber ? `Table: ${k.tableNumber}` : '');
+                      const tableOrRoom = k.roomNumber ? `${t('invoice.room')}: ${k.roomNumber}` : (k.tableNumber ? `${t('invoice.table')}: ${k.tableNumber}` : '');
                       const totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
-                      const specialInstructionsHtml = k.specialInstructions ? `<div class="divider">--------------------------------</div><div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${(k.specialInstructions || '').replace(/</g,'&lt;')}</div></div>` : '';
-                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? 'Room' : 'Table'}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>Time:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>Customer:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>Type:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>Waiter:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">Total Items: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
+                      const specialInstructionsHtml = k.specialInstructions ? `<div class="divider">--------------------------------</div><div class="special-instructions"><strong>*** ${t('invoice.specialInstructions')} ***</strong><div>${(k.specialInstructions || '').replace(/</g,'&lt;')}</div></div>` : '';
+                      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- ${t('invoice.kitchenOrder')} ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>${t('invoice.orderHash')}:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? t('invoice.room') : t('invoice.table')}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>${t('invoice.time')}:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>${t('invoice.date')}:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>${t('invoice.customer')}:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>${t('invoice.type')}:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>${t('invoice.waiter')}:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">${t('invoice.qty')} &nbsp; ${t('invoice.item')}</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">${t('invoice.note')}: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">${t('invoice.totalItems')}: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
                       const newPw = window.open('', '_blank', 'width=400,height=600');
                       if (newPw) {
                         kotPrintWindowRef.current = newPw;
@@ -1958,7 +1958,7 @@ const OrderSummary = ({
                     style={{ backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(249,115,22,0.3)' }}
                   >
                     <FaPrint size={14} />
-                    Print Kitchen Order (KOT)
+                    {t('invoice.printKOT')}
                   </button>
                 </div>
                   )}
@@ -1977,7 +1977,7 @@ const OrderSummary = ({
                       <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>{invoice.restaurantAddress}</div>
                     )}
                     {invoice?.restaurantPhone && (
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>Tel: {invoice.restaurantPhone}</div>
+                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '2px' }}>{t('invoice.tel')}: {invoice.restaurantPhone}</div>
                     )}
                     {/* India: GSTIN & FSSAI */}
                     {invoice?.showGstOnInvoice && invoice?.gstin && (
@@ -1998,11 +1998,11 @@ const OrderSummary = ({
                     )}
                     <div style={{ textAlign: 'left', marginBottom: '8px', fontSize: '13px', marginTop: '6px' }}>
                       {invoice?.dailyOrderId != null && <div><strong>{bLabels.billLabel} #:</strong> {invoice.dailyOrderId}</div>}
-                      {invoice?.orderId && <div><strong>ID:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
-                      <div><strong>Date:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
-                      {invoice?.tableNumber && <div><strong>Table:</strong> {invoice.tableNumber}</div>}
+                      {invoice?.orderId && <div><strong>{t('invoice.id')}:</strong> {String(invoice.orderId).slice(-8).toUpperCase()}</div>}
+                      <div><strong>{t('invoice.date')}:</strong> {invoice?.generatedAt ? new Date(invoice.generatedAt).toLocaleString() : (invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleString() : 'N/A')}</div>
+                      {invoice?.tableNumber && <div><strong>{t('invoice.table')}:</strong> {invoice.tableNumber}</div>}
                       {invoice?.customerName && <div><strong>{bLabels.customerLabel}:</strong> {invoice.customerName}</div>}
-                      <div><strong>Payment:</strong> {(invoice?.paymentMethod || 'CASH').toUpperCase()}</div>
+                      <div><strong>{t('invoice.payment')}:</strong> {(invoice?.paymentMethod || 'CASH').toUpperCase()}</div>
                     </div>
                     {/* Items table */}
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '8px' }}>
@@ -2010,7 +2010,7 @@ const OrderSummary = ({
                         <tr style={{ borderBottom: '1px dashed #22c55e' }}>
                           <th style={{ textAlign: 'left', padding: '4px 6px', backgroundColor: '#f0fdf4' }}>{bLabels.itemCol}</th>
                           <th style={{ textAlign: 'center', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '40px' }}>{bLabels.qtyCol}</th>
-                          <th style={{ textAlign: 'right', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '70px' }}>Amt</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px', backgroundColor: '#f0fdf4', width: '70px' }}>{t('invoice.amt')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2034,24 +2034,24 @@ const OrderSummary = ({
                     {/* Totals */}
                     <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '6px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                        <span>Subtotal:</span>
+                        <span>{t('invoice.subtotal')}:</span>
                         <span>{formatCurrency(invoice?.subtotal || 0)}</span>
                       </div>
                       {(invoice?.discountAmount || 0) > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#16a34a' }}>
-                          <span>Offer{(() => { const n = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName); return n ? ` (${n})` : ''; })()}:</span>
+                          <span>{t('invoice.offer')}{(() => { const n = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName); return n ? ` (${n})` : ''; })()}:</span>
                           <span>-{formatCurrency(invoice.discountAmount)}</span>
                         </div>
                       )}
                       {(invoice?.manualDiscount || 0) > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#16a34a' }}>
-                          <span>Manual Discount:</span>
+                          <span>{t('invoice.manualDiscount')}:</span>
                           <span>-{formatCurrency(invoice.manualDiscount)}</span>
                         </div>
                       )}
                       {(invoice?.loyaltyDiscount || 0) > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#b45309' }}>
-                          <span>Loyalty Redeem:</span>
+                          <span>{t('invoice.loyaltyRedeem')}:</span>
                           <span>-{formatCurrency(invoice.loyaltyDiscount)}</span>
                         </div>
                       )}
@@ -2063,29 +2063,29 @@ const OrderSummary = ({
                       ))}
                       {(invoice?.serviceChargeAmount > 0) && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                          <span>Service Charge{invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span>
+                          <span>{t('invoice.serviceCharge')}{invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span>
                           <span>{formatCurrency(invoice.serviceChargeAmount)}</span>
                         </div>
                       )}
                       {(invoice?.tipAmount > 0) && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                          <span>Tip{invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span>
+                          <span>{t('invoice.tip')}{invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span>
                           <span>{formatCurrency(invoice.tipAmount)}</span>
                         </div>
                       )}
                       {(invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                          <span>Round Off:</span>
+                          <span>{t('invoice.roundOff')}:</span>
                           <span>{invoice.roundOffAmount > 0 ? '+' : ''}{formatCurrency(invoice.roundOffAmount)}</span>
                         </div>
                       )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', borderTop: '2px solid #22c55e', paddingTop: '4px', marginTop: '4px' }}>
-                        <span>TOTAL:</span>
+                        <span>{t('invoice.total')}:</span>
                         <span>{formatCurrency(invoice?.grandTotal || ((invoice?.subtotal || 0) - (invoice?.totalDiscount || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0)))}</span>
                       </div>
                       {(invoice?.splitPayments?.length >= 2) && (
                         <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>Split Payment:</div>
+                          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>{t('invoice.splitPayment')}:</div>
                           {invoice.splitPayments.map((sp, idx) => (
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
                               <span>{(sp.method || 'Cash').toUpperCase()}:</span>
@@ -2097,12 +2097,12 @@ const OrderSummary = ({
                       {(invoice?.cashReceived > 0) && (
                         <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                            <span>Cash Received:</span>
+                            <span>{t('invoice.cashReceived')}:</span>
                             <span>{formatCurrency(invoice.cashReceived)}</span>
                           </div>
                           {(invoice?.changeReturned > 0) && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                              <span>Change:</span>
+                              <span>{t('invoice.change')}:</span>
                               <span>{formatCurrency(invoice.changeReturned)}</span>
                             </div>
                           )}
@@ -2110,13 +2110,13 @@ const OrderSummary = ({
                       )}
                       {(invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) && (
                         <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>Partial Payment:</div>
+                          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>{t('invoice.partialPayment')}:</div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                            <span>Paid:</span>
+                            <span>{t('invoice.paid')}:</span>
                             <span>{formatCurrency(invoice.paidAmount)}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#dc2626' }}>
-                            <span>Outstanding:</span>
+                            <span>{t('invoice.outstanding')}:</span>
                             <span>{formatCurrency(invoice.outstandingAmount)}</span>
                           </div>
                         </div>
@@ -2154,22 +2154,22 @@ const OrderSummary = ({
                       const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
                       const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0);
                       const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
-                      const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Offer${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
-                      const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>Manual Discount:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
-                      const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#b45309;"><span>Loyalty Redeem:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
+                      const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.offer')}${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
+                      const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.manualDiscount')}:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
+                      const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#b45309;"><span>${t('invoice.loyaltyRedeem')}:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
                       const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml;
-                      const serviceChargeHtml = (invoice?.serviceChargeAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Service Charge${invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${currencySymbol}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
-                      const tipHtml = (invoice?.tipAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Tip${invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${currencySymbol}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
-                      const roundOffHtml = (invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Round Off:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${currencySymbol}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
-                      const splitPaymentHtml = (invoice?.splitPayments?.length >= 2) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">Split Payment:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.method || 'Cash').toUpperCase()}:</span><span>${currencySymbol}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
-                      const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Cash Received:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Change:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
-                      const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">Partial Payment:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>Paid:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>Outstanding:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
+                      const serviceChargeHtml = (invoice?.serviceChargeAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.serviceCharge')}${invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${currencySymbol}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
+                      const tipHtml = (invoice?.tipAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.tip')}${invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${currencySymbol}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
+                      const roundOffHtml = (invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.roundOff')}:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${currencySymbol}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
+                      const splitPaymentHtml = (invoice?.splitPayments?.length >= 2) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.splitPayment')}:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.method || 'Cash').toUpperCase()}:</span><span>${currencySymbol}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
+                      const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.cashReceived')}:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.change')}:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
+                      const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.partialPayment')}:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.paid')}:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>${t('invoice.outstanding')}:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
                       const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
                       // Build identity lines for print header
                       const identityLines = [];
                       if (invoice?.restaurantLegalName && invoice.restaurantLegalName !== invoice.restaurantName) identityLines.push(invoice.restaurantLegalName.replace(/</g,'&lt;'));
                       if (invoice?.restaurantAddress) identityLines.push(invoice.restaurantAddress.replace(/</g,'&lt;'));
-                      if (invoice?.restaurantPhone) identityLines.push('Tel: ' + invoice.restaurantPhone);
+                      if (invoice?.restaurantPhone) identityLines.push(t('invoice.tel') + ': ' + invoice.restaurantPhone);
                       if (invoice?.showGstOnInvoice && invoice?.gstin) identityLines.push('GSTIN: ' + invoice.gstin);
                       if (invoice?.showFssaiOnInvoice && invoice?.fssai) identityLines.push('FSSAI: ' + invoice.fssai);
                       if (invoice?.showTaxIdOnInvoice && invoice?.vatNumber) identityLines.push((invoice?.countryCode === 'GB' ? 'VAT: ' : invoice?.countryCode === 'CA' ? 'GST/HST: ' : invoice?.countryCode === 'AE' ? 'TRN: ' : 'Tax ID: ') + invoice.vatNumber);
@@ -2179,7 +2179,7 @@ const OrderSummary = ({
                       const receiptLogo = printSettings?.receiptLogo || null;
                       const billHeaderHtml = getBillHeaderHTML((invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;'), identityHtml, receiptLogo, `--- ${bLabels.billTitle} ---`);
 
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>Table:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>${t('invoice.date')}:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>${t('invoice.table')}:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>${t('invoice.payment')}:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">${t('invoice.amt')}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${t('invoice.subtotal')}:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${t('invoice.total')}:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">${t('invoice.poweredBy')}</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
@@ -2188,7 +2188,7 @@ const OrderSummary = ({
                     style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}
                   >
                     <FaPrint size={14} />
-                    Print {bLabels.billLabel}
+                    {t('invoice.printBill', { label: bLabels.billLabel })}
                   </button>
                   {whatsappConnected && (
                     <button
@@ -2204,7 +2204,7 @@ const OrderSummary = ({
                       }}
                     >
                       <FaWhatsapp size={14} />
-                      {waSent ? 'Sent on WhatsApp!' : waSending ? 'Sending...' : 'Send on WhatsApp'}
+                      {waSent ? t('invoice.sentOnWhatsApp') : waSending ? t('invoice.sending') : t('invoice.sendOnWhatsApp')}
                     </button>
                   )}
                 </div>
@@ -2237,7 +2237,7 @@ const OrderSummary = ({
                 style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '0 auto', boxShadow: '0 4px 12px rgba(34,197,94,0.4)' }}
               >
                 <FaPlus size={10} />
-                Start New Order
+                {t('invoice.startNewOrder')}
               </button>
             </div>
           </div>

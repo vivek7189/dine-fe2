@@ -247,9 +247,9 @@ export default function Sidebar({ isDashboardPage = false }) {
 
   const getAllNavItems = () => [
     // --- Home (landing page for all roles) ---
-    { id: 'home', name: 'Home', icon: FaHome, href: '/home', color: '#6366f1', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
+    { id: 'home', name: t('nav.home'), icon: FaHome, href: '/home', color: '#6366f1', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
     // --- Core POS ---
-    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? 'Bar POS' : 'Dashboard Billing', icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? t('nav.barPOS') : t('nav.dashboardBilling'), icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
     { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'admin', 'manager', 'waiter'] },
     { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'waiter'] },
@@ -257,20 +257,20 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'menu', name: t('nav.menu'), icon: FaUtensils, href: '/menu', color: '#10b981', roles: ['owner', 'admin', 'manager'] },
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
-    { id: 'shifts', name: 'Shifts', icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'admin', 'manager'] },
-    { id: 'register', name: 'Register', icon: FaCashRegister, href: '/register', color: '#16a34a', roles: ['owner', 'admin', 'manager', 'cashier'] },
-    { id: 'attendance', name: 'Attendance', icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
+    { id: 'shifts', name: t('nav.shifts'), icon: FaCalendarAlt, href: '/shifts', color: '#f97316', roles: ['owner', 'admin', 'manager'] },
+    { id: 'register', name: t('nav.register'), icon: FaCashRegister, href: '/register', color: '#16a34a', roles: ['owner', 'admin', 'manager', 'cashier'] },
+    { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
     // --- Tools & Extras ---
-    { id: 'dineai', name: 'DineAI Studio', icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
-    { id: 'hotel', name: 'Hotel', icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
-    { id: 'books', name: 'Books', icon: FaBook, href: '/books', color: '#2563eb', roles: ['owner', 'admin'] },
-    { id: 'invoice', name: 'Invoice', icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
-    { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'admin', 'manager'] },
-    { id: 'spaces', name: 'Spaces', icon: FaDoorOpen, href: '/spaces', color: '#0d9488', roles: ['owner', 'admin', 'manager'] },
+    { id: 'dineai', name: t('nav.dineai'), icon: FaRobot, href: '/dineai', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
+    { id: 'hotel', name: t('nav.hotel'), icon: FaBuilding, href: '/hotel', color: '#6366f1', roles: ['owner', 'admin', 'manager'] },
+    { id: 'books', name: t('nav.books'), icon: FaBook, href: '/books', color: '#2563eb', roles: ['owner', 'admin'] },
+    { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
+    { id: 'google-reviews', name: t('nav.googleReviews'), icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'admin', 'manager'] },
+    { id: 'spaces', name: t('nav.spaces'), icon: FaDoorOpen, href: '/spaces', color: '#0d9488', roles: ['owner', 'admin', 'manager'] },
     // --- Settings (always last) ---
     { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner', 'admin', 'manager', 'employee', 'cashier', 'sales', 'waiter'] },
-    { id: 'profile', name: 'Profile', icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
+    { id: 'profile', name: t('nav.profile'), icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
   ];
 
   const navItems = getAllNavItems().filter(item => {
@@ -458,7 +458,7 @@ export default function Sidebar({ isDashboardPage = false }) {
                   height: '32px',
                   marginLeft: '8px'
                 }}
-                title="Collapse sidebar"
+                title={t('nav.collapseSidebar')}
               >
                 <FaChevronLeft size={14} color="#9ca3af" />
               </button>
@@ -564,7 +564,7 @@ export default function Sidebar({ isDashboardPage = false }) {
                   );
                 })
               ) : (
-                <div className="text-center text-gray-500 text-xs py-4">Loading...</div>
+                <div className="text-center text-gray-500 text-xs py-4">{t('nav.loading')}</div>
               )}
             </div>
           </nav>
@@ -617,7 +617,7 @@ export default function Sidebar({ isDashboardPage = false }) {
                   }}
                 >
                   <FaSignOutAlt size={14} color="#ef4444" />
-                  <span className="text-sm font-medium" style={{ color: '#ef4444' }}>Logout</span>
+                  <span className="text-sm font-medium" style={{ color: '#ef4444' }}>{t('nav.logout')}</span>
                 </button>
               </div>
             ) : (
@@ -663,12 +663,12 @@ export default function Sidebar({ isDashboardPage = false }) {
                     e.currentTarget.style.backgroundColor = '#fef2f2';
                     e.currentTarget.style.borderColor = '#fecaca';
                   }}
-                  title="Logout"
+                  title={t('nav.logout')}
                 >
                   <FaSignOutAlt size={16} color="#ef4444" />
                   {/* Tooltip */}
                   <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
-                    Logout
+                    {t('nav.logout')}
                     <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
                   </div>
                 </button>
@@ -681,7 +681,7 @@ export default function Sidebar({ isDashboardPage = false }) {
             <button
               onClick={toggleCollapse}
               className="w-full flex items-center justify-center rounded-xl transition-all duration-300 group relative overflow-hidden"
-              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={isCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
               style={{
                 minHeight: '44px',
                 background: isCollapsed
@@ -717,13 +717,13 @@ export default function Sidebar({ isDashboardPage = false }) {
                   >
                     <FaChevronLeft size={10} color="#64748b" />
                   </div>
-                  <span className="text-xs font-medium" style={{ color: '#64748b' }}>Collapse Menu</span>
+                  <span className="text-xs font-medium" style={{ color: '#64748b' }}>{t('nav.collapseMenu')}</span>
                 </div>
               )}
               {/* Tooltip for collapsed state */}
               {isCollapsed && (
                 <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg">
-                  Expand Menu
+                  {t('nav.expandMenu')}
                   <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
                 </div>
               )}
