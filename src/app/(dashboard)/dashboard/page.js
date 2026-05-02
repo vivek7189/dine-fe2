@@ -992,7 +992,7 @@ function RestaurantPOSContent() {
     } finally {
       setLoading(false);
     }
-  }, [restaurants, prefetchTables]);
+  }, [restaurants]);
 
   // Load initial data - only once on mount or when navigating to dashboard
   useEffect(() => {
@@ -1526,7 +1526,7 @@ function RestaurantPOSContent() {
       return Math.round((item.price + rule.defaultMarkupValue) * 100) / 100;
     }
     return item.price;
-  }, [multiPricingEnabled, activePricingRuleId, pricingRules]);
+  }, [multiPricingEnabled, activePricingRuleId, pricingRules, findDineInRule, isZoneRule]);
 
   // Re-price cart items when pricing rule changes
   useEffect(() => {
@@ -5405,11 +5405,11 @@ function RestaurantPOSContent() {
                 <strong style={{ fontSize: '13px', color: '#92400e' }}>Register Not Open</strong>
                 <p style={{ fontSize: '12px', color: '#92400e', margin: '2px 0 0' }}>Open the cash register before billing</p>
               </div>
-              <a href="/register" style={{
+              <Link href="/register" style={{
                 padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
                 fontWeight: 600, background: '#f59e0b', color: 'white', textDecoration: 'none',
                 whiteSpace: 'nowrap'
-              }}>Open Register</a>
+              }}>Open Register</Link>
             </div>
           )}
 
