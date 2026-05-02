@@ -1259,15 +1259,15 @@ const OrderSummary = ({
         <div style={{
           display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap',
           padding: isMobile ? '6px 10px' : '6px 16px',
-          background: billingMode ? '#f8fafc' : 'rgba(0,0,0,0.08)',
-          borderBottom: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
+          background: billingMode ? '#f8fafc' : 'rgba(255,255,255,0.15)',
+          borderBottom: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.15)',
           flexShrink: 0,
         }}>
           {/* Person name with staff search */}
           <div style={{ position: 'relative', flex: '1', minWidth: '90px' }}>
             <input
               type="text"
-              placeholder="Delivery person"
+              placeholder="Delivery person name"
               value={deliveryInfo.personName}
               onChange={(e) => {
                 setDeliveryInfo(prev => ({ ...prev, personName: e.target.value }));
@@ -1276,11 +1276,12 @@ const OrderSummary = ({
               onFocus={() => setShowStaffDropdown(true)}
               onBlur={() => setTimeout(() => setShowStaffDropdown(false), 200)}
               style={{
-                width: '100%', padding: '5px 8px',
-                border: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '6px', fontSize: '11px',
-                backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.1)',
-                color: billingMode ? '#374151' : 'white', outline: 'none',
+                width: '100%', padding: '6px 10px',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '6px', fontSize: '12px',
+                backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.9)',
+                color: '#374151', outline: 'none',
+                '::placeholder': { color: '#9ca3af' },
               }}
             />
             {showStaffDropdown && staffList.length > 0 && (() => {
@@ -1320,15 +1321,15 @@ const OrderSummary = ({
           {/* Phone */}
           <input
             type="tel"
-            placeholder="Phone"
+            placeholder="Phone number"
             value={deliveryInfo.personPhone}
             onChange={(e) => setDeliveryInfo(prev => ({ ...prev, personPhone: e.target.value.replace(/\D/g, '') }))}
             style={{
-              width: '80px', padding: '5px 8px',
-              border: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '6px', fontSize: '11px',
-              backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.1)',
-              color: billingMode ? '#374151' : 'white', outline: 'none',
+              width: '90px', padding: '6px 10px',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '6px', fontSize: '12px',
+              backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.9)',
+              color: '#374151', outline: 'none',
             }}
           />
 
@@ -1337,17 +1338,17 @@ const OrderSummary = ({
             type="button"
             onClick={() => setDeliveryInfo(prev => ({ ...prev, cashHandedOver: !prev.cashHandedOver }))}
             style={{
-              display: 'flex', alignItems: 'center', gap: '3px',
-              padding: '5px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '4px',
+              padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
               border: deliveryInfo.cashHandedOver
                 ? '1px solid #22c55e'
-                : (billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.2)'),
+                : '1px solid rgba(255,255,255,0.3)',
               background: deliveryInfo.cashHandedOver
-                ? 'rgba(34,197,94,0.15)'
-                : (billingMode ? 'white' : 'rgba(255,255,255,0.1)'),
+                ? '#dcfce7'
+                : 'rgba(255,255,255,0.9)',
               color: deliveryInfo.cashHandedOver
                 ? '#16a34a'
-                : (billingMode ? '#6b7280' : 'rgba(255,255,255,0.6)'),
+                : '#6b7280',
               cursor: 'pointer', whiteSpace: 'nowrap',
             }}
             title="Cash handed over to delivery person"

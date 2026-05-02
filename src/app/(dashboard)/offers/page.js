@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   FaTag,
@@ -779,10 +780,10 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       ` }} />
 
       {/* Delete Offer Confirmation Modal */}
-      {deleteConfirm && (
+      {deleteConfirm && createPortal(
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
-          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 1000,
+          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 10001,
           padding: isMobile ? '0' : '20px',
         }} onClick={() => !deleting && setDeleteConfirm(null)}>
           <div onClick={e => e.stopPropagation()} style={{
@@ -833,14 +834,15 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Group Confirmation Modal */}
-      {deleteGroupConfirm && (
+      {deleteGroupConfirm && createPortal(
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
-          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 1000,
+          alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 10001,
           padding: isMobile ? '0' : '20px',
         }} onClick={() => !deletingGroup && setDeleteGroupConfirm(null)}>
           <div onClick={e => e.stopPropagation()} style={{
@@ -891,7 +893,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {view === 'list' && (
@@ -2531,10 +2534,10 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       </div>
 
       {/* Group Create/Edit Modal */}
-      {showGroupModal && (
+      {showGroupModal && createPortal(
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '16px'
         }} onClick={() => setShowGroupModal(false)}>
           <div style={{
@@ -2722,7 +2725,8 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
