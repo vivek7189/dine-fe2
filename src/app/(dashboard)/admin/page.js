@@ -2647,6 +2647,244 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
   );
 };
 
+// Print Station Manager Component — Kitchen Routing
+const STATION_TYPES = [
+  { id: 'kitchen', label: 'Kitchen' },
+  { id: 'bar', label: 'Bar' },
+  { id: 'expo', label: 'Expo' },
+  { id: 'pastry', label: 'Pastry' },
+  { id: 'other', label: 'Other' },
+];
+
+const PrintStationManager = ({ restaurantId }) => {
+  const [stations, setStations] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingStation, setEditingStation] = useState(null); // null | 'new' | station object
+  const [formData, setFormData] = useState({ name: '', type: 'kitchen', categoryIds: [], isDefault: false, enabled: true });
+  const [notification, setNotification] = useState(null);
+
+  const loadStations = async () => {
+    if (!restaurantId) return;
+    setLoading(true);
+    try {
+      const res = await apiClient.getPrintStations(restaurantId);
+      if (res.success) {
+        setStations(res.printStations || []);
+        setCategories(res.categories || []);
+      }
+    } catch (err) {
+      console.error('Error loading print stations:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadStations(); }, [restaurantId]);
+
+  const saveStations = async (updatedStations) => {
+    setSaving(true);
+    try {
+      const res = await apiClient.updatePrintStations(restaurantId, updatedStations);
+      if (res.success) {
+        setStations(res.printStations || updatedStations);
+        setNotification({ type: 'success', message: 'Print stations saved!' });
+        setTimeout(() => setNotification(null), 2500);
+      }
+    } catch (err) {
+      console.error('Error saving print stations:', err);
+      setNotification({ type: 'error', message: 'Failed to save. Try again.' });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startAdd = () => {
+    setFormData({ name: '', type: 'kitchen', categoryIds: [], isDefault: stations.length === 0, enabled: true });
+    setEditingStation('new');
+  };
+
+  const startEdit = (station) => {
+    setFormData({ name: station.name, type: station.type, categoryIds: [...(station.categoryIds || [])], isDefault: station.isDefault || false, enabled: station.enabled !== false });
+    setEditingStation(station);
+  };
+
+  const cancelEdit = () => { setEditingStation(null); };
+
+  const handleSave = () => {
+    if (!formData.name.trim()) return;
+    let updated;
+    if (editingStation === 'new') {
+      const newStation = {
+        id: `ps_${Date.now().toString(36)}`,
+        ...formData,
+        name: formData.name.trim(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      updated = [...stations, newStation];
+    } else {
+      updated = stations.map(s => s.id === editingStation.id ? { ...s, ...formData, name: formData.name.trim(), updatedAt: new Date().toISOString() } : s);
+    }
+    // Enforce single default
+    if (formData.isDefault) {
+      updated = updated.map(s => ({ ...s, isDefault: s.id === (editingStation === 'new' ? updated[updated.length - 1].id : editingStation.id) }));
+    }
+    setEditingStation(null);
+    saveStations(updated);
+  };
+
+  const deleteStation = (stationId) => {
+    const updated = stations.filter(s => s.id !== stationId);
+    saveStations(updated);
+  };
+
+  const toggleEnabled = (stationId) => {
+    const updated = stations.map(s => s.id === stationId ? { ...s, enabled: !s.enabled, updatedAt: new Date().toISOString() } : s);
+    saveStations(updated);
+  };
+
+  const toggleCategory = (catId) => {
+    setFormData(prev => ({
+      ...prev,
+      categoryIds: prev.categoryIds.includes(catId)
+        ? prev.categoryIds.filter(id => id !== catId)
+        : [...prev.categoryIds, catId]
+    }));
+  };
+
+  // Find categories not assigned to any station
+  const assignedCatIds = new Set(stations.flatMap(s => s.categoryIds || []));
+  const unassignedCats = categories.filter(c => !assignedCatIds.has(c.id));
+
+  if (!restaurantId) return null;
+
+  return (
+    <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
+      <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        Print Stations &mdash; Kitchen Routing
+      </p>
+      <p style={{ fontSize: '12px', color: '#9ca3af', margin: '-8px 0 12px 0' }}>
+        Route KOT items to different printers by category. Each station can be assigned to a KOT printer app instance.
+      </p>
+
+      {notification && (
+        <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', fontSize: '12px', background: notification.type === 'success' ? '#ecfdf5' : '#fef2f2', color: notification.type === 'success' ? '#065f46' : '#991b1b' }}>
+          {notification.message}
+        </div>
+      )}
+
+      {loading ? (
+        <p style={{ fontSize: '12px', color: '#9ca3af' }}>Loading stations...</p>
+      ) : (
+        <>
+          {/* Station list */}
+          {stations.map(station => (
+            <div key={station.id} style={{ background: '#111827', borderRadius: '10px', padding: '12px 14px', marginBottom: '8px', opacity: station.enabled ? 1 : 0.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#f9fafb' }}>{station.name}</span>
+                  <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
+                    {station.type || 'kitchen'}
+                  </span>
+                  {station.isDefault && (
+                    <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', background: '#065f46', color: '#6ee7b7' }}>DEFAULT</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button onClick={() => startEdit(station)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '4px' }} title="Edit"><FaEdit size={13} /></button>
+                  <button onClick={() => toggleEnabled(station.id)} style={{ background: 'none', border: 'none', color: station.enabled ? '#10b981' : '#6b7280', cursor: 'pointer', padding: '4px' }} title={station.enabled ? 'Disable' : 'Enable'}>
+                    {station.enabled ? <FaToggleOn size={16} /> : <FaToggleOff size={16} />}
+                  </button>
+                  <button onClick={() => deleteStation(station.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Delete"><FaTrash size={12} /></button>
+                </div>
+              </div>
+              <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                {(station.categoryIds || []).length} categories assigned
+              </p>
+            </div>
+          ))}
+
+          {/* Add / Edit form */}
+          {editingStation ? (
+            <div style={{ background: '#1f2937', borderRadius: '10px', padding: '14px', marginBottom: '8px', border: '1px solid #374151' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="Station name (e.g. Main Kitchen)"
+                  value={formData.name}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  style={{ flex: 1, padding: '8px 10px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '13px', outline: 'none' }}
+                  maxLength={50}
+                  autoFocus
+                />
+                <select
+                  value={formData.type}
+                  onChange={e => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: '13px', outline: 'none' }}
+                >
+                  {STATION_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                </select>
+              </div>
+
+              {/* Category checkboxes */}
+              <p style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', margin: '0 0 6px 0', textTransform: 'uppercase' }}>Assign Categories</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px', maxHeight: '140px', overflowY: 'auto' }}>
+                {categories.map(cat => {
+                  const isSelected = formData.categoryIds.includes(cat.id);
+                  const assignedElsewhere = !isSelected && stations.some(s => s.id !== (editingStation === 'new' ? null : editingStation.id) && (s.categoryIds || []).includes(cat.id));
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => toggleCategory(cat.id)}
+                      style={{
+                        padding: '4px 10px', borderRadius: '14px', fontSize: '12px', border: 'none', cursor: 'pointer',
+                        background: isSelected ? '#ef4444' : assignedElsewhere ? '#1f2937' : '#374151',
+                        color: isSelected ? '#fff' : assignedElsewhere ? '#6b7280' : '#d1d5db',
+                        opacity: assignedElsewhere ? 0.6 : 1,
+                      }}
+                    >
+                      {cat.name}{assignedElsewhere ? ' ✓' : ''}
+                    </button>
+                  );
+                })}
+                {categories.length === 0 && <p style={{ fontSize: '11px', color: '#6b7280' }}>No categories found. Add menu categories first.</p>}
+              </div>
+
+              {/* Default + actions */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9ca3af', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={formData.isDefault} onChange={e => setFormData(prev => ({ ...prev, isDefault: e.target.checked }))} />
+                  Default station (unassigned categories route here)
+                </label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={cancelEdit} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #374151', background: 'none', color: '#9ca3af', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleSave} disabled={!formData.name.trim() || saving} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', opacity: (!formData.name.trim() || saving) ? 0.5 : 1 }}>
+                    {saving ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button onClick={startAdd} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px dashed #374151', background: 'none', color: '#6b7280', fontSize: '12px', cursor: 'pointer', width: '100%', justifyContent: 'center' }}>
+              <FaPlus size={10} /> Add Print Station
+            </button>
+          )}
+
+          {/* Unassigned categories warning */}
+          {unassignedCats.length > 0 && stations.length > 0 && (
+            <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '6px', background: '#1c1917', border: '1px solid #374151', fontSize: '11px', color: '#a8a29e' }}>
+              <strong>Unassigned categories:</strong> {unassignedCats.map(c => c.name).join(', ')} — these will route to the default station.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 // Setting Toggle Component
 const SettingToggle = ({ setting, printSettings, toggleSetting, disabled = false }) => (
   <div
@@ -3437,6 +3675,9 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
               ))}
             </div>
           </div>
+
+          {/* Print Stations — Kitchen Routing */}
+          <PrintStationManager restaurantId={selectedRestaurant?.id} />
 
           {/* Native Printer Setup — only visible on Capacitor/Tauri apps */}
           {!isWeb() && (

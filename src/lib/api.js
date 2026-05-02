@@ -2017,6 +2017,20 @@ class ApiClient {
     return result;
   }
 
+  // Print Stations (kitchen routing) endpoints
+  async getPrintStations(restaurantId) {
+    return this.cachedGet(`/api/admin/print-stations/${restaurantId}`, 10 * 60 * 1000);
+  }
+
+  async updatePrintStations(restaurantId, printStations) {
+    const result = await this.request(`/api/admin/print-stations/${restaurantId}`, {
+      method: 'PUT',
+      body: { printStations },
+    });
+    this.invalidateCache(`/api/admin/print-stations/${restaurantId}`);
+    return result;
+  }
+
   async getBusinessSettings(restaurantId) {
     return this.request(`/api/admin/business/${restaurantId}`);
   }
