@@ -19,6 +19,7 @@ import apiClient from '../../../lib/api';
 import { auth } from '../../../../firebase';
 import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth';
 import OfflineBanner from '../../../components/OfflineBanner';
+import { t } from '../../../lib/i18n';
 
 const Profile = () => {
   const router = useRouter();
@@ -167,11 +168,11 @@ const Profile = () => {
 
   const getRoleLabel = (role) => {
     switch (role) {
-      case 'owner': return 'Owner';
-      case 'manager': return 'Manager';
-      case 'waiter': return 'Waiter';
-      case 'employee': return 'Employee';
-      default: return role || 'User';
+      case 'owner': return t('profile.owner');
+      case 'manager': return t('profile.manager');
+      case 'waiter': return t('profile.waiter');
+      case 'employee': return t('profile.employee');
+      default: return role || t('profile.user');
     }
   };
 
@@ -202,7 +203,7 @@ const Profile = () => {
     if (e) e.preventDefault();
 
     if (!linkEmail || !linkEmail.includes('@')) {
-      setLinkError('Please enter a valid email address');
+      setLinkError(t('profile.validEmailError'));
       return;
     }
 
@@ -239,12 +240,12 @@ const Profile = () => {
   const handleLinkEmail = async (e) => {
     e.preventDefault();
     if (!linkOtp || linkOtp.length !== 6) {
-      setLinkError('Please enter a valid 6-digit OTP');
+      setLinkError(t('profile.validOtpError'));
       return;
     }
 
     if (linkPassword && linkPassword !== linkConfirmPassword) {
-      setLinkError('Passwords do not match');
+      setLinkError(t('profile.passwordsMismatch'));
       return;
     }
 
@@ -307,7 +308,7 @@ const Profile = () => {
     if (e) e.preventDefault();
 
     if (!linkPhone) {
-      setLinkError('Please enter a phone number');
+      setLinkError(t('profile.enterPhoneError'));
       return;
     }
 
@@ -389,13 +390,13 @@ const Profile = () => {
   const handleLinkPhone = async (e) => {
     e.preventDefault();
     if (!linkPhone) {
-      setLinkError('Please enter a phone number');
+      setLinkError(t('profile.enterPhoneError'));
       return;
     }
 
     const otpLength = isFirebasePhoneOTP ? 6 : 4;
     if (!linkOtp || linkOtp.length !== otpLength) {
-      setLinkError(`Please enter a valid ${otpLength}-digit OTP`);
+      setLinkError(t('profile.validOtpDigitError', { digits: otpLength }));
       return;
     }
 
@@ -482,7 +483,7 @@ const Profile = () => {
       }}>
         <div style={{ textAlign: 'center' }}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p style={{ color: '#6b7280' }}>Loading profile...</p>
+          <p style={{ color: '#6b7280' }}>{t('profile.loadingProfile')}</p>
         </div>
       </div>
     );
@@ -524,10 +525,10 @@ const Profile = () => {
             gap: '12px'
           }}>
             <FaUser color="#ec4899" size={isMobile ? 24 : 28} />
-            Profile
+            {t('profile.title')}
           </h1>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-            View and manage your account information
+            {t('profile.subtitle')}
           </p>
         </div>
 
@@ -602,7 +603,7 @@ const Profile = () => {
                       outline: 'none',
                       backgroundColor: '#f9fafb'
                     }}
-                    placeholder="Enter your name"
+                    placeholder={t('profile.enterYourName')}
                     autoFocus
                   />
                   <button
@@ -623,7 +624,7 @@ const Profile = () => {
                     }}
                   >
                     <FaCheck size={14} />
-                    {saving ? 'Saving...' : 'Save'}
+                    {saving ? t('profile.saving') : t('profile.save')}
                   </button>
                   <button
                     onClick={() => {
@@ -645,7 +646,7 @@ const Profile = () => {
                     }}
                   >
                     <FaTimes size={14} />
-                    Cancel
+                    {t('profile.cancel')}
                   </button>
                 </div>
               ) : (
@@ -657,7 +658,7 @@ const Profile = () => {
                       color: '#1f2937', 
                       margin: 0 
                     }}>
-                      {user.name || 'User'}
+                      {user.name || t('profile.user')}
                     </h2>
                     <button
                       onClick={() => setEditMode(true)}
@@ -673,10 +674,10 @@ const Profile = () => {
                         fontSize: '12px',
                         color: '#6b7280'
                       }}
-                      title="Edit name"
+                      title={t('profile.editName')}
                     >
                       <FaEdit size={12} />
-                      Edit
+                      {t('profile.edit')}
                     </button>
                   </div>
                   <div style={{ 
@@ -737,13 +738,13 @@ const Profile = () => {
                     letterSpacing: '0.5px',
                     marginBottom: '4px'
                   }}>
-                    Email Address
+                    {t('profile.emailAddress')}
                   </p>
-                  <p style={{ 
-                    margin: 0, 
-                    fontSize: '16px', 
-                    color: '#1f2937', 
-                    fontWeight: '600' 
+                  <p style={{
+                    margin: 0,
+                    fontSize: '16px',
+                    color: '#1f2937',
+                    fontWeight: '600'
                   }}>
                     {user.email}
                   </p>
@@ -761,11 +762,11 @@ const Profile = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                       <FaEnvelope size={20} color="#f59e0b" />
                       <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
-                        Link Email Address
+                        {t('profile.linkEmailAddress')}
                       </p>
                     </div>
                     <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#78350f' }}>
-                      Link your email to enable email/password login and receive important notifications.
+                      {t('profile.linkEmailDesc')}
                     </p>
                     <button
                       onClick={() => setLinkingEmail(true)}
@@ -781,7 +782,7 @@ const Profile = () => {
                         fontSize: '14px'
                       }}
                     >
-                      Link Email
+                      {t('profile.linkEmail')}
                     </button>
                   </>
                 ) : (
@@ -802,7 +803,7 @@ const Profile = () => {
                       <>
                         <div style={{ marginBottom: '16px' }}>
                           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
-                            Email Address
+                            {t('profile.emailAddress')}
                           </label>
                           <input
                             type="email"
@@ -823,7 +824,7 @@ const Profile = () => {
                         </div>
                         <div style={{ marginBottom: '16px' }}>
                           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
-                            Password (Optional)
+                            {t('profile.passwordOptional')}
                           </label>
                           <input
                             type="password"
@@ -838,13 +839,13 @@ const Profile = () => {
                               outline: 'none',
                               boxSizing: 'border-box'
                             }}
-                            placeholder="Create password for email login"
+                            placeholder={t('profile.createPasswordPlaceholder')}
                           />
                         </div>
                         {linkPassword && (
                           <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
-                              Confirm Password
+                              {t('profile.confirmPassword')}
                             </label>
                             <input
                               type="password"
@@ -859,7 +860,7 @@ const Profile = () => {
                                 outline: 'none',
                                 boxSizing: 'border-box'
                               }}
-                              placeholder="Confirm password"
+                              placeholder={t('profile.confirmPasswordPlaceholder')}
                             />
                           </div>
                         )}
@@ -879,7 +880,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            {linkLoading ? 'Sending...' : 'Send OTP'}
+                            {linkLoading ? t('profile.sendingOtp') : t('profile.sendOtp')}
                           </button>
                           <button
                             type="button"
@@ -901,7 +902,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            Cancel
+                            {t('profile.cancel')}
                           </button>
                         </div>
                       </>
@@ -909,7 +910,7 @@ const Profile = () => {
                       <>
                         <div style={{ marginBottom: '16px' }}>
                           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#78350f', marginBottom: '8px' }}>
-                            Enter OTP sent to {linkEmail}
+                            {t('profile.enterOtpSentTo', { destination: linkEmail })}
                           </label>
                           <input
                             type="text"
@@ -948,7 +949,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            {linkLoading ? 'Linking...' : 'Verify & Link'}
+                            {linkLoading ? t('profile.linking') : t('profile.verifyAndLink')}
                           </button>
                           <button
                             type="button"
@@ -967,7 +968,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            Back
+                            {t('profile.back')}
                           </button>
                         </div>
                       </>
@@ -1010,13 +1011,13 @@ const Profile = () => {
                     letterSpacing: '0.5px',
                     marginBottom: '4px'
                   }}>
-                    Phone Number
+                    {t('profile.phoneNumber')}
                   </p>
-                  <p style={{ 
-                    margin: 0, 
-                    fontSize: '16px', 
-                    color: '#1f2937', 
-                    fontWeight: '600' 
+                  <p style={{
+                    margin: 0,
+                    fontSize: '16px',
+                    color: '#1f2937',
+                    fontWeight: '600'
                   }}>
                     {user.phone}
                   </p>
@@ -1034,11 +1035,11 @@ const Profile = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                       <FaPhone size={20} color="#3b82f6" />
                       <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1e40af' }}>
-                        Link Phone Number
+                        {t('profile.linkPhoneNumber')}
                       </p>
                     </div>
                     <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#1e3a8a' }}>
-                      Link your phone number to enable phone OTP login.
+                      {t('profile.linkPhoneDesc')}
                     </p>
                     <button
                       onClick={() => setLinkingPhone(true)}
@@ -1054,7 +1055,7 @@ const Profile = () => {
                         fontSize: '14px'
                       }}
                     >
-                      Link Phone
+                      {t('profile.linkPhone')}
                     </button>
                   </>
                 ) : (
@@ -1075,7 +1076,7 @@ const Profile = () => {
                       <>
                         <div style={{ marginBottom: '16px' }}>
                           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
-                            Phone Number (with country code)
+                            {t('profile.phoneWithCountryCode')}
                           </label>
                           <input
                             type="tel"
@@ -1110,7 +1111,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            {linkLoading ? 'Sending OTP...' : 'Send OTP'}
+                            {linkLoading ? t('profile.sendingOtpPhone') : t('profile.sendOtp')}
                           </button>
                           <button
                             type="button"
@@ -1134,7 +1135,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            Cancel
+                            {t('profile.cancel')}
                           </button>
                         </div>
                       </>
@@ -1142,7 +1143,7 @@ const Profile = () => {
                       <>
                         <div style={{ marginBottom: '16px' }}>
                           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
-                            Enter {isFirebasePhoneOTP ? '6' : '4'}-digit OTP sent to {linkPhone}
+                            {t('profile.enterDigitOtp', { digits: isFirebasePhoneOTP ? '6' : '4', phone: linkPhone })}
                           </label>
                           <input
                             type="text"
@@ -1186,7 +1187,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            {linkLoading ? 'Verifying...' : 'Verify & Link'}
+                            {linkLoading ? t('profile.verifying') : t('profile.verifyAndLink')}
                           </button>
                           <button
                             type="button"
@@ -1206,7 +1207,7 @@ const Profile = () => {
                               fontSize: '14px'
                             }}
                           >
-                            Back
+                            {t('profile.back')}
                           </button>
                         </div>
                       </>
@@ -1248,7 +1249,7 @@ const Profile = () => {
                   letterSpacing: '0.5px',
                   marginBottom: '4px'
                 }}>
-                  User ID
+                  {t('profile.userId')}
                 </p>
                 <p style={{ 
                   margin: 0, 
@@ -1294,7 +1295,7 @@ const Profile = () => {
                   letterSpacing: '0.5px',
                   marginBottom: '4px'
                 }}>
-                  Login Method
+                  {t('profile.loginMethod')}
                 </p>
                 <p style={{ 
                   margin: 0, 
@@ -1302,7 +1303,7 @@ const Profile = () => {
                   color: '#1f2937', 
                   fontWeight: '600' 
                 }}>
-                  {isGoogleLogin ? 'Google Account' : 'Phone Number'}
+                  {isGoogleLogin ? t('profile.googleAccount') : t('profile.phoneNumberMethod')}
                 </p>
               </div>
             </div>
@@ -1331,9 +1332,9 @@ const Profile = () => {
               <FaHandHoldingUsd size={18} color="white" />
             </div>
             <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Tip Earnings</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>{t('profile.tipEarnings')}</h3>
               <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0 0' }}>
-                Total: <strong style={{ color: '#f59e0b', fontSize: '18px' }}>
+                {t('profile.totalLabel')} <strong style={{ color: '#f59e0b', fontSize: '18px' }}>
                   {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tipData.tipEarnings)}
                 </strong>
               </p>
@@ -1341,7 +1342,7 @@ const Profile = () => {
           </div>
           {tipData.tipHistory && tipData.tipHistory.length > 0 && (
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Recent Tips</div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('profile.recentTips')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {tipData.tipHistory.slice(-10).reverse().map((tip, idx) => (
                   <div key={idx} style={{
@@ -1349,7 +1350,7 @@ const Profile = () => {
                     padding: '8px 12px', backgroundColor: '#fffbeb', borderRadius: '8px', fontSize: '13px'
                   }}>
                     <span style={{ color: '#6b7280' }}>
-                      Order #{tip.orderNumber || tip.orderId?.slice(-6)}
+                      {t('profile.orderHash')}{tip.orderNumber || tip.orderId?.slice(-6)}
                       {tip.date && (
                         <span style={{ marginLeft: '8px', fontSize: '11px', color: '#9ca3af' }}>
                           {new Date(tip.date?._seconds ? tip.date._seconds * 1000 : tip.date).toLocaleDateString()}

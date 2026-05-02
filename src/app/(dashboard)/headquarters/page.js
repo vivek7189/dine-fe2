@@ -44,6 +44,7 @@ import {
   FaIndustry,
   FaFileAlt
 } from 'react-icons/fa';
+import { t } from '../../../lib/i18n';
 import OrganizationSetupTab from './components/OrganizationSetupTab';
 import CentralMenuTab from './components/CentralMenuTab';
 import WarehouseTab from './components/WarehouseTab';
@@ -160,7 +161,7 @@ const DonutChart = ({ data = [], size = 120 }) => {
         textAlign: 'center'
       }}>
         <div style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>{total}</div>
-        <div style={{ fontSize: '10px', color: '#6b7280' }}>orders</div>
+        <div style={{ fontSize: '10px', color: '#6b7280' }}>{t('hq.orders')}</div>
       </div>
     </div>
   );
@@ -358,7 +359,7 @@ export function HeadquartersContent({ embedded = false }) {
   // Load AI insights
   const loadAIInsights = async () => {
     if (aiInsightsRemaining <= 0) {
-      alert('You have reached the daily limit of 10 AI insights. Please try again tomorrow.');
+      alert(t('hq.dailyLimitMessage'));
       return;
     }
     try {
@@ -375,7 +376,7 @@ export function HeadquartersContent({ embedded = false }) {
         }
       } else if (response.error === 'Daily limit exceeded') {
         setAiInsightsRemaining(0);
-        alert('You have reached the daily limit of 10 AI insights. Please try again tomorrow.');
+        alert(t('hq.dailyLimitMessage'));
       }
     } catch (error) {
       console.error('Error loading AI insights:', error);
@@ -610,12 +611,12 @@ export function HeadquartersContent({ embedded = false }) {
     const total = dashboardData?.restaurants?.length || 0;
     const selected = selectedRestaurants.length;
     // All selected (empty array or all IDs selected)
-    if (selected === 0 || selected >= total) return `All (${total})`;
+    if (selected === 0 || selected >= total) return `${t('hq.all')} (${total})`;
     if (selected === 1) {
       const name = dashboardData?.restaurants?.find(r => r.id === selectedRestaurants[0])?.name;
       return name && name.length > 12 ? name.substring(0, 12) + '...' : name || '1 selected';
     }
-    return `${selected} of ${total}`;
+    return `${selected} ${t('hq.ofTotal')} ${total}`;
   };
 
   // Check if filtering (not all selected)
@@ -625,17 +626,17 @@ export function HeadquartersContent({ embedded = false }) {
     if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
       return `${dateRange.startDate} - ${dateRange.endDate}`;
     }
-    return { today: 'Today', '7d': '7 Days', '30d': '30 Days', '90d': '90 Days' }[dateRange.preset] || 'Select';
+    return { today: t('hq.today'), '7d': t('hq.days7'), '30d': t('hq.days30'), '90d': t('hq.days90') }[dateRange.preset] || t('hq.select');
   };
 
   // Dynamic headline based on date filter
   const getDynamicHeadline = () => {
     const headlines = {
-      today: { title: "Today's Overview", subtitle: 'How your business is doing today' },
-      '7d': { title: 'This Week', subtitle: 'Your 7-day performance' },
-      '30d': { title: 'This Month', subtitle: 'Monthly business trends' },
-      '90d': { title: 'This Quarter', subtitle: '90-day business review' },
-      custom: { title: 'Custom Period', subtitle: `${dateRange.startDate} to ${dateRange.endDate}` }
+      today: { title: t('hq.todaysOverview'), subtitle: t('hq.howBusinessToday') },
+      '7d': { title: t('hq.thisWeek'), subtitle: t('hq.weekPerformance') },
+      '30d': { title: t('hq.thisMonth'), subtitle: t('hq.monthlyTrends') },
+      '90d': { title: t('hq.thisQuarter'), subtitle: t('hq.quarterReview') },
+      custom: { title: t('hq.customPeriod'), subtitle: `${dateRange.startDate} to ${dateRange.endDate}` }
     };
     return headlines[dateRange.preset] || headlines['7d'];
   };
@@ -794,13 +795,13 @@ export function HeadquartersContent({ embedded = false }) {
             <div style={{ fontSize: '16px', fontWeight: '700', color: '#16a34a' }}>
               {formatCurrency ? formatCurrency(revenue) : `₹${revenue.toLocaleString()}`}
             </div>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>Revenue</div>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>{t('hq.revenue')}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
               {restaurant.todayOrders || restaurant.orders || 0}
             </div>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>Orders</div>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>{t('hq.orders')}</div>
           </div>
           {restaurant.lowStockItems > 0 && (
             <div style={{
@@ -871,9 +872,9 @@ export function HeadquartersContent({ embedded = false }) {
               <FaRobot size={22} style={{ color: 'white' }} />
             </div>
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'white', margin: 0 }}>AI Insights</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'white', margin: 0 }}>{t('hq.aiInsights')}</h3>
               <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: '2px 0 0' }}>
-                Powered by DineOpen AI
+                {t('hq.poweredByAI')}
               </p>
             </div>
           </div>
@@ -1131,8 +1132,8 @@ export function HeadquartersContent({ embedded = false }) {
                 <FaBell size={20} style={{ color: 'white' }} />
               </div>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'white', margin: 0 }}>Daily Reports</h3>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: '2px 0 0' }}>AI insights to your inbox</p>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'white', margin: 0 }}>{t('hq.dailyReports')}</h3>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: '2px 0 0' }}>{t('hq.aiInsightsToInbox')}</p>
               </div>
             </div>
             <button onClick={() => setShowEmailModal(false)} style={{
@@ -1165,9 +1166,9 @@ export function HeadquartersContent({ embedded = false }) {
         }}>
           <FaRobot size={18} style={{ color: '#ef4444', marginTop: '2px', flexShrink: 0 }} />
           <div>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#dc2626', marginBottom: '2px' }}>What you&apos;ll receive</div>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#dc2626', marginBottom: '2px' }}>{t('hq.whatYouReceive')}</div>
             <div style={{ fontSize: '12px', color: '#7f1d1d', lineHeight: 1.5 }}>
-              Daily summary with revenue, top sellers, alerts & recommendations.
+              {t('hq.dailySummaryDesc')}
             </div>
           </div>
         </div>
@@ -1189,10 +1190,10 @@ export function HeadquartersContent({ embedded = false }) {
             <div>
               <div style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {emailPreferences.emailEnabled && <FaCheck size={12} style={{ color: '#22c55e' }} />}
-                Enable Daily Reports
+                {t('hq.enableDailyReports')}
               </div>
               <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                {emailPreferences.emailEnabled ? 'Reports will be sent daily' : 'Turn on to receive daily insights'}
+                {emailPreferences.emailEnabled ? t('hq.reportsWillBeSent') : t('hq.turnOnToReceive')}
               </div>
             </div>
             <button
@@ -1225,13 +1226,13 @@ export function HeadquartersContent({ embedded = false }) {
           {/* Email input */}
           <div style={{ marginBottom: '16px' }}>
             <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
-              Email Address
+              {t('hq.emailAddress')}
             </label>
             <input
               type="email"
               value={emailPreferences.reportEmail}
               onChange={(e) => setEmailPreferences(prev => ({ ...prev, reportEmail: e.target.value }))}
-              placeholder="your@email.com"
+              placeholder={t('hq.emailPlaceholder')}
               style={{
                 width: '100%',
                 padding: '14px 16px',
@@ -1247,7 +1248,7 @@ export function HeadquartersContent({ embedded = false }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
             <div>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
-                Delivery Time
+                {t('hq.deliveryTime')}
               </label>
               <input
                 type="time"
@@ -1264,7 +1265,7 @@ export function HeadquartersContent({ embedded = false }) {
             </div>
             <div>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '8px' }}>
-                Timezone
+                {t('hq.timezone')}
               </label>
               <select
                 value={emailPreferences.timezone}
@@ -1314,17 +1315,17 @@ export function HeadquartersContent({ embedded = false }) {
               {sendingTestEmail ? (
                 <>
                   <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  Sending...
+                  {t('hq.sending')}
                 </>
               ) : testEmailSent ? (
                 <>
                   <FaCheck size={14} />
-                  Sent!
+                  {t('hq.sent')}
                 </>
               ) : (
                 <>
                   <FaEnvelope size={14} />
-                  Test Email
+                  {t('hq.testEmail')}
                 </>
               )}
             </button>
@@ -1345,7 +1346,7 @@ export function HeadquartersContent({ embedded = false }) {
                 boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
               }}
             >
-              Save Settings
+              {t('hq.saveSettings')}
             </button>
           </div>
         </div>
@@ -1399,7 +1400,7 @@ export function HeadquartersContent({ embedded = false }) {
               <FaSearch style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: '12px' }} />
               <input
                 type="text"
-                placeholder="Search restaurants..."
+                placeholder={t('hq.searchRestaurants')}
                 value={restaurantSearch}
                 onChange={(e) => setRestaurantSearch(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px' }}
@@ -1421,7 +1422,7 @@ export function HeadquartersContent({ embedded = false }) {
                 cursor: 'pointer'
               }}
             >
-              All Restaurants
+              {t('hq.allRestaurants')}
             </button>
           </div>
           <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
@@ -1457,7 +1458,7 @@ export function HeadquartersContent({ embedded = false }) {
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: '12px', fontWeight: '600', color: '#16a34a' }}>{formatCurrency ? formatCurrency(restaurant.todayRevenue || 0) : `₹${restaurant.todayRevenue || 0}`}</div>
-                    <div style={{ fontSize: '11px', color: '#6b7280' }}>{restaurant.todayOrders || 0} orders</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280' }}>{restaurant.todayOrders || 0} {t('hq.orders')}</div>
                   </div>
                 </div>
               );
@@ -1510,17 +1511,17 @@ export function HeadquartersContent({ embedded = false }) {
             background: 'linear-gradient(135deg, #fef2f2, #fff1f2)',
             borderBottom: '1px solid #fecaca'
           }}>
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#dc2626' }}>Select Time Period</div>
-            <div style={{ fontSize: '12px', color: '#f87171', marginTop: '2px' }}>Choose a date range for your data</div>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: '#dc2626' }}>{t('hq.selectTimePeriod')}</div>
+            <div style={{ fontSize: '12px', color: '#f87171', marginTop: '2px' }}>{t('hq.chooseDateRange')}</div>
           </div>
 
           <div style={{ padding: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px' }}>
               {[
-                { id: 'today', label: 'Today', icon: '📅' },
-                { id: '7d', label: '7 Days', icon: '📆' },
-                { id: '30d', label: '30 Days', icon: '🗓️' },
-                { id: '90d', label: '90 Days', icon: '📊' }
+                { id: 'today', label: t('hq.today'), icon: '📅' },
+                { id: '7d', label: t('hq.days7'), icon: '📆' },
+                { id: '30d', label: t('hq.days30'), icon: '🗓️' },
+                { id: '90d', label: t('hq.days90'), icon: '📊' }
               ].map(p => (
                 <button key={p.id} onClick={() => { setDateRange({ preset: p.id, startDate: '', endDate: '' }); setShowDatePicker(false); }} style={{
                   padding: '12px 8px',
@@ -1544,7 +1545,7 @@ export function HeadquartersContent({ embedded = false }) {
             </div>
 
             <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Range</div>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('hq.customRange')}</div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
                 <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange(prev => ({ ...prev, preset: 'custom', startDate: e.target.value }))} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '2px solid #e5e7eb', fontSize: '13px' }} />
                 <span style={{ color: '#9ca3af', fontWeight: '500' }}>→</span>
@@ -1561,7 +1562,7 @@ export function HeadquartersContent({ embedded = false }) {
                 fontWeight: '600',
                 cursor: (dateRange.preset !== 'custom' || !dateRange.startDate || !dateRange.endDate) ? 'not-allowed' : 'pointer',
                 opacity: (dateRange.preset !== 'custom' || !dateRange.startDate || !dateRange.endDate) ? 0.5 : 1
-              }}>Apply Custom Range</button>
+              }}>{t('hq.applyCustomRange')}</button>
             </div>
           </div>
         </div>
@@ -1678,26 +1679,26 @@ export function HeadquartersContent({ embedded = false }) {
         }}>
           <MetricCard
             icon={FaStore}
-            label={isFiltering ? "Selected" : "Total Restaurants"}
+            label={isFiltering ? t('hq.selectedRestaurants') : t('hq.totalRestaurants')}
             value={filteredTotalRestaurants}
             color="#8b5cf6"
           />
           <MetricCard
             icon={FaRupeeSign}
-            label="Revenue"
+            label={t('hq.revenue')}
             value={formatCurrency ? formatCurrency(filteredTotalRevenue) : `₹${filteredTotalRevenue.toLocaleString()}`}
-            subtitle={filteredTotalRevenueWithTax > filteredTotalRevenue ? `incl. tax: ${formatCurrency ? formatCurrency(filteredTotalRevenueWithTax) : `₹${filteredTotalRevenueWithTax.toLocaleString()}`}` : null}
+            subtitle={filteredTotalRevenueWithTax > filteredTotalRevenue ? `${t('hq.inclTax')} ${formatCurrency ? formatCurrency(filteredTotalRevenueWithTax) : `₹${filteredTotalRevenueWithTax.toLocaleString()}`}` : null}
             color="#16a34a"
           />
           <MetricCard
             icon={FaShoppingCart}
-            label="Total Orders"
+            label={t('hq.totalOrders')}
             value={filteredTotalOrders}
             color="#3b82f6"
           />
           <MetricCard
             icon={FaChartLine}
-            label="Avg Order Value"
+            label={t('hq.avgOrderValue')}
             value={formatCurrency ? formatCurrency(filteredAvgOrderValue) : `₹${filteredAvgOrderValue.toFixed(0)}`}
             color="#f59e0b"
           />
@@ -1719,9 +1720,9 @@ export function HeadquartersContent({ embedded = false }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Revenue Trend</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('hq.revenueTrend')}</h3>
                 <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {dateRange.preset === 'today' ? 'Hourly' : 'Daily'} breakdown
+                  {dateRange.preset === 'today' ? t('hq.hourlyBreakdown') : t('hq.dailyBreakdown')}
                 </span>
               </div>
               {refreshing ? (
@@ -1747,7 +1748,7 @@ export function HeadquartersContent({ embedded = false }) {
                 <div style={{ height: '100%', borderRadius: '12px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
               ) : revenueChartData.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-                  No data available
+                  {t('hq.noDataAvailable')}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -1781,7 +1782,7 @@ export function HeadquartersContent({ embedded = false }) {
                         boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                         padding: '12px 16px'
                       }}
-                      formatter={(value) => [formatCurrency ? formatCurrency(value) : `₹${value.toLocaleString()}`, 'Revenue']}
+                      formatter={(value) => [formatCurrency ? formatCurrency(value) : `₹${value.toLocaleString()}`, t('hq.revenue')]}
                       labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
                       cursor={{ fill: 'rgba(22, 163, 74, 0.1)' }}
                     />
@@ -1806,9 +1807,9 @@ export function HeadquartersContent({ embedded = false }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Orders Trend</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('hq.ordersTrend')}</h3>
                 <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {dateRange.preset === 'today' ? 'Hourly' : 'Daily'} breakdown
+                  {dateRange.preset === 'today' ? t('hq.hourlyBreakdown') : t('hq.dailyBreakdown')}
                 </span>
               </div>
               {refreshing ? (
@@ -1824,7 +1825,7 @@ export function HeadquartersContent({ embedded = false }) {
                 }}>
                   <FaShoppingCart size={12} style={{ color: '#3b82f6' }} />
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>
-                    {filteredTotalOrders} orders
+                    {filteredTotalOrders} {t('hq.orders')}
                   </span>
                 </div>
               )}
@@ -1834,7 +1835,7 @@ export function HeadquartersContent({ embedded = false }) {
                 <div style={{ height: '100%', borderRadius: '12px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite 0.2s' }} />
               ) : ordersChartData.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-                  No data available
+                  {t('hq.noDataAvailable')}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -1867,7 +1868,7 @@ export function HeadquartersContent({ embedded = false }) {
                         boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                         padding: '12px 16px'
                       }}
-                      formatter={(value) => [`${value} orders`, 'Orders']}
+                      formatter={(value) => [`${value} ${t('hq.orders')}`, t('hq.orders')]}
                       labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: 4 }}
                     />
                     <Area
@@ -1892,9 +1893,9 @@ export function HeadquartersContent({ embedded = false }) {
           <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Restaurant Rankings</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('hq.restaurantRankings')}</h3>
                 <span style={{ fontSize: '12px', color: '#9ca3af' }}>
-                  {dateRange.preset === 'today' ? "Today's" : dateRange.preset === '7d' ? 'Last 7 days' : dateRange.preset === '30d' ? 'Last 30 days' : 'Period'} performance
+                  {dateRange.preset === 'today' ? t('hq.todaysPerformance') : dateRange.preset === '7d' ? t('hq.last7Days') : dateRange.preset === '30d' ? t('hq.last30Days') : t('hq.periodPerformance')}
                 </span>
               </div>
               <span style={{
@@ -1904,7 +1905,7 @@ export function HeadquartersContent({ embedded = false }) {
                 padding: '4px 10px',
                 borderRadius: '12px'
               }}>
-                {filteredTotalRestaurants} {filteredTotalRestaurants === 1 ? 'location' : 'locations'}
+                {filteredTotalRestaurants} {filteredTotalRestaurants === 1 ? t('hq.location') : t('hq.locations')}
               </span>
             </div>
             {isDataLoading ? (
@@ -1915,7 +1916,7 @@ export function HeadquartersContent({ embedded = false }) {
               </div>
             ) : sortedRestaurants.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>
-                No restaurants selected
+                {t('hq.noRestaurantsSelected')}
               </div>
             ) : (
               <>
@@ -1935,7 +1936,7 @@ export function HeadquartersContent({ embedded = false }) {
                     cursor: 'pointer',
                     marginTop: '8px'
                   }}>
-                    View All {sortedRestaurants.length} Restaurants
+                    {t('hq.viewAllRestaurants', { count: sortedRestaurants.length })}
                   </button>
                 )}
               </>
@@ -1946,7 +1947,7 @@ export function HeadquartersContent({ embedded = false }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Order Types */}
             <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '16px' }}>Order Types</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '16px' }}>{t('hq.orderTypes')}</h3>
               {isDataLoading ? (
                 <div>
                   <div style={{ width: '140px', height: '140px', borderRadius: '50%', margin: '0 auto 16px', background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'hqShimmer 1.5s ease-in-out infinite' }} />
@@ -1971,7 +1972,7 @@ export function HeadquartersContent({ embedded = false }) {
 
             {/* Top Items */}
             <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '16px' }}>Top Sellers</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '16px' }}>{t('hq.topSellers')}</h3>
               {isDataLoading ? (
                 <div>
                   {[0,1,2,3].map(i => (
@@ -2002,7 +2003,7 @@ export function HeadquartersContent({ embedded = false }) {
                     }}>{i + 1}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.name}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.orders} sold</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.orders} {t('hq.sold')}</div>
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>
                       {formatCurrency ? formatCurrency(item.revenue) : `₹${item.revenue}`}
@@ -2017,9 +2018,9 @@ export function HeadquartersContent({ embedded = false }) {
               <div style={{ backgroundColor: '#fef3c7', borderRadius: '20px', padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <FaExclamationTriangle size={20} style={{ color: '#d97706' }} />
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>Inventory Alert</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>{t('hq.inventoryAlert')}</div>
                   <div style={{ fontSize: '13px', color: '#a16207' }}>
-                    {filteredRestaurants.reduce((sum, r) => sum + (r.lowStockItems || 0), 0)} items running low
+                    {t('hq.itemsRunningLow', { count: filteredRestaurants.reduce((sum, r) => sum + (r.lowStockItems || 0), 0) })}
                   </div>
                 </div>
               </div>
@@ -2055,11 +2056,11 @@ export function HeadquartersContent({ embedded = false }) {
               <FaEnvelope size={isMobile ? 16 : 18} style={{ color: 'white' }} />
             </div>
             <div>
-              <div style={{ fontSize: isMobile ? '14px' : '15px', fontWeight: '700', color: '#1f2937' }}>Daily Email Reports</div>
+              <div style={{ fontSize: isMobile ? '14px' : '15px', fontWeight: '700', color: '#1f2937' }}>{t('hq.dailyEmailReports')}</div>
               <div style={{ fontSize: isMobile ? '12px' : '13px', color: '#6b7280', marginTop: '2px' }}>
                 {emailPreferences.emailEnabled
-                  ? `Enabled \u2014 sending to ${emailPreferences.reportEmail || 'your email'}`
-                  : 'Get daily business summaries delivered to your inbox'}
+                  ? t('hq.enabledSendingTo', { email: emailPreferences.reportEmail || 'your email' })
+                  : t('hq.getDailySummaries')}
               </div>
             </div>
           </div>
@@ -2068,7 +2069,7 @@ export function HeadquartersContent({ embedded = false }) {
             backgroundColor: emailPreferences.emailEnabled ? '#dcfce7' : '#f1f5f9',
             color: emailPreferences.emailEnabled ? '#16a34a' : '#6b7280',
           }}>
-            {emailPreferences.emailEnabled ? 'On' : 'Setup'}
+            {emailPreferences.emailEnabled ? t('hq.on') : t('hq.setup')}
           </div>
         </div>
       </div>
@@ -2078,12 +2079,12 @@ export function HeadquartersContent({ embedded = false }) {
   // Staff Tab
   const renderStaffTab = () => {
     const columns = [
-      { header: 'Name', key: 'name' },
-      { header: 'Restaurant', key: 'restaurantName' },
-      { header: 'Role', render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f1f5f9', textTransform: 'capitalize' }}>{row.role}</span> },
-      { header: 'Phone', key: 'phone' },
-      { header: 'Status', render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: row.status === 'active' ? '#dcfce7' : '#fee2e2', color: row.status === 'active' ? '#16a34a' : '#dc2626' }}>{row.status}</span> },
-      { header: 'Actions', render: row => <button onClick={() => toggleStaffStatus(row.id, row.status)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: row.status === 'active' ? '#fee2e2' : '#dcfce7', color: row.status === 'active' ? '#dc2626' : '#16a34a', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}>{row.status === 'active' ? 'Deactivate' : 'Activate'}</button> }
+      { header: t('hq.name'), key: 'name' },
+      { header: t('hq.restaurant'), key: 'restaurantName' },
+      { header: t('hq.role'), render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f1f5f9', textTransform: 'capitalize' }}>{row.role}</span> },
+      { header: t('hq.phone'), key: 'phone' },
+      { header: t('hq.status'), render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: row.status === 'active' ? '#dcfce7' : '#fee2e2', color: row.status === 'active' ? '#16a34a' : '#dc2626' }}>{row.status}</span> },
+      { header: t('hq.actions'), render: row => <button onClick={() => toggleStaffStatus(row.id, row.status)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: row.status === 'active' ? '#fee2e2' : '#dcfce7', color: row.status === 'active' ? '#dc2626' : '#16a34a', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}>{row.status === 'active' ? t('hq.deactivate') : t('hq.activate')}</button> }
     ];
 
     return (
@@ -2091,19 +2092,19 @@ export function HeadquartersContent({ embedded = false }) {
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-            <input type="text" placeholder="Search staff..." value={staffFilters.search} onChange={(e) => setStaffFilters(prev => ({ ...prev, search: e.target.value }))} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+            <input type="text" placeholder={t('hq.searchStaff')} value={staffFilters.search} onChange={(e) => setStaffFilters(prev => ({ ...prev, search: e.target.value }))} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
           </div>
           <select value={staffFilters.role} onChange={(e) => setStaffFilters(prev => ({ ...prev, role: e.target.value }))} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px', minWidth: '130px' }}>
-            <option value="">All Roles</option>
-            <option value="manager">Manager</option>
-            <option value="waiter">Waiter</option>
-            <option value="cashier">Cashier</option>
-            <option value="chef">Chef</option>
+            <option value="">{t('hq.allRoles')}</option>
+            <option value="manager">{t('hq.manager')}</option>
+            <option value="waiter">{t('hq.waiter')}</option>
+            <option value="cashier">{t('hq.cashier')}</option>
+            <option value="chef">{t('hq.chef')}</option>
           </select>
           <select value={staffFilters.status} onChange={(e) => setStaffFilters(prev => ({ ...prev, status: e.target.value }))} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px', minWidth: '130px' }}>
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="">{t('hq.allStatus')}</option>
+            <option value="active">{t('hq.active')}</option>
+            <option value="inactive">{t('hq.inactive')}</option>
           </select>
         </div>
         {loadingStaff ? (
@@ -2112,15 +2113,15 @@ export function HeadquartersContent({ embedded = false }) {
           <>
             {staffData.pagination?.total > 0 && (
               <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
-                Showing {((staffPage - 1) * STAFF_PAGE_SIZE) + 1} - {Math.min(staffPage * STAFF_PAGE_SIZE, staffData.pagination.total)} of {staffData.pagination.total}
+                {t('hq.showing')} {((staffPage - 1) * STAFF_PAGE_SIZE) + 1} - {Math.min(staffPage * STAFF_PAGE_SIZE, staffData.pagination.total)} {t('hq.of')} {staffData.pagination.total}
               </div>
             )}
-            <DataTable columns={columns} data={staffData.staff || []} emptyMessage="No staff found" />
+            <DataTable columns={columns} data={staffData.staff || []} emptyMessage={t('hq.noStaffFound')} />
             {staffData.pagination?.totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                <button onClick={() => setStaffPage(p => Math.max(1, p - 1))} disabled={staffPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === 1 ? 'not-allowed' : 'pointer', opacity: staffPage === 1 ? 0.5 : 1 }}>Previous</button>
-                <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {staffPage} of {staffData.pagination.totalPages}</span>
-                <button onClick={() => setStaffPage(p => Math.min(staffData.pagination.totalPages, p + 1))} disabled={staffPage === staffData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === staffData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: staffPage === staffData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
+                <button onClick={() => setStaffPage(p => Math.max(1, p - 1))} disabled={staffPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === 1 ? 'not-allowed' : 'pointer', opacity: staffPage === 1 ? 0.5 : 1 }}>{t('hq.previous')}</button>
+                <span style={{ padding: '8px 14px', color: '#6b7280' }}>{t('hq.page')} {staffPage} {t('hq.of')} {staffData.pagination.totalPages}</span>
+                <button onClick={() => setStaffPage(p => Math.min(staffData.pagination.totalPages, p + 1))} disabled={staffPage === staffData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: staffPage === staffData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: staffPage === staffData.pagination.totalPages ? 0.5 : 1 }}>{t('hq.next')}</button>
               </div>
             )}
           </>
@@ -2132,7 +2133,7 @@ export function HeadquartersContent({ embedded = false }) {
   // Menu Tab
   const renderMenuTab = () => {
     const columns = [
-      { header: 'Item', render: row => (
+      { header: t('hq.item'), render: row => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {row.image && <img src={row.image} alt={row.name} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />}
           <div>
@@ -2141,9 +2142,9 @@ export function HeadquartersContent({ embedded = false }) {
           </div>
         </div>
       )},
-      { header: 'Restaurant', key: 'restaurantName' },
-      { header: 'Price', render: row => formatCurrency ? formatCurrency(row.price) : `₹${row.price}` },
-      { header: 'Status', render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: row.isAvailable ? '#dcfce7' : '#fee2e2', color: row.isAvailable ? '#16a34a' : '#dc2626' }}>{row.isAvailable ? 'Available' : 'Unavailable'}</span> }
+      { header: t('hq.restaurant'), key: 'restaurantName' },
+      { header: t('hq.price'), render: row => formatCurrency ? formatCurrency(row.price) : `₹${row.price}` },
+      { header: t('hq.status'), render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: row.isAvailable ? '#dcfce7' : '#fee2e2', color: row.isAvailable ? '#16a34a' : '#dc2626' }}>{row.isAvailable ? t('hq.available') : t('hq.unavailable')}</span> }
     ];
 
     return (
@@ -2151,10 +2152,10 @@ export function HeadquartersContent({ embedded = false }) {
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-            <input type="text" placeholder="Search menu..." value={menuFilters.search} onChange={(e) => setMenuFilters(prev => ({ ...prev, search: e.target.value }))} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+            <input type="text" placeholder={t('hq.searchMenu')} value={menuFilters.search} onChange={(e) => setMenuFilters(prev => ({ ...prev, search: e.target.value }))} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
           </div>
           <select value={menuFilters.category} onChange={(e) => setMenuFilters(prev => ({ ...prev, category: e.target.value }))} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px', minWidth: '150px' }}>
-            <option value="">All Categories</option>
+            <option value="">{t('hq.allCategories')}</option>
             {menuData.categories?.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
@@ -2164,15 +2165,15 @@ export function HeadquartersContent({ embedded = false }) {
           <>
             {menuData.pagination?.total > 0 && (
               <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
-                Showing {((menuPage - 1) * MENU_PAGE_SIZE) + 1} - {Math.min(menuPage * MENU_PAGE_SIZE, menuData.pagination.total)} of {menuData.pagination.total}
+                {t('hq.showing')} {((menuPage - 1) * MENU_PAGE_SIZE) + 1} - {Math.min(menuPage * MENU_PAGE_SIZE, menuData.pagination.total)} {t('hq.of')} {menuData.pagination.total}
               </div>
             )}
-            <DataTable columns={columns} data={menuData.menuItems || []} emptyMessage="No menu items found" />
+            <DataTable columns={columns} data={menuData.menuItems || []} emptyMessage={t('hq.noMenuItemsFound')} />
             {menuData.pagination?.totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                <button onClick={() => setMenuPage(p => Math.max(1, p - 1))} disabled={menuPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === 1 ? 'not-allowed' : 'pointer', opacity: menuPage === 1 ? 0.5 : 1 }}>Previous</button>
-                <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {menuPage} of {menuData.pagination.totalPages}</span>
-                <button onClick={() => setMenuPage(p => Math.min(menuData.pagination.totalPages, p + 1))} disabled={menuPage === menuData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === menuData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: menuPage === menuData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
+                <button onClick={() => setMenuPage(p => Math.max(1, p - 1))} disabled={menuPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === 1 ? 'not-allowed' : 'pointer', opacity: menuPage === 1 ? 0.5 : 1 }}>{t('hq.previous')}</button>
+                <span style={{ padding: '8px 14px', color: '#6b7280' }}>{t('hq.page')} {menuPage} {t('hq.of')} {menuData.pagination.totalPages}</span>
+                <button onClick={() => setMenuPage(p => Math.min(menuData.pagination.totalPages, p + 1))} disabled={menuPage === menuData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: menuPage === menuData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: menuPage === menuData.pagination.totalPages ? 0.5 : 1 }}>{t('hq.next')}</button>
               </div>
             )}
           </>
@@ -2184,17 +2185,17 @@ export function HeadquartersContent({ embedded = false }) {
   // Inventory Tab
   const renderInventoryTab = () => {
     const columns = [
-      { header: 'Item', key: 'name' },
-      { header: 'Restaurant', key: 'restaurantName' },
-      { header: 'Category', key: 'category' },
-      { header: 'Stock', render: row => (
+      { header: t('hq.item'), key: 'name' },
+      { header: t('hq.restaurant'), key: 'restaurantName' },
+      { header: t('hq.category'), key: 'category' },
+      { header: t('hq.stock'), render: row => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>{row.currentStock} {row.unit}</span>
           {row.stockStatus === 'low' && <FaExclamationTriangle size={14} style={{ color: '#f59e0b' }} />}
           {row.stockStatus === 'out' && <FaTimesCircle size={14} style={{ color: '#dc2626' }} />}
         </div>
       )},
-      { header: 'Status', render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: row.stockStatus === 'normal' ? '#dcfce7' : row.stockStatus === 'low' ? '#fef3c7' : '#fee2e2', color: row.stockStatus === 'normal' ? '#16a34a' : row.stockStatus === 'low' ? '#d97706' : '#dc2626' }}>{row.stockStatus === 'normal' ? 'Normal' : row.stockStatus === 'low' ? 'Low' : 'Out'}</span> }
+      { header: t('hq.status'), render: row => <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: row.stockStatus === 'normal' ? '#dcfce7' : row.stockStatus === 'low' ? '#fef3c7' : '#fee2e2', color: row.stockStatus === 'normal' ? '#16a34a' : row.stockStatus === 'low' ? '#d97706' : '#dc2626' }}>{row.stockStatus === 'normal' ? t('hq.normal') : row.stockStatus === 'low' ? t('hq.low') : t('hq.out')}</span> }
     ];
 
     return (
@@ -2204,13 +2205,13 @@ export function HeadquartersContent({ embedded = false }) {
             {inventoryData.alerts?.outOfStock > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#dc2626' }}>
                 <FaTimesCircle size={18} />
-                <span style={{ fontWeight: '600' }}>{inventoryData.alerts.outOfStock} out of stock</span>
+                <span style={{ fontWeight: '600' }}>{t('hq.outOfStockCount', { count: inventoryData.alerts.outOfStock })}</span>
               </div>
             )}
             {inventoryData.alerts?.lowStock > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', backgroundColor: '#fef3c7', borderRadius: '12px', color: '#d97706' }}>
                 <FaExclamationTriangle size={18} />
-                <span style={{ fontWeight: '600' }}>{inventoryData.alerts.lowStock} low stock</span>
+                <span style={{ fontWeight: '600' }}>{t('hq.lowStockCount', { count: inventoryData.alerts.lowStock })}</span>
               </div>
             )}
           </div>
@@ -2218,16 +2219,16 @@ export function HeadquartersContent({ embedded = false }) {
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-            <input type="text" placeholder="Search inventory..." value={inventoryFilters.search} onChange={(e) => setInventoryFilters(prev => ({ ...prev, search: e.target.value }))} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+            <input type="text" placeholder={t('hq.searchInventory')} value={inventoryFilters.search} onChange={(e) => setInventoryFilters(prev => ({ ...prev, search: e.target.value }))} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
           </div>
           <select value={inventoryFilters.stockStatus} onChange={(e) => setInventoryFilters(prev => ({ ...prev, stockStatus: e.target.value }))} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px', minWidth: '140px' }}>
-            <option value="">All Status</option>
-            <option value="normal">Normal</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
+            <option value="">{t('hq.allStatus')}</option>
+            <option value="normal">{t('hq.normal')}</option>
+            <option value="low">{t('hq.lowStock')}</option>
+            <option value="out">{t('hq.outOfStock')}</option>
           </select>
           <select value={inventoryFilters.category} onChange={(e) => setInventoryFilters(prev => ({ ...prev, category: e.target.value }))} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '14px', minWidth: '150px' }}>
-            <option value="">All Categories</option>
+            <option value="">{t('hq.allCategories')}</option>
             {inventoryData.categories?.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
@@ -2237,15 +2238,15 @@ export function HeadquartersContent({ embedded = false }) {
           <>
             {inventoryData.pagination?.total > 0 && (
               <div style={{ marginBottom: '12px', fontSize: '13px', color: '#6b7280' }}>
-                Showing {((inventoryPage - 1) * INVENTORY_PAGE_SIZE) + 1} - {Math.min(inventoryPage * INVENTORY_PAGE_SIZE, inventoryData.pagination.total)} of {inventoryData.pagination.total}
+                {t('hq.showing')} {((inventoryPage - 1) * INVENTORY_PAGE_SIZE) + 1} - {Math.min(inventoryPage * INVENTORY_PAGE_SIZE, inventoryData.pagination.total)} {t('hq.of')} {inventoryData.pagination.total}
               </div>
             )}
-            <DataTable columns={columns} data={inventoryData.inventory || []} emptyMessage="No inventory found" />
+            <DataTable columns={columns} data={inventoryData.inventory || []} emptyMessage={t('hq.noInventoryFound')} />
             {inventoryData.pagination?.totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                <button onClick={() => setInventoryPage(p => Math.max(1, p - 1))} disabled={inventoryPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === 1 ? 'not-allowed' : 'pointer', opacity: inventoryPage === 1 ? 0.5 : 1 }}>Previous</button>
-                <span style={{ padding: '8px 14px', color: '#6b7280' }}>Page {inventoryPage} of {inventoryData.pagination.totalPages}</span>
-                <button onClick={() => setInventoryPage(p => Math.min(inventoryData.pagination.totalPages, p + 1))} disabled={inventoryPage === inventoryData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === inventoryData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: inventoryPage === inventoryData.pagination.totalPages ? 0.5 : 1 }}>Next</button>
+                <button onClick={() => setInventoryPage(p => Math.max(1, p - 1))} disabled={inventoryPage === 1} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === 1 ? 'not-allowed' : 'pointer', opacity: inventoryPage === 1 ? 0.5 : 1 }}>{t('hq.previous')}</button>
+                <span style={{ padding: '8px 14px', color: '#6b7280' }}>{t('hq.page')} {inventoryPage} {t('hq.of')} {inventoryData.pagination.totalPages}</span>
+                <button onClick={() => setInventoryPage(p => Math.min(inventoryData.pagination.totalPages, p + 1))} disabled={inventoryPage === inventoryData.pagination.totalPages} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: inventoryPage === inventoryData.pagination.totalPages ? 'not-allowed' : 'pointer', opacity: inventoryPage === inventoryData.pagination.totalPages ? 0.5 : 1 }}>{t('hq.next')}</button>
               </div>
             )}
           </>
@@ -2288,7 +2289,7 @@ export function HeadquartersContent({ embedded = false }) {
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; }}
             >
               <FaShoppingCart size={13} />
-              {businessType === 'bar' ? 'Open Bar POS' : 'Start Taking Orders'}
+              {businessType === 'bar' ? t('home.barPOS') : t('home.startTakingOrders')}
             </button>
           )}
 
@@ -2311,7 +2312,7 @@ export function HeadquartersContent({ embedded = false }) {
               opacity: aiInsightsRemaining <= 0 ? 0.7 : 1,
               transition: 'all 0.2s ease'
             }}
-            title="AI Insights"
+            title={t('hq.aiInsights')}
           >
             {loadingInsights ? (
               <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
@@ -2334,7 +2335,7 @@ export function HeadquartersContent({ embedded = false }) {
             cursor: refreshing ? 'wait' : 'pointer',
             transition: 'all 0.2s ease'
           }}
-          title="Refresh"
+          title={t('hq.refresh')}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#6b7280'; }}
           >
@@ -2357,7 +2358,7 @@ export function HeadquartersContent({ embedded = false }) {
           }}
         >
           <FaShoppingCart size={15} />
-          {businessType === 'bar' ? 'Open Bar POS' : 'Start Taking Orders'}
+          {businessType === 'bar' ? t('home.barPOS') : t('home.startTakingOrders')}
         </button>
       )}
 
@@ -2372,23 +2373,23 @@ export function HeadquartersContent({ embedded = false }) {
       }}>
         {/* Left: Tabs */}
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-          <TabButton id="overview" icon={FaChartBar} label="Overview" active={activeTab === 'overview'} />
-          <TabButton id="staff" icon={FaUsers} label="Staff" active={activeTab === 'staff'} />
-          <TabButton id="menu" icon={FaUtensils} label="Menu" active={activeTab === 'menu'} />
-          <TabButton id="inventory" icon={FaBoxes} label="Inventory" active={activeTab === 'inventory'} />
+          <TabButton id="overview" icon={FaChartBar} label={t('hq.overview')} active={activeTab === 'overview'} />
+          <TabButton id="staff" icon={FaUsers} label={t('hq.staff')} active={activeTab === 'staff'} />
+          <TabButton id="menu" icon={FaUtensils} label={t('hq.menu')} active={activeTab === 'menu'} />
+          <TabButton id="inventory" icon={FaBoxes} label={t('hq.inventory')} active={activeTab === 'inventory'} />
           {/* Enterprise / Chain Management Tabs */}
-          <TabButton id="org-setup" icon={FaSitemap} label="Setup" active={activeTab === 'org-setup'} />
+          <TabButton id="org-setup" icon={FaSitemap} label={t('hq.setup')} active={activeTab === 'org-setup'} />
           {orgData?.settings?.centralizedMenu && (
-            <TabButton id="central-menu" icon={FaClipboardList} label="Central Menu" active={activeTab === 'central-menu'} />
+            <TabButton id="central-menu" icon={FaClipboardList} label={t('hq.centralMenu')} active={activeTab === 'central-menu'} />
           )}
           {orgData?.settings?.centralWarehouse && (
-            <TabButton id="warehouse" icon={FaWarehouse} label="Warehouse" active={activeTab === 'warehouse'} />
+            <TabButton id="warehouse" icon={FaWarehouse} label={t('hq.warehouse')} active={activeTab === 'warehouse'} />
           )}
           {orgData?.settings?.centralKitchen && (
-            <TabButton id="central-kitchen" icon={FaIndustry} label="Kitchen" active={activeTab === 'central-kitchen'} />
+            <TabButton id="central-kitchen" icon={FaIndustry} label={t('hq.kitchen')} active={activeTab === 'central-kitchen'} />
           )}
           {orgData && (
-            <TabButton id="hq-reports" icon={FaFileAlt} label="Reports" active={activeTab === 'hq-reports'} />
+            <TabButton id="hq-reports" icon={FaFileAlt} label={t('hq.reports')} active={activeTab === 'hq-reports'} />
           )}
         </div>
 
@@ -2448,7 +2449,7 @@ export function HeadquartersContent({ embedded = false }) {
               })}
               {selectedRestaurants.length > 3 && (
                 <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '500' }}>
-                  +{selectedRestaurants.length - 3} more
+                  +{selectedRestaurants.length - 3} {t('hq.more')}
                 </span>
               )}
             </div>
@@ -2466,7 +2467,7 @@ export function HeadquartersContent({ embedded = false }) {
                 marginLeft: '4px'
               }}
             >
-              Show All
+              {t('hq.showAll')}
             </button>
           </div>
         )}

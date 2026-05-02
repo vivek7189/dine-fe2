@@ -121,7 +121,7 @@ const CategoryDropdown = ({
       setSearchTerm('');
     } catch (error) {
       console.error('Error creating category:', error);
-      alert('Failed to create category: ' + (error.message || 'Unknown error'));
+      alert(t('menu.failedCreateCategory', { error: error.message || 'Unknown error' }));
     } finally {
       setLoading(false);
     }
@@ -151,14 +151,14 @@ const CategoryDropdown = ({
       setEditingCategory(null);
     } catch (error) {
       console.error('Error updating category:', error);
-      alert('Failed to update category: ' + (error.message || 'Unknown error'));
+      alert(t('menu.failedUpdateCategory', { error: error.message || 'Unknown error' }));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (category) => {
-    if (!confirm(`Are you sure you want to delete "${category.name}"? This action cannot be undone.`)) return;
+    if (!confirm(t('menu.deleteCategoryConfirm', { name: category.name }))) return;
     
     try {
       setLoading(true);
@@ -172,7 +172,7 @@ const CategoryDropdown = ({
       }
     } catch (error) {
       console.error('Error deleting category:', error);
-      alert('Failed to delete category: ' + (error.message || 'Unknown error'));
+      alert(t('menu.failedDeleteCategory', { error: error.message || 'Unknown error' }));
     } finally {
       setLoading(false);
     }
@@ -207,7 +207,7 @@ const CategoryDropdown = ({
                     type="text"
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                    placeholder="Category name"
+                    placeholder={t('menu.categoryName')}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     autoFocus
                   />
@@ -225,7 +225,7 @@ const CategoryDropdown = ({
                     type="text"
                     value={newCategory.description}
                     onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
-                    placeholder="Description (optional)"
+                    placeholder={t('menu.descriptionOptional')}
                     className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -235,7 +235,7 @@ const CategoryDropdown = ({
                              disabled={loading || !newCategory.name.trim()}
                              className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                             {loading ? 'Adding...' : 'Add'}
+                             {loading ? t('menu.adding') : t('menu.add')}
                 </button>
                     <button
                       onClick={() => {
@@ -244,7 +244,7 @@ const CategoryDropdown = ({
                       }}
                       className="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                     >
-                      Cancel
+                      {t('menu.cancel')}
                     </button>
                 </div>
                   </div>
@@ -260,7 +260,7 @@ const CategoryDropdown = ({
                     type="text"
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                    placeholder="Category name"
+                    placeholder={t('menu.categoryName')}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     autoFocus
                   />
@@ -278,7 +278,7 @@ const CategoryDropdown = ({
                     type="text"
                     value={newCategory.description}
                     onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
-                    placeholder="Description (optional)"
+                    placeholder={t('menu.descriptionOptional')}
                     className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
@@ -288,7 +288,7 @@ const CategoryDropdown = ({
                              disabled={loading || !newCategory.name.trim()}
                              className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                             {loading ? 'Updating...' : 'Update'}
+                             {loading ? t('menu.updating') : t('menu.update')}
                     </button>
                     <button
                       onClick={() => {
@@ -298,7 +298,7 @@ const CategoryDropdown = ({
                       }}
                       className="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                     >
-                      Cancel
+                      {t('menu.cancel')}
                     </button>
                 </div>
                   </div>
@@ -312,7 +312,7 @@ const CategoryDropdown = ({
                          onClick={() => setShowAddForm(true)}
                          className="w-full text-left text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-2"
                        >
-                         Add new category
+                         {t('menu.addNewCategory')}
                        </button>
             </div>
           )}
@@ -340,7 +340,7 @@ const CategoryDropdown = ({
                       handleEdit(category);
                     }}
                     className="p-1 text-blue-600 hover:text-blue-800"
-                    title="Edit category"
+                    title={t('menu.edit')}
                   >
                     <FaEdit size={10} />
                   </button>
@@ -350,7 +350,7 @@ const CategoryDropdown = ({
                       handleDelete(category);
                     }}
                     className="p-1 text-red-600 hover:text-red-800"
-                    title="Delete category"
+                    title={t('menu.delete')}
                   >
                     <FaTrash size={10} />
                   </button>
@@ -359,7 +359,7 @@ const CategoryDropdown = ({
             ))}
             {filteredCategories.length === 0 && (
               <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                No categories found
+                {t('menu.noCategoriesFound')}
               </div>
             )}
           </div>
@@ -646,10 +646,10 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
             boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
             zIndex: 3
           }}>
-            OUT OF STOCK
+            {t('menu.outOfStock')}
           </div>
         )}
-        
+
         {/* Short Code Badge */}
         <div style={{
           position: 'absolute',
@@ -708,7 +708,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               fontSize: '11px',
               fontWeight: '600'
             }}>
-              {categories.find(c => c.id === item.category)?.name || 'Main Course'}
+              {categories.find(c => c.id === item.category)?.name || t('menu.mainCourse')}
             </span>
         </div>
         
@@ -753,7 +753,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
             )}
             {item.unit && (
               <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fef9ee', color: '#92400e' }}>
-                per {item.unit}
+                {t('menu.per')} {item.unit}
               </span>
             )}
             {item.servingSize && (
@@ -774,7 +774,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               color: item.stockQuantity === 0 ? '#dc2626' : isLowStock ? '#92400e' : '#166534',
               border: `1px solid ${item.stockQuantity === 0 ? '#fca5a5' : isLowStock ? '#fde68a' : '#86efac'}`
             }}>
-              {item.stockQuantity === 0 ? '🚫 Out of Stock' : isLowStock ? `⚠️ ${item.stockQuantity} left` : `📦 ${item.stockQuantity} in stock`}
+              {item.stockQuantity === 0 ? t('menu.outOfStockBadge') : isLowStock ? t('menu.lowStockBadge', { quantity: item.stockQuantity }) : t('menu.stockBadge', { quantity: item.stockQuantity, unit: item.stockUnit || 'pcs' })}
             </span>
           )}
           {expiryStatus && (
@@ -785,7 +785,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               color: expiryStatus === 'expired' ? '#dc2626' : expiryStatus === 'expiring-soon' ? '#92400e' : '#c2410c',
               border: `1px solid ${expiryStatus === 'expired' ? '#fca5a5' : expiryStatus === 'expiring-soon' ? '#fde68a' : '#fed7aa'}`
             }}>
-              {expiryStatus === 'expired' ? '❌ EXPIRED' : expiryStatus === 'expiring-soon' ? '⏰ Exp Soon' : '📅 Exp 7d'}
+              {expiryStatus === 'expired' ? t('menu.expiredBadge') : expiryStatus === 'expiring-soon' ? t('menu.expSoonBadge') : t('menu.exp7dBadge')}
             </span>
           )}
         </div>
@@ -859,7 +859,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.color = '#1d4ed8'; e.currentTarget.style.borderColor = '#93c5fd'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#374151'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
-            title="View details"
+            title={t('menu.viewDetails')}
           >
             <FaEye size={12} />
           </button>
@@ -873,8 +873,8 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               }}
               style={{
                 padding: '8px',
-                background: item.isFavorite 
-                  ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+                background: item.isFavorite
+                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
                   : '#ffffff',
                 color: item.isFavorite ? 'white' : '#000000',
                 border: item.isFavorite ? 'none' : '2px dashed #000000',
@@ -884,8 +884,8 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: item.isFavorite 
-                  ? '0 2px 4px rgba(239, 68, 68, 0.2)' 
+                boxShadow: item.isFavorite
+                  ? '0 2px 4px rgba(239, 68, 68, 0.2)'
                   : '0 1px 2px rgba(0, 0, 0, 0.1)'
               }}
               onMouseEnter={(e) => {
@@ -897,16 +897,16 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = item.isFavorite 
-                  ? '0 2px 4px rgba(239, 68, 68, 0.2)' 
+                e.target.style.boxShadow = item.isFavorite
+                  ? '0 2px 4px rgba(239, 68, 68, 0.2)'
                   : '0 1px 2px rgba(0, 0, 0, 0.1)';
-                e.target.style.background = item.isFavorite 
-                  ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+                e.target.style.background = item.isFavorite
+                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
                   : '#ffffff';
                 e.target.style.color = item.isFavorite ? 'white' : '#000000';
                 e.target.style.border = item.isFavorite ? 'none' : '2px dashed #000000';
               }}
-              title={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              title={item.isFavorite ? t('menu.removeFromFavorites') : t('menu.addToFavorites')}
             >
               <FaStar size={12} />
             </button>
@@ -979,7 +979,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = hasRecipe ? 'none' : '0 2px 4px rgba(5, 150, 105, 0.2)';
               }}
-              title={generatingRecipeFor === item.id ? 'Generating recipe...' : hasRecipe ? 'View Recipe' : 'Generate Recipe & Link Inventory'}
+              title={generatingRecipeFor === item.id ? t('menu.generatingRecipe') : hasRecipe ? t('menu.viewRecipe') : t('menu.generateRecipeLink')}
             >
               {generatingRecipeFor === item.id
                 ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
@@ -1028,7 +1028,7 @@ const MenuItemCard = ({ item, categories, onEdit, onDelete, onToggleAvailability
                   e.target.style.boxShadow = '0 2px 4px rgba(34, 197, 94, 0.2)';
                 }
               }}
-            title={item.isAvailable ? 'Mark as Out of Stock' : 'Mark as Available'}
+            title={item.isAvailable ? t('menu.markOutOfStock') : t('menu.markAvailable')}
           >
               {item.isAvailable ? <FaMinus size={12} /> : <FaCheck size={12} />}
           </button>}
@@ -1193,7 +1193,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
                 fontSize: '10px',
                 fontWeight: 'bold'
               }}>
-              OUT
+              {t('menu.out')}
             </span>
           )}
         </div>
@@ -1203,7 +1203,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
             margin: 0,
             lineHeight: '1.4'
           }}>
-          {item.description || 'Delicious dish prepared with finest ingredients'}
+          {item.description || t('menu.defaultDescription')}
         </p>
       </div>
       
@@ -1229,7 +1229,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
               color: item.stockQuantity === 0 ? '#dc2626' : isLowStock ? '#92400e' : '#166534',
               border: `1px solid ${item.stockQuantity === 0 ? '#fca5a5' : isLowStock ? '#fde68a' : '#86efac'}`
             }}>
-              {item.stockQuantity === 0 ? '🚫 Out of Stock' : isLowStock ? `⚠️ ${item.stockQuantity} left` : `📦 ${item.stockQuantity} in stock`}
+              {item.stockQuantity === 0 ? t('menu.outOfStockBadge') : isLowStock ? t('menu.lowStockBadge', { quantity: item.stockQuantity }) : t('menu.stockBadge', { quantity: item.stockQuantity, unit: item.stockUnit || 'pcs' })}
             </span>
           )}
           {expiryStatus && (
@@ -1240,7 +1240,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
               color: expiryStatus === 'expired' ? '#dc2626' : expiryStatus === 'expiring-soon' ? '#92400e' : '#c2410c',
               border: `1px solid ${expiryStatus === 'expired' ? '#fca5a5' : expiryStatus === 'expiring-soon' ? '#fde68a' : '#fed7aa'}`
             }}>
-              {expiryStatus === 'expired' ? '❌ EXPIRED' : expiryStatus === 'expiring-soon' ? '⏰ Exp Soon' : '📅 Exp 7d'}
+              {expiryStatus === 'expired' ? t('menu.expiredBadge') : expiryStatus === 'expiring-soon' ? t('menu.expSoonBadge') : t('menu.exp7dBadge')}
             </span>
           )}
         </div>
@@ -1272,7 +1272,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            title={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            title={item.isFavorite ? t('menu.removeFromFavorites') : t('menu.addToFavorites')}
           >
             <FaHeart size={12} fill={item.isFavorite ? 'white' : 'none'} />
           </button>
@@ -1296,7 +1296,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
             alignItems: 'center',
             justifyContent: 'center'
           }}
-          title="Edit"
+          title={t('menu.edit')}
         >
           <FaEdit size={10} />
         </button>}
@@ -1319,7 +1319,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
             alignItems: 'center',
             justifyContent: 'center'
           }}
-          title={item.isAvailable ? 'Mark as Out of Stock' : 'Mark as Available'}
+          title={item.isAvailable ? t('menu.markOutOfStock') : t('menu.markAvailable')}
         >
           {item.isAvailable ? <FaMinus size={10} /> : <FaCheck size={10} />}
         </button>}
@@ -1342,7 +1342,7 @@ const ListViewItem = ({ item, categories, onEdit, onDelete, onToggleAvailability
             alignItems: 'center',
             justifyContent: 'center'
           }}
-          title="Delete"
+          title={t('menu.delete')}
         >
           <FaTrash size={10} />
         </button>}
@@ -1437,7 +1437,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                     color: '#6b7280',
                     fontWeight: '500'
                   }}>
-                    {item.isVeg ? 'Vegetarian' : 'Non-Vegetarian'}
+                    {item.isVeg ? t('menu.vegLabel') : t('menu.nonVegLabel')}
                   </span>
                 </div>
               </div>
@@ -1490,7 +1490,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 color: '#6b7280',
                 fontWeight: '500'
               }}>
-                Price per serving
+                {t('menu.pricePerServing')}
               </div>
             </div>
 
@@ -1504,7 +1504,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                   margin: 0,
                   marginBottom: '12px'
                 }}>
-                  Images
+                  {t('menu.images')}
                 </h3>
                 <ImageCarousel
                   images={item.images}
@@ -1524,7 +1524,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 margin: 0,
                 marginBottom: '8px'
               }}>
-                Description
+                {t('menu.description')}
               </h3>
               <p style={{
                 fontSize: '14px',
@@ -1532,7 +1532,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 lineHeight: '1.6',
                 margin: 0
               }}>
-                {item.description || 'Delicious dish prepared with finest ingredients and authentic flavors.'}
+                {item.description || t('menu.defaultDescriptionFull')}
               </p>
             </div>
 
@@ -1545,23 +1545,23 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 margin: 0,
                 marginBottom: '12px'
               }}>
-                Details
+                {t('menu.details')}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Category</span>
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.category')}</span>
                   <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
-                    {category?.name || 'Main Course'}
+                    {category?.name || t('menu.mainCourse')}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Short Code</span>
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.shortCode')}</span>
                   <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
                     {item.shortCode}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Status</span>
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.status')}</span>
                   <span style={{
                     fontSize: '14px',
                     fontWeight: '500',
@@ -1570,7 +1570,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                     padding: '2px 8px',
                     borderRadius: '6px'
                   }}>
-                    {item.isAvailable ? 'Available' : 'Out of Stock'}
+                    {item.isAvailable ? t('menu.available') : t('menu.outOfStock')}
                   </span>
                 </div>
               </div>
@@ -1581,7 +1581,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           {multiPricingEnabled && activePricingRules?.length > 0 && item.pricingRules && Object.keys(item.pricingRules).length > 0 && (
             <div style={{ padding: '0 24px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
-                Channel Prices
+                {t('menu.channelPrices')}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {activePricingRules.map(rule => {
@@ -1609,30 +1609,30 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           {(item.spiritCategory || item.abv || item.bottleSize || item.servingUnit || item.ingredients) && (
             <div style={{ padding: '0 24px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
-                🍸 Bar Details
+                {t('menu.barDetails')}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {item.spiritCategory && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Spirit Category</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.spiritCategory')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.spiritCategory}</span>
                   </div>
                 )}
                 {item.abv && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>ABV</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.abv')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.abv}%</span>
                   </div>
                 )}
                 {item.bottleSize && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Bottle Size</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.bottleSize')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.bottleSize}</span>
                   </div>
                 )}
                 {item.servingUnit && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Serving Unit</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.servingUnit')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.servingUnit}</span>
                   </div>
                 )}
@@ -1644,36 +1644,36 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           {(item.unit || item.weight || item.shelfLife || item.mfgDate || item.expiryDate) && (
             <div style={{ padding: '0 24px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
-                🧁 Bakery Details
+                {t('menu.bakeryDetails')}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {item.unit && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Unit</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.unit')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.unit}</span>
                   </div>
                 )}
                 {item.weight && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Weight</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.weight')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.weight}</span>
                   </div>
                 )}
                 {item.shelfLife && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Shelf Life</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.shelfLife')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.shelfLife} days</span>
                   </div>
                 )}
                 {item.mfgDate && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>MFG Date</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.mfgDate')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{new Date(item.mfgDate).toLocaleDateString()}</span>
                   </div>
                 )}
                 {item.expiryDate && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Expiry Date</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.expiryDate')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{new Date(item.expiryDate).toLocaleDateString()}</span>
                   </div>
                 )}
@@ -1685,18 +1685,18 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           {(item.servingSize || item.scoopOptions) && (
             <div style={{ padding: '0 24px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
-                🍦 Ice Cream Details
+                {t('menu.iceCreamDetails')}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {item.servingSize && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Serving Size</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.servingSize')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.servingSize}</span>
                   </div>
                 )}
                 {item.scoopOptions && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Max Scoops</span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>{t('menu.maxScoops')}</span>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{item.scoopOptions}</span>
                   </div>
                 )}
@@ -1708,7 +1708,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           {item.variants && item.variants.length > 0 && (
             <div style={{ padding: '0 24px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
-                Variants ({item.variants.length})
+                {t('menu.variantsCount', { count: item.variants.length })}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {item.variants.map((v, i) => (
@@ -1725,7 +1725,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
           {item.customizations && item.customizations.length > 0 && (
             <div style={{ padding: '0 24px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0, marginBottom: '12px' }}>
-                Customizations ({item.customizations.length})
+                {t('menu.customizationsCount', { count: item.customizations.length })}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {item.customizations.map((c, i) => (
@@ -1747,23 +1747,23 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 border: '1px solid #bbf7d0'
               }}>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#059669', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FaFlask size={14} /> Recipe Linked
+                  <FaFlask size={14} /> {t('menu.recipeLinked')}
                 </h3>
                 {/* Recipe meta */}
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
                   {recipe.servings && (
                     <span style={{ fontSize: '12px', color: '#374151', backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                      {recipe.servings} servings
+                      {t('menu.servings', { count: recipe.servings })}
                     </span>
                   )}
                   {recipe.prepTime > 0 && (
                     <span style={{ fontSize: '12px', color: '#374151', backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                      Prep: {recipe.prepTime}min
+                      {t('menu.prepTime', { time: recipe.prepTime })}
                     </span>
                   )}
                   {recipe.cookTime > 0 && (
                     <span style={{ fontSize: '12px', color: '#374151', backgroundColor: 'white', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                      Cook: {recipe.cookTime}min
+                      {t('menu.cookTime', { time: recipe.cookTime })}
                     </span>
                   )}
                 </div>
@@ -1771,7 +1771,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 {recipe.ingredients && recipe.ingredients.length > 0 && (
                   <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Ingredients ({recipe.ingredients.length})
+                      {t('menu.ingredientsCount', { count: recipe.ingredients.length })}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                       {recipe.ingredients.map((ing, i) => (
@@ -1787,7 +1787,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                 {recipe.instructions && recipe.instructions.length > 0 && (
                   <div>
                     <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Steps ({recipe.instructions.length})
+                      {t('menu.stepsCount', { count: recipe.instructions.length })}
                     </div>
                     <div style={{ fontSize: '12px', color: '#374151', lineHeight: 1.5 }}>
                       {recipe.instructions.slice(0, 3).map((step, i) => (
@@ -1798,7 +1798,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
                       ))}
                       {recipe.instructions.length > 3 && (
                         <div style={{ color: '#9ca3af', fontSize: '11px', marginTop: '2px' }}>
-                          +{recipe.instructions.length - 3} more steps
+                          {t('menu.moreSteps', { count: recipe.instructions.length - 3 })}
                         </div>
                       )}
                     </div>
@@ -1847,7 +1847,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
               }}
             >
               <FaEdit size={12} />
-              Edit Item
+              {t('menu.editItem')}
             </button>}
             {onToggleAvailability && <button
               onClick={() => {
@@ -1893,7 +1893,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
               }}
             >
               {item.isAvailable ? <FaMinus size={12} /> : <FaCheck size={12} />}
-              {item.isAvailable ? 'Mark Out' : 'Mark Available'}
+              {item.isAvailable ? t('menu.markOut') : t('menu.markAvailable')}
             </button>}
             {onDelete && <button
               onClick={() => {
@@ -1927,7 +1927,7 @@ const ItemDetailModal = ({ item, categories, isOpen, onClose, onEdit, onDelete, 
               }}
             >
               <FaTrash size={12} />
-              Delete
+              {t('menu.delete')}
             </button>}
           </div>}
         </div>
@@ -1967,12 +1967,12 @@ const MenuManagement = () => {
 
   // Business-type-aware labels
   const businessTypeConfig = {
-    restaurant: { item: 'Dish', add: 'Add New Dish', empty: 'Create Your Restaurant Menu', emptyDesc: 'Add dishes, categories, and pricing to get started', icon: '🍽️', label: 'Restaurant', accent: '#dc2626', accentLight: '#fef2f2', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
-    bar: { item: 'Drink', add: 'Add Drink', empty: 'Start Your Drinks Menu', emptyDesc: 'Add cocktails, spirits, beers, and bar snacks', icon: '🍸', label: 'Bar', accent: '#1e293b', accentLight: '#f1f5f9', gradient: 'linear-gradient(135deg, #334155, #1e293b)' },
-    bakery: { item: 'Item', add: 'Add Item', empty: 'Start Your Bakery Menu', emptyDesc: 'Add cakes, pastries, breads, and baked goods', icon: '🧁', label: 'Bakery', accent: '#d97706', accentLight: '#fffbeb', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
-    ice_cream: { item: 'Flavor', add: 'Add Flavor', empty: 'Start Your Ice Cream Menu', emptyDesc: 'Add flavors, sundaes, shakes, and frozen treats', icon: '🍦', label: 'Ice Cream Parlor', accent: '#2563eb', accentLight: '#eff6ff', gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
-    cafe: { item: 'Item', add: 'Add Item', empty: 'Start Your Cafe Menu', emptyDesc: 'Add beverages, snacks, and cafe specials', icon: '☕', label: 'Cafe', accent: '#059669', accentLight: '#ecfdf5', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
-    qsr: { item: 'Item', add: 'Add Item', empty: 'Start Your QSR Menu', emptyDesc: 'Add combos, burgers, wraps, and quick bites', icon: '🍔', label: 'Quick Service', accent: '#ea580c', accentLight: '#fff7ed', gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
+    restaurant: { item: t('menu.dish'), add: t('menu.addNewDish'), empty: t('menu.createRestaurantMenu'), emptyDesc: t('menu.addDishesDesc'), icon: '🍽️', label: t('menu.labelRestaurant'), accent: '#dc2626', accentLight: '#fef2f2', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
+    bar: { item: t('menu.drink'), add: t('menu.addDrink'), empty: t('menu.startDrinksMenu'), emptyDesc: t('menu.addDrinksDesc'), icon: '🍸', label: t('menu.labelBar'), accent: '#1e293b', accentLight: '#f1f5f9', gradient: 'linear-gradient(135deg, #334155, #1e293b)' },
+    bakery: { item: t('menu.item'), add: t('menu.addItem'), empty: t('menu.startBakeryMenu'), emptyDesc: t('menu.addBakeryDesc'), icon: '🧁', label: t('menu.labelBakery'), accent: '#d97706', accentLight: '#fffbeb', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+    ice_cream: { item: t('menu.flavor'), add: t('menu.addFlavor'), empty: t('menu.startIceCreamMenu'), emptyDesc: t('menu.addIceCreamDesc'), icon: '🍦', label: t('menu.labelIceCreamParlor'), accent: '#2563eb', accentLight: '#eff6ff', gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+    cafe: { item: t('menu.item'), add: t('menu.addItem'), empty: t('menu.startCafeMenu'), emptyDesc: t('menu.addCafeDesc'), icon: '☕', label: t('menu.labelCafe'), accent: '#059669', accentLight: '#ecfdf5', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
+    qsr: { item: t('menu.item'), add: t('menu.addItem'), empty: t('menu.startQsrMenu'), emptyDesc: t('menu.addQsrDesc'), icon: '🍔', label: t('menu.labelQuickService'), accent: '#ea580c', accentLight: '#fff7ed', gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
   };
   const btype = businessTypeConfig[currentRestaurant?.businessType] || businessTypeConfig.restaurant;
   const [isClient, setIsClient] = useState(false);
@@ -2011,6 +2011,7 @@ const MenuManagement = () => {
     stockQuantity: null,
     isStockManaged: false,
     lowStockThreshold: 5,
+    stockUnit: 'pcs',
     variants: [],
     customizations: [],
     generateRecipe: true,
@@ -2155,11 +2156,11 @@ const MenuManagement = () => {
             setHasInitialData(true);
             setError('');
           } else {
-            setError('Failed to load menu items');
+            setError(t('menu.failedLoadMenu'));
             setHasInitialData(false);
           }
         } catch {
-          setError('Failed to load menu items');
+          setError(t('menu.failedLoadMenu'));
           setHasInitialData(false);
         }
       }
@@ -2246,12 +2247,12 @@ const MenuManagement = () => {
           await loadMenuData(restaurantId, true); // Use cache
         } else if (!restaurantId) {
           console.error('❌ Menu: No restaurant ID available');
-          setError('No restaurant found. Please set up a restaurant first.');
+          setError(t('menu.noRestaurantFound'));
           setLoading(false);
         }
       } catch (error) {
         console.error('❌ Menu: Error loading restaurant context:', error);
-        setError('Failed to load restaurant information: ' + error.message);
+        setError(t('menu.failedLoadRestaurant', { error: error.message }));
         setLoading(false);
       }
     };
@@ -2434,7 +2435,7 @@ const MenuManagement = () => {
         setMenuItems(items => items.map(item =>
           item.id === editingItem.id ? { ...itemData, id: editingItem.id } : item
         ));
-        setSuccessMessage(`"${formData.name}" updated successfully`);
+        setSuccessMessage(t('menu.itemUpdatedSuccess', { name: formData.name }));
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         // Add new item
@@ -2482,7 +2483,7 @@ const MenuManagement = () => {
         }
 
         // Show success notification
-        setSuccessMessage(`"${formData.name}" added to menu`);
+        setSuccessMessage(t('menu.itemAddedSuccess', { name: formData.name }));
         setTimeout(() => setSuccessMessage(''), 3000);
       }
 
@@ -2491,7 +2492,7 @@ const MenuManagement = () => {
     } catch (error) {
       console.error('Error saving menu item:', error);
       // Show error notification and close modal
-      setError(`Failed to ${editingItem ? 'update' : 'add'} menu item: ${error.message}`);
+      setError(editingItem ? t('menu.failedUpdateItem', { error: error.message || error }) : t('menu.failedAddItem', { error: error.message || error }));
       setTimeout(() => setError(''), 5000);
       resetForm();
     } finally {
@@ -2509,10 +2510,10 @@ const MenuManagement = () => {
 
   const addBarServingVariants = () => {
     const templates = [
-      { name: 'Peg (30ml)', price: '', description: '' },
-      { name: 'Large (60ml)', price: '', description: '' },
-      { name: 'Bottle', price: '', description: '' },
-      { name: 'Pitcher', price: '', description: '' }
+      { name: t('menu.variantPeg30ml'), price: '', description: '' },
+      { name: t('menu.variantLarge60ml'), price: '', description: '' },
+      { name: t('menu.variantBottle'), price: '', description: '' },
+      { name: t('menu.variantPitcher'), price: '', description: '' }
     ];
     setFormData({
       ...formData,
@@ -2522,9 +2523,9 @@ const MenuManagement = () => {
 
   const addBakeryPackVariants = () => {
     const templates = [
-      { name: 'Single Piece', price: '', description: '' },
-      { name: 'Box of 6', price: '', description: '' },
-      { name: 'Box of 12', price: '', description: '' }
+      { name: t('menu.variantSinglePiece'), price: '', description: '' },
+      { name: t('menu.variantBoxOf6'), price: '', description: '' },
+      { name: t('menu.variantBoxOf12'), price: '', description: '' }
     ];
     setFormData({
       ...formData,
@@ -2534,9 +2535,9 @@ const MenuManagement = () => {
 
   const addIceCreamScoopVariants = () => {
     const templates = [
-      { name: 'Single Scoop', price: '', description: '' },
-      { name: 'Double Scoop', price: '', description: '' },
-      { name: 'Triple Scoop', price: '', description: '' }
+      { name: t('menu.variantSingleScoop'), price: '', description: '' },
+      { name: t('menu.variantDoubleScoop'), price: '', description: '' },
+      { name: t('menu.variantTripleScoop'), price: '', description: '' }
     ];
     setFormData({
       ...formData,
@@ -2592,6 +2593,7 @@ const MenuManagement = () => {
       stockQuantity: item.stockQuantity || null,
       isStockManaged: item.isStockManaged || false,
       lowStockThreshold: item.lowStockThreshold ?? 5,
+      stockUnit: item.stockUnit || 'pcs',
       variants: item.variants || [],
       customizations: item.customizations || [],
       spiritCategory: item.spiritCategory || '',
@@ -2628,7 +2630,7 @@ const MenuManagement = () => {
   };
 
   const handleDelete = async (itemId) => {
-    if (!confirm('Are you sure you want to delete this menu item?')) return;
+    if (!confirm(t('menu.deleteItemConfirm'))) return;
 
     try {
       setOperationLoading(true);
@@ -2636,7 +2638,7 @@ const MenuManagement = () => {
       setMenuItems(items => items.filter(item => item.id !== itemId));
     } catch (error) {
       console.error('Error deleting menu item:', error);
-      setError('Failed to delete menu item');
+      setError(t('menu.failedDeleteItem'));
     } finally {
       setOperationLoading(false);
     }
@@ -2647,14 +2649,14 @@ const MenuManagement = () => {
 
     if (!currentRestaurant?.id) {
       console.error('❌ No restaurant selected for bulk delete');
-      setError('No restaurant selected. Please refresh the page and try again.');
+      setError(t('menu.noRestaurantRefresh'));
       return;
     }
 
     const activeItemsCount = menuItems.filter(item => item.status !== 'deleted').length;
 
     if (activeItemsCount === 0) {
-      setError('No menu items to delete');
+      setError(t('menu.noItemsToDelete'));
       return;
     }
 
@@ -2674,7 +2676,7 @@ const MenuManagement = () => {
       setMenuItems([]);
 
       // Show success message
-      setSuccessMessage(`Successfully deleted ${response.deletedCount} menu items`);
+      setSuccessMessage(t('menu.deletedItemsSuccess', { count: response.deletedCount }));
 
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -2685,7 +2687,7 @@ const MenuManagement = () => {
       }
     } catch (error) {
       console.error('Error bulk deleting menu items:', error);
-      setError('Failed to delete menu items: ' + (error.message || 'Unknown error'));
+      setError(t('menu.failedDeleteItems', { error: error.message || error }));
 
       // Clear error message after 5 seconds
       setTimeout(() => setError(''), 5000);
@@ -2696,7 +2698,7 @@ const MenuManagement = () => {
 
   const handleToggleFavorite = async (item) => {
     if (!currentRestaurant?.id) {
-      setError('No restaurant selected');
+      setError(t('menu.noRestaurantSelected'));
       return;
     }
 
@@ -2720,7 +2722,7 @@ const MenuManagement = () => {
       await loadMenuData(currentRestaurant.id, false); // Don't use cache for immediate update
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      setError('Failed to update favorite status');
+      setError(t('menu.failedUpdateFavorite'));
     }
   };
 
@@ -2734,7 +2736,7 @@ const MenuManagement = () => {
       ));
     } catch (error) {
       console.error('Error updating availability:', error);
-      setError('Failed to update item availability');
+      setError(t('menu.failedUpdateAvailability'));
     } finally {
       setOperationLoading(false);
     }
@@ -2899,7 +2901,7 @@ const MenuManagement = () => {
   const menuRecipeSave = async () => {
     if (!currentRestaurant?.id || !menuRecipeItem) return;
     if (!menuRecipeFormData.name || menuRecipeFormData.ingredients.length === 0) {
-      setMenuRecipeError('Recipe name and at least one ingredient required'); return;
+      setMenuRecipeError(t('menu.recipeNameRequired')); return;
     }
     try {
       setMenuRecipeSaving(true); setMenuRecipeError(null);
@@ -2924,7 +2926,7 @@ const MenuManagement = () => {
       // Update recipe map
       setMenuItemRecipes(prev => ({ ...prev, [menuRecipeItem.id]: saveData }));
       setShowMenuRecipeModal(false);
-      setSuccessMessage(`Recipe saved for "${menuRecipeItem.name}"`);
+      setSuccessMessage(t('menu.recipeSavedSuccess', { name: menuRecipeItem.name }));
       setTimeout(() => setSuccessMessage(''), 4000);
     } catch (error) {
       console.error('Error saving recipe:', error);
@@ -2934,7 +2936,7 @@ const MenuManagement = () => {
 
   const handleGenerateRecipe = async (item) => {
     if (!currentRestaurant?.id) {
-      setError('No restaurant selected');
+      setError(t('menu.noRestaurantSelected'));
       return;
     }
 
@@ -3009,6 +3011,7 @@ const MenuManagement = () => {
       stockQuantity: null,
       isStockManaged: false,
       lowStockThreshold: 5,
+      stockUnit: 'pcs',
       variants: [],
       customizations: [],
       generateRecipe: true,
@@ -3036,10 +3039,10 @@ const MenuManagement = () => {
 
   const getSpiceLevel = (level) => {
     switch(level) {
-      case 'mild': return { icon: '🌶️', color: '#10B981', label: 'Mild' };
-      case 'medium': return { icon: '🌶️🌶️', color: '#F59E0B', label: 'Medium' };
-      case 'hot': return { icon: '🌶️🌶️🌶️', color: '#EF4444', label: 'Hot' };
-      default: return { icon: '🌶️', color: '#10B981', label: 'Mild' };
+      case 'mild': return { icon: '🌶️', color: '#10B981', label: t('menu.spiceMild') };
+      case 'medium': return { icon: '🌶️🌶️', color: '#F59E0B', label: t('menu.spiceMedium') };
+      case 'hot': return { icon: '🌶️🌶️🌶️', color: '#EF4444', label: t('menu.spiceHot') };
+      default: return { icon: '🌶️', color: '#10B981', label: t('menu.spiceMild') };
     }
   };
 
@@ -3128,7 +3131,7 @@ const MenuManagement = () => {
       }
     } catch (error) {
       console.error('❌ Error uploading images:', error);
-      alert(`Failed to upload images: ${error.message}`);
+      alert(t('menu.failedUploadImages', { error: error.message || error }));
     } finally {
       setUploadingImages(false);
     }
@@ -3182,7 +3185,7 @@ const MenuManagement = () => {
       }
     } catch (error) {
       console.error('Error deleting image:', error);
-      alert('Failed to delete image. Please try again.');
+      alert(t('menu.failedDeleteImage'));
     }
   };
 
@@ -3245,12 +3248,12 @@ const MenuManagement = () => {
           }
           
           if (file.size > maxFileSize) {
-            errors.push(`${file.name}: File too large (${Math.round(file.size / (1024 * 1024))}MB). Maximum 300MB per file.`);
+            errors.push(t('menu.fileTooLarge', { fileName: file.name, size: Math.round(file.size / (1024 * 1024)) }));
             return;
           }
           
           if (file.size === 0) {
-            errors.push(`${file.name}: Empty file.`);
+            errors.push(t('menu.emptyFile', { fileName: file.name }));
             return;
           }
           
@@ -3359,23 +3362,23 @@ const MenuManagement = () => {
             console.log('📋 Success message:', successMessage);
           } else {
             // No menu items found
-            let errorMessage = 'No menu data found in the uploaded files.\n\n';
-            
+            let errorMessage = t('menu.noMenuDataFound');
+
             if (noMenuDataFiles.length > 0) {
-              errorMessage += `Files with no menu data:\n${noMenuDataFiles.map(f => `• ${f.file}: ${f.message}`).join('\n')}\n\n`;
+              errorMessage += `${t('menu.filesNoMenuData')}${noMenuDataFiles.map(f => `• ${f.file}: ${f.message}`).join('\n')}\n\n`;
             }
-            
+
             if (failedFiles.length > 0) {
-              errorMessage += `Files that failed to process:\n${failedFiles.map(f => `• ${f.file}: ${f.message}`).join('\n')}\n\n`;
+              errorMessage += `${t('menu.filesFailedProcess')}${failedFiles.map(f => `• ${f.file}: ${f.message}`).join('\n')}\n\n`;
             }
-            
-            errorMessage += 'Please try uploading:\n• Clear menu images\n• PDF files with menu content\n• Document files with menu data';
+
+            errorMessage += t('menu.uploadSuggestions');
             
             setPhotoError(errorMessage);
             return;
           }
         } else {
-          setPhotoError('No files were processed. Please try uploading menu files.');
+          setPhotoError(t('menu.noFilesProcessed'));
           return;
         }
         
@@ -3390,11 +3393,11 @@ const MenuManagement = () => {
           setPhotoSuccess(false);
         }, 3000); // Longer timeout to read the detailed message
       } else {
-        setPhotoError(response.error || 'Photo upload failed. Please try again.');
+        setPhotoError(response.error || t('menu.photoUploadFailed'));
       }
     } catch (error) {
       console.error('Photo upload error:', error);
-      setPhotoError(error.message || 'Photo upload failed. Please try again.');
+      setPhotoError(error.message || t('menu.photoUploadFailed'));
     } finally {
       setPhotoUploading(false);
     }
@@ -3505,10 +3508,10 @@ const MenuManagement = () => {
           {/* Action pills row */}
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
             {[
-              { icon: <FaCloudUploadAlt size={16} />, label: 'Upload', onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
-              { icon: <FaCamera size={16} />, label: 'Photo', onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
-              { icon: <FaQrcode size={16} />, label: 'QR Code', onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
-              { icon: <FaEye size={16} />, label: 'Customize', onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); router.push(`/menu/customize${rid ? `?restaurant=${rid}` : ''}`); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
+              { icon: <FaCloudUploadAlt size={16} />, label: t('menu.upload'), onClick: () => setShowBulkUpload(true), bg: '#fef2f2', color: '#dc2626', hoverBg: '#fee2e2', border: '#fecaca' },
+              { icon: <FaCamera size={16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
+              { icon: <FaQrcode size={16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
+              { icon: <FaEye size={16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); router.push(`/menu/customize${rid ? `?restaurant=${rid}` : ''}`); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
             ].map((action, i) => (
               <button
                 key={i}
@@ -3557,7 +3560,7 @@ const MenuManagement = () => {
                 onMouseEnter={(e) => { if (!operationLoading) { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
-                <FaTrash size={11} /> Delete All
+                <FaTrash size={11} /> {t('menu.deleteAll')}
               </button>
             )}
           </div>
@@ -3587,7 +3590,7 @@ const MenuManagement = () => {
             }} />
             <input
               type="text"
-              placeholder="Search dishes, codes..."
+              placeholder={t('menu.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -3618,24 +3621,24 @@ const MenuManagement = () => {
             value={selectedVegFilter}
             onChange={setSelectedVegFilter}
             options={[
-              { value: 'all', label: 'All Types' },
-              { value: 'veg', label: 'Veg' },
-              { value: 'non-veg', label: 'Non-Veg' }
+              { value: 'all', label: t('menu.allTypes') },
+              { value: 'veg', label: t('menu.veg') },
+              { value: 'non-veg', label: t('menu.nonVeg') }
             ]}
-            placeholder="All Types"
+            placeholder={t('menu.allTypes')}
           />
 
           <CustomDropdown
             value={selectedCategory}
             onChange={setSelectedCategory}
             options={[
-              { value: 'all', label: 'All Categories' },
+              { value: 'all', label: t('menu.allCategories') },
               ...categories.map(category => ({
                 value: category.id,
                 label: category.name
               }))
             ]}
-            placeholder="All Categories"
+            placeholder={t('menu.allCategories')}
           />
 
           {/* Spacer */}
@@ -3744,10 +3747,10 @@ const MenuManagement = () => {
               color: '#374151',
               marginBottom: '8px'
             }}>
-              Loading Menu...
+              {t('menu.loadingMenu')}
             </h3>
             <p style={{ color: '#6b7280', fontSize: '16px' }}>
-              Please wait while we fetch your menu items
+              {t('menu.loadingMenuDesc')}
             </p>
           </div>
         ) : filteredItems.length > 0 ? (
@@ -3769,11 +3772,11 @@ const MenuManagement = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '24px' }}>🍽️</span>
                     <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: '#92400e' }}>
-                      Sample Menu
+                      {t('menu.sampleMenu')}
                     </h3>
                   </div>
                   <p style={{ margin: 0, fontSize: '14px', color: '#78350f', lineHeight: '1.5' }}>
-                    This is a demo menu to help you explore DineOpen. Adding your own items will automatically replace it.
+                    {t('menu.sampleMenuDesc')}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
@@ -3797,7 +3800,7 @@ const MenuManagement = () => {
                     onMouseOut={(e) => e.target.style.backgroundColor = '#f59e0b'}
                   >
                     <FaCloudUploadAlt size={14} />
-                    Upload Menu (AI)
+                    {t('menu.uploadMenuAI')}
                   </button>
                   {canAddMenuItem && (
                   <button
@@ -3820,7 +3823,7 @@ const MenuManagement = () => {
                     onMouseOut={(e) => e.target.style.backgroundColor = '#fff'}
                   >
                     <FaPlus size={12} />
-                    Add Manually
+                    {t('menu.addManually')}
                   </button>
                   )}
                 </div>
@@ -3843,7 +3846,7 @@ const MenuManagement = () => {
                 borderRadius: '16px'
               }}>
                 <FaSpinner size={40} style={{ color: '#ef4444', animation: 'spin 1s linear infinite', marginBottom: '16px' }} />
-                <p style={{ color: '#374151', fontWeight: '600', fontSize: '16px' }}>Processing...</p>
+                <p style={{ color: '#374151', fontWeight: '600', fontSize: '16px' }}>{t('menu.processing')}</p>
               </div>
             )}
             {viewMode === 'grid' ? (
@@ -3897,11 +3900,11 @@ const MenuManagement = () => {
                 gap: '12px',
                 alignItems: 'center'
               }}>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>#</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Price</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Actions</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('menu.hashCol')}</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('menu.itemCol')}</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('menu.categoryCol')}</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>{t('menu.priceCol')}</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>{t('menu.actionsCol')}</span>
               </div>
               {/* Table Rows */}
               {filteredItems.map((item, index) => {
@@ -3983,7 +3986,7 @@ const MenuManagement = () => {
                             fontWeight: '700',
                             flexShrink: 0
                           }}>
-                            OUT
+                            {t('menu.out')}
                           </span>
                         )}
                         {item.isFavorite && (
@@ -4040,11 +4043,11 @@ const MenuManagement = () => {
                       justifyContent: 'center'
                     }}>
                       {[
-                        { icon: <FaStar size={11} />, color: item.isFavorite ? '#f59e0b' : '#cbd5e1', hoverColor: '#f59e0b', title: 'Favorite', handler: (e) => { e.stopPropagation(); handleToggleFavorite(item); } },
-                        canEditMenuItem && { icon: <FaEdit size={11} />, color: '#94a3b8', hoverColor: '#3b82f6', title: 'Edit', handler: (e) => { e.stopPropagation(); handleEdit(item); } },
-                        canAddMenuItem && { icon: generatingRecipeFor === item.id ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : menuItemRecipes[item.id] ? <FaCheckCircle size={11} /> : <FaFlask size={11} />, color: menuItemRecipes[item.id] ? '#059669' : '#94a3b8', hoverColor: '#059669', title: generatingRecipeFor === item.id ? 'Generating...' : menuItemRecipes[item.id] ? 'Recipe linked' : 'Generate Recipe', handler: (e) => { e.stopPropagation(); if (!menuItemRecipes[item.id]) handleGenerateRecipe(item); } },
-                        canMarkOutOfStock && { icon: <FaMinus size={11} />, color: '#94a3b8', hoverColor: '#f59e0b', title: item.isAvailable ? 'Mark unavailable' : 'Mark available', handler: (e) => { e.stopPropagation(); handleToggleAvailability(item); } },
-                        canDeleteMenuItem && { icon: <FaTrash size={11} />, color: '#94a3b8', hoverColor: '#ef4444', title: 'Delete', handler: (e) => { e.stopPropagation(); handleDelete(item.id); } },
+                        { icon: <FaStar size={11} />, color: item.isFavorite ? '#f59e0b' : '#cbd5e1', hoverColor: '#f59e0b', title: t('menu.favorite'), handler: (e) => { e.stopPropagation(); handleToggleFavorite(item); } },
+                        canEditMenuItem && { icon: <FaEdit size={11} />, color: '#94a3b8', hoverColor: '#3b82f6', title: t('menu.edit'), handler: (e) => { e.stopPropagation(); handleEdit(item); } },
+                        canAddMenuItem && { icon: generatingRecipeFor === item.id ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : menuItemRecipes[item.id] ? <FaCheckCircle size={11} /> : <FaFlask size={11} />, color: menuItemRecipes[item.id] ? '#059669' : '#94a3b8', hoverColor: '#059669', title: generatingRecipeFor === item.id ? t('menu.generating') : menuItemRecipes[item.id] ? t('menu.recipeLinkedAction') : t('menu.generateRecipe'), handler: (e) => { e.stopPropagation(); if (!menuItemRecipes[item.id]) handleGenerateRecipe(item); } },
+                        canMarkOutOfStock && { icon: <FaMinus size={11} />, color: '#94a3b8', hoverColor: '#f59e0b', title: item.isAvailable ? t('menu.markUnavailable') : t('menu.markAvailable'), handler: (e) => { e.stopPropagation(); handleToggleAvailability(item); } },
+                        canDeleteMenuItem && { icon: <FaTrash size={11} />, color: '#94a3b8', hoverColor: '#ef4444', title: t('menu.delete'), handler: (e) => { e.stopPropagation(); handleDelete(item.id); } },
                       ].filter(Boolean).map((action, i) => (
                         <button
                           key={i}
@@ -4080,7 +4083,7 @@ const MenuManagement = () => {
                 color: '#94a3b8',
                 fontWeight: '500'
               }}>
-                {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
+                {filteredItems.length} {filteredItems.length === 1 ? t('menu.itemSingular') : t('menu.itemPlural')}
               </div>
             </div>
           )}
@@ -4149,7 +4152,7 @@ const MenuManagement = () => {
                       boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
                     }}
                   >
-                    Clear Search
+                    {t('menu.clearSearch')}
                   </button>
                 </>
               ) : (
@@ -4239,10 +4242,10 @@ const MenuManagement = () => {
                         <FaCloudUploadAlt size={20} style={{ color: 'white' }} />
                       </div>
                       <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>
-                        Upload Menu
+                        {t('menu.uploadMenu')}
                       </h4>
                       <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.4', margin: 0 }}>
-                        Upload photos, PDFs or Excel — AI extracts items automatically
+                        {t('menu.uploadMenuDesc')}
                       </p>
                     </div>
 
@@ -4286,7 +4289,7 @@ const MenuManagement = () => {
                         {btype.add}
                       </h4>
                       <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.4', margin: 0 }}>
-                        Add items one by one with full details, images and pricing
+                        {t('menu.addItemsDesc')}
                       </p>
                     </div>}
                   </div>
@@ -4353,7 +4356,7 @@ const MenuManagement = () => {
                       color: 'white',
                       margin: 0
                     }}>
-                      {editingItem ? 'Edit ' + btype.item : btype.add}
+                      {editingItem ? t('menu.editItemTitle', { item: btype.item }) : btype.add}
                     </h2>
                     <span style={{
                       fontSize: '12px',
@@ -4412,7 +4415,7 @@ const MenuManagement = () => {
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    {btype.item} Name *
+                    {t('menu.itemNameRequired', { item: btype.item })}
                   </label>
                   <input
                     type="text"
@@ -4429,7 +4432,7 @@ const MenuManagement = () => {
                       backgroundColor: 'white',
                       transition: 'border-color 0.2s ease'
                     }}
-                    placeholder={'Enter ' + btype.item.toLowerCase() + ' name'}
+                    placeholder={t('menu.enterItemName', { item: btype.item.toLowerCase() })}
                     onFocus={(e) => e.target.style.borderColor = btype.accent}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
@@ -4444,7 +4447,7 @@ const MenuManagement = () => {
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    Short Code
+                    {t('menu.shortCodeLabel')}
                   </label>
                   <input
                     type="text"
@@ -4460,7 +4463,7 @@ const MenuManagement = () => {
                       backgroundColor: 'white',
                       transition: 'border-color 0.2s ease'
                     }}
-                    placeholder="e.g., DAL, SAM (optional)"
+                    placeholder={t('menu.shortCodePlaceholder')}
                     onFocus={(e) => e.target.style.borderColor = btype.accent}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
@@ -4476,7 +4479,7 @@ const MenuManagement = () => {
                   color: '#374151',
                   marginBottom: '6px'
                 }}>
-                  Description
+                  {t('menu.description')}
                 </label>
                 <textarea
                   value={formData.description}
@@ -4494,7 +4497,7 @@ const MenuManagement = () => {
                     transition: 'border-color 0.2s ease'
                   }}
                   rows="3"
-                  placeholder={'Describe this ' + btype.item.toLowerCase() + '...'}
+                  placeholder={t('menu.describeItem', { item: btype.item.toLowerCase() })}
                   onFocus={(e) => e.target.style.borderColor = btype.accent}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
@@ -4516,7 +4519,7 @@ const MenuManagement = () => {
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    Price ({getCurrencySymbol()}) *
+                    {t('menu.priceLabel', { currency: getCurrencySymbol() })}
                   </label>
                   <input
                     type="text"
@@ -4533,7 +4536,7 @@ const MenuManagement = () => {
                       backgroundColor: 'white',
                       transition: 'border-color 0.2s ease'
                     }}
-                    placeholder="Enter price"
+                    placeholder={t('menu.enterPrice')}
                     onFocus={(e) => e.target.style.borderColor = btype.accent}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
@@ -4542,7 +4545,7 @@ const MenuManagement = () => {
                 {/* Channel & Zone Prices — Tree Layout */}
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>
-                    Channel Prices <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '12px' }}>(optional)</span>
+                    {t('menu.channelPricesOptional')} <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '12px' }}>{t('menu.optional')}</span>
                   </label>
 
                   {/* Dine-In */}
@@ -4551,7 +4554,7 @@ const MenuManagement = () => {
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                         <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🍽️</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Dine-In</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>{t('menu.dineIn')}</span>
                         <input
                           type="number"
                           placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
@@ -4613,7 +4616,7 @@ const MenuManagement = () => {
                                 onFocus={(e) => { e.target.style.borderColor = '#ef4444'; e.target.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.1)'; e.target.style.fontStyle = 'normal'; }}
                                 onBlur={(e) => { e.target.style.borderColor = hasCustom ? '#10b981' : '#d1d5db'; e.target.style.boxShadow = 'none'; if (!hasCustom) e.target.style.fontStyle = 'italic'; }}
                               />
-                              {!hasCustom && <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>inherited</span>}
+                              {!hasCustom && <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>{t('menu.inherited')}</span>}
                             </div>
                           );
                         })}
@@ -4627,7 +4630,7 @@ const MenuManagement = () => {
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', marginTop: '6px' }}>
                         <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🥡</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Takeaway</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>{t('menu.takeaway')}</span>
                         <input
                           type="number"
                           placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
@@ -4655,7 +4658,7 @@ const MenuManagement = () => {
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                         <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🛵</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>Delivery</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px' }}>{t('menu.delivery')}</span>
                         <input
                           type="number"
                           placeholder={formData.price ? `${getCurrencySymbol()}${formData.price}` : `${getCurrencySymbol()}0`}
@@ -4678,19 +4681,19 @@ const MenuManagement = () => {
                   })()}
 
                   <p style={{ fontSize: '11px', color: '#94a3b8', margin: '8px 0 0' }}>
-                    Empty zones inherit Dine-In price. Empty channels use base price.{' '}
-                    <span onClick={() => router.push('/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>Admin → Pricing Rules</span>
+                    {t('menu.emptyZonesInfo')}{' '}
+                    <span onClick={() => router.push('/admin')} style={{ color: '#ef4444', cursor: 'pointer', fontWeight: '600' }}>{t('menu.adminPricingRules')}</span>
                   </p>
                 </div>
 
                 {/* Category */}
                 <div style={{ gridColumn: '1 / -1' }}>
                   <CategoryDropdown
-                    label="Category *"
+                    label={t('menu.categoryRequired')}
                     value={formData.category}
                     onChange={(value) => setFormData({...formData, category: value})}
                     categories={categories}
-                    placeholder="Select category"
+                    placeholder={t('menu.selectCategory')}
                     restaurantId={currentRestaurant?.id}
                     onCategoryAdded={handleAddNewCategory}
                     onCategoryUpdated={handleCategoryUpdated}
@@ -4704,16 +4707,16 @@ const MenuManagement = () => {
                 {isBarMode && (
                   <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#fdf2f8', borderRadius: '12px', border: '1px solid #fce7f3' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#831843', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      🍸 Bar Details
+                      {t('menu.barDetails')}
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>ABV %</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.abvPercent')}</label>
                         <input
                           type="number"
                           value={formData.abv || ''}
                           onChange={(e) => setFormData({...formData, abv: e.target.value})}
-                          placeholder="e.g., 40"
+                          placeholder={t('menu.abvPlaceholder')}
                           min="0"
                           max="100"
                           step="0.1"
@@ -4721,42 +4724,42 @@ const MenuManagement = () => {
                         />
                       </div>
                       <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Ingredients (for cocktails)</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.ingredientsCocktails')}</label>
                         <input
                           type="text"
                           value={formData.ingredients || ''}
                           onChange={(e) => setFormData({...formData, ingredients: e.target.value})}
-                          placeholder="e.g., Bourbon, Simple Syrup, Angostura Bitters"
+                          placeholder={t('menu.ingredientsPlaceholder')}
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Unit</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.servingUnit')}</label>
                         <select
                           value={formData.servingUnit || ''}
                           onChange={(e) => setFormData({...formData, servingUnit: e.target.value})}
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
-                          <option value="">Select...</option>
-                          <option value="ml">ml</option>
-                          <option value="peg">Peg</option>
-                          <option value="glass">Glass</option>
-                          <option value="bottle">Bottle</option>
-                          <option value="pint">Pint</option>
+                          <option value="">{t('menu.selectOption')}</option>
+                          <option value="ml">{t('menu.ml')}</option>
+                          <option value="peg">{t('menu.peg')}</option>
+                          <option value="glass">{t('menu.glass')}</option>
+                          <option value="bottle">{t('menu.bottle')}</option>
+                          <option value="pint">{t('menu.pint')}</option>
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Bottle Size</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.bottleSize')}</label>
                         <select
                           value={formData.bottleSize || ''}
                           onChange={(e) => setFormData({...formData, bottleSize: e.target.value})}
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
-                          <option value="">Select...</option>
-                          <option value="180ml">180ml</option>
-                          <option value="375ml">375ml</option>
-                          <option value="750ml">750ml</option>
-                          <option value="1L">1L</option>
+                          <option value="">{t('menu.selectOption')}</option>
+                          <option value="180ml">{t('menu.bottleSize180')}</option>
+                          <option value="375ml">{t('menu.bottleSize375')}</option>
+                          <option value="750ml">{t('menu.bottleSize750')}</option>
+                          <option value="1L">{t('menu.bottleSize1L')}</option>
                         </select>
                       </div>
                     </div>
@@ -4766,48 +4769,48 @@ const MenuManagement = () => {
                 {isBakeryMode && (
                   <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#fef9ee', borderRadius: '12px', border: '1px solid #fde68a' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#92400e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      🧁 Bakery Details
+                      {t('menu.bakeryDetails')}
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Unit</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.unit')}</label>
                         <select
                           value={formData.unit || ''}
                           onChange={(e) => setFormData({...formData, unit: e.target.value})}
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
-                          <option value="">Select...</option>
-                          <option value="piece">Piece</option>
-                          <option value="kg">Kg</option>
-                          <option value="gram">Gram</option>
-                          <option value="dozen">Dozen</option>
-                          <option value="box">Box</option>
-                          <option value="slice">Slice</option>
+                          <option value="">{t('menu.selectOption')}</option>
+                          <option value="piece">{t('menu.piece')}</option>
+                          <option value="kg">{t('menu.kg')}</option>
+                          <option value="gram">{t('menu.gram')}</option>
+                          <option value="dozen">{t('menu.dozen')}</option>
+                          <option value="box">{t('menu.box')}</option>
+                          <option value="slice">{t('menu.slice')}</option>
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Weight</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.weight')}</label>
                         <input
                           type="text"
                           value={formData.weight || ''}
                           onChange={(e) => setFormData({...formData, weight: e.target.value})}
-                          placeholder="e.g., 250g, 1kg"
+                          placeholder={t('menu.weightPlaceholder')}
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Shelf Life (days)</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.shelfLifeDays')}</label>
                         <input
                           type="number"
                           value={formData.shelfLife || ''}
                           onChange={(e) => setFormData({...formData, shelfLife: e.target.value})}
-                          placeholder="e.g., 3"
+                          placeholder={t('menu.shelfLifePlaceholder')}
                           min="0"
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>MFG Date</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.mfgDate')}</label>
                         <input
                           type="date"
                           value={formData.mfgDate || ''}
@@ -4816,7 +4819,7 @@ const MenuManagement = () => {
                         />
                       </div>
                       <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Expiry Date</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.expiryDate')}</label>
                         <input
                           type="date"
                           value={formData.expiryDate || ''}
@@ -4831,39 +4834,39 @@ const MenuManagement = () => {
                 {isIceCreamMode && (
                   <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      🍦 Ice Cream Details
+                      {t('menu.iceCreamDetails')}
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Serving Size</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.servingSize')}</label>
                         <select
                           value={formData.servingSize || ''}
                           onChange={(e) => setFormData({...formData, servingSize: e.target.value})}
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         >
-                          <option value="">Select...</option>
-                          <option value="scoop">Scoop</option>
-                          <option value="cup">Cup</option>
-                          <option value="cone">Cone</option>
-                          <option value="sundae">Sundae</option>
-                          <option value="shake">Shake</option>
-                          <option value="tub">Tub</option>
+                          <option value="">{t('menu.selectOption')}</option>
+                          <option value="scoop">{t('menu.scoop')}</option>
+                          <option value="cup">{t('menu.cup')}</option>
+                          <option value="cone">{t('menu.cone')}</option>
+                          <option value="sundae">{t('menu.sundae')}</option>
+                          <option value="shake">{t('menu.shake')}</option>
+                          <option value="tub">{t('menu.tub')}</option>
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Max Scoops</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.maxScoops')}</label>
                         <input
                           type="number"
                           value={formData.scoopOptions || ''}
                           onChange={(e) => setFormData({...formData, scoopOptions: e.target.value})}
-                          placeholder="e.g., 3"
+                          placeholder={t('menu.maxScoopsPlaceholder')}
                           min="1"
                           max="5"
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                     </div>
-                    <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px', marginBottom: 0 }}>Use Customizations below for toppings (sprinkles, sauces, etc.)</p>
+                    <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px', marginBottom: 0 }}>{t('menu.toppingsHint')}</p>
                   </div>
                 )}
 
@@ -4879,35 +4882,54 @@ const MenuManagement = () => {
                     />
                     <div style={{ flex: 1 }}>
                       <label htmlFor="isStockManaged" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#0c4a6e', cursor: 'pointer' }}>
-                        📦 Track Stock Count
+                        {t('menu.trackStockCount')}
                       </label>
                       <p style={{ fontSize: '11px', color: '#0369a1', margin: '2px 0 0 0' }}>
-                        Synced with Inventory — auto-deducts on orders
+                        {t('menu.stockSynced')}
                       </p>
                     </div>
                   </div>
                   {formData.isStockManaged && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.unitLabel')}</label>
+                        <select
+                          value={formData.stockUnit || 'pcs'}
+                          onChange={(e) => setFormData(prev => ({...prev, stockUnit: e.target.value}))}
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box', backgroundColor: 'white', cursor: 'pointer' }}
+                        >
+                          <option value="pcs">{t('menu.unitCountPcs')}</option>
+                          <option value="kg">{t('menu.unitKg')}</option>
+                          <option value="gram">{t('menu.unitGram')}</option>
+                          <option value="liter">{t('menu.unitLiter')}</option>
+                          <option value="ml">{t('menu.unitMl')}</option>
+                          <option value="bottle">{t('menu.unitBottles')}</option>
+                          <option value="dozen">{t('menu.unitDozen')}</option>
+                          <option value="box">{t('menu.unitBox')}</option>
+                          <option value="plate">{t('menu.unitPlate')}</option>
+                          <option value="slice">{t('menu.unitSlice')}</option>
+                        </select>
+                      </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                          {isBarMode ? 'Bottles in Stock' : isBakeryMode ? 'Units in Stock' : isIceCreamMode ? 'Servings in Stock' : 'Stock Quantity'}
+                          {(() => { const u = formData.stockUnit || 'pcs'; const labels = { pcs: t('menu.stockLabelQuantity'), kg: t('menu.stockLabelKg'), gram: t('menu.stockLabelGram'), liter: t('menu.stockLabelLiter'), ml: t('menu.stockLabelMl'), bottle: t('menu.stockLabelBottle'), dozen: t('menu.stockLabelDozen'), box: t('menu.stockLabelBox'), plate: t('menu.stockLabelPlate'), slice: t('menu.stockLabelSlice') }; return labels[u] || t('menu.stockLabelDefault'); })()}
                         </label>
                         <input
                           type="number"
                           value={formData.stockQuantity ?? ''}
                           onChange={(e) => setFormData(prev => ({...prev, stockQuantity: e.target.value === '' ? null : parseInt(e.target.value)}))}
-                          placeholder="e.g., 10"
+                          placeholder="e.g., 100"
                           min="0"
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>Low Stock Alert At</label>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>{t('menu.lowAlertAt')}</label>
                         <input
                           type="number"
                           value={formData.lowStockThreshold ?? 5}
                           onChange={(e) => setFormData(prev => ({...prev, lowStockThreshold: parseInt(e.target.value) || 5}))}
-                          placeholder="e.g., 5"
+                          placeholder={t('menu.lowAlertPlaceholder')}
                           min="1"
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', boxSizing: 'border-box' }}
                         />
@@ -4923,7 +4945,7 @@ const MenuManagement = () => {
                     fontWeight: '500',
                     color: '#6b7280',
                   }}>
-                    Type
+                    {t('menu.type')}
                   </span>
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <button
@@ -4941,7 +4963,7 @@ const MenuManagement = () => {
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      ● Veg
+                      {t('menu.vegLabel')}
                     </button>
                     <button
                       type="button"
@@ -4958,7 +4980,7 @@ const MenuManagement = () => {
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      ● Non-Veg
+                      {t('menu.nonVegLabel')}
                     </button>
                   </div>
                 </div>
@@ -4975,7 +4997,7 @@ const MenuManagement = () => {
                     color: '#374151',
                     marginBottom: '10px'
                   }}>
-                    {btype.item} Images (Max 4)
+                    {t('menu.itemImages', { item: btype.item })}
                   </h4>
                     <ImageUpload
                       onImagesUploaded={handleImagesUploaded}
@@ -5009,10 +5031,10 @@ const MenuManagement = () => {
                   />
                   <div style={{ flex: 1 }}>
                     <label htmlFor="generateRecipe" style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#166534', cursor: 'pointer' }}>
-                      Generate Smart Recipe with AI 🤖
+                      {t('menu.generateSmartRecipe')}
                     </label>
                     <p style={{ fontSize: '11px', color: '#15803d', margin: '2px 0 0 0' }}>
-                      Auto-create ingredients list for inventory tracking
+                      {t('menu.autoCreateIngredients')}
                     </p>
                   </div>
                 </div>
@@ -5033,7 +5055,7 @@ const MenuManagement = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    {isBarMode ? 'Serving Sizes' : isIceCreamMode ? 'Scoop Options' : isBakeryMode ? 'Pack Sizes' : 'Variants'}
+                    {isBarMode ? 'Serving Sizes' : isIceCreamMode ? t('menu.scoopOptions') : isBakeryMode ? t('menu.packSizes') : t('menu.variants')}
                   </label>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     <button
@@ -5054,7 +5076,7 @@ const MenuManagement = () => {
                       }}
                     >
                       <FaPlus size={8} />
-                      Add
+                      {t('menu.add')}
                     </button>
                     {isBarMode && (!formData.variants || formData.variants.length === 0) && (
                       <button
@@ -5071,7 +5093,7 @@ const MenuManagement = () => {
                           cursor: 'pointer'
                         }}
                       >
-                        🍸 Peg/Large/Bottle
+                        {t('menu.barTemplate')}
                       </button>
                     )}
                     {isBakeryMode && (!formData.variants || formData.variants.length === 0) && (
@@ -5089,7 +5111,7 @@ const MenuManagement = () => {
                           cursor: 'pointer'
                         }}
                       >
-                        🧁 Piece/Box of 6/12
+                        {t('menu.bakeryTemplate')}
                       </button>
                     )}
                     {isIceCreamMode && (!formData.variants || formData.variants.length === 0) && (
@@ -5107,7 +5129,7 @@ const MenuManagement = () => {
                           cursor: 'pointer'
                         }}
                       >
-                        🍦 Single/Double/Triple
+                        {t('menu.iceCreamTemplate')}
                       </button>
                     )}
                   </div>
@@ -5129,7 +5151,7 @@ const MenuManagement = () => {
                       >
                         <input
                           type="text"
-                          placeholder={isBarMode ? 'e.g., Peg, Large, Bottle' : isIceCreamMode ? 'e.g., Single, Double' : 'e.g., Half, Full'}
+                          placeholder={isBarMode ? t('menu.variantPlaceholderBar') : isIceCreamMode ? t('menu.variantPlaceholderIceCream') : t('menu.variantPlaceholderDefault')}
                           value={variant.name}
                           onChange={(e) => updateVariant(index, 'name', e.target.value)}
                           style={{
@@ -5143,7 +5165,7 @@ const MenuManagement = () => {
                         />
                         <input
                           type="number"
-                          placeholder="Price"
+                          placeholder={t('menu.price')}
                           value={variant.price}
                           onChange={(e) => updateVariant(index, 'price', e.target.value)}
                           style={{
@@ -5185,7 +5207,7 @@ const MenuManagement = () => {
                     border: '1px dashed #d1d5db',
                     margin: 0
                   }}>
-                    {isBarMode ? 'Add serving sizes like Peg, Large, Bottle with different prices' : isIceCreamMode ? 'Add scoop options like Single, Double, Triple' : isBakeryMode ? 'Add pack sizes like Piece, Box of 6, Box of 12' : 'Add size variants like Half, Full, Family'}
+                    {isBarMode ? t('menu.variantEmptyBar') : isIceCreamMode ? t('menu.variantEmptyIceCream') : isBakeryMode ? t('menu.variantEmptyBakery') : t('menu.variantEmptyDefault')}
                   </p>
                 )}
               </div>
@@ -5203,7 +5225,7 @@ const MenuManagement = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    {isBarMode ? 'Mixers & Add-ons' : isIceCreamMode ? 'Toppings' : isBakeryMode ? 'Add-ons' : 'Customizations'}
+                    {isBarMode ? t('menu.mixers') : isIceCreamMode ? t('menu.toppings') : isBakeryMode ? 'Add-ons' : t('menu.customizations')}
                   </label>
                   <button
                     type="button"
@@ -5223,7 +5245,7 @@ const MenuManagement = () => {
                     }}
                   >
                     <FaPlus size={8} />
-                    Add
+                    {t('menu.add')}
                   </button>
                 </div>
                 {formData.customizations && formData.customizations.length > 0 ? (
@@ -5243,7 +5265,7 @@ const MenuManagement = () => {
                       >
                         <input
                           type="text"
-                          placeholder={isBarMode ? 'e.g., Soda, Tonic Water' : isIceCreamMode ? 'e.g., Sprinkles, Chocolate Sauce' : 'e.g., Extra Cheese'}
+                          placeholder={isBarMode ? t('menu.customPlaceholderBar') : isIceCreamMode ? t('menu.customPlaceholderIceCream') : t('menu.customPlaceholderDefault')}
                           value={customization.name}
                           onChange={(e) => updateCustomization(index, 'name', e.target.value)}
                           style={{
@@ -5257,7 +5279,7 @@ const MenuManagement = () => {
                         />
                         <input
                           type="number"
-                          placeholder="Price"
+                          placeholder={t('menu.price')}
                           value={customization.price}
                           onChange={(e) => updateCustomization(index, 'price', e.target.value)}
                           style={{
@@ -5299,7 +5321,7 @@ const MenuManagement = () => {
                     border: '1px dashed #d1d5db',
                     margin: 0
                   }}>
-                    {isBarMode ? 'Add mixers, garnishes, or snack pairings' : isIceCreamMode ? 'Add toppings like sprinkles, sauces, whipped cream' : isBakeryMode ? 'Add extras like gift wrapping, custom message' : 'Add toppings or add-ons like Extra Cheese, Butter'}
+                    {isBarMode ? t('menu.customEmptyBar') : isIceCreamMode ? t('menu.customEmptyIceCream') : isBakeryMode ? t('menu.customEmptyBakery') : t('menu.customEmptyDefault')}
                   </p>
                 )}
               </div>
@@ -5336,7 +5358,7 @@ const MenuManagement = () => {
                     width: window.innerWidth <= 768 ? '100%' : 'auto'
                   }}
                 >
-                  Cancel
+                  {t('menu.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -5361,7 +5383,7 @@ const MenuManagement = () => {
                   }}
                 >
                   {processing && <FaSpinner size={13} style={{ animation: 'spin 1s linear infinite' }} />}
-                  {processing ? (editingItem ? 'Updating...' : 'Adding...') : editingItem ? 'Update ' + btype.item : 'Add ' + btype.item}
+                  {processing ? (editingItem ? t('menu.updatingItem') : t('menu.addingItem')) : editingItem ? t('menu.updateItem', { item: btype.item }) : t('menu.addItemBtn', { item: btype.item })}
                 </button>
               </div>
             </form>
@@ -5439,7 +5461,7 @@ const MenuManagement = () => {
               marginBottom: '16px',
               textAlign: 'center'
             }}>
-              Delete All Menu Items?
+              {t('menu.deleteAllTitle')}
             </h2>
 
             {/* Message */}
@@ -5451,10 +5473,10 @@ const MenuManagement = () => {
               textAlign: 'center'
             }}>
               <p style={{ marginBottom: '12px' }}>
-                Are you sure you want to delete <strong style={{ color: '#dc2626' }}>ALL {menuItems.filter(item => item.status !== 'deleted').length} menu items</strong>?
+                {t('menu.deleteAllConfirm', { count: menuItems.filter(item => item.status !== 'deleted').length })}
               </p>
               <p style={{ fontSize: '14px', color: '#9ca3af' }}>
-                This will delete all items from all categories. This action cannot be undone easily.
+                {t('menu.deleteAllWarning')}
               </p>
             </div>
 
@@ -5555,7 +5577,7 @@ const MenuManagement = () => {
               flexShrink: 0,
             }}>
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>
-                {menuItemRecipes[menuRecipeItem.id] ? 'Recipe' : 'Add Recipe'} — {menuRecipeItem.name}
+                {menuItemRecipes[menuRecipeItem.id] ? t('menu.recipe') : t('menu.addRecipe')} — {menuRecipeItem.name}
               </h2>
               <button onClick={() => setShowMenuRecipeModal(false)} style={{
                 background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
@@ -5606,7 +5628,7 @@ const MenuManagement = () => {
                 }}
                 onClick={() => setShowMenuRecipeModal(false)}
               >
-                Cancel
+                {t('menu.cancel')}
               </button>
               <button
                 style={{
@@ -5619,7 +5641,7 @@ const MenuManagement = () => {
                 onClick={menuRecipeSave}
                 disabled={menuRecipeSaving}
               >
-                {menuRecipeSaving ? 'Saving...' : <><FaSave /> Save Recipe</>}
+                {menuRecipeSaving ? t('menu.savingRecipe') : <><FaSave /> {t('menu.saveRecipe')}</>}
               </button>
             </div>
           </div>

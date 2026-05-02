@@ -180,6 +180,9 @@ const OrderSummary = ({
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
 
+  // Per-item kitchen note — tracks which cart item's note input is expanded
+  const [expandedNoteId, setExpandedNoteId] = useState(null);
+
   // Voice Assistant State
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -2522,19 +2525,62 @@ const OrderSummary = ({
                       </div>
                     )}
 
+                    {/* Per-item note display (when collapsed but has note) */}
+                    {item.notes && expandedNoteId !== (item.cartId || item.id) && (
+                      <div
+                        onClick={() => setExpandedNoteId(item.cartId || item.id)}
+                        style={{ fontSize: '10px', color: '#d97706', background: '#fffbeb', padding: '2px 6px', borderRadius: '4px', marginTop: '2px', cursor: 'pointer', border: '1px solid #fef3c7' }}
+                      >
+                        <FaStickyNote size={8} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                        {item.notes}
+                      </div>
+                    )}
+
+                    {/* Per-item note input (expanded) */}
+                    {expandedNoteId === (item.cartId || item.id) && (
+                      <div style={{ marginTop: '4px' }}>
+                        <input
+                          type="text"
+                          autoFocus
+                          value={item.notes || ''}
+                          onChange={(e) => {
+                            const newNotes = e.target.value;
+                            setCart(prev => prev.map(c =>
+                              (c.cartId || c.id) === (item.cartId || item.id)
+                                ? { ...c, notes: newNotes }
+                                : c
+                            ));
+                          }}
+                          onBlur={() => setExpandedNoteId(null)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') setExpandedNoteId(null); }}
+                          placeholder="e.g. No onion, extra spicy..."
+                          style={{
+                            width: '100%',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            border: '1px solid #fde68a',
+                            borderRadius: '6px',
+                            background: '#fffbeb',
+                            outline: 'none',
+                            color: '#92400e',
+                          }}
+                        />
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          fontSize: '11px', 
-                          fontWeight: '600', 
-                          color: '#6b7280' 
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          color: '#6b7280'
                         }}>
                           Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
                         </span>
-                        <span style={{ 
-                          fontSize: '12px', 
-                          fontWeight: 'bold', 
-                          color: '#ef4444' 
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          color: '#ef4444'
                         }}>
                           {formatCurrency(getItemUnitPrice(item))}
                         </span>
@@ -2557,6 +2603,28 @@ const OrderSummary = ({
                     alignItems: 'center', 
                     gap: '4px'
                   }}>
+                    {/* Kitchen Note Toggle */}
+                    <button
+                      onClick={() => setExpandedNoteId(
+                        expandedNoteId === (item.cartId || item.id) ? null : (item.cartId || item.id)
+                      )}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: item.notes ? '#d97706' : '#94a3b8',
+                        backgroundColor: item.notes ? '#fffbeb' : 'transparent',
+                        border: `1px solid ${item.notes ? '#fde68a' : '#e2e8f0'}`,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      title="Kitchen note"
+                    >
+                      <FaStickyNote size={8} />
+                    </button>
                     {/* Individual Delete Button */}
                     <button
                       onClick={() => {

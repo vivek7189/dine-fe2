@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import apiClient from '@/lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
@@ -27,6 +27,7 @@ import {
   LuCreditCard,
   LuReceipt,
   LuHandCoins,
+  LuPrinter,
 } from 'react-icons/lu';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
@@ -150,8 +151,24 @@ export default function RegisterPage() {
   // History
   const [showHistory, setShowHistory] = useState(false);
 
-  // Restaurant ID
+  // X-Report
+  const [xReportSummary, setXReportSummary] = useState(null);
+  const [loadingXReport, setLoadingXReport] = useState(false);
+
+  // Restaurant ID & settings
   const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('selectedRestaurantId') : null;
+  const posSettings = useMemo(() => {
+    try {
+      const r = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') : {};
+      return r.posSettings || {};
+    } catch { return {}; }
+  }, []);
+  const restaurantName = useMemo(() => {
+    try {
+      const r = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') : {};
+      return r.name || 'Restaurant';
+    } catch { return 'Restaurant'; }
+  }, []);
 
   // ── Mobile detection ────────────────────────────────────────────────────
 
@@ -228,6 +245,7 @@ export default function RegisterPage() {
       setOpeningCash('');
       setOperatorName('');
       setOpeningNotes('');
+      localStorage.setItem('registerOpen', 'true');
       await loadData();
     } catch (err) {
       setError(err.message || 'Failed to open register');
@@ -308,7 +326,73 @@ export default function RegisterPage() {
     setShowDenom(false);
     setDenoms({ 2000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins2: 0, coins1: 0 });
     setSuccess('Register closed successfully');
+    localStorage.setItem('registerOpen', 'false');
     await loadData();
+  };
+
+  // ── X-Report ──────────────────────────────────────────────────────────
+  const handleXReport = async () => {
+    if (!register?.id || loadingXReport) return;
+    setLoadingXReport(true);
+    setError('');
+    try {
+      const res = await apiClient.getXReport(register.id);
+      setXReportSummary(res.summary || null);
+    } catch (err) {
+      setError(err.message || 'Failed to generate X-report');
+    } finally {
+      setLoadingXReport(false);
+    }
+  };
+
+  // ── Print Z-Report ───────────────────────────────────────────────────
+  const handlePrintReport = (summary, reportTitle = 'Z-REPORT / EOD SUMMARY') => {
+    const s = summary;
+    const fc = formatCurrency;
+    const diff = s.cashDifference ?? ((s.closingCash || 0) - (s.expectedCash || 0));
+    const html = `<!DOCTYPE html><html><head><title>${reportTitle}</title>
+<style>
+body{font-family:'Courier New',monospace;width:300px;margin:0 auto;padding:16px;font-size:12px;color:#000;}
+.center{text-align:center;}.bold{font-weight:bold;}
+.line{border-top:1px dashed #000;margin:8px 0;}
+.row{display:flex;justify-content:space-between;padding:2px 0;}
+@media print{body{margin:0;padding:8px;}}
+</style></head><body>
+<div class="center bold">${reportTitle}</div>
+<div class="center">${restaurantName}</div>
+<div class="center">${s.closedAt ? new Date(s.closedAt).toLocaleString() : s.reportGeneratedAt ? new Date(s.reportGeneratedAt).toLocaleString() : new Date().toLocaleString()}</div>
+<div class="center">Operator: ${s.operatorName || register?.operatorName || register?.openedByName || '-'}</div>
+<div class="line"></div>
+<div class="bold">SALES</div>
+<div class="row"><span>Total Sales</span><span>${fc(s.totalSales || 0)}</span></div>
+<div class="row"><span>Cash Sales</span><span>${fc(s.cashSales || 0)}</span></div>
+<div class="row"><span>Card Sales</span><span>${fc(s.cardSales || 0)}</span></div>
+<div class="row"><span>UPI Sales</span><span>${fc(s.upiSales || 0)}</span></div>
+<div class="row"><span>Aggregator</span><span>${fc(s.aggregatorSales || 0)}</span></div>
+<div class="row"><span>Other</span><span>${fc(s.otherSales || 0)}</span></div>
+<div class="line"></div>
+<div class="row"><span>Total Orders</span><span>${s.orderCount || 0}</span></div>
+<div class="line"></div>
+<div class="bold">TIPS & CHARGES</div>
+<div class="row"><span>Cash Tips</span><span>${fc(s.cashTips || 0)}</span></div>
+<div class="row"><span>Card/UPI Tips</span><span>${fc(s.cardTips || 0)}</span></div>
+<div class="row"><span>Service Charge</span><span>${fc(s.serviceChargeCollected || 0)}</span></div>
+<div class="line"></div>
+<div class="bold">CASH FLOW</div>
+<div class="row"><span>Opening Cash</span><span>${fc(s.openingCash || 0)}</span></div>
+<div class="row"><span>+ Cash In</span><span>${fc(s.cashIn || 0)}</span></div>
+<div class="row"><span>- Cash Out</span><span>${fc(s.cashOut || 0)}</span></div>
+<div class="row"><span>- Cash Drops</span><span>${fc(s.cashDrops || 0)}</span></div>
+<div class="line"></div>
+<div class="bold">RECONCILIATION</div>
+<div class="row bold"><span>Expected Cash</span><span>${fc(s.expectedCash || 0)}</span></div>
+${s.closingCash !== undefined ? `<div class="row bold"><span>Closing Cash</span><span>${fc(s.closingCash || 0)}</span></div>` : ''}
+<div class="line"></div>
+${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><span>${diff >= 0 ? '+' : ''}${fc(diff)}</span></div><div class="line"></div>` : ''}
+<div class="center" style="margin-top:16px;font-size:10px;">Powered by DineOpen</div>
+</body></html>`;
+    const w = window.open('', '_blank', 'width=350,height=700');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   };
 
   // ── Computed values ─────────────────────────────────────────────────────
@@ -526,6 +610,7 @@ export default function RegisterPage() {
             setShowHistory={setShowHistory}
             formatCurrency={formatCurrency}
             isMobile={isMobile}
+            onPrintReport={handlePrintReport}
           />
         </>
       ) : (
@@ -693,6 +778,21 @@ export default function RegisterPage() {
               >
                 <LuArrowDownToLine size={16} /> Cash Drop
               </button>
+              <button
+                onClick={handleXReport}
+                disabled={loadingXReport}
+                style={{
+                  ...btnBase,
+                  background: '#f0f9ff',
+                  color: '#0284c7',
+                  border: '1px solid #bae6fd',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  opacity: loadingXReport ? 0.6 : 1,
+                }}
+              >
+                {loadingXReport ? <LuLoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <LuReceipt size={16} />} X-Report
+              </button>
             </div>
 
             {/* Transaction List */}
@@ -785,7 +885,13 @@ export default function RegisterPage() {
           {/* Close Register Button */}
           <div style={{ ...cardStyle, marginBottom: '24px', textAlign: 'center' }}>
             <button
-              onClick={() => setShowCloseModal(true)}
+              onClick={() => {
+                if (posSettings.requireDenomination) {
+                  setShowDenom(true);
+                  setClosingCash('0');
+                }
+                setShowCloseModal(true);
+              }}
               style={{
                 ...btnBase,
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
@@ -808,6 +914,7 @@ export default function RegisterPage() {
             setShowHistory={setShowHistory}
             formatCurrency={formatCurrency}
             isMobile={isMobile}
+            onPrintReport={handlePrintReport}
           />
 
           {/* Transaction Modal */}
@@ -861,6 +968,92 @@ export default function RegisterPage() {
               formatCurrency={formatCurrency}
               isMobile={isMobile}
             />
+          )}
+
+          {/* X-Report Modal */}
+          {xReportSummary && (
+            <ModalOverlay onClose={() => setXReportSummary(null)}>
+              <div style={{
+                ...cardStyle,
+                maxWidth: '520px',
+                width: '100%',
+                margin: '40px auto',
+                padding: '28px',
+                position: 'relative',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+              }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                  <div style={{
+                    width: '56px', height: '56px', borderRadius: '50%',
+                    background: '#eff6ff', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', margin: '0 auto 12px',
+                  }}>
+                    <LuReceipt size={28} style={{ color: '#2563eb' }} />
+                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', margin: '0 0 4px' }}>
+                    X-Report (Mid-Shift)
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+                    Snapshot — register stays open
+                  </p>
+                </div>
+
+                {/* Sales */}
+                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <LuReceipt size={14} /> Sales
+                  </div>
+                  <SummaryRow label="Total Sales" value={formatCurrency(xReportSummary.totalSales || 0)} bold />
+                  <SummaryRow label="Cash Sales" value={formatCurrency(xReportSummary.cashSales || 0)} />
+                  <SummaryRow label="Card Sales" value={formatCurrency(xReportSummary.cardSales || 0)} />
+                  <SummaryRow label="UPI Sales" value={formatCurrency(xReportSummary.upiSales || 0)} />
+                  <SummaryRow label="Aggregator Sales" value={formatCurrency(xReportSummary.aggregatorSales || 0)} />
+                  <SummaryRow label="Other Sales" value={formatCurrency(xReportSummary.otherSales || 0)} />
+                  <div style={{ borderTop: '1px dashed #e2e8f0', margin: '8px 0' }} />
+                  <SummaryRow label="Total Orders" value={xReportSummary.orderCount || 0} />
+                </div>
+
+                {/* Tips */}
+                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <LuHandCoins size={14} /> Tips & Charges
+                  </div>
+                  <SummaryRow label="Card/UPI Tips" value={formatCurrency(xReportSummary.cardTips || 0)} />
+                  <SummaryRow label="Service Charge" value={formatCurrency(xReportSummary.serviceChargeCollected || 0)} />
+                </div>
+
+                {/* Cash Flow */}
+                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <LuBanknote size={14} /> Cash Flow
+                  </div>
+                  <SummaryRow label="Opening Cash" value={formatCurrency(xReportSummary.openingCash || 0)} />
+                  <SummaryRow label="Cash In" value={`+${formatCurrency(xReportSummary.cashIn || 0)}`} color="#16a34a" />
+                  <SummaryRow label="Cash Out" value={`-${formatCurrency(xReportSummary.cashOut || 0)}`} color="#dc2626" />
+                  <SummaryRow label="Cash Drops" value={`-${formatCurrency(xReportSummary.cashDrops || 0)}`} color="#6366f1" />
+                  <div style={{ borderTop: '2px solid #e2e8f0', margin: '8px 0' }} />
+                  <SummaryRow label="Expected Cash" value={formatCurrency(xReportSummary.expectedCash || 0)} bold />
+                </div>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => handlePrintReport(xReportSummary, 'X-REPORT (MID-SHIFT)')}
+                    style={{ ...btnBase, background: 'white', color: '#374151', border: '1px solid #d1d5db', flex: 1, justifyContent: 'center', padding: '14px', fontSize: '15px' }}
+                  >
+                    <LuReceipt size={16} /> Print
+                  </button>
+                  <button
+                    onClick={() => setXReportSummary(null)}
+                    style={{ ...btnBase, background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', flex: 1, justifyContent: 'center', padding: '14px', fontSize: '15px' }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            </ModalOverlay>
           )}
         </>
       )}
@@ -1347,21 +1540,38 @@ function CloseRegisterModal({
             />
           </div>
 
-          {/* Done Button */}
-          <button
-            onClick={handleCloseModalDone}
-            style={{
-              ...btnBase,
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              color: 'white',
-              width: '100%',
-              justifyContent: 'center',
-              padding: '14px',
-              fontSize: '15px',
-            }}
-          >
-            Done
-          </button>
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => handlePrintReport(summary)}
+              style={{
+                ...btnBase,
+                background: 'white',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                flex: 1,
+                justifyContent: 'center',
+                padding: '14px',
+                fontSize: '15px',
+              }}
+            >
+              <LuReceipt size={16} /> Print Report
+            </button>
+            <button
+              onClick={handleCloseModalDone}
+              style={{
+                ...btnBase,
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                color: 'white',
+                flex: 1,
+                justifyContent: 'center',
+                padding: '14px',
+                fontSize: '15px',
+              }}
+            >
+              Done
+            </button>
+          </div>
         </div>
       </ModalOverlay>
     );
@@ -1419,39 +1629,41 @@ function CloseRegisterModal({
           </p>
         </div>
 
-        {/* Pre-close Estimate */}
-        <div style={{
-          background: '#f8fafc',
-          borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '20px',
-        }}>
-          <SummaryRow label="Opening Cash" value={formatCurrency(register.openingCash || 0)} />
-          <SummaryRow
-            label="Cash In"
-            value={`+${formatCurrency(register.cashIn || 0)}`}
-            color="#16a34a"
-          />
-          <SummaryRow
-            label="Cash Out"
-            value={`-${formatCurrency(register.cashOut || 0)}`}
-            color="#dc2626"
-          />
-          <div style={{ borderTop: '2px solid #e2e8f0', margin: '8px 0' }} />
-          <SummaryRow
-            label="Estimated Expected Cash"
-            value={formatCurrency(expectedCash)}
-            bold
-          />
+        {/* Pre-close Estimate — hidden in blind close mode */}
+        {!posSettings.blindClose && (
           <div style={{
-            fontSize: '11px',
-            color: '#94a3b8',
-            fontStyle: 'italic',
-            marginTop: '4px',
+            background: '#f8fafc',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '20px',
           }}>
-            Sales data will be included after closing
+            <SummaryRow label="Opening Cash" value={formatCurrency(register.openingCash || 0)} />
+            <SummaryRow
+              label="Cash In"
+              value={`+${formatCurrency(register.cashIn || 0)}`}
+              color="#16a34a"
+            />
+            <SummaryRow
+              label="Cash Out"
+              value={`-${formatCurrency(register.cashOut || 0)}`}
+              color="#dc2626"
+            />
+            <div style={{ borderTop: '2px solid #e2e8f0', margin: '8px 0' }} />
+            <SummaryRow
+              label="Estimated Expected Cash"
+              value={formatCurrency(expectedCash)}
+              bold
+            />
+            <div style={{
+              fontSize: '11px',
+              color: '#94a3b8',
+              fontStyle: 'italic',
+              marginTop: '4px',
+            }}>
+              Sales data will be included after closing
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Cash Tips Declared */}
         <div style={{ marginBottom: '16px' }}>
@@ -1483,25 +1695,32 @@ function CloseRegisterModal({
           </span>
         </div>
 
-        {/* Denomination Counting Toggle */}
-        <div style={{ marginBottom: '16px' }}>
-          <button
-            onClick={handleToggleDenom}
-            style={{
-              ...btnBase,
-              background: showDenom ? '#eff6ff' : '#f8fafc',
-              color: showDenom ? '#2563eb' : '#64748b',
-              border: `1px solid ${showDenom ? '#bfdbfe' : '#e2e8f0'}`,
-              width: '100%',
-              justifyContent: 'center',
-              padding: '10px',
-              fontSize: '13px',
-            }}
-          >
-            <LuBanknote size={14} />
-            {showDenom ? 'Hide Denomination Counter' : 'Count by Denomination'}
-          </button>
-        </div>
+        {/* Denomination Counting Toggle — hidden when required */}
+        {!posSettings.requireDenomination && (
+          <div style={{ marginBottom: '16px' }}>
+            <button
+              onClick={handleToggleDenom}
+              style={{
+                ...btnBase,
+                background: showDenom ? '#eff6ff' : '#f8fafc',
+                color: showDenom ? '#2563eb' : '#64748b',
+                border: `1px solid ${showDenom ? '#bfdbfe' : '#e2e8f0'}`,
+                width: '100%',
+                justifyContent: 'center',
+                padding: '10px',
+                fontSize: '13px',
+              }}
+            >
+              <LuBanknote size={14} />
+              {showDenom ? 'Hide Denomination Counter' : 'Count by Denomination'}
+            </button>
+          </div>
+        )}
+        {posSettings.requireDenomination && (
+          <div style={{ marginBottom: '12px', fontSize: '12px', color: '#6366f1', fontWeight: 500, textAlign: 'center' }}>
+            Denomination counting is required
+          </div>
+        )}
 
         {/* Denomination Counter */}
         {showDenom && (
@@ -1639,7 +1858,7 @@ function CloseRegisterModal({
               Auto-calculated from denomination count above
             </span>
           )}
-          {closingCash !== '' && (
+          {closingCash !== '' && !posSettings.blindClose && (
             <DifferenceDisplay
               difference={parseFloat(closingCash) - expectedCash}
               formatCurrency={formatCurrency}
@@ -1702,7 +1921,7 @@ function CloseRegisterModal({
 // ── Register History Section ────────────────────────────────────────────────
 
 function RegisterHistorySection({
-  registerHistory, showHistory, setShowHistory, formatCurrency, isMobile,
+  registerHistory, showHistory, setShowHistory, formatCurrency, isMobile, onPrintReport,
 }) {
   if (!registerHistory || registerHistory.length === 0) return null;
 
@@ -1752,7 +1971,7 @@ function RegisterHistorySection({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                {['Date', 'Operator', 'Opening', 'Sales', 'Orders', 'Closing', 'Difference'].map(h => (
+                {['Date', 'Operator', 'Opening', 'Sales', 'Orders', 'Closing', 'Difference', ''].map(h => (
                   <th key={h} style={{
                     textAlign: 'left',
                     padding: '10px 8px',
@@ -1835,6 +2054,34 @@ function RegisterHistorySection({
                         ? `${diff >= 0 ? '+' : ''}${formatCurrency(diff)}`
                         : '-'
                       }
+                    </td>
+                    <td style={{ padding: '10px 4px', textAlign: 'center' }}>
+                      {r.status === 'closed' && r.totalSales != null && (
+                        <button
+                          onClick={() => onPrintReport({
+                            ...r,
+                            openingCash: r.openingCash || 0,
+                            cashIn: r.cashIn || 0,
+                            cashOut: r.cashOut || 0,
+                            cashDrops: r.cashDrops || 0,
+                          })}
+                          title="Print Z-Report"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#64748b',
+                            padding: '4px',
+                            borderRadius: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                          onMouseOver={e => e.currentTarget.style.color = '#2563eb'}
+                          onMouseOut={e => e.currentTarget.style.color = '#64748b'}
+                        >
+                          <LuPrinter size={15} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

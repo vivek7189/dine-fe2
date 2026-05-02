@@ -31,15 +31,16 @@ import Notification from '../../../components/Notification';
 import { getCachedKotData, setCachedKotData } from '../../../utils/dashboardCache';
 import { getCachedData, setCachedData, getPendingOrders } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
+import { t } from '../../../lib/i18n';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // ─── Tab Definitions ───
 const TABS = [
-  { key: 'new', label: 'New', statuses: ['pending', 'confirmed'], color: '#f59e0b', activeColor: '#f59e0b' },
-  { key: 'cooking', label: 'Cooking', statuses: ['preparing'], color: '#3b82f6', activeColor: '#3b82f6' },
-  { key: 'ready', label: 'Ready', statuses: ['ready'], color: '#22c55e', activeColor: '#22c55e' },
-  { key: 'done', label: 'Done', statuses: ['completed'], color: '#6b7280', activeColor: '#6b7280' },
+  { key: 'new', label: t('kot.tabNew'), statuses: ['pending', 'confirmed'], color: '#f59e0b', activeColor: '#f59e0b' },
+  { key: 'cooking', label: t('kot.tabCooking'), statuses: ['preparing'], color: '#3b82f6', activeColor: '#3b82f6' },
+  { key: 'ready', label: t('kot.tabReady'), statuses: ['ready'], color: '#22c55e', activeColor: '#22c55e' },
+  { key: 'done', label: t('kot.tabDone'), statuses: ['completed'], color: '#6b7280', activeColor: '#6b7280' },
 ];
 
 // ─── Timer Aging Colors ───
@@ -446,9 +447,9 @@ const KitchenOrderTicket = () => {
   // ─── Helper Functions ───
   const getOrderTypeInfo = (type) => {
     const typeMap = {
-      'dine-in': { icon: FaHome, label: 'Dine In', color: '#6b7280' },
-      'delivery': { icon: FaTruck, label: 'Delivery', color: '#6b7280' },
-      'pickup': { icon: FaShoppingBag, label: 'Pickup', color: '#6b7280' }
+      'dine-in': { icon: FaHome, label: t('kot.dineIn'), color: '#6b7280' },
+      'delivery': { icon: FaTruck, label: t('kot.delivery'), color: '#6b7280' },
+      'pickup': { icon: FaShoppingBag, label: t('kot.pickup'), color: '#6b7280' }
     };
     return typeMap[type] || typeMap['dine-in'];
   };
@@ -535,11 +536,11 @@ const KitchenOrderTicket = () => {
     try {
       await apiClient.startCooking(orderId);
       setUpdatingOrderId(null);
-      smoothTransition(kotId, orderId, 'preparing', 'cooking', 'Cooking');
+      smoothTransition(kotId, orderId, 'preparing', 'cooking', t('kot.tabCooking'));
       setTimeout(() => loadKotData(false), 2500);
     } catch (error) {
       console.error('Error starting cooking:', error);
-      setNotification({ show: true, type: 'error', message: 'Failed to start cooking' });
+      setNotification({ show: true, type: 'error', message: t('kot.failedStartCooking') });
       setUpdatingOrderId(null);
     }
   };
@@ -550,18 +551,18 @@ const KitchenOrderTicket = () => {
       await apiClient.markReady(orderId);
       setUpdatingOrderId(null);
       if (soundEnabled) playSound('newOrder');
-      smoothTransition(kotId, orderId, 'ready', 'ready', 'Ready');
+      smoothTransition(kotId, orderId, 'ready', 'ready', t('kot.tabReady'));
       setTimeout(() => loadKotData(false), 2500);
     } catch (error) {
       console.error('Error marking ready:', error);
-      setNotification({ show: true, type: 'error', message: 'Failed to mark ready' });
+      setNotification({ show: true, type: 'error', message: t('kot.failedMarkReady') });
       setUpdatingOrderId(null);
     }
   };
 
   const markDone = (kotId, orderId) => {
     // Show transition overlay first
-    setTransitioning(prev => ({ ...prev, [orderId]: { newStatus: 'completed', label: 'Done', targetTab: 'done' } }));
+    setTransitioning(prev => ({ ...prev, [orderId]: { newStatus: 'completed', label: t('kot.tabDone'), targetTab: 'done' } }));
 
     // After 1.5s, move card to done
     setTimeout(() => {
@@ -593,7 +594,7 @@ const KitchenOrderTicket = () => {
         setKotOrders(orders => orders.map(order =>
           order.kotId === kotId ? { ...order, status: 'ready' } : order
         ));
-        setNotification({ show: true, type: 'error', message: 'Failed to complete order' });
+        setNotification({ show: true, type: 'error', message: t('kot.failedCompleteOrder') });
       }
       setUndoToast(null);
       undoTimeoutRef.current = null;
@@ -612,18 +613,18 @@ const KitchenOrderTicket = () => {
   };
 
   const cancelOrder = async (kotId, orderId) => {
-    const reason = prompt('Reason for cancellation (optional):');
+    const reason = prompt(t('kot.cancelReason'));
     if (reason === null) return;
     setUpdatingOrderId(orderId);
     try {
       await apiClient.cancelOrder(orderId, reason);
       setKotOrders(orders => orders.filter(order => order.kotId !== kotId));
       if (selectedKot && selectedKot.id === orderId) setSelectedKot(null);
-      setNotification({ show: true, type: 'success', message: 'Order cancelled' });
+      setNotification({ show: true, type: 'success', message: t('kot.orderCancelled') });
       setTimeout(() => loadKotData(false), 1000);
     } catch (error) {
       console.error('Error cancelling order:', error);
-      setNotification({ show: true, type: 'error', message: 'Failed to cancel order' });
+      setNotification({ show: true, type: 'error', message: t('kot.failedCancelOrder') });
     } finally {
       setUpdatingOrderId(null);
     }
@@ -648,10 +649,10 @@ const KitchenOrderTicket = () => {
       await apiClient.deleteOrder(orderId, deleteReason.trim() || undefined);
       setKotOrders(prev => prev.filter(order => order.id !== orderId));
       if (selectedKot && selectedKot.id === orderId) setSelectedKot(null);
-      setNotification({ show: true, type: 'success', message: 'Order deleted' });
+      setNotification({ show: true, type: 'success', message: t('kot.orderDeleted') });
     } catch (error) {
       console.error('Error deleting order:', error);
-      setNotification({ show: true, type: 'error', message: error.message || 'Failed to delete order' });
+      setNotification({ show: true, type: 'error', message: error.message || t('kot.failedDeleteOrder') });
     } finally {
       setDeletingOrderId(null);
     }
@@ -778,9 +779,9 @@ const KitchenOrderTicket = () => {
           </div>
           <h1 style={{
             fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '12px'
-          }}>Kitchen Display</h1>
+          }}>{t('kot.kitchenDisplay')}</h1>
           <p style={{ fontSize: '15px', color: '#6b7280', marginBottom: '24px', lineHeight: '1.6' }}>
-            Set up your restaurant first, then start taking orders. Kitchen Order Tickets will appear here.
+            {t('kot.errorSetup')}
           </p>
           <button
             onClick={() => router.push('/dashboard')}
@@ -791,7 +792,7 @@ const KitchenOrderTicket = () => {
               boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
             }}
           >
-            Go to Dashboard
+            {t('kot.goToDashboard')}
           </button>
         </div>
       </div>
@@ -840,13 +841,13 @@ const KitchenOrderTicket = () => {
               </div>
               <div>
                 <h1 style={{ fontSize: isClient && isMobile ? '17px' : '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-                  Kitchen Display
+                  {t('kot.kitchenDisplay')}
                 </h1>
                 <p style={{ color: '#6b7280', margin: 0, fontSize: isClient && isMobile ? '11px' : '13px' }}>
-                  {currentRestaurant?.name || 'Restaurant'}
-                  {' '}&middot;{' '}{filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} in queue
+                  {currentRestaurant?.name || t('kot.restaurant')}
+                  {' '}&middot;{' '}{t('kot.ordersInQueue', { count: filteredOrders.length })}
                   {isPollingActive && (
-                    <span style={{ color: '#22c55e' }}> &middot; Live</span>
+                    <span style={{ color: '#22c55e' }}> &middot; {t('kot.live')}</span>
                   )}
                 </p>
               </div>
@@ -870,9 +871,9 @@ const KitchenOrderTicket = () => {
                   outline: 'none'
                 }}
               >
-                <option value="today">Today</option>
-                <option value="last24hours">Last 24h</option>
-                <option value="all">All Time</option>
+                <option value="today">{t('kot.today')}</option>
+                <option value="last24hours">{t('kot.last24h')}</option>
+                <option value="all">{t('kot.allTime')}</option>
               </select>
 
               <button
@@ -886,7 +887,7 @@ const KitchenOrderTicket = () => {
                   color: soundEnabled ? '#16a34a' : '#9ca3af',
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}
-                title={soundEnabled ? 'Sound On' : 'Sound Off'}
+                title={soundEnabled ? t('kot.soundOn') : t('kot.soundOff')}
               >
                 {soundEnabled ? <FaVolumeUp size={isClient && isMobile ? 12 : 14} /> : <FaVolumeMute size={isClient && isMobile ? 12 : 14} />}
               </button>
@@ -908,10 +909,10 @@ const KitchenOrderTicket = () => {
                   fontWeight: '600',
                   opacity: refreshing ? 0.8 : 1,
                 }}
-                title="Refresh orders"
+                title={t('kot.refresh')}
               >
                 <FaSync size={isClient && isMobile ? 11 : 12} className={refreshing ? 'animate-spin' : ''} />
-                {!isMobile && (refreshing ? 'Refreshing...' : 'Refresh')}
+                {!isMobile && (refreshing ? t('kot.refreshing') : t('kot.refresh'))}
               </button>
             </div>
           </div>
@@ -987,7 +988,7 @@ const KitchenOrderTicket = () => {
                 let actionButton = null;
                 if (selectedTab === 'new') {
                   actionButton = {
-                    label: 'START COOKING',
+                    label: t('kot.startCooking'),
                     icon: FaPlay,
                     color: '#ef4444',
                     shadow: 'rgba(239, 68, 68, 0.3)',
@@ -995,7 +996,7 @@ const KitchenOrderTicket = () => {
                   };
                 } else if (selectedTab === 'cooking') {
                   actionButton = {
-                    label: 'MARK READY',
+                    label: t('kot.markReady'),
                     icon: FaCheckCircle,
                     color: '#ef4444',
                     shadow: 'rgba(239, 68, 68, 0.3)',
@@ -1003,7 +1004,7 @@ const KitchenOrderTicket = () => {
                   };
                 } else if (selectedTab === 'ready') {
                   actionButton = {
-                    label: 'DONE',
+                    label: t('kot.doneBtnLabel'),
                     icon: FaCheck,
                     color: '#ef4444',
                     shadow: 'rgba(239, 68, 68, 0.3)',
@@ -1063,7 +1064,7 @@ const KitchenOrderTicket = () => {
                       }}>
                         <FaCheckCircle size={24} style={{ color: '#ef4444', marginBottom: '6px' }} />
                         <span style={{ fontSize: '13px', fontWeight: '700', color: '#ef4444' }}>
-                          Moved to {transitionInfo.label}
+                          {t('kot.movedTo', { label: transitionInfo.label })}
                         </span>
                       </div>
                     )}
@@ -1087,9 +1088,9 @@ const KitchenOrderTicket = () => {
                           }}
                             onClick={() => {
                               navigator.clipboard.writeText(kot.dailyOrderId?.toString() || kot.id);
-                              setNotification({ show: true, type: 'success', message: `Order number copied` });
+                              setNotification({ show: true, type: 'success', message: t('kot.orderNumberCopied') });
                             }}
-                            title="Click to copy order number"
+                            title={t('kot.clickToCopyOrderNumber')}
                           >
                             #{kot.dailyOrderId || kot.orderNumber || kot.id.slice(-6).toUpperCase()}
                           </span>
@@ -1099,9 +1100,9 @@ const KitchenOrderTicket = () => {
                           }}
                             onClick={() => {
                               navigator.clipboard.writeText(kot.id);
-                              setNotification({ show: true, type: 'success', message: `Order ID copied` });
+                              setNotification({ show: true, type: 'success', message: t('kot.orderIdCopied') });
                             }}
-                            title="Click to copy order ID"
+                            title={t('kot.clickToCopyOrderId')}
                           >
                             ID: {kot.id.slice(-6).toUpperCase()}
                           </span>
@@ -1129,7 +1130,7 @@ const KitchenOrderTicket = () => {
                             fontSize: '9px', fontWeight: '600', color: '#ec4899',
                             backgroundColor: '#fce7f3', padding: '2px 6px', borderRadius: '8px'
                           }}>
-                            App
+                            {t('kot.app')}
                           </span>
                         )}
 
@@ -1138,7 +1139,7 @@ const KitchenOrderTicket = () => {
                             fontSize: '9px', fontWeight: '600', color: '#d97706',
                             backgroundColor: '#fef3c7', padding: '2px 6px', borderRadius: '8px'
                           }}>
-                            Offline - Pending Sync
+                            {t('kot.offlinePendingSync')}
                           </span>
                         )}
                       </div>
@@ -1179,7 +1180,7 @@ const KitchenOrderTicket = () => {
                           }}
                           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ef4444'; e.currentTarget.style.color = 'white'; }}
                           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.06)'; e.currentTarget.style.color = '#6b7280'; }}
-                          title="View full details"
+                          title={t('kot.viewFullDetails')}
                         >
                           <FaEye size={11} />
                         </button>
@@ -1192,7 +1193,7 @@ const KitchenOrderTicket = () => {
                         fontSize: '10px', fontWeight: '600', color: '#b0b0b0',
                         textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'
                       }}>
-                        {itemCount} item{itemCount !== 1 ? 's' : ''}
+                        {t('kot.items', { count: itemCount })}
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -1216,8 +1217,8 @@ const KitchenOrderTicket = () => {
                                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
                                     {item.name}
                                   </span>
-                                  {isNewItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>NEW</span>}
-                                  {isUpdatedItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#f59e0b', padding: '1px 4px', borderRadius: '3px' }}>UPD</span>}
+                                  {isNewItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.new')}</span>}
+                                  {isUpdatedItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#f59e0b', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.upd')}</span>}
                                   {item.spiceLevel && item.spiceLevel !== 'mild' && (
                                     <FaFire size={10} style={{ color: item.spiceLevel === 'hot' ? '#ef4444' : '#f59e0b' }} />
                                   )}
@@ -1260,7 +1261,7 @@ const KitchenOrderTicket = () => {
                           backgroundColor: '#fffbeb', border: '1px solid #fde68a',
                           borderRadius: '8px', fontSize: '12px', color: '#92400e', fontWeight: '500'
                         }}>
-                          <strong>Note:</strong> {kot.specialInstructions}
+                          <strong>{t('kot.note')}</strong> {kot.specialInstructions}
                         </div>
                       )}
                     </div>
@@ -1323,7 +1324,7 @@ const KitchenOrderTicket = () => {
                             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
                           >
                             <FaEye size={12} />
-                            View Details
+                            {t('kot.viewDetails')}
                           </button>
                         )}
 
@@ -1371,7 +1372,7 @@ const KitchenOrderTicket = () => {
                                 onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
                                 onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                               >
-                                <FaEye size={12} /> View Details
+                                <FaEye size={12} /> {t('kot.viewDetails')}
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); printKot(kot); setOpenMenuId(null); }}
@@ -1383,7 +1384,7 @@ const KitchenOrderTicket = () => {
                                 onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
                                 onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                               >
-                                <FaPrint size={12} /> Print KOT
+                                <FaPrint size={12} /> {t('kot.printKOT')}
                               </button>
                               {kot.status !== 'completed' && kot.status !== 'cancelled' && (
                                 <button
@@ -1438,13 +1439,13 @@ const KitchenOrderTicket = () => {
                 <GiChefToque size={36} style={{ color: '#9ca3af' }} />
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                No {currentTab.label.toLowerCase()} orders
+                {t('kot.noOrders', { tab: currentTab.label })}
               </h3>
               <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '20px', maxWidth: '320px' }}>
-                {selectedTab === 'new' && 'New orders will appear here when they come in.'}
-                {selectedTab === 'cooking' && 'Start cooking orders from the New tab.'}
-                {selectedTab === 'ready' && 'Orders will appear here when cooking is done.'}
-                {selectedTab === 'done' && 'Completed orders will show here for reference.'}
+                {selectedTab === 'new' && t('kot.newOrdersWillAppear')}
+                {selectedTab === 'cooking' && t('kot.startCookingFromNew')}
+                {selectedTab === 'ready' && t('kot.ordersAppearWhenDone')}
+                {selectedTab === 'done' && t('kot.completedOrdersShow')}
               </p>
               {selectedTab !== 'new' && (
                 <button
@@ -1456,7 +1457,7 @@ const KitchenOrderTicket = () => {
                     boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
                   }}
                 >
-                  View New Orders
+                  {t('kot.viewNewOrders')}
                 </button>
               )}
             </div>
@@ -1483,7 +1484,7 @@ const KitchenOrderTicket = () => {
             fontSize: '14px',
             fontWeight: '500'
           }}>
-            <span>Order #{undoToast.orderId.slice(-6).toUpperCase()} marked done</span>
+            <span>{t('kot.markedDone', { id: undoToast.orderId.slice(-6).toUpperCase() })}</span>
             <button
               onClick={undoMarkDone}
               style={{
@@ -1497,7 +1498,7 @@ const KitchenOrderTicket = () => {
                 cursor: 'pointer'
               }}
             >
-              UNDO
+              {t('kot.undo')}
             </button>
           </div>
         )}
@@ -1548,7 +1549,7 @@ const KitchenOrderTicket = () => {
                     </h2>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
                       ID: {selectedKot.id.slice(-6).toUpperCase()} · {getOrderTypeInfo(selectedKot.orderType).label}
-                      {selectedKot.tableNumber && ` · Table ${selectedKot.tableNumber}`}
+                      {selectedKot.tableNumber && ` · ${t('kot.table')} ${selectedKot.tableNumber}`}
                       {selectedKot.waiterName && ` · ${selectedKot.waiterName}`}
                     </p>
                   </div>
@@ -1577,10 +1578,10 @@ const KitchenOrderTicket = () => {
                 marginBottom: '20px'
               }}>
                 {[
-                  { label: 'Order Time', value: formatTime(selectedKot.orderTime) },
-                  { label: 'KOT Time', value: formatTime(selectedKot.kotTime) },
-                  { label: 'Elapsed', value: `${getTimeElapsed(selectedKot.kotTime)}m` },
-                  { label: 'Customer', value: selectedKot.customerName || '—' }
+                  { label: t('kot.orderTime'), value: formatTime(selectedKot.orderTime) },
+                  { label: t('kot.kotTime'), value: formatTime(selectedKot.kotTime) },
+                  { label: t('kot.elapsed'), value: `${getTimeElapsed(selectedKot.kotTime)}m` },
+                  { label: t('kot.customer'), value: selectedKot.customerName || '—' }
                 ].map((info, i) => (
                   <div key={i} style={{
                     padding: '10px 12px', backgroundColor: '#f9fafb',
@@ -1599,7 +1600,7 @@ const KitchenOrderTicket = () => {
               {/* Items */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>
-                  Items ({Array.isArray(selectedKot.items) ? selectedKot.items.length : 0})
+                  {t('kot.itemsCount', { count: Array.isArray(selectedKot.items) ? selectedKot.items.length : 0 })}
                 </h3>
                 {Array.isArray(selectedKot.items) && selectedKot.items.map((item, index) => (
                   <div key={index} style={{
@@ -1655,7 +1656,7 @@ const KitchenOrderTicket = () => {
                   padding: '14px', borderRadius: '10px', marginBottom: '20px'
                 }}>
                   <p style={{ fontSize: '13px', color: '#92400e', margin: 0, fontWeight: '500' }}>
-                    <strong>Special Instructions:</strong> {selectedKot.specialInstructions}
+                    <strong>{t('kot.specialInstructions')}</strong> {selectedKot.specialInstructions}
                   </p>
                 </div>
               )}
@@ -1675,7 +1676,7 @@ const KitchenOrderTicket = () => {
                   color: '#374151', fontWeight: '600', fontSize: '14px', cursor: 'pointer'
                 }}
               >
-                Close
+                {t('kot.close')}
               </button>
               <button
                 onClick={() => printKot(selectedKot)}
@@ -1688,7 +1689,7 @@ const KitchenOrderTicket = () => {
                 }}
               >
                 <FaPrint size={13} />
-                Print KOT
+                {t('kot.printKOT')}
               </button>
             </div>
           </div>
@@ -1727,19 +1728,19 @@ const KitchenOrderTicket = () => {
                   <FaTrash color="white" size={16} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#991b1b' }}>Delete Order</h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', marginTop: '2px' }}>This action cannot be undone</p>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#991b1b' }}>{t('kot.deleteOrder')}</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', marginTop: '2px' }}>{t('kot.cannotBeUndone')}</p>
                 </div>
               </div>
             </div>
 
             <div style={{ padding: '20px 24px' }}>
               <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#4b5563', lineHeight: '1.5' }}>
-                Delete order <strong style={{ color: '#1f2937' }}>#{deleteModal.orderId?.slice(-6)?.toUpperCase()}</strong>? This cannot be undone.
+                {t('kot.deleteOrderConfirm', { id: deleteModal.orderId?.slice(-6)?.toUpperCase() })}
               </p>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                  Reason <span style={{ color: '#9ca3af', fontWeight: '400' }}>(optional)</span>
+                  {t('kot.reason')} <span style={{ color: '#9ca3af', fontWeight: '400' }}>{t('kot.optional')}</span>
                 </label>
                 <textarea
                   value={deleteReason}

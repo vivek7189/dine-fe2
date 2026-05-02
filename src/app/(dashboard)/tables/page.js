@@ -108,12 +108,12 @@ const TableManagement = () => {
 
   // ── Status config (matching dashboard POS cards) ───────
   const statusConfig = {
-    available: { color: '#10b981', bg: '#f0fdf4', text: '#166534', label: 'Available', icon: FaChair, border: '#10b981' },
-    occupied: { color: '#f59e0b', bg: '#fffbeb', text: '#92400e', label: 'Occupied', icon: FaUsers, border: '#fcd34d' },
-    serving: { color: '#8b5cf6', bg: '#f5f3ff', text: '#6d28d9', label: 'Serving', icon: FaUtensils, border: '#8b5cf6' },
-    reserved: { color: '#3b82f6', bg: '#eff6ff', text: '#1e40af', label: 'Reserved', icon: FaClock, border: '#3b82f6' },
-    cleaning: { color: '#6b7280', bg: '#f3f4f6', text: '#475569', label: 'Cleaning', icon: FaTools, border: '#9ca3af' },
-    'out-of-service': { color: '#ef4444', bg: '#fef2f2', text: '#991b1b', label: 'Out of Service', icon: FaBan, border: '#ef4444' },
+    available: { color: '#10b981', bg: '#f0fdf4', text: '#166534', label: t('tables.statusAvailable'), icon: FaChair, border: '#10b981' },
+    occupied: { color: '#f59e0b', bg: '#fffbeb', text: '#92400e', label: t('tables.statusOccupied'), icon: FaUsers, border: '#fcd34d' },
+    serving: { color: '#8b5cf6', bg: '#f5f3ff', text: '#6d28d9', label: t('tables.statusServing'), icon: FaUtensils, border: '#8b5cf6' },
+    reserved: { color: '#3b82f6', bg: '#eff6ff', text: '#1e40af', label: t('tables.statusReserved'), icon: FaClock, border: '#3b82f6' },
+    cleaning: { color: '#6b7280', bg: '#f3f4f6', text: '#475569', label: t('tables.statusCleaning'), icon: FaTools, border: '#9ca3af' },
+    'out-of-service': { color: '#ef4444', bg: '#fef2f2', text: '#991b1b', label: t('tables.statusOutOfService'), icon: FaBan, border: '#ef4444' },
   };
   const getTableStatusInfo = (status) => statusConfig[status] || statusConfig.available;
 
@@ -433,10 +433,10 @@ const TableManagement = () => {
     const allTables = floors.flatMap(f => f.tables || []);
     const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
     if (occupiedCount === 0) {
-      showWarning('All tables are already available.');
+      showWarning(t('tables.allTablesAvailable'));
       return;
     }
-    if (!window.confirm(`Free ${occupiedCount} occupied table(s)? This will mark them as available.`)) return;
+    if (!window.confirm(t('tables.freeOccupiedConfirm', { count: occupiedCount }))) return;
     setActionLoading(true);
     try {
       await apiClient.resetAllTables(selectedRestaurant.id);
@@ -446,7 +446,7 @@ const TableManagement = () => {
           t.status === 'occupied' ? { ...t, status: 'available', currentOrderId: null } : t
         ),
       })));
-      showSuccess(`${occupiedCount} table(s) reset to available.`);
+      showSuccess(t('tables.tablesResetSuccess', { count: occupiedCount }));
       loadFloorsAndTables(selectedRestaurant.id, true);
     } catch (err) {
       showError(err.message || 'Failed to reset tables');
@@ -466,7 +466,7 @@ const TableManagement = () => {
       setFloors(prev => [...prev, { ...response.floor, tables: [] }]);
       setNewFloor({ name: '', description: '', section: '', areaChargeType: 'none', areaChargeValue: '' });
       setShowAddFloor(false);
-      showSuccess('Floor added successfully!');
+      showSuccess(t('tables.floorAddedSuccess'));
     } catch (err) { showError(`Failed to add floor: ${err.message}`); }
     finally { setActionLoading(false); }
   };
@@ -483,7 +483,7 @@ const TableManagement = () => {
       setFloors(prev => prev.map(f => f.id === editingFloor.id ? { ...f, name: newFloor.name.trim(), description: newFloor.description.trim() || null, areaChargeType: newFloor.areaChargeType || 'none', areaChargeValue: parseFloat(newFloor.areaChargeValue) || 0 } : f));
       setNewFloor({ name: '', description: '', section: '', areaChargeType: 'none', areaChargeValue: '' });
       setEditingFloor(null); setShowEditFloor(false);
-      showSuccess('Floor updated successfully!');
+      showSuccess(t('tables.floorUpdatedSuccess'));
     } catch (err) { showError(`Failed to edit floor: ${err.message}`); }
     finally { setActionLoading(false); }
   };
@@ -501,7 +501,7 @@ const TableManagement = () => {
       await apiClient.deleteFloor(floorId, selectedRestaurant.id);
       setFloors(prev => prev.filter(f => f.id !== floorId));
       if (selectedFloorId === floorId) setSelectedFloorId('all');
-      showSuccess('Floor deleted successfully');
+      showSuccess(t('tables.floorDeletedSuccess'));
       setDeleteFloorConfirm(null);
     } catch (err) { showError(`Failed to delete floor: ${err.message}`); }
     finally { setDeletingFloor(false); }
@@ -532,7 +532,7 @@ const TableManagement = () => {
       const orderMap = {};
       floorOrderList.forEach((f, i) => { orderMap[f.id] = i; });
       setFloors(prev => [...prev].sort((a, b) => (orderMap[a.id] ?? Infinity) - (orderMap[b.id] ?? Infinity)));
-      showSuccess('Floor order updated!');
+      showSuccess(t('tables.floorOrderUpdated'));
     } catch (err) { showError(`Failed to update floor order: ${err.message}`); }
     finally { setSavingFloorOrder(false); }
   };
@@ -550,19 +550,19 @@ const TableManagement = () => {
       setFloors(prev => prev.map(f => f.id === selectedFloorForTable ? { ...f, tables: [...(f.tables || []), response.table] } : f));
       setNewTable({ name: '', capacity: 4, type: 'regular', floorId: null });
       setSelectedFloorForTable(null); setShowAddModal(false);
-      showSuccess('Table added!');
+      showSuccess(t('tables.tableAddedSuccess'));
     } catch (err) { showError(`Failed to add table: ${err.message}`); }
     finally { setActionLoading(false); }
   };
 
   const bulkAddTables = async () => {
     if (!bulkTableData.fromNumber || !bulkTableData.toNumber || !selectedFloorForTable || !selectedRestaurant) {
-      showError('Please fill in all fields'); return;
+      showError(t('tables.fillAllFields')); return;
     }
     const from = parseInt(bulkTableData.fromNumber), to = parseInt(bulkTableData.toNumber);
-    if (isNaN(from) || isNaN(to)) { showError('From and To must be numbers'); return; }
-    if (from > to) { showError('From must be ≤ To'); return; }
-    if (to - from > 100) { showError('Max 100 tables at once'); return; }
+    if (isNaN(from) || isNaN(to)) { showError(t('tables.fromToMustBeNumbers')); return; }
+    if (from > to) { showError(t('tables.fromMustBeLessThanTo')); return; }
+    if (to - from > 100) { showError(t('tables.maxTablesAtOnce')); return; }
     setActionLoading(true);
     try {
       const selectedFloor = floors.find(f => f.id === selectedFloorForTable);
@@ -575,7 +575,7 @@ const TableManagement = () => {
       }
       setBulkTableData({ fromNumber: '', toNumber: '', capacity: 4, floorId: null });
       setSelectedFloorForTable(null); setShowAddModal(false);
-      showSuccess(`Created ${response.created} tables${response.skipped > 0 ? ` (${response.skipped} skipped)` : ''}`);
+      showSuccess(t('tables.createdTablesSuccess', { created: response.created }) + (response.skipped > 0 ? ' ' + t('tables.skippedTables', { skipped: response.skipped }) : ''));
     } catch (err) { showError(`Failed: ${err.message}`); }
     finally { setActionLoading(false); }
   };
@@ -602,7 +602,7 @@ const TableManagement = () => {
   };
 
   const deleteTable = async (tableId) => {
-    if (!confirm('Delete this table?')) return;
+    if (!confirm(t('tables.deleteThisTable'))) return;
     try {
       await apiClient.deleteTable(tableId, selectedRestaurant?.id);
       setFloors(prev => prev.map(f => ({ ...f, tables: (f.tables || []).filter(t => t.id !== tableId) })));
@@ -632,7 +632,7 @@ const TableManagement = () => {
       // Refresh bookings for whichever date was booked (might differ from selectedDate)
       fetchBookingsForDate(selectedDate);
       if (bookingData.bookingDate !== selectedDate) fetchBookingsForDate(bookingData.bookingDate);
-      showSuccess('Booking confirmed! Table reserved successfully.');
+      showSuccess(t('tables.bookingConfirmed'));
     } catch (err) { showError(`Failed: ${err.message}`); } finally { setBookingSubmitting(false); }
   };
 
@@ -655,7 +655,7 @@ const TableManagement = () => {
       case 'make-available': updateTableStatus(table.id, 'available'); break;
       case 'view-order':
         if (table.currentOrderId) router.push(`/dashboard?orderId=${table.currentOrderId}&mode=edit`);
-        else showWarning('No active order found');
+        else showWarning(t('tables.noActiveOrder'));
         break;
     }
   };
@@ -665,7 +665,7 @@ const TableManagement = () => {
       await apiClient.cancelBooking(bookingId);
       fetchBookingsForDate(selectedDate);
       loadFloorsAndTables(selectedRestaurant.id, true);
-      showSuccess('Booking cancelled');
+      showSuccess(t('tables.bookingCancelled'));
     } catch (err) { showError(`Failed: ${err.message}`); }
   };
 
@@ -744,7 +744,7 @@ const TableManagement = () => {
     const d = table.lastOrderTime?.toDate ? table.lastOrderTime.toDate() : table.lastOrderTime?._seconds ? new Date(table.lastOrderTime._seconds * 1000) : new Date(table.lastOrderTime);
     if (isNaN(d.getTime())) return null;
     const mins = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (mins < 1) return 'Just now';
+    if (mins < 1) return t('tables.justNow');
     if (mins < 60) return `${mins}m`;
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
@@ -805,13 +805,13 @@ const TableManagement = () => {
           <div style={{ width: '64px', height: '64px', backgroundColor: '#fef2f2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
             <FaChair size={28} color="#ef4444" />
           </div>
-          <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', margin: '0 0 8px' }}>No Tables Yet</h2>
-          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>Set up your restaurant to start managing tables.</p>
+          <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', margin: '0 0 8px' }}>{t('tables.noTablesYet')}</h2>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>{t('tables.setUpRestaurant')}</p>
           <button onClick={() => router.push('/dashboard')} style={{
             padding: '12px 28px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
             border: 'none', borderRadius: '12px', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
             boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
-          }}>Set Up Restaurant</button>
+          }}>{t('tables.setUpRestaurantBtn')}</button>
         </div>
       </div>
     );
@@ -843,7 +843,7 @@ const TableManagement = () => {
               <FaChair color="white" size={18} />
             </div>
             <div>
-              <h1 style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Table Management</h1>
+              <h1 style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('tables.tableManagement')}</h1>
               <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0', fontWeight: '500' }}>{selectedRestaurant?.name || ''}</p>
             </div>
           </div>
@@ -861,7 +861,7 @@ const TableManagement = () => {
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                   <FaCalendarAlt size={11} color={isToday ? '#ef4444' : '#9ca3af'} />
-                  {isToday ? 'Today' : formatDate(selectedDate)}
+                  {isToday ? t('tables.today') : formatDate(selectedDate)}
                 </button>
                 <input id="tbl-date-input" type="date" value={selectedDate} onChange={e => { if (e.target.value) setSelectedDate(e.target.value); }} style={{ position: 'absolute', opacity: 0, width: 0, height: 0, top: 0, left: 0 }} />
               </div>
@@ -869,7 +869,7 @@ const TableManagement = () => {
                 <FaChevronRight size={11} />
               </button>
               {!isToday && (
-                <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])} style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: '11px', fontWeight: '700', color: 'white', cursor: 'pointer', marginLeft: '6px', marginRight: '4px' }}>Today</button>
+                <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])} style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: '11px', fontWeight: '700', color: 'white', cursor: 'pointer', marginLeft: '6px', marginRight: '4px' }}>{t('tables.today')}</button>
               )}
             </div>
 
@@ -879,7 +879,7 @@ const TableManagement = () => {
               background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white',
               fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
             }}>
-              <FaCalendarAlt size={12} /> Book
+              <FaCalendarAlt size={12} /> {t('tables.book')}
             </button>
             {canResetTables && (
               <button onClick={handleResetAllTables} style={{
@@ -887,7 +887,7 @@ const TableManagement = () => {
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: 'none', color: 'white',
                 fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
               }}>
-                <FaTools size={11} /> Reset All
+                <FaTools size={11} /> {t('tables.resetAll')}
               </button>
             )}
             {canAddTable && (
@@ -896,7 +896,7 @@ const TableManagement = () => {
                 background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', color: 'white',
                 fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
               }}>
-                <FaPlus size={11} /> Add
+                <FaPlus size={11} /> {t('tables.add')}
               </button>
             )}
           </div>
@@ -905,11 +905,11 @@ const TableManagement = () => {
         {/* Row 2: Quick Stats */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
-            { label: 'Total', count: totalTables, bg: '#f8fafc', dot: '#64748b', border: '#e2e8f0' },
-            { label: isToday ? 'Available' : 'Free', count: stats.available, bg: '#f0fdf4', dot: '#22c55e', border: '#bbf7d0' },
-            ...(isToday && stats.occupied > 0 ? [{ label: 'Occupied', count: stats.occupied, bg: '#fefce8', dot: '#f59e0b', border: '#fde68a' }] : []),
-            ...(stats.reserved > 0 ? [{ label: isToday ? 'Reserved' : 'Booked', count: stats.reserved, bg: '#eff6ff', dot: '#3b82f6', border: '#bfdbfe' }] : []),
-            ...(isToday && stats.other > 0 ? [{ label: 'Other', count: stats.other, bg: '#fef2f2', dot: '#ef4444', border: '#fecaca' }] : []),
+            { label: t('tables.total'), count: totalTables, bg: '#f8fafc', dot: '#64748b', border: '#e2e8f0' },
+            { label: isToday ? t('tables.available') : t('tables.free'), count: stats.available, bg: '#f0fdf4', dot: '#22c55e', border: '#bbf7d0' },
+            ...(isToday && stats.occupied > 0 ? [{ label: t('tables.occupied'), count: stats.occupied, bg: '#fefce8', dot: '#f59e0b', border: '#fde68a' }] : []),
+            ...(stats.reserved > 0 ? [{ label: isToday ? t('tables.reserved') : t('tables.booked'), count: stats.reserved, bg: '#eff6ff', dot: '#3b82f6', border: '#bfdbfe' }] : []),
+            ...(isToday && stats.other > 0 ? [{ label: t('tables.other'), count: stats.other, bg: '#fef2f2', dot: '#ef4444', border: '#fecaca' }] : []),
           ].map(s => (
             <div key={s.label} style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px',
@@ -933,7 +933,7 @@ const TableManagement = () => {
               ? { backgroundColor: '#ef4444', color: 'white', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }
               : { backgroundColor: 'white', color: '#475569', border: '1px solid #e2e8f0' }),
           }}>
-            All Floors
+            {t('tables.allFloors')}
             <span style={{
               padding: '1px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700',
               backgroundColor: selectedFloorId === 'all' ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
@@ -963,7 +963,7 @@ const TableManagement = () => {
               padding: '7px 16px', borderRadius: '24px', border: '1px dashed #d1d5db', backgroundColor: 'transparent',
               color: '#9ca3af', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
             }}>
-              <FaPlus size={10} /> Floor
+              <FaPlus size={10} /> {t('tables.floor')}
             </button>
           )}
         </div>
@@ -981,7 +981,7 @@ const TableManagement = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'white', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
               <div style={{ width: '18px', height: '18px', border: '2.5px solid #f3f4f6', borderTop: '2.5px solid #ef4444', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280' }}>Loading tables...</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280' }}>{t('tables.loadingTables')}</span>
             </div>
           </div>
         )}
@@ -1001,7 +1001,7 @@ const TableManagement = () => {
                         {floor.areaChargeType === 'percentage' ? `+${floor.areaChargeValue}%` : `+${getCurrencySymbol()}${floor.areaChargeValue}`}
                       </span>
                     )}
-                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>{tables.length} tables</span>
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>{tables.length} {t('tables.tables')}</span>
                   </div>
                   {(canEditTable || canDeleteTable) && (
                     <div style={{ display: 'flex', gap: '4px' }}>
@@ -1016,14 +1016,14 @@ const TableManagement = () => {
               {tables.length === 0 ? (
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '2px dashed #e2e8f0', padding: '48px 24px', textAlign: 'center' }}>
                   <FaChair size={36} color="#d1d5db" style={{ marginBottom: '12px' }} />
-                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '6px' }}>No tables yet</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Add tables to this floor to get started</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '6px' }}>{t('tables.noTablesYetFloor')}</div>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>{t('tables.addTablesToFloor')}</div>
                   {canAddTable && (
                     <button onClick={() => { setSelectedFloorForTable(floor.id); setShowAddModal(true); }} style={{
                       padding: '10px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
                       border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
                     }}>
-                      <FaPlus size={11} style={{ marginRight: '6px' }} /> Add Table
+                      <FaPlus size={11} style={{ marginRight: '6px' }} /> {t('tables.addTable')}
                     </button>
                   )}
                 </div>
@@ -1083,7 +1083,7 @@ const TableManagement = () => {
                                 )}
                               </div>
                               <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <FaChair size={9} /> {table.capacity || '-'} Seats
+                                <FaChair size={9} /> {table.capacity || '-'} {t('tables.seats')}
                               </div>
                             </div>
                             {isAvailable ? (
@@ -1107,7 +1107,7 @@ const TableManagement = () => {
                                 {isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                     <div style={{ fontSize: '9px', color: '#92400e', fontWeight: 500, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                      Total {table.currentOrderTax ? '(incl. tax)' : ''}
+                                      {t('tables.totalInclTax')} {table.currentOrderTax ? t('tables.inclTax') : ''}
                                     </div>
                                     <div style={{
                                       fontSize: '18px', fontWeight: 800, color: '#b45309',
@@ -1121,13 +1121,13 @@ const TableManagement = () => {
                                   <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#92400e' }}>{table.customerName}</div>
                                 ) : tableStatus === 'reserved' ? (
                                   <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1e40af' }}>{table.customerName || 'Reserved'}</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1e40af' }}>{table.customerName || t('tables.statusReserved')}</div>
                                     {table.reservationTime && <div style={{ fontSize: '10px', color: '#3b82f6', marginTop: '2px' }}>{table.reservationTime}</div>}
                                   </div>
                                 ) : tableStatus === 'cleaning' ? (
-                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>Being cleaned</div>
+                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>{t('tables.beingCleaned')}</div>
                                 ) : tableStatus === 'out-of-service' ? (
-                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#ef4444' }}>Unavailable</div>
+                                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#ef4444' }}>{t('tables.unavailable')}</div>
                                 ) : (
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
                                     <StatusIcon size={32} color={sInfo.color} />
@@ -1145,7 +1145,7 @@ const TableManagement = () => {
                                       {tblBookings.length}
                                     </div>
                                     <div style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 600 }}>
-                                      {tblBookings.length === 1 ? 'Booking' : 'Bookings'}
+                                      {tblBookings.length === 1 ? t('tables.booking') : t('tables.bookings')}
                                     </div>
                                     {tblBookings[0]?.customerName && (
                                       <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1165,7 +1165,7 @@ const TableManagement = () => {
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
                                       <FaChair size={32} color="#10b981" />
                                     </div>
-                                    <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>No bookings</div>
+                                    <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>{t('tables.noBookings')}</div>
                                   </div>
                                 )}
                               </>
@@ -1183,16 +1183,16 @@ const TableManagement = () => {
                             animation: 'tblDropdown 0.12s ease-out',
                           }}>
                             <div style={{ fontWeight: 700, marginBottom: '6px', fontSize: '12px' }}>
-                              {tblBookings.length} Booking{tblBookings.length > 1 ? 's' : ''}
+                              {tblBookings.length} {tblBookings.length > 1 ? t('tables.bookings') : t('tables.booking')}
                             </div>
                             {tblBookings.slice(0, 4).map((b, bi) => (
                               <div key={bi} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '3px 0', borderTop: bi > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                                <span style={{ opacity: 0.9 }}>{b.customerName || 'Guest'}</span>
+                                <span style={{ opacity: 0.9 }}>{b.customerName || t('tables.guest')}</span>
                                 <span style={{ opacity: 0.6 }}>{b.bookingTime || '—'} · {b.partySize || '?'}p</span>
                               </div>
                             ))}
                             {tblBookings.length > 4 && (
-                              <div style={{ opacity: 0.5, marginTop: '4px' }}>+{tblBookings.length - 4} more</div>
+                              <div style={{ opacity: 0.5, marginTop: '4px' }}>+{tblBookings.length - 4} {t('tables.more')}</div>
                             )}
                             {/* Arrow */}
                             <div style={{
@@ -1214,7 +1214,7 @@ const TableManagement = () => {
                                   borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                 }}>
-                                  <FaUtensils size={10} /> Take Order
+                                  <FaUtensils size={10} /> {t('tables.takeOrder')}
                                 </button>
                               )}
                               {isOccupied && (
@@ -1224,7 +1224,7 @@ const TableManagement = () => {
                                     borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                                   }}>
-                                    <FaEye size={10} /> View
+                                    <FaEye size={10} /> {t('tables.view')}
                                   </button>
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{
                                     width: '32px', height: '32px', background: '#fef2f2', border: 'none', color: '#ef4444',
@@ -1240,7 +1240,7 @@ const TableManagement = () => {
                                   borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                 }}>
-                                  <FaUtensils size={10} /> Seat Guest
+                                  <FaUtensils size={10} /> {t('tables.seatGuest')}
                                 </button>
                               )}
                               {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
@@ -1249,7 +1249,7 @@ const TableManagement = () => {
                                   borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                 }}>
-                                  <FaCheck size={10} /> Make Available
+                                  <FaCheck size={10} /> {t('tables.makeAvailable')}
                                 </button>
                               )}
                             </>
@@ -1269,7 +1269,7 @@ const TableManagement = () => {
                               borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                             }}>
-                              <FaCalendarAlt size={10} /> {hasBookings ? '+ Add Booking' : 'Book Table'}
+                              <FaCalendarAlt size={10} /> {hasBookings ? t('tables.addBooking') : t('tables.bookTable')}
                             </button>
                           )}
                         </div>
@@ -1287,21 +1287,21 @@ const TableManagement = () => {
                               {isAvailable && (
                                 <>
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('book-table', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#f59e0b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5' }}>
-                                    <FaCalendarAlt size={12} /> Book
+                                    <FaCalendarAlt size={12} /> {t('tables.book')}
                                   </button>
                                   {canEditTable && (
                                     <>
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('out-of-service', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#8b5cf6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderBottom: '1px solid #f5f5f5', borderLeft: '1px solid #f5f5f5' }}>
-                                        <FaBan size={12} /> Service
+                                        <FaBan size={12} /> {t('tables.service')}
                                       </button>
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                        <FaTools size={12} /> Clean
+                                        <FaTools size={12} /> {t('tables.clean')}
                                       </button>
                                     </>
                                   )}
                                   {canDeleteTable && (
                                       <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
-                                        <FaTrash size={12} /> Delete
+                                        <FaTrash size={12} /> {t('tables.delete')}
                                       </button>
                                   )}
                                 </>
@@ -1309,26 +1309,26 @@ const TableManagement = () => {
                               {isOccupied && (
                                 <>
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('cleaning', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                    <FaTools size={12} /> Clean
+                                    <FaTools size={12} /> {t('tables.clean')}
                                   </button>
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
-                                    <FaCheck size={12} /> Free
+                                    <FaCheck size={12} /> {t('tables.free')}
                                   </button>
                                 </>
                               )}
                               {tableStatus === 'reserved' && (
                                 <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 100%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                  <FaCheck size={12} /> Cancel & Free
+                                  <FaCheck size={12} /> {t('tables.cancelAndFree')}
                                 </button>
                               )}
                               {(tableStatus === 'cleaning' || tableStatus === 'out-of-service') && (
                                 <>
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#22c55e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                    <FaCheck size={12} /> Free
+                                    <FaCheck size={12} /> {t('tables.free')}
                                   </button>
                                   {canDeleteTable && (
                                     <button className="tbl-action" onClick={(e) => { e.stopPropagation(); deleteTable(table.id); }} style={{ flex: '1 1 50%', padding: '10px 8px', border: 'none', backgroundColor: 'white', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#ef4444', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', borderLeft: '1px solid #f5f5f5' }}>
-                                      <FaTrash size={12} /> Delete
+                                      <FaTrash size={12} /> {t('tables.delete')}
                                     </button>
                                   )}
                                 </>
@@ -1353,7 +1353,7 @@ const TableManagement = () => {
                 <FaCalendarAlt size={13} color="#3b82f6" />
               </div>
               <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>
-                Bookings {isToday ? 'Today' : `for ${formatDate(selectedDate)}`}
+                {isToday ? t('tables.bookingsToday') : t('tables.bookingsFor') + ' ' + formatDate(selectedDate)}
               </span>
               {bookingsForDate.length > 0 && (
                 <span style={{ fontSize: '12px', fontWeight: '700', backgroundColor: '#eff6ff', color: '#2563eb', padding: '3px 10px', borderRadius: '10px' }}>{bookingsForDate.length}</span>
@@ -1367,7 +1367,7 @@ const TableManagement = () => {
                 fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '5px',
               }}>
-                <FaPlus size={9} /> Add
+                <FaPlus size={9} /> {t('tables.add')}
               </button>
             </div>
           </div>
@@ -1376,19 +1376,19 @@ const TableManagement = () => {
               <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                 <FaCalendarAlt size={20} color="#d1d5db" />
               </div>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>No bookings</p>
-              <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>No reservations for {isToday ? 'today' : formatDate(selectedDate)}</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>{t('tables.noBookings')}</p>
+              <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{t('tables.noReservationsFor')} {isToday ? t('tables.today').toLowerCase() : formatDate(selectedDate)}</p>
             </div>
           ) : (
             <div>
               {bookingsForDate.map((booking, i) => {
                 const bStatus = booking.status || 'confirmed';
                 const bColors = {
-                  confirmed: { bg: '#f0fdf4', text: '#166534', dot: '#22c55e', label: 'Confirmed' },
-                  arrived: { bg: '#eff6ff', text: '#1e40af', dot: '#3b82f6', label: 'Arrived' },
-                  completed: { bg: '#f8fafc', text: '#475569', dot: '#64748b', label: 'Completed' },
-                  cancelled: { bg: '#f1f5f9', text: '#64748b', dot: '#9ca3af', label: 'Cancelled' },
-                  'no-show': { bg: '#fef2f2', text: '#991b1b', dot: '#ef4444', label: 'No Show' },
+                  confirmed: { bg: '#f0fdf4', text: '#166534', dot: '#22c55e', label: t('tables.confirmed') },
+                  arrived: { bg: '#eff6ff', text: '#1e40af', dot: '#3b82f6', label: t('tables.arrived') },
+                  completed: { bg: '#f8fafc', text: '#475569', dot: '#64748b', label: t('tables.completed') },
+                  cancelled: { bg: '#f1f5f9', text: '#64748b', dot: '#9ca3af', label: t('tables.cancelled') },
+                  'no-show': { bg: '#fef2f2', text: '#991b1b', dot: '#ef4444', label: t('tables.noShow') },
                 };
                 const bc = bColors[bStatus] || bColors.confirmed;
                 const tableName = booking.tableId ? (allTables.find(t => t.id === booking.tableId)?.name || '?') : null;
@@ -1408,16 +1408,16 @@ const TableManagement = () => {
                     {/* Main info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>{booking.customerName || 'Guest'}</span>
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>{booking.customerName || t('tables.guest')}</span>
                         <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: bc.bg, color: bc.text }}>{bc.label}</span>
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '12px', color: '#6b7280' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <FaUsers size={10} /> {booking.partySize || '?'} guest{(booking.partySize || 0) !== 1 ? 's' : ''}
+                          <FaUsers size={10} /> {booking.partySize || '?'} {(booking.partySize || 0) !== 1 ? t('tables.guests') : t('tables.guest')}
                         </span>
                         {tableName && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <FaChair size={10} /> Table {tableName}
+                            <FaChair size={10} /> {t('tables.table')} {tableName}
                           </span>
                         )}
                         {booking.customerPhone && (
@@ -1436,14 +1436,14 @@ const TableManagement = () => {
                     {/* Actions */}
                     {bStatus === 'confirmed' && (
                       <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                        <button onClick={() => updateBookingStatus(booking.id, 'arrived')} title="Check in" style={{
+                        <button onClick={() => updateBookingStatus(booking.id, 'arrived')} title={t('tables.checkIn')} style={{
                           padding: '6px 12px', borderRadius: '8px', border: '1px solid #d1fae5', backgroundColor: '#f0fdf4',
                           cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#059669',
                           display: 'flex', alignItems: 'center', gap: '4px',
                         }}>
-                          <FaCheck size={9} /> Check in
+                          <FaCheck size={9} /> {t('tables.checkIn')}
                         </button>
-                        <button onClick={() => cancelBooking(booking.id)} title="Cancel" style={{
+                        <button onClick={() => cancelBooking(booking.id)} title={t('tables.cancel')} style={{
                           width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2',
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
                         }}>
@@ -1453,14 +1453,14 @@ const TableManagement = () => {
                     )}
                     {bStatus === 'arrived' && (
                       <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                        <button onClick={() => updateBookingStatus(booking.id, 'completed')} title="Complete" style={{
+                        <button onClick={() => updateBookingStatus(booking.id, 'completed')} title={t('tables.done')} style={{
                           padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white',
                           cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#475569',
                           display: 'flex', alignItems: 'center', gap: '4px',
                         }}>
-                          <FaCheck size={9} /> Done
+                          <FaCheck size={9} /> {t('tables.done')}
                         </button>
-                        <button onClick={() => updateBookingStatus(booking.id, 'no-show')} title="No show" style={{
+                        <button onClick={() => updateBookingStatus(booking.id, 'no-show')} title={t('tables.noShow')} style={{
                           width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2',
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
                         }}>
@@ -1496,10 +1496,10 @@ const TableManagement = () => {
                 <FaTrash size={22} color="#ef4444" />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0 0 8px 0' }}>
-                Delete Floor
+                {t('tables.deleteFloor')}
               </h3>
               <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
-                Delete <strong>{deleteFloorConfirm.name}</strong> and all its tables? This cannot be undone.
+                {t('tables.deleteFloorConfirm', { name: deleteFloorConfirm.name })}
               </p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -1512,7 +1512,7 @@ const TableManagement = () => {
                   color: '#6b7280', fontWeight: '600', fontSize: '14px', cursor: 'pointer'
                 }}
               >
-                Cancel
+                {t('tables.cancel')}
               </button>
               <button
                 onClick={() => deleteFloor(deleteFloorConfirm.id)}
@@ -1525,7 +1525,7 @@ const TableManagement = () => {
                   opacity: deletingFloor ? 0.7 : 1
                 }}
               >
-                {deletingFloor ? 'Deleting...' : 'Delete'}
+                {deletingFloor ? t('tables.deleting') : t('tables.delete')}
               </button>
             </div>
           </div>
@@ -1538,7 +1538,7 @@ const TableManagement = () => {
           <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '480px', maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '24px 24px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Add Table</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{t('tables.addTableTitle')}</h3>
                 <button onClick={() => setShowAddModal(false)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
               </div>
               {/* Mode toggle */}
@@ -1549,50 +1549,50 @@ const TableManagement = () => {
                     backgroundColor: addMode === mode ? 'white' : 'transparent',
                     color: addMode === mode ? '#1f2937' : '#6b7280',
                     boxShadow: addMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  }}>{mode === 'single' ? 'Single Table' : 'Bulk Add'}</button>
+                  }}>{mode === 'single' ? t('tables.singleTable') : t('tables.bulkAdd')}</button>
                 ))}
               </div>
             </div>
             <div style={{ padding: '0 24px 24px' }}>
               {/* Floor selector */}
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Floor</label>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.floor')}</label>
               <select value={selectedFloorForTable || ''} onChange={e => setSelectedFloorForTable(e.target.value)} style={{
                 width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none',
               }}>
-                <option value="">Select floor</option>
+                <option value="">{t('tables.selectFloor')}</option>
                 {floors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
 
               {addMode === 'single' ? (
                 <>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Table Name</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.tableName')}</label>
                   <input value={newTable.name} onChange={e => setNewTable(p => ({ ...p, name: e.target.value }))} placeholder="e.g. T1, VIP 1" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Capacity</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.capacity')}</label>
                   <input type="number" value={newTable.capacity} onChange={e => setNewTable(p => ({ ...p, capacity: e.target.value }))} min={1} max={20} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '20px', outline: 'none', boxSizing: 'border-box' }} />
                   <button onClick={addTable} disabled={actionLoading || !newTable.name.trim() || !selectedFloorForTable} style={{
                     width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer',
                     background: newTable.name.trim() && selectedFloorForTable && !actionLoading ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#e2e8f0',
                     color: newTable.name.trim() && selectedFloorForTable && !actionLoading ? 'white' : '#9ca3af',
                     opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> Adding...</> : 'Add Table'}</button>
+                  }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> {t('tables.adding')}</> : t('tables.addTable')}</button>
                 </>
               ) : (
                 <>
                   <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>From #</label>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.fromNumber')}</label>
                       <input type="number" value={bulkTableData.fromNumber} onChange={e => setBulkTableData(p => ({ ...p, fromNumber: e.target.value }))} placeholder="1" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>To #</label>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.toNumber')}</label>
                       <input type="number" value={bulkTableData.toNumber} onChange={e => setBulkTableData(p => ({ ...p, toNumber: e.target.value }))} placeholder="10" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} />
                     </div>
                   </div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Seats per table</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.seatsPerTable')}</label>
                   <input type="number" value={bulkTableData.capacity} onChange={e => setBulkTableData(p => ({ ...p, capacity: e.target.value }))} min={1} max={20} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '12px', outline: 'none', boxSizing: 'border-box' }} />
                   {bulkTableData.fromNumber && bulkTableData.toNumber && parseInt(bulkTableData.toNumber) >= parseInt(bulkTableData.fromNumber) && (
                     <div style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '12px 14px', border: '1px solid #f1f5f9', marginBottom: '16px', fontSize: '13px', color: '#6b7280' }}>
-                      Will create <strong style={{ color: '#1f2937' }}>{parseInt(bulkTableData.toNumber) - parseInt(bulkTableData.fromNumber) + 1}</strong> tables ({bulkTableData.fromNumber} – {bulkTableData.toNumber})
+                      {t('tables.willCreate')} <strong style={{ color: '#1f2937' }}>{parseInt(bulkTableData.toNumber) - parseInt(bulkTableData.fromNumber) + 1}</strong> {t('tables.tables')} ({bulkTableData.fromNumber} – {bulkTableData.toNumber})
                     </div>
                   )}
                   <button onClick={bulkAddTables} disabled={actionLoading || !bulkTableData.fromNumber || !bulkTableData.toNumber || !selectedFloorForTable} style={{
@@ -1600,7 +1600,7 @@ const TableManagement = () => {
                     background: bulkTableData.fromNumber && bulkTableData.toNumber && selectedFloorForTable && !actionLoading ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#e2e8f0',
                     color: bulkTableData.fromNumber && bulkTableData.toNumber && selectedFloorForTable && !actionLoading ? 'white' : '#9ca3af',
                     opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> Creating...</> : 'Create Tables'}</button>
+                  }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> {t('tables.creating')}</> : t('tables.createTables')}</button>
                 </>
               )}
             </div>
@@ -1614,7 +1614,7 @@ const TableManagement = () => {
           <div style={{ backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 24px 48px rgba(0,0,0,0.12)', width: '100%', maxWidth: '420px', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{showEditFloor ? 'Edit Floor' : 'Add Floor'}</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>{showEditFloor ? t('tables.editFloor') : t('tables.addFloor')}</h3>
                 <button onClick={() => { setShowAddFloor(false); setShowEditFloor(false); setFloorModalTab('details'); }} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={14} color="#6b7280" /></button>
               </div>
 
@@ -1626,27 +1626,27 @@ const TableManagement = () => {
                     backgroundColor: floorModalTab === 'details' ? 'white' : 'transparent',
                     color: floorModalTab === 'details' ? '#1f2937' : '#6b7280',
                     boxShadow: floorModalTab === 'details' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  }}><FaEdit size={11} style={{ marginRight: '6px' }} />Details</button>
+                  }}><FaEdit size={11} style={{ marginRight: '6px' }} />{t('tables.details')}</button>
                   <button onClick={() => setFloorModalTab('order')} style={{
                     flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
                     backgroundColor: floorModalTab === 'order' ? 'white' : 'transparent',
                     color: floorModalTab === 'order' ? '#1f2937' : '#6b7280',
                     boxShadow: floorModalTab === 'order' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  }}><FaSortAmountDown size={11} style={{ marginRight: '6px' }} />Floor Order</button>
+                  }}><FaSortAmountDown size={11} style={{ marginRight: '6px' }} />{t('tables.floorOrder')}</button>
                 </div>
               )}
 
               {/* Details tab */}
               {floorModalTab === 'details' && (<>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Floor Name *</label>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.floorName')}</label>
                 <input value={newFloor.name} onChange={e => setNewFloor(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Ground Floor, Terrace" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Description</label>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.description')}</label>
                 <input value={newFloor.description} onChange={e => setNewFloor(p => ({ ...p, description: e.target.value }))} placeholder="Optional description" style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>Area Charge</label>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>{t('tables.areaCharge')}</label>
                 <select value={newFloor.areaChargeType} onChange={e => setNewFloor(p => ({ ...p, areaChargeType: e.target.value }))} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '12px', outline: 'none' }}>
-                  <option value="none">None</option>
-                  <option value="percentage">Percentage (%)</option>
-                  <option value="flat">Flat Amount</option>
+                  <option value="none">{t('tables.chargeNone')}</option>
+                  <option value="percentage">{t('tables.chargePercentage')}</option>
+                  <option value="flat">{t('tables.chargeFlat')}</option>
                 </select>
                 {newFloor.areaChargeType !== 'none' && (
                   <input type="number" value={newFloor.areaChargeValue} onChange={e => setNewFloor(p => ({ ...p, areaChargeValue: e.target.value }))} placeholder={newFloor.areaChargeType === 'percentage' ? 'e.g. 10' : 'e.g. 50'} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: '#f8fafc', marginBottom: '16px', outline: 'none', boxSizing: 'border-box' }} />
@@ -1656,12 +1656,12 @@ const TableManagement = () => {
                   background: newFloor.name.trim() && !actionLoading ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
                   color: newFloor.name.trim() && !actionLoading ? 'white' : '#9ca3af',
                   opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> {showEditFloor ? 'Updating...' : 'Adding...'}</> : (showEditFloor ? 'Update Floor' : 'Add Floor')}</button>
+                }}>{actionLoading ? <><FaSpinner size={14} className="animate-spin" /> {showEditFloor ? t('tables.updating') : t('tables.adding')}</> : (showEditFloor ? t('tables.updateFloor') : t('tables.addFloor'))}</button>
               </>)}
 
               {/* Floor Order tab */}
               {floorModalTab === 'order' && (<>
-                <p style={{ fontSize: '13px', color: '#6b7280', marginTop: 0, marginBottom: '16px' }}>Drag floors up or down to set display order on dashboard and tables page.</p>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginTop: 0, marginBottom: '16px' }}>{t('tables.floorOrderDesc')}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                   {floorOrderList.map((floor, index) => (
                     <div key={floor.id} style={{
@@ -1690,7 +1690,7 @@ const TableManagement = () => {
                   background: !savingFloorOrder ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e2e8f0',
                   color: !savingFloorOrder ? 'white' : '#9ca3af',
                   opacity: savingFloorOrder ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                }}>{savingFloorOrder ? <><FaSpinner size={14} className="animate-spin" /> Saving...</> : 'Save Order'}</button>
+                }}>{savingFloorOrder ? <><FaSpinner size={14} className="animate-spin" /> {t('tables.saving')}</> : t('tables.saveOrder')}</button>
               </>)}
             </div>
           </div>
@@ -1739,20 +1739,20 @@ const TableManagement = () => {
                   <FaCalendarAlt size={16} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>Reserve a Table</h3>
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>{t('tables.reserveTable')}</h3>
                   <p style={{ fontSize: '12px', opacity: 0.8, margin: '2px 0 0' }}>
                     {bookingData.bookingDate && bookingData.bookingTime
                       ? `${formatDate(bookingData.bookingDate)} at ${bookingData.bookingTime}`
-                      : 'Choose your preferred time'}
+                      : t('tables.choosePreferredTime')}
                   </p>
                 </div>
               </div>
               {/* Step indicator */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {[
-                  { n: 1, label: 'When', icon: FaClock },
-                  { n: 2, label: 'Who', icon: FaUser },
-                  { n: 3, label: 'Where', icon: FaChair },
+                  { n: 1, label: t('tables.when'), icon: FaClock },
+                  { n: 2, label: t('tables.who'), icon: FaUser },
+                  { n: 3, label: t('tables.where'), icon: FaChair },
                 ].map(({ n, label, icon: Icon }) => (
                   <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: n < 3 ? 1 : 'none' }}>
                     <div style={{
@@ -1773,7 +1773,7 @@ const TableManagement = () => {
               {bookingStep === 1 && (
                 <>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaCalendarAlt size={11} color="#ef4444" /> Pick a Date
+                    <FaCalendarAlt size={11} color="#ef4444" /> {t('tables.pickDate')}
                   </label>
                   <input type="date" value={bookingData.bookingDate} onChange={e => setBookingData(p => ({ ...p, bookingDate: e.target.value }))} style={{
                     width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '15px',
@@ -1782,7 +1782,7 @@ const TableManagement = () => {
                   }} onFocus={e => e.target.style.borderColor = '#ef4444'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
 
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaClock size={11} color="#ef4444" /> Choose Time
+                    <FaClock size={11} color="#ef4444" /> {t('tables.chooseTime')}
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', maxHeight: '260px', overflowY: 'auto', padding: '2px' }}>
                     {(availableTimeSlots.length > 0 ? availableTimeSlots : generateTimeSlots()).map(slot => {
@@ -1805,7 +1805,7 @@ const TableManagement = () => {
               {bookingStep === 2 && (
                 <>
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaUser size={11} color="#ef4444" /> Guest Name *
+                    <FaUser size={11} color="#ef4444" /> {t('tables.guestName')}
                   </label>
                   <input value={bookingData.customerName} onChange={e => setBookingData(p => ({ ...p, customerName: e.target.value }))} placeholder="e.g. Rahul Sharma" style={{
                     width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '15px',
@@ -1813,7 +1813,7 @@ const TableManagement = () => {
                   }} onFocus={e => e.target.style.borderColor = '#ef4444'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
 
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaPhoneAlt size={10} color="#ef4444" /> Phone
+                    <FaPhoneAlt size={10} color="#ef4444" /> {t('tables.phone')}
                   </label>
                   <input value={bookingData.customerPhone} onChange={e => setBookingData(p => ({ ...p, customerPhone: e.target.value }))} placeholder="+91 98765 43210" style={{
                     width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '15px',
@@ -1821,7 +1821,7 @@ const TableManagement = () => {
                   }} onFocus={e => e.target.style.borderColor = '#ef4444'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
 
                   <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaUsers size={11} color="#ef4444" /> Party Size
+                    <FaUsers size={11} color="#ef4444" /> {t('tables.partySize')}
                   </label>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
                     {[1, 2, 3, 4, 5, 6, 7, 8].map(n => {
@@ -1840,7 +1840,7 @@ const TableManagement = () => {
                     })}
                   </div>
 
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>Special Requests</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'block' }}>{t('tables.specialRequests')}</label>
                   <textarea value={bookingData.notes} onChange={e => setBookingData(p => ({ ...p, notes: e.target.value }))} placeholder="Birthday, high chair, window seat..." rows={2} style={{
                     width: '100%', padding: '14px 16px', borderRadius: '14px', border: '2px solid #e2e8f0', fontSize: '14px',
                     backgroundColor: '#fafbfc', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
@@ -1852,9 +1852,9 @@ const TableManagement = () => {
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                     <FaChair size={13} color="#ef4444" />
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>Pick a Table</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{t('tables.pickTable')}</span>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      for {formatDate(bookingData.bookingDate)} at {bookingData.bookingTime}
+                      {t('tables.for')} {formatDate(bookingData.bookingDate)} {t('tables.at')} {bookingData.bookingTime}
                     </span>
                   </div>
 
@@ -1868,9 +1868,9 @@ const TableManagement = () => {
                         <FaClock size={12} color="white" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e' }}>Time conflict on Table {selectedTable?.name}</div>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e' }}>{t('tables.timeConflict', { name: selectedTable?.name })}</div>
                         <div style={{ fontSize: '11px', color: '#a16207' }}>
-                          {bookingConflicts[selectedTable.id].length} booking{bookingConflicts[selectedTable.id].length > 1 ? 's' : ''} at same time — double-booking will be created
+                          {t('tables.bookingAtSameTime', { count: bookingConflicts[selectedTable.id].length })}
                         </div>
                       </div>
                     </div>
@@ -1923,11 +1923,11 @@ const TableManagement = () => {
                           )}
                           <div style={{ fontSize: '20px', fontWeight: '800', color: nameColor, lineHeight: 1 }}>{table.name}</div>
                           <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                            <FaChair size={9} /> {table.capacity} seats
+                            <FaChair size={9} /> {table.capacity} {t('tables.seats').toLowerCase()}
                           </div>
                           {hasConflict && (
                             <div style={{ fontSize: '9px', color: '#d97706', fontWeight: 700, marginTop: '5px', backgroundColor: '#fef3c7', padding: '2px 6px', borderRadius: '6px', display: 'inline-block' }}>
-                              {tblConflicts.length} same time
+                              {t('tables.sameTime', { count: tblConflicts.length })}
                             </div>
                           )}
                           {!hasConflict && hasDayBookings && (

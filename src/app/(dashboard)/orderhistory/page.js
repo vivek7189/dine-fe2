@@ -249,29 +249,29 @@ const OrderHistory = () => {
 
   /** Maps status string to display label (for "Deleted (was: X)" and similar). */
   const getStatusDisplayLabel = (s) => {
-    if (!s) return 'Unknown';
-    const map = { completed: 'Completed', confirmed: 'Confirmed', pending: 'Pending', cancelled: 'Cancelled', deleted: 'Deleted' };
+    if (!s) return t('orderHistory.unknown') || 'Unknown';
+    const map = { completed: t('orderHistory.status.completed'), confirmed: t('orderHistory.status.confirmed'), pending: t('orderHistory.status.pending'), cancelled: t('orderHistory.status.cancelled'), deleted: t('orderHistory.status.deleted') };
     return map[s] || (s.charAt(0).toUpperCase() + s.slice(1));
   };
 
   const getStatusStyle = (status, orderFlow, lastStatus, order) => {
-    if (order?._isOffline) return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: `Pending Sync (${order.syncStatus || 'queued'})` };
+    if (order?._isOffline) return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: `${t('orderHistory.pendingSync')} (${order.syncStatus || 'queued'})` };
     // syncSource === 'offline' orders now show their real status — separate "Offline" chip is added in the UI
     if (orderFlow?.isDirectBilling && (order?.paymentStatus === 'partial' || order?.outstandingAmount > 0)) {
-      return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: 'Partial Payment' };
+      return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: t('orderHistory.partialPayment') };
     }
-    if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Billing Completed' };
-    if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Kitchen' };
-    if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: 'Completed' };
-    if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: 'Confirmed' };
-    if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: 'Pending' };
-    if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: 'Cancelled' };
+    if (orderFlow?.isDirectBilling) return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: t('orderHistory.billingCompleted') };
+    if (orderFlow?.isKitchenOrder) return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('orderHistory.kitchen') };
+    if (status === 'completed') return { bg: '#dcfce7', text: '#166534', border: '#86efac', label: t('orderHistory.status.completed') };
+    if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('orderHistory.status.confirmed') };
+    if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: t('orderHistory.status.pending') };
+    if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: t('orderHistory.status.cancelled') };
     if (status === 'deleted') {
       const wasLabel = lastStatus ? getStatusDisplayLabel(lastStatus) : null;
-      const label = wasLabel ? `Deleted (was: ${wasLabel})` : 'Deleted';
+      const label = wasLabel ? `${t('orderHistory.status.deleted')} (was: ${wasLabel})` : t('orderHistory.status.deleted');
       return { bg: '#f3f4f6', text: '#6b7280', border: '#d1d5db', label };
     }
-    const capitalizeStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+    const capitalizeStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : (t('orderHistory.unknown') || 'Unknown');
     return { bg: '#f3f4f6', text: '#374151', border: '#d1d5db', label: capitalizeStatus };
   };
 
@@ -300,6 +300,10 @@ const OrderHistory = () => {
     // Explicit source or inferred from notes (legacy orders from public online page)
     if (src === 'online_order' || looksLikePublicOnline) return { label: 'Online order', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
     if (src === 'crave_app' || src === 'customer_app') return { label: 'Dine App', className: 'bg-pink-50 text-pink-700 border-pink-200' };
+    if (src === 'talabat') return { label: 'Talabat', className: 'bg-orange-50 text-orange-700 border-orange-200' };
+    if (src === 'deliveroo') return { label: 'Deliveroo', className: 'bg-teal-50 text-teal-700 border-teal-200' };
+    if (src === 'noon_food') return { label: 'Noon Food', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' };
+    if (src === 'careem') return { label: 'Careem', className: 'bg-green-50 text-green-700 border-green-200' };
     return null;
   };
 
@@ -1066,7 +1070,7 @@ const OrderHistory = () => {
       // KOT format - matches KOT Printer app's generateKOTHtml
       const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
       const specialInstructions = order.specialInstructions || '';
-      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+      const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong><strong>Date:</strong></strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
 
       const pw = window.open('', '_blank', 'width=400,height=600');
       if (pw) {
@@ -1303,11 +1307,11 @@ const OrderHistory = () => {
   };
 
   const summaryPeriods = [
-    { key: 'today', label: 'Today' },
-    { key: 'yesterday', label: 'Yesterday' },
-    { key: '7d', label: '7 Days' },
-    { key: '30d', label: '30 Days' },
-    { key: 'custom', label: 'Custom' },
+    { key: 'today', label: t('orderHistory.summaryToday') },
+    { key: 'yesterday', label: t('orderHistory.summaryYesterday') },
+    { key: '7d', label: t('orderHistory.summary7Days') },
+    { key: '30d', label: t('orderHistory.summary30Days') },
+    { key: 'custom', label: t('orderHistory.summaryCustom') },
   ];
 
   const OrderDetailsModal = ({ order, onClose }) => {
@@ -1362,24 +1366,24 @@ const OrderHistory = () => {
             <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/50">
               <div className="px-4 py-3">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('orderHistory.customer')}</div>
-                <div className="text-sm font-semibold text-gray-900 truncate">{order.customerDisplay?.name || 'Walk-in'}</div>
+                <div className="text-sm font-semibold text-gray-900 truncate">{order.customerDisplay?.name || t('orderHistory.walkIn')}</div>
                 <div className="text-xs text-gray-400 truncate">{order.customerDisplay?.phone || '—'}</div>
               </div>
               <div className="px-4 py-3">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">
-                  {roomVal ? 'Room' : t('orderHistory.table')}
+                  {roomVal ? t('orderHistory.room') : t('orderHistory.table')}
                 </div>
                 <div className="text-sm font-semibold text-gray-900">
                   {roomVal || order.customerDisplay?.tableNumber || order.tableNumber || '—'}
                 </div>
                 <div className="text-xs text-gray-400 capitalize truncate">
-                  {roomVal ? 'Hotel Room' : (order.customerDisplay?.floorName || '—')}
+                  {roomVal ? t('orderHistory.hotelRoom') : (order.customerDisplay?.floorName || '—')}
                 </div>
               </div>
               <div className="px-4 py-3">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">{t('common.category')}</div>
                 <div className="text-sm font-semibold text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
-                <div className="text-xs text-gray-400 capitalize">{order.paymentMethod || 'Unpaid'}</div>
+                <div className="text-xs text-gray-400 capitalize">{order.paymentMethod || t('orderHistory.unpaid')}</div>
               </div>
             </div>
 
@@ -1427,13 +1431,13 @@ const OrderHistory = () => {
                 </div>
                 {order.discountAmount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount</span>
+                    <span>{t('orderHistory.discount')}</span>
                     <span className="font-medium">-{formatCurrency(order.discountAmount)}</span>
                   </div>
                 )}
                 {order.serviceChargeAmount > 0 && (
                   <div className="flex justify-between text-sm text-gray-500">
-                    <span>Service Charge {order.serviceChargeRate ? `(${order.serviceChargeRate}%)` : ''}</span>
+                    <span>{t('orderHistory.serviceCharge')} {order.serviceChargeRate ? `(${order.serviceChargeRate}%)` : ''}</span>
                     <span className="font-medium">{formatCurrency(order.serviceChargeAmount)}</span>
                   </div>
                 )}
@@ -1445,13 +1449,13 @@ const OrderHistory = () => {
                 )}
                 {order.tipAmount > 0 && (
                   <div className="flex justify-between text-sm text-gray-500">
-                    <span>Tip {order.tipPercentage ? `(${order.tipPercentage}%)` : ''}</span>
+                    <span>{t('orderHistory.tip')} {order.tipPercentage ? `(${order.tipPercentage}%)` : ''}</span>
                     <span className="font-medium">{formatCurrency(order.tipAmount)}</span>
                   </div>
                 )}
                 {order.roundOffAmount != null && order.roundOffAmount !== 0 && (
                   <div className="flex justify-between text-sm text-gray-400">
-                    <span>Round-off</span>
+                    <span>{t('orderHistory.roundOff')}</span>
                     <span className="font-medium">{order.roundOffAmount > 0 ? '+' : ''}{formatCurrency(order.roundOffAmount)}</span>
                   </div>
                 )}
@@ -1464,7 +1468,7 @@ const OrderHistory = () => {
               {/* Payment info */}
               {order.splitPayments && order.splitPayments.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Split Payment</div>
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{t('orderHistory.splitPayment')}</div>
                   {order.splitPayments.map((sp, i) => (
                     <div key={i} className="flex justify-between text-xs text-gray-500">
                       <span className="capitalize">{sp.method}</span>
@@ -1475,20 +1479,20 @@ const OrderHistory = () => {
               )}
               {order.cashReceived > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
-                  <div className="flex justify-between"><span>Cash Received</span><span>{formatCurrency(order.cashReceived)}</span></div>
+                  <div className="flex justify-between"><span>{t('orderHistory.cashReceived')}</span><span>{formatCurrency(order.cashReceived)}</span></div>
                   {order.changeReturned > 0 && (
-                    <div className="flex justify-between text-green-600 mt-0.5"><span>Change Returned</span><span>{formatCurrency(order.changeReturned)}</span></div>
+                    <div className="flex justify-between text-green-600 mt-0.5"><span>{t('orderHistory.changeReturned')}</span><span>{formatCurrency(order.changeReturned)}</span></div>
                   )}
                 </div>
               )}
               {(order.paidAmount > 0 || order.outstandingAmount > 0) && (
                 <div className="mt-3 pt-3 border-t border-gray-200 text-xs">
-                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Payment Status</div>
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{t('orderHistory.paymentStatus')}</div>
                   {order.paidAmount > 0 && (
-                    <div className="flex justify-between text-green-600"><span>Paid</span><span>{formatCurrency(order.paidAmount)}</span></div>
+                    <div className="flex justify-between text-green-600"><span>{t('orderHistory.paid').replace(':','')}</span><span>{formatCurrency(order.paidAmount)}</span></div>
                   )}
                   {order.outstandingAmount > 0 && (
-                    <div className="flex justify-between text-red-600 font-semibold mt-0.5"><span>Outstanding</span><span>{formatCurrency(order.outstandingAmount)}</span></div>
+                    <div className="flex justify-between text-red-600 font-semibold mt-0.5"><span>{t('orderHistory.outstanding')}</span><span>{formatCurrency(order.outstandingAmount)}</span></div>
                   )}
                 </div>
               )}
@@ -1508,7 +1512,7 @@ const OrderHistory = () => {
                 onClick={() => { handleMarkPaid(order.id); onClose(); }}
                 className="flex-1 px-4 py-2.5 bg-amber-500 text-white font-medium text-sm rounded-lg hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
               >
-                <FaWallet /> Mark as Paid
+                <FaWallet /> {t('orderHistory.markAsPaid')}
               </button>
             )}
             {order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
@@ -1563,8 +1567,8 @@ const OrderHistory = () => {
             <FaReceipt className="absolute inset-0 m-auto text-red-400 text-lg" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-700">Loading orders...</p>
-            <p className="text-xs text-gray-400 mt-0.5">Fetching your data</p>
+            <p className="text-sm font-medium text-gray-700">{t('orderHistory.loadingOrders')}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{t('orderHistory.fetchingData')}</p>
           </div>
         </div>
       </div>
@@ -1588,10 +1592,10 @@ const OrderHistory = () => {
   ];
 
   const paymentStatusOptions = [
-    { value: 'all', label: 'All Payments' },
-    { value: 'paid', label: 'Fully Paid' },
-    { value: 'partial', label: 'Partial Payment' },
-    { value: 'unpaid', label: 'Unpaid' }
+    { value: 'all', label: t('orderHistory.allPayments') },
+    { value: 'paid', label: t('orderHistory.fullyPaid') },
+    { value: 'partial', label: t('orderHistory.partialPayment') },
+    { value: 'unpaid', label: t('orderHistory.unpaid') }
   ];
 
   const partialPaymentEnabled = restaurant?.billingSettings?.partialPaymentEnabled;
@@ -1617,20 +1621,20 @@ const OrderHistory = () => {
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
                 <span className="font-medium">{totalOrders}</span>
-                <span className="text-gray-400">orders</span>
+                <span className="text-gray-400">{t('orderHistory.orders')}</span>
               </div>
-              <div className="flex bg-white border border-gray-200 p-0.5 sm:p-1 rounded-lg shadow-sm" title={isCompactView ? 'Compact' : 'Detailed'}>
-                <button 
-                  onClick={() => setIsCompactView(true)} 
-                  className={`p-1.5 sm:p-2 rounded-md transition-all ${isCompactView ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} 
-                  title="Compact View"
+              <div className="flex bg-white border border-gray-200 p-0.5 sm:p-1 rounded-lg shadow-sm" title={isCompactView ? t('orderHistory.compactView') : t('orderHistory.detailedView')}>
+                <button
+                  onClick={() => setIsCompactView(true)}
+                  className={`p-1.5 sm:p-2 rounded-md transition-all ${isCompactView ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  title={t('orderHistory.compactView')}
                 >
                   <FaList size={14} className="sm:w-4 sm:h-4" />
                 </button>
-                <button 
-                  onClick={() => setIsCompactView(false)} 
-                  className={`p-1.5 sm:p-2 rounded-md transition-all ${!isCompactView ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} 
-                  title="Detailed View"
+                <button
+                  onClick={() => setIsCompactView(false)}
+                  className={`p-1.5 sm:p-2 rounded-md transition-all ${!isCompactView ? 'bg-red-50 text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  title={t('orderHistory.detailedView')}
                 >
                   <FaTh size={14} className="sm:w-4 sm:h-4" />
                 </button>
@@ -1649,7 +1653,7 @@ const OrderHistory = () => {
               }`}
             >
               <FaClipboardList className="text-xs" />
-              Orders
+              {t('orderHistory.orders')}
             </button>
             <button
               onClick={() => switchView('summary')}
@@ -1660,7 +1664,7 @@ const OrderHistory = () => {
               }`}
             >
               <FaChartPie className="text-xs" />
-              Sales Summary
+              {t('orderHistory.salesSummary')}
             </button>
           </div>
 
@@ -1674,11 +1678,11 @@ const OrderHistory = () => {
                 <div className="bg-green-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
                   <span className="text-white text-xs sm:text-sm font-bold leading-none">{getCurrencySymbol()}</span>
                 </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Revenue</span>
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.revenue')}</span>
               </div>
               <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{formatCurrency(stats.totalRevenue)}</div>
               {stats.totalRevenueWithTax > stats.totalRevenue && (
-                <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">incl. tax: {formatCurrency(stats.totalRevenueWithTax)}</div>
+                <div className="text-[10px] sm:text-[12px] text-green-700/70 mt-0.5 leading-tight">{t('orderHistory.inclTax')} {formatCurrency(stats.totalRevenueWithTax)}</div>
               )}
             </div>
             {/* Orders */}
@@ -1687,7 +1691,7 @@ const OrderHistory = () => {
                 <div className="bg-blue-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
                   <FaShoppingBag className="text-white text-xs sm:text-sm" />
                 </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Orders</span>
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.orders')}</span>
               </div>
               <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.orderCount}</div>
             </div>
@@ -1697,7 +1701,7 @@ const OrderHistory = () => {
                 <div className="bg-purple-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
                   <FaCreditCard className="text-white text-xs sm:text-sm" />
                 </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Payments</span>
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.payments')}</span>
               </div>
               {stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0 ? (
                 <div className="space-y-1">
@@ -1724,7 +1728,7 @@ const OrderHistory = () => {
                 <div className="bg-amber-500 w-6 h-6 sm:w-8 sm:h-8 rounded-md flex items-center justify-center">
                   <FaCheckCircle className="text-white text-xs sm:text-sm" />
                 </div>
-                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">Completed</span>
+                <span className="text-[9px] sm:text-[11px] text-gray-500 font-medium uppercase tracking-wide">{t('orderHistory.completed')}</span>
               </div>
               <div className="text-sm sm:text-lg font-bold text-gray-900 leading-tight">{stats.completedCount}</div>
             </div>
@@ -1738,7 +1742,7 @@ const OrderHistory = () => {
                 type="button"
                 onClick={() => setDeleteSuccess(null)}
                 className="p-1 rounded hover:bg-green-100 text-green-600"
-                aria-label="Dismiss"
+                aria-label={t('orderHistory.dismiss')}
               >
                 <FaTimes className="text-lg" />
               </button>
@@ -1753,7 +1757,7 @@ const OrderHistory = () => {
                 type="button"
                 onClick={() => setPrintSuccess(null)}
                 className="p-1 rounded hover:bg-orange-100 text-orange-600"
-                aria-label="Dismiss"
+                aria-label={t('orderHistory.dismiss')}
               >
                 <FaTimes className="text-lg" />
               </button>
@@ -1784,12 +1788,12 @@ const OrderHistory = () => {
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <input type="date" value={summaryCustomStart} onChange={e => setSummaryCustomStart(e.target.value)}
                     className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none" />
-                  <span className="text-gray-400 text-sm">to</span>
+                  <span className="text-gray-400 text-sm">{t('orderHistory.to')}</span>
                   <input type="date" value={summaryCustomEnd} onChange={e => setSummaryCustomEnd(e.target.value)}
                     className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none" />
                   <button onClick={handleSummaryCustomApply} disabled={!summaryCustomStart || !summaryCustomEnd}
                     className="bg-rose-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-rose-700 disabled:opacity-50">
-                    Apply
+                    {t('orderHistory.apply')}
                   </button>
                 </div>
               )}
@@ -1804,7 +1808,7 @@ const OrderHistory = () => {
                 <FaSearch className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder={t('orderHistory.search')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
@@ -1817,7 +1821,7 @@ const OrderHistory = () => {
                 selectedValue={selectedStatus}
                 options={statusOptions}
                 onSelect={setSelectedStatus}
-                placeholder="All Status"
+                placeholder={t('orderHistory.status.all')}
                 icon={FaFilter}
               />
               <FilterDropdown
@@ -1826,7 +1830,7 @@ const OrderHistory = () => {
                 selectedValue={selectedOrderType}
                 options={typeOptions}
                 onSelect={setSelectedOrderType}
-                placeholder="All Types"
+                placeholder={t('orderHistory.type.all')}
                 icon={FaUtensils}
               />
               {partialPaymentEnabled && (
@@ -1839,17 +1843,17 @@ const OrderHistory = () => {
                   }`}
                 >
                   <FaWallet className="text-[10px]" />
-                  Partial Payment
+                  {t('orderHistory.partialPayment')}
                 </button>
               )}
               {/* Separator */}
               <div className="hidden sm:block w-px h-5 bg-gray-200" />
               {/* Date quick-filter chips */}
               {[
-                { value: 'today', label: 'Today' },
-                { value: 'yesterday', label: 'Yesterday' },
-                { value: 'last7days', label: '7D' },
-                { value: 'last30days', label: '30D' },
+                { value: 'today', label: t('orderHistory.today') },
+                { value: 'yesterday', label: t('orderHistory.yesterday') },
+                { value: 'last7days', label: t('orderHistory.sevenDays') },
+                { value: 'last30days', label: t('orderHistory.thirtyDays') },
               ].map(option => (
                 <button
                   key={option.value}
@@ -1873,7 +1877,7 @@ const OrderHistory = () => {
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilterModalOpen(true); }}
                 className={`p-1.5 rounded-lg border transition-all cursor-pointer ${dateFilterMode === 'custom' ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:bg-red-50 hover:text-red-500'}`}
-                title="Custom date range"
+                title={t('orderHistory.customDateRange')}
               >
                 <FaCalendarAlt className="text-sm" />
               </button>
@@ -1881,11 +1885,11 @@ const OrderHistory = () => {
               <div className="hidden sm:block w-px h-5 bg-gray-200" />
               <label className={`hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs font-medium whitespace-nowrap shrink-0 border ${myOrdersOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
                 <input type="checkbox" checked={myOrdersOnly} onChange={(e) => setMyOrdersOnly(e.target.checked)} className="w-3 h-3 text-red-600 rounded focus:ring-red-500 border-gray-300" />
-                Mine
+                {t('orderHistory.mine')}
               </label>
               {hasActiveFilters && (
                 <button type="button" onClick={resetAllFilters} className="flex items-center gap-1 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200 shrink-0 transition-all" title="Reset all filters">
-                  <FaTimes className="text-[10px]" /> <span className="hidden sm:inline">Clear</span>
+                  <FaTimes className="text-[10px]" /> <span className="hidden sm:inline">{t('orderHistory.clear')}</span>
                 </button>
               )}
             </div>
@@ -1911,7 +1915,7 @@ const OrderHistory = () => {
           <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-start justify-center pt-20" style={{ animation: 'fadeIn 0.15s ease-out' }}>
             <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-lg border border-gray-200" style={{ animation: 'slideDown 0.2s ease-out' }}>
               <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm font-medium text-gray-700">Updating orders...</span>
+              <span className="text-sm font-medium text-gray-700">{t('orderHistory.updatingOrders')}</span>
             </div>
             <style>{`
               @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1958,7 +1962,7 @@ const OrderHistory = () => {
                               className="font-bold text-base text-gray-900 cursor-pointer hover:text-red-600 flex items-center gap-2 transition-colors"
                             >
                               <span>#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
-                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title="Synced from offline" />}
+                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title={t('orderHistory.syncedFromOffline')} />}
                               <FaCopy className="text-gray-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                           </div>
@@ -1971,7 +1975,7 @@ const OrderHistory = () => {
                           <div className="flex flex-col gap-0.5" title="Customer">
                             <div className="flex items-center gap-2">
                               <FaUser className="text-gray-400 flex-shrink-0" />
-                              <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || 'Walk-in'}</span>
+                              <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || t('orderHistory.walkIn')}</span>
                             </div>
                             {(sourceChip?.label === 'Online order' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
                               <div className="flex items-center gap-1.5 text-xs text-gray-500 pl-5">
@@ -1980,7 +1984,7 @@ const OrderHistory = () => {
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-2" title={order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? "Room" : "Table"}>
+                          <div className="flex items-center gap-2" title={order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? t('orderHistory.room') : t('orderHistory.table')}>
                             {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
                               <FaBed className="text-gray-400" />
                             ) : (
@@ -1988,7 +1992,7 @@ const OrderHistory = () => {
                             )}
                             <span>{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</span>
                           </div>
-                          <div className="flex items-center gap-2" title="Type">
+                          <div className="flex items-center gap-2" title={t('orderHistory.type')}>
                             <FaUtensils className="text-gray-400" />
                             <span className="capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
                           </div>
@@ -2008,7 +2012,7 @@ const OrderHistory = () => {
                             )}
                             {order._isOffline && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
-                                Pending Sync
+                                {t('orderHistory.pendingSync')}
                               </span>
                             )}
                             {order._isOffline && order.syncStatus === 'failed' && (
@@ -2016,53 +2020,53 @@ const OrderHistory = () => {
                                 onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
                                 disabled={syncingOrderKey === order.idempotencyKey}
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
-                                title="Retry sync"
+                                title={t('orderHistory.retrySync')}
                               >
                                 <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
-                                {syncingOrderKey === order.idempotencyKey ? 'Syncing...' : 'Retry'}
+                                {syncingOrderKey === order.idempotencyKey ? t('orderHistory.syncing') : t('orderHistory.retry')}
                               </button>
                             )}
                             {order.syncSource === 'offline' && !order._isOffline && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
-                                <FaCloudUploadAlt className="text-[8px]" /> Offline
+                                <FaCloudUploadAlt className="text-[8px]" /> {t('orderHistory.offline')}
                               </span>
                             )}
                           </div>
-                          <span className="text-xs text-gray-500 font-medium">{order.paymentMethod || 'Cash'}</span>
+                          <span className="text-xs text-gray-500 font-medium">{order.paymentMethod || t('orderHistory.cash')}</span>
                         </div>
                         <div className="col-span-6 sm:col-span-2 flex flex-col items-end gap-2">
                           <div className="text-right space-y-0.5">
                             {(breakdown.taxLines?.length > 0 || breakdown.discountLines?.length > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
                               <>
-                                <div className="text-xs text-gray-500">Subtotal {formatCurrency(breakdown.subtotal)}</div>
+                                <div className="text-xs text-gray-500">{t('orderHistory.subtotalLabel')} {formatCurrency(breakdown.subtotal)}</div>
                                 {breakdown.discountLines?.map((line, i) => (
                                   <div key={`d${i}`} className="text-xs text-green-600">-{line.name} {formatCurrency(line.amount)}</div>
                                 ))}
                                 {breakdown.serviceCharge > 0 && (
-                                  <div className="text-xs text-purple-600">Service Charge {formatCurrency(breakdown.serviceCharge)}</div>
+                                  <div className="text-xs text-purple-600">{t('orderHistory.serviceCharge')} {formatCurrency(breakdown.serviceCharge)}</div>
                                 )}
                                 {breakdown.taxLines.map((line, i) => (
                                   <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} {formatCurrency(line.amount)}</div>
                                 ))}
                                 {breakdown.tip > 0 && (
-                                  <div className="text-xs text-amber-600">Tip {formatCurrency(breakdown.tip)}</div>
+                                  <div className="text-xs text-amber-600">{t('orderHistory.tip')} {formatCurrency(breakdown.tip)}</div>
                                 )}
                                 {breakdown.roundOff !== 0 && (
-                                  <div className="text-xs text-gray-400">Round-off {breakdown.roundOff > 0 ? '+' : ''}{formatCurrency(breakdown.roundOff)}</div>
+                                  <div className="text-xs text-gray-400">{t('orderHistory.roundOff')} {breakdown.roundOff > 0 ? '+' : ''}{formatCurrency(breakdown.roundOff)}</div>
                                 )}
                               </>
                             )}
                             <span className="font-bold text-lg text-gray-900">{formatCurrency(breakdown.total)}</span>
                             {order.outstandingAmount > 0 && (
                               <div className="flex items-center gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">PARTIAL</span>
-                                <span className="text-xs text-red-600 font-semibold">Due: {formatCurrency(order.outstandingAmount)}</span>
+                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
+                                <span className="text-xs text-red-600 font-semibold">{t('orderHistory.due')} {formatCurrency(order.outstandingAmount)}</span>
                               </div>
                             )}
                             {order.paymentStatus === 'partial' && !order.outstandingAmount && order.paidAmount > 0 && (
                               <div className="flex items-center gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">PARTIAL</span>
-                                <span className="text-xs text-amber-600 font-semibold">Paid: {formatCurrency(order.paidAmount)}</span>
+                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
+                                <span className="text-xs text-amber-600 font-semibold">{t('orderHistory.paid')} {formatCurrency(order.paidAmount)}</span>
                               </div>
                             )}
                           </div>
@@ -2071,7 +2075,7 @@ const OrderHistory = () => {
                                 <button
                                 onClick={() => handleMarkCompleted(order.id)}
                                 className="p-2 text-green-600 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
-                                title="Mark Bill Complete"
+                                title={t('orderHistory.markBillComplete')}
                                 >
                                 <FaCheckCircle size={12} />
                                 </button>
@@ -2080,7 +2084,7 @@ const OrderHistory = () => {
                               <button
                                 onClick={() => handleMarkPaid(order.id)}
                                 className="p-2 text-amber-600 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
-                                title="Mark as Fully Paid"
+                                title={t('orderHistory.markAsFullyPaid')}
                               >
                                 <FaWallet size={12} />
                               </button>
@@ -2089,7 +2093,7 @@ const OrderHistory = () => {
                             <button
                               onClick={() => handleSmartPrint(order)}
                               className={`p-2 rounded-lg transition-colors ${printingOrderId === order.id ? 'bg-orange-200 cursor-wait' : 'text-orange-600 bg-orange-100 hover:bg-orange-200'}`}
-                              title={order.status === 'completed' ? 'Print Bill' : 'Print KOT'}
+                              title={order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT')}
                               disabled={printingOrderId === order.id}
                             >
                               {printingOrderId === order.id ? <FaSpinner size={12} className="animate-spin" /> : <FaPrint size={12} />}
@@ -2118,19 +2122,19 @@ const OrderHistory = () => {
                             <div
                               onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
-                              title="Click to copy Order Number"
+                              title={t('orderHistory.clickToCopyOrderNumber')}
                             >
-                              <span className="text-xs text-gray-500">Order#</span>
+                              <span className="text-xs text-gray-500">{t('orderHistory.orderNumberShort')}</span>
                               <span className="text-xs font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
-                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-[10px]" title="Synced from offline" />}
+                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-[10px]" title={t('orderHistory.syncedFromOffline')} />}
                               <FaCopy className="text-gray-400 text-[10px]" />
                             </div>
                             <div
                               onClick={() => copyToClipboard(order.id)}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors flex-1 min-w-0"
-                              title="Click to copy Order ID"
+                              title={t('orderHistory.clickToCopyOrderId')}
                             >
-                              <span className="text-xs text-gray-500">ID</span>
+                              <span className="text-xs text-gray-500">{t('orderHistory.idLabel')}</span>
                               <span className="text-xs font-mono font-semibold text-gray-700 truncate" title={order.id}>{order.id}</span>
                               <FaCopy className="text-gray-400 text-[10px] flex-shrink-0" />
                             </div>
@@ -2146,12 +2150,12 @@ const OrderHistory = () => {
                                   <span>{formatCurrency(item.total || (item.price * item.quantity))}</span>
                                 </div>
                               ))}
-                              {order.items?.length > 6 && <div className="text-xs text-gray-500 pt-1">+{order.items.length - 6} more</div>}
+                              {order.items?.length > 6 && <div className="text-xs text-gray-500 pt-1">+{order.items.length - 6} {t('orderHistory.more')}</div>}
                             </div>
                             {order.specialInstructions && (
                               <div className="mt-3 pt-2 border-t border-gray-200">
                                 <div className="flex items-start gap-2 text-xs">
-                                  <span className="text-amber-600 font-semibold">📝 Instructions:</span>
+                                  <span className="text-amber-600 font-semibold">{t('orderHistory.instructions')}</span>
                                   <span className="text-gray-700">{order.specialInstructions}</span>
                                 </div>
                               </div>
@@ -2177,7 +2181,7 @@ const OrderHistory = () => {
                             <div className="flex flex-wrap items-center gap-2 mb-1">
                               <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
                                 #{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}
-                                {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title="Synced from offline" />}
+                                {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title={t('orderHistory.syncedFromOffline')} />}
                               </h3>
                               <span
                                 className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
@@ -2192,7 +2196,7 @@ const OrderHistory = () => {
                               )}
                               {order.syncSource === 'offline' && (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
-                                  <FaCloudUploadAlt className="text-[8px]" /> Offline
+                                  <FaCloudUploadAlt className="text-[8px]" /> {t('orderHistory.offline')}
                                 </span>
                               )}
                               {order._isOffline && order.syncStatus === 'failed' && (
@@ -2200,10 +2204,10 @@ const OrderHistory = () => {
                                   onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
                                   disabled={syncingOrderKey === order.idempotencyKey}
                                   className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
-                                  title="Retry sync"
+                                  title={t('orderHistory.retrySync')}
                                 >
                                   <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
-                                  {syncingOrderKey === order.idempotencyKey ? 'Syncing...' : 'Retry'}
+                                  {syncingOrderKey === order.idempotencyKey ? t('orderHistory.syncing') : t('orderHistory.retry')}
                                 </button>
                               )}
                             </div>
@@ -2215,28 +2219,28 @@ const OrderHistory = () => {
                           <div className="text-right">
                             <div className="flex items-baseline justify-end gap-2">
                               <span className="text-xl font-bold text-gray-900">{formatCurrency(breakdown.total)}</span>
-                              <span className="text-[11px] text-gray-400">{order.paymentMethod || 'Cash'}</span>
+                              <span className="text-[11px] text-gray-400">{order.paymentMethod || t('orderHistory.cash')}</span>
                             </div>
                             {(breakdown.taxLines?.length > 0 || breakdown.discountAmount > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
                               <div className="text-xs text-gray-500 mt-0.5">
                                 {formatCurrency(breakdown.subtotal)}
-                                {breakdown.discountAmount > 0 && <span className="text-green-600">{` - Disc ${formatCurrency(breakdown.discountAmount)}`}</span>}
-                                {breakdown.serviceCharge > 0 && ` + SC ${formatCurrency(breakdown.serviceCharge)}`}
+                                {breakdown.discountAmount > 0 && <span className="text-green-600">{` - ${t('orderHistory.disc')} ${formatCurrency(breakdown.discountAmount)}`}</span>}
+                                {breakdown.serviceCharge > 0 && ` + ${t('orderHistory.sc')} ${formatCurrency(breakdown.serviceCharge)}`}
                                 {breakdown.taxLines?.length > 0 && ` + ${breakdown.taxLines.map((line) => `${line.name}${line.rate != null ? ` ${line.rate}%` : ''}`).join(', ')}`}
-                                {breakdown.tip > 0 && ` + Tip ${formatCurrency(breakdown.tip)}`}
-                                {breakdown.roundOff !== 0 && ` ${breakdown.roundOff > 0 ? '+' : '-'} Round ${formatCurrency(Math.abs(breakdown.roundOff))}`}
+                                {breakdown.tip > 0 && ` + ${t('orderHistory.tip')} ${formatCurrency(breakdown.tip)}`}
+                                {breakdown.roundOff !== 0 && ` ${breakdown.roundOff > 0 ? '+' : '-'} ${t('orderHistory.round')} ${formatCurrency(Math.abs(breakdown.roundOff))}`}
                               </div>
                             )}
                             {order.outstandingAmount > 0 && (
                               <div className="flex items-center justify-end gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">PARTIAL</span>
-                                <span className="text-xs text-red-600 font-semibold">Due: {formatCurrency(order.outstandingAmount)}</span>
+                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
+                                <span className="text-xs text-red-600 font-semibold">{t('orderHistory.due')} {formatCurrency(order.outstandingAmount)}</span>
                               </div>
                             )}
                             {order.paymentStatus === 'partial' && !order.outstandingAmount && order.paidAmount > 0 && (
                               <div className="flex items-center justify-end gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">PARTIAL</span>
-                                <span className="text-xs text-amber-600 font-semibold">Paid: {formatCurrency(order.paidAmount)}</span>
+                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
+                                <span className="text-xs text-amber-600 font-semibold">{t('orderHistory.paid')} {formatCurrency(order.paidAmount)}</span>
                               </div>
                             )}
                           </div>
@@ -2245,8 +2249,8 @@ const OrderHistory = () => {
                           <div className="flex items-center gap-2">
                             <FaUser className="text-gray-400 text-sm flex-shrink-0" />
                             <div className="min-w-0">
-                              <div className="text-xs text-gray-500">Customer</div>
-                              <div className="text-sm font-medium text-gray-900">{order.customerDisplay?.name || 'Walk-in'}</div>
+                              <div className="text-xs text-gray-500">{t('orderHistory.customer')}</div>
+                              <div className="text-sm font-medium text-gray-900">{order.customerDisplay?.name || t('orderHistory.walkIn')}</div>
                               {(sourceChip?.label === 'Online order' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
                                 <div className="flex items-center gap-1 text-xs text-gray-600 mt-0.5">
                                   <FaPhone className="text-[10px] flex-shrink-0" />
@@ -2262,14 +2266,14 @@ const OrderHistory = () => {
                               <FaTable className="text-gray-400 text-sm" />
                             )}
                             <div>
-                              <div className="text-xs text-gray-500">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? 'Room' : 'Table'}</div>
+                              <div className="text-xs text-gray-500">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? t('orderHistory.room') : t('orderHistory.table')}</div>
                               <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <FaUtensils className="text-gray-400 text-sm" />
                             <div>
-                              <div className="text-xs text-gray-500">Type</div>
+                              <div className="text-xs text-gray-500">{t('orderHistory.type')}</div>
                               <div className="text-sm font-medium text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
                             </div>
                           </div>
@@ -2300,7 +2304,7 @@ const OrderHistory = () => {
                           {order.specialInstructions && (
                             <div className="mt-3 pt-2 border-t border-gray-200">
                               <div className="flex items-start gap-2 text-sm">
-                                <span className="text-amber-600 font-semibold flex-shrink-0">📝 Instructions:</span>
+                                <span className="text-amber-600 font-semibold flex-shrink-0">{t('orderHistory.instructions')}</span>
                                 <span className="text-gray-700">{order.specialInstructions}</span>
                               </div>
                             </div>
@@ -2311,18 +2315,18 @@ const OrderHistory = () => {
                             <div
                               onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
-                              title="Click to copy Order Number"
+                              title={t('orderHistory.clickToCopyOrderNumber')}
                             >
-                              <span className="text-[11px] text-gray-400">Order Number</span>
+                              <span className="text-[11px] text-gray-400">{t('orderHistory.orderNumber')}</span>
                               <span className="text-xs font-mono font-semibold text-gray-600">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
                               <FaCopy className="text-gray-300 text-[10px]" />
                             </div>
                             <div
                               onClick={() => copyToClipboard(order.id)}
                               className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors min-w-0"
-                              title="Click to copy Order ID"
+                              title={t('orderHistory.clickToCopyOrderId')}
                             >
-                              <span className="text-[11px] text-gray-400">Order ID</span>
+                              <span className="text-[11px] text-gray-400">{t('orderHistory.orderIdLabel')}</span>
                               <span className="text-xs font-mono font-semibold text-gray-600 truncate max-w-[140px]" title={order.id}>{order.id}</span>
                               <FaCopy className="text-gray-300 text-[10px] flex-shrink-0" />
                             </div>
@@ -2333,7 +2337,7 @@ const OrderHistory = () => {
                                 onClick={() => handleMarkCompleted(order.id)}
                                 className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1.5"
                               >
-                                <FaCheckCircle /> Complete
+                                <FaCheckCircle /> {t('orderHistory.complete')}
                               </button>
                             )}
                             {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
@@ -2341,7 +2345,7 @@ const OrderHistory = () => {
                                 onClick={() => handleMarkPaid(order.id)}
                                 className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-all flex items-center gap-1.5"
                               >
-                                <FaWallet /> Mark Paid
+                                <FaWallet /> {t('orderHistory.markPaid')}
                               </button>
                             )}
                             <button
@@ -2353,11 +2357,11 @@ const OrderHistory = () => {
                             <button
                               onClick={() => handleSmartPrint(order)}
                               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
-                              title={order.status === 'completed' ? 'Print Bill' : 'Print KOT'}
+                              title={order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT')}
                               disabled={printingOrderId === order.id}
                             >
                               {printingOrderId === order.id ? <FaSpinner className="animate-spin" /> : <FaPrint />}
-                              {printingOrderId === order.id ? 'Sending...' : (order.status === 'completed' ? 'Print Bill' : 'Print KOT')}
+                              {printingOrderId === order.id ? t('orderHistory.sending') : (order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT'))}
                             </button>
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
                               <button
@@ -2401,7 +2405,7 @@ const OrderHistory = () => {
                 onClick={() => handlePageChange(currentPage - 1)} 
                 disabled={currentPage === 1} 
                 className="p-2.5 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-                aria-label="Previous page"
+                aria-label={t('orderHistory.previousPage')}
               >
                 <FaChevronLeft />
               </button>
@@ -2446,7 +2450,7 @@ const OrderHistory = () => {
                 onClick={() => handlePageChange(currentPage + 1)} 
                 disabled={currentPage === totalPages} 
                 className="p-2.5 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-                aria-label="Next page"
+                aria-label={t('orderHistory.nextPage')}
               >
                 <FaChevronRight />
               </button>
@@ -2516,11 +2520,11 @@ const OrderHistory = () => {
                   </div>
                   <div>
                     <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
-                      Complete Billing
+                      {t('orderHistory.completeBilling')}
                     </div>
                     <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '1px' }}>
-                      Order #{billingModalOrder.dailyOrderId || billingModalOrder.id?.slice(-6) || 'N/A'}
-                      {billingTableNumber ? ` \u00B7 Table ${billingTableNumber}` : ''}
+                      {t('orderHistory.orderHash')}{billingModalOrder.dailyOrderId || billingModalOrder.id?.slice(-6) || 'N/A'}
+                      {billingTableNumber ? ` \u00B7 ${t('orderHistory.tablePrefix')} ${billingTableNumber}` : ''}
                       {billingCustomerName ? ` \u00B7 ${billingCustomerName}` : ''}
                     </div>
                   </div>
@@ -2607,7 +2611,7 @@ const OrderHistory = () => {
                   }}>
                     <FaReceipt size={28} style={{ color: '#9ca3af' }} />
                   </div>
-                  <div style={{ fontSize: '16px', color: '#6b7280', fontWeight: 500 }}>No items found in this order</div>
+                  <div style={{ fontSize: '16px', color: '#6b7280', fontWeight: 500 }}>{t('orderHistory.noItemsInOrder')}</div>
                 </div>
               )}
             </div>
@@ -2647,14 +2651,14 @@ const OrderHistory = () => {
                     <FaWallet className="text-amber-600 text-2xl sm:text-3xl" />
                   </div>
                   <h2 id="mark-paid-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-                    Mark as Fully Paid?
+                    {t('orderHistory.markAsFullyPaidTitle')}
                   </h2>
                   <p className="text-sm sm:text-base text-gray-600 mb-2">
-                    This will settle the outstanding balance and mark the order as fully paid.
+                    {t('orderHistory.markAsFullyPaidDesc')}
                   </p>
                   {outstandingAmt > 0 && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
-                      <span className="text-sm text-amber-700">Outstanding: </span>
+                      <span className="text-sm text-amber-700">{t('orderHistory.outstandingLabel')} </span>
                       <span className="text-lg font-bold text-amber-800">{formatCurrency(outstandingAmt)}</span>
                     </div>
                   )}
@@ -2665,7 +2669,7 @@ const OrderHistory = () => {
                       disabled={markPaidSubmitting}
                       className="min-h-[48px] sm:min-h-[44px] w-full sm:flex-1 px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-60 transition-all touch-manipulation"
                     >
-                      Cancel
+                      {t('orderHistory.cancel')}
                     </button>
                     <button
                       type="button"
@@ -2676,12 +2680,12 @@ const OrderHistory = () => {
                       {markPaidSubmitting ? (
                         <>
                           <FaSpinner className="text-lg" style={{ animation: 'spin 1s linear infinite' }} />
-                          Settling…
+                          {t('orderHistory.settling')}
                         </>
                       ) : (
                         <>
                           <FaWallet />
-                          Mark as Paid
+                          {t('orderHistory.markAsPaid')}
                         </>
                       )}
                     </button>
@@ -2723,16 +2727,16 @@ const OrderHistory = () => {
                   </div>
                   <div>
                     <h2 id="cancel-order-title" className="text-lg sm:text-xl font-bold text-gray-900">
-                      Cancel this order?
+                      {t('orderHistory.cancelThisOrder')}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500">
-                      Please provide a reason for cancellation.
+                      {t('orderHistory.provideReasonForCancellation')}
                     </p>
                   </div>
                 </div>
 
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
-                  Cancellation reason <span className="text-red-600">*</span>
+                  {t('orderHistory.cancellationReason')} <span className="text-red-600">*</span>
                 </label>
                 <textarea
                   value={cancelReason}
@@ -2740,13 +2744,13 @@ const OrderHistory = () => {
                   disabled={cancelSubmitting}
                   rows={3}
                   autoFocus
-                  placeholder="e.g. Customer changed mind, item unavailable, wrong order…"
+                  placeholder={t('orderHistory.cancelReasonPlaceholder')}
                   className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 resize-none disabled:bg-gray-50"
                 />
 
                 {/* Quick reason chips */}
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {['Customer changed mind', 'Item unavailable', 'Wrong order', 'Long wait time', 'Duplicate order'].map(r => (
+                  {[t('orderHistory.customerChangedMind'), t('orderHistory.itemUnavailable'), t('orderHistory.wrongOrder'), t('orderHistory.longWaitTime'), t('orderHistory.duplicateOrder')].map(r => (
                     <button
                       key={r}
                       type="button"
@@ -2770,7 +2774,7 @@ const OrderHistory = () => {
                     disabled={cancelSubmitting}
                     className="min-h-[44px] w-full sm:flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 disabled:opacity-60 transition-all"
                   >
-                    Keep Order
+                    {t('orderHistory.keepOrder')}
                   </button>
                   <button
                     type="button"
@@ -2781,12 +2785,12 @@ const OrderHistory = () => {
                     {cancelSubmitting ? (
                       <>
                         <FaSpinner className="animate-spin" />
-                        Cancelling…
+                        {t('orderHistory.cancelling')}
                       </>
                     ) : (
                       <>
                         <FaTimesCircle />
-                        Cancel Order
+                        {t('orderHistory.cancelOrder')}
                       </>
                     )}
                   </button>
@@ -2885,11 +2889,11 @@ const OrderHistory = () => {
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                       <span className="text-emerald-600 font-bold text-sm">{getCurrencySymbol()}</span>
                     </div>
-                    <span className="text-xs text-gray-500 font-medium uppercase">Revenue</span>
+                    <span className="text-xs text-gray-500 font-medium uppercase">{t('orderHistory.revenue')}</span>
                   </div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(summaryData.totalRevenueWithTax || summaryData.totalRevenue || 0)}</div>
                   {summaryData.totalRevenueWithTax > summaryData.totalRevenue && summaryData.totalRevenue > 0 && (
-                    <div className="text-[11px] text-gray-400 mt-0.5">excl. tax: {formatCurrency(summaryData.totalRevenue)}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">{t('orderHistory.exclTax')} {formatCurrency(summaryData.totalRevenue)}</div>
                   )}
                 </div>
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -2897,11 +2901,11 @@ const OrderHistory = () => {
                     <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                       <FaShoppingBag className="text-blue-600 text-sm" />
                     </div>
-                    <span className="text-xs text-gray-500 font-medium uppercase">Orders</span>
+                    <span className="text-xs text-gray-500 font-medium uppercase">{t('orderHistory.orders')}</span>
                   </div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900">{summaryData.totalOrders}</div>
                   {summaryData.avgOrderValue > 0 && (
-                    <div className="text-[11px] text-gray-400 mt-0.5">avg: {formatCurrency(summaryData.avgOrderValue)}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">{t('orderHistory.avg')} {formatCurrency(summaryData.avgOrderValue)}</div>
                   )}
                 </div>
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -2909,17 +2913,17 @@ const OrderHistory = () => {
                     <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                       <FaChartPie className="text-purple-600 text-sm" />
                     </div>
-                    <span className="text-xs text-gray-500 font-medium uppercase">Items Sold</span>
+                    <span className="text-xs text-gray-500 font-medium uppercase">{t('orderHistory.itemsSold')}</span>
                   </div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900">{summaryData.items?.reduce((s, i) => s + i.quantity, 0) || 0}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{summaryData.items?.length || 0} unique items</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">{summaryData.items?.length || 0} {t('orderHistory.uniqueItems')}</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                       <FaUsers className="text-amber-600 text-sm" />
                     </div>
-                    <span className="text-xs text-gray-500 font-medium uppercase">Customers</span>
+                    <span className="text-xs text-gray-500 font-medium uppercase">{t('orderHistory.customers')}</span>
                   </div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900">{summaryData.uniqueCustomers || 0}</div>
                 </div>
@@ -2928,7 +2932,7 @@ const OrderHistory = () => {
               {/* Daily Revenue Trend (multi-day) */}
               {summaryData.dailyRevenue && summaryData.dailyRevenue.length > 1 && (
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Daily Revenue Trend</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('orderHistory.dailyRevenueTrend')}</h3>
                   <div className="flex items-end gap-1 h-32">
                     {(() => {
                       const maxRev = Math.max(...summaryData.dailyRevenue.map(d => d.revenue), 1);
@@ -2938,7 +2942,7 @@ const OrderHistory = () => {
                         return (
                           <div key={idx} className="flex-1 flex flex-col items-center gap-1 group relative">
                             <div className="absolute -top-8 bg-gray-800 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                              {formatCurrency(day.revenue)} &middot; {day.orders} orders
+                              {formatCurrency(day.revenue)} &middot; {day.orders} {t('orderHistory.orders')}
                             </div>
                             <div className="w-full bg-gradient-to-t from-rose-500 to-rose-400 rounded-t-md hover:from-rose-600 hover:to-rose-500 transition-all cursor-pointer min-w-[8px]" style={{ height: `${height}%` }} />
                             <span className="text-[9px] text-gray-400 truncate w-full text-center">{dateLabel}</span>
@@ -2954,7 +2958,7 @@ const OrderHistory = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {summaryData.ordersByType && Object.keys(summaryData.ordersByType).length > 0 && (
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Order Types</h3>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('orderHistory.orderTypes')}</h3>
                     <div className="space-y-2">
                       {(() => {
                         const typeTotal = Object.values(summaryData.ordersByType).reduce((s, v) => s + v, 0);
@@ -2979,7 +2983,7 @@ const OrderHistory = () => {
                 )}
                 {summaryData.hourlyBreakdown && Object.keys(summaryData.hourlyBreakdown).length > 0 && (
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Busiest Hours</h3>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('orderHistory.busiestHours')}</h3>
                     <div className="space-y-1.5">
                       {Object.entries(summaryData.hourlyBreakdown).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([hour, count]) => {
                         const h = parseInt(hour);
@@ -3005,12 +3009,12 @@ const OrderHistory = () => {
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h3 className="text-base font-bold text-gray-800">
-                    Item-wise Sales
-                    <span className="text-xs text-gray-400 font-normal ml-2">({summaryData.items?.length || 0} items)</span>
+                    {t('orderHistory.itemWiseSales')}
+                    <span className="text-xs text-gray-400 font-normal ml-2">({summaryData.items?.length || 0} {t('orderHistory.items')})</span>
                   </h3>
                   <div className="relative">
                     <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
-                    <input type="text" placeholder="Search items..." value={summarySearch} onChange={e => setSummarySearch(e.target.value)}
+                    <input type="text" placeholder={t('orderHistory.searchItems')} value={summarySearch} onChange={e => setSummarySearch(e.target.value)}
                       className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm w-44 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none" />
                   </div>
                 </div>
@@ -3025,15 +3029,15 @@ const OrderHistory = () => {
                           <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
                             <th className="px-4 py-2.5 font-semibold w-10">#</th>
                             <th className="px-4 py-2.5 font-semibold cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('name')}>
-                              <span className="flex items-center gap-1">Item {summarySortBy === 'name' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
+                              <span className="flex items-center gap-1">{t('orderHistory.item')} {summarySortBy === 'name' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
                             </th>
                             <th className="px-4 py-2.5 font-semibold text-center cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('quantity')}>
-                              <span className="flex items-center justify-center gap-1">Qty {summarySortBy === 'quantity' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
+                              <span className="flex items-center justify-center gap-1">{t('orderHistory.qty')} {summarySortBy === 'quantity' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
                             </th>
                             <th className="px-4 py-2.5 font-semibold text-right cursor-pointer hover:text-gray-700" onClick={() => toggleSummarySort('revenue')}>
-                              <span className="flex items-center justify-end gap-1">Revenue {summarySortBy === 'revenue' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
+                              <span className="flex items-center justify-end gap-1">{t('orderHistory.revenue')} {summarySortBy === 'revenue' && (summarySortDir === 'desc' ? <FaSortAmountDown className="text-[10px]" /> : <FaSortAmountUp className="text-[10px]" />)}</span>
                             </th>
-                            <th className="px-4 py-2.5 font-semibold text-right">% of Total</th>
+                            <th className="px-4 py-2.5 font-semibold text-right">{t('orderHistory.percentOfTotal')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -3047,7 +3051,7 @@ const OrderHistory = () => {
                                   <div className="flex items-center gap-2">
                                     {isTop3 && (
                                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : idx === 1 ? 'bg-gray-100 text-gray-600' : 'bg-orange-50 text-orange-600'}`}>
-                                        {idx === 0 ? '1st' : idx === 1 ? '2nd' : '3rd'}
+                                        {idx === 0 ? t('orderHistory.first') : idx === 1 ? t('orderHistory.second') : t('orderHistory.third')}
                                       </span>
                                     )}
                                     <span className="font-medium text-gray-800 text-sm">{item.name}</span>
@@ -3072,7 +3076,7 @@ const OrderHistory = () => {
                         <tfoot>
                           <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
                             <td className="px-4 py-3"></td>
-                            <td className="px-4 py-3 text-gray-800">Total</td>
+                            <td className="px-4 py-3 text-gray-800">{t('orderHistory.total')}</td>
                             <td className="px-4 py-3 text-center">
                               <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">{totalQty}</span>
                             </td>
@@ -3083,7 +3087,7 @@ const OrderHistory = () => {
                       </table>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-gray-400">{summarySearch ? 'No items match your search' : 'No sales data for this period'}</div>
+                    <div className="text-center py-12 text-gray-400">{summarySearch ? t('orderHistory.noItemsMatchSearch') : t('orderHistory.noSalesDataPeriod')}</div>
                   );
                 })()}
               </div>
@@ -3091,8 +3095,8 @@ const OrderHistory = () => {
           ) : (
             <div className="text-center py-20 text-gray-400">
               <FaChartPie className="text-5xl mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium">No sales data available</p>
-              <p className="text-sm mt-1">Start taking orders to see your sales summary here</p>
+              <p className="text-lg font-medium">{t('orderHistory.noSalesDataAvailable')}</p>
+              <p className="text-sm mt-1">{t('orderHistory.startTakingOrdersSummary')}</p>
             </div>
           )}
         </div>
@@ -3112,7 +3116,7 @@ const OrderHistory = () => {
             <div className="px-5 py-4 bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FaCalendarAlt className="text-white/90 text-sm" />
-                <h3 className="text-base font-bold text-white">Select Date Range</h3>
+                <h3 className="text-base font-bold text-white">{t('orderHistory.selectDateRange')}</h3>
               </div>
               <button onClick={() => setFilterModalOpen(false)} className="p-1 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-colors"><FaTimes className="text-sm" /></button>
             </div>
@@ -3121,10 +3125,10 @@ const OrderHistory = () => {
               {/* Quick Presets */}
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {[
-                  { value: 'today', label: 'Today', icon: '📅' },
-                  { value: 'yesterday', label: 'Yesterday', icon: '⏪' },
-                  { value: 'last7days', label: 'Last 7 Days', icon: '📆' },
-                  { value: 'last30days', label: 'Last 30 Days', icon: '🗓' },
+                  { value: 'today', label: t('orderHistory.summaryToday'), icon: '📅' },
+                  { value: 'yesterday', label: t('orderHistory.summaryYesterday'), icon: '⏪' },
+                  { value: 'last7days', label: t('orderHistory.last7Days'), icon: '📆' },
+                  { value: 'last30days', label: t('orderHistory.last30Days'), icon: '🗓' },
                 ].map(option => (
                   <button
                     key={option.value}
@@ -3148,11 +3152,11 @@ const OrderHistory = () => {
                   className={`flex items-center gap-2 text-sm font-semibold mb-3 ${dateFilterMode === 'custom' ? 'text-red-700' : 'text-gray-600'}`}
                 >
                   <FaCalendarAlt className="text-xs" />
-                  Custom Range
+                  {t('orderHistory.customRange')}
                 </button>
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1 block">From</label>
+                    <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1 block">{t('orderHistory.from')}</label>
                     <input
                       type="date"
                       value={customStartDate}
@@ -3161,7 +3165,7 @@ const OrderHistory = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1 block">To</label>
+                    <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1 block">{t('orderHistory.toLabel')}</label>
                     <input
                       type="date"
                       value={customEndDate}
@@ -3178,13 +3182,13 @@ const OrderHistory = () => {
                 onClick={() => { setDateFilterMode('today'); setCustomStartDate(''); setCustomEndDate(''); setFilterModalOpen(false); }}
                 className="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
               >
-                Reset to Today
+                {t('orderHistory.resetToToday')}
               </button>
               <button
                 onClick={() => setFilterModalOpen(false)}
                 className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors shadow-sm"
               >
-                Apply
+                {t('orderHistory.apply')}
               </button>
             </div>
           </div>
@@ -3348,12 +3352,12 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
 
   const btype = (serverRestaurant || restaurant)?.businessType || 'restaurant';
   const invoiceLabels = {
-    restaurant: { title: 'INVOICE', billTo: 'Bill To', itemCol: 'Item', footer: 'Thank you for your business!' },
-    bar: { title: 'BAR TAB', billTo: 'Guest', itemCol: 'Drink / Item', footer: 'Thank you for visiting! Cheers!' },
-    bakery: { title: 'RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thank you! Enjoy your fresh bakes!' },
-    ice_cream: { title: 'RECEIPT', billTo: 'Customer', itemCol: 'Item / Flavor', footer: 'Thank you! Stay cool, visit again!' },
-    cafe: { title: 'RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thanks for stopping by! See you soon.' },
-    qsr: { title: 'ORDER RECEIPT', billTo: 'Customer', itemCol: 'Item', footer: 'Thank you! Visit again.' }
+    restaurant: { title: t('orderHistory.invoiceLabels.restaurant.title'), billTo: t('orderHistory.invoiceLabels.restaurant.billTo'), itemCol: t('orderHistory.invoiceLabels.restaurant.itemCol'), footer: t('orderHistory.invoiceLabels.restaurant.footer') },
+    bar: { title: t('orderHistory.invoiceLabels.bar.title'), billTo: t('orderHistory.invoiceLabels.bar.billTo'), itemCol: t('orderHistory.invoiceLabels.bar.itemCol'), footer: t('orderHistory.invoiceLabels.bar.footer') },
+    bakery: { title: t('orderHistory.invoiceLabels.bakery.title'), billTo: t('orderHistory.invoiceLabels.bakery.billTo'), itemCol: t('orderHistory.invoiceLabels.bakery.itemCol'), footer: t('orderHistory.invoiceLabels.bakery.footer') },
+    ice_cream: { title: t('orderHistory.invoiceLabels.ice_cream.title'), billTo: t('orderHistory.invoiceLabels.ice_cream.billTo'), itemCol: t('orderHistory.invoiceLabels.ice_cream.itemCol'), footer: t('orderHistory.invoiceLabels.ice_cream.footer') },
+    cafe: { title: t('orderHistory.invoiceLabels.cafe.title'), billTo: t('orderHistory.invoiceLabels.cafe.billTo'), itemCol: t('orderHistory.invoiceLabels.cafe.itemCol'), footer: t('orderHistory.invoiceLabels.cafe.footer') },
+    qsr: { title: t('orderHistory.invoiceLabels.qsr.title'), billTo: t('orderHistory.invoiceLabels.qsr.billTo'), itemCol: t('orderHistory.invoiceLabels.qsr.itemCol'), footer: t('orderHistory.invoiceLabels.qsr.footer') }
   };
   const iLabels = serverLabels || invoiceLabels[btype] || invoiceLabels.restaurant;
   const orderTotal = b?.grandTotal ?? calculateOrderTotal(order);
@@ -3406,13 +3410,13 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10200] flex items-center justify-center p-4 no-print">
         <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 border-gray-200">
           <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white no-print">
-            <h2 className="text-2xl font-bold text-gray-900">Invoice #{invoiceNumber}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t('orderHistory.invoiceHash')}{invoiceNumber}</h2>
             <div className="flex items-center gap-2">
               <button 
                 onClick={onDownloadPDF}
                 className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-2"
               >
-                <FaDownload /> Download PDF
+                <FaDownload /> {t('orderHistory.downloadPDF')}
               </button>
               <button 
                 onClick={onClose} 
@@ -3431,18 +3435,18 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
               <div className="border-b-2 border-gray-300 pb-6 mb-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{restaurant?.name || 'Restaurant'}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{restaurant?.name || t('orderHistory.restaurant')}</h1>
                     {restaurant?.address && <p className="text-gray-600 text-sm">{restaurant.address}</p>}
-                    {restaurant?.phone && <p className="text-gray-600 text-sm">Phone: {restaurant.phone}</p>}
-                    {restaurant?.email && <p className="text-gray-600 text-sm">Email: {restaurant.email}</p>}
-                    {restaurant?.gstin && <p className="text-gray-600 text-sm">GSTIN: {restaurant.gstin}</p>}
+                    {restaurant?.phone && <p className="text-gray-600 text-sm">{t('orderHistory.phone')} {restaurant.phone}</p>}
+                    {restaurant?.email && <p className="text-gray-600 text-sm">{t('orderHistory.email')} {restaurant.email}</p>}
+                    {restaurant?.gstin && <p className="text-gray-600 text-sm">{t('orderHistory.gstinLabel')} {restaurant.gstin}</p>}
                   </div>
                   <div className="text-right">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">{iLabels.title}</h2>
                     <div className="text-sm text-gray-600 space-y-1">
-                      <p><strong>Invoice #:</strong> {invoiceNumber}</p>
-                      <p><strong>Date:</strong> {formatDate(order.createdAt)}</p>
-                      {order.status && <p><strong>Status:</strong> <span className="uppercase">{order.status}</span></p>}
+                      <p><strong>{t('orderHistory.invoiceNumberLabel')}</strong> {invoiceNumber}</p>
+                      <p><strong>{t('orderHistory.date')}</strong> {formatDate(order.createdAt)}</p>
+                      {order.status && <p><strong>{t('orderHistory.statusLabel')}</strong> <span className="uppercase">{order.status}</span></p>}
                     </div>
                   </div>
                 </div>
@@ -3453,22 +3457,22 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 uppercase mb-2">{iLabels.billTo}:</h3>
                   <div className="text-gray-900">
-                    <p className="font-semibold">{order.customerDisplay?.name || 'Walk-in Customer'}</p>
-                    {order.customerDisplay?.phone && <p className="text-sm">Phone: {order.customerDisplay.phone}</p>}
-                    {order.customerDisplay?.email && <p className="text-sm">Email: {order.customerDisplay.email}</p>}
+                    <p className="font-semibold">{order.customerDisplay?.name || t('orderHistory.walkInCustomer')}</p>
+                    {order.customerDisplay?.phone && <p className="text-sm">{t('orderHistory.phone')} {order.customerDisplay.phone}</p>}
+                    {order.customerDisplay?.email && <p className="text-sm">{t('orderHistory.email')} {order.customerDisplay.email}</p>}
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-2">Order Details:</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-2">{t('orderHistory.orderDetails')}</h3>
                   <div className="text-gray-900 text-sm">
                     {(order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber) ? (
-                      <p>Room: {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber}</p>
+                      <p>{t('orderHistory.roomLabel')} {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber}</p>
                     ) : (
-                      order.customerDisplay?.tableNumber && <p>Table: {order.customerDisplay.tableNumber}</p>
+                      order.customerDisplay?.tableNumber && <p>{t('orderHistory.tableLabel')} {order.customerDisplay.tableNumber}</p>
                     )}
-                    {order.customerDisplay?.floorName && !order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && <p>Floor: {order.customerDisplay.floorName}</p>}
-                    {order.orderType && <p>Type: <span className="capitalize">{order.orderType.replace('-', ' ')}</span></p>}
-                    {order.paymentMethod && <p>Payment: <span className="capitalize">{order.paymentMethod}</span></p>}
+                    {order.customerDisplay?.floorName && !order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && <p>{t('orderHistory.floorLabel')} {order.customerDisplay.floorName}</p>}
+                    {order.orderType && <p>{t('orderHistory.typeLabel')} <span className="capitalize">{order.orderType.replace('-', ' ')}</span></p>}
+                    {order.paymentMethod && <p>{t('orderHistory.paymentLabel')} <span className="capitalize">{order.paymentMethod}</span></p>}
                   </div>
                 </div>
               </div>
@@ -3479,9 +3483,9 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                   <thead>
                     <tr className="bg-gray-100 border-b-2 border-gray-300">
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">{iLabels.itemCol}</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Qty</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Unit Price</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Total</th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">{t('orderHistory.qty')}</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-700">{t('orderHistory.unitPrice')}</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-700">{t('orderHistory.total')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3490,13 +3494,13 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                         <td className="py-3 px-4">
                           <div className="font-medium text-gray-900">{item.name}</div>
                           {item.variant && (
-                            <div className="text-xs text-gray-500 mt-1">Variant: {item.variant.name}</div>
+                            <div className="text-xs text-gray-500 mt-1">{t('orderHistory.variantLabel')} {item.variant.name}</div>
                           )}
                           {item.addons?.length > 0 && (
-                            <div className="text-xs text-gray-500 mt-1">Addons: {item.addons.map(a => a.name).join(', ')}</div>
+                            <div className="text-xs text-gray-500 mt-1">{t('orderHistory.addonsLabel')} {item.addons.map(a => a.name).join(', ')}</div>
                           )}
                           {item.notes && (
-                            <div className="text-xs text-amber-700 mt-1 italic">Note: {item.notes}</div>
+                            <div className="text-xs text-amber-700 mt-1 italic">{t('orderHistory.noteLabel')} {item.notes}</div>
                           )}
                         </td>
                         <td className="py-3 px-4 text-center text-gray-700">{item.quantity}</td>
@@ -3511,7 +3515,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
               {/* Notes */}
               {order.notes && (
                 <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded">
-                  <p className="text-sm text-amber-900"><strong>Order Notes:</strong> {order.notes}</p>
+                  <p className="text-sm text-amber-900"><strong>{t('orderHistory.orderNotes')}</strong> {order.notes}</p>
                 </div>
               )}
 
@@ -3520,41 +3524,41 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                 <div className="flex justify-end">
                   <div className="w-64 space-y-2">
                     <div className="flex justify-between text-gray-700">
-                      <span>Subtotal:</span>
+                      <span>{t('orderHistory.subtotalLabel2')}</span>
                       <span>{formatCurrency(subtotal)}</span>
                     </div>
                     {offerDiscount > 0 && (
                       <div className="flex justify-between text-green-600">
-                        <span>{(typeof order.appliedOffer === 'string' ? order.appliedOffer : order.appliedOffer?.name) || order.selectedOfferName || 'Offer Discount'}:</span>
+                        <span>{(typeof order.appliedOffer === 'string' ? order.appliedOffer : order.appliedOffer?.name) || order.selectedOfferName || t('orderHistory.offerDiscount')}:</span>
                         <span>-{formatCurrency(offerDiscount)}</span>
                       </div>
                     )}
                     {manualDiscountAmt > 0 && (
                       <div className="flex justify-between text-green-600">
-                        <span>Manual Discount:</span>
+                        <span>{t('orderHistory.manualDiscount')}</span>
                         <span>-{formatCurrency(manualDiscountAmt)}</span>
                       </div>
                     )}
                     {loyaltyDiscountAmt > 0 && (
                       <div className="flex justify-between text-green-600">
-                        <span>Loyalty Points:</span>
+                        <span>{t('orderHistory.loyaltyPoints')}</span>
                         <span>-{formatCurrency(loyaltyDiscountAmt)}</span>
                       </div>
                     )}
                     {taxAmount > 0 && (
                       <div className="flex justify-between text-gray-700">
-                        <span>Tax:</span>
+                        <span>{t('orderHistory.taxLabel')}</span>
                         <span>{formatCurrency(taxAmount)}</span>
                       </div>
                     )}
                     {totalDiscount > 0 && (
                       <div className="flex justify-between text-green-600 text-sm">
-                        <span>You saved:</span>
+                        <span>{t('orderHistory.youSaved')}</span>
                         <span>{formatCurrency(totalDiscount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t-2 border-gray-300">
-                      <span>Total:</span>
+                      <span>{t('orderHistory.totalLabel')}</span>
                       <span className="text-red-600">{formatCurrency(orderTotal)}</span>
                     </div>
                   </div>
@@ -3564,7 +3568,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
               {/* Footer */}
               <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
                 <p className="font-medium">{iLabels.footer}</p>
-                <p className="mt-2">For any queries, please contact us.</p>
+                <p className="mt-2">{t('orderHistory.forAnyQueries')}</p>
               </div>
               </div>
             </div>
@@ -3577,13 +3581,13 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
                 onClick={onDownloadPDF}
                 className="px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-lg flex items-center gap-2"
               >
-                <FaPrint /> Print / Download PDF
+                <FaPrint /> {t('orderHistory.printDownloadPDF')}
               </button>
               <button 
                 onClick={onClose}
                 className="px-5 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
               >
-                Close
+                {t('orderHistory.close')}
               </button>
             </div>
           </div>

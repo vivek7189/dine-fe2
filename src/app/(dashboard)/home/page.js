@@ -14,6 +14,7 @@ import {
 import { useLoading } from '../../../contexts/LoadingContext';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import apiClient from '../../../lib/api';
+import { t } from '../../../lib/i18n';
 
 // ─── Onboarding Checklist Widget ─────────────────────────────
 function OnboardingChecklist({ onDismiss }) {
@@ -38,14 +39,14 @@ function OnboardingChecklist({ onDismiss }) {
   if (!checklist || dismissed) return null;
 
   const items = [
-    { key: 'account', label: 'Account created', done: true },
-    { key: 'businessType', label: `${checklist.businessType ? checklist.businessType.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Business type'} selected`, done: !!checklist.businessType },
-    { key: 'restaurant', label: 'Restaurant details saved', done: !!checklist.restaurantName },
-    { key: 'features', label: 'Features configured', done: checklist.featuresConfigured },
-    { key: 'menu', label: `Menu loaded${checklist.menuItemCount ? ` (${checklist.menuItemCount} items)` : ''}`, done: checklist.menuSetup },
-    { key: 'firstOrder', label: 'Take your first order', done: false, href: '/dashboard' },
-    { key: 'printer', label: 'Set up a printer', done: false, href: '/admin?tab=print' },
-    { key: 'staff', label: 'Invite a staff member', done: false, href: '/admin?tab=staff' },
+    { key: 'account', label: t('home.accountCreated'), done: true },
+    { key: 'businessType', label: `${checklist.businessType ? checklist.businessType.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Business type'} ${t('home.selected')}`, done: !!checklist.businessType },
+    { key: 'restaurant', label: t('home.restaurantDetailsSaved'), done: !!checklist.restaurantName },
+    { key: 'features', label: t('home.featuresConfigured'), done: checklist.featuresConfigured },
+    { key: 'menu', label: `${t('home.menuLoaded')}${checklist.menuItemCount ? ` (${checklist.menuItemCount} ${t('common.items')})` : ''}`, done: checklist.menuSetup },
+    { key: 'firstOrder', label: t('home.takeYourFirstOrder'), done: false, href: '/dashboard' },
+    { key: 'printer', label: t('home.setUpPrinter'), done: false, href: '/admin?tab=print' },
+    { key: 'staff', label: t('home.inviteStaff'), done: false, href: '/admin?tab=staff' },
   ];
 
   const completedCount = items.filter(i => i.done).length;
@@ -77,7 +78,7 @@ function OnboardingChecklist({ onDismiss }) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
         <FaRocket size={16} color="#ef4444" />
-        <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Setup Progress</span>
+        <span style={{ fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>{t('home.setupProgress')}</span>
         <span style={{
           fontSize: '12px', fontWeight: '700', padding: '2px 10px', borderRadius: '10px',
           background: progress === 100 ? '#ecfdf5' : '#fef3c7',
@@ -155,15 +156,15 @@ const HeadquartersContent = dynamic(
 
 function getGreeting() {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return t('home.goodMorning');
+  if (hour < 17) return t('home.goodAfternoon');
+  return t('home.goodEvening');
 }
 
 function getRoleMessage(role) {
-  if (role === 'manager') return 'Ready to manage the floor. Let\'s get started!';
-  if (role === 'waiter') return 'Tables are waiting. Time to deliver great service!';
-  return 'Welcome back! Here\'s your quick access panel.';
+  if (role === 'manager') return t('home.managerMessage');
+  if (role === 'waiter') return t('home.waiterMessage');
+  return t('home.defaultMessage');
 }
 
 function formatCurrencyLocal(amount, symbol = '₹') {
@@ -184,11 +185,11 @@ function getTimeAgo(dateStr) {
   if (!d) return '';
   const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t('home.justNow');
+  if (mins < 60) return t('home.minsAgo', { mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return t('home.hrsAgo', { hrs });
+  return t('home.daysAgo', { days: Math.floor(hrs / 24) });
 }
 
 function formatTime(dateStr) {
@@ -316,34 +317,34 @@ export default function HomePage() {
 
   const quickActions = [
     canAccess('dashboard') && {
-      icon: FaReceipt, label: isBar ? 'Bar POS' : 'Start Order',
+      icon: FaReceipt, label: isBar ? t('home.barPOS') : t('home.startOrder'),
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', href: posPath,
     },
     canAccess('tables') && {
-      icon: FaChair, label: 'Tables',
+      icon: FaChair, label: t('home.tables'),
       gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', href: '/tables',
     },
     canAccess('kot') && {
-      icon: FaFire, label: 'Kitchen',
+      icon: FaFire, label: t('home.kitchen'),
       gradient: 'linear-gradient(135deg, #f97316, #ea580c)', href: '/kot',
     },
     canAccess('menu') && {
-      icon: FaUtensils, label: 'Menu',
+      icon: FaUtensils, label: t('home.menu'),
       gradient: 'linear-gradient(135deg, #10b981, #059669)', href: '/menu',
     },
     canAccess('history') && {
-      icon: FaClipboardList, label: 'Orders',
+      icon: FaClipboardList, label: t('home.orders'),
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', href: '/orderhistory',
     },
   ].filter(Boolean);
 
   const statusColors = {
-    completed: { bg: '#ecfdf5', color: '#059669', label: 'Paid' },
-    pending: { bg: '#fffbeb', color: '#d97706', label: 'Pending' },
-    preparing: { bg: '#eff6ff', color: '#2563eb', label: 'Preparing' },
-    served: { bg: '#f0fdf4', color: '#16a34a', label: 'Served' },
-    cancelled: { bg: '#fef2f2', color: '#dc2626', label: 'Cancelled' },
-    saved: { bg: '#f1f5f9', color: '#64748b', label: 'Saved' },
+    completed: { bg: '#ecfdf5', color: '#059669', label: t('home.paid') },
+    pending: { bg: '#fffbeb', color: '#d97706', label: t('home.pending') },
+    preparing: { bg: '#eff6ff', color: '#2563eb', label: t('home.preparing') },
+    served: { bg: '#f0fdf4', color: '#16a34a', label: t('home.served') },
+    cancelled: { bg: '#fef2f2', color: '#dc2626', label: t('home.cancelled') },
+    saved: { bg: '#f1f5f9', color: '#64748b', label: t('home.saved') },
   };
 
   const typeIcons = {
@@ -428,7 +429,7 @@ export default function HomePage() {
             onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
-            <FaPlus size={11} /> Start Taking Orders
+            <FaPlus size={11} /> {t('home.startTakingOrders')}
           </button>
         )}
       </div>
@@ -475,13 +476,13 @@ export default function HomePage() {
             <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
               {sectionHeader(
                 <FaClock size={14} color="#6b7280" />,
-                'Recent Orders',
-                'View all',
+                t('home.recentOrders'),
+                t('home.viewAll'),
                 () => navigateTo('/orderhistory')
               )}
             </div>
             {recentOrders.length === 0 ? (
-              emptyState(<FaClipboardList size={24} color="#e2e8f0" />, 'No orders yet today')
+              emptyState(<FaClipboardList size={24} color="#e2e8f0" />, t('home.noOrdersYet'))
             ) : (
               <div style={{ padding: '8px 12px' }}>
                 {recentOrders.map((order, i) => {
@@ -535,11 +536,11 @@ export default function HomePage() {
           <div style={{ ...cardStyle, cursor: 'pointer' }} onClick={() => navigateTo('/tables')}>
             {sectionHeader(
               <FaChair size={14} color="#6b7280" />,
-              'Table Status',
+              t('home.tableStatus'),
               null, null
             )}
             {!tables || tables.total === 0 ? (
-              emptyState(<FaChair size={24} color="#e2e8f0" />, 'Add tables to see status here')
+              emptyState(<FaChair size={24} color="#e2e8f0" />, t('home.addTablesToSee'))
             ) : (() => {
               const occupancyPct = Math.round((tables.occupied / tables.total) * 100);
               return (
@@ -549,16 +550,16 @@ export default function HomePage() {
                       fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '12px',
                       background: occupancyPct >= 80 ? '#fef2f2' : '#ecfdf5',
                       color: occupancyPct >= 80 ? '#dc2626' : '#059669',
-                    }}>{occupancyPct}% full</span>
+                    }}>{t('home.percentFull', { percent: occupancyPct })}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
                     <div style={{ flex: 1, background: '#ecfdf5', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
                       <div style={{ fontSize: '24px', fontWeight: '800', color: '#059669' }}>{tables.available}</div>
-                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#10b981', marginTop: '2px' }}>Available</div>
+                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#10b981', marginTop: '2px' }}>{t('home.available')}</div>
                     </div>
                     <div style={{ flex: 1, background: '#fef2f2', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
                       <div style={{ fontSize: '24px', fontWeight: '800', color: '#dc2626' }}>{tables.occupied}</div>
-                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#ef4444', marginTop: '2px' }}>Occupied</div>
+                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#ef4444', marginTop: '2px' }}>{t('home.occupied')}</div>
                     </div>
                   </div>
                   <div style={{ background: '#f1f5f9', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
@@ -569,7 +570,7 @@ export default function HomePage() {
                     }} />
                   </div>
                   <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', textAlign: 'center' }}>
-                    {tables.occupied} of {tables.total} tables in use
+                    {t('home.tablesInUse', { occupied: tables.occupied, total: tables.total })}
                   </div>
                 </>
               );

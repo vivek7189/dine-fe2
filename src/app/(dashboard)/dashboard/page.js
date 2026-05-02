@@ -135,6 +135,9 @@ function RestaurantPOSContent() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState('');
   
+  // Register enforcement state
+  const [registerOpen, setRegisterOpen] = useState(null); // null=loading, true/false
+
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
@@ -200,7 +203,33 @@ function RestaurantPOSContent() {
       appliedDefaultOrderTypeRef.current = selectedRestaurant.id;
     }
   }, [selectedRestaurant]);
-  
+
+  // Register enforcement — check if register is open when setting enabled
+  useEffect(() => {
+    if (posSettings.requireRegisterOpen && selectedRestaurant?.id) {
+      apiClient.getCurrentRegister(selectedRestaurant.id)
+        .then(res => {
+          const isOpen = !!res.register;
+          setRegisterOpen(isOpen);
+          localStorage.setItem('registerOpen', String(isOpen));
+        })
+        .catch(() => setRegisterOpen(false));
+    } else {
+      setRegisterOpen(true); // Not enforced = always "open"
+    }
+  }, [selectedRestaurant?.id, posSettings.requireRegisterOpen]);
+
+  // Listen for register open/close from other tabs
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'registerOpen') {
+        setRegisterOpen(e.newValue === 'true');
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+
   // Card design toggle state - Initialize from localStorage based on user ID
   const [useModernCards, setUseModernCards] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -440,18 +469,18 @@ function RestaurantPOSContent() {
   const getDynamicCategories = () => {
     if (!menuItems || menuItems.length === 0) {
       return [
-        { id: 'all-items', name: 'All Items', emoji: '🍽️', count: 0 },
-        { id: 'favorites', name: 'Favorites', emoji: '❤️', count: 0 }
+        { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: 0 },
+        { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: 0 }
       ];
     }
     
     // Get unique categories from menu items
     const categoryMap = new Map();
-    categoryMap.set('all-items', { id: 'all-items', name: 'All Items', emoji: '🍽️', count: menuItems.length });
+    categoryMap.set('all-items', { id: 'all-items', name: t('dashboard.allItems'), emoji: '🍽️', count: menuItems.length });
     
     // Count favorites
     const favoritesCount = menuItems.filter(item => item.isFavorite === true).length;
-    categoryMap.set('favorites', { id: 'favorites', name: 'Favorites', emoji: '❤️', count: favoritesCount });
+    categoryMap.set('favorites', { id: 'favorites', name: t('dashboard.favorites'), emoji: '❤️', count: favoritesCount });
     
     menuItems.forEach(item => {
       if (item.category) {
@@ -1457,6 +1486,12 @@ function RestaurantPOSContent() {
   }, [searchParams, selectedRestaurant?.id]);
 
   const filteredItemsBase = (menuItems || []).filter(item => {
+    // Hide out-of-stock items if setting enabled
+    if (posSettings.hideOutOfStock) {
+      const stockManaged = item.isStockManaged && typeof item.stockQuantity === 'number';
+      const outOfStock = item.isAvailable === false || (stockManaged && item.stockQuantity === 0);
+      if (outOfStock) return false;
+    }
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     // When searching, always search all items regardless of category
     if (searchTerm.trim()) return matchesSearch;
@@ -1553,14 +1588,14 @@ function RestaurantPOSContent() {
   const addToCart = (itemRaw) => {
     // Block out-of-stock items
     if (itemRaw?.isAvailable === false) {
-      setNotification({ type: 'error', title: 'Out of Stock', message: `"${itemRaw.name}" is currently out of stock`, show: true });
+      setNotification({ type: 'error', title: t('dashboard.outOfStock'), message: `"${itemRaw.name}" is currently out of stock`, show: true });
       return;
     }
     // Check stock limit if stock managed
     if (itemRaw?.isStockManaged && typeof itemRaw?.stockQuantity === 'number') {
       const currentInCart = getItemQuantityInCart(itemRaw.id);
       if (currentInCart >= itemRaw.stockQuantity) {
-        setNotification({ type: 'error', title: 'Stock Limit', message: `Only ${itemRaw.stockQuantity} "${itemRaw.name}" in stock`, show: true });
+        setNotification({ type: 'error', title: t('dashboard.stockLimit'), message: `Only ${itemRaw.stockQuantity} "${itemRaw.name}" in stock`, show: true });
         return;
       }
     }
@@ -1700,7 +1735,7 @@ function RestaurantPOSContent() {
         // Show error notification if short code not found
         setNotification({
           type: 'error',
-          title: 'Short Code Not Found',
+          title: t('dashboard.shortCodeNotFound'),
           message: `No item found with short code "${searchValue}"`,
           show: true
         });
@@ -1848,8 +1883,8 @@ function RestaurantPOSContent() {
     // Show success notification
     setNotification({
       type: 'success',
-      title: 'Fresh Order Started',
-      message: 'Ready to take a new order!',
+      title: t('dashboard.freshOrderStarted'),
+      message: t('dashboard.readyForNewOrder'),
       show: true
     });
   };
@@ -2054,8 +2089,8 @@ function RestaurantPOSContent() {
         if (mode === 'view') {
           setNotification({
             type: 'info',
-            title: 'Order Loaded for Viewing 👁️',
-            message: `Order "${orderId}" loaded - View mode`,
+            title: t('dashboard.orderLoadedViewingEmoji'),
+            message: `${t('dashboard.orderLoadedViewMode')}`,
             show: true
           });
         } else if (mode === 'edit') {
@@ -2063,8 +2098,8 @@ function RestaurantPOSContent() {
           if (order.status === 'completed') {
             setNotification({
               type: 'success',
-              title: 'New Order Created 📝',
-              message: `New order created based on completed order "${orderId}" - Ready to modify!`,
+              title: t('dashboard.newOrderCreatedEmoji'),
+              message: t('dashboard.newOrderFromCompletedMsg', { id: orderId }),
               show: true
             });
             // Clear current order for new order creation
@@ -2072,16 +2107,16 @@ function RestaurantPOSContent() {
           } else {
             setNotification({
               type: 'success',
-              title: 'Order Ready for Editing ✏️',
-              message: `Order "${orderId}" loaded successfully - Ready to edit!`,
+              title: t('dashboard.orderReadyEditingEmoji'),
+              message: t('dashboard.orderLoadedReady'),
               show: true
             });
           }
         } else if (mode === 'duplicate') {
           setNotification({
             type: 'success',
-            title: 'New Order Created 📝',
-            message: `New order created based on completed order "${orderId}" - Ready to modify!`,
+            title: t('dashboard.newOrderCreatedEmoji'),
+            message: t('dashboard.newOrderFromCompletedMsg', { id: orderId }),
             show: true
           });
           // Clear current order for new order creation
@@ -2089,8 +2124,8 @@ function RestaurantPOSContent() {
         } else {
           setNotification({
             type: 'success',
-            title: 'Order Found! 🎉',
-            message: `Order "${orderId}" loaded successfully - Ready to edit!`,
+            title: t('dashboard.orderFoundEmoji'),
+            message: t('dashboard.orderLoadedReady'),
             show: true
           });
         }
@@ -2101,7 +2136,7 @@ function RestaurantPOSContent() {
         } else {
           setNotification({
           type: 'error',
-            title: 'Order Not Found',
+            title: t('dashboard.orderNotFound'),
           message: `No order found with ID "${orderId}"`,
             show: true
           });
@@ -2112,7 +2147,7 @@ function RestaurantPOSContent() {
       console.error('Auto-triggered order lookup error:', error);
         setNotification({
           type: 'error',
-        title: 'Error Loading Order',
+        title: t('dashboard.errorLoadingOrder'),
         message: error.message || 'Failed to load order',
           show: true
         });
@@ -2263,7 +2298,7 @@ function RestaurantPOSContent() {
   // Voice Assistant Functions
   const startVoiceListening = async () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+      alert(t('dashboard.speechNotSupported'));
       return;
     }
 
@@ -2355,8 +2390,8 @@ function RestaurantPOSContent() {
     } else if (!isAutoStop && finalTranscriptRef.current.trim()) {
       setNotification({
         type: 'warning',
-        title: 'No Items Found',
-        message: 'Could not match any menu items.',
+        title: t('dashboard.noItemsFound'),
+        message: t('dashboard.couldNotMatchItems'),
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -2396,8 +2431,8 @@ function RestaurantPOSContent() {
       if (!selectedRestaurant?.id) {
         setNotification({
           type: 'error',
-          title: 'No Restaurant Selected',
-          message: 'Please select a restaurant first',
+          title: t('dashboard.noRestaurantSelected'),
+          message: t('dashboard.selectRestaurantFirst'),
           show: true
         });
         setTimeout(() => setNotification(null), 3000);
@@ -2429,16 +2464,16 @@ function RestaurantPOSContent() {
         // Show success notification
         setNotification({
           type: 'success',
-          title: 'Voice Order Success! ✅',
-          message: `Successfully added ${response.items.length} item(s) to cart: ${response.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}`,
+          title: t('dashboard.voiceOrderSuccessEmoji'),
+          message: t('dashboard.voiceOrderSuccessMsg', { count: response.items.length, items: response.items.map(i => `${i.quantity}x ${i.name}`).join(', ') }),
           show: true
         });
         setTimeout(() => setNotification(null), 4000);
       } else {
         setNotification({
           type: 'warning',
-          title: 'No Items Found',
-          message: `Could not match any menu items from: "${transcript}". Please try again with clearer pronunciation.`,
+          title: t('dashboard.noItemsFound'),
+          message: t('dashboard.couldNotMatchItemsFrom', { transcript }),
           show: true
         });
         setTimeout(() => setNotification(null), 4000);
@@ -2447,8 +2482,8 @@ function RestaurantPOSContent() {
       console.error('❌ Voice processing error:', error);
       setNotification({
         type: 'error',
-        title: 'Voice Order Failed ❌',
-        message: error.message || 'Failed to process voice command. Please try again.',
+        title: t('dashboard.voiceOrderFailedEmoji'),
+        message: error.message || t('dashboard.voiceOrderFailedMsg'),
         show: true
       });
       setTimeout(() => setNotification(null), 4000);
@@ -2489,11 +2524,23 @@ function RestaurantPOSContent() {
     if (currentOrder && currentOrder.status === 'completed') {
       setNotification({
         type: 'error',
-        title: 'Order Completed! ✅',
-        message: 'This order has already been completed and cannot be modified.',
+        title: t('dashboard.orderCompletedEmoji'),
+        message: t('dashboard.orderCompleteNoticeMsg'),
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    // Block billing if register enforcement is on and register not open
+    if (posSettings.requireRegisterOpen && !registerOpen) {
+      setNotification({
+        type: 'error',
+        title: '💰 Register Not Open',
+        message: 'Please open the cash register before billing. Go to Register page.',
+        show: true
+      });
+      setTimeout(() => setNotification(null), 4000);
       return;
     }
 
@@ -2520,8 +2567,8 @@ function RestaurantPOSContent() {
         // Show warning but continue with order completion
         setNotification({
           type: 'warning',
-          title: 'Table Changed! ⚠️',
-          message: `Table changed from "${currentOrder.tableNumber || 'N/A'}" to "${tableToUse}". Order will be completed if table is available.`,
+          title: t('dashboard.tableChangedEmoji'),
+          message: t('dashboard.tableChangedCompleteMsg', { from: currentOrder.tableNumber || 'N/A', to: tableToUse }),
           show: true
         });
       }
@@ -2535,7 +2582,7 @@ function RestaurantPOSContent() {
           items: cart.map(item => ({
             menuItemId: item.id,
             quantity: item.quantity,
-            notes: '',
+            notes: item.notes || '',
             name: item.name,
             price: item.price,
             category: item.category || '',
@@ -2607,7 +2654,7 @@ function RestaurantPOSContent() {
         // Check both isOnline state AND navigator.onLine for reliability (WebKit can be slow to fire offline events)
         if (!isOnline || !navigator.onLine) {
           if (!offlineEnabled) {
-            setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+            setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
             setBillingLoading(false);
             return;
@@ -2629,20 +2676,20 @@ function RestaurantPOSContent() {
               _paymentData: paymentData,
               idempotencyKey: generateIdempotencyKey(),
             });
-            setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Billing completion saved locally. Will sync when online.', show: true });
+            setNotification({ type: 'success', title: t('dashboard.billingSavedOffline'), message: t('dashboard.billingSavedOfflineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
             // Show bill summary same as online path
             setOrderSuccess({
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
               show: true,
-              message: 'Billing Complete! 💳'
+              message: t('dashboard.billingCompleteEmoji')
             });
             setCurrentOrder(null);
             setActiveSavedOrderId(null);
             handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || currentOrder.tableNumber) });
           } catch (offErr) {
-            setNotification({ type: 'error', title: 'Save Failed!', message: 'Could not save billing locally.', show: true });
+            setNotification({ type: 'error', title: t('dashboard.saveFailed'), message: t('dashboard.couldNotSaveBillingLocally'), show: true });
             setTimeout(() => setNotification(null), 4000);
           }
           setProcessing(false);
@@ -2666,8 +2713,8 @@ function RestaurantPOSContent() {
           // Show notification for order completion
           setNotification({
             type: 'success',
-            title: 'Order Completed! 💳',
-            message: `Order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)} completed. Payment processed.`,
+            title: t('dashboard.orderCompletedPaymentEmoji'),
+            message: t('dashboard.orderCompletedPaymentMsg', { id: currentOrder.dailyOrderId || currentOrder.id.slice(-6) }),
             show: true
           });
 
@@ -2677,7 +2724,7 @@ function RestaurantPOSContent() {
             orderId: completedOrderId,
             dailyOrderId: currentOrder.dailyOrderId,
             show: true,
-            message: 'Billing Complete! 💳'
+            message: t('dashboard.billingCompleteEmoji')
           });
           setCurrentOrder(null);
           setActiveSavedOrderId(null);
@@ -2719,7 +2766,7 @@ function RestaurantPOSContent() {
         items: cart.map(item => ({
           menuItemId: item.id,
           quantity: item.quantity,
-          notes: '',
+          notes: item.notes || '',
           name: item.name,
           // Pass configuration so backend can price and persist for KOT
           selectedVariant: item.selectedVariant || null,
@@ -2782,7 +2829,7 @@ function RestaurantPOSContent() {
         // OFFLINE PATH: Queue order + payment for later sync
         if (!isOnline || !navigator.onLine) {
           if (!offlineEnabled) {
-            setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+            setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
             setBillingLoading(false);
             return;
@@ -2803,18 +2850,18 @@ function RestaurantPOSContent() {
               _paymentData: paymentData,
               idempotencyKey: offlineIdempotencyKey,
             });
-            setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Order saved locally. Will sync when online.', show: true });
+            setNotification({ type: 'success', title: t('dashboard.billingSavedOffline'), message: t('dashboard.orderSavedLocallySync'), show: true });
             setTimeout(() => setNotification(null), 4000);
             // Show bill summary same as online path
             setOrderSuccess({
               orderId: offlineIdempotencyKey,
               dailyOrderId: null,
               show: true,
-              message: 'Billing Complete! 💳'
+              message: t('dashboard.billingCompleteEmoji')
             });
             handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || selectedTable?.number) });
           } catch (offErr) {
-            setNotification({ type: 'error', title: 'Save Failed!', message: 'Could not save billing locally.', show: true });
+            setNotification({ type: 'error', title: t('dashboard.saveFailed'), message: t('dashboard.couldNotSaveBillingLocally'), show: true });
             setTimeout(() => setNotification(null), 4000);
           }
           setProcessing(false);
@@ -2879,8 +2926,8 @@ function RestaurantPOSContent() {
         console.log('🎉 Order processing completed successfully:', orderId);
       setNotification({
         type: 'success',
-        title: 'Billing Complete! 💳',
-        message: `Order #${orderResponse.order?.dailyOrderId || orderId.slice(-6)} completed. Payment processed.`,
+        title: t('dashboard.billingCompleteEmoji'),
+        message: t('dashboard.orderCompletedPaymentMsg', { id: orderResponse.order?.dailyOrderId || orderId.slice(-6) }),
         show: true
       });
 
@@ -2889,7 +2936,7 @@ function RestaurantPOSContent() {
         orderId,
         dailyOrderId: orderResponse.order?.dailyOrderId,
         show: true,
-        message: 'Billing Complete! 💳'
+        message: t('dashboard.billingCompleteEmoji')
       };
       console.log('Setting order success:', successData);
       setOrderSuccess(successData);
@@ -2921,7 +2968,7 @@ function RestaurantPOSContent() {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           const billingData = {
             items: cart.map(item => ({
-              menuItemId: item.id, quantity: item.quantity, notes: '',
+              menuItemId: item.id, quantity: item.quantity, notes: item.notes || '',
               name: item.name, price: item.price, category: item.category || '',
               taxGroupId: item.taxGroupId || null,
             })),
@@ -2953,13 +3000,13 @@ function RestaurantPOSContent() {
           billingData._paymentData = paymentData;
           billingData.idempotencyKey = generateIdempotencyKey();
           await queueOfflineOrder(billingData);
-          setNotification({ type: 'success', title: 'Billing Saved Offline', message: 'Network error detected. Billing saved locally — will sync when online.', show: true });
+          setNotification({ type: 'success', title: t('dashboard.billingSavedOffline'), message: t('dashboard.networkErrorBillingSaved'), show: true });
           setTimeout(() => setNotification(null), 4000);
           setOrderSuccess({
             orderId: currentOrder?.id || billingData.idempotencyKey,
             dailyOrderId: currentOrder?.dailyOrderId || null,
             show: true,
-            message: 'Billing Complete! 💳'
+            message: t('dashboard.billingCompleteEmoji')
           });
           if (currentOrder) {
             setCurrentOrder(null);
@@ -2981,7 +3028,7 @@ function RestaurantPOSContent() {
       // Show notification instead of full-page error
       setNotification({
         type: 'error',
-        title: 'Billing Failed! ❌',
+        title: t('dashboard.billingFailed'),
         message: errorMessage,
         show: true
       });
@@ -3120,7 +3167,7 @@ function RestaurantPOSContent() {
       console.error('Error loading saved order:', error);
       setNotification({
         type: 'error',
-        title: 'Load Failed! ❌',
+        title: t('dashboard.loadFailed'),
         message: error.message || 'Failed to load order',
         show: true
       });
@@ -3158,8 +3205,8 @@ function RestaurantPOSContent() {
 
       setNotification({
         type: 'success',
-        title: 'Deleted!',
-        message: 'Saved cart removed',
+        title: t('dashboard.deleted'),
+        message: t('dashboard.savedCartRemoved'),
         show: true
       });
       setTimeout(() => setNotification(null), 2000);
@@ -3168,7 +3215,7 @@ function RestaurantPOSContent() {
       console.error('Error deleting saved cart:', error);
       setNotification({
         type: 'error',
-        title: 'Delete Failed!',
+        title: t('dashboard.deleteFailed'),
         message: error.message || 'Failed to delete cart',
         show: true
       });
@@ -3183,8 +3230,8 @@ function RestaurantPOSContent() {
     if (cart.length === 0) {
       setNotification({
         type: 'error',
-        title: 'Empty Cart! 🛒',
-        message: 'Please add items to cart before saving.',
+        title: t('dashboard.emptyCartNotice'),
+        message: t('dashboard.addItemsBeforeSaving'),
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -3194,8 +3241,8 @@ function RestaurantPOSContent() {
     if (!selectedRestaurant?.id) {
       setNotification({
         type: 'error',
-        title: 'No Restaurant! 🏪',
-        message: 'Please set up a restaurant first.',
+        title: t('dashboard.noRestaurant'),
+        message: t('dashboard.setupRestaurantFirst'),
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -3248,7 +3295,7 @@ function RestaurantPOSContent() {
       // OFFLINE PATH: Queue to IndexedDB
       if (!isOnline || !navigator.onLine) {
         if (!offlineEnabled) {
-          setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+          setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
           setTimeout(() => setNotification(null), 4000);
           return;
         }
@@ -3258,7 +3305,7 @@ function RestaurantPOSContent() {
             _offlineAction: 'create_saved_cart',
             idempotencyKey: generateIdempotencyKey(),
           });
-          setNotification({ type: 'success', title: 'Order Saved Offline', message: `"${autoName}" saved locally. Will sync when online.`, show: true });
+          setNotification({ type: 'success', title: t('dashboard.orderSavedOffline'), message: `"${autoName}" saved locally. Will sync when online.`, show: true });
           setTimeout(() => setNotification(null), 4000);
           setCart([]);
           setTableNumber('');
@@ -3270,7 +3317,7 @@ function RestaurantPOSContent() {
           setActiveSavedOrderId(null);
           localStorage.removeItem('dine_cart');
         } catch (offErr) {
-          setNotification({ type: 'error', title: 'Save Failed!', message: 'Could not save order locally.', show: true });
+          setNotification({ type: 'error', title: t('dashboard.saveFailed'), message: t('dashboard.couldNotSaveBillingLocally'), show: true });
           setTimeout(() => setNotification(null), 4000);
         }
         setSavingOrder(false);
@@ -3284,7 +3331,7 @@ function RestaurantPOSContent() {
       if (response.cart) {
         setNotification({
           type: 'success',
-          title: 'Order Saved! 💾',
+          title: t('dashboard.orderSaved'),
           message: `"${response.cart.name}" saved successfully`,
           show: true
         });
@@ -3306,7 +3353,7 @@ function RestaurantPOSContent() {
       console.error('Save cart error:', error);
       // Fallback: try to queue offline if API failed
       if (!offlineEnabled) {
-        setNotification({ type: 'error', title: 'Save Failed', message: error.message || 'Could not save order. Please check your internet connection.', show: true });
+        setNotification({ type: 'error', title: t('dashboard.saveFailedPlain'), message: error.message || t('dashboard.saveFailedConnectionMsg'), show: true });
         setTimeout(() => setNotification(null), 4000);
         return;
       }
@@ -3316,7 +3363,7 @@ function RestaurantPOSContent() {
           _offlineAction: 'create_saved_cart',
           idempotencyKey: generateIdempotencyKey(),
         });
-        setNotification({ type: 'success', title: 'Order Saved Offline', message: 'Connection issue. Saved locally and will sync when online.', show: true });
+        setNotification({ type: 'success', title: t('dashboard.orderSavedOffline'), message: t('dashboard.connectionIssueSavedLocally'), show: true });
         setCart([]);
         setTableNumber('');
         setManualTableNumber('');
@@ -3329,8 +3376,8 @@ function RestaurantPOSContent() {
       } catch (qErr) {
         setNotification({
           type: 'error',
-          title: 'Save Failed! ❌',
-          message: error.message || 'Failed to save cart. Please try again.',
+          title: t('dashboard.saveFailedEmoji'),
+          message: error.message || t('dashboard.saveFailedRetryMsg'),
           show: true
         });
       }
@@ -3366,7 +3413,7 @@ function RestaurantPOSContent() {
       if (response.cart) {
         setNotification({
           type: 'success',
-          title: 'Template Saved!',
+          title: t('dashboard.templateSaved'),
           message: `"${response.cart.name}" saved as template`,
           show: true
         });
@@ -3377,7 +3424,7 @@ function RestaurantPOSContent() {
       console.error('Save template error:', error);
       setNotification({
         type: 'error',
-        title: 'Template Save Failed!',
+        title: t('dashboard.templateSaveFailed'),
         message: error.message || 'Failed to save template.',
         show: true
       });
@@ -3389,8 +3436,8 @@ function RestaurantPOSContent() {
     if (cart.length === 0) {
       setNotification({
         type: 'error',
-        title: 'Empty Cart! 🛒',
-        message: 'Please add items to cart before placing order.',
+        title: t('dashboard.emptyCartNotice'),
+        message: t('dashboard.addItemsBeforePlacing'),
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -3401,8 +3448,8 @@ function RestaurantPOSContent() {
     if (!selectedRestaurant?.id) {
       setNotification({
         type: 'error',
-        title: 'No Restaurant! 🏪',
-        message: 'Please set up a restaurant first.',
+        title: t('dashboard.noRestaurant'),
+        message: t('dashboard.setupRestaurantFirst'),
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -3413,8 +3460,8 @@ function RestaurantPOSContent() {
     if (currentOrder && currentOrder.status === 'completed') {
       setNotification({
         type: 'error',
-        title: 'Order Completed! ✅',
-        message: 'This order has already been completed and cannot be modified.',
+        title: t('dashboard.orderCompletedEmoji'),
+        message: t('dashboard.orderCompleteNoticeMsg'),
         show: true
       });
       setTimeout(() => setNotification(null), 3000);
@@ -3445,8 +3492,8 @@ function RestaurantPOSContent() {
         // Show warning but continue with order placement
         setNotification({
           type: 'warning',
-          title: 'Table Changed! ⚠️',
-          message: `Table changed from "${currentOrder.tableNumber || 'N/A'}" to "${tableToUse}". Order will be placed if table is available.`,
+          title: t('dashboard.tableChangedEmoji'),
+          message: t('dashboard.tableChangedPlaceMsg', { from: currentOrder.tableNumber || 'N/A', to: tableToUse }),
           show: true
         });
       }
@@ -3495,8 +3542,8 @@ function RestaurantPOSContent() {
           // Show notification for order update
           setNotification({
             type: 'success',
-            title: 'Order Updated! ✏️👨‍🍳',
-            message: `Order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)} updated and sent to kitchen.`,
+            title: t('dashboard.orderUpdatedEmoji'),
+            message: t('dashboard.orderUpdatedKitchenMsg', { id: currentOrder.dailyOrderId || currentOrder.id.slice(-6) }),
             show: true
           });
 
@@ -3506,7 +3553,7 @@ function RestaurantPOSContent() {
             orderId: currentOrder.id,
             dailyOrderId: currentOrder.dailyOrderId,
             show: true,
-            message: 'Order Updated! ✏️',
+            message: t('dashboard.orderUpdatedShort'),
             kotData: {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
@@ -3548,7 +3595,7 @@ function RestaurantPOSContent() {
           items: cart.map(item => ({
             menuItemId: item.id,
             quantity: item.quantity,
-            notes: '',
+            notes: item.notes || '',
             selectedVariant: item.selectedVariant || null,
             selectedCustomizations: Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [],
             basePrice: typeof item.basePrice === 'number' ? item.basePrice : item.price
@@ -3616,7 +3663,7 @@ function RestaurantPOSContent() {
         // OFFLINE PATH: If offline, queue immediately to IndexedDB
         if (!isOnline || !navigator.onLine) {
           if (!offlineEnabled) {
-            setNotification({ type: 'error', title: 'No Internet', message: 'You are offline and offline mode is disabled. Please connect to the internet.', show: true });
+            setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
             setPlacingOrder(false);
             return;
@@ -3626,8 +3673,8 @@ function RestaurantPOSContent() {
             await queueOfflineOrder(orderData);
             setNotification({
               type: 'success',
-              title: 'Order Saved Offline',
-              message: 'Order saved locally. Will sync automatically when online.',
+              title: t('dashboard.orderSavedOffline'),
+              message: t('dashboard.orderSavedLocallyAutoSync'),
               show: true
             });
             // Show KOT summary same as online path
@@ -3635,7 +3682,7 @@ function RestaurantPOSContent() {
               orderId: orderData.idempotencyKey || 'offline',
               dailyOrderId: null,
               show: true,
-              message: 'Order Placed to Kitchen! 👨‍🍳',
+              message: t('dashboard.orderPlacedToKitchen'),
               kotData: {
                 orderId: orderData.idempotencyKey || 'offline',
                 dailyOrderId: null,
@@ -3658,8 +3705,8 @@ function RestaurantPOSContent() {
             console.error('Failed to save offline order:', offlineErr);
             setNotification({
               type: 'error',
-              title: 'Save Failed!',
-              message: 'Could not save order locally. Please try again.',
+              title: t('dashboard.saveFailed'),
+              message: t('dashboard.couldNotSaveOrderLocally'),
               show: true
             });
           }
@@ -3683,7 +3730,7 @@ function RestaurantPOSContent() {
           dailyOrderId: null,
           show: true,
           processing: true,
-          message: 'Order Placed to Kitchen! 👨‍🍳',
+          message: t('dashboard.orderPlacedToKitchen'),
           kotData: {
             orderId: null,
             dailyOrderId: null,
@@ -3720,8 +3767,8 @@ function RestaurantPOSContent() {
             // Update notification with real order ID
             setNotification({
               type: 'success',
-              title: 'Order Sent to Chef! 👨‍🍳',
-              message: `Order #${response.order.dailyOrderId || response.order.id.slice(-6)} placed successfully.`,
+              title: t('dashboard.orderSentToChefEmoji'),
+              message: t('dashboard.orderSentToChefSuccessMsg', { id: response.order.dailyOrderId || response.order.id.slice(-6) }),
               show: true
             });
 
@@ -3731,7 +3778,7 @@ function RestaurantPOSContent() {
               dailyOrderId: response.order.dailyOrderId,
               show: true,
               processing: false,
-              message: 'Order Placed to Kitchen! 👨‍🍳',
+              message: t('dashboard.orderPlacedToKitchen'),
               kotData: {
                 orderId: response.order.id,
                 dailyOrderId: response.order.dailyOrderId,
@@ -3766,8 +3813,8 @@ function RestaurantPOSContent() {
               setOrderSuccess(prev => prev ? { ...prev, processing: false, queued: true } : prev);
               setNotification({
                 type: 'warning',
-                title: 'Order Queued',
-                message: 'Connection issue. Order saved and will sync automatically when online.',
+                title: t('dashboard.orderQueued'),
+                message: t('dashboard.orderQueuedSyncMsg'),
                 show: true
               });
             } else {
@@ -3777,8 +3824,8 @@ function RestaurantPOSContent() {
               localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
               setNotification({
                 type: 'error',
-                title: 'Order Failed!',
-                message: apiError.message || 'Failed to place order. Your cart has been restored.',
+                title: t('dashboard.orderFailed'),
+                message: apiError.message || t('dashboard.orderFailedRestored'),
                 show: true
               });
             }
@@ -3789,8 +3836,8 @@ function RestaurantPOSContent() {
             localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
             setNotification({
               type: 'error',
-              title: 'Order Failed!',
-              message: 'Failed to place order. Your cart has been restored.',
+              title: t('dashboard.orderFailed'),
+              message: t('dashboard.orderFailedRestored'),
               show: true
             });
           }
@@ -3809,7 +3856,7 @@ function RestaurantPOSContent() {
       // Show notification instead of full-page error
       setNotification({
         type: 'error',
-        title: 'Order Failed! ❌',
+        title: t('dashboard.orderFailed'),
         message: errorMessage,
         show: true
       });
@@ -4056,7 +4103,7 @@ function RestaurantPOSContent() {
       if (lastSyncEvent.syncedCount > 0) {
         setNotification({
           type: 'success',
-          title: 'Orders Synced',
+          title: t('dashboard.ordersSynced'),
           message: `${lastSyncEvent.syncedCount} offline order${lastSyncEvent.syncedCount > 1 ? 's' : ''} synced successfully.${lastSyncEvent.failedCount > 0 ? ` ${lastSyncEvent.failedCount} failed.` : ''}`,
           show: true
         });
@@ -4064,7 +4111,7 @@ function RestaurantPOSContent() {
       } else if (lastSyncEvent.failedCount > 0) {
         setNotification({
           type: 'error',
-          title: 'Sync Failed',
+          title: t('dashboard.syncFailed'),
           message: `${lastSyncEvent.failedCount} order${lastSyncEvent.failedCount > 1 ? 's' : ''} failed to sync.`,
           show: true
         });
@@ -4073,8 +4120,8 @@ function RestaurantPOSContent() {
     } else if (lastSyncEvent.type === 'failed') {
       setNotification({
         type: 'error',
-        title: 'Sync Failed',
-        message: 'An offline order failed to sync after 5 retries.',
+        title: t('dashboard.syncFailed'),
+        message: t('dashboard.syncFailedRetries'),
         show: true
       });
       setTimeout(() => setNotification(null), 6000);
@@ -4087,8 +4134,8 @@ function RestaurantPOSContent() {
     if (networkTransition === 'went_offline') {
       setNotification({
         type: 'error',
-        title: 'You\'re Offline',
-        message: 'No internet connection. Orders will be saved locally.',
+        title: t('dashboard.youreOffline'),
+        message: t('dashboard.offlineNoticeMsg'),
         show: true
       });
       setTimeout(() => setNotification(null), 4000);
@@ -4195,7 +4242,7 @@ function RestaurantPOSContent() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text'
           }}>
-            Something Went Wrong! 😔
+            {t('dashboard.somethingWentWrong')}
           </h1>
           
           <p style={{ 
@@ -4249,7 +4296,7 @@ function RestaurantPOSContent() {
                 e.target.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
               }}
             >
-              Try Again
+              {t('dashboard.tryAgain')}
             </button>
             <button
               onClick={() => {
@@ -4282,7 +4329,7 @@ function RestaurantPOSContent() {
                 e.target.style.borderColor = 'rgba(239, 68, 68, 0.2)';
               }}
             >
-              Back to Login
+              {t('dashboard.backToLogin')}
             </button>
           </div>
         </div>
@@ -4350,10 +4397,10 @@ function RestaurantPOSContent() {
               marginBottom: '12px'
             }} />
             <p style={{ fontSize: '16px', color: '#374151', fontWeight: '600', margin: 0 }}>
-              Switching restaurant...
+              {t('dashboard.switchingRestaurant')}
             </p>
             <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
-              Loading menu and data
+              {t('dashboard.loadingMenuAndData')}
             </p>
           </div>
         </div>
@@ -4588,7 +4635,7 @@ function RestaurantPOSContent() {
                 whiteSpace: 'nowrap'
               }}>
                 {voiceTranscript || (
-                  <span style={{ color: '#9ca3af' }}>Listening... speak your order</span>
+                  <span style={{ color: '#9ca3af' }}>{t('dashboard.listeningSpeak')}</span>
                 )}
               </div>
             ) : (
@@ -4603,7 +4650,7 @@ function RestaurantPOSContent() {
                     commandBarInputRef.current?.blur();
                   }
                 }}
-                placeholder="Search menu items, codes, or categories..."
+                placeholder={t('dashboard.searchMenuItems')}
                 style={{
                   flex: 1,
                   border: 'none',
@@ -4633,7 +4680,7 @@ function RestaurantPOSContent() {
                 boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
                 flexShrink: 0
               }}>
-                +{voiceItemsAdded} added
+                +{voiceItemsAdded} {t('dashboard.added')}
               </div>
             )}
 
@@ -4711,7 +4758,7 @@ function RestaurantPOSContent() {
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
               }}
-              title={isListeningVoice ? 'Stop (Esc)' : 'Voice Order (F2)'}
+              title={isListeningVoice ? t('dashboard.stopEsc') : t('dashboard.voiceOrderF2')}
             >
               {isListeningVoice ? (
                 <FaStop size={16} color="white" />
@@ -4766,7 +4813,7 @@ function RestaurantPOSContent() {
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}>
-              {selectedRestaurant?.name || 'My Restaurant'}
+              {selectedRestaurant?.name || t('dashboard.myRestaurant')}
             </h2>
             <p style={{
               fontSize: '12px',
@@ -4776,7 +4823,7 @@ function RestaurantPOSContent() {
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}>
-              {filteredItems.length} items • {selectedCategory === 'all-items' ? 'All Categories' : categories.find(c => c.id === selectedCategory)?.name}
+              {filteredItems.length} {t('dashboard.items')} • {selectedCategory === 'all-items' ? t('dashboard.allCategories') : categories.find(c => c.id === selectedCategory)?.name}
             </p>
           </div>
           
@@ -4806,7 +4853,7 @@ function RestaurantPOSContent() {
               }}
             >
               <FaBars size={14} />
-              Menu
+              {t('dashboard.menu')}
           </button>
           
           {/* Cart Button */}
@@ -4831,7 +4878,7 @@ function RestaurantPOSContent() {
             }}
           >
               <FaShoppingCart size={14} />
-              Cart
+              {t('dashboard.cart')}
             {cart.length > 0 && (
               <span style={{
                 position: 'absolute',
@@ -4942,7 +4989,7 @@ function RestaurantPOSContent() {
                 <FaSearch style={{ marginLeft: '12px', color: '#9ca3af', flexShrink: 0 }} size={14} />
                 <input
                   type="text"
-                  placeholder="Search menu items..."
+                  placeholder={t('dashboard.searchMenuShort')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{
@@ -5008,13 +5055,13 @@ function RestaurantPOSContent() {
               }}
             >
               <FaPlus size={10} />
-              NEW ORDER
+              {t('dashboard.newOrder')}
             </button>
 
             {/* Order ID Input */}
             <input
               type="text"
-              placeholder="Order ID"
+              placeholder={t('dashboard.orderId')}
               value={orderLookup}
               onChange={(e) => setOrderLookup(e.target.value)}
               onKeyPress={handleOrderLookup}
@@ -5038,7 +5085,7 @@ function RestaurantPOSContent() {
             {/* SHORT CODE Input */}
             <input
               type="text"
-              placeholder="SHORT CODE"
+              placeholder={t('dashboard.shortCode')}
               value={shortCodeSearch}
               onChange={(e) => setShortCodeSearch(e.target.value)}
               onKeyPress={handleShortCodeSearch}
@@ -5068,7 +5115,7 @@ function RestaurantPOSContent() {
             <button
               onClick={() => isListeningVoice ? stopVoiceListening(false) : startVoiceListening()}
               disabled={isProcessingVoice}
-              title="Voice Assistant"
+              title={t('dashboard.voiceAssistant')}
               style={{
                 width: '36px',
                 height: '36px',
@@ -5117,7 +5164,7 @@ function RestaurantPOSContent() {
               }}
             >
               <FaChair size={12} />
-              {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
+              {viewMode === 'orders' ? t('dashboard.tables') : t('dashboard.orders')}
             </button>
 
             {/* Reset Tables (only in tables view, owner/admin only) */}
@@ -5127,7 +5174,7 @@ function RestaurantPOSContent() {
                   const allTables = tablesData.tables?.length > 0 ? tablesData.tables : tablesData.floors?.flatMap(f => f.tables || []) || [];
                   const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
                   if (occupiedCount === 0) {
-                    setNotification({ type: 'info', title: 'No Tables to Reset', message: 'All tables are already available.', show: true });
+                    setNotification({ type: 'info', title: t('dashboard.noTablesToReset'), message: t('dashboard.allTablesAvailable'), show: true });
                     setTimeout(() => setNotification(null), 3000);
                     return;
                   }
@@ -5150,7 +5197,7 @@ function RestaurantPOSContent() {
                 }}
               >
                 <FaTools size={10} />
-                Reset
+                {t('dashboard.reset')}
               </button>
             )}
 
@@ -5174,7 +5221,7 @@ function RestaurantPOSContent() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <FaClipboardList size={22} color="#f59e0b" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Orders</span>
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.orders')}</span>
                 </div>
               </Link>
 
@@ -5193,7 +5240,7 @@ function RestaurantPOSContent() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <FaChair size={22} color="#3b82f6" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Tables</span>
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.tables')}</span>
                 </div>
               </Link>
 
@@ -5212,7 +5259,7 @@ function RestaurantPOSContent() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <FaUtensils size={22} color="#10b981" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Menu</span>
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.menu')}</span>
                 </div>
               </Link>
 
@@ -5231,7 +5278,7 @@ function RestaurantPOSContent() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <FaFire size={22} color="#f97316" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Kitchen</span>
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.kitchen')}</span>
                 </div>
               </Link>
 
@@ -5250,7 +5297,7 @@ function RestaurantPOSContent() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <FaUsers size={22} color="#3b82f6" />
-                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>Customers</span>
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#6b7280', marginTop: '3px' }}>{t('dashboard.customers')}</span>
                 </div>
               </Link>
             </div>
@@ -5346,6 +5393,26 @@ function RestaurantPOSContent() {
           // Expand to full width when in tables view
           width: viewMode === 'tables' ? '100%' : undefined
         }}>
+          {/* Register Not Open Banner */}
+          {posSettings.requireRegisterOpen && registerOpen === false && (
+            <div style={{
+              padding: '10px 16px', margin: '8px 12px 0', borderRadius: '10px',
+              background: '#fef3c7', border: '1px solid #fde68a',
+              display: 'flex', alignItems: 'center', gap: '10px'
+            }}>
+              <span style={{ fontSize: '16px' }}>&#9888;</span>
+              <div style={{ flex: 1 }}>
+                <strong style={{ fontSize: '13px', color: '#92400e' }}>Register Not Open</strong>
+                <p style={{ fontSize: '12px', color: '#92400e', margin: '2px 0 0' }}>Open the cash register before billing</p>
+              </div>
+              <a href="/register" style={{
+                padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
+                fontWeight: 600, background: '#f59e0b', color: 'white', textDecoration: 'none',
+                whiteSpace: 'nowrap'
+              }}>Open Register</a>
+            </div>
+          )}
+
           {/* Horizontal Category Chips - Desktop Only when chips mode */}
           {!isMobile && viewMode === 'orders' && categoryViewMode === 'chips' && (
             <div style={{
@@ -5462,7 +5529,7 @@ function RestaurantPOSContent() {
                 <input
                   className="dashboard-search-input"
                   type="text"
-                    placeholder={isMobile ? "Search..." : "Search menu..."}
+                    placeholder={isMobile ? t('dashboard.searchPlaceholder') : t('dashboard.searchMenu')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{
@@ -5536,7 +5603,7 @@ function RestaurantPOSContent() {
                         fontWeight: '600', 
                         color: '#3b82f6' 
                       }}>
-                        {isMobile ? 'Processing...' : 'Processing...'}
+                        {t('dashboard.processing')}
                       </span>
                     </>
                   ) : isListeningVoice ? (
@@ -5551,7 +5618,7 @@ function RestaurantPOSContent() {
                         fontWeight: '600', 
                         color: '#ef4444' 
                       }}>
-                        {isMobile ? 'Listening' : 'Listening...'}
+                        {isMobile ? t('dashboard.listeningShort') : t('dashboard.listening')}
                       </span>
                       <button
                         onClick={() => stopVoiceListening(false)}
@@ -5567,7 +5634,7 @@ function RestaurantPOSContent() {
                           fontWeight: '600'
                         }}
                       >
-                        Stop
+                        {t('dashboard.stop')}
                       </button>
                     </>
                   ) : (
@@ -5587,7 +5654,7 @@ function RestaurantPOSContent() {
                         transition: 'all 0.2s ease',
                         boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
                       }}
-                      title="Start Voice Order"
+                      title={t('dashboard.startVoiceOrder')}
                     >
                       <FaMicrophone size={isMobile ? 12 : 14} />
                     </button>
@@ -5611,7 +5678,7 @@ function RestaurantPOSContent() {
                   <input
                     className="dashboard-order-id-input"
                     type="text"
-                    placeholder={isMobile ? "Order" : "Order ID"}
+                    placeholder={isMobile ? t('dashboard.orderId') : t('dashboard.orderId')}
                     value={orderLookup}
                     onChange={(e) => setOrderLookup(e.target.value)}
                     onKeyPress={handleOrderLookup}
@@ -5646,7 +5713,7 @@ function RestaurantPOSContent() {
                   <input
                     className="dashboard-short-code-input"
                     type="text"
-                    placeholder={isMobile ? "SC" : "SHORT CODE"}
+                    placeholder={isMobile ? t('dashboard.shortCode') : t('dashboard.shortCode')}
                     value={shortCodeSearch}
                     onChange={(e) => setShortCodeSearch(e.target.value)}
                     onKeyPress={handleShortCodeSearch}
@@ -5706,7 +5773,7 @@ function RestaurantPOSContent() {
                   }}
                 >
                   <FaPlus size={isMobile ? 10 : 12} />
-                  NEW ORDER
+                  {t('dashboard.newOrder')}
                 </button>
 
                 {/* Right Side Group: Voice + Tables Button - Fixed Position */}
@@ -5721,7 +5788,7 @@ function RestaurantPOSContent() {
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <button
                       onClick={() => isListeningVoice ? stopVoiceListening(false) : startVoiceListening()}
-                      title={isListeningVoice ? "Stop Voice Order" : isProcessingVoice ? "Processing..." : "Start Voice Order"}
+                      title={isListeningVoice ? t('dashboard.stopVoiceOrder') : isProcessingVoice ? t('dashboard.processing') : t('dashboard.startVoiceOrder')}
                       disabled={isProcessingVoice}
                     style={{
                         background: isListeningVoice 
@@ -5773,7 +5840,7 @@ function RestaurantPOSContent() {
                         zIndex: 1000,
                         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
                       }}>
-                        Processing...
+                        {t('dashboard.processing')}
                       </div>
                     )}
                   </div>
@@ -5800,14 +5867,14 @@ function RestaurantPOSContent() {
                       flexShrink: 0, // Prevent shrinking
                       whiteSpace: 'nowrap' // Prevent text wrapping
                     }}
-                    title={viewMode === 'orders' ? 'Switch to Tables' : 'Back to Orders'}
+                    title={viewMode === 'orders' ? t('dashboard.switchToTables') : t('dashboard.backToOrders')}
                   >
                     <span style={{ 
                       display: 'inline-block',
                       width: '100%',
                       textAlign: 'center'
                     }}>
-                      {viewMode === 'orders' ? 'TABLES' : 'ORDERS'}
+                      {viewMode === 'orders' ? t('dashboard.tables') : t('dashboard.orders')}
                     </span>
                     {tablesRefreshing && (
                       <div style={{ position: 'absolute', top: '-6px', right: '-6px' }}>
@@ -6014,7 +6081,7 @@ function RestaurantPOSContent() {
                 borderRadius: '12px'
               }}>
                 <FaSpinner className="animate-spin text-orange-500" style={{ fontSize: '32px' }} />
-                <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>Loading order details...</p>
+                <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>{t('dashboard.loadingOrderDetails')}</p>
               </div>
             )}
             {/* Multi-Tier Pricing Rule Selector — moved to OrderSummary header */}
@@ -6091,7 +6158,7 @@ function RestaurantPOSContent() {
                             >
                               <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#6b7280'} />
                               <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#4b5563' }}>
-                                {categoryViewMode === 'sidebar' ? 'Top Bar' : 'Sidebar'}
+                                {categoryViewMode === 'sidebar' ? t('dashboard.topBar') : t('dashboard.sidebar')}
                               </span>
                               <div style={{
                                 width: '26px',
@@ -6136,7 +6203,7 @@ function RestaurantPOSContent() {
                               }}
                             >
                               <FaExpand size={11} color={useModernCards ? '#ef4444' : '#6b7280'} />
-                              <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>Modern</span>
+                              <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>{t('dashboard.modern')}</span>
                               <div style={{
                                 width: '26px',
                                 height: '14px',
@@ -6249,7 +6316,7 @@ function RestaurantPOSContent() {
                         >
                           <FaThList size={11} color={categoryViewMode === 'chips' ? '#ef4444' : '#6b7280'} />
                           <span style={{ fontSize: '11px', fontWeight: '600', color: categoryViewMode === 'chips' ? '#ef4444' : '#4b5563' }}>
-                            {categoryViewMode === 'sidebar' ? 'Top Bar' : 'Sidebar'}
+                            {categoryViewMode === 'sidebar' ? t('dashboard.topBar') : t('dashboard.sidebar')}
                           </span>
                           <div style={{
                             width: '26px',
@@ -6294,7 +6361,7 @@ function RestaurantPOSContent() {
                           }}
                         >
                           <FaExpand size={11} color={useModernCards ? '#ef4444' : '#6b7280'} />
-                          <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>Modern</span>
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: useModernCards ? '#ef4444' : '#4b5563' }}>{t('dashboard.modern')}</span>
                           <div style={{
                             width: '26px',
                             height: '14px',
@@ -6498,7 +6565,7 @@ function RestaurantPOSContent() {
                     // Show notification
                     setNotification({
                       type: 'info',
-                      title: 'Order Loaded',
+                      title: t('dashboard.orderLoaded'),
                       message: `Order loaded for ${table?.name || table?.number || 'table'}. You can view, update, or complete it.`,
                       show: true
                     });
@@ -6511,7 +6578,7 @@ function RestaurantPOSContent() {
           </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
-              <p style={{ color: '#9ca3af', fontSize: '14px' }}>Loading menu...</p>
+              <p style={{ color: '#9ca3af', fontSize: '14px' }}>{t('dashboard.loadingMenu')}</p>
             </div>
           )}
         </div>
@@ -7039,10 +7106,10 @@ function RestaurantPOSContent() {
           }}>
             <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                {inRoomDiningEnabled ? 'Select Location' : t('dashboard.tableNumber')}
+                {inRoomDiningEnabled ? t('dashboard.selectLocation') : t('dashboard.tableNumber')}
               </h2>
               <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
-                {inRoomDiningEnabled ? 'Enter table or room number' : t('dashboard.enterTableNumber')}
+                {inRoomDiningEnabled ? t('dashboard.enterTableOrRoom') : t('dashboard.enterTableNumber')}
               </p>
             </div>
             
@@ -7051,7 +7118,7 @@ function RestaurantPOSContent() {
               {inRoomDiningEnabled && (
                 <div>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Location Type
+                    {t('dashboard.locationType')}
                   </label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -7078,7 +7145,7 @@ function RestaurantPOSContent() {
                       }}
                     >
                       <FaTable size={14} />
-                      Table
+                      {t('dashboard.table')}
                     </button>
                     <button
                       type="button"
@@ -7104,7 +7171,7 @@ function RestaurantPOSContent() {
                       }}
                     >
                       <FaBed size={14} />
-                      Room
+                      {t('dashboard.room')}
                     </button>
                   </div>
                 </div>
@@ -7121,7 +7188,7 @@ function RestaurantPOSContent() {
                     value={manualTableNumber}
                     onChange={(e) => setManualTableNumber(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleManualTableSelection()}
-                    placeholder="e.g., T1, Table 5, VIP1"
+                    placeholder={t('dashboard.tablePlaceholder')}
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -7139,14 +7206,14 @@ function RestaurantPOSContent() {
               {inRoomDiningEnabled && locationType === 'room' && (
                 <div>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    Room Number
+                    {t('dashboard.roomNumber')}
                   </label>
                   <input
                     type="text"
                     value={manualRoomNumber}
                     onChange={(e) => setManualRoomNumber(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleManualRoomSelection()}
-                    placeholder="e.g., 101, 205, Suite 301"
+                    placeholder={t('dashboard.roomPlaceholder')}
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -7165,11 +7232,11 @@ function RestaurantPOSContent() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                     <FaChair size={16} color="#0284c7" />
                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#0284c7' }}>
-                      Need to manage tables?
+                      {t('dashboard.needManageTables')}
                     </span>
                   </div>
                   <p style={{ fontSize: '12px', color: '#075985', margin: 0, lineHeight: '1.4' }}>
-                    Visit the Table Management page to set up floor layouts, add tables, and track table status.
+                    {t('dashboard.visitTableManagement')}
                   </p>
                 </div>
               )}
@@ -7223,7 +7290,7 @@ function RestaurantPOSContent() {
                 {inRoomDiningEnabled && locationType === 'room' ? (
                   <>
                     <FaBed size={14} />
-                    Select Room
+                    {t('dashboard.selectRoom')}
                   </>
                 ) : (
                   <>
@@ -7259,7 +7326,7 @@ function RestaurantPOSContent() {
                   <FaTools size={24} color="#ef4444" />
                 </div>
                 <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  Reset All Tables?
+                  {t('dashboard.resetAllTables')}
                 </h3>
                 <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
                   This will mark <strong style={{ color: '#ef4444' }}>{occupiedCount} occupied table{occupiedCount !== 1 ? 's' : ''}</strong> as available. Any active orders on these tables will be unlinked.
@@ -7275,7 +7342,7 @@ function RestaurantPOSContent() {
                     cursor: resetLoading ? 'not-allowed' : 'pointer', opacity: resetLoading ? 0.5 : 1
                   }}
                 >
-                  Cancel
+                  {t('dashboard.cancel')}
                 </button>
                 <button
                   onClick={async () => {
@@ -7296,14 +7363,14 @@ function RestaurantPOSContent() {
                       }));
                       setShowResetConfirm(false);
                       setNotification({
-                        type: 'success', title: 'Tables Reset',
+                        type: 'success', title: t('dashboard.tablesReset'),
                         message: `${occupiedCount} table${occupiedCount !== 1 ? 's' : ''} reset to available.`,
                         show: true
                       });
                       setTimeout(() => setNotification(null), 4000);
                     } catch (err) {
                       setNotification({
-                        type: 'error', title: 'Reset Failed',
+                        type: 'error', title: t('dashboard.resetFailed'),
                         message: err.message || 'Failed to reset tables. Please try again.',
                         show: true
                       });
@@ -7325,10 +7392,10 @@ function RestaurantPOSContent() {
                   {resetLoading ? (
                     <>
                       <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                      Resetting...
+                      {t('dashboard.resetting')}
                     </>
                   ) : (
-                    'Reset All'
+                    t('dashboard.resetAll')
                   )}
                 </button>
               </div>
@@ -7379,9 +7446,9 @@ function RestaurantPOSContent() {
           e.target.style.transform = 'scale(1)';
         }}
         title={
-          fullscreenStep === 0 ? 'Hide Navigation' :
-          fullscreenStep === 1 ? 'Enter Fullscreen' :
-          'Exit Fullscreen'
+          fullscreenStep === 0 ? t('dashboard.hideNavigation') :
+          fullscreenStep === 1 ? t('dashboard.enterFullscreen') :
+          t('dashboard.exitFullscreen')
         }
       >
         {fullscreenStep === 0 ? <FaExpand size={18} /> :
@@ -7430,7 +7497,7 @@ function RestaurantPOSContent() {
               {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <span style={{ fontSize: '12px', fontWeight: '600', color: '#1f2937' }}>
-              {user.name || 'User'}
+              {user.name || t('dashboard.user')}
             </span>
             <FaChevronDown size={10} color="#6b7280" />
           </button>
@@ -7469,10 +7536,10 @@ function RestaurantPOSContent() {
                   </div>
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
-                      {user.name || 'User'}
+                      {user.name || t('dashboard.user')}
                     </div>
                     <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                      {user.role || 'Staff'}
+                      {user.role || t('dashboard.staff')}
                     </div>
                   </div>
                 </div>
@@ -7510,7 +7577,7 @@ function RestaurantPOSContent() {
                   }}
                 >
                   <FaSignOutAlt size={10} />
-                  Logout
+                  {t('dashboard.logout')}
                 </button>
               </div>
             </div>
@@ -7619,12 +7686,12 @@ function RestaurantPOSContent() {
             <FaShoppingCart size={16} />
             {cart.length > 0 ? (
               <>
-                <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} items</span>
+                <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} {t('dashboard.items')}</span>
                 <span style={{ margin: '0 4px', opacity: 0.5 }}>|</span>
                 <span>Rs.{getTotalAmount()}</span>
               </>
             ) : (
-              <span>Cart is empty</span>
+              <span>{t('dashboard.emptyCart')}</span>
             )}
           </button>
         </div>
@@ -7649,7 +7716,7 @@ function RestaurantPOSContent() {
               border: '1px solid rgba(16, 185, 129, 0.2)'
             }}>
               <div style={{ fontSize: '10px', color: '#059669', fontWeight: '600', marginBottom: '2px' }}>
-                Recognized:
+                {t('dashboard.recognized')}
               </div>
               <div style={{ fontSize: '13px', color: '#065f46', fontWeight: '600' }}>
                 {voiceCompiledText}
@@ -7701,14 +7768,14 @@ function RestaurantPOSContent() {
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
-                {voiceTranscript || <span style={{ color: '#9ca3af' }}>Listening...</span>}
+                {voiceTranscript || <span style={{ color: '#9ca3af' }}>{t('dashboard.listening')}</span>}
               </div>
             ) : (
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search menu..."
+                placeholder={t('dashboard.searchMenu')}
                 style={{
                   flex: 1,
                   border: 'none',

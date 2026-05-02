@@ -8615,6 +8615,84 @@ const Admin = () => {
                   <div style={{ fontSize: '11px', color: '#9ca3af' }}>Floating search bar on the POS screen</div>
                 </div>
               </div>
+
+              {/* Hide Out-of-Stock Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, hideOutOfStock: !prev.hideOutOfStock }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.hideOutOfStock
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Hide Out-of-Stock Items</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Completely hide from billing instead of showing grayed out</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
+
+            {/* Register & Cashier */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
+                Register & Cashier
+              </label>
+
+              {/* Require Register Open */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, requireRegisterOpen: !prev.requireRegisterOpen }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.requireRegisterOpen
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Require Register Open</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Must open cash register before billing</div>
+                </div>
+              </div>
+
+              {/* Blind Close */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, blindClose: !prev.blindClose }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.blindClose
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Blind Close</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Hide expected cash during register close</div>
+                </div>
+              </div>
+
+              {/* Require Denomination */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, requireDenomination: !prev.requireDenomination }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.requireDenomination
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Require Denomination Count</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Force cash counting by denomination on close</div>
+                </div>
+              </div>
             </div>
 
             {/* Button Visibility & Labels */}

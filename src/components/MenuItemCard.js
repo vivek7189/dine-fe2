@@ -243,8 +243,18 @@ const MenuItemCard = ({
               {getDisplayPrice()}
             </span>
             {/* Stock/Expiry badges */}
-            {(isLowStock || expiryStatus) && (
+            {(isStockManaged || expiryStatus) && (
               <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
+                {isStockManaged && !isLowStock && !isOutOfStock && (
+                  <span style={{
+                    fontSize: '8px', fontWeight: '700',
+                    padding: '1px 4px', borderRadius: '3px',
+                    backgroundColor: '#ecfdf5', color: '#065f46',
+                    border: '1px solid #a7f3d0'
+                  }}>
+                    {item.stockQuantity} {item.stockUnit || 'pcs'}
+                  </span>
+                )}
                 {isLowStock && (
                   <span style={{
                     fontSize: '8px', fontWeight: '700',

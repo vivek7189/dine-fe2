@@ -1376,6 +1376,7 @@ class ApiClient {
   registerTransaction(registerId, data) { return this.request(`/api/register/${registerId}/transaction`, { method: 'POST', body: data }); }
   closeRegister(registerId, data) { return this.request(`/api/register/${registerId}/close`, { method: 'POST', body: data }); }
   getRegisterHistory(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/register/${restaurantId}/history${qs}`); }
+  getXReport(registerId) { return this.request(`/api/register/${registerId}/x-report`); }
 
   // Google Reviews APIs
   async getGoogleReviewSettings(restaurantId) {
@@ -3191,6 +3192,21 @@ class ApiClient {
     const qs = q.toString();
     return this.request(`/api/hq-reports/${orgId}/export/${reportType}${qs ? `?${qs}` : ''}`, { rawResponse: true });
   }
+
+  // ==================== AGGREGATOR INTEGRATION APIs ====================
+
+  // --- Talabat ---
+  connectTalabat(restaurantId, credentials) { return this.request(`/api/aggregators/talabat/connect/${restaurantId}`, { method: 'POST', body: credentials }); }
+  disconnectTalabat(restaurantId) { return this.request(`/api/aggregators/talabat/disconnect/${restaurantId}`, { method: 'DELETE' }); }
+  getTalabatStatus(restaurantId) { return this.request(`/api/aggregators/talabat/status/${restaurantId}`); }
+  updateTalabatSettings(restaurantId, settings) { return this.request(`/api/aggregators/talabat/settings/${restaurantId}`, { method: 'PATCH', body: settings }); }
+  pushMenuToTalabat(restaurantId) { return this.request(`/api/aggregators/talabat/push-menu/${restaurantId}`, { method: 'POST' }); }
+  updateTalabatStoreStatus(restaurantId, isOpen) { return this.request(`/api/aggregators/talabat/store-status/${restaurantId}`, { method: 'POST', body: { isOpen } }); }
+  acceptTalabatOrder(restaurantId, orderId) { return this.request(`/api/aggregators/talabat/accept-order/${restaurantId}/${orderId}`, { method: 'POST' }); }
+  rejectTalabatOrder(restaurantId, orderId, reason) { return this.request(`/api/aggregators/talabat/reject-order/${restaurantId}/${orderId}`, { method: 'POST', body: { reason } }); }
+  markTalabatOrderPrepared(restaurantId, orderId) { return this.request(`/api/aggregators/talabat/mark-prepared/${restaurantId}/${orderId}`, { method: 'POST' }); }
+  getTalabatOrders(restaurantId, limit) { return this.request(`/api/aggregators/talabat/orders/${restaurantId}${limit ? `?limit=${limit}` : ''}`); }
+  getAggregatorWebhookUrls() { return this.request('/api/aggregators/webhook-url'); }
 }
 
 const apiClient = new ApiClient();
