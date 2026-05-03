@@ -624,7 +624,6 @@ const en = {
       walkIn: 'Walk-in',
       cash: 'Cash',
       room: 'Room',
-      type: 'Type',
       subtotalLabel: 'Subtotal',
       serviceCharge: 'Service Charge',
       tip: 'Tip',

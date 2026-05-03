@@ -1992,7 +1992,7 @@ const OrderHistory = () => {
                             )}
                             <span>{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</span>
                           </div>
-                          <div className="flex items-center gap-2" title={t('orderHistory.type')}>
+                          <div className="flex items-center gap-2" title={t('orderHistory.typeLabel')}>
                             <FaUtensils className="text-gray-400" />
                             <span className="capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
                           </div>
@@ -2273,7 +2273,7 @@ const OrderHistory = () => {
                           <div className="flex items-center gap-2">
                             <FaUtensils className="text-gray-400 text-sm" />
                             <div>
-                              <div className="text-xs text-gray-500">{t('orderHistory.type')}</div>
+                              <div className="text-xs text-gray-500">{t('orderHistory.typeLabel')}</div>
                               <div className="text-sm font-medium text-gray-900 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</div>
                             </div>
                           </div>

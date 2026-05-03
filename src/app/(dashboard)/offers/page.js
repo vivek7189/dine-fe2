@@ -1745,9 +1745,18 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   Priority
                 </label>
                 <input
-                  type="number"
-                  value={formData.priority ?? 0}
-                  onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value, 10) || 0 }))}
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.priority ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, '');
+                    setFormData(prev => ({ ...prev, priority: v === '' ? '' : parseInt(v, 10) }));
+                  }}
+                  onBlur={() => {
+                    if (formData.priority === '' || formData.priority === undefined) {
+                      setFormData(prev => ({ ...prev, priority: 0 }));
+                    }
+                  }}
                   style={{
                     width: '120px',
                     padding: '10px 12px',
@@ -1828,11 +1837,15 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         <div>
                           <label style={{ display: 'block', fontSize: '10px', color: '#0e7490', marginBottom: '2px' }}>Min Subtotal</label>
                           <input
-                            type="number"
-                            value={tier.minSubtotal ?? 0}
+                            type="text"
+                            inputMode="numeric"
+                            value={tier.minSubtotal ?? ''}
                             onChange={(e) => {
-                              const v = parseFloat(e.target.value) || 0;
-                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, minSubtotal: v } : t) }));
+                              const v = e.target.value.replace(/[^0-9.]/g, '');
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, minSubtotal: v === '' ? '' : parseFloat(v) } : t) }));
+                            }}
+                            onBlur={() => {
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, minSubtotal: t.minSubtotal === '' ? 0 : (t.minSubtotal || 0) } : t) }));
                             }}
                             style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #67e8f9', fontSize: '14px', boxSizing: 'border-box' }}
                           />
@@ -1851,11 +1864,15 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                         <div>
                           <label style={{ display: 'block', fontSize: '10px', color: '#0e7490', marginBottom: '2px' }}>Value</label>
                           <input
-                            type="number"
-                            value={tier.discountValue ?? 0}
+                            type="text"
+                            inputMode="numeric"
+                            value={tier.discountValue ?? ''}
                             onChange={(e) => {
-                              const v = parseFloat(e.target.value) || 0;
-                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, discountValue: v } : t) }));
+                              const v = e.target.value.replace(/[^0-9.]/g, '');
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, discountValue: v === '' ? '' : parseFloat(v) } : t) }));
+                            }}
+                            onBlur={() => {
+                              setFormData(prev => ({ ...prev, tiers: prev.tiers.map((t, i) => i === idx ? { ...t, discountValue: t.discountValue === '' ? 0 : (t.discountValue || 0) } : t) }));
                             }}
                             style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #67e8f9', fontSize: '14px', boxSizing: 'border-box' }}
                           />

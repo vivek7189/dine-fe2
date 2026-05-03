@@ -380,53 +380,94 @@ const InventoryComparisonView = ({ data, outlets, formatCurrency }) => {
 const ConsolidatedPLView = ({ data, formatCurrency }) => {
   if (!data) return <EmptyState />;
 
-  const summary = data.summary || {};
-  const outletBreakdown = (data.outlets || []).sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
+  // Backend returns flat fields, not nested summary
+  const totalRevenue = data.totalRevenue ?? data.summary?.totalRevenue ?? 0;
+  const totalExpenses = data.totalExpenses ?? data.summary?.totalExpenses ?? 0;
+  const grossProfit = data.grossProfit ?? data.summary?.grossProfit ?? (totalRevenue - totalExpenses);
+  const outletCount = data.outletCount || 0;
+  const outletBreakdown = (data.outletBreakdown || data.outlets || []).sort((a, b) => (b.totalRevenue || b.revenue || 0) - (a.totalRevenue || a.revenue || 0));
+  const profitMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : '0.0';
+  const totalOrders = outletBreakdown.reduce((s, o) => s + (o.orderCount || 0), 0);
+  const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
   return (
-    <>
+    <div>
       <div style={styles.summaryGrid}>
-        <SummaryCard label="Total Revenue" value={formatCurrency(summary.totalRevenue || 0)} color="#16a34a" />
-        <SummaryCard label="Total Expenses" value={formatCurrency(summary.totalExpenses || 0)} color="#dc2626" />
-        <SummaryCard label="Gross Profit" value={formatCurrency(summary.grossProfit || 0)} color="#3b82f6" />
+        <SummaryCard label="Total Revenue" value={formatCurrency(totalRevenue)} color="#16a34a" />
+        <SummaryCard label="Total Expenses" value={formatCurrency(totalExpenses)} color="#dc2626" />
+        <SummaryCard label="Gross Profit" value={formatCurrency(grossProfit)} color={grossProfit >= 0 ? '#3b82f6' : '#dc2626'} />
+        <SummaryCard label="Profit Margin" value={`${profitMargin}%`} color={Number(profitMargin) >= 0 ? '#8b5cf6' : '#dc2626'} />
+        <SummaryCard label="Total Orders" value={totalOrders.toLocaleString()} color="#3b82f6" />
+        <SummaryCard label="Avg Ticket Size" value={formatCurrency(avgTicket)} color="#d97706" />
+        <SummaryCard label="Outlets" value={outletCount || outletBreakdown.length} color="#6b7280" />
       </div>
+
       {outletBreakdown.length > 0 && (
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Outlet</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Revenue</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Expenses</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Profit</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Orders</th>
-              </tr>
-            </thead>
-            <tbody>
-              {outletBreakdown.map((row, idx) => (
-                <tr key={row.outletId || idx}>
-                  <td style={styles.td(idx % 2 === 0)}>
-                    <span style={{ fontWeight: '600' }}>{row.name || row.outletName || '-'}</span>
-                  </td>
-                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
-                    {formatCurrency(row.revenue || 0)}
-                  </td>
-                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', color: '#dc2626' }}>
-                    {formatCurrency(row.expenses || 0)}
-                  </td>
-                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: (row.profit || 0) >= 0 ? '#16a34a' : '#dc2626' }}>
-                    {formatCurrency(row.profit || 0)}
-                  </td>
-                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right' }}>
-                    {(row.orderCount || 0).toLocaleString()}
-                  </td>
+        <div style={styles.card}>
+          <div style={styles.cardTitle}>Per-Outlet Breakdown</div>
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Outlet</th>
+                  <th style={styles.th}>Type</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Revenue</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Expenses</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Profit</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Margin</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Orders</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>% of Revenue</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {outletBreakdown.map((row, idx) => {
+                  const rev = row.totalRevenue || row.revenue || 0;
+                  const exp = row.totalExpenses || row.expenses || 0;
+                  const profit = row.grossProfit || row.profit || (rev - exp);
+                  const margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : '0.0';
+                  const revPct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
+                  return (
+                    <tr key={row.outletId || idx}>
+                      <td style={styles.td(idx % 2 === 0)}>
+                        <span style={{ fontWeight: '600' }}>{row.outletName || row.name || '-'}</span>
+                      </td>
+                      <td style={styles.td(idx % 2 === 0)}>
+                        <span style={styles.badge(row.outletType === 'warehouse' ? '#6b7280' : row.outletType === 'central_kitchen' ? '#8b5cf6' : '#3b82f6')}>
+                          {(row.outletType || 'outlet').replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
+                        {formatCurrency(rev)}
+                      </td>
+                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', color: '#dc2626' }}>
+                        {formatCurrency(exp)}
+                      </td>
+                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: profit >= 0 ? '#16a34a' : '#dc2626' }}>
+                        {formatCurrency(profit)}
+                      </td>
+                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right' }}>
+                        <span style={{ color: Number(margin) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{margin}%</span>
+                      </td>
+                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right' }}>
+                        {(row.orderCount || 0).toLocaleString()}
+                      </td>
+                      <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                          <div style={{ width: '50px', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(Number(revPct), 100)}%`, height: '100%', background: '#16a34a', borderRadius: '3px' }} />
+                          </div>
+                          <span style={{ fontSize: '12px' }}>{revPct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
@@ -665,42 +706,81 @@ const MenuPerformanceView = ({ data, outlets, formatCurrency }) => {
 
   const outletList = data.outlets || outlets?.outlet || [];
 
+  // Build per-outlet lookup from outletBreakdown array
+  const getOutletData = (item, outletId) => {
+    const breakdown = item.outletBreakdown || [];
+    return breakdown.find(o => o.outletId === outletId) || {};
+  };
+
+  // Summary stats
+  const totalItems = data.totalUniqueItems || data.items.length;
+  const totalRevenue = data.items.reduce((s, i) => s + (i.totalRevenue || 0), 0);
+  const totalSold = data.items.reduce((s, i) => s + (i.totalSalesCount || i.totalSales || 0), 0);
+  const avgPrice = totalSold > 0 ? totalRevenue / totalSold : 0;
+
   return (
-    <div style={styles.tableWrap}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Item</th>
-            <th style={{ ...styles.th, textAlign: 'right' }}>Total Sales</th>
-            <th style={{ ...styles.th, textAlign: 'right' }}>Total Revenue</th>
-            {outletList.map((o) => (
-              <th key={o.id || o._id} style={{ ...styles.th, textAlign: 'right' }}>{o.name}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.items.map((item, idx) => (
-            <tr key={item.itemId || idx}>
-              <td style={styles.td(idx % 2 === 0)}><span style={{ fontWeight: '600' }}>{item.name || '-'}</span></td>
-              <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600' }}>
-                {(item.totalSales || 0).toLocaleString()}
-              </td>
-              <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
-                {formatCurrency(item.totalRevenue || 0)}
-              </td>
-              {outletList.map((o) => {
-                const outletData = item.perOutlet?.[o.id || o._id] || {};
-                return (
-                  <td key={o.id || o._id} style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontSize: '13px' }}>
-                    <div>{(outletData.sales || 0).toLocaleString()} sold</div>
-                    <div style={{ color: '#6b7280' }}>{formatCurrency(outletData.revenue || 0)}</div>
-                  </td>
-                );
-              })}
+    <div>
+      <div style={styles.summaryGrid}>
+        <SummaryCard label="Unique Items" value={totalItems} color="#3b82f6" />
+        <SummaryCard label="Total Qty Sold" value={totalSold.toLocaleString()} color="#8b5cf6" />
+        <SummaryCard label="Total Revenue" value={formatCurrency(totalRevenue)} color="#16a34a" />
+        <SummaryCard label="Avg Price" value={formatCurrency(avgPrice)} color="#d97706" />
+      </div>
+
+      <div style={styles.tableWrap}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={{ ...styles.th, width: '50px' }}>#</th>
+              <th style={styles.th}>Item</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>Qty Sold</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>Revenue</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>% of Revenue</th>
+              {outletList.map((o) => (
+                <th key={o.id || o._id} style={{ ...styles.th, textAlign: 'right' }}>{o.name}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.items.map((item, idx) => {
+              const itemName = item.itemName || item.name || '-';
+              const qtySold = item.totalSalesCount || item.totalSales || 0;
+              const revPct = totalRevenue > 0 ? ((item.totalRevenue || 0) / totalRevenue * 100).toFixed(1) : '0.0';
+              return (
+                <tr key={idx}>
+                  <td style={styles.td(idx % 2 === 0)}>
+                    <span style={{ fontWeight: '600', color: '#9ca3af' }}>{idx + 1}</span>
+                  </td>
+                  <td style={styles.td(idx % 2 === 0)}><span style={{ fontWeight: '600' }}>{itemName}</span></td>
+                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600' }}>
+                    {qtySold.toLocaleString()}
+                  </td>
+                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
+                    {formatCurrency(item.totalRevenue || 0)}
+                  </td>
+                  <td style={{ ...styles.td(idx % 2 === 0), textAlign: 'right' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                      <div style={{ width: '50px', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(Number(revPct), 100)}%`, height: '100%', background: '#16a34a', borderRadius: '3px' }} />
+                      </div>
+                      <span style={{ fontSize: '12px' }}>{revPct}%</span>
+                    </div>
+                  </td>
+                  {outletList.map((o) => {
+                    const od = getOutletData(item, o.id || o._id);
+                    return (
+                      <td key={o.id || o._id} style={{ ...styles.td(idx % 2 === 0), textAlign: 'right', fontSize: '13px' }}>
+                        <div style={{ fontWeight: '500' }}>{(od.salesCount || od.sales || 0).toLocaleString()}</div>
+                        <div style={{ color: '#6b7280', fontSize: '11px' }}>{formatCurrency(od.revenue || 0)}</div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
@@ -1236,6 +1316,11 @@ const CustomerInsightsView = ({ data, formatCurrency }) => {
   );
 };
 
+// Keyframes for spinner animation
+const SpinnerKeyframes = () => (
+  <style>{`@keyframes hqSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+);
+
 // ---- Main Component ----
 
 export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
@@ -1465,6 +1550,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
     // Report selection grid
     return (
       <div style={styles.container}>
+        <SpinnerKeyframes />
         <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <FaCalendarAlt style={{ color: '#6b7280', fontSize: '14px' }} />
@@ -1519,6 +1605,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
   // Active report view
   return (
     <div style={styles.container}>
+      <SpinnerKeyframes />
       <div style={styles.header}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <button

@@ -15,6 +15,16 @@ import {
   FaFilter
 } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
+import SmartImportModal from '../../inventory/components/SmartImportModal';
+
+// Parse Firestore timestamps, ISO strings, or Date objects
+const parseDate = (val) => {
+  if (!val) return null;
+  if (val._seconds) return new Date(val._seconds * 1000);
+  if (val.seconds) return new Date(val.seconds * 1000);
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+};
 
 // ============================================
 // Status & Priority Config
@@ -309,12 +319,35 @@ const CreateIndentForm = ({ orgData, outlets, onClose, onCreated }) => {
   const [requestingOutletId, setRequestingOutletId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [items, setItems] = useState([{ name: '', quantity: '', unit: 'pcs' }]);
+  const [items, setItems] = useState([{ name: '', quantity: '', unit: 'pcs', inventoryItemId: null, searchQuery: '' }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [warehouseInventory, setWarehouseInventory] = useState([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(-1);
+
+  // Fetch warehouse inventory when warehouse is selected
+  useEffect(() => {
+    if (!warehouseId || !orgData?.id) { setWarehouseInventory([]); return; }
+    let cancelled = false;
+    const fetchInventory = async () => {
+      setLoadingInventory(true);
+      try {
+        const res = await apiClient.getWarehouseStock(orgData.id, warehouseId);
+        if (!cancelled) setWarehouseInventory(res.stock || res.inventory || []);
+      } catch (err) {
+        console.error('Failed to load warehouse inventory:', err);
+        if (!cancelled) setWarehouseInventory([]);
+      } finally {
+        if (!cancelled) setLoadingInventory(false);
+      }
+    };
+    fetchInventory();
+    return () => { cancelled = true; };
+  }, [warehouseId, orgData?.id]);
 
   const addItem = () => {
-    setItems(prev => [...prev, { name: '', quantity: '', unit: 'pcs' }]);
+    setItems(prev => [...prev, { name: '', quantity: '', unit: 'pcs', inventoryItemId: null, searchQuery: '' }]);
   };
 
   const removeItem = (idx) => {
@@ -348,8 +381,9 @@ const CreateIndentForm = ({ orgData, outlets, onClose, onCreated }) => {
         warehouseId,
         priority,
         items: validItems.map(item => ({
-          name: item.name.trim(),
-          quantity: Number(item.quantity),
+          inventoryItemId: item.inventoryItemId || null,
+          inventoryItemName: item.name.trim(),
+          requestedQty: Number(item.quantity),
           unit: item.unit,
         })),
       });
@@ -437,14 +471,63 @@ const CreateIndentForm = ({ orgData, outlets, onClose, onCreated }) => {
                 gap: '10px',
                 alignItems: 'end',
               }}>
-                <div>
+                <div style={{ position: 'relative' }}>
                   {idx === 0 && <label style={labelStyle}>Item Name</label>}
                   <input
                     style={inputStyle}
-                    placeholder="e.g. Tomatoes"
-                    value={item.name}
-                    onChange={(e) => updateItem(idx, 'name', e.target.value)}
+                    placeholder={loadingInventory ? 'Loading inventory...' : (warehouseInventory.length > 0 ? 'Search inventory...' : 'Type item name')}
+                    value={item.searchQuery !== undefined ? item.searchQuery : item.name}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setItems(prev => prev.map((it, i) => i === idx ? { ...it, searchQuery: val, name: val, inventoryItemId: null } : it));
+                      setActiveDropdown(idx);
+                    }}
+                    onFocus={() => setActiveDropdown(idx)}
+                    onBlur={() => setTimeout(() => setActiveDropdown(-1), 200)}
                   />
+                  {activeDropdown === idx && warehouseInventory.length > 0 && (item.searchQuery || '') !== '' && !item.inventoryItemId && (() => {
+                    const q = (item.searchQuery || '').toLowerCase();
+                    const filtered = warehouseInventory.filter(inv =>
+                      (inv.name || inv.inventoryItemName || '').toLowerCase().includes(q)
+                    ).slice(0, 8);
+                    if (filtered.length === 0) return null;
+                    return (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                        backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto',
+                      }}>
+                        {filtered.map((inv, i) => (
+                          <div key={inv.id || i}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              const invName = inv.name || inv.inventoryItemName || '';
+                              setItems(prev => prev.map((it, j) => j === idx ? {
+                                ...it,
+                                name: invName,
+                                searchQuery: invName,
+                                inventoryItemId: inv.inventoryItemId || inv.id || null,
+                                unit: inv.unit || it.unit,
+                              } : it));
+                              setActiveDropdown(-1);
+                            }}
+                            style={{
+                              padding: '8px 12px', cursor: 'pointer', fontSize: '13px',
+                              borderBottom: i < filtered.length - 1 ? '1px solid #f3f4f6' : 'none',
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                          >
+                            <span style={{ fontWeight: '500', color: '#111827' }}>{inv.name || inv.inventoryItemName}</span>
+                            <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                              {inv.currentStock ?? inv.stock ?? 0} {inv.unit || 'pcs'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div>
                   {idx === 0 && <label style={labelStyle}>Quantity</label>}
@@ -565,7 +648,7 @@ const IndentDetailView = ({ indent, orgData, outlets, onBack, onUpdated }) => {
       if (action === 'approve') {
         payload.items = (indent.items || []).map((item, idx) => ({
           ...item,
-          approvedQty: Number(itemQtyEdits[idx]?.approvedQty ?? item.quantity),
+          approvedQty: Number(itemQtyEdits[idx]?.approvedQty ?? item.requestedQty ?? item.quantity),
         }));
       }
 
@@ -576,18 +659,26 @@ const IndentDetailView = ({ indent, orgData, outlets, onBack, onUpdated }) => {
       if (action === 'dispatch') {
         payload.items = (indent.items || []).map((item, idx) => ({
           ...item,
-          pickedQty: Number(itemQtyEdits[idx]?.pickedQty ?? item.approvedQty ?? item.quantity),
+          pickedQty: Number(itemQtyEdits[idx]?.pickedQty ?? item.approvedQty ?? item.requestedQty ?? item.quantity),
         }));
       }
 
       if (action === 'receive') {
         payload.items = (indent.items || []).map((item, idx) => ({
           ...item,
-          receivedQty: Number(itemQtyEdits[idx]?.receivedQty ?? item.pickedQty ?? item.quantity),
+          receivedQty: Number(itemQtyEdits[idx]?.receivedQty ?? item.pickedQty ?? item.requestedQty ?? item.quantity),
         }));
       }
 
-      await apiClient.updateIndentStatus(orgData.id, indent.id, action, payload);
+      const actionMap = {
+        approve: () => apiClient.approveIndent(orgData.id, indent.id, payload),
+        reject: () => apiClient.rejectIndent(orgData.id, indent.id, payload),
+        picking: () => apiClient.pickIndent(orgData.id, indent.id),
+        dispatch: () => apiClient.dispatchIndent(orgData.id, indent.id, payload),
+        receive: () => apiClient.receiveIndent(orgData.id, indent.id, payload),
+        cancel: () => apiClient.cancelIndent(orgData.id, indent.id),
+      };
+      await actionMap[action]();
       setShowRejectModal(false);
       onUpdated();
     } catch (err) {
@@ -610,7 +701,7 @@ const IndentDetailView = ({ indent, orgData, outlets, onBack, onUpdated }) => {
             Indent #{indent.indentNumber || indent.id?.slice(-6)}
           </h2>
           <span style={{ fontSize: '13px', color: '#6b7280' }}>
-            {indent.requestedAt ? new Date(indent.requestedAt).toLocaleString() : ''}
+            {parseDate(indent.requestedAt)?.toLocaleString() || parseDate(indent.createdAt)?.toLocaleString() || ''}
           </span>
         </div>
         <StatusBadge status={status} />
@@ -667,8 +758,8 @@ const IndentDetailView = ({ indent, orgData, outlets, onBack, onUpdated }) => {
             <tbody>
               {(indent.items || []).map((item, idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '12px', fontWeight: '500', color: '#111827' }}>{item.name}</td>
-                  <td style={{ padding: '12px', textAlign: 'right', color: '#374151' }}>{item.quantity}</td>
+                  <td style={{ padding: '12px', fontWeight: '500', color: '#111827' }}>{item.inventoryItemName || item.name}</td>
+                  <td style={{ padding: '12px', textAlign: 'right', color: '#374151' }}>{item.requestedQty ?? item.quantity}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
                     {status === 'requested' ? (
                       <input
@@ -676,7 +767,7 @@ const IndentDetailView = ({ indent, orgData, outlets, onBack, onUpdated }) => {
                         min="0"
                         step="0.01"
                         style={{ ...inputStyle, width: '80px', padding: '6px 8px', textAlign: 'right' }}
-                        defaultValue={item.quantity}
+                        defaultValue={item.requestedQty ?? item.quantity}
                         onChange={(e) => updateItemQty(idx, 'approvedQty', e.target.value)}
                       />
                     ) : (
@@ -877,6 +968,12 @@ const WarehouseStockView = ({ orgData, outlets, onBack }) => {
   const [loadingStock, setLoadingStock] = useState(false);
   const [loadingPending, setLoadingPending] = useState(false);
   const [error, setError] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addingStock, setAddingStock] = useState(false);
+  const [newItem, setNewItem] = useState({ name: '', currentStock: '', unit: 'pcs', reorderLevel: '5' });
+  const [showSmartImport, setShowSmartImport] = useState(false);
+  const [smartImportMode, setSmartImportMode] = useState('text');
+  const [showBulkMenu, setShowBulkMenu] = useState(false);
 
   const warehouses = outlets.warehouse || [];
 
@@ -907,6 +1004,26 @@ const WarehouseStockView = ({ orgData, outlets, onBack }) => {
       setLoadingPending(false);
     }
   }, [orgData.id]);
+
+  const handleAddStock = async () => {
+    if (!newItem.name.trim() || !newItem.currentStock) return;
+    setAddingStock(true);
+    try {
+      await apiClient.createInventoryItem(selectedWarehouseId, {
+        name: newItem.name.trim(),
+        currentStock: Number(newItem.currentStock),
+        unit: newItem.unit,
+        reorderLevel: Number(newItem.reorderLevel) || 5,
+      });
+      setNewItem({ name: '', currentStock: '', unit: 'pcs', reorderLevel: '5' });
+      setShowAddForm(false);
+      loadStock(selectedWarehouseId);
+    } catch (err) {
+      setError(err.message || 'Failed to add stock item');
+    } finally {
+      setAddingStock(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedWarehouseId) {
@@ -963,12 +1080,143 @@ const WarehouseStockView = ({ orgData, outlets, onBack }) => {
 
       {selectedWarehouseId && !loadingStock && (
         <div style={{ ...cardStyle, marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px' }}>
-            Current Stock ({stock.length} items)
-          </h3>
-          {stock.length === 0 ? (
-            <EmptyState icon={FaBox} title="No stock data" subtitle="This warehouse has no stock records" />
-          ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+              Current Stock ({stock.length} items)
+            </h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                style={{ ...btnPrimary, padding: '8px 16px', fontSize: '13px' }}
+              >
+                <FaPlus style={{ fontSize: '11px' }} /> Add Stock
+              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowBulkMenu(!showBulkMenu)}
+                  style={{ ...btnSecondary, padding: '8px 16px', fontSize: '13px' }}
+                >
+                  <FaClipboardList style={{ fontSize: '11px' }} /> Bulk Import ▾
+                </button>
+                {showBulkMenu && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, marginTop: '4px',
+                    background: '#fff', borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                    border: '1px solid #e5e7eb', zIndex: 100, minWidth: '200px', overflow: 'hidden',
+                  }}>
+                    <button
+                      onClick={() => { setSmartImportMode('text'); setShowSmartImport(true); setShowBulkMenu(false); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                        padding: '12px 16px', border: 'none', background: 'none', cursor: 'pointer',
+                        fontSize: '13px', color: '#374151', textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                    >
+                      <FaClipboardList style={{ color: '#3b82f6' }} /> Paste / CSV Text
+                    </button>
+                    <div style={{ height: '1px', background: '#f3f4f6' }} />
+                    <button
+                      onClick={() => { setSmartImportMode('image'); setShowSmartImport(true); setShowBulkMenu(false); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                        padding: '12px 16px', border: 'none', background: 'none', cursor: 'pointer',
+                        fontSize: '13px', color: '#374151', textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                    >
+                      <FaBox style={{ color: '#16a34a' }} /> Scan Invoice (AI)
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {showAddForm && (
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '10px',
+              padding: '16px',
+              marginBottom: '16px',
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px', gap: '10px', alignItems: 'end' }}>
+                <div>
+                  <label style={labelStyle}>Item Name *</label>
+                  <input
+                    style={inputStyle}
+                    placeholder="e.g. Tomato Sauce"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem(p => ({ ...p, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Quantity *</label>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={newItem.currentStock}
+                    onChange={(e) => setNewItem(p => ({ ...p, currentStock: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Unit</label>
+                  <select
+                    style={selectStyle}
+                    value={newItem.unit}
+                    onChange={(e) => setNewItem(p => ({ ...p, unit: e.target.value }))}
+                  >
+                    <option value="pcs">pcs</option>
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="l">l</option>
+                    <option value="ml">ml</option>
+                    <option value="box">box</option>
+                    <option value="case">case</option>
+                    <option value="dozen">dozen</option>
+                    <option value="packet">packet</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Reorder</label>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min="0"
+                    placeholder="5"
+                    value={newItem.reorderLevel}
+                    onChange={(e) => setNewItem(p => ({ ...p, reorderLevel: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => { setShowAddForm(false); setNewItem({ name: '', currentStock: '', unit: 'pcs', reorderLevel: '5' }); }}
+                  style={btnSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddStock}
+                  disabled={addingStock || !newItem.name.trim() || !newItem.currentStock}
+                  style={{ ...btnPrimary, opacity: (addingStock || !newItem.name.trim() || !newItem.currentStock) ? 0.6 : 1 }}
+                >
+                  {addingStock ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : <FaPlus />}
+                  {addingStock ? 'Adding...' : 'Add Item'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {stock.length === 0 && !showAddForm ? (
+            <EmptyState icon={FaBox} title="No stock data" subtitle="Click 'Add Stock' to add items to this warehouse" />
+          ) : stock.length === 0 ? null : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                 <thead>
@@ -1039,6 +1287,19 @@ const WarehouseStockView = ({ orgData, outlets, onBack }) => {
             </div>
           )}
         </div>
+      )}
+
+      {showSmartImport && selectedWarehouseId && (
+        <SmartImportModal
+          isOpen={showSmartImport}
+          onClose={() => setShowSmartImport(false)}
+          restaurantId={selectedWarehouseId}
+          onSuccess={() => {
+            setShowSmartImport(false);
+            loadStock(selectedWarehouseId);
+          }}
+          initialMode={smartImportMode}
+        />
       )}
     </div>
   );
@@ -1327,11 +1588,7 @@ const WarehouseTab = ({ orgData, outlets, formatCurrency }) => {
                   </div>
                 </div>
                 <div style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  {indent.requestedAt ? new Date(indent.requestedAt).toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  }) : ''}
+                  {(() => { const d = parseDate(indent.requestedAt) || parseDate(indent.createdAt); return d ? d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; })()}
                 </div>
               </div>
             </div>

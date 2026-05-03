@@ -624,7 +624,6 @@ const ar = {
     walkIn: 'عميل زائر',
     cash: 'نقداً',
     room: 'الغرفة',
-    type: 'النوع',
     subtotalLabel: 'المجموع الفرعي',
     serviceCharge: 'رسوم الخدمة',
     tip: 'البقشيش',

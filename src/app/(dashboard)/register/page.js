@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import apiClient from '@/lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
@@ -967,6 +968,7 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
               }}
               formatCurrency={formatCurrency}
               isMobile={isMobile}
+              posSettings={posSettings}
             />
           )}
 
@@ -1274,7 +1276,7 @@ function CloseRegisterModal({
   register, closingCash, setClosingCash, cashTips, setCashTips,
   closeNotes, setCloseNotes, closeSummary, closing, expectedCash,
   showDenom, setShowDenom, denoms, setDenoms, denomTotal,
-  handleCloseRegister, handleCloseModalDone, onCancel, formatCurrency, isMobile,
+  handleCloseRegister, handleCloseModalDone, onCancel, formatCurrency, isMobile, posSettings,
 }) {
   const denominationLabels = [
     { key: '2000', label: '\u20B92,000', value: 2000 },
@@ -2097,7 +2099,7 @@ function RegisterHistorySection({
 // ── Small Helper Components ─────────────────────────────────────────────────
 
 function ModalOverlay({ children, onClose }) {
-  return (
+  return createPortal(
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
@@ -2105,7 +2107,7 @@ function ModalOverlay({ children, onClose }) {
         inset: 0,
         background: 'rgba(0,0,0,0.4)',
         backdropFilter: 'blur(4px)',
-        zIndex: 1000,
+        zIndex: 10001,
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
@@ -2114,7 +2116,8 @@ function ModalOverlay({ children, onClose }) {
       }}
     >
       {children}
-    </div>
+    </div>,
+    document.body
   );
 }
 

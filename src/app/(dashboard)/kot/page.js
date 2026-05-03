@@ -1224,7 +1224,7 @@ const KitchenOrderTicket = () => {
                                   )}
                                   {currentRestaurant?.posSettings?.showPriceOnKot && item.price != null && (
                                     <span style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginLeft: 'auto' }}>
-                                      {formatCurrency(item.price)}
+                                      {formatCurrency(item.price * (item.quantity || 1))}
                                     </span>
                                   )}
                                 </div>
