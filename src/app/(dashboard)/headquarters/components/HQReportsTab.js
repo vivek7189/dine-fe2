@@ -19,6 +19,14 @@ import {
   FaPercent,
   FaFileInvoiceDollar,
   FaAddressBook,
+  FaMoneyBillWave,
+  FaShoppingBag,
+  FaChartArea,
+  FaWallet,
+  FaFilePdf,
+  FaFileExcel,
+  FaFileCsv,
+  FaChevronDown,
 } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 
@@ -41,6 +49,10 @@ const REPORT_TYPES = {
   DISCOUNT: 'discount',
   TAX: 'tax',
   CUSTOMER: 'customer',
+  PAYMENT: 'payment',
+  ORDER_ANALYTICS: 'order-analytics',
+  REVENUE_TRENDS: 'revenue-trends',
+  WALLET_LOYALTY: 'wallet-loyalty',
 };
 
 const getDefaultStartDate = () => {
@@ -1316,6 +1328,455 @@ const CustomerInsightsView = ({ data, formatCurrency }) => {
   );
 };
 
+// ---- Payment Analytics View ----
+
+const PaymentAnalyticsView = ({ data, formatCurrency }) => {
+  const sm = data?.summary || {};
+  const methods = data?.methodBreakdown || [];
+  const hourly = data?.hourlyTrend || [];
+  const daily = data?.dailyTrend || [];
+  return (
+    <div>
+      <div style={styles.card}>
+        <h3 style={styles.cardTitle}>Payment Summary</h3>
+        <div style={styles.summaryGrid}>
+          <div style={styles.statCard('#16a34a')}><div style={styles.statValue('#16a34a')}>{sm.totalTransactions || 0}</div><div style={styles.statLabel}>Total Transactions</div></div>
+          <div style={styles.statCard('#3b82f6')}><div style={styles.statValue('#3b82f6')}>{formatCurrency(sm.totalRevenue || 0)}</div><div style={styles.statLabel}>Total Revenue</div></div>
+          <div style={styles.statCard('#8b5cf6')}><div style={styles.statValue('#8b5cf6')}>{formatCurrency(sm.avgTransactionValue || 0)}</div><div style={styles.statLabel}>Avg Transaction</div></div>
+          <div style={styles.statCard('#d97706')}><div style={styles.statValue('#d97706')}>{sm.splitPaymentCount || 0}</div><div style={styles.statLabel}>Split Payments</div></div>
+        </div>
+      </div>
+      {methods.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Method Breakdown</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Method</th><th style={styles.th}>Count</th><th style={styles.th}>Amount</th><th style={styles.th}>Share</th><th style={styles.th}>Avg Value</th>
+          </tr></thead><tbody>
+            {methods.map((m, i) => (
+              <tr key={i}><td style={styles.td(i % 2 === 0)} className="capitalize">{m.method}</td>
+              <td style={styles.td(i % 2 === 0)}>{m.count}</td>
+              <td style={styles.td(i % 2 === 0)}>{formatCurrency(m.amount)}</td>
+              <td style={styles.td(i % 2 === 0)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ flex: 1, height: 6, background: '#f1f5f9', borderRadius: 3 }}><div style={{ width: `${m.percentage || 0}%`, height: 6, background: '#16a34a', borderRadius: 3 }} /></div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{(m.percentage || 0).toFixed(1)}%</span>
+                </div>
+              </td>
+              <td style={styles.td(i % 2 === 0)}>{formatCurrency(m.avgValue || 0)}</td></tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+      {daily.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Daily Payment Trend</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Date</th><th style={styles.th}>Cash</th><th style={styles.th}>Card</th><th style={styles.th}>UPI</th><th style={styles.th}>Other</th><th style={styles.th}>Total</th>
+          </tr></thead><tbody>
+            {daily.map((d, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)}>{d.date}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.cash || 0)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.card || 0)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.upi || 0)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.other || 0)}</td>
+                <td style={{...styles.td(i % 2 === 0), fontWeight: 700, color: '#16a34a'}}>{formatCurrency(d.total || 0)}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---- Order Analytics View ----
+
+const OrderAnalyticsView = ({ data, formatCurrency }) => {
+  const sm = data?.summary || {};
+  const types = data?.typeBreakdown || [];
+  const dow = data?.dayOfWeekAnalysis || [];
+  const daily = data?.dailyVolume || [];
+  return (
+    <div>
+      <div style={styles.card}>
+        <h3 style={styles.cardTitle}>Order Summary</h3>
+        <div style={styles.summaryGrid}>
+          <div style={styles.statCard('#3b82f6')}><div style={styles.statValue('#3b82f6')}>{sm.totalOrders || 0}</div><div style={styles.statLabel}>Total Orders</div></div>
+          <div style={styles.statCard('#8b5cf6')}><div style={styles.statValue('#8b5cf6')}>{(sm.avgItemsPerOrder || 0).toFixed(1)}</div><div style={styles.statLabel}>Avg Items/Order</div></div>
+          <div style={styles.statCard('#dc2626')}><div style={styles.statValue('#dc2626')}>{(sm.cancellationRate || 0).toFixed(1)}%</div><div style={styles.statLabel}>Cancellation Rate</div></div>
+          <div style={styles.statCard('#16a34a')}><div style={styles.statValue('#16a34a')}>{formatCurrency(sm.avgOrderValue || 0)}</div><div style={styles.statLabel}>Avg Order Value</div></div>
+        </div>
+      </div>
+      {types.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Type Breakdown</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Type</th><th style={styles.th}>Count</th><th style={styles.th}>Amount</th><th style={styles.th}>Share</th>
+          </tr></thead><tbody>
+            {types.map((t, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)} className="capitalize">{(t.type || '').replace(/_/g, ' ')}</td>
+                <td style={styles.td(i % 2 === 0)}>{t.count}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(t.amount)}</td>
+                <td style={styles.td(i % 2 === 0)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ flex: 1, height: 6, background: '#f1f5f9', borderRadius: 3 }}><div style={{ width: `${t.percentage || 0}%`, height: 6, background: '#3b82f6', borderRadius: 3 }} /></div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{(t.percentage || 0).toFixed(1)}%</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+      {dow.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Day of Week Analysis</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Day</th><th style={styles.th}>Orders</th><th style={styles.th}>Revenue</th><th style={styles.th}>Avg Value</th>
+          </tr></thead><tbody>
+            {dow.map((d, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)}>{d.day}</td>
+                <td style={styles.td(i % 2 === 0)}>{d.orderCount}</td>
+                <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a'}}>{formatCurrency(d.revenue)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.avgValue || 0)}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+      {daily.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Daily Volume</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Date</th><th style={styles.th}>Orders</th><th style={styles.th}>Revenue</th><th style={styles.th}>Avg Value</th>
+          </tr></thead><tbody>
+            {daily.map((d, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)}>{d.date}</td>
+                <td style={styles.td(i % 2 === 0)}>{d.orderCount}</td>
+                <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a'}}>{formatCurrency(d.revenue)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.avgValue || 0)}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---- Revenue Trends View ----
+
+const RevenueTrendsView = ({ data, formatCurrency }) => {
+  const sm = data?.summary || {};
+  const daily = data?.dailyTrend || [];
+  const dow = data?.dayOfWeekAvg || [];
+  const outlets = data?.outletTrend || [];
+  const bestDay = data?.bestDay || null;
+  const worstDay = data?.worstDay || null;
+  const growth = sm.growthRate || 0;
+  return (
+    <div>
+      <div style={styles.card}>
+        <h3 style={styles.cardTitle}>Revenue Summary</h3>
+        <div style={styles.summaryGrid}>
+          <div style={styles.statCard('#16a34a')}><div style={styles.statValue('#16a34a')}>{formatCurrency(sm.totalRevenue || 0)}</div><div style={styles.statLabel}>Total Revenue</div></div>
+          <div style={styles.statCard('#3b82f6')}><div style={styles.statValue('#3b82f6')}>{formatCurrency(sm.previousPeriodRevenue || 0)}</div><div style={styles.statLabel}>Previous Period</div></div>
+          <div style={styles.statCard(growth >= 0 ? '#16a34a' : '#dc2626')}><div style={styles.statValue(growth >= 0 ? '#16a34a' : '#dc2626')}>{growth >= 0 ? '\u25B2' : '\u25BC'} {Math.abs(growth).toFixed(1)}%</div><div style={styles.statLabel}>Growth Rate</div></div>
+          <div style={styles.statCard('#8b5cf6')}><div style={styles.statValue('#8b5cf6')}>{formatCurrency(sm.avgDailyRevenue || 0)}</div><div style={styles.statLabel}>Avg Daily Revenue</div></div>
+        </div>
+      </div>
+      {(bestDay || worstDay) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, marginBottom: 20 }}>
+          {bestDay && (
+            <div style={{ ...styles.statCard('#16a34a'), textAlign: 'left' }}>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Best Day</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#16a34a' }}>{bestDay.date}</div>
+              <div style={{ fontWeight: 600, color: '#374151' }}>{formatCurrency(bestDay.revenue || 0)} &middot; {bestDay.orderCount || 0} orders</div>
+            </div>
+          )}
+          {worstDay && (
+            <div style={{ ...styles.statCard('#dc2626'), textAlign: 'left' }}>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Worst Day</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#dc2626' }}>{worstDay.date}</div>
+              <div style={{ fontWeight: 600, color: '#374151' }}>{formatCurrency(worstDay.revenue || 0)} &middot; {worstDay.orderCount || 0} orders</div>
+            </div>
+          )}
+        </div>
+      )}
+      {dow.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Day of Week Average</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Day</th><th style={styles.th}>Avg Revenue</th><th style={styles.th}>Avg Orders</th><th style={styles.th}>Total Revenue</th>
+          </tr></thead><tbody>
+            {dow.map((d, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)}>{d.day}</td>
+                <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a'}}>{formatCurrency(d.avgRevenue || 0)}</td>
+                <td style={styles.td(i % 2 === 0)}>{(d.avgOrders || 0).toFixed(1)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.totalRevenue || 0)}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+      {outlets.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Outlet Comparison</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Outlet</th><th style={styles.th}>Current</th><th style={styles.th}>Previous</th><th style={styles.th}>Growth</th>
+          </tr></thead><tbody>
+            {outlets.map((o, i) => {
+              const g = o.growth || 0;
+              return (
+                <tr key={i}>
+                  <td style={styles.td(i % 2 === 0)}><span style={{ fontWeight: 600 }}>{o.outletName}</span></td>
+                  <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a'}}>{formatCurrency(o.revenue)}</td>
+                  <td style={styles.td(i % 2 === 0)}>{formatCurrency(o.previousRevenue || 0)}</td>
+                  <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: g >= 0 ? '#16a34a' : '#dc2626'}}>{g >= 0 ? '\u25B2' : '\u25BC'} {Math.abs(g).toFixed(1)}%</td>
+                </tr>
+              );
+            })}
+          </tbody></table></div>
+        </div>
+      )}
+      {daily.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Daily Revenue Trend</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Date</th><th style={styles.th}>Revenue</th><th style={styles.th}>Orders</th><th style={styles.th}>Avg Value</th>
+          </tr></thead><tbody>
+            {daily.map((d, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)}>{d.date}</td>
+                <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a'}}>{formatCurrency(d.revenue)}</td>
+                <td style={styles.td(i % 2 === 0)}>{d.orderCount}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(d.avgValue || 0)}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---- Wallet & Loyalty View ----
+
+const WalletLoyaltyView = ({ data, formatCurrency }) => {
+  const sm = data?.summary || {};
+  const topUsers = data?.topWalletUsers || [];
+  const trend = data?.loyaltyTrend || [];
+  return (
+    <div>
+      <div style={styles.card}>
+        <h3 style={styles.cardTitle}>Wallet & Loyalty Summary</h3>
+        <div style={styles.summaryGrid}>
+          <div style={styles.statCard('#16a34a')}><div style={styles.statValue('#16a34a')}>{formatCurrency(sm.totalWalletRedeemed || 0)}</div><div style={styles.statLabel}>Wallet Redeemed</div></div>
+          <div style={styles.statCard('#3b82f6')}><div style={styles.statValue('#3b82f6')}>{(sm.totalLoyaltyPointsIssued || 0).toLocaleString()}</div><div style={styles.statLabel}>Points Issued</div></div>
+          <div style={styles.statCard('#8b5cf6')}><div style={styles.statValue('#8b5cf6')}>{(sm.totalLoyaltyPointsRedeemed || 0).toLocaleString()}</div><div style={styles.statLabel}>Points Redeemed</div></div>
+          <div style={styles.statCard('#d97706')}><div style={styles.statValue('#d97706')}>{(sm.loyaltyOrderPercentage || 0).toFixed(1)}%</div><div style={styles.statLabel}>Loyalty Order %</div></div>
+          <div style={styles.statCard('#06b6d4')}><div style={styles.statValue('#06b6d4')}>{sm.walletOrderCount || 0}</div><div style={styles.statLabel}>Wallet Orders</div></div>
+          <div style={styles.statCard('#f59e0b')}><div style={styles.statValue('#f59e0b')}>{sm.loyaltyOrderCount || 0}</div><div style={styles.statLabel}>Loyalty Orders</div></div>
+        </div>
+      </div>
+      {topUsers.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Top Wallet Users</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>#</th><th style={styles.th}>Name</th><th style={styles.th}>Phone</th><th style={styles.th}>Redeemed</th><th style={styles.th}>Orders</th>
+          </tr></thead><tbody>
+            {topUsers.map((u, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)}>{i + 1}</td>
+                <td style={styles.td(i % 2 === 0)}><span style={{ fontWeight: 600 }}>{u.name || 'Guest'}</span></td>
+                <td style={{...styles.td(i % 2 === 0), fontFamily: 'monospace', fontSize: 13, color: '#6b7280'}}>{u.phone || '-'}</td>
+                <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a'}}>{formatCurrency(u.totalRedeemed || 0)}</td>
+                <td style={styles.td(i % 2 === 0)}>{u.orderCount || 0}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+      {trend.length > 0 && (
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Loyalty Daily Trend</h3>
+          <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+            <th style={styles.th}>Date</th><th style={styles.th}>Points Issued</th><th style={styles.th}>Points Redeemed</th><th style={styles.th}>Redemption Value</th>
+          </tr></thead><tbody>
+            {trend.map((t, i) => (
+              <tr key={i}>
+                <td style={styles.td(i % 2 === 0)}>{t.date}</td>
+                <td style={styles.td(i % 2 === 0)}>{t.pointsIssued}</td>
+                <td style={styles.td(i % 2 === 0)}>{t.pointsRedeemed}</td>
+                <td style={{...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a'}}>{formatCurrency(t.redemptionValue || 0)}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---- Excel Sheet Data Helper ----
+
+function getExcelSheetData(reportType, data, formatCurrency) {
+  const sheets = [];
+  const sm = data?.summary || {};
+
+  switch (reportType) {
+    case REPORT_TYPES.SALES: {
+      sheets.push({ name: 'Summary', data: [
+        ['Sales Summary Report'],
+        [],
+        ['Metric', 'Value'],
+        ['Total Revenue', sm.totalRevenue || 0],
+        ['Total Orders', sm.totalOrders || 0],
+        ['Avg Ticket Size', sm.avgTicketSize || 0],
+        ['Total Tips', sm.totalTips || 0],
+        ['Service Charge', sm.totalServiceCharge || 0],
+      ]});
+      if (data?.paymentBreakdown?.length) {
+        sheets.push({ name: 'Payment Breakdown', data: [
+          ['Method', 'Count', 'Amount', 'Percentage'],
+          ...data.paymentBreakdown.map(p => [p.method, p.count, p.amount, `${p.percentage}%`])
+        ]});
+      }
+      if (data?.serviceTypeBreakdown?.length) {
+        sheets.push({ name: 'Service Type', data: [
+          ['Type', 'Count', 'Amount', 'Percentage'],
+          ...data.serviceTypeBreakdown.map(s => [s.type?.replace(/_/g, ' '), s.count, s.amount, `${s.percentage}%`])
+        ]});
+      }
+      if (data?.dailyTrend?.length) {
+        sheets.push({ name: 'Daily Trend', data: [
+          ['Date', 'Revenue', 'Orders', 'Avg Value'],
+          ...data.dailyTrend.map(d => [d.date, d.revenue, d.orderCount, d.orderCount > 0 ? Math.round((d.revenue / d.orderCount) * 100) / 100 : 0])
+        ]});
+      }
+      if (data?.outletBreakdown?.length) {
+        sheets.push({ name: 'Outlet Breakdown', data: [
+          ['Outlet', 'Revenue', 'Orders', 'Avg Ticket'],
+          ...data.outletBreakdown.map(o => [o.outletName, o.revenue, o.orderCount, o.avgTicketSize])
+        ]});
+      }
+      break;
+    }
+    case REPORT_TYPES.STAFF: {
+      const staff = data?.staffRankings || data?.rankings || [];
+      sheets.push({ name: 'Staff Performance', data: [
+        ['Rank', 'Name', 'Outlets', 'Orders', 'Sales', 'Avg Ticket', 'Tips'],
+        ...staff.map((s, i) => [i + 1, s.staffName || s.name, Array.isArray(s.outlets) ? s.outlets.join(', ') : '', s.ordersHandled || s.orders || 0, s.totalSales || s.sales || 0, s.avgTicketSize || 0, s.tipsEarned || s.tips || 0])
+      ]});
+      break;
+    }
+    case REPORT_TYPES.MENU: {
+      const items = data?.items || data?.breakdown || [];
+      sheets.push({ name: 'Menu Performance', data: [
+        ['#', 'Item', 'Qty Sold', 'Revenue', 'Revenue %'],
+        ...items.map((item, i) => [i + 1, item.itemName || item.name, item.qtySold || item.quantity || item.totalSalesCount || item.totalSales || 0, item.revenue || item.totalRevenue || 0, `${(item.revenuePercentage || 0).toFixed(1)}%`])
+      ]});
+      break;
+    }
+    case REPORT_TYPES.CATEGORY: {
+      const cats = data?.categories || data?.breakdown || [];
+      sheets.push({ name: 'Category Sales', data: [
+        ['Category', 'Qty Sold', 'Revenue', 'Share %', 'Unique Items'],
+        ...cats.map(c => [c.category, c.totalQuantity || 0, c.totalRevenue || 0, `${(c.revenuePercentage || 0).toFixed(1)}%`, c.uniqueItems || 0])
+      ]});
+      break;
+    }
+    case REPORT_TYPES.DISCOUNT: {
+      const sources = data?.discountSourceBreakdown || data?.sourceBreakdown || data?.sources || [];
+      const outlets = data?.outletBreakdown || [];
+      sheets.push({ name: 'Discount Summary', data: [
+        ['Metric', 'Value'],
+        ['Total Discount Given', sm.totalDiscountGiven || 0],
+        ['Discounted Order %', `${sm.discountedOrderPercentage || 0}%`],
+        ['Avg Ticket w/ Discount', sm.avgTicketWithDiscount || 0],
+        ['Avg Ticket w/o Discount', sm.avgTicketWithoutDiscount || 0],
+      ]});
+      if (sources.length) sheets.push({ name: 'Sources', data: [['Source', 'Name', 'Count', 'Total Discount'], ...sources.map(s => [s.source || s.type, s.name || '-', s.count, s.totalDiscount])] });
+      if (outlets.length) sheets.push({ name: 'By Outlet', data: [['Outlet', 'Discount', 'Discounted Orders', 'Total Orders'], ...outlets.map(o => [o.outletName, o.totalDiscount, o.discountedOrders, o.totalOrders])] });
+      break;
+    }
+    case REPORT_TYPES.TAX: {
+      const taxes = data?.taxBreakdown || [];
+      const monthly = data?.monthlyTrend || [];
+      sheets.push({ name: 'Tax Summary', data: [['Metric', 'Value'], ['Total Tax', sm.totalTaxCollected || 0], ['Taxable Amount', sm.totalTaxableAmount || 0], ['Avg Tax/Order', sm.avgTaxPerOrder || 0]] });
+      if (taxes.length) sheets.push({ name: 'Tax Breakdown', data: [['Tax', 'Rate', 'Amount', 'Orders'], ...taxes.map(t => [t.taxName || t.name, `${t.rate}%`, t.totalAmount || t.amount || 0, t.orderCount || 0])] });
+      if (monthly.length) sheets.push({ name: 'Monthly', data: [['Month', 'Tax Collected', 'Orders'], ...monthly.map(m => [m.month, m.taxCollected, m.orderCount])] });
+      break;
+    }
+    case REPORT_TYPES.CUSTOMER: {
+      const tops = data?.topCustomers || [];
+      sheets.push({ name: 'Customer Insights', data: [['Metric', 'Value'], ['Total Customers', sm.totalCustomers || 0], ['New', sm.newCustomers || 0], ['Returning', sm.returningCustomers || 0], ['Avg Lifetime Value', sm.avgLifetimeValue || 0]] });
+      if (tops.length) sheets.push({ name: 'Top Customers', data: [['Rank', 'Name', 'Phone', 'Visits', 'Spend', 'Avg Order', 'Last Visit'], ...tops.map((c, i) => [c.rank || i + 1, c.name || 'Guest', c.phone || '-', c.visitCount || c.visits || 0, c.totalSpend || c.spend || 0, c.avgOrderValue || 0, c.lastVisit || '-'])] });
+      break;
+    }
+    case REPORT_TYPES.RANKING: {
+      const ranks = data?.rankings || data?.outletRankings || [];
+      sheets.push({ name: 'Outlet Ranking', data: [['Rank', 'Outlet', 'Revenue', 'Orders', 'Avg Ticket'], ...ranks.map((o, i) => [o.rank || i + 1, o.name || o.outletName, o.revenue, o.orders || o.orderCount || 0, o.avgTicket || o.avgTicketSize || 0])] });
+      break;
+    }
+    case REPORT_TYPES.PL: {
+      const outlets = data?.outletBreakdown || [];
+      const totalRevenue = data.totalRevenue ?? sm.totalRevenue ?? 0;
+      const totalExpenses = data.totalExpenses ?? sm.totalExpenses ?? 0;
+      const grossProfit = data.grossProfit ?? sm.grossProfit ?? (totalRevenue - totalExpenses);
+      const profitMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : '0.0';
+      sheets.push({ name: 'P&L Summary', data: [['Metric', 'Value'], ['Revenue', totalRevenue], ['Expenses', totalExpenses], ['Gross Profit', grossProfit], ['Margin', `${profitMargin}%`], ['Orders', sm.totalOrders || outlets.reduce((s, o) => s + (o.orderCount || 0), 0)]] });
+      if (outlets.length) sheets.push({ name: 'By Outlet', data: [['Outlet', 'Revenue', 'Expenses', 'Profit', 'Margin', 'Orders'], ...outlets.map(o => { const rev = o.totalRevenue || o.revenue || 0; const exp = o.totalExpenses || o.expenses || 0; const profit = o.grossProfit || o.profit || (rev - exp); return [o.outletName || o.name, rev, exp, profit, rev > 0 ? `${((profit / rev) * 100).toFixed(1)}%` : '0.0%', o.orderCount || 0]; })] });
+      break;
+    }
+    case REPORT_TYPES.PAYMENT: {
+      const methods = data?.methodBreakdown || [];
+      const daily = data?.dailyTrend || [];
+      sheets.push({ name: 'Payment Summary', data: [['Metric', 'Value'], ['Total Transactions', sm.totalTransactions || 0], ['Total Revenue', sm.totalRevenue || 0], ['Avg Transaction', sm.avgTransactionValue || 0], ['Split Payments', sm.splitPaymentCount || 0]] });
+      if (methods.length) sheets.push({ name: 'Methods', data: [['Method', 'Count', 'Amount', 'Share', 'Avg Value'], ...methods.map(m => [m.method, m.count, m.amount, `${(m.percentage || 0).toFixed(1)}%`, m.avgValue || 0])] });
+      if (daily.length) sheets.push({ name: 'Daily', data: [['Date', 'Cash', 'Card', 'UPI', 'Other', 'Total'], ...daily.map(d => [d.date, d.cash || 0, d.card || 0, d.upi || 0, d.other || 0, d.total || 0])] });
+      break;
+    }
+    case REPORT_TYPES.ORDER_ANALYTICS: {
+      const types = data?.typeBreakdown || [];
+      const daily = data?.dailyVolume || [];
+      const dow = data?.dayOfWeekAnalysis || [];
+      sheets.push({ name: 'Order Summary', data: [['Metric', 'Value'], ['Total Orders', sm.totalOrders || 0], ['Avg Items/Order', sm.avgItemsPerOrder || 0], ['Cancellation Rate', `${sm.cancellationRate || 0}%`], ['Avg Order Value', sm.avgOrderValue || 0]] });
+      if (types.length) sheets.push({ name: 'By Type', data: [['Type', 'Count', 'Revenue', 'Share'], ...types.map(t => [t.type?.replace(/_/g, ' '), t.count, t.amount, `${(t.percentage || 0).toFixed(1)}%`])] });
+      if (dow.length) sheets.push({ name: 'Day of Week', data: [['Day', 'Orders', 'Revenue', 'Avg Value'], ...dow.map(d => [d.day, d.orderCount, d.revenue, d.avgValue || 0])] });
+      if (daily.length) sheets.push({ name: 'Daily Volume', data: [['Date', 'Orders', 'Revenue', 'Avg Value'], ...daily.map(d => [d.date, d.orderCount, d.revenue, d.avgValue || 0])] });
+      break;
+    }
+    case REPORT_TYPES.REVENUE_TRENDS: {
+      const daily = data?.dailyTrend || [];
+      const dow = data?.dayOfWeekAvg || [];
+      const outlets = data?.outletTrend || [];
+      sheets.push({ name: 'Revenue Summary', data: [['Metric', 'Value'], ['Total Revenue', sm.totalRevenue || 0], ['Previous Period', sm.previousPeriodRevenue || 0], ['Growth Rate', `${sm.growthRate || 0}%`], ['Avg Daily', sm.avgDailyRevenue || 0]] });
+      if (dow.length) sheets.push({ name: 'Day of Week', data: [['Day', 'Avg Revenue', 'Avg Orders', 'Total'], ...dow.map(d => [d.day, d.avgRevenue || 0, (d.avgOrders || 0).toFixed(1), d.totalRevenue || 0])] });
+      if (outlets.length) sheets.push({ name: 'Outlet Comparison', data: [['Outlet', 'Current', 'Previous', 'Growth'], ...outlets.map(o => [o.outletName, o.revenue, o.previousRevenue || 0, `${(o.growth || 0).toFixed(1)}%`])] });
+      if (daily.length) sheets.push({ name: 'Daily', data: [['Date', 'Revenue', 'Orders', 'Avg Value'], ...daily.map(d => [d.date, d.revenue, d.orderCount, d.avgValue || 0])] });
+      break;
+    }
+    case REPORT_TYPES.WALLET_LOYALTY: {
+      const topUsers = data?.topWalletUsers || [];
+      const trend = data?.loyaltyTrend || [];
+      sheets.push({ name: 'Wallet & Loyalty', data: [['Metric', 'Value'], ['Wallet Redeemed', sm.totalWalletRedeemed || 0], ['Points Issued', sm.totalLoyaltyPointsIssued || 0], ['Points Redeemed', sm.totalLoyaltyPointsRedeemed || 0], ['Loyalty Orders', sm.loyaltyOrderCount || 0], ['Wallet Orders', sm.walletOrderCount || 0], ['Loyalty Usage %', `${sm.loyaltyOrderPercentage || 0}%`]] });
+      if (topUsers.length) sheets.push({ name: 'Top Wallet Users', data: [['#', 'Name', 'Phone', 'Redeemed', 'Orders'], ...topUsers.map((u, i) => [i + 1, u.name || 'Guest', u.phone || '-', u.totalRedeemed || 0, u.orderCount || 0])] });
+      if (trend.length) sheets.push({ name: 'Daily Trend', data: [['Date', 'Points Issued', 'Points Redeemed', 'Redemption Value'], ...trend.map(t => [t.date, t.pointsIssued, t.pointsRedeemed, t.redemptionValue || 0])] });
+      break;
+    }
+    default:
+      sheets.push({ name: 'Data', data: [['Report data available. Use CSV export for detailed data.']] });
+  }
+
+  return sheets.length > 0 ? sheets : [{ name: 'Data', data: [['No data available']] }];
+}
+
 // Keyframes for spinner animation
 const SpinnerKeyframes = () => (
   <style>{`@keyframes hqSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
@@ -1323,7 +1784,7 @@ const SpinnerKeyframes = () => (
 
 // ---- Main Component ----
 
-export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
+export default function HQReportsTab({ orgData, outlets, formatCurrency, restaurantData: restaurantDataProp }) {
   const [activeReport, setActiveReport] = useState(null);
   const [startDate, setStartDate] = useState(getDefaultStartDate);
   const [endDate, setEndDate] = useState(getDefaultEndDate);
@@ -1331,6 +1792,12 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
   const [reportData, setReportData] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Get restaurant data for logo - from prop or localStorage
+  const restaurantData = restaurantDataProp || (() => {
+    try { return JSON.parse(localStorage.getItem('selectedRestaurant')); } catch { return null; }
+  })();
 
   const orgId = orgData?.id || orgData?._id;
   const settings = orgData?.settings || {};
@@ -1349,6 +1816,10 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
     { key: REPORT_TYPES.DISCOUNT, label: 'Discounts & Offers', icon: FaPercent, show: true },
     { key: REPORT_TYPES.TAX, label: 'Tax Summary', icon: FaFileInvoiceDollar, show: true },
     { key: REPORT_TYPES.CUSTOMER, label: 'Customer Insights', icon: FaAddressBook, show: true },
+    { key: REPORT_TYPES.PAYMENT, label: 'Payment Analytics', icon: FaMoneyBillWave, show: true },
+    { key: REPORT_TYPES.ORDER_ANALYTICS, label: 'Order Analytics', icon: FaShoppingBag, show: true },
+    { key: REPORT_TYPES.REVENUE_TRENDS, label: 'Revenue Trends', icon: FaChartArea, show: true },
+    { key: REPORT_TYPES.WALLET_LOYALTY, label: 'Wallet & Loyalty', icon: FaWallet, show: true },
   ].filter((c) => c.show);
 
   const getExportType = (reportKey) => {
@@ -1366,6 +1837,10 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
       [REPORT_TYPES.DISCOUNT]: 'discount-report',
       [REPORT_TYPES.TAX]: 'tax-summary',
       [REPORT_TYPES.CUSTOMER]: 'customer-insights',
+      [REPORT_TYPES.PAYMENT]: 'payment-analytics',
+      [REPORT_TYPES.ORDER_ANALYTICS]: 'order-analytics',
+      [REPORT_TYPES.REVENUE_TRENDS]: 'revenue-trends',
+      [REPORT_TYPES.WALLET_LOYALTY]: 'wallet-loyalty',
     };
     return map[reportKey] || reportKey;
   };
@@ -1420,6 +1895,18 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
         case REPORT_TYPES.CUSTOMER:
           result = await apiClient.getCustomerInsights(orgId, dateParams);
           break;
+        case REPORT_TYPES.PAYMENT:
+          result = await apiClient.getPaymentAnalytics(orgId, dateParams);
+          break;
+        case REPORT_TYPES.ORDER_ANALYTICS:
+          result = await apiClient.getOrderAnalytics(orgId, dateParams);
+          break;
+        case REPORT_TYPES.REVENUE_TRENDS:
+          result = await apiClient.getRevenueTrends(orgId, dateParams);
+          break;
+        case REPORT_TYPES.WALLET_LOYALTY:
+          result = await apiClient.getWalletLoyaltyReport(orgId, dateParams);
+          break;
         default:
           break;
       }
@@ -1450,7 +1937,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
     }
   };
 
-  const handleExport = async () => {
+  const handleExportCSV = async () => {
     if (!orgId || !activeReport) return;
     setExporting(true);
     try {
@@ -1490,6 +1977,60 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
     } catch (err) {
       console.error('Export failed:', err);
       alert('Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!reportData || exporting) return;
+    setExporting(true);
+    try {
+      const XLSX = (await import('xlsx'));
+      const wb = XLSX.utils.book_new();
+      const sheetData = getExcelSheetData(activeReport, reportData, formatCurrency);
+      sheetData.forEach(({ name, data }) => {
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+      });
+      const exportType = getExportType(activeReport);
+      XLSX.writeFile(wb, `${exportType}-${startDate}-to-${endDate}.xlsx`);
+    } catch (err) {
+      console.error('Excel export failed:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!reportData || exporting) return;
+    setExporting(true);
+    try {
+      const logoUrl = restaurantData?.printSettings?.receiptLogo?.url || null;
+      const orgName = restaurantData?.name || orgData?.name || '';
+      const dateRangeStr = `${startDate} to ${endDate}`;
+      const { pdf: pdfFunc } = await import('@react-pdf/renderer');
+      const { HQReportPDFDocument } = await import('./HQReportPDF');
+      const blob = await pdfFunc(
+        <HQReportPDFDocument
+          reportType={activeReport}
+          data={reportData}
+          orgName={orgName}
+          logoUrl={logoUrl}
+          dateRange={dateRangeStr}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const exportType = getExportType(activeReport);
+      link.download = `${exportType}-${startDate}-to-${endDate}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF export failed:', err);
     } finally {
       setExporting(false);
     }
@@ -1537,6 +2078,14 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
         return <TaxSummaryView data={reportData} formatCurrency={formatCurrency} />;
       case REPORT_TYPES.CUSTOMER:
         return <CustomerInsightsView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.PAYMENT:
+        return <PaymentAnalyticsView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.ORDER_ANALYTICS:
+        return <OrderAnalyticsView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.REVENUE_TRENDS:
+        return <RevenueTrendsView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.WALLET_LOYALTY:
+        return <WalletLoyaltyView data={reportData} formatCurrency={formatCurrency} />;
       default:
         return <EmptyState message="Select a report to view." />;
     }
@@ -1655,9 +2204,27 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency }) {
         {renderActiveReport()}
       </div>
 
+      {/* Export Dropdown */}
       {!loading && !error && reportData && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-          <ExportButton onExport={handleExport} exporting={exporting} />
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <button onClick={() => setShowExportMenu(!showExportMenu)} style={{ ...styles.exportBtn, opacity: exporting ? 0.7 : 1, pointerEvents: exporting ? 'none' : 'auto' }} disabled={exporting}>
+              {exporting ? <FaSpinner style={{ animation: 'hqSpin 1s linear infinite' }} /> : <FaDownload />} {exporting ? 'Exporting...' : 'Export'} <FaChevronDown size={10} />
+            </button>
+            {showExportMenu && (
+              <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: 'white', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', border: '1px solid #e5e7eb', minWidth: 160, zIndex: 50, overflow: 'hidden' }}>
+                <button onClick={() => { handleExportCSV(); setShowExportMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', width: '100%', border: 'none', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#374151', transition: 'background 0.1s' }} onMouseEnter={e => e.target.style.background='#f9fafb'} onMouseLeave={e => e.target.style.background='white'}>
+                  <FaFileCsv color="#16a34a" /> CSV
+                </button>
+                <button onClick={() => { handleExportExcel(); setShowExportMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', width: '100%', border: 'none', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#374151', borderTop: '1px solid #f3f4f6' }} onMouseEnter={e => e.target.style.background='#f9fafb'} onMouseLeave={e => e.target.style.background='white'}>
+                  <FaFileExcel color="#16a34a" /> Excel (.xlsx)
+                </button>
+                <button onClick={() => { handleExportPDF(); setShowExportMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', width: '100%', border: 'none', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#374151', borderTop: '1px solid #f3f4f6' }} onMouseEnter={e => e.target.style.background='#f9fafb'} onMouseLeave={e => e.target.style.background='white'}>
+                  <FaFilePdf color="#dc2626" /> PDF
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

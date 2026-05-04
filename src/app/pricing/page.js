@@ -86,7 +86,7 @@ export default function PricingPage() {
         "name": "How much does DineOpen cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Starter plan starts at just ₹299/month for a single outlet ($10/month internationally). Growth plan is ₹899/month with AI features and 2 outlets. Pro plan is ₹1,799/month for up to 5 outlets with chain dashboard. Enterprise pricing is custom - book a demo. All plans include a 14-day free trial with no credit card required."
+          "text": "DineOpen Starter plan starts at just ₹299/month for a single outlet ($10/month internationally). Growth plan is ₹899/month with AI features for 1 outlet. Pro plan is ₹1,799/month for up to 2 outlets with chain dashboard. Enterprise pricing is custom for 3+ outlets - book a demo. All plans include a 14-day free trial with no credit card required."
         }
       },
       {
@@ -118,7 +118,7 @@ export default function PricingPage() {
         "name": "What is the difference between Starter, Growth and Pro plans?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Starter (₹299/month) is for a single outlet with core POS, KOT printing and QR ordering. Growth (₹899/month) adds AI Voice Ordering, AI Menu Generator, captain app, KDS, advanced inventory, customer loyalty, and 2 outlets. Pro (₹1,799/month) adds chain dashboard, cross-outlet analytics, centralized management, and supports up to 5 outlets. Enterprise is custom pricing for unlimited outlets - book a demo."
+          "text": "Starter (₹299/month) is for a single outlet with core POS, KOT printing and QR ordering. Growth (₹899/month) adds AI Voice Ordering, AI Menu Generator, captain app, KDS, advanced inventory, and customer loyalty for 1 outlet. Pro (₹1,799/month) adds chain dashboard, cross-outlet analytics, centralized management, and supports up to 2 outlets. Enterprise is custom pricing for 3+ outlets with unlimited scale - book a demo."
         }
       },
       {

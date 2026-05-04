@@ -103,7 +103,7 @@ const OrderHistory = () => {
 
   // View mode: 'orders' or 'summary' — persisted in URL
   const urlView = searchParams.get('view');
-  const [activeView, setActiveView] = useState(urlView === 'summary' ? 'summary' : 'orders');
+  const [activeView, setActiveView] = useState(urlView === 'summary' ? 'summary' : urlView === 'scheduled' ? 'scheduled' : 'orders');
 
   // Sales Summary state
   const [summaryData, setSummaryData] = useState(null);
@@ -172,6 +172,12 @@ const OrderHistory = () => {
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
   const [pricingRules, setPricingRules] = useState([]);
   const [activePricingRuleId, setActivePricingRuleId] = useState(null);
+
+  // Scheduled orders state
+  const [scheduledOrders, setScheduledOrders] = useState([]);
+  const [scheduledLoading, setScheduledLoading] = useState(false);
+  const [scheduledViewMode, setScheduledViewMode] = useState('list'); // 'list' or 'calendar'
+  const [scheduledDateFilter, setScheduledDateFilter] = useState('upcoming'); // 'upcoming', 'today', 'thisWeek', 'thisMonth', 'all', 'past'
 
   useEffect(() => {
     // Initialize language
@@ -416,7 +422,8 @@ const OrderHistory = () => {
         page: currentPage,
         limit: limit,
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
-        orderType: selectedOrderType !== 'all' ? selectedOrderType : undefined,
+        orderType: selectedOrderType !== 'all' && selectedOrderType !== 'scheduled' ? selectedOrderType : undefined,
+        ...(selectedOrderType === 'scheduled' ? { isScheduled: 'true' } : {}),
         paymentMethod: selectedPaymentMethod !== 'all' ? selectedPaymentMethod : undefined,
         paymentStatus: selectedPaymentStatus !== 'all' ? selectedPaymentStatus : undefined,
         myOrdersOnly: myOrdersOnly ? user?.id : undefined,
@@ -699,24 +706,86 @@ const OrderHistory = () => {
 
     console.log(`📡 Pusher: Subscribed to channel '${channelName}'`);
 
-    // Debounce Pusher events — if multiple events arrive within 1s, only fetch once
-    let debounceTimer = null;
-    const handleOrderEvent = (eventName, data) => {
-      console.log(`📡 Pusher: Received '${eventName}' event:`, data);
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchOrdersRef.current(false);
-      }, 1000);
+    // Smart incremental sync — batch Pusher events, fetch only changed orders
+    // Collects orderIds over 2s window, then fetches them individually and merges
+    let pendingIds = new Set();
+    let batchTimer = null;
+
+    const flushBatch = async () => {
+      const ids = [...pendingIds];
+      pendingIds.clear();
+      if (ids.length === 0) return;
+
+      // Fetch each changed order individually (O(1) Firestore read each)
+      const fetches = ids.map(id =>
+        apiClient.getOrderById(id).then(r => r?.orders?.[0]).catch(() => null)
+      );
+      const results = await Promise.all(fetches);
+      const fetchedOrders = results.filter(Boolean);
+      if (fetchedOrders.length === 0) return;
+
+      setOrders(prev => {
+        const existingIds = new Set(prev.map(o => o.id));
+        let updated = [...prev];
+
+        for (const order of fetchedOrders) {
+          const idx = updated.findIndex(o => o.id === order.id);
+          if (idx >= 0) {
+            // Update existing order in-place
+            updated[idx] = order;
+          } else {
+            // New order — prepend (newest first)
+            updated.unshift(order);
+          }
+        }
+
+        // Re-sort by createdAt descending
+        updated.sort((a, b) => {
+          const da = a.createdAt?._seconds ? a.createdAt._seconds * 1000 : new Date(a.createdAt).getTime();
+          const db = b.createdAt?._seconds ? b.createdAt._seconds * 1000 : new Date(b.createdAt).getTime();
+          return db - da;
+        });
+
+        return updated;
+      });
     };
 
-    channel.bind('order-created', (data) => handleOrderEvent('order-created', data));
-    channel.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
-    channel.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
-    channel.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
+    const queueOrderFetch = (orderId) => {
+      if (!orderId) return;
+      pendingIds.add(orderId);
+      if (batchTimer) clearTimeout(batchTimer);
+      batchTimer = setTimeout(flushBatch, 2000);
+    };
+
+    // order-created: fetch full order and prepend to list
+    channel.bind('order-created', (data) => {
+      console.log(`📡 Pusher: Received 'order-created' event:`, data);
+      queueOrderFetch(data?.orderId);
+    });
+
+    // order-status-updated: fetch full updated order and merge
+    channel.bind('order-status-updated', (data) => {
+      console.log(`📡 Pusher: Received 'order-status-updated' event:`, data);
+      queueOrderFetch(data?.orderId);
+    });
+
+    // order-updated: fetch full updated order and merge
+    channel.bind('order-updated', (data) => {
+      console.log(`📡 Pusher: Received 'order-updated' event:`, data);
+      queueOrderFetch(data?.orderId);
+    });
+
+    // order-deleted: remove from local state immediately (no fetch needed)
+    channel.bind('order-deleted', (data) => {
+      console.log(`📡 Pusher: Received 'order-deleted' event:`, data);
+      if (data?.orderId) {
+        setOrders(prev => prev.filter(o => o.id !== data.orderId));
+      }
+    });
 
     // Cleanup on unmount
     return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (batchTimer) clearTimeout(batchTimer);
       console.log(`📡 Pusher: Unsubscribing from channel '${channelName}'`);
       channel.unbind_all();
       pusher.unsubscribe(channelName);
@@ -771,6 +840,10 @@ const OrderHistory = () => {
     setCancelError(null);
     try {
       await apiClient.cancelOrder(cancelModalOrderId, reason);
+      // Update scheduledOrders locally
+      setScheduledOrders(prev => prev.map(o =>
+        o.id === cancelModalOrderId ? { ...o, status: 'cancelled' } : o
+      ));
       setCancelModalOrderId(null);
       setCancelReason('');
       fetchOrders();
@@ -785,7 +858,7 @@ const OrderHistory = () => {
   };
 
   const handleMarkCompleted = (orderId) => {
-    const order = orders.find(o => o.id === orderId);
+    const order = orders.find(o => o.id === orderId) || scheduledOrders.find(o => o.id === orderId);
     if (!order) return;
 
     const cartItems = (order.items || []).map(item => {
@@ -910,6 +983,9 @@ const OrderHistory = () => {
       }
 
       setOrders(prevOrders => prevOrders.map(o =>
+        o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
+      ));
+      setScheduledOrders(prev => prev.map(o =>
         o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
       ));
       closeBillingModal();
@@ -1220,12 +1296,40 @@ const OrderHistory = () => {
     return { totalRevenue, orderCount, completedCount, paymentBreakdown };
   };
 
+  // Fetch scheduled orders
+  const fetchScheduledOrders = useCallback(async () => {
+    if (!restaurantId) return;
+    setScheduledLoading(true);
+    try {
+      const filters = {
+        page: 1,
+        limit: 200,
+        isScheduled: 'true',
+      };
+      const response = await apiClient.getOrders(restaurantId, filters);
+      let schOrders = response.orders || [];
+      // Sort by scheduledFor ascending (upcoming first)
+      schOrders.sort((a, b) => {
+        const dateA = new Date(a.scheduledFor || a.createdAt);
+        const dateB = new Date(b.scheduledFor || b.createdAt);
+        return dateA - dateB;
+      });
+      setScheduledOrders(schOrders);
+    } catch (err) {
+      console.error('Failed to fetch scheduled orders:', err);
+    } finally {
+      setScheduledLoading(false);
+    }
+  }, [restaurantId]);
+
   // View toggle — updates URL so refresh preserves view
   const switchView = useCallback((view) => {
     setActiveView(view);
     const params = new URLSearchParams(window.location.search);
     if (view === 'summary') {
       params.set('view', 'summary');
+    } else if (view === 'scheduled') {
+      params.set('view', 'scheduled');
     } else {
       params.delete('view');
     }
@@ -1236,7 +1340,10 @@ const OrderHistory = () => {
     if (view === 'summary' && !summaryData && restaurantId) {
       fetchSummaryData();
     }
-  }, [restaurantId, summaryData]);
+    if (view === 'scheduled' && restaurantId) {
+      fetchScheduledOrders();
+    }
+  }, [restaurantId, summaryData, fetchScheduledOrders]);
 
   const fetchSummaryData = useCallback(async (period) => {
     if (!restaurantId) return;
@@ -1277,6 +1384,13 @@ const OrderHistory = () => {
   useEffect(() => {
     if (activeView === 'summary' && restaurantId && !summaryData && !summaryLoading) {
       fetchSummaryData();
+    }
+  }, [activeView, restaurantId]);
+
+  // Auto-fetch scheduled orders when view is scheduled and restaurantId loads
+  useEffect(() => {
+    if (activeView === 'scheduled' && restaurantId && scheduledOrders.length === 0 && !scheduledLoading) {
+      fetchScheduledOrders();
     }
   }, [activeView, restaurantId]);
 
@@ -1429,10 +1543,28 @@ const OrderHistory = () => {
                   <span>{t('orderHistory.subtotal')}</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
-                {order.discountAmount > 0 && (
+                {/* Offer discount with name */}
+                {(order.discountAmount > 0 || order.offerDiscount > 0) && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>{t('orderHistory.discount')}</span>
-                    <span className="font-medium">-{formatCurrency(order.discountAmount)}</span>
+                    <span>{t('orderHistory.offerDiscount')}{(() => {
+                      const n = typeof order.appliedOffer === 'string' ? order.appliedOffer : (order.appliedOffer?.name || order.selectedOfferName);
+                      return n ? ` (${n})` : '';
+                    })()}</span>
+                    <span className="font-medium">-{formatCurrency(order.discountAmount || order.offerDiscount)}</span>
+                  </div>
+                )}
+                {/* Manual discount */}
+                {order.manualDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>{t('orderHistory.manualDiscount')}</span>
+                    <span className="font-medium">-{formatCurrency(order.manualDiscount)}</span>
+                  </div>
+                )}
+                {/* Loyalty discount */}
+                {order.loyaltyDiscount > 0 && (
+                  <div className="flex justify-between text-sm" style={{ color: '#b45309' }}>
+                    <span>{t('orderHistory.loyaltyRedeem')}{order.redeemLoyaltyPoints ? ` (${order.redeemLoyaltyPoints} pts)` : ''}</span>
+                    <span className="font-medium">-{formatCurrency(order.loyaltyDiscount)}</span>
                   </div>
                 )}
                 {order.serviceChargeAmount > 0 && (
@@ -1441,12 +1573,20 @@ const OrderHistory = () => {
                     <span className="font-medium">{formatCurrency(order.serviceChargeAmount)}</span>
                   </div>
                 )}
-                {breakdown.taxAmount > 0 && (
+                {/* Per-tax breakdown */}
+                {order.taxBreakdown && order.taxBreakdown.length > 0 ? (
+                  order.taxBreakdown.map((tax, idx) => (
+                    <div key={idx} className="flex justify-between text-sm text-gray-500">
+                      <span>{tax.name} ({tax.rate}%)</span>
+                      <span className="font-medium">{formatCurrency(tax.amount || 0)}</span>
+                    </div>
+                  ))
+                ) : breakdown.taxAmount > 0 ? (
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>{t('orderHistory.tax')}</span>
                     <span className="font-medium">{formatCurrency(breakdown.taxAmount)}</span>
                   </div>
-                )}
+                ) : null}
                 {order.tipAmount > 0 && (
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>{t('orderHistory.tip')} {order.tipPercentage ? `(${order.tipPercentage}%)` : ''}</span>
@@ -1465,7 +1605,21 @@ const OrderHistory = () => {
                 </div>
               </div>
 
-              {/* Payment info */}
+              {/* Wallet Applied */}
+              {order.walletRedeemAmount > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
+                  <div className="flex justify-between" style={{ color: '#2563eb' }}>
+                    <span className="font-medium">{t('orderHistory.walletApplied')}</span>
+                    <span className="font-medium">-{formatCurrency(order.walletRedeemAmount)}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="font-bold text-gray-900">{t('orderHistory.amountToPay')}</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(Math.max(0, orderTotal - order.walletRedeemAmount))}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Split payments */}
               {order.splitPayments && order.splitPayments.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{t('orderHistory.splitPayment')}</div>
@@ -1588,7 +1742,8 @@ const OrderHistory = () => {
     { value: 'all', label: t('orderHistory.type.all') },
     { value: 'dine-in', label: t('orderHistory.type.dineIn') },
     { value: 'takeaway', label: t('orderHistory.type.takeaway') },
-    { value: 'delivery', label: t('orderHistory.type.delivery') }
+    { value: 'delivery', label: t('orderHistory.type.delivery') },
+    { value: 'scheduled', label: 'Scheduled' }
   ];
 
   const paymentStatusOptions = [
@@ -1654,6 +1809,17 @@ const OrderHistory = () => {
             >
               <FaClipboardList className="text-xs" />
               {t('orderHistory.orders')}
+            </button>
+            <button
+              onClick={() => switchView('scheduled')}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${
+                activeView === 'scheduled'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <FaCalendarAlt className="text-xs" />
+              Scheduled
             </button>
             <button
               onClick={() => switchView('summary')}
@@ -1797,6 +1963,62 @@ const OrderHistory = () => {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ========== SCHEDULED VIEW — Filter Chips + View Toggle ========== */}
+          {activeView === 'scheduled' && (
+            <div className="py-2 sm:py-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Date filter chips */}
+                {[
+                  { value: 'upcoming', label: 'Upcoming' },
+                  { value: 'today', label: 'Today' },
+                  { value: 'thisWeek', label: 'This Week' },
+                  { value: 'thisMonth', label: 'This Month' },
+                  { value: 'all', label: 'All' },
+                  { value: 'past', label: 'Past' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setScheduledDateFilter(opt.value)}
+                    className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                      scheduledDateFilter === opt.value
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+                {/* Separator */}
+                <div className="hidden sm:block w-px h-5 bg-gray-200 mx-1" />
+                {/* View mode toggle */}
+                <div className="flex bg-white border border-gray-200 p-0.5 rounded-lg shadow-sm ml-auto">
+                  <button
+                    onClick={() => setScheduledViewMode('list')}
+                    className={`p-1.5 rounded-md transition-all ${scheduledViewMode === 'list' ? 'bg-blue-50 text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    title="List View"
+                  >
+                    <FaList size={12} />
+                  </button>
+                  <button
+                    onClick={() => setScheduledViewMode('calendar')}
+                    className={`p-1.5 rounded-md transition-all ${scheduledViewMode === 'calendar' ? 'bg-blue-50 text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    title="Calendar View"
+                  >
+                    <FaCalendarAlt size={12} />
+                  </button>
+                </div>
+                {/* Refresh */}
+                <button
+                  onClick={fetchScheduledOrders}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-500 transition-all"
+                  title="Refresh"
+                >
+                  <FaSync size={12} />
+                </button>
+              </div>
             </div>
           )}
 
@@ -2010,6 +2232,11 @@ const OrderHistory = () => {
                                 {sourceChip.label}
                               </span>
                             )}
+                            {order.isScheduled && order.scheduledFor && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>
+                                <FaCalendarAlt size={9} /> Scheduled: {new Date(order.scheduledFor).toLocaleDateString()} {new Date(order.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
                             {order._isOffline && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
                                 {t('orderHistory.pendingSync')}
@@ -2192,6 +2419,11 @@ const OrderHistory = () => {
                               {sourceChip && (
                                 <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
                                   {sourceChip.label}
+                                </span>
+                              )}
+                              {order.isScheduled && order.scheduledFor && (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>
+                                  <FaCalendarAlt size={9} /> Scheduled: {new Date(order.scheduledFor).toLocaleDateString()} {new Date(order.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               )}
                               {order.syncSource === 'offline' && (
@@ -2458,6 +2690,8 @@ const OrderHistory = () => {
           </div>
         )}
       </div>
+
+      </>)}
 
       {selectedOrderForModal && typeof document !== 'undefined' && createPortal(
         <OrderDetailsModal
@@ -2871,8 +3105,6 @@ const OrderHistory = () => {
         </>
       )}
 
-      </>)}
-
       {/* ========== SUMMARY VIEW CONTENT ========== */}
       {activeView === 'summary' && (
         <div className="flex-1 p-4 sm:px-6 sm:py-5 overflow-y-auto">
@@ -3099,6 +3331,279 @@ const OrderHistory = () => {
               <p className="text-sm mt-1">{t('orderHistory.startTakingOrdersSummary')}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========== SCHEDULED VIEW CONTENT ========== */}
+      {activeView === 'scheduled' && (
+        <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto">
+          {scheduledLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <FaSpinner className="animate-spin text-blue-500 text-3xl" />
+            </div>
+          ) : (() => {
+            // Filter scheduled orders based on scheduledDateFilter
+            const now = new Date();
+            const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+            const weekEnd = new Date(todayStart); weekEnd.setDate(weekEnd.getDate() + 7);
+            const monthEnd = new Date(todayStart); monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+            const filtered = scheduledOrders.filter(order => {
+              const schDate = new Date(order.scheduledFor || order.createdAt);
+              switch (scheduledDateFilter) {
+                case 'upcoming': return schDate >= now;
+                case 'today': return schDate >= todayStart && schDate <= todayEnd;
+                case 'thisWeek': return schDate >= todayStart && schDate <= weekEnd;
+                case 'thisMonth': return schDate >= todayStart && schDate <= monthEnd;
+                case 'past': return schDate < now;
+                case 'all': default: return true;
+              }
+            });
+
+            // Stats for scheduled orders
+            const totalScheduled = filtered.length;
+            const totalValue = filtered.reduce((sum, o) => sum + (o.finalAmount || o.totalAmount || 0), 0);
+            const todayCount = filtered.filter(o => {
+              const d = new Date(o.scheduledFor);
+              return d >= todayStart && d <= todayEnd;
+            }).length;
+
+            // Group by date for calendar view
+            const groupedByDate = {};
+            filtered.forEach(order => {
+              const dateKey = new Date(order.scheduledFor || order.createdAt).toLocaleDateString('en-CA'); // YYYY-MM-DD
+              if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+              groupedByDate[dateKey].push(order);
+            });
+            const sortedDates = Object.keys(groupedByDate).sort();
+
+            if (totalScheduled === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                  <FaCalendarAlt className="text-5xl mb-4 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-500">No scheduled orders</p>
+                  <p className="text-sm mt-1">Scheduled orders will appear here when created from the billing page</p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="max-w-7xl mx-auto">
+                {/* Summary cards */}
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <FaCalendarAlt className="text-blue-600 text-xs" />
+                      </div>
+                      <span className="text-[10px] text-gray-500 font-medium uppercase">Scheduled</span>
+                    </div>
+                    <div className="text-xl font-bold text-gray-900">{totalScheduled}</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                        <span className="text-emerald-600 font-bold text-xs">{getCurrencySymbol()}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-500 font-medium uppercase">Value</span>
+                    </div>
+                    <div className="text-xl font-bold text-gray-900">{formatCurrency(totalValue)}</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
+                        <FaClock className="text-amber-600 text-xs" />
+                      </div>
+                      <span className="text-[10px] text-gray-500 font-medium uppercase">Today</span>
+                    </div>
+                    <div className="text-xl font-bold text-gray-900">{todayCount}</div>
+                  </div>
+                </div>
+
+                {/* List view */}
+                {scheduledViewMode === 'list' && (
+                  <div className="space-y-2">
+                    {filtered.map((order) => {
+                      const schDate = new Date(order.scheduledFor);
+                      const isPast = schDate < now;
+                      const isToday = schDate >= todayStart && schDate <= todayEnd;
+                      const orderNum = order.orderNumber || order.id?.slice(-6);
+                      const items = order.items || order.orderItems || [];
+                      const itemCount = items.reduce((s, i) => s + (i.quantity || 1), 0);
+
+                      return (
+                        <div
+                          key={order.id}
+                          className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-all p-4 ${
+                            isPast ? 'border-gray-200 opacity-70' : isToday ? 'border-blue-300 ring-1 ring-blue-100' : 'border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                isPast ? 'bg-gray-100' : isToday ? 'bg-blue-100' : 'bg-indigo-50'
+                              }`}>
+                                <FaCalendarAlt className={`text-sm ${isPast ? 'text-gray-400' : isToday ? 'text-blue-600' : 'text-indigo-500'}`} />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-sm text-gray-900">#{orderNum}</span>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                    isPast ? 'bg-gray-100 text-gray-500' : isToday ? 'bg-blue-100 text-blue-700' : 'bg-indigo-50 text-indigo-600'
+                                  }`}>
+                                    {isPast ? 'Past' : isToday ? 'Today' : schDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                                  </span>
+                                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                                    order.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                    order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                                    order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {order.status || 'pending'}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                                  <span><FaClock className="inline mr-1 text-[10px]" />{schDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                  <span>{schDate.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                  {order.customerInfo?.name && <span><FaUser className="inline mr-1 text-[10px]" />{order.customerInfo.name}</span>}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-base font-bold text-gray-900">{formatCurrency(order.finalAmount || order.totalAmount || 0)}</div>
+                              <div className="text-[10px] text-gray-400">{itemCount} item{itemCount !== 1 ? 's' : ''} · {order.paymentMethod || 'cash'}</div>
+                            </div>
+                          </div>
+                          {/* Items preview + actions */}
+                          <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                            <div className="text-xs text-gray-500 min-w-0 truncate">
+                              {items.slice(0, 4).map((item, i) => (
+                                <span key={i}>{i > 0 ? ', ' : ''}{item.quantity || 1}x {item.name}</span>
+                              ))}
+                              {items.length > 4 && <span className="text-gray-400"> +{items.length - 4} more</span>}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                <button
+                                  onClick={() => handleMarkCompleted(order.id)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all"
+                                >
+                                  <FaCheckCircle className="text-[10px]" /> Complete
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setSelectedOrderForModal(order)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
+                              >
+                                <FaEye className="text-[10px]" /> View
+                              </button>
+                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                <button
+                                  onClick={() => setCancelModalOrderId(order.id)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all"
+                                >
+                                  <FaTimesCircle className="text-[10px]" /> Cancel
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Calendar/Date-grouped view */}
+                {scheduledViewMode === 'calendar' && (
+                  <div className="space-y-4">
+                    {sortedDates.map(dateKey => {
+                      const dayOrders = groupedByDate[dateKey];
+                      const dateObj = new Date(dateKey + 'T00:00:00');
+                      const isToday = dateKey === new Date().toLocaleDateString('en-CA');
+                      const isPast = dateObj < todayStart;
+                      const dayTotal = dayOrders.reduce((s, o) => s + (o.finalAmount || o.totalAmount || 0), 0);
+
+                      return (
+                        <div key={dateKey}>
+                          {/* Date header */}
+                          <div className={`flex items-center justify-between px-4 py-2.5 rounded-xl mb-2 ${
+                            isToday ? 'bg-blue-600 text-white' : isPast ? 'bg-gray-200 text-gray-600' : 'bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-900 border border-indigo-100'
+                          }`}>
+                            <div className="flex items-center gap-2">
+                              <FaCalendarAlt className="text-sm" />
+                              <span className="font-bold text-sm">
+                                {isToday ? 'Today' : dateObj.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                              <span className="font-medium">{dayOrders.length} order{dayOrders.length !== 1 ? 's' : ''}</span>
+                              <span className="font-bold">{formatCurrency(dayTotal)}</span>
+                            </div>
+                          </div>
+                          {/* Orders for this date in a table-like layout */}
+                          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                            {dayOrders
+                              .sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor))
+                              .map(order => {
+                                const schTime = new Date(order.scheduledFor);
+                                const items = order.items || order.orderItems || [];
+                                const itemCount = items.reduce((s, i) => s + (i.quantity || 1), 0);
+                                return (
+                                  <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <span className="text-sm font-mono font-bold text-gray-700 w-16 flex-shrink-0">
+                                        {schTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-semibold text-sm text-gray-900">#{order.orderNumber || order.id?.slice(-6)}</span>
+                                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                                            order.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                            order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                                            'bg-yellow-100 text-yellow-700'
+                                          }`}>{order.status || 'pending'}</span>
+                                        </div>
+                                        <div className="text-[11px] text-gray-400 truncate">
+                                          {items.slice(0, 3).map((item, i) => `${i > 0 ? ', ' : ''}${item.quantity || 1}x ${item.name}`).join('')}
+                                          {items.length > 3 ? ` +${items.length - 3}` : ''}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      {order.customerInfo?.name && (
+                                        <span className="text-xs text-gray-500 hidden sm:block"><FaUser className="inline mr-1 text-[10px]" />{order.customerInfo.name}</span>
+                                      )}
+                                      <span className="text-xs text-gray-400 hidden sm:inline">{itemCount} items</span>
+                                      <span className="font-bold text-sm text-gray-900 w-20 text-right">{formatCurrency(order.finalAmount || order.totalAmount || 0)}</span>
+                                      {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                        <button
+                                          onClick={() => handleMarkCompleted(order.id)}
+                                          className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all"
+                                        >
+                                          <FaCheckCircle className="text-[9px]" /> Complete
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => setSelectedOrderForModal(order)}
+                                        className="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-all"
+                                        title="View"
+                                      >
+                                        <FaEye className="text-[10px]" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

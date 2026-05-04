@@ -2715,6 +2715,24 @@ class ApiClient {
     });
   }
 
+  async getCustomerWallet(customerId) {
+    return this.request(`/api/customers/${customerId}/wallet`);
+  }
+
+  async addCustomerWalletCredit(customerId, data) {
+    return this.request(`/api/customers/${customerId}/wallet/credit`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async redeemCustomerWallet(customerId, data) {
+    return this.request(`/api/customers/${customerId}/wallet/redeem`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getStaffTips(userId) {
     return this.request(`/api/staff/${userId}/tips`);
   }
@@ -3185,6 +3203,10 @@ class ApiClient {
   getDiscountReport(orgId, params = {}) { return this.getHQReport(orgId, 'discount-report', params); }
   getTaxSummary(orgId, params = {}) { return this.getHQReport(orgId, 'tax-summary', params); }
   getCustomerInsights(orgId, params = {}) { return this.getHQReport(orgId, 'customer-insights', params); }
+  getPaymentAnalytics(orgId, params = {}) { return this.getHQReport(orgId, 'payment-analytics', params); }
+  getOrderAnalytics(orgId, params = {}) { return this.getHQReport(orgId, 'order-analytics', params); }
+  getRevenueTrends(orgId, params = {}) { return this.getHQReport(orgId, 'revenue-trends', params); }
+  getWalletLoyaltyReport(orgId, params = {}) { return this.getHQReport(orgId, 'wallet-loyalty', params); }
   exportHQReport(orgId, reportType, params = {}) {
     const q = new URLSearchParams();
     if (params.startDate) q.append('startDate', params.startDate);

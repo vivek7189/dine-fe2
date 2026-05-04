@@ -47,6 +47,11 @@ var CustomerDetail = function() {
   var [creditData, setCreditData] = useState({ outstandingBalance: 0, creditHistory: [] });
   var [creditLoading, setCreditLoading] = useState(false);
   var [settlingCredit, setSettlingCredit] = useState(null);
+  var [walletData, setWalletData] = useState({ walletBalance: 0, walletHistory: [] });
+  var [walletLoading, setWalletLoading] = useState(false);
+  var [showAddCredit, setShowAddCredit] = useState(false);
+  var [creditForm, setCreditForm] = useState({ amount: '', reason: 'advance_payment', notes: '' });
+  var [addingCredit, setAddingCredit] = useState(false);
   var [expandedOrderId, setExpandedOrderId] = useState(null);
   var isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
 
@@ -68,6 +73,16 @@ var CustomerDetail = function() {
         .then(function(data) { setCreditData(data); })
         .catch(function() { /* silently ignore if no credit data */ })
         .finally(function() { setCreditLoading(false); });
+    }
+  }, [customerId]);
+
+  useEffect(function() {
+    if (customerId) {
+      setWalletLoading(true);
+      apiClient.getCustomerWallet(customerId)
+        .then(function(data) { setWalletData(data); })
+        .catch(function() { /* silently ignore */ })
+        .finally(function() { setWalletLoading(false); });
     }
   }, [customerId]);
 
@@ -165,6 +180,28 @@ var CustomerDetail = function() {
       alert('Failed to settle credit');
     } finally {
       setSettlingCredit(null);
+    }
+  };
+
+  var handleAddCredit = async function() {
+    if (addingCredit || !creditForm.amount || parseFloat(creditForm.amount) <= 0) return;
+    try {
+      setAddingCredit(true);
+      await apiClient.addCustomerWalletCredit(customerId, {
+        amount: parseFloat(creditForm.amount),
+        reason: creditForm.reason,
+        notes: creditForm.notes
+      });
+      var data = await apiClient.getCustomerWallet(customerId);
+      setWalletData(data);
+      setCreditForm({ amount: '', reason: 'advance_payment', notes: '' });
+      setShowAddCredit(false);
+      await loadCustomer();
+    } catch (err) {
+      console.error('Error adding credit:', err);
+      alert(err.message || 'Failed to add credit');
+    } finally {
+      setAddingCredit(false);
     }
   };
 
@@ -354,6 +391,7 @@ var CustomerDetail = function() {
             { value: formatCurrency(totalSpent), label: 'Spent', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
             { value: formatCurrency(avgOrderValue), label: 'Avg Order', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
             { value: currentPoints, label: 'Points', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)', color: '#f59e0b' },
+            { value: formatCurrency(walletData.walletBalance), label: 'Wallet', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)', color: '#06b6d4' },
             { value: formatCurrency(outstandingBalance), label: 'Due', gradient: outstandingBalance > 0 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #10b981, #34d399)', color: outstandingBalance > 0 ? '#ef4444' : '#10b981' },
           ].map(function(stat, i) {
             return (
@@ -373,7 +411,7 @@ var CustomerDetail = function() {
         ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateColumns: 'repeat(6, 1fr)',
           gap: '12px'
         }}>
 
@@ -412,6 +450,15 @@ var CustomerDetail = function() {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #f59e0b, #fbbf24)' }}></div>
             <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#f59e0b' }}>{currentPoints}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Loyalty Points</p>
+          </div>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '14px', border: '1px solid #e5e7eb',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '22px',
+            textAlign: 'center', position: 'relative', overflow: 'hidden'
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #06b6d4, #22d3ee)' }}></div>
+            <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: '#06b6d4' }}>{formatCurrency(walletData.walletBalance)}</p>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Wallet Balance</p>
           </div>
           <div style={{
             backgroundColor: 'white', borderRadius: '14px',
@@ -567,6 +614,149 @@ var CustomerDetail = function() {
                 </div>
               </div>
             )}
+
+            {/* Wallet Section */}
+            <div style={{
+              backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e5e7eb',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: isMobile ? '16px' : '24px',
+              marginTop: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaWallet style={{ color: '#06b6d4' }} /> Wallet
+                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#06b6d4', marginLeft: '8px' }}>
+                    {formatCurrency(walletData.walletBalance)}
+                  </span>
+                </h3>
+                <button
+                  onClick={function() { setShowAddCredit(!showAddCredit); }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '8px 16px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                    border: 'none', color: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                  }}
+                >
+                  <FaHandHoldingUsd size={12} /> Add Credit
+                </button>
+              </div>
+
+              {showAddCredit && (
+                <div style={{
+                  backgroundColor: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: '12px',
+                  padding: '16px', marginBottom: '16px'
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '120px 1fr 1fr', gap: '10px', alignItems: 'end' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Amount *</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={creditForm.amount}
+                        onChange={function(e) { var v = e.target.value.replace(/[^0-9.]/g, ''); setCreditForm(function(p) { return Object.assign({}, p, { amount: v }); }); }}
+                        placeholder="0"
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #a5f3fc', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Reason</label>
+                      <select
+                        value={creditForm.reason}
+                        onChange={function(e) { setCreditForm(function(p) { return Object.assign({}, p, { reason: e.target.value }); }); }}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #a5f3fc', fontSize: '13px', boxSizing: 'border-box', backgroundColor: 'white' }}
+                      >
+                        <option value="advance_payment">Advance Payment</option>
+                        <option value="refund">Refund</option>
+                        <option value="compensation">Compensation</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#0e7490', marginBottom: '4px' }}>Notes</label>
+                      <input
+                        type="text"
+                        value={creditForm.notes}
+                        onChange={function(e) { setCreditForm(function(p) { return Object.assign({}, p, { notes: e.target.value }); }); }}
+                        placeholder="Optional notes"
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #a5f3fc', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button
+                      onClick={handleAddCredit}
+                      disabled={addingCredit || !creditForm.amount || parseFloat(creditForm.amount) <= 0}
+                      style={{
+                        padding: '8px 16px', borderRadius: '8px', border: 'none',
+                        background: addingCredit || !creditForm.amount ? '#94a3b8' : 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                        color: 'white', fontSize: '13px', fontWeight: '600', cursor: addingCredit ? 'default' : 'pointer'
+                      }}
+                    >
+                      {addingCredit ? 'Adding...' : 'Add Credit'}
+                    </button>
+                    <button
+                      onClick={function() { setShowAddCredit(false); setCreditForm({ amount: '', reason: 'advance_payment', notes: '' }); }}
+                      style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {walletLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                  <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Loading wallet...
+                </div>
+              ) : walletData.walletHistory.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px 0' }}>No wallet transactions yet</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Date</th>
+                        <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Type</th>
+                        <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Amount</th>
+                        <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Reason</th>
+                        <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', borderBottom: '2px solid #f3f4f6' }}>Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {walletData.walletHistory.map(function(txn, idx) {
+                        return (
+                          <tr key={txn.id || idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <td style={{ padding: '10px 12px', fontSize: '13px', color: '#374151' }}>
+                              {txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-'}
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600',
+                                backgroundColor: txn.type === 'credit' ? '#ecfdf5' : '#fef2f2',
+                                color: txn.type === 'credit' ? '#059669' : '#dc2626'
+                              }}>
+                                {txn.type === 'credit' ? '+ Credit' : '- Redeem'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px', fontWeight: '600', color: txn.type === 'credit' ? '#059669' : '#dc2626' }}>
+                              {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
+                            </td>
+                            <td style={{ padding: '10px 12px', fontSize: '12px', color: '#6b7280' }}>
+                              {(txn.reason || '').replace(/_/g, ' ')}
+                              {txn.notes ? (' — ' + txn.notes) : ''}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                              {formatCurrency(txn.balanceAfter != null ? txn.balanceAfter : 0)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
 
             {/* Details Card */}
             <div style={{

@@ -48,7 +48,10 @@ import {
   FaRedo,
   FaExclamationCircle,
   FaUserPlus,
-  FaStar
+  FaStar,
+  FaCalendarAlt,
+  FaTruck,
+  FaPencilAlt
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -125,6 +128,13 @@ const OrderSummary = ({
   setAutoSelectedRule,
   upiSettings = {},
   whatsappConnected = false,
+  // Scheduled/future order props
+  isScheduledOrder = false,
+  setIsScheduledOrder,
+  scheduledDate = '',
+  setScheduledDate,
+  scheduledTime = '',
+  setScheduledTime,
 }) => {
   // Business-type-aware billing labels (i18n — Arabic gets bilingual ar/en)
   const billingLabels = {
@@ -182,6 +192,17 @@ const OrderSummary = ({
 
   // Per-item kitchen note — tracks which cart item's note input is expanded
   const [expandedNoteId, setExpandedNoteId] = useState(null);
+  const [showCustomItemForm, setShowCustomItemForm] = useState(false);
+  const [customItemName, setCustomItemName] = useState('');
+  const [customItemPrice, setCustomItemPrice] = useState('');
+  const [customItemQty, setCustomItemQty] = useState('1');
+  const [editingPriceId, setEditingPriceId] = useState(null);
+
+  // Wallet State
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletRedeemAmount, setWalletRedeemAmount] = useState('');
+  const [useWallet, setUseWallet] = useState(false);
 
   // Voice Assistant State
   const [isListening, setIsListening] = useState(false);
@@ -299,6 +320,23 @@ const OrderSummary = ({
     prevCustomerId.current = customerData?.id || null;
   }, [customerData?.id]);
 
+  // Fetch wallet balance when customer is found
+  useEffect(() => {
+    if (lookupStatus === 'found' && customerData?.id) {
+      setWalletLoading(true);
+      apiClient.getCustomerWallet(customerData.id)
+        .then(res => {
+          setWalletBalance(Math.round((res.walletBalance || 0) * 100) / 100);
+        })
+        .catch(() => setWalletBalance(0))
+        .finally(() => setWalletLoading(false));
+    } else {
+      setWalletBalance(0);
+      setUseWallet(false);
+      setWalletRedeemAmount('');
+    }
+  }, [lookupStatus, customerData?.id]);
+
   // Auto-fill customer name when found
   useEffect(() => {
     if (customerData?.name) {
@@ -344,6 +382,8 @@ const OrderSummary = ({
       setManualDiscountTypeState('flat');
       setRedeemLoyaltyPoints(0);
       setSliderLocalValue(0);
+      setUseWallet(false);
+      setWalletRedeemAmount('');
       loyaltyPreFilled.current = false;
       prevCustomerId.current = null;
       initialLookupDone.current = false;
@@ -372,6 +412,8 @@ const OrderSummary = ({
       setManualDiscountTypeState('flat');
       setRedeemLoyaltyPoints(0);
       setSliderLocalValue(0);
+      setUseWallet(false);
+      setWalletRedeemAmount('');
       loyaltyPreFilled.current = false;
       prevCustomerId.current = null;
       initialLookupDone.current = false;
@@ -924,7 +966,37 @@ const OrderSummary = ({
         // as the old POST /api/invoice/generate response), so existing JSX
         // that reads `invoice.restaurantName`, `invoice.grandTotal`, etc.
         // works unchanged.
-        setInvoice(response.invoice || response.bill);
+        const invoiceData = response.invoice || response.bill;
+        // Override with locally-calculated billing values so the on-screen
+        // invoice always matches what the user saw during billing.
+        // The backend may recalculate offers differently (e.g. usage limits).
+        const localTaxData = buildTaxData();
+        if (localTaxData.subtotal) invoiceData.subtotal = localTaxData.subtotal;
+        if (localTaxData.offerDiscount != null) invoiceData.discountAmount = localTaxData.offerDiscount;
+        if (localTaxData.manualDiscount != null) invoiceData.manualDiscount = localTaxData.manualDiscount;
+        if (localTaxData.loyaltyDiscount != null) invoiceData.loyaltyDiscount = localTaxData.loyaltyDiscount;
+        if (localTaxData.totalDiscountAmount != null) invoiceData.totalDiscount = localTaxData.totalDiscountAmount;
+        if (localTaxData.taxBreakdown?.length) invoiceData.taxBreakdown = localTaxData.taxBreakdown;
+        if (localTaxData.finalAmount != null) invoiceData.grandTotal = localTaxData.finalAmount;
+        invoiceData.totalTax = localTaxData.taxBreakdown?.reduce((s, t) => s + (t.amount || 0), 0) || 0;
+        invoiceData.taxAmount = invoiceData.totalTax;
+        if (localTaxData.serviceChargeAmount != null) invoiceData.serviceChargeAmount = localTaxData.serviceChargeAmount;
+        if (localTaxData.serviceChargeRate != null) invoiceData.serviceChargeRate = localTaxData.serviceChargeRate;
+        if (localTaxData.tipAmount != null) invoiceData.tipAmount = localTaxData.tipAmount;
+        if (localTaxData.tipPercentage != null) invoiceData.tipPercentage = localTaxData.tipPercentage;
+        if (localTaxData.roundOffAmount != null) invoiceData.roundOffAmount = localTaxData.roundOffAmount;
+        if (localTaxData.splitPayments) invoiceData.splitPayments = localTaxData.splitPayments;
+        if (localTaxData.cashReceived != null) invoiceData.cashReceived = localTaxData.cashReceived;
+        if (localTaxData.changeReturned != null) invoiceData.changeReturned = localTaxData.changeReturned;
+        if (localTaxData.partialPayAmount != null) {
+          invoiceData.paidAmount = localTaxData.partialPayAmount;
+          invoiceData.outstandingAmount = Math.round(((localTaxData.finalAmount || 0) - localTaxData.partialPayAmount) * 100) / 100;
+        }
+        // Wallet
+        if (useWallet && parseFloat(walletRedeemAmount) > 0) {
+          invoiceData.walletRedeemAmount = parseFloat(walletRedeemAmount);
+        }
+        setInvoice(invoiceData);
         setShowInvoicePermanently(true);
 
         // Persist the invoice doc in the background (for reports / history /
@@ -985,6 +1057,8 @@ const OrderSummary = ({
         personPhone: deliveryInfo.personPhone || null,
         cashHandedOver: deliveryInfo.cashHandedOver || false,
       } : null,
+      walletRedeemAmount: useWallet && parseFloat(walletRedeemAmount) > 0 ? parseFloat(walletRedeemAmount) : null,
+      walletCustomerId: useWallet && parseFloat(walletRedeemAmount) > 0 ? customerData?.id : null,
     };
   };
 
@@ -1257,105 +1331,112 @@ const OrderSummary = ({
       {/* Delivery Person Info — shown when delivery order type is selected */}
       {orderType === 'delivery' && (
         <div style={{
-          display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap',
-          padding: isMobile ? '6px 10px' : '6px 16px',
-          background: billingMode ? '#f8fafc' : 'rgba(255,255,255,0.15)',
-          borderBottom: billingMode ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.15)',
+          padding: isMobile ? '8px 10px' : '10px 16px',
+          background: '#fff7ed',
+          borderBottom: '1px solid #fed7aa',
           flexShrink: 0,
         }}>
-          {/* Person name with staff search */}
-          <div style={{ position: 'relative', flex: '1', minWidth: '90px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+            <FaTruck size={11} style={{ color: '#ea580c' }} />
+            <span style={{ fontSize: '11px', fontWeight: '700', color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Delivery Details</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Person name with staff search */}
+            <div style={{ position: 'relative', flex: '1', minWidth: '100px' }}>
+              <input
+                type="text"
+                placeholder="Delivery person name"
+                value={deliveryInfo.personName}
+                onChange={(e) => {
+                  setDeliveryInfo(prev => ({ ...prev, personName: e.target.value }));
+                  setShowStaffDropdown(true);
+                }}
+                onFocus={() => setShowStaffDropdown(true)}
+                onBlur={() => setTimeout(() => setShowStaffDropdown(false), 200)}
+                style={{
+                  width: '100%', padding: '7px 10px',
+                  border: '1.5px solid #fdba74',
+                  borderRadius: '8px', fontSize: '12px',
+                  backgroundColor: 'white',
+                  color: '#1f2937', outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {showStaffDropdown && staffList.length > 0 && (() => {
+                const q = (deliveryInfo.personName || '').toLowerCase();
+                const filtered = staffList.filter(s =>
+                  (s.name || '').toLowerCase().includes(q)
+                );
+                if (filtered.length === 0 || (filtered.length === 1 && filtered[0].name === deliveryInfo.personName)) return null;
+                return (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                    background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px',
+                    maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    marginTop: '2px',
+                  }}>
+                    {filtered.slice(0, 8).map(s => (
+                      <div key={s.id || s.name} onMouseDown={() => {
+                        setDeliveryInfo(prev => ({
+                          ...prev, personName: s.name, personPhone: s.phone || prev.personPhone
+                        }));
+                        setShowStaffDropdown(false);
+                      }} style={{
+                        padding: '7px 10px', fontSize: '12px', cursor: 'pointer',
+                        color: '#374151', borderBottom: '1px solid #f3f4f6',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#fff7ed'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
+                      >
+                        {s.name} {s.phone ? <span style={{ color: '#9ca3af' }}>({s.phone})</span> : ''}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Phone */}
             <input
-              type="text"
-              placeholder="Delivery person name"
-              value={deliveryInfo.personName}
-              onChange={(e) => {
-                setDeliveryInfo(prev => ({ ...prev, personName: e.target.value }));
-                setShowStaffDropdown(true);
-              }}
-              onFocus={() => setShowStaffDropdown(true)}
-              onBlur={() => setTimeout(() => setShowStaffDropdown(false), 200)}
+              type="tel"
+              placeholder="Phone"
+              value={deliveryInfo.personPhone}
+              onChange={(e) => setDeliveryInfo(prev => ({ ...prev, personPhone: e.target.value.replace(/\D/g, '') }))}
               style={{
-                width: '100%', padding: '6px 10px',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: '6px', fontSize: '12px',
-                backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.9)',
-                color: '#374151', outline: 'none',
-                '::placeholder': { color: '#9ca3af' },
+                width: '90px', padding: '7px 10px',
+                border: '1.5px solid #fdba74',
+                borderRadius: '8px', fontSize: '12px',
+                backgroundColor: 'white',
+                color: '#1f2937', outline: 'none',
+                boxSizing: 'border-box',
               }}
             />
-            {showStaffDropdown && staffList.length > 0 && (() => {
-              const q = (deliveryInfo.personName || '').toLowerCase();
-              const filtered = staffList.filter(s =>
-                (s.name || '').toLowerCase().includes(q)
-              );
-              if (filtered.length === 0 || (filtered.length === 1 && filtered[0].name === deliveryInfo.personName)) return null;
-              return (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-                  background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px',
-                  maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  marginTop: '2px',
-                }}>
-                  {filtered.slice(0, 8).map(s => (
-                    <div key={s.id || s.name} onMouseDown={() => {
-                      setDeliveryInfo(prev => ({
-                        ...prev, personName: s.name, personPhone: s.phone || prev.personPhone
-                      }));
-                      setShowStaffDropdown(false);
-                    }} style={{
-                      padding: '6px 8px', fontSize: '11px', cursor: 'pointer',
-                      color: '#374151', borderBottom: '1px solid #f3f4f6',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
-                    >
-                      {s.name} {s.phone ? <span style={{ color: '#9ca3af' }}>({s.phone})</span> : ''}
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
+
+            {/* Cash handed over toggle */}
+            <button
+              type="button"
+              onClick={() => setDeliveryInfo(prev => ({ ...prev, cashHandedOver: !prev.cashHandedOver }))}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                padding: '7px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                border: deliveryInfo.cashHandedOver
+                  ? '1.5px solid #22c55e'
+                  : '1.5px solid #fdba74',
+                background: deliveryInfo.cashHandedOver
+                  ? '#dcfce7'
+                  : 'white',
+                color: deliveryInfo.cashHandedOver
+                  ? '#16a34a'
+                  : '#9a3412',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+              title="Cash handed over to delivery person"
+            >
+              <FaMoneyBillWave size={11} />
+              {deliveryInfo.cashHandedOver ? 'Cash ✓' : 'Cash'}
+            </button>
           </div>
-
-          {/* Phone */}
-          <input
-            type="tel"
-            placeholder="Phone number"
-            value={deliveryInfo.personPhone}
-            onChange={(e) => setDeliveryInfo(prev => ({ ...prev, personPhone: e.target.value.replace(/\D/g, '') }))}
-            style={{
-              width: '90px', padding: '6px 10px',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: '6px', fontSize: '12px',
-              backgroundColor: billingMode ? 'white' : 'rgba(255,255,255,0.9)',
-              color: '#374151', outline: 'none',
-            }}
-          />
-
-          {/* Cash handed over toggle */}
-          <button
-            type="button"
-            onClick={() => setDeliveryInfo(prev => ({ ...prev, cashHandedOver: !prev.cashHandedOver }))}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '4px',
-              padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
-              border: deliveryInfo.cashHandedOver
-                ? '1px solid #22c55e'
-                : '1px solid rgba(255,255,255,0.3)',
-              background: deliveryInfo.cashHandedOver
-                ? '#dcfce7'
-                : 'rgba(255,255,255,0.9)',
-              color: deliveryInfo.cashHandedOver
-                ? '#16a34a'
-                : '#6b7280',
-              cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
-            title="Cash handed over to delivery person"
-          >
-            <FaMoneyBillWave size={10} />
-            {deliveryInfo.cashHandedOver ? 'Cash ✓' : 'Cash'}
-          </button>
         </div>
       )}
 
@@ -1802,6 +1883,8 @@ const OrderSummary = ({
                   setManualDiscountTypeState('flat');
                   setRedeemLoyaltyPoints(0);
                   setSliderLocalValue(0);
+                  setUseWallet(false);
+                  setWalletRedeemAmount('');
                   loyaltyPreFilled.current = false;
                   prevCustomerId.current = null;
                   initialLookupDone.current = false;
@@ -2084,6 +2167,18 @@ const OrderSummary = ({
                         <span>{t('invoice.total')}:</span>
                         <span>{formatCurrency(invoice?.grandTotal || ((invoice?.subtotal || 0) - (invoice?.totalDiscount || 0) + (invoice?.taxBreakdown?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0)))}</span>
                       </div>
+                      {(invoice?.walletRedeemAmount || 0) > 0 && (
+                        <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#2563eb' }}>
+                            <span>{t('dashboard.walletApplied')}:</span>
+                            <span>-{formatCurrency(invoice.walletRedeemAmount)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>
+                            <span>{t('dashboard.amountToPay')}:</span>
+                            <span>{formatCurrency(Math.max(0, (invoice?.grandTotal || 0) - invoice.walletRedeemAmount))}</span>
+                          </div>
+                        </div>
+                      )}
                       {(invoice?.splitPayments?.length >= 2) && (
                         <div style={{ borderTop: '1px dashed #22c55e', paddingTop: '4px', marginTop: '4px' }}>
                           <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>{t('invoice.splitPayment')}:</div>
@@ -2165,6 +2260,7 @@ const OrderSummary = ({
                       const splitPaymentHtml = (invoice?.splitPayments?.length >= 2) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.splitPayment')}:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.method || 'Cash').toUpperCase()}:</span><span>${currencySymbol}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
                       const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.cashReceived')}:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.change')}:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
                       const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.partialPayment')}:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.paid')}:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>${t('invoice.outstanding')}:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
+                      const walletPayHtml = (invoice?.walletRedeemAmount || 0) > 0 ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('dashboard.walletApplied')}:</span><span>-${currencySymbol}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${t('dashboard.amountToPay')}:</span><span>${currencySymbol}${Math.max(0, (invoice?.grandTotal || 0) - invoice.walletRedeemAmount).toFixed(2)}</span></div></div>` : '';
                       const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
                       // Build identity lines for print header
                       const identityLines = [];
@@ -2180,7 +2276,7 @@ const OrderSummary = ({
                       const receiptLogo = printSettings?.receiptLogo || null;
                       const billHeaderHtml = getBillHeaderHTML((invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;'), identityHtml, receiptLogo, `--- ${bLabels.billTitle} ---`);
 
-                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>${t('invoice.date')}:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>${t('invoice.table')}:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>${t('invoice.payment')}:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">${t('invoice.amt')}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${t('invoice.subtotal')}:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${t('invoice.total')}:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">${t('invoice.poweredBy')}</p></div></body></html>`;
+                      const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>${t('invoice.date')}:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>${t('invoice.table')}:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>${t('invoice.payment')}:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">${t('invoice.amt')}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${t('invoice.subtotal')}:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${t('invoice.total')}:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}${walletPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">${t('invoice.poweredBy')}</p></div></body></html>`;
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
@@ -2228,6 +2324,8 @@ const OrderSummary = ({
                   setManualDiscountTypeState('flat');
                   setRedeemLoyaltyPoints(0);
                   setSliderLocalValue(0);
+                  setUseWallet(false);
+                  setWalletRedeemAmount('');
                   loyaltyPreFilled.current = false;
                   prevCustomerId.current = null;
                   initialLookupDone.current = false;
@@ -2578,13 +2676,50 @@ const OrderSummary = ({
                         }}>
                           Subtotal: {formatCurrency(getItemUnitPrice(item) * item.quantity)}
                         </span>
-                        <span style={{
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          color: '#ef4444'
-                        }}>
-                          {formatCurrency(getItemUnitPrice(item))}
-                        </span>
+                        {posSettings.allowPriceEdit && editingPriceId === (item.cartId || item.id) ? (
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            autoFocus
+                            defaultValue={getItemUnitPrice(item)}
+                            onBlur={(e) => {
+                              const newPrice = parseFloat(e.target.value);
+                              if (!isNaN(newPrice) && newPrice >= 0) {
+                                setCart(prev => prev.map(c =>
+                                  (c.cartId || c.id) === (item.cartId || item.id)
+                                    ? { ...c, price: newPrice, basePrice: newPrice }
+                                    : c
+                                ));
+                              }
+                              setEditingPriceId(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') e.target.blur();
+                              if (e.key === 'Escape') setEditingPriceId(null);
+                            }}
+                            style={{
+                              width: '60px', padding: '2px 6px', border: '1.5px solid #3b82f6', borderRadius: '4px',
+                              fontSize: '11px', fontWeight: 'bold', textAlign: 'right', outline: 'none',
+                              background: '#eff6ff', color: '#1e40af',
+                            }}
+                          />
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '12px', fontWeight: 'bold', color: '#ef4444',
+                              cursor: posSettings.allowPriceEdit ? 'pointer' : 'default',
+                              display: 'inline-flex', alignItems: 'center', gap: '3px',
+                            }}
+                            onClick={() => {
+                              if (posSettings.allowPriceEdit) setEditingPriceId(item.cartId || item.id);
+                            }}
+                          >
+                            {formatCurrency(getItemUnitPrice(item))}
+                            {posSettings.allowPriceEdit && (
+                              <FaPencilAlt size={7} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                            )}
+                          </span>
+                        )}
                         <div style={{
                           padding: '1px 4px',
                           borderRadius: '4px',
@@ -2754,6 +2889,111 @@ const OrderSummary = ({
                 </div>
               </div>
             ))}
+            {/* Custom Item Entry */}
+            {posSettings.allowCustomItems && (
+              showCustomItemForm ? (
+                <div style={{
+                  backgroundColor: '#f0fdf4', borderRadius: '8px', padding: '8px',
+                  border: '1.5px dashed #86efac',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('dashboard.customItem')}</span>
+                    <button
+                      onClick={() => { setShowCustomItemForm(false); setCustomItemName(''); setCustomItemPrice(''); setCustomItemQty('1'); }}
+                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '14px', lineHeight: 1, padding: '2px' }}
+                    >&times;</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder={t('dashboard.itemName')}
+                      value={customItemName}
+                      onChange={(e) => setCustomItemName(e.target.value)}
+                      autoFocus
+                      style={{
+                        flex: 2, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px',
+                        fontSize: '11px', outline: 'none', background: '#fff', minWidth: 0,
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#22c55e'}
+                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={t('dashboard.price')}
+                      value={customItemPrice}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setCustomItemPrice(v);
+                      }}
+                      style={{
+                        width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px',
+                        fontSize: '11px', outline: 'none', background: '#fff', textAlign: 'right',
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#22c55e'}
+                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={customItemQty}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, '');
+                        setCustomItemQty(v);
+                      }}
+                      style={{
+                        width: '32px', padding: '6px 4px', border: '1px solid #d1d5db', borderRadius: '6px',
+                        fontSize: '11px', outline: 'none', background: '#fff', textAlign: 'center',
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        if (!customItemName.trim() || !customItemPrice || parseFloat(customItemPrice) <= 0) return;
+                        const ts = Date.now();
+                        const newItem = {
+                          id: `custom-${ts}`,
+                          cartId: `custom-${ts}`,
+                          name: customItemName.trim(),
+                          price: parseFloat(customItemPrice),
+                          basePrice: parseFloat(customItemPrice),
+                          quantity: parseInt(customItemQty) || 1,
+                          isCustomItem: true,
+                          category: 'custom',
+                        };
+                        setCart(prev => [newItem, ...prev]);
+                        setCustomItemName('');
+                        setCustomItemPrice('');
+                        setCustomItemQty('1');
+                        setShowCustomItemForm(false);
+                      }}
+                      disabled={!customItemName.trim() || !customItemPrice || parseFloat(customItemPrice) <= 0}
+                      style={{
+                        width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: (!customItemName.trim() || !customItemPrice || parseFloat(customItemPrice) <= 0) ? '#d1d5db' : '#22c55e',
+                        color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                        fontSize: '14px', fontWeight: 'bold', flexShrink: 0,
+                      }}
+                    >
+                      ✓
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowCustomItemForm(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                    padding: '6px', borderRadius: '8px', border: '1.5px dashed #d1d5db',
+                    background: 'transparent', color: '#9ca3af', fontSize: '11px', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#22c55e'; e.currentTarget.style.color = '#22c55e'; e.currentTarget.style.background = '#f0fdf4'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <FaPlus size={9} /> {t('dashboard.addCustomItem')}
+                </button>
+              )
+            )}
           </div>
         )}
 
@@ -2803,6 +3043,22 @@ const OrderSummary = ({
                 </div>
                 <span style={{ fontSize: '22px', fontWeight: 'bold' }}>{formatCurrency(grandTotal !== null ? grandTotal : getTotalAmount())}</span>
               </div>
+              {useWallet && parseFloat(walletRedeemAmount) > 0 && (
+                <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.25)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '11px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <FaWallet size={9} /> {t('dashboard.walletApplied')}
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#bbf7d0' }}>-{formatCurrency(parseFloat(walletRedeemAmount))}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700 }}>{t('dashboard.amountToPay')}</span>
+                    <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                      {formatCurrency(Math.max(0, Math.round(((grandTotal !== null ? grandTotal : getTotalAmount()) - parseFloat(walletRedeemAmount)) * 100) / 100))}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -3905,9 +4161,53 @@ const OrderSummary = ({
             </div>
           )}
 
+          {/* Schedule for Later — collapsible date/time row */}
+          {!billingMode && setIsScheduledOrder && isScheduledOrder && (
+            <div style={{
+              display: 'flex', gap: '6px', marginBottom: '6px',
+              padding: '8px 10px', borderRadius: '8px',
+              background: '#eff6ff', border: '1px solid #bfdbfe',
+              alignItems: 'center',
+            }}>
+              <FaCalendarAlt size={11} style={{ color: '#3b82f6', flexShrink: 0 }} />
+              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} min={new Date().toISOString().split('T')[0]} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: '#fff', minWidth: 0 }} />
+              <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #93c5fd', fontSize: '11px', outline: 'none', background: '#fff', minWidth: 0 }} />
+              <button onClick={() => { setIsScheduledOrder(false); setScheduledDate(''); setScheduledTime(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '13px', fontWeight: 700, padding: '2px 4px', lineHeight: 1 }}>&times;</button>
+            </div>
+          )}
+
           {/* First Row - Save and Place Order (hidden in billing mode) */}
           {!billingMode && (
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              {/* Schedule toggle button */}
+              {setIsScheduledOrder && cart.length > 0 && (
+                <button
+                  onClick={() => {
+                    const next = !isScheduledOrder;
+                    setIsScheduledOrder(next);
+                    if (!next) { setScheduledDate(''); setScheduledTime(''); }
+                  }}
+                  style={{
+                    width: '40px', flexShrink: 0,
+                    background: isScheduledOrder ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#f1f5f9',
+                    color: isScheduledOrder ? 'white' : '#64748b',
+                    padding: '8px 0',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    border: isScheduledOrder ? 'none' : '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                    boxShadow: isScheduledOrder ? '0 2px 8px rgba(59,130,246,0.3)' : 'none',
+                  }}
+                  title={isScheduledOrder ? 'Cancel scheduling' : 'Schedule for later'}
+                >
+                  <FaCalendarAlt size={13} />
+                </button>
+              )}
+
               {!posSettings.hideSaveOrder && <button
                 onClick={() => {
                   if (typeof onSaveOrder === 'function' && !orderBusy) {
@@ -4336,6 +4636,76 @@ const OrderSummary = ({
                         ))}
                       </div>
                     )}
+                    {/* Wallet Balance */}
+                    {walletBalance > 0 && (
+                      <div style={{ marginTop: '10px', padding: '10px', borderRadius: '10px', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '1px solid #93c5fd' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: useWallet ? '8px' : 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <FaWallet size={12} style={{ color: '#2563eb' }} />
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af' }}>{t('dashboard.walletBalance')}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#1d4ed8' }}>{formatCurrency(walletBalance)}</span>
+                            <button
+                              onClick={() => {
+                                const next = !useWallet;
+                                setUseWallet(next);
+                                if (next) {
+                                  const billAmount = grandTotal !== null ? grandTotal : getTotalAmount();
+                                  setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, billAmount) * 100) / 100));
+                                } else {
+                                  setWalletRedeemAmount('');
+                                }
+                              }}
+                              style={{
+                                padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
+                                background: useWallet ? '#dc2626' : '#2563eb', color: '#fff', border: 'none',
+                                cursor: 'pointer', transition: 'all 0.15s',
+                              }}
+                            >
+                              {useWallet ? t('common.cancel') : t('dashboard.use')}
+                            </button>
+                          </div>
+                        </div>
+                        {useWallet && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '10px', color: '#1e40af', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.redeem')}:</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={walletRedeemAmount}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) {
+                                  const num = parseFloat(v) || 0;
+                                  if (num <= walletBalance) setWalletRedeemAmount(v);
+                                }
+                              }}
+                              style={{
+                                flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1.5px solid #60a5fa',
+                                fontSize: '12px', fontWeight: 700, outline: 'none', background: '#fff',
+                                textAlign: 'right', color: '#1e40af',
+                              }}
+                              onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                              onBlur={(e) => e.target.style.borderColor = '#60a5fa'}
+                            />
+                            <button
+                              onClick={() => {
+                                const billAmount = grandTotal !== null ? grandTotal : getTotalAmount();
+                                setWalletRedeemAmount(String(Math.round(Math.min(walletBalance, billAmount) * 100) / 100));
+                              }}
+                              style={{
+                                padding: '4px 8px', borderRadius: '6px', fontSize: '9px', fontWeight: 700,
+                                background: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd',
+                                cursor: 'pointer', whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {t('dashboard.max')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -4598,6 +4968,7 @@ const OrderSummary = ({
                   onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                 />
               </div>
+
             </div>
 
             {/* Modal Footer — sticky with full breakdown */}

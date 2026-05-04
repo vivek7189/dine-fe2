@@ -53,7 +53,8 @@ import {
   FaStop,
   FaBed,
   FaThList,
-  FaTools
+  FaTools,
+  FaCalendarAlt
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { performLogout } from '../../../lib/logout';
@@ -105,6 +106,11 @@ function RestaurantPOSContent() {
   const [manualRoomNumber, setManualRoomNumber] = useState('');
   const [locationType, setLocationType] = useState('table'); // 'table' or 'room'
   const [inRoomDiningEnabled, setInRoomDiningEnabled] = useState(false);
+
+  // Scheduled/future order state
+  const [isScheduledOrder, setIsScheduledOrder] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
 
   // Multi-tier pricing state
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
@@ -1831,30 +1837,56 @@ function RestaurantPOSContent() {
 
     console.log(`📡 Dashboard: Subscribed to Pusher channel '${channelName}' for table updates`);
 
-    // Debounce rapid Pusher events (e.g., bulk status changes)
-    let debounceTimer = null;
-    const debouncedRefresh = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => prefetchTablesRef.current(restaurantId), 1000);
+    // Debounce rapid Pusher events — separate timers for table vs order events
+    let tableDebounce = null;
+    let orderDebounce = null;
+
+    // Table events: refresh quickly (1s debounce) — these directly affect table view
+    const debouncedTableRefresh = () => {
+      if (tableDebounce) clearTimeout(tableDebounce);
+      tableDebounce = setTimeout(() => prefetchTablesRef.current(restaurantId), 1000);
     };
 
-    // Any order or table event should refresh table statuses
-    const handleEvent = (eventName) => (data) => {
-      console.log(`📡 Dashboard: Received '${eventName}' event:`, data);
-      debouncedRefresh();
+    // Order events: refresh less aggressively (3s debounce) — only matters for table
+    // status badges. Skip entirely if user is actively in billing flow (cart has items).
+    const debouncedOrderRefresh = () => {
+      if (orderDebounce) clearTimeout(orderDebounce);
+      orderDebounce = setTimeout(() => {
+        prefetchTablesRef.current(restaurantId);
+      }, 3000);
     };
 
-    // Bind to all relevant events
-    channel.bind('order-created', handleEvent('order-created'));
-    channel.bind('order-updated', handleEvent('order-updated'));
-    channel.bind('order-status-updated', handleEvent('order-status-updated'));
-    channel.bind('order-completed', handleEvent('order-completed'));
-    channel.bind('order-deleted', handleEvent('order-deleted'));
-    channel.bind('table-status-updated', handleEvent('table-status-updated'));
+    // Bind events with appropriate refresh strategy
+    channel.bind('order-created', (data) => {
+      console.log(`📡 Dashboard: Received 'order-created' event:`, data);
+      debouncedOrderRefresh();
+    });
+    channel.bind('order-updated', (data) => {
+      console.log(`📡 Dashboard: Received 'order-updated' event:`, data);
+      debouncedOrderRefresh();
+    });
+    channel.bind('order-status-updated', (data) => {
+      console.log(`📡 Dashboard: Received 'order-status-updated' event:`, data);
+      debouncedOrderRefresh();
+    });
+    channel.bind('order-completed', (data) => {
+      console.log(`📡 Dashboard: Received 'order-completed' event:`, data);
+      // Completed orders release tables — refresh quickly
+      debouncedTableRefresh();
+    });
+    channel.bind('order-deleted', (data) => {
+      console.log(`📡 Dashboard: Received 'order-deleted' event:`, data);
+      debouncedTableRefresh();
+    });
+    channel.bind('table-status-updated', (data) => {
+      console.log(`📡 Dashboard: Received 'table-status-updated' event:`, data);
+      debouncedTableRefresh();
+    });
 
     // Cleanup on unmount
     return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (tableDebounce) clearTimeout(tableDebounce);
+      if (orderDebounce) clearTimeout(orderDebounce);
       console.log(`📡 Dashboard: Unsubscribing from channel '${channelName}'`);
       channel.unbind_all();
       pusher.unsubscribe(channelName);
@@ -2517,7 +2549,8 @@ function RestaurantPOSContent() {
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
-      deliveryInfo: deliveryInfoData = null
+      deliveryInfo: deliveryInfoData = null,
+      walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
     } = taxData;
 
     // Check if order is completed and disable action
@@ -2629,6 +2662,7 @@ function RestaurantPOSContent() {
           // Loyalty fields
           redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
           loyaltyDiscount: loyaltyDiscAmt || 0,
+          walletRedeemAmount: walletRedeem || null,
           lastUpdatedBy: {
             name: currentUser.name || 'Staff',
             id: currentUser.id,
@@ -2709,6 +2743,20 @@ function RestaurantPOSContent() {
             restaurantId: selectedRestaurant.id,
             paymentStatus: partialPay ? 'partial' : 'completed'
           });
+
+          // Redeem wallet balance if used
+          if (walletRedeem && walletRedeem > 0 && walletCustId) {
+            try {
+              await apiClient.redeemCustomerWallet(walletCustId, {
+                amount: walletRedeem,
+                orderId: currentOrder.id,
+                notes: `Redeemed during billing for order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)}`
+              });
+              console.log('💰 Wallet redeemed:', walletRedeem);
+            } catch (walletErr) {
+              console.error('Wallet redemption failed (non-blocking):', walletErr);
+            }
+          }
 
           // Show notification for order completion
           setNotification({
@@ -2797,6 +2845,7 @@ function RestaurantPOSContent() {
         // Loyalty fields
         redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
         loyaltyDiscount: loyaltyDiscAmt || 0,
+        walletRedeemAmount: walletRedeem || null,
         customerPhone: customerMobile || null,
         // Special instructions for kitchen
         specialInstructions: specialInstructions || null,
@@ -2817,6 +2866,10 @@ function RestaurantPOSContent() {
         partialPayAmount: partialPay || null,
         paidAmount: partialPay ? Math.round(Number(partialPay) * 100) / 100 : null,
         outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
+        ...(isScheduledOrder && scheduledDate && scheduledTime ? {
+          isScheduled: true,
+          scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
+        } : {}),
       };
 
         // If split payment, override payment method
@@ -2917,6 +2970,20 @@ function RestaurantPOSContent() {
             paymentStatus: partialPay ? 'partial' : 'completed'
           });
           console.log('✅ Card payment verified:', paymentResult);
+        }
+
+        // Redeem wallet balance if used
+        if (walletRedeem && walletRedeem > 0 && walletCustId) {
+          try {
+            await apiClient.redeemCustomerWallet(walletCustId, {
+              amount: walletRedeem,
+              orderId: orderId,
+              notes: `Redeemed during billing for order #${orderResponse.order?.dailyOrderId || orderId.slice(-6)}`
+            });
+            console.log('💰 Wallet redeemed:', walletRedeem);
+          } catch (walletErr) {
+            console.error('Wallet redemption failed (non-blocking):', walletErr);
+          }
         }
 
         // Note: Table status management is now handled by backend
@@ -3474,7 +3541,8 @@ function RestaurantPOSContent() {
       serviceChargeRate = null, serviceChargeAmount: scAmount = null, tipAmount: tipAmt = null, tipPercentage: tipPct = null,
       cashReceived = null, changeReturned = null, splitPayments: splitPay = null, roundOffAmount: roundOff = null,
       partialPayAmount: partialPay = null, compItems: compData = null, voidItems: voidData = null, managerPin: mgrPin = null,
-      deliveryInfo: deliveryInfoData = null
+      deliveryInfo: deliveryInfoData = null,
+      walletRedeemAmount: walletRedeem = null, walletCustomerId: walletCustId = null,
     } = taxData;
 
     try {
@@ -3522,6 +3590,7 @@ function RestaurantPOSContent() {
           specialInstructions: specialInstructions || null,
           // Delivery info
           deliveryInfo: deliveryInfoData || null,
+          walletRedeemAmount: walletRedeem || null,
           updatedAt: new Date().toISOString(),
           lastUpdatedBy: {
             name: 'Staff Member',
@@ -3628,6 +3697,7 @@ function RestaurantPOSContent() {
           offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
           manualDiscount: manualDiscount || 0,
           redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
+          walletRedeemAmount: walletRedeem || null,
           customerPhone: customerMobile || null,
           // Special instructions for kitchen
           specialInstructions: specialInstructions || null,
@@ -3651,6 +3721,10 @@ function RestaurantPOSContent() {
           outstandingAmount: partialPay ? Math.round(((finalAmount || (subtotal || getTotalAmount()) + totalTax) - Number(partialPay)) * 100) / 100 : null,
           compItems: compData || null,
           voidItems: voidData || null,
+          ...(isScheduledOrder && scheduledDate && scheduledTime ? {
+            isScheduled: true,
+            scheduledFor: new Date(`${scheduledDate}T${scheduledTime}`).toISOString(),
+          } : {}),
         };
 
         // If split payment, override payment method
@@ -3800,6 +3874,21 @@ function RestaurantPOSContent() {
             }
 
             fetchSavedOrders();
+
+            // Redeem wallet balance if used
+            if (walletRedeem && walletRedeem > 0 && walletCustId) {
+              try {
+                await apiClient.redeemCustomerWallet(walletCustId, {
+                  amount: walletRedeem,
+                  orderId: response.order.id,
+                  notes: `Redeemed during billing for order #${response.order.dailyOrderId || response.order.id.slice(-6)}`
+                });
+                console.log('💰 Wallet redeemed:', walletRedeem);
+              } catch (walletErr) {
+                console.error('Wallet redemption failed (non-blocking):', walletErr);
+              }
+            }
+
             setTimeout(() => setNotification(null), 4000);
           }
         } catch (apiError) {
@@ -3881,6 +3970,9 @@ function RestaurantPOSContent() {
     setCustomerData(null);
     setManualTableNumber('');
     setManualRoomNumber('');
+    setIsScheduledOrder(false);
+    setScheduledDate('');
+    setScheduledTime('');
     setOrderLookup('');
     localStorage.removeItem('dine_cart');
     if (!keepOrderSuccess) {
@@ -6671,6 +6763,12 @@ function RestaurantPOSContent() {
             setAutoSelectedRule={setAutoSelectedRule}
             upiSettings={upiSettings}
             whatsappConnected={whatsappConnected}
+            isScheduledOrder={isScheduledOrder}
+            setIsScheduledOrder={setIsScheduledOrder}
+            scheduledDate={scheduledDate}
+            setScheduledDate={setScheduledDate}
+            scheduledTime={scheduledTime}
+            setScheduledTime={setScheduledTime}
           />
         </div>
                 ) : (
@@ -6754,6 +6852,12 @@ function RestaurantPOSContent() {
                     setAutoSelectedRule={setAutoSelectedRule}
                     upiSettings={upiSettings}
                     whatsappConnected={whatsappConnected}
+                    isScheduledOrder={isScheduledOrder}
+                    setIsScheduledOrder={setIsScheduledOrder}
+                    scheduledDate={scheduledDate}
+                    setScheduledDate={setScheduledDate}
+                    scheduledTime={scheduledTime}
+                    setScheduledTime={setScheduledTime}
                   />
             )}
           </>

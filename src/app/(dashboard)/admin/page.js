@@ -3805,7 +3805,27 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         Download .exe
                       </a>
                     ) : (
-                      <span style={{ fontSize: '13px', color: '#6b7280' }}>Not available</span>
+                      <a
+                        href="https://drive.google.com/file/d/1fnl4QNbNPzJkPCXmH3dJn4m6pbocvAT8/view?usp=sharing"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '8px 14px',
+                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                          color: 'white',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <FaDownload size={12} />
+                        Download .exe
+                      </a>
                     )}
                   </div>
                   {/* Mac card */}
@@ -3850,7 +3870,27 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                         Download .dmg
                       </a>
                     ) : (
-                      <span style={{ fontSize: '13px', color: '#6b7280' }}>Not available</span>
+                      <a
+                        href="https://drive.google.com/file/d/1fnl4QNbNPzJkPCXmH3dJn4m6pbocvAT8/view?usp=sharing"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '8px 14px',
+                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                          color: 'white',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <FaDownload size={12} />
+                        Download .dmg
+                      </a>
                     )}
                   </div>
                 </div>
@@ -8777,8 +8817,46 @@ const Admin = () => {
                 />
               </div>
               <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 38px' }}>
-                Complete Billing is always visible and cannot be hidden.
+                {t('admin.completeBillingAlwaysVisible')}
               </p>
+
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block', marginTop: '16px' }}>
+                {t('admin.advancedFeatures')}
+              </label>
+
+              {/* Allow Custom Items */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, allowCustomItems: !prev.allowCustomItems }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.allowCustomItems
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>{t('admin.allowCustomItems')}</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>{t('admin.allowCustomItemsDesc')}</div>
+                </div>
+              </div>
+
+              {/* Allow Price Edit */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, allowPriceEdit: !prev.allowPriceEdit }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.allowPriceEdit
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>{t('admin.allowPriceEdit')}</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>{t('admin.allowPriceEditDesc')}</div>
+                </div>
+              </div>
             </div>
 
             {/* Divider */}

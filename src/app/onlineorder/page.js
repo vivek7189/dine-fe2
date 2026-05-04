@@ -178,7 +178,7 @@ const tierInfo = {
   platinum: { color: '#E5E4E2', bgColor: '#f8f8ff', label: 'Platinum', icon: '💎', multiplier: 2 }
 };
 
-const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) => {
+const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tableNumberProp = null }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -190,12 +190,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null }) =
   const [cart, setCart] = useState([]);
   const [customerInfo, setCustomerInfo] = useState({
     phone: '',
-    seatNumber: '',
+    seatNumber: tableNumberProp || '',
     roomNumber: '',
     name: '',
     email: ''
   });
-  const [orderType, setOrderType] = useState('takeaway');
+  const [orderType, setOrderType] = useState(tableNumberProp ? 'table' : 'takeaway');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showCart, setShowCart] = useState(false);
@@ -4638,7 +4638,7 @@ const CheckoutView = ({
   );
 };
 
-const OnlineOrderPage = ({ restaurantId = null, themeOverride = null }) => {
+const OnlineOrderPage = ({ restaurantId = null, themeOverride = null, tableNumber = null }) => {
   return (
     <Suspense fallback={
       <div style={{
@@ -4651,7 +4651,7 @@ const OnlineOrderPage = ({ restaurantId = null, themeOverride = null }) => {
         <FaSpinner size={40} color="#ef4444" style={{ animation: 'spin 1s linear infinite' }} />
       </div>
     }>
-      <OnlineOrderContent restaurantIdProp={restaurantId} themeOverride={themeOverride} />
+      <OnlineOrderContent restaurantIdProp={restaurantId} themeOverride={themeOverride} tableNumberProp={tableNumber} />
     </Suspense>
   );
 };

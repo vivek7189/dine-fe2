@@ -8,7 +8,8 @@ import OnlineOrderPage from '../onlineorder/page';
 function PlaceOrderContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant');
-  return <OnlineOrderPage restaurantId={restaurantId} />;
+  const tableNumber = searchParams.get('table');
+  return <OnlineOrderPage restaurantId={restaurantId} tableNumber={tableNumber} />;
 }
 
 export default function PlaceOrderPage() {

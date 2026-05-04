@@ -15,8 +15,216 @@ import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
-  FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown
+  FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode
 } from 'react-icons/fa';
+import { createPortal } from 'react-dom';
+import QRCode from 'qrcode';
+
+const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
+  const [qrCodes, setQrCodes] = useState(new Map());
+  const [customTableName, setCustomTableName] = useState('');
+  const [customQR, setCustomQR] = useState(null);
+  const [copiedTable, setCopiedTable] = useState(null);
+
+  const getQRUrl = (tableName) => {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (restaurant.subdomainEnabled && restaurant.subdomain) {
+      const base = isDev
+        ? `http://${restaurant.subdomain}.localhost:3002`
+        : `https://${restaurant.subdomain}.dineopen.com`;
+      return `${base}/placeorder?restaurant=${restaurant.id}&table=${tableName}`;
+    }
+    const base = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.dineopen.com';
+    return `${base}/placeorder?restaurant=${restaurant.id}&table=${tableName}`;
+  };
+
+  const allTables = floors.flatMap(floor =>
+    (floor.tables || []).map(table => ({
+      ...table,
+      floorName: floor.name,
+      tableName: table.name || table.number || table.id,
+    }))
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const generateAll = async () => {
+      const map = new Map();
+      for (const table of allTables) {
+        try {
+          const url = getQRUrl(table.tableName);
+          const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
+          map.set(table.tableName, dataUrl);
+        } catch (e) {
+          console.error('QR generation failed for', table.tableName, e);
+        }
+      }
+      setQrCodes(new Map(map));
+    };
+    generateAll();
+  }, [isOpen, floors]);
+
+  const generateCustomQR = async () => {
+    if (!customTableName.trim()) return;
+    try {
+      const url = getQRUrl(customTableName.trim());
+      const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
+      setCustomQR({ name: customTableName.trim(), dataUrl, url });
+    } catch (e) {
+      console.error('Custom QR generation failed', e);
+    }
+  };
+
+  const downloadQR = (dataUrl, tableName) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `QR-Table-${tableName}.png`;
+    a.click();
+  };
+
+  const copyUrl = (tableName) => {
+    const url = getQRUrl(tableName);
+    navigator.clipboard.writeText(url);
+    setCopiedTable(tableName);
+    setTimeout(() => setCopiedTable(null), 2000);
+  };
+
+  const downloadAll = async () => {
+    for (const table of allTables) {
+      const dataUrl = qrCodes.get(table.tableName);
+      if (dataUrl) {
+        downloadQR(dataUrl, table.tableName);
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10003, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '90vw', maxWidth: '900px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FaQrcode size={20} color="#7c3aed" />
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Table QR Codes</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {allTables.length > 0 && (
+              <button onClick={downloadAll} style={{
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',
+                fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+              }}>
+                Download All ({allTables.length})
+              </button>
+            )}
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '8px', color: '#6b7280' }}>
+              <FaTimes size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          {/* Custom QR Section */}
+          <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#faf5ff', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#6b21a8' }}>Generate Custom QR</h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                value={customTableName}
+                onChange={(e) => setCustomTableName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && generateCustomQR()}
+                placeholder="Enter table number or name"
+                style={{
+                  flex: 1, minWidth: '180px', padding: '10px 14px', border: '2px solid #e9d5ff', borderRadius: '10px',
+                  fontSize: '14px', outline: 'none', backgroundColor: 'white',
+                }}
+              />
+              <button onClick={generateCustomQR} disabled={!customTableName.trim()} style={{
+                padding: '10px 20px', borderRadius: '10px', border: 'none', color: 'white',
+                background: customTableName.trim() ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#d1d5db',
+                fontSize: '13px', fontWeight: '600', cursor: customTableName.trim() ? 'pointer' : 'not-allowed',
+              }}>
+                Generate
+              </button>
+            </div>
+            {customQR && (
+              <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
+                <img src={customQR.dataUrl} alt={`QR for ${customQR.name}`} style={{ width: '120px', height: '120px', borderRadius: '8px' }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>Table {customQR.name}</p>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '11px', color: '#6b7280', wordBreak: 'break-all' }}>{customQR.url}</p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => downloadQR(customQR.dataUrl, customQR.name)} style={{
+                      padding: '6px 14px', borderRadius: '8px', border: '1px solid #e9d5ff', backgroundColor: 'white',
+                      fontSize: '12px', fontWeight: '600', color: '#7c3aed', cursor: 'pointer',
+                    }}>
+                      Download
+                    </button>
+                    <button onClick={() => copyUrl(customQR.name)} style={{
+                      padding: '6px 14px', borderRadius: '8px', border: '1px solid #e9d5ff', backgroundColor: 'white',
+                      fontSize: '12px', fontWeight: '600', color: '#7c3aed', cursor: 'pointer',
+                    }}>
+                      {copiedTable === customQR.name ? 'Copied!' : 'Copy URL'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* All Tables Grid */}
+          {allTables.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+              <FaQrcode size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
+              <p style={{ fontSize: '14px', fontWeight: '500' }}>No tables found. Add tables first to generate QR codes.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+              {allTables.map(table => {
+                const dataUrl = qrCodes.get(table.tableName);
+                return (
+                  <div key={`${table.floorName}-${table.tableName}`} style={{
+                    padding: '16px', backgroundColor: '#fafafa', borderRadius: '12px', border: '1px solid #f3f4f6',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                  }}>
+                    {dataUrl ? (
+                      <img src={dataUrl} alt={`QR for ${table.tableName}`} style={{ width: '140px', height: '140px', borderRadius: '8px' }} />
+                    ) : (
+                      <div style={{ width: '140px', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+                        <FaSpinner size={20} color="#9ca3af" className="animate-spin" />
+                      </div>
+                    )}
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>Table {table.tableName}</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{table.floorName}</p>
+                    <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+                      <button onClick={() => dataUrl && downloadQR(dataUrl, table.tableName)} disabled={!dataUrl} style={{
+                        flex: 1, padding: '6px 0', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white',
+                        fontSize: '11px', fontWeight: '600', color: dataUrl ? '#374151' : '#d1d5db', cursor: dataUrl ? 'pointer' : 'not-allowed',
+                      }}>
+                        Download
+                      </button>
+                      <button onClick={() => copyUrl(table.tableName)} style={{
+                        flex: 1, padding: '6px 0', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white',
+                        fontSize: '11px', fontWeight: '600', color: '#374151', cursor: 'pointer',
+                      }}>
+                        {copiedTable === table.tableName ? 'Copied!' : 'Copy URL'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
 
 const TableManagement = () => {
   const router = useRouter();
@@ -48,6 +256,7 @@ const TableManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFloor, setShowAddFloor] = useState(false);
   const [showEditFloor, setShowEditFloor] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [bookingFromHeader, setBookingFromHeader] = useState(false);
@@ -899,6 +1108,13 @@ const TableManagement = () => {
                 <FaPlus size={11} /> {t('tables.add')}
               </button>
             )}
+            <button onClick={() => setShowQRModal(true)} style={{
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',
+              fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(139,92,246,0.3)',
+            }}>
+              <FaQrcode size={12} /> QR Codes
+            </button>
           </div>
         </div>
 
@@ -2020,6 +2236,15 @@ const TableManagement = () => {
             <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Updating...</span>
           </div>
         </div>
+      )}
+
+      {showQRModal && selectedRestaurant && (
+        <TableQRCodesModal
+          isOpen={showQRModal}
+          onClose={() => setShowQRModal(false)}
+          floors={floors}
+          restaurant={selectedRestaurant}
+        />
       )}
 
       <NotificationContainer />

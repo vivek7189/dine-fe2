@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
-import { FaCheck, FaTimes, FaCheckCircle, FaSpinner, FaPaperPlane, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaCheckCircle, FaSpinner, FaPaperPlane, FaPhone, FaEnvelope, FaTabletAlt, FaPrint, FaWifi } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 
 export default function PricingClient() {
@@ -57,32 +57,30 @@ export default function PricingClient() {
   const prices = {
     INR: {
       symbol: '₹',
-      starter:  { monthly: 299,  annual: 250,  monthlyStrike: 999,  annualBilled: 3000 },
-      growth:   { monthly: 899,  annual: 749,  monthlyStrike: 1999, annualBilled: 8988 },
-      pro:      { monthly: 1799, annual: 1499, monthlyStrike: 3999, annualBilled: 17988 },
+      starter:  { monthly: 299,  annual: 250,  annualBilled: 3000 },
+      growth:   { monthly: 899,  annual: 749,  annualBilled: 8988 },
+      pro:      { monthly: 1799, annual: 1499, annualBilled: 17988 },
     },
     USD: {
       symbol: '$',
-      starter:  { monthly: 10, annual: 8,  monthlyStrike: 29,  annualBilled: 96 },
-      growth:   { monthly: 22, annual: 18, monthlyStrike: 59,  annualBilled: 216 },
-      pro:      { monthly: 45, annual: 37, monthlyStrike: 119, annualBilled: 444 },
+      starter:  { monthly: 10, annual: 8,  annualBilled: 96 },
+      growth:   { monthly: 22, annual: 18, annualBilled: 216 },
+      pro:      { monthly: 45, annual: 37, annualBilled: 444 },
     },
     GBP: {
       symbol: '£',
-      starter:  { monthly: 8,  annual: 7,  monthlyStrike: 24, annualBilled: 84 },
-      growth:   { monthly: 18, annual: 15, monthlyStrike: 49, annualBilled: 180 },
-      pro:      { monthly: 36, annual: 30, monthlyStrike: 99, annualBilled: 360 },
+      starter:  { monthly: 8,  annual: 7,  annualBilled: 84 },
+      growth:   { monthly: 18, annual: 15, annualBilled: 180 },
+      pro:      { monthly: 36, annual: 30, annualBilled: 360 },
     },
   };
 
   const currentPrice = prices[currency];
   const cycle = billingCycle; // 'monthly' or 'annual'
 
-  // Helper to pull the right number for the active billing cycle
   // For INR annual: show yearly total directly (₹3000/year instead of ₹250/month)
   const showYearlyTotal = currency === 'INR' && cycle === 'annual';
   const getPrice = (planKey) => showYearlyTotal ? currentPrice[planKey].annualBilled : currentPrice[planKey][cycle];
-  const getStrike = (planKey) => showYearlyTotal ? currentPrice[planKey].monthlyStrike * 12 : currentPrice[planKey].monthlyStrike;
   const getPriceSuffix = () => showYearlyTotal ? '/year' : '/month';
   const getBilledNote = (planKey) => {
     if (showYearlyTotal) return '';
@@ -114,7 +112,7 @@ export default function PricingClient() {
       ],
       excluded: [
         'AI Voice Ordering',
-        'Multi-outlet management',
+        'Chain management',
         'Captain / Waiter app',
       ],
     },
@@ -127,7 +125,7 @@ export default function PricingClient() {
       ctaLink: 'https://dineopen.com/login',
       popular: true,
       features: [
-        'Up to 2 outlets',
+        '1 outlet',
         'Everything in Starter, plus:',
         'AI Voice Ordering (waiter speaks, AI takes order)',
         'AI Menu Generator & AI Insights',
@@ -138,7 +136,7 @@ export default function PricingClient() {
         'Multi-tier pricing (AC / Non-AC / Takeaway)',
         'Customer loyalty & khata (credit ledger)',
         'Table management & reservations',
-        'Online ordering website (your branded)',
+        'Online ordering website (branded)',
         'WhatsApp ordering bot',
         'Advanced analytics & profit reports',
         'Priority chat & phone support',
@@ -148,13 +146,13 @@ export default function PricingClient() {
     {
       key: 'pro',
       name: 'Pro',
-      tagline: 'For restaurant chains',
+      tagline: 'For growing restaurants',
       description: 'Everything in Growth + multi-outlet chain dashboard and centralized control.',
       cta: 'Start Free Trial',
       ctaLink: 'https://dineopen.com/login',
       popular: false,
       features: [
-        'Up to 5 outlets',
+        'Up to 2 outlets',
         'Everything in Growth, plus:',
         'Centralized chain dashboard',
         'Cross-outlet analytics & reporting',
@@ -172,12 +170,12 @@ export default function PricingClient() {
     },
   ];
 
-  // Enterprise tier — always custom, drives demo bookings
+  // Enterprise tier — 3+ outlets, drives demo bookings
   const enterprise = {
     name: 'Enterprise',
-    tagline: 'For 5+ outlets, franchises & cloud kitchens',
+    tagline: 'For 3+ outlets, franchises & cloud kitchens',
     description:
-      'Custom pricing for large chains. Unlimited outlets, dedicated account manager, custom integrations, on-site training, and SLA-backed support.',
+      'Custom pricing for restaurant chains. Unlimited outlets, dedicated account manager, custom integrations, on-site training, and SLA-backed support.',
     bullets: [
       'Unlimited outlets',
       'Dedicated Customer Success Manager',
@@ -192,32 +190,95 @@ export default function PricingClient() {
     ],
   };
 
-  // Competitor comparison row (India). Numbers are real out-the-door prices
-  // including the add-ons most restaurants need (KOT printer module, captain
-  // app, inventory module). Petpooja's headline ₹833/mo is misleading once
-  // add-ons are factored in.
+  // Feature comparison grid — every feature across all tiers
+  const featureGrid = [
+    { category: 'Core POS', features: [
+      { name: 'Cloud POS (web + Android)', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Unlimited orders & menu items', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Unlimited staff accounts', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Bill printing with GST/VAT', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'QR menu & QR ordering', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'KOT thermal printing', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Table management & reservations', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Multi-tier pricing (AC/Non-AC/Takeaway)', starter: false, growth: true, pro: true, enterprise: true },
+    ]},
+    { category: 'AI Features', features: [
+      { name: 'AI Voice Ordering', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'AI Menu Generator', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'AI Sales Assistant', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'AI Business Insights', starter: false, growth: true, pro: true, enterprise: true },
+    ]},
+    { category: 'Ordering & Delivery', features: [
+      { name: 'Captain / Waiter app (Android & iOS)', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Kitchen Display System (KDS)', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Online ordering website (branded)', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'WhatsApp ordering bot', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Aggregator integration (Swiggy/Zomato)', starter: false, growth: false, pro: true, enterprise: true },
+    ]},
+    { category: 'Inventory & Stock', features: [
+      { name: 'Basic inventory tracking', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Advanced inventory (recipes, vendors, alerts)', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Centralized inventory management', starter: false, growth: false, pro: true, enterprise: true },
+    ]},
+    { category: 'Customers & Loyalty', features: [
+      { name: 'Customer database', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Customer loyalty & khata (credit ledger)', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Customer wallet', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'White-label customer app', starter: false, growth: false, pro: false, enterprise: true },
+    ]},
+    { category: 'Analytics & Reports', features: [
+      { name: 'Daily sales reports', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Advanced analytics & profit reports', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Cross-outlet analytics & reporting', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Outlet-wise profit & loss', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Custom reports & dashboards', starter: false, growth: false, pro: false, enterprise: true },
+    ]},
+    { category: 'Multi-Outlet & Chain', features: [
+      { name: 'Outlets included', starter: '1', growth: '1', pro: '2', enterprise: 'Unlimited' },
+      { name: 'Centralized chain dashboard', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Centralized menu management', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Centralized staff & role management', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Franchise-ready architecture', starter: false, growth: false, pro: true, enterprise: true },
+    ]},
+    { category: 'Integrations & API', features: [
+      { name: 'Payment gateway integration', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'API access for custom integrations', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Custom integrations (Tally, ERP, etc.)', starter: false, growth: false, pro: false, enterprise: true },
+    ]},
+    { category: 'Support', features: [
+      { name: 'WhatsApp & email support', starter: true, growth: true, pro: true, enterprise: true },
+      { name: 'Priority chat & phone support', starter: false, growth: true, pro: true, enterprise: true },
+      { name: 'Dedicated onboarding session', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Priority 24/7 support', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Dedicated Customer Success Manager', starter: false, growth: false, pro: false, enterprise: true },
+      { name: 'On-site training', starter: false, growth: false, pro: false, enterprise: true },
+      { name: 'SLA-backed uptime guarantee', starter: false, growth: false, pro: false, enterprise: true },
+    ]},
+  ];
+
+  // Competitor comparison row (India)
   const compare = [
-    { name: 'DineOpen Growth',     price: '₹749/mo',          ai: true,  txn: '0%',     setup: 'Free' },
-    { name: 'Petpooja (real cost)', price: '₹1,800-3,500/mo', ai: false, txn: '0%',     setup: '₹3,000+' },
-    { name: 'Restroworks (POSist)', price: '₹2,000-4,000/mo', ai: false, txn: '0%',     setup: '₹5,000+' },
-    { name: 'PosBytz Pro',          price: '₹1,499/mo',       ai: false, txn: '0%',     setup: 'Paid' },
-    { name: 'Limetray',             price: '₹1,500-5,000/mo', ai: false, txn: '0%',     setup: 'Paid' },
-    { name: 'Toast (US)',           price: '₹5,800/mo',       ai: false, txn: '2.49%',  setup: 'Paid' },
-    { name: 'Square (US)',          price: '₹0 + 2.6%',       ai: false, txn: '2.6%',   setup: 'Free' },
+    { name: 'DineOpen Growth',     price: '₹749/mo',          ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
+    { name: 'Petpooja (real cost)', price: '₹1,800-3,500/mo', ai: false, txn: '0%',     setup: '₹3,000+', kds: 'Paid', captainApp: 'Paid' },
+    { name: 'Restroworks (POSist)', price: '₹2,000-4,000/mo', ai: false, txn: '0%',     setup: '₹5,000+', kds: 'Paid', captainApp: 'Paid' },
+    { name: 'PosBytz Pro',          price: '₹1,499/mo',       ai: false, txn: '0%',     setup: 'Paid',    kds: 'Paid', captainApp: true },
+    { name: 'Limetray',             price: '₹1,500-5,000/mo', ai: false, txn: '0%',     setup: 'Paid',    kds: false,  captainApp: false },
+    { name: 'Toast (US)',           price: '₹5,800/mo',       ai: false, txn: '2.49%',  setup: 'Paid',    kds: 'Paid', captainApp: true },
+    { name: 'Square (US)',          price: '₹0 + 2.6%',       ai: false, txn: '2.6%',   setup: 'Free',    kds: 'Paid', captainApp: false },
   ];
 
   const faqs = [
     { q: 'Is there a free trial?', a: 'Yes — 14-day free trial on all plans. No credit card required. Full access to every feature.' },
-    { q: 'Why is DineOpen so much cheaper than Petpooja or Restroworks?', a: 'We are a modern cloud-native product built by a small team — no legacy infrastructure, no sales armies, no expensive offices. We pass those savings to you. We also bundle AI features (Voice Ordering, AI Menu Generator, AI Insights) that competitors charge extra for or don\'t offer at all.' },
+    { q: 'How does DineOpen keep prices so low?', a: 'We are a modern cloud-native product built by a lean team — no legacy infrastructure, no bloated sales teams, no expensive offices. We pass those savings to you. We also bundle AI features (Voice Ordering, AI Menu Generator, AI Insights) that competitors charge extra for or don\'t offer at all.' },
     { q: 'What are the transaction fees?', a: 'DineOpen charges 0% transaction fees, ever. You only pay your payment processor (Razorpay, Paytm, Stripe) at their standard rates — and even those are 0% for UPI in India when using our recommended Paytm integration.' },
     { q: 'Can I switch plans later?', a: 'Yes — upgrade or downgrade anytime from your dashboard. Changes take effect immediately and we prorate the difference.' },
+    { q: 'What if I need more than 2 outlets?', a: 'For 3 or more outlets, our Enterprise plan offers custom pricing with unlimited outlets, dedicated account manager, volume discounts, and SLA-backed support. Just book a demo and we\'ll build a plan that fits your chain.' },
     { q: 'Is there a long-term contract?', a: 'No. Monthly plans are pay-as-you-go and you can cancel anytime. Annual plans save you ~17% (2 months free) but are also flexible — you can cancel at the end of the term.' },
     { q: 'What payment methods do you accept?', a: 'India: UPI, all credit/debit cards, net banking, Razorpay, Paytm. International: Stripe, all major cards, PayPal.' },
     { q: 'Do you offer discounts for annual billing?', a: 'Yes — annual billing saves you ~17% compared to monthly (effectively 2 months free). The discount is shown automatically when you toggle annual.' },
     { q: 'I am moving from Petpooja / Restroworks. Do you help migrate?', a: 'Yes! We offer free menu and customer data migration from Petpooja, Restroworks, PosBytz, Square, and Toast. Our team handles the entire transition. Just book a demo and we\'ll take care of it.' },
     { q: 'What hardware do I need?', a: 'Just an Android tablet/phone (or any computer with a browser) and a thermal printer (Bluetooth, USB, or network). Use any printer you already have — we support all major brands. No proprietary hardware lock-in.' },
     { q: 'Is my data safe?', a: 'Yes. All data is encrypted in transit (TLS 1.3) and at rest. We use Google Cloud Firestore for storage with daily backups. You own your data and can export it anytime.' },
-    { q: 'Do you have an Enterprise plan for 10+ outlets?', a: 'Yes — book a demo and we\'ll build a custom plan for you with volume discounts, dedicated support, and any custom features you need.' },
   ];
 
   return (
@@ -304,7 +365,6 @@ export default function PricingClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             {plans.map((plan) => {
               const price = getPrice(plan.key);
-              const strike = getStrike(plan.key);
               const billedNote = getBilledNote(plan.key);
               return (
                 <div
@@ -321,7 +381,7 @@ export default function PricingClient() {
                 >
                   {plan.popular && (
                     <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#ef4444', color: 'white', padding: '6px 18px', borderRadius: '999px', fontSize: '12px', fontWeight: '800', letterSpacing: '0.5px' }}>
-                      ⭐ MOST POPULAR
+                      MOST POPULAR
                     </div>
                   )}
 
@@ -330,16 +390,11 @@ export default function PricingClient() {
                   <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px', minHeight: '40px', lineHeight: '1.5' }}>{plan.description}</p>
 
                   <div style={{ marginBottom: '4px' }}>
-                    <span style={{ fontSize: '18px', fontWeight: '600', color: '#9ca3af', textDecoration: 'line-through' }}>{currentPrice.symbol}{strike}</span>
-                    <span style={{ marginLeft: '8px', fontSize: '11px', color: '#10b981', fontWeight: '700', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
-                      SAVE {Math.round((1 - price / strike) * 100)}%
-                    </span>
-                  </div>
-                  <div style={{ marginBottom: '4px' }}>
                     <span style={{ fontSize: '52px', fontWeight: '800', color: '#111827', lineHeight: '1' }}>{currentPrice.symbol}{price}</span>
                     <span style={{ fontSize: '16px', color: '#6b7280', marginLeft: '4px' }}>{getPriceSuffix()}</span>
                   </div>
-                  <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '20px' }}>{billedNote}</p>
+                  <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>{billedNote}</p>
+                  <p style={{ fontSize: '12px', color: '#10b981', fontWeight: '600', marginBottom: '20px' }}>0% transaction fees</p>
 
                   <Link
                     href={plan.ctaLink}
@@ -449,6 +504,8 @@ export default function PricingClient() {
                     <th style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>POS</th>
                     <th style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Price</th>
                     <th style={{ padding: '16px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Built-in</th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>KDS</th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Captain App</th>
                     <th style={{ padding: '16px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Txn Fee</th>
                     <th style={{ padding: '16px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Setup Fee</th>
                   </tr>
@@ -456,15 +513,22 @@ export default function PricingClient() {
                 <tbody>
                   {compare.map((row, idx) => {
                     const isUs = row.name.startsWith('DineOpen');
+                    const renderCell = (val) => {
+                      if (val === true) return <FaCheck style={{ color: '#10b981' }} />;
+                      if (val === false) return <FaTimes style={{ color: '#d1d5db' }} />;
+                      return <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600' }}>{val}</span>;
+                    };
                     return (
                       <tr key={idx} style={{ borderTop: '1px solid #f3f4f6', backgroundColor: isUs ? '#fef2f2' : 'white' }}>
-                        <td style={{ padding: '16px', fontSize: '14px', fontWeight: isUs ? '800' : '600', color: isUs ? '#991b1b' : '#111827' }}>
-                          {isUs && '⭐ '}{row.name}
+                        <td style={{ padding: '16px', fontSize: '14px', fontWeight: isUs ? '800' : '600', color: isUs ? '#991b1b' : '#111827', whiteSpace: 'nowrap' }}>
+                          {row.name}
                         </td>
-                        <td style={{ padding: '16px', fontSize: '14px', fontWeight: '700', color: isUs ? '#991b1b' : '#374151' }}>{row.price}</td>
+                        <td style={{ padding: '16px', fontSize: '14px', fontWeight: '700', color: isUs ? '#991b1b' : '#374151', whiteSpace: 'nowrap' }}>{row.price}</td>
                         <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px' }}>
                           {row.ai ? <FaCheck style={{ color: '#10b981' }} /> : <FaTimes style={{ color: '#d1d5db' }} />}
                         </td>
+                        <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px' }}>{renderCell(row.kds)}</td>
+                        <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px' }}>{renderCell(row.captainApp)}</td>
                         <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', color: row.txn === '0%' ? '#10b981' : '#ef4444', fontWeight: '700' }}>{row.txn}</td>
                         <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', color: '#374151' }}>{row.setup}</td>
                       </tr>
@@ -475,6 +539,104 @@ export default function PricingClient() {
             </div>
             <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '16px', fontStyle: 'italic' }}>
               Pricing data based on publicly available information and customer-reported costs as of 2026. Petpooja headline price (₹833/mo) excludes mandatory add-ons.
+            </p>
+          </div>
+        </div>
+
+        {/* Feature Comparison Grid */}
+        <div style={{ padding: '60px 20px', backgroundColor: '#f9fafb' }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: '12px' }}>
+              Compare all features
+            </h2>
+            <p style={{ fontSize: '16px', color: '#6b7280', textAlign: 'center', marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px' }}>
+              Every feature across every plan. No hidden add-ons.
+            </p>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#111827' }}>
+                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: '700', color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '240px' }}>Feature</th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Starter<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{currentPrice.symbol}{currentPrice.starter[cycle]}{getPriceSuffix()}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#fca5a5', minWidth: '90px', backgroundColor: '#1f2937' }}>Growth<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{currentPrice.symbol}{currentPrice.growth[cycle]}{getPriceSuffix()}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Pro<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>{currentPrice.symbol}{currentPrice.pro[cycle]}{getPriceSuffix()}</span></th>
+                    <th style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: 'white', minWidth: '90px' }}>Enterprise<br /><span style={{ fontWeight: '400', fontSize: '11px', opacity: 0.7 }}>Custom</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {featureGrid.map((section, sIdx) => (
+                    <>
+                      <tr key={`cat-${sIdx}`}>
+                        <td colSpan={5} style={{ padding: '14px 20px 8px', fontSize: '13px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px', backgroundColor: '#fef2f2', borderTop: sIdx > 0 ? '2px solid #f3f4f6' : 'none' }}>
+                          {section.category}
+                        </td>
+                      </tr>
+                      {section.features.map((feat, fIdx) => (
+                        <tr key={`f-${sIdx}-${fIdx}`} style={{ borderTop: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '12px 20px', fontSize: '14px', color: '#374151' }}>{feat.name}</td>
+                          {['starter', 'growth', 'pro', 'enterprise'].map((plan) => (
+                            <td key={plan} style={{ padding: '12px', textAlign: 'center', backgroundColor: plan === 'growth' ? '#fefce8' : 'white' }}>
+                              {typeof feat[plan] === 'string' ? (
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#111827' }}>{feat[plan]}</span>
+                              ) : feat[plan] ? (
+                                <FaCheck style={{ color: '#10b981', fontSize: '14px' }} />
+                              ) : (
+                                <FaTimes style={{ color: '#d1d5db', fontSize: '14px' }} />
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Hardware / What you need section */}
+        <div style={{ padding: '60px 20px', backgroundColor: 'white' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: '12px' }}>
+              What you need to get started
+            </h2>
+            <p style={{ fontSize: '16px', color: '#6b7280', textAlign: 'center', marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px' }}>
+              No proprietary hardware. Use what you already have.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+              {[
+                {
+                  icon: <FaTabletAlt size={28} />,
+                  title: 'Android Tablet or Any Computer',
+                  desc: 'Any Android tablet/phone or any computer with a web browser. No iPad required.',
+                  cost: 'From ₹8,000',
+                },
+                {
+                  icon: <FaPrint size={28} />,
+                  title: 'Thermal Printer',
+                  desc: 'Any 58mm or 80mm thermal printer. Bluetooth, USB, or network. Works with all major brands.',
+                  cost: 'From ₹3,000',
+                },
+                {
+                  icon: <FaWifi size={28} />,
+                  title: 'Internet Connection',
+                  desc: 'Any WiFi or mobile data connection. Offline mode available for billing during outages.',
+                  cost: 'Your existing plan',
+                },
+              ].map((item, idx) => (
+                <div key={idx} style={{ padding: '28px', backgroundColor: '#f9fafb', borderRadius: '16px', textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '14px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#ef4444' }}>
+                    {item.icon}
+                  </div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>{item.title}</h3>
+                  <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5', marginBottom: '12px' }}>{item.desc}</p>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#10b981' }}>{item.cost}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: '13px', color: '#9ca3af', textAlign: 'center', marginTop: '20px' }}>
+              Already have hardware? Great — DineOpen works with any existing setup. No lock-in, no proprietary devices.
             </p>
           </div>
         </div>

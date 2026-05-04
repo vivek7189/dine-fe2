@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FaCalendarAlt, FaClock, FaUser, FaPhone, FaBuilding, FaCheck, FaTimes,
   FaPlay, FaFlag, FaCog, FaQrcode, FaPlus, FaMapMarkerAlt, FaEnvelope,
   FaSpinner, FaChevronLeft, FaChevronRight, FaEye, FaEllipsisV, FaDoorOpen,
-  FaRupeeSign, FaStickyNote, FaExternalLinkAlt, FaCopy
+  FaRupeeSign, FaStickyNote, FaExternalLinkAlt, FaCopy, FaShareAlt
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import QRCodeModal from '../../../components/QRCodeModal';
@@ -23,14 +23,14 @@ function formatTime(t) {
 
 function statusBadge(s) {
   const map = {
-    requested: { bg: '#fef3c7', text: '#92400e', dot: '#f59e0b', label: 'Pending' },
-    confirmed: { bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6', label: 'Confirmed' },
-    in_use: { bg: '#dcfce7', text: '#166534', dot: '#22c55e', label: 'In Use' },
-    completed: { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8', label: 'Completed' },
-    cancelled: { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444', label: 'Cancelled' },
-    rejected: { bg: '#fce7f3', text: '#9d174d', dot: '#ec4899', label: 'Rejected' },
+    requested: { bg: '#fef3c7', text: '#92400e', dot: '#f59e0b', label: 'Pending', border: '#fde68a' },
+    confirmed: { bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6', label: 'Confirmed', border: '#bfdbfe' },
+    in_use: { bg: '#dcfce7', text: '#166534', dot: '#22c55e', label: 'In Use', border: '#bbf7d0' },
+    completed: { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8', label: 'Completed', border: '#e2e8f0' },
+    cancelled: { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444', label: 'Cancelled', border: '#fecaca' },
+    rejected: { bg: '#fce7f3', text: '#9d174d', dot: '#ec4899', label: 'Rejected', border: '#fbcfe8' },
   };
-  return map[s] || { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8', label: s };
+  return map[s] || { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8', label: s, border: '#e2e8f0' };
 }
 
 function Shimmer({ w = '100%', h = 20, r = 8, style = {} }) {
@@ -124,6 +124,15 @@ export default function SpacesAdminPage() {
     if (tab === 'bookings') loadBookings();
   }, [tab, loadBookings]);
 
+  // ─── Stats from bookings ────────────────────────────
+  const bookingStats = useMemo(() => {
+    const pending = bookings.filter(b => b.status === 'requested').length;
+    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+    const inUse = bookings.filter(b => b.status === 'in_use').length;
+    const revenue = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+    return { pending, confirmed, inUse, revenue };
+  }, [bookings]);
+
   // ─── Create space ─────────────────────────────────────
   const handleCreateSpace = async () => {
     if (!newSpace.name.trim()) return;
@@ -208,6 +217,17 @@ export default function SpacesAdminPage() {
 
   const pendingCount = bookings.filter(b => b.status === 'requested').length;
 
+  // Header subtitle
+  const headerSubtitle = useMemo(() => {
+    if (tab === 'bookings') {
+      if (bookingsLoading) return '';
+      if (bookingStats.pending > 0) return `${bookingStats.pending} pending approval${bookingStats.pending > 1 ? 's' : ''}`;
+      if (bookings.length > 0) return `${bookings.length} booking${bookings.length > 1 ? 's' : ''} for ${formatDate(dateFilter)}`;
+      return 'All clear today';
+    }
+    return `${spaces.length} space${spaces.length !== 1 ? 's' : ''} configured`;
+  }, [tab, bookingsLoading, bookingStats, bookings.length, dateFilter, spaces.length]);
+
   // ═════════════════════════════════════════════════════════
   return (
     <div style={{ padding: isMobile ? '16px 12px' : '24px 20px', maxWidth: 1100, margin: '0 auto' }}>
@@ -222,6 +242,8 @@ export default function SpacesAdminPage() {
         .sp-btn:active { transform: scale(0.97); }
         .sp-card { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); animation: fadeIn 0.3s ease; }
         .sp-label { font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 5px; }
+        .sp-booking-card { transition: all 0.15s ease; }
+        .sp-booking-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
       `}</style>
 
       {/* ─── Header ─── */}
@@ -239,7 +261,7 @@ export default function SpacesAdminPage() {
           <div>
             <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: '#1e293b', margin: 0 }}>Spaces</h1>
             <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
-              {spaces.length} space{spaces.length !== 1 ? 's' : ''} configured
+              {headerSubtitle}
             </p>
           </div>
         </div>
@@ -349,6 +371,31 @@ export default function SpacesAdminPage() {
             </div>
           </div>
 
+          {/* Quick Stats Bar */}
+          {!bookingsLoading && bookings.length > 0 && (
+            <div style={{
+              display: 'flex', gap: 8, marginBottom: 16,
+              overflowX: 'auto', paddingBottom: 4,
+              WebkitOverflowScrolling: 'touch'
+            }}>
+              {[
+                { label: 'Pending', count: bookingStats.pending, bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
+                { label: 'Confirmed', count: bookingStats.confirmed, bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' },
+                { label: 'In Use', count: bookingStats.inUse, bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
+                { label: 'Revenue', count: `₹${bookingStats.revenue.toLocaleString('en-IN')}`, bg: PRIMARY_BG, text: PRIMARY_DARK, border: PRIMARY_LIGHT },
+              ].map(s => (
+                <div key={s.label} style={{
+                  padding: '8px 16px', borderRadius: 12, background: s.bg,
+                  border: `1px solid ${s.border}`, display: 'flex', alignItems: 'center', gap: 8,
+                  whiteSpace: 'nowrap', flexShrink: 0
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: s.text, opacity: 0.8 }}>{s.label}</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: s.text }}>{s.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Bookings List */}
           {bookingsLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -373,15 +420,37 @@ export default function SpacesAdminPage() {
               }}>
                 <FaCalendarAlt size={28} color="#cbd5e1" />
               </div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: '#475569' }}>No bookings for {formatDate(dateFilter)}</div>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
-                {spaces.length === 0 ? 'Create a space first to start receiving bookings' : 'Try selecting a different date'}
+              <div style={{ fontSize: 17, fontWeight: 600, color: '#475569' }}>
+                {dateFilter === new Date().toISOString().split('T')[0]
+                  ? 'Your schedule is clear'
+                  : `No bookings for ${formatDate(dateFilter)}`
+                }
               </div>
-              {spaces.length === 0 && (
+              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
+                {spaces.length === 0
+                  ? 'Create a space first to start receiving bookings'
+                  : dateFilter === new Date().toISOString().split('T')[0]
+                    ? 'No bookings scheduled for today'
+                    : 'Try selecting a different date'
+                }
+              </div>
+              {spaces.length === 0 ? (
                 <button onClick={() => setCreateModal(true)} className="sp-btn" style={{
                   background: PRIMARY, color: '#fff', marginTop: 16, padding: '10px 20px', borderRadius: 12
                 }}>
                   <FaPlus size={12} /> Create Your First Space
+                </button>
+              ) : (
+                <button onClick={() => {
+                  const url = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://dineopen.com'}/book-space/${spaces[0]?.id}`;
+                  navigator.clipboard.writeText(url).catch(() => {});
+                  setCopiedUrl('empty-cta');
+                  setTimeout(() => setCopiedUrl(null), 2000);
+                }} className="sp-btn" style={{
+                  background: '#fff', color: PRIMARY, border: `1.5px solid ${PRIMARY}`,
+                  marginTop: 16, padding: '10px 20px', borderRadius: 12
+                }}>
+                  <FaShareAlt size={12} /> {copiedUrl === 'empty-cta' ? 'Link Copied!' : 'Share Booking Link'}
                 </button>
               )}
             </div>
@@ -391,9 +460,13 @@ export default function SpacesAdminPage() {
                 const sb = statusBadge(b.status);
                 const isActioning = actionLoading === b.id;
                 const isExpanded = expandedBooking === b.id;
+                const initial = (b.customerInfo?.name || '?')[0].toUpperCase();
 
                 return (
-                  <div key={b.id} className="sp-card" style={{ overflow: 'hidden' }}>
+                  <div key={b.id} className="sp-card sp-booking-card" style={{
+                    overflow: 'hidden',
+                    borderLeft: `4px solid ${sb.dot}`
+                  }}>
                     {/* Main row — always visible */}
                     <div
                       onClick={() => isMobile && setExpandedBooking(isExpanded ? null : b.id)}
@@ -403,6 +476,18 @@ export default function SpacesAdminPage() {
                         display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14
                       }}
                     >
+                      {/* Customer avatar (desktop only) */}
+                      {!isMobile && (
+                        <div style={{
+                          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                          background: `linear-gradient(135deg, ${PRIMARY_LIGHT}, ${PRIMARY_BG})`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 16, fontWeight: 700, color: PRIMARY_DARK
+                        }}>
+                          {initial}
+                        </div>
+                      )}
+
                       {/* Time block */}
                       <div style={{
                         width: isMobile ? 52 : 64, flexShrink: 0, textAlign: 'center',
@@ -454,7 +539,7 @@ export default function SpacesAdminPage() {
                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: sb.dot }} />
                           {sb.label}
                         </div>
-                        <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: '#1e293b' }}>
+                        <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: PRIMARY }}>
                           ₹{b.totalAmount}
                         </div>
                       </div>
@@ -625,23 +710,74 @@ export default function SpacesAdminPage() {
 
                 return (
                   <div key={space.id} className="sp-card" style={{ overflow: 'hidden' }}>
-                    {/* Space card header */}
+                    {/* ── Space Card Header ── */}
                     <div style={{
-                      padding: isMobile ? '14px 14px 12px' : '18px 20px 14px',
+                      padding: isMobile ? '16px 14px' : '18px 20px',
                       background: `linear-gradient(135deg, ${PRIMARY_BG} 0%, #fff 100%)`,
-                      borderBottom: '1px solid #e2e8f0',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                      flexWrap: 'wrap', gap: 10
+                      borderBottom: '1px solid #e2e8f0'
                     }}>
-                      <div>
-                        <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: '#1e293b' }}>{space.name}</div>
-                        {space.address && (
-                          <div style={{ fontSize: 13, color: '#64748b', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <FaMapMarkerAlt size={10} /> {space.address}{space.city ? `, ${space.city}` : ''}
+                      <div style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 14
+                      }}>
+                        {/* Space image placeholder */}
+                        <div style={{
+                          width: 72, height: 72, borderRadius: 14, flexShrink: 0,
+                          background: space.image
+                            ? `url(${space.image}) center/cover no-repeat`
+                            : `linear-gradient(135deg, ${PRIMARY} 0%, ${PRIMARY_DARK} 100%)`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}>
+                          {!space.image && <FaDoorOpen size={28} color="#fff" />}
+                        </div>
+
+                        {/* Name + description + pills */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: '#1e293b' }}>
+                            {space.name}
                           </div>
-                        )}
+                          {(space.description || space.address) && (
+                            <div style={{
+                              fontSize: 13, color: '#64748b', marginTop: 2,
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                            }}>
+                              {space.description || `${space.address}${space.city ? `, ${space.city}` : ''}`}
+                            </div>
+                          )}
+                          {/* Rate + hours pills */}
+                          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                            {(s.hourlyRate > 0) && (
+                              <span style={{
+                                fontSize: 12, fontWeight: 600, color: PRIMARY_DARK, background: PRIMARY_LIGHT,
+                                padding: '3px 10px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 3
+                              }}>
+                                <FaRupeeSign size={10} />{s.hourlyRate}/hr
+                              </span>
+                            )}
+                            {s.operatingHours && (
+                              <span style={{
+                                fontSize: 12, fontWeight: 500, color: '#475569', background: '#f1f5f9',
+                                padding: '3px 10px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4
+                              }}>
+                                <FaClock size={10} />
+                                {formatTime(s.operatingHours.start)} – {formatTime(s.operatingHours.end)}
+                              </span>
+                            )}
+                            {s.autoApprove && (
+                              <span style={{
+                                fontSize: 11, fontWeight: 600, color: '#059669', background: '#dcfce7',
+                                padding: '3px 8px', borderRadius: 8
+                              }}>Auto-approve</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+
+                      {/* Action buttons row */}
+                      <div style={{
+                        display: 'flex', gap: 6, marginTop: 14, paddingTop: 14,
+                        borderTop: '1px solid #e2e8f0', flexWrap: 'wrap'
+                      }}>
                         <button onClick={() => setQrModal({ spaceId: space.id, spaceName: space.name })}
                           className="sp-btn" style={{
                             background: '#fff', color: '#475569', border: '1.5px solid #e2e8f0', padding: '7px 12px'
@@ -661,15 +797,28 @@ export default function SpacesAdminPage() {
                           }}>
                           <FaExternalLinkAlt size={11} /> {!isMobile && 'Book Page'}
                         </a>
+                        <button onClick={() => copyUrl(bookingUrl, `share-${space.id}`)}
+                          className="sp-btn" style={{
+                            background: '#fff', color: '#475569', border: '1.5px solid #e2e8f0', padding: '7px 12px',
+                            marginLeft: 'auto'
+                          }}>
+                          {copiedUrl === `share-${space.id}` ? <><FaCheck size={11} /> Copied</> : <><FaCopy size={11} /> Copy URL</>}
+                        </button>
                       </div>
                     </div>
 
-                    {/* Settings form */}
+                    {/* ── Settings Form ── */}
                     <div style={{ padding: isMobile ? '14px' : '18px 20px' }}>
+                      {/* Section: Pricing & Booking */}
+                      <div style={{
+                        fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase',
+                        letterSpacing: 0.5, marginBottom: 10
+                      }}>Pricing & Booking</div>
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)',
-                        gap: isMobile ? 10 : 14
+                        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+                        gap: isMobile ? 10 : 14,
+                        marginBottom: 18
                       }}>
                         {/* Hourly Rate */}
                         <div>
@@ -705,6 +854,43 @@ export default function SpacesAdminPage() {
                           />
                         </div>
 
+                        {/* Auto Approve */}
+                        <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+                          <label style={{
+                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                            fontSize: 14, color: '#1e293b', padding: '10px 0'
+                          }}>
+                            <div style={{
+                              width: 42, height: 24, borderRadius: 12, position: 'relative',
+                              background: (s.autoApprove) ? PRIMARY : '#cbd5e1', transition: 'background 0.2s',
+                              cursor: 'pointer'
+                            }} onClick={(e) => {
+                              e.preventDefault();
+                              if (!editing) startEditing(space);
+                              setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), autoApprove: !(p[space.id]?.autoApprove ?? s.autoApprove) } }));
+                            }}>
+                              <div style={{
+                                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                                position: 'absolute', top: 2,
+                                left: (s.autoApprove) ? 20 : 2,
+                                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                              }} />
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 500 }}>Auto-approve</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Section: Operating Hours */}
+                      <div style={{
+                        fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase',
+                        letterSpacing: 0.5, marginBottom: 10
+                      }}>Operating Hours</div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: isMobile ? 10 : 14
+                      }}>
                         {/* Opens At */}
                         <div>
                           <label className="sp-label">Opens At</label>
@@ -736,32 +922,6 @@ export default function SpacesAdminPage() {
                             }}
                           />
                         </div>
-
-                        {/* Auto Approve */}
-                        <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
-                          <label style={{
-                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                            fontSize: 14, color: '#1e293b', padding: '10px 0'
-                          }}>
-                            <div style={{
-                              width: 42, height: 24, borderRadius: 12, position: 'relative',
-                              background: (s.autoApprove) ? PRIMARY : '#cbd5e1', transition: 'background 0.2s',
-                              cursor: 'pointer'
-                            }} onClick={(e) => {
-                              e.preventDefault();
-                              if (!editing) startEditing(space);
-                              setEditingSettings(p => ({ ...p, [space.id]: { ...(p[space.id] || s), autoApprove: !(p[space.id]?.autoApprove ?? s.autoApprove) } }));
-                            }}>
-                              <div style={{
-                                width: 20, height: 20, borderRadius: '50%', background: '#fff',
-                                position: 'absolute', top: 2,
-                                left: (s.autoApprove) ? 20 : 2,
-                                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                              }} />
-                            </div>
-                            <span style={{ fontSize: 13, fontWeight: 500 }}>Auto-approve</span>
-                          </label>
-                        </div>
                       </div>
 
                       {/* Save / Cancel */}
@@ -785,24 +945,35 @@ export default function SpacesAdminPage() {
                         </div>
                       )}
 
-                      {/* Booking URL */}
+                      {/* Booking URL — more prominent */}
                       <div style={{
-                        marginTop: 14, padding: '10px 14px', background: '#f8fafc', borderRadius: 10,
-                        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap'
+                        marginTop: 16, padding: '12px 16px', background: '#f8fafc', borderRadius: 12,
+                        border: '1px solid #e2e8f0'
                       }}>
-                        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>Booking URL</span>
-                        <code style={{
-                          flex: 1, fontSize: 12, color: PRIMARY_DARK, fontWeight: 600,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                        }}>{bookingUrl}</code>
-                        <button onClick={() => copyUrl(bookingUrl, space.id)}
-                          className="sp-btn" style={{
-                            background: copiedUrl === space.id ? '#dcfce7' : '#fff',
-                            color: copiedUrl === space.id ? '#166534' : '#64748b',
-                            border: '1px solid #e2e8f0', padding: '4px 10px', fontSize: 12
-                          }}>
-                          {copiedUrl === space.id ? <><FaCheck size={10} /> Copied</> : <><FaCopy size={10} /> Copy</>}
-                        </button>
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6
+                        }}>
+                          <FaShareAlt size={12} color="#94a3b8" />
+                          <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Booking URL</span>
+                        </div>
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 8
+                        }}>
+                          <code style={{
+                            flex: 1, fontSize: 13, color: PRIMARY_DARK, fontWeight: 600,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            background: '#fff', padding: '8px 12px', borderRadius: 8,
+                            border: '1px solid #e2e8f0', fontFamily: 'monospace'
+                          }}>{bookingUrl}</code>
+                          <button onClick={() => copyUrl(bookingUrl, space.id)}
+                            className="sp-btn" style={{
+                              background: copiedUrl === space.id ? '#dcfce7' : PRIMARY,
+                              color: copiedUrl === space.id ? '#166534' : '#fff',
+                              padding: '8px 16px', fontSize: 13, borderRadius: 10, flexShrink: 0
+                            }}>
+                            {copiedUrl === space.id ? <><FaCheck size={11} /> Copied</> : <><FaCopy size={11} /> Copy</>}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
