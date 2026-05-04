@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Pusher from 'pusher-js';
@@ -2154,6 +2154,302 @@ const OrderHistory = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('orderHistory.noOrders')}</h3>
               <p className="text-sm text-gray-500">{t('orderHistory.adjustFilters')}</p>
             </div>
+          ) : isCompactView ? (
+            /* ═══════════════════════════════════════════════════════ */
+            /* TABLE VIEW — proper data table with expandable rows    */
+            /* ═══════════════════════════════════════════════════════ */
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+                  <thead>
+                    <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                      <th className="w-8 px-2 py-3"></th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Order</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Time</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Table</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Payment</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => {
+                      const statusStyle = getStatusStyle(order.status, order.orderFlow, order.lastStatus, order);
+                      const breakdown = getOrderBreakdown(order);
+                      const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+                      const sourceChip = getOrderSourceChip(order);
+                      const isExpanded = expandedOrders.has(order.id);
+                      const tableOrRoom = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || '—';
+                      const isRoom = !!(order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber);
+
+                      return (
+                        <React.Fragment key={order.id}>
+                          {/* Main row */}
+                          <tr
+                            className={`border-b border-gray-100 transition-colors cursor-pointer group ${isExpanded ? 'bg-red-50/40' : 'hover:bg-gray-50'}`}
+                            onClick={() => toggleOrderExpansion(order.id)}
+                          >
+                            {/* Expand arrow */}
+                            <td className="px-2 py-2.5 text-center">
+                              <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${isExpanded ? 'bg-red-100 text-red-600 rotate-180' : 'text-gray-400 group-hover:text-gray-600'}`}>
+                                <FaChevronDown size={10} />
+                              </div>
+                            </td>
+                            {/* Order # */}
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-gray-900 text-sm">#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
+                                {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-[10px]" title={t('orderHistory.syncedFromOffline')} />}
+                              </div>
+                              <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate max-w-[80px]" title={order.id}>{order.id.slice(0, 8)}...</div>
+                            </td>
+                            {/* Time */}
+                            <td className="px-3 py-2.5 text-xs text-gray-600 whitespace-nowrap">
+                              {formatDate(order.createdAt, true)}
+                            </td>
+                            {/* Customer */}
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-gray-500">
+                                  {(order.customerDisplay?.name || 'W')[0].toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{order.customerDisplay?.name || t('orderHistory.walkIn')}</div>
+                                  {(order.customerDisplay?.phone || order.customerInfo?.phone) && (
+                                    <div className="text-[10px] text-gray-400 truncate">{order.customerDisplay?.phone || order.customerInfo?.phone}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            {/* Table/Room */}
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                                {isRoom ? <FaBed size={10} className="text-gray-400" /> : <FaTable size={10} className="text-gray-400" />}
+                                <span>{tableOrRoom}</span>
+                              </div>
+                            </td>
+                            {/* Type */}
+                            <td className="px-3 py-2.5">
+                              <span className="text-xs text-gray-600 capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
+                            </td>
+                            {/* Status */}
+                            <td className="px-3 py-2.5">
+                              <div className="flex flex-col gap-1">
+                                <span
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide w-fit"
+                                  style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, border: `1px solid ${statusStyle.border}` }}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusStyle.text, opacity: 0.6 }} />
+                                  {statusStyle.label}
+                                </span>
+                                {sourceChip && (
+                                  <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium border w-fit ${sourceChip.className}`}>
+                                    {sourceChip.label}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            {/* Payment */}
+                            <td className="px-3 py-2.5">
+                              <span className="text-xs text-gray-600 capitalize">{order.paymentMethod || t('orderHistory.cash')}</span>
+                              {order.outstandingAmount > 0 && (
+                                <div className="mt-0.5">
+                                  <span className="text-[9px] font-semibold text-white bg-red-500 px-1.5 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
+                                </div>
+                              )}
+                            </td>
+                            {/* Amount */}
+                            <td className="px-3 py-2.5 text-right">
+                              <div className="font-bold text-gray-900">{formatCurrency(breakdown.total)}</div>
+                              {breakdown.discountAmount > 0 && (
+                                <div className="text-[10px] text-green-600">-{formatCurrency(breakdown.discountAmount)}</div>
+                              )}
+                              {breakdown.taxAmount > 0 && (
+                                <div className="text-[10px] text-gray-400">+tax {formatCurrency(breakdown.taxAmount)}</div>
+                              )}
+                            </td>
+                            {/* Actions */}
+                            <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-center gap-1">
+                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                  <button
+                                    onClick={() => handleMarkCompleted(order.id)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 transition-colors"
+                                    title={t('orderHistory.markBillComplete')}
+                                  >
+                                    <FaCheckCircle size={11} />
+                                  </button>
+                                )}
+                                {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
+                                  <button
+                                    onClick={() => handleMarkPaid(order.id)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors"
+                                    title={t('orderHistory.markAsFullyPaid')}
+                                  >
+                                    <FaWallet size={11} />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleSmartPrint(order)}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-colors ${printingOrderId === order.id ? 'bg-orange-200 border-orange-300 cursor-wait' : 'text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200'}`}
+                                  title={order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT')}
+                                  disabled={printingOrderId === order.id}
+                                >
+                                  {printingOrderId === order.id ? <FaSpinner size={11} className="animate-spin" /> : <FaPrint size={11} />}
+                                </button>
+                                <button
+                                  onClick={() => handleViewOrder(order)}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors"
+                                  title={t('orderHistory.view')}
+                                >
+                                  <FaEye size={11} />
+                                </button>
+                                {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
+                                  <button
+                                    onClick={() => handleEditOrder(order.id)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-red-500 hover:bg-red-600 border border-red-500 transition-colors"
+                                    title={t('orderHistory.edit')}
+                                  >
+                                    <FaEdit size={10} />
+                                  </button>
+                                )}
+                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
+                                  <button
+                                    onClick={() => handleCancelOrder(order.id)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                                    title={t('orderHistory.cancel')}
+                                  >
+                                    <FaTimesCircle size={11} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Expanded detail row */}
+                          {isExpanded && (
+                            <tr className="bg-gradient-to-r from-gray-50/80 to-white">
+                              <td colSpan={10} className="px-4 py-3 border-b border-gray-200">
+                                <div className="flex gap-6 flex-wrap">
+                                  {/* Items list */}
+                                  <div className="flex-1 min-w-[250px]">
+                                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{itemCount} {t('orderHistory.items')}</div>
+                                    <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="bg-gray-50 border-b border-gray-100">
+                                            <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-gray-400 uppercase">Item</th>
+                                            <th className="px-3 py-1.5 text-center text-[10px] font-semibold text-gray-400 uppercase w-12">Qty</th>
+                                            <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-gray-400 uppercase w-20">Price</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {order.items?.map((item, idx) => (
+                                            <tr key={idx} className="border-b border-gray-50 last:border-0">
+                                              <td className="px-3 py-1.5 text-gray-700">
+                                                {item.name}
+                                                {item.notes && <div className="text-[10px] text-amber-600 italic mt-0.5">{item.notes}</div>}
+                                              </td>
+                                              <td className="px-3 py-1.5 text-center text-gray-600">{item.quantity}</td>
+                                              <td className="px-3 py-1.5 text-right font-medium text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                    {order.specialInstructions && (
+                                      <div className="mt-2 flex items-start gap-1.5 text-xs bg-amber-50 px-3 py-2 rounded-lg border border-amber-100">
+                                        <span className="text-amber-600 font-semibold flex-shrink-0">{t('orderHistory.instructions')}</span>
+                                        <span className="text-gray-700">{order.specialInstructions}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Billing breakdown + IDs */}
+                                  <div className="w-[220px] flex-shrink-0">
+                                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Breakdown</div>
+                                    <div className="bg-white rounded-lg border border-gray-100 p-3 space-y-1.5 text-xs">
+                                      <div className="flex justify-between text-gray-600">
+                                        <span>{t('orderHistory.subtotalLabel')}</span>
+                                        <span>{formatCurrency(breakdown.subtotal)}</span>
+                                      </div>
+                                      {breakdown.discountLines?.map((line, i) => (
+                                        <div key={`d${i}`} className="flex justify-between text-green-600">
+                                          <span>-{line.name}</span>
+                                          <span>{formatCurrency(line.amount)}</span>
+                                        </div>
+                                      ))}
+                                      {breakdown.serviceCharge > 0 && (
+                                        <div className="flex justify-between text-purple-600">
+                                          <span>{t('orderHistory.serviceCharge')}</span>
+                                          <span>{formatCurrency(breakdown.serviceCharge)}</span>
+                                        </div>
+                                      )}
+                                      {breakdown.taxLines?.map((line, i) => (
+                                        <div key={i} className="flex justify-between text-gray-500">
+                                          <span>{line.name}{line.rate != null ? ` (${line.rate}%)` : ''}</span>
+                                          <span>{formatCurrency(line.amount)}</span>
+                                        </div>
+                                      ))}
+                                      {breakdown.tip > 0 && (
+                                        <div className="flex justify-between text-amber-600">
+                                          <span>{t('orderHistory.tip')}</span>
+                                          <span>{formatCurrency(breakdown.tip)}</span>
+                                        </div>
+                                      )}
+                                      {breakdown.roundOff !== 0 && (
+                                        <div className="flex justify-between text-gray-400">
+                                          <span>{t('orderHistory.roundOff')}</span>
+                                          <span>{breakdown.roundOff > 0 ? '+' : ''}{formatCurrency(breakdown.roundOff)}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between pt-1.5 mt-1 border-t border-dashed border-gray-200 font-bold text-gray-900 text-sm">
+                                        <span>Total</span>
+                                        <span>{formatCurrency(breakdown.total)}</span>
+                                      </div>
+                                      {order.outstandingAmount > 0 && (
+                                        <div className="flex justify-between text-red-600 font-semibold">
+                                          <span>{t('orderHistory.due')}</span>
+                                          <span>{formatCurrency(order.outstandingAmount)}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Order IDs */}
+                                    <div className="mt-2 space-y-1">
+                                      <div
+                                        onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
+                                        className="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
+                                        title={t('orderHistory.clickToCopyOrderNumber')}
+                                      >
+                                        <span>{t('orderHistory.orderNumberShort')}</span>
+                                        <span className="font-mono font-semibold text-gray-600">#{order.dailyOrderId ?? order.orderNumber ?? '—'}</span>
+                                        <FaCopy size={8} className="text-gray-300" />
+                                      </div>
+                                      <div
+                                        onClick={() => copyToClipboard(order.id)}
+                                        className="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
+                                        title={t('orderHistory.clickToCopyOrderId')}
+                                      >
+                                        <span>{t('orderHistory.idLabel')}</span>
+                                        <span className="font-mono font-semibold text-gray-600 truncate max-w-[120px]">{order.id}</span>
+                                        <FaCopy size={8} className="text-gray-300" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
             <div className="space-y-2.5">
             {orders.map((order) => {
@@ -2162,238 +2458,6 @@ const OrderHistory = () => {
               const breakdown = getOrderBreakdown(order);
               const itemCount = Array.isArray(order.items) ? order.items.length : 0;
               const sourceChip = getOrderSourceChip(order);
-              
-              if (isCompactView) {
-                return (
-                  <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200 group overflow-hidden">
-                    <div className="p-3 flex items-center gap-3">
-                      <div className="w-1 h-14 rounded-full flex-shrink-0" style={{ backgroundColor: statusStyle.border }} />
-                      <div className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
-                        <div className="col-span-12 sm:col-span-3 flex sm:flex-col items-center sm:items-start justify-between sm:justify-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => toggleOrderExpansion(order.id)}
-                              className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                              title={expandedOrders.has(order.id) ? t('common.close') : t('common.view')}
-                            >
-                              {expandedOrders.has(order.id) ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
-                            </button>
-                            <div
-                              onClick={() => copyToClipboard(order.dailyOrderId?.toString() || order.id)}
-                              className="font-bold text-base text-gray-900 cursor-pointer hover:text-red-600 flex items-center gap-2 transition-colors"
-                            >
-                              <span>#{order.dailyOrderId || order.orderNumber || order.id.slice(-4).toUpperCase()}</span>
-                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-xs" title={t('orderHistory.syncedFromOffline')} />}
-                              <FaCopy className="text-gray-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <FaClock className="text-[10px]" />
-                            {formatDate(order.createdAt, true)}
-                          </div>
-                        </div>
-                        <div className="col-span-12 sm:col-span-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
-                          <div className="flex flex-col gap-0.5" title="Customer">
-                            <div className="flex items-center gap-2">
-                              <FaUser className="text-gray-400 flex-shrink-0" />
-                              <span className="truncate max-w-[120px] font-medium">{order.customerDisplay?.name || t('orderHistory.walkIn')}</span>
-                            </div>
-                            {(sourceChip?.label === 'Online order' || sourceChip?.label === 'Dine App') && (order.customerDisplay?.phone || order.customerInfo?.phone) && (
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500 pl-5">
-                                <FaPhone className="text-[10px]" />
-                                <span>{order.customerDisplay?.phone || order.customerInfo?.phone}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2" title={order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? t('orderHistory.room') : t('orderHistory.table')}>
-                            {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
-                              <FaBed className="text-gray-400" />
-                            ) : (
-                              <FaTable className="text-gray-400" />
-                            )}
-                            <span>{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</span>
-                          </div>
-                          <div className="flex items-center gap-2" title={t('orderHistory.typeLabel')}>
-                            <FaUtensils className="text-gray-400" />
-                            <span className="capitalize">{order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
-                          </div>
-                        </div>
-                        <div className="col-span-6 sm:col-span-3 flex flex-col sm:items-start gap-2">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span
-                              className="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border-2 shadow-sm"
-                              style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
-                            >
-                              {statusStyle.label}
-                            </span>
-                            {sourceChip && (
-                              <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${sourceChip.className}`}>
-                                {sourceChip.label}
-                              </span>
-                            )}
-                            {order.isScheduled && order.scheduledFor && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>
-                                <FaCalendarAlt size={9} /> Scheduled: {new Date(order.scheduledFor).toLocaleDateString()} {new Date(order.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            )}
-                            {order._isOffline && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
-                                {t('orderHistory.pendingSync')}
-                              </span>
-                            )}
-                            {order._isOffline && order.syncStatus === 'failed' && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
-                                disabled={syncingOrderKey === order.idempotencyKey}
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
-                                title={t('orderHistory.retrySync')}
-                              >
-                                <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
-                                {syncingOrderKey === order.idempotencyKey ? t('orderHistory.syncing') : t('orderHistory.retry')}
-                              </button>
-                            )}
-                            {order.syncSource === 'offline' && !order._isOffline && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
-                                <FaCloudUploadAlt className="text-[8px]" /> {t('orderHistory.offline')}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-gray-500 font-medium">{order.paymentMethod || t('orderHistory.cash')}</span>
-                        </div>
-                        <div className="col-span-6 sm:col-span-2 flex flex-col items-end gap-2">
-                          <div className="text-right space-y-0.5">
-                            {(breakdown.taxLines?.length > 0 || breakdown.discountLines?.length > 0 || breakdown.serviceCharge > 0 || breakdown.tip > 0 || breakdown.roundOff !== 0) && (
-                              <>
-                                <div className="text-xs text-gray-500">{t('orderHistory.subtotalLabel')} {formatCurrency(breakdown.subtotal)}</div>
-                                {breakdown.discountLines?.map((line, i) => (
-                                  <div key={`d${i}`} className="text-xs text-green-600">-{line.name} {formatCurrency(line.amount)}</div>
-                                ))}
-                                {breakdown.serviceCharge > 0 && (
-                                  <div className="text-xs text-purple-600">{t('orderHistory.serviceCharge')} {formatCurrency(breakdown.serviceCharge)}</div>
-                                )}
-                                {breakdown.taxLines.map((line, i) => (
-                                  <div key={i} className="text-xs text-gray-500">{line.name}{line.rate != null ? ` (${line.rate}%)` : ''} {formatCurrency(line.amount)}</div>
-                                ))}
-                                {breakdown.tip > 0 && (
-                                  <div className="text-xs text-amber-600">{t('orderHistory.tip')} {formatCurrency(breakdown.tip)}</div>
-                                )}
-                                {breakdown.roundOff !== 0 && (
-                                  <div className="text-xs text-gray-400">{t('orderHistory.roundOff')} {breakdown.roundOff > 0 ? '+' : ''}{formatCurrency(breakdown.roundOff)}</div>
-                                )}
-                              </>
-                            )}
-                            <span className="font-bold text-lg text-gray-900">{formatCurrency(breakdown.total)}</span>
-                            {order.outstandingAmount > 0 && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
-                                <span className="text-xs text-red-600 font-semibold">{t('orderHistory.due')} {formatCurrency(order.outstandingAmount)}</span>
-                              </div>
-                            )}
-                            {order.paymentStatus === 'partial' && !order.outstandingAmount && order.paidAmount > 0 && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <span className="text-xs font-semibold text-white bg-amber-500 px-2 py-0.5 rounded-full">{t('orderHistory.partial')}</span>
-                                <span className="text-xs text-amber-600 font-semibold">{t('orderHistory.paid')} {formatCurrency(order.paidAmount)}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
-                                <button
-                                onClick={() => handleMarkCompleted(order.id)}
-                                className="p-2 text-green-600 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
-                                title={t('orderHistory.markBillComplete')}
-                                >
-                                <FaCheckCircle size={12} />
-                                </button>
-                            )}
-                            {(order.paymentStatus === 'partial' || order.outstandingAmount > 0) && order.status === 'completed' && (
-                              <button
-                                onClick={() => handleMarkPaid(order.id)}
-                                className="p-2 text-amber-600 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
-                                title={t('orderHistory.markAsFullyPaid')}
-                              >
-                                <FaWallet size={12} />
-                              </button>
-                            )}
-                            {/* Invoice button hidden - using unified print flow */}
-                            <button
-                              onClick={() => handleSmartPrint(order)}
-                              className={`p-2 rounded-lg transition-colors ${printingOrderId === order.id ? 'bg-orange-200 cursor-wait' : 'text-orange-600 bg-orange-100 hover:bg-orange-200'}`}
-                              title={order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT')}
-                              disabled={printingOrderId === order.id}
-                            >
-                              {printingOrderId === order.id ? <FaSpinner size={12} className="animate-spin" /> : <FaPrint size={12} />}
-                            </button>
-                            <button 
-                              onClick={() => handleViewOrder(order)} 
-                              className="p-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" 
-                              title={t('orderHistory.view')}
-                            >
-                              <FaEye size={12} />
-                            </button>
-                            {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
-                            <button
-                              onClick={() => handleEditOrder(order.id)}
-                              className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-sm"
-                              title={t('orderHistory.edit')}
-                            >
-                              <FaEdit size={12} />
-                            </button>
-                            )}
-                            {/* Delete button hidden by request — use Cancel instead */}
-                          </div>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="flex items-center gap-4 flex-wrap">
-                            <div
-                              onClick={() => copyToClipboard(String(order.dailyOrderId ?? order.orderNumber ?? order.id))}
-                              className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors"
-                              title={t('orderHistory.clickToCopyOrderNumber')}
-                            >
-                              <span className="text-xs text-gray-500">{t('orderHistory.orderNumberShort')}</span>
-                              <span className="text-xs font-mono font-semibold text-gray-700">#{order.dailyOrderId ?? order.orderNumber ?? order.id?.slice(-4)?.toUpperCase() ?? '—'}</span>
-                              {order.syncSource === 'offline' && <FaCloudUploadAlt className="text-blue-400 text-[10px]" title={t('orderHistory.syncedFromOffline')} />}
-                              <FaCopy className="text-gray-400 text-[10px]" />
-                            </div>
-                            <div
-                              onClick={() => copyToClipboard(order.id)}
-                              className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 transition-colors flex-1 min-w-0"
-                              title={t('orderHistory.clickToCopyOrderId')}
-                            >
-                              <span className="text-xs text-gray-500">{t('orderHistory.idLabel')}</span>
-                              <span className="text-xs font-mono font-semibold text-gray-700 truncate" title={order.id}>{order.id}</span>
-                              <FaCopy className="text-gray-400 text-[10px] flex-shrink-0" />
-                            </div>
-                          </div>
-                        </div>
-                        {expandedOrders.has(order.id) && (
-                          <div className="col-span-12 mt-2 pl-6 pr-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
-                            <div className="text-xs font-semibold text-gray-600 mb-2">{itemCount} {t('orderHistory.items')}</div>
-                            <div className="space-y-1">
-                              {order.items?.slice(0, 6).map((item, idx) => (
-                                <div key={idx} className="flex justify-between text-sm text-gray-700">
-                                  <span>{item.quantity}x {item.name}</span>
-                                  <span>{formatCurrency(item.total || (item.price * item.quantity))}</span>
-                                </div>
-                              ))}
-                              {order.items?.length > 6 && <div className="text-xs text-gray-500 pt-1">+{order.items.length - 6} {t('orderHistory.more')}</div>}
-                            </div>
-                            {order.specialInstructions && (
-                              <div className="mt-3 pt-2 border-t border-gray-200">
-                                <div className="flex items-start gap-2 text-xs">
-                                  <span className="text-amber-600 font-semibold">{t('orderHistory.instructions')}</span>
-                                  <span className="text-gray-700">{order.specialInstructions}</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
 
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200 group overflow-hidden">
