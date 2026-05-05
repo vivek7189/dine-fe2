@@ -555,7 +555,6 @@ const OrderSummary = ({
             } catch (err) { console.error('Token print error:', err); }
           })();
         }
-        }
       }, 800);
       return () => clearTimeout(timer);
     }
