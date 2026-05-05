@@ -16,6 +16,8 @@ import {
   FaSortAmountUp,
   FaSearch,
   FaChevronDown,
+  FaFileExcel,
+  FaCreditCard,
 } from 'react-icons/fa';
 
 export default function SalesSummaryPage() {
@@ -36,6 +38,9 @@ export default function SalesSummaryPage() {
   const [customStartDate, setCustomStartDate] = useState(urlStartDate || '');
   const [customEndDate, setCustomEndDate] = useState(urlEndDate || '');
   const [showCustomPicker, setShowCustomPicker] = useState(urlPeriod === 'custom');
+
+  // Active tab
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Sorting & filtering
   const [sortBy, setSortBy] = useState('quantity'); // quantity | revenue | name
@@ -180,6 +185,37 @@ export default function SalesSummaryPage() {
     }
   };
 
+  const prettifyPaymentMethod = (method) => {
+    const map = { cash: 'Cash', razorpay: 'Online/Razorpay', split: 'Split Payment', upi: 'UPI', card: 'Card' };
+    return map[method?.toLowerCase()] || method?.toUpperCase() || method;
+  };
+
+  const handleExcelDownload = async (tabType) => {
+    const XLSX = await import('xlsx');
+    const wb = XLSX.utils.book_new();
+    let data = [];
+    if (tabType === 'category') {
+      data = [['Category', 'Items Sold', 'Revenue', '% of Total'],
+        ...(summary?.categoryBreakdown || []).map(c => [c.category, c.itemsSold, c.revenue, c.percentage + '%'])];
+    } else if (tabType === 'payment') {
+      data = [['Payment Method', 'Transactions', 'Amount', '% of Total'],
+        ...(summary?.paymentBreakdown || []).map(p => [prettifyPaymentMethod(p.method), p.transactions, p.amount, p.percentage + '%'])];
+    } else if (tabType === 'daywise') {
+      data = [['Date', 'Orders', 'Revenue', 'Avg Order Value'],
+        ...(summary?.dailyRevenue || []).map(d => [d.date, d.orders, d.revenue, d.orders > 0 ? (d.revenue / d.orders).toFixed(2) : '0'])];
+    }
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, tabType);
+    XLSX.writeFile(wb, `sales-${tabType}-report.xlsx`);
+  };
+
+  const tabs = [
+    { key: 'overview', label: 'Overview', icon: FaChartPie },
+    { key: 'category', label: 'Category Sales', icon: FaChartPie },
+    { key: 'payment', label: 'Payment Mode', icon: FaCreditCard },
+    { key: 'daywise', label: 'Day-wise', icon: FaCalendarAlt },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -239,6 +275,24 @@ export default function SalesSummaryPage() {
               </button>
             </div>
           )}
+
+          {/* Section Tabs */}
+          <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-1">
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
+                  activeTab === t.key
+                    ? 'bg-red-500 text-white border-red-500 shadow-md shadow-red-200'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <t.icon className="text-xs" />
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -250,6 +304,8 @@ export default function SalesSummaryPage() {
           </div>
         ) : summary ? (
           <>
+            {/* === OVERVIEW TAB === */}
+            {activeTab === 'overview' && (<>
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -506,6 +562,209 @@ export default function SalesSummaryPage() {
                 </div>
               )}
             </div>
+            </>)}
+
+            {/* === CATEGORY SALES TAB === */}
+            {activeTab === 'category' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-base font-bold text-gray-800">Category-wise Sales</h3>
+                  <button
+                    onClick={() => handleExcelDownload('category')}
+                    className="flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <FaFileExcel className="text-xs" />
+                    Download Excel
+                  </button>
+                </div>
+                {summary.categoryBreakdown && summary.categoryBreakdown.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                          <th className="px-4 py-2.5 font-semibold">Category</th>
+                          <th className="px-4 py-2.5 font-semibold text-center">Items Sold</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">Revenue</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">% of Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {summary.categoryBreakdown.map((cat, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/80 transition-colors">
+                            <td className="px-4 py-3 font-medium text-gray-800 text-sm">{cat.category}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">
+                                {cat.itemsSold}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">{formatCurrency(cat.revenue)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                                  <div className="h-1.5 rounded-full bg-emerald-400" style={{ width: `${Math.min(cat.percentage, 100)}%` }} />
+                                </div>
+                                <span className="text-xs text-gray-500 w-10 text-right">{cat.percentage}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                          <td className="px-4 py-3 text-gray-800">Total</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">
+                              {summary.categoryBreakdown.reduce((s, c) => s + c.itemsSold, 0)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(summary.categoryBreakdown.reduce((s, c) => s + c.revenue, 0))}</td>
+                          <td className="px-4 py-3 text-right text-xs text-gray-500">100%</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">No category data available for this period</div>
+                )}
+              </div>
+            )}
+
+            {/* === PAYMENT MODE TAB === */}
+            {activeTab === 'payment' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-base font-bold text-gray-800">Payment Mode Breakdown</h3>
+                  <button
+                    onClick={() => handleExcelDownload('payment')}
+                    className="flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <FaFileExcel className="text-xs" />
+                    Download Excel
+                  </button>
+                </div>
+                {summary.paymentBreakdown && summary.paymentBreakdown.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                          <th className="px-4 py-2.5 font-semibold">Payment Method</th>
+                          <th className="px-4 py-2.5 font-semibold text-center">Transactions</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">Amount</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">% of Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {summary.paymentBreakdown.map((pm, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/80 transition-colors">
+                            <td className="px-4 py-3 font-medium text-gray-800 text-sm">{prettifyPaymentMethod(pm.method)}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">
+                                {pm.transactions}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">{formatCurrency(pm.amount)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                                  <div className="h-1.5 rounded-full bg-emerald-400" style={{ width: `${Math.min(pm.percentage, 100)}%` }} />
+                                </div>
+                                <span className="text-xs text-gray-500 w-10 text-right">{pm.percentage}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                          <td className="px-4 py-3 text-gray-800">Total</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">
+                              {summary.paymentBreakdown.reduce((s, p) => s + p.transactions, 0)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(summary.paymentBreakdown.reduce((s, p) => s + p.amount, 0))}</td>
+                          <td className="px-4 py-3 text-right text-xs text-gray-500">100%</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">No payment data available for this period</div>
+                )}
+              </div>
+            )}
+
+            {/* === DAY-WISE TAB === */}
+            {activeTab === 'daywise' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-base font-bold text-gray-800">Day-wise Breakdown</h3>
+                  {summary.dailyRevenue && summary.dailyRevenue.length > 1 && (
+                    <button
+                      onClick={() => handleExcelDownload('daywise')}
+                      className="flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                    >
+                      <FaFileExcel className="text-xs" />
+                      Download Excel
+                    </button>
+                  )}
+                </div>
+                {summary.dailyRevenue && summary.dailyRevenue.length > 1 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                          <th className="px-4 py-2.5 font-semibold">Date</th>
+                          <th className="px-4 py-2.5 font-semibold text-center">Orders</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">Revenue</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">Avg Order Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {summary.dailyRevenue.map((day, idx) => {
+                          const avg = day.orders > 0 ? day.revenue / day.orders : 0;
+                          return (
+                            <tr key={idx} className="hover:bg-gray-50/80 transition-colors">
+                              <td className="px-4 py-3 font-medium text-gray-800 text-sm">{day.date}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className="inline-flex items-center justify-center bg-blue-50 text-blue-700 font-bold text-sm px-3 py-0.5 rounded-full min-w-[40px]">
+                                  {day.orders}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold text-gray-800 text-sm">{formatCurrency(day.revenue)}</td>
+                              <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(avg)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                          <td className="px-4 py-3 text-gray-800">Total</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">
+                              {summary.dailyRevenue.reduce((s, d) => s + d.orders, 0)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(summary.dailyRevenue.reduce((s, d) => s + d.revenue, 0))}</td>
+                          <td className="px-4 py-3 text-right text-sm text-gray-600">
+                            {formatCurrency(
+                              summary.dailyRevenue.reduce((s, d) => s + d.orders, 0) > 0
+                                ? summary.dailyRevenue.reduce((s, d) => s + d.revenue, 0) / summary.dailyRevenue.reduce((s, d) => s + d.orders, 0)
+                                : 0
+                            )}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    <FaCalendarAlt className="text-3xl mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">Select a multi-day period (7 days, 30 days, or custom range) to view day-wise breakdown</p>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <div className="text-center py-20 text-gray-400">

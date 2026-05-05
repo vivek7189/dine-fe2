@@ -2083,8 +2083,16 @@ class ApiClient {
     return this.request(`/api/bill/render/${restaurantId}/${orderId}`);
   }
 
-  async getKOTRender(restaurantId, orderId) {
-    return this.request(`/api/kot/render/${restaurantId}/${orderId}`);
+  async getKOTRender(restaurantId, orderId, { newOnly = false, stationId = null } = {}) {
+    const params = new URLSearchParams();
+    if (newOnly) params.set('newOnly', 'true');
+    if (stationId) params.set('stationId', stationId);
+    const qs = params.toString();
+    return this.request(`/api/kot/render/${restaurantId}/${orderId}${qs ? '?' + qs : ''}`);
+  }
+
+  async getTokenRender(restaurantId, orderId) {
+    return this.request(`/api/token/render/${restaurantId}/${orderId}`);
   }
 
   async getInvoice(invoiceId) {

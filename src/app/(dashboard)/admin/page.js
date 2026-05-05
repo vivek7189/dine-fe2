@@ -75,7 +75,8 @@ import {
   FaMobileAlt,
   FaDatabase,
   FaCloudUploadAlt,
-  FaImage
+  FaImage,
+  FaTicketAlt
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -2992,7 +2993,11 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     // Bill print font size & font
     billFontSize: 'medium',
     billFontScale: 100,
-    billFontFamily: 'default'
+    billFontFamily: 'default',
+    tokenBillingEnabled: false,
+    enableUpdateWithoutKOT: false,
+    enableKOTAndPrint: false,
+    enableSaveAndPrint: false
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3083,6 +3088,34 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
   const settingsConfig = [
     // Main settings
+    {
+      key: 'tokenBillingEnabled',
+      title: 'Food Court Token Billing',
+      description: 'Print separate category-wise token slips after billing for counter pickup',
+      icon: <FaTicketAlt size={18} />,
+      section: 'main'
+    },
+    {
+      key: 'enableUpdateWithoutKOT',
+      title: 'Update Order Without KOT',
+      description: 'Allow saving order changes without sending to kitchen (for drinks, water etc.)',
+      icon: <FaEdit size={18} />,
+      section: 'main'
+    },
+    {
+      key: 'enableKOTAndPrint',
+      title: 'KOT & Print Button',
+      description: 'Show combined button to send KOT and auto-print KOT slip',
+      icon: <FaPrint size={18} />,
+      section: 'main'
+    },
+    {
+      key: 'enableSaveAndPrint',
+      title: 'Bill & Print Button',
+      description: 'Show combined button to complete billing and auto-print bill',
+      icon: <FaReceipt size={18} />,
+      section: 'main'
+    },
     {
       key: 'kotPrinterEnabled',
       title: 'KOT Printer App (Auto-Print)',

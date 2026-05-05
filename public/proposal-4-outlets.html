@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DineOpen Proposal — 4 Outlet Restaurant Chain</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 40%, #dc2626 100%); color: #fff; padding: 48px 24px 56px; text-align: center; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.12); border-radius: 100px; padding: 6px 18px; font-size: 13px; font-weight: 600; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.15); }
+    .hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+    .hero h1 { font-size: 38px; font-weight: 800; margin-bottom: 12px; line-height: 1.15; }
+    .hero h1 .gold { color: #fbbf24; }
+    .hero p { font-size: 16px; opacity: 0.85; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+    .hero .date { font-size: 12px; opacity: 0.6; margin-top: 16px; }
+
+    /* Proposal Info */
+    .info-bar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 20px 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 32px; }
+    .info-bar .item { font-size: 13px; color: #6b7280; }
+    .info-bar .item strong { color: #111827; }
+
+    /* Plan Card */
+    .plan-card { background: #fff; border-radius: 20px; border: 2px solid #dc2626; box-shadow: 0 8px 40px rgba(220,38,38,0.1); overflow: hidden; margin-bottom: 28px; }
+    .plan-banner { background: #dc2626; color: #fff; text-align: center; font-size: 13px; font-weight: 700; padding: 8px 0; letter-spacing: 1px; text-transform: uppercase; }
+    .plan-header { padding: 28px 28px 0; }
+    .plan-name { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+    .plan-outlets { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+
+    /* Pricing Grid */
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .price-box { border-radius: 14px; padding: 18px 16px; text-align: center; }
+    .price-box.monthly { background: #f9fafb; border: 1px solid #e5e7eb; }
+    .price-box.annual { background: #f0fdf4; border: 1px solid #bbf7d0; position: relative; }
+    .price-box .label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .price-box.annual .label { color: #166534; }
+    .price-box .amount { font-size: 32px; font-weight: 800; line-height: 1; }
+    .price-box.annual .amount { color: #166534; }
+    .price-box .sub { font-size: 11px; color: #6b7280; margin-top: 4px; }
+    .price-box.annual .sub { color: #166534; }
+    .price-box .per-outlet { font-size: 11px; color: #6b7280; margin-top: 3px; }
+    .save-badge { position: absolute; top: -8px; right: 10px; background: #16a34a; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 10px; border-radius: 100px; }
+    .payment-note { font-size: 12px; color: #6b7280; text-align: center; margin-top: 12px; padding: 8px 12px; background: #f9fafb; border-radius: 10px; border: 1px solid #f3f4f6; }
+
+    /* Breakdown */
+    .breakdown { margin: 24px 28px 0; padding: 20px; background: #fafafa; border-radius: 14px; border: 1px solid #f3f4f6; }
+    .breakdown h4 { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .breakdown-row { display: flex; justify-content: space-between; font-size: 13px; color: #374151; padding: 6px 0; }
+    .breakdown-row span:last-child { font-weight: 600; }
+    .breakdown-row.green { color: #16a34a; }
+    .breakdown-row.total { border-top: 2px solid #e5e7eb; margin-top: 8px; padding-top: 12px; font-size: 15px; font-weight: 800; }
+    .breakdown-row.total.green { color: #166534; }
+
+    /* Features */
+    .features-section { padding: 24px 28px 28px; }
+    .features-section h3 { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+    .feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+    .feat-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #374151; padding: 4px 0; }
+    .feat-check { width: 16px; height: 16px; border-radius: 50%; background: #dcfce7; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .feat-check svg { width: 10px; height: 10px; }
+
+    /* Zero Fee */
+    .zero-fee { background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%); border-radius: 16px; padding: 28px 24px; color: #fff; text-align: center; margin-bottom: 28px; }
+    .zero-fee h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .zero-fee p { font-size: 14px; opacity: 0.9; line-height: 1.6; }
+    .fee-row { display: inline-flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 24px; margin-top: 16px; border: 1px solid rgba(255,255,255,0.2); }
+    .fee-col { text-align: center; }
+    .fee-col .fl { font-size: 10px; opacity: 0.7; font-weight: 600; }
+    .fee-col .fv { font-size: 22px; font-weight: 800; }
+    .fee-col .fv.strike { text-decoration: line-through; opacity: 0.6; }
+    .fee-col .fv.green { color: #86efac; }
+    .fee-arrow { font-size: 20px; opacity: 0.5; }
+
+    /* Cost Comparison */
+    .cost-section { margin-bottom: 28px; }
+    .cost-section h3 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .cost-section .sub { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+    .cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .cost-card { padding: 18px; border-radius: 14px; }
+    .cost-card.red { border: 1px solid #fecaca; background: #fef2f2; }
+    .cost-card.grn { border: 1px solid #bbf7d0; background: #f0fdf4; }
+    .cost-card .ct { font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+    .cost-card.red .ct { color: #991b1b; }
+    .cost-card.grn .ct { color: #166534; }
+    .cl { display: flex; justify-content: space-between; font-size: 12px; color: #374151; margin-bottom: 6px; }
+    .cl span:last-child { font-weight: 600; }
+    .cl.g { color: #16a34a; }
+    .cl.r { color: #dc2626; }
+    .ct-total { display: flex; justify-content: space-between; border-top: 2px solid #e5e7eb; padding-top: 8px; margin-top: 6px; font-weight: 800; font-size: 14px; }
+    .cost-card.red .ct-total { border-color: #fecaca; color: #991b1b; }
+    .cost-card.grn .ct-total { border-color: #bbf7d0; color: #166534; }
+
+    .savings-bar { margin-top: 16px; padding: 14px 20px; border-radius: 12px; background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%); border: 1px solid #fde68a; text-align: center; }
+    .savings-bar .sl { font-size: 12px; color: #92400e; font-weight: 600; }
+    .savings-bar .sa { font-size: 32px; font-weight: 800; color: #92400e; margin: 2px 0; }
+    .savings-bar .ss { font-size: 12px; color: #92400e; opacity: 0.8; }
+
+    /* CTA */
+    .cta-section { background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius: 16px; padding: 32px 24px; text-align: center; color: #fff; margin-bottom: 20px; }
+    .cta-section h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .cta-section p { font-size: 14px; opacity: 0.8; margin-bottom: 20px; }
+    .cta-btns { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .cta-btns a { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 12px; font-size: 14px; font-weight: 700; text-decoration: none; }
+    .cta-btns .primary { background: #fff; color: #991b1b; }
+    .cta-btns .secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+
+    .footer { padding: 16px 24px; text-align: center; font-size: 11px; color: #9ca3af; }
+
+    @media print {
+      body { background: #fff; }
+      .plan-card { box-shadow: none; }
+      .page-break { page-break-before: always; }
+    }
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .cost-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-badge"><span class="dot"></span> Custom Proposal</div>
+    <h1>DineOpen for Your<br><span class="gold">4-Outlet Chain</span></h1>
+    <p>Complete restaurant POS with all features included. Zero transaction fees. No paid add-ons. No annual lock-in.</p>
+    <div class="date">Proposal Date: 5 May 2026</div>
+  </div>
+
+  <div class="container" style="padding-top:32px;">
+
+    <!-- Plan Card -->
+    <div class="plan-card">
+      <div class="plan-banner">Custom Plan - 4 Outlets</div>
+      <div class="plan-header">
+        <div class="plan-name">DineOpen Chain 4</div>
+        <div class="plan-outlets">All 4 outlets included - all features, zero add-on charges</div>
+
+        <div class="pricing-grid">
+          <div class="price-box monthly">
+            <div class="label">Monthly</div>
+            <div class="amount">&#8377;6,299</div>
+            <div class="sub">/month for all 4 outlets</div>
+            <div class="per-outlet">~&#8377;1,575/outlet/month</div>
+          </div>
+          <div class="price-box annual">
+            <div class="save-badge">SAVE 17%</div>
+            <div class="label">Annual</div>
+            <div class="amount">&#8377;62,740</div>
+            <div class="sub">/year (&#8377;5,228/mo)</div>
+            <div class="per-outlet">~&#8377;1,307/outlet/month</div>
+          </div>
+        </div>
+        <div class="payment-note">Annual: Pay &#8377;62,740 once or &#8377;31,370 every 6 months</div>
+      </div>
+
+      <!-- Breakdown -->
+      <div class="breakdown">
+        <h4>Price Breakdown</h4>
+        <div class="breakdown-row"><span>4 outlets - all features included</span><span>&#8377;6,299/mo</span></div>
+        <div class="breakdown-row total"><span>Monthly total (4 outlets)</span><span>&#8377;6,299/mo</span></div>
+        <div style="height:12px;"></div>
+        <div class="breakdown-row green"><span>Annual billing (17% discount)</span><span>&#8377;62,740/yr</span></div>
+        <div class="breakdown-row total green"><span>Annual total (4 outlets)</span><span>&#8377;62,740/yr</span></div>
+        <div style="font-size:11px; color:#16a34a; margin-top:6px; font-weight:600;">You save &#8377;12,848/year with annual billing</div>
+      </div>
+
+      <!-- Features -->
+      <div class="features-section">
+        <h3>Everything Included</h3>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>HQ Dashboard - all outlets</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Central Menu Management</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Central Kitchen & Production</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Inter-branch Stock Transfers</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Consolidated Reports & Analytics</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>AI-Powered Voice Ordering</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>AI Menu & Sales Assistant</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Captain/Waiter App</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Customer Loyalty Program</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>WhatsApp Ordering Bot</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Online Ordering Website</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>QR Menu & Table Ordering</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Unlimited Users & Terminals</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Inventory with Recipe Management</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Aggregator Integration (Swiggy/Zomato)</span></div>
+          <div class="feat-item"><div class="feat-check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Human + WhatsApp Support</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer" style="margin-top:20px;">DineOpen Technologies Pvt. Ltd. - Proposal valid as of May 2026. Prices exclusive of GST.</div>
+  </div>
+
+</body>
+</html>

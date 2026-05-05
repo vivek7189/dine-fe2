@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DineOpen Enterprise Pricing — Multi-Outlet Restaurant POS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 40%, #dc2626 100%); color: #fff; padding: 56px 24px 72px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; top: -80px; right: -80px; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.03); }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 600; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.15); }
+    .hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+    .hero h1 { font-size: clamp(28px, 5vw, 46px); font-weight: 800; margin-bottom: 16px; line-height: 1.15; }
+    .hero h1 .gold { color: #fbbf24; }
+    .hero p { font-size: 17px; opacity: 0.8; max-width: 560px; margin: 0 auto 8px; line-height: 1.6; }
+
+    /* Toggle */
+    .toggle-wrap { display: inline-flex; background: rgba(255,255,255,0.1); border-radius: 14px; padding: 4px; border: 1px solid rgba(255,255,255,0.15); margin-top: 24px; }
+    .toggle-btn { padding: 10px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: rgba(255,255,255,0.7); }
+    .toggle-btn.active { background: #fff; color: #991b1b; }
+    .save-tag { background: #22c55e; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin-left: 6px; }
+
+    /* Plans */
+    .plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: -36px; position: relative; z-index: 2; padding-top: 0; }
+    .plan-card { background: #fff; border-radius: 20px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 2px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
+    .plan-card.popular { border: 2px solid #dc2626; box-shadow: 0 8px 40px rgba(220,38,38,0.15); transform: scale(1.03); }
+    .popular-banner { background: #dc2626; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 6px 0; letter-spacing: 1px; text-transform: uppercase; }
+    .plan-header { padding: 28px 24px 0; }
+    .plan-tagline { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .plan-name { font-size: 26px; font-weight: 800; margin: 4px 0; }
+    .plan-outlets { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+    .plan-price { font-size: 42px; font-weight: 800; line-height: 1; }
+    .plan-price .unit { font-size: 14px; color: #6b7280; font-weight: 400; }
+    .plan-per-outlet { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .plan-save { font-size: 12px; color: #16a34a; font-weight: 600; margin-top: 4px; }
+
+    .plan-features { margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid #f3f4f6; }
+    .plan-features .section-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; padding: 0 24px; }
+    .feature-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #374151; padding: 4px 24px; margin-bottom: 6px; }
+    .feature-item.bold { font-weight: 600; }
+    .check { width: 16px; height: 16px; border-radius: 50%; background: #dcfce7; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .check svg { width: 10px; height: 10px; }
+
+    .plan-cta { padding: 16px 24px 24px; margin-top: auto; }
+    .plan-cta a { display: block; text-align: center; padding: 14px 24px; border-radius: 12px; background: #111827; color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
+    .plan-card.popular .plan-cta a { background: #dc2626; box-shadow: 0 4px 16px rgba(220,38,38,0.3); }
+    .plan-cta .trial-note { text-align: center; font-size: 11px; color: #9ca3af; margin-top: 8px; }
+
+    /* Add-on */
+    .addon-bar { margin: 24px 0; padding: 16px 24px; background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .addon-price { font-size: 28px; font-weight: 800; }
+    .addon-price .unit { font-size: 13px; color: #6b7280; font-weight: 400; }
+
+    /* Zero Fee Banner */
+    .zero-fee { background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%); border-radius: 20px; padding: 40px 32px; color: #fff; text-align: center; margin: 40px 0; position: relative; overflow: hidden; }
+    .zero-fee::before { content: ''; position: absolute; top: -40px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.05); }
+    .zero-fee h2 { font-size: clamp(22px, 4vw, 34px); font-weight: 800; margin-bottom: 12px; }
+    .zero-fee p { font-size: 15px; opacity: 0.9; max-width: 580px; margin: 0 auto 24px; line-height: 1.6; }
+    .fee-comparison { display: inline-flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.15); border-radius: 14px; padding: 16px 28px; border: 1px solid rgba(255,255,255,0.2); }
+    .fee-col { text-align: center; }
+    .fee-col .label { font-size: 11px; opacity: 0.7; font-weight: 600; }
+    .fee-col .val { font-size: 24px; font-weight: 800; }
+    .fee-col .val.strike { text-decoration: line-through; opacity: 0.6; }
+    .fee-col .val.green { color: #86efac; font-size: 28px; }
+    .fee-arrow { font-size: 24px; opacity: 0.5; }
+
+    /* Comparison Table */
+    .section-title { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+    .section-sub { font-size: 15px; color: #6b7280; text-align: center; margin-bottom: 32px; }
+    .comp-table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .comp-table thead tr { background: #f9fafb; }
+    .comp-table th { padding: 14px 20px; text-align: center; font-weight: 700; color: #374151; border-bottom: 2px solid #e5e7eb; }
+    .comp-table th:first-child { text-align: left; width: 40%; }
+    .comp-table th.dineopen { color: #dc2626; }
+    .comp-table td { padding: 12px 20px; text-align: center; border-bottom: 1px solid #f3f4f6; }
+    .comp-table td:first-child { text-align: left; font-weight: 500; color: #374151; }
+    .comp-table tr:nth-child(even) { background: #fafafa; }
+    .badge-included { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #16a34a; }
+    .badge-included::before { content: ''; width: 14px; height: 14px; border-radius: 50%; background: #dcfce7; display: inline-block; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5 8l2 2 4-4' stroke='%2316a34a' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-size: 12px; background-position: center; background-repeat: no-repeat; }
+    .badge-paid { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #92400e; }
+    .badge-paid::before { content: '₹'; width: 14px; height: 14px; border-radius: 50%; background: #fef3c7; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+    .badge-no { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #dc2626; }
+    .badge-no::before { content: ''; width: 14px; height: 14px; border-radius: 50%; background: #fee2e2; display: inline-block; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5.5 5.5l5 5M10.5 5.5l-5 5' stroke='%23dc2626' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-size: 12px; background-position: center; background-repeat: no-repeat; }
+    .badge-warn { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #dc2626; }
+    .badge-warn::before { content: '!'; width: 14px; height: 14px; border-radius: 50%; background: #fee2e2; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #dc2626; }
+
+    /* Cost Comparison */
+    .cost-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .cost-card { padding: 20px; border-radius: 14px; }
+    .cost-card.red { border: 1px solid #fecaca; background: #fef2f2; }
+    .cost-card.green { border: 1px solid #bbf7d0; background: #f0fdf4; }
+    .cost-card .title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+    .cost-card.red .title { color: #991b1b; }
+    .cost-card.green .title { color: #166534; }
+    .cost-line { display: flex; justify-content: space-between; font-size: 13px; color: #374151; margin-bottom: 8px; }
+    .cost-line span:last-child { font-weight: 600; }
+    .cost-line.green { color: #16a34a; }
+    .cost-line.red { color: #dc2626; }
+    .cost-total { display: flex; justify-content: space-between; padding-top: 8px; margin-top: 4px; font-weight: 800; font-size: 15px; }
+    .cost-card.red .cost-total { border-top: 2px solid #fecaca; }
+    .cost-card.green .cost-total { border-top: 2px solid #bbf7d0; }
+    .cost-grand { display: flex; justify-content: space-between; font-weight: 800; font-size: 17px; margin-top: 4px; }
+    .cost-card.red .cost-grand { color: #991b1b; }
+    .cost-card.green .cost-grand { color: #166534; }
+
+    .savings-banner { margin-top: 20px; padding: 16px 24px; border-radius: 14px; background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%); border: 1px solid #fde68a; text-align: center; }
+    .savings-banner .label { font-size: 13px; color: #92400e; font-weight: 600; }
+    .savings-banner .amount { font-size: 36px; font-weight: 800; color: #92400e; margin: 4px 0; }
+    .savings-banner .sub { font-size: 13px; color: #92400e; opacity: 0.8; }
+
+    /* Features Grid */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .feature-card { padding: 24px; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .feature-card .icon { font-size: 32px; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .feature-card p { font-size: 13px; color: #6b7280; line-height: 1.6; }
+
+    /* FAQ */
+    .faq { max-width: 800px; margin: 0 auto; }
+    .faq-item { padding: 18px 0; border-bottom: 1px solid #f3f4f6; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .faq-item p { font-size: 13px; color: #6b7280; line-height: 1.7; }
+
+    /* CTA */
+    .cta { background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); padding: 56px 24px; text-align: center; color: #fff; }
+    .cta h2 { font-size: clamp(24px, 4vw, 36px); font-weight: 800; margin-bottom: 12px; }
+    .cta p { font-size: 16px; opacity: 0.8; max-width: 500px; margin: 0 auto 28px; }
+    .cta-buttons { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .cta-buttons a { display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; }
+    .cta-buttons .primary { background: #fff; color: #991b1b; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .cta-buttons .secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+
+    .footer { padding: 20px 24px; text-align: center; font-size: 12px; color: #9ca3af; }
+
+    @media print {
+      .no-print { display: none !important; }
+      .hero { padding: 32px 24px 28px; }
+      .plans-grid { margin-top: -20px; }
+      .plan-card.popular { transform: none; }
+      body { background: #fff; }
+      .page-break { page-break-before: always; }
+    }
+    @media (max-width: 768px) {
+      .plans-grid { grid-template-columns: 1fr; }
+      .plan-card.popular { transform: none; }
+      .cost-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .fee-comparison { flex-direction: column; gap: 8px; }
+      .fee-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge"><span class="dot"></span> Enterprise Plans for Restaurant Chains</div>
+    <h1>One POS. All Features.<br><span class="gold">Zero Hidden Costs.</span></h1>
+    <p>Everything included in every plan - AI, WhatsApp ordering, loyalty, KDS, online ordering, analytics. No per-transaction fees. No paid add-ons. No annual lock-in.</p>
+    <div style="font-size:14px; font-weight:600; opacity:0.9; margin-top:20px; background:rgba(255,255,255,0.15); display:inline-block; padding:6px 20px; border-radius:100px; border:1px solid rgba(255,255,255,0.2);">Annual plans: Pay once or split into 2 half-yearly payments</div>
+  </div>
+
+  <!-- PLANS -->
+  <div class="container">
+    <div class="plans-grid" id="plans-grid">
+      <!-- Filled by JS -->
+    </div>
+
+    <!-- ADD-ON -->
+    <div class="addon-bar">
+      <div>
+        <div style="font-size:15px; font-weight:700;">Need more outlets?</div>
+        <div style="font-size:13px; color:#6b7280;">Add extra outlets to any plan</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="addon-price">&#8377;1,399<span class="unit">/outlet/month</span></div>
+        <div style="font-size:12px; color:#16a34a; font-weight:600;">or &#8377;1,199/outlet/month on annual</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALL SECTIONS BELOW COMMENTED OUT
+  <div class="container" style="display:none;">
+  </div>
+  -->
+
+  <script>
+    const plans = [
+      {
+        id: 'chain3', name: 'Chain 3', tagline: 'Growing Chain', outlets: 3,
+        monthly: 4999, annual: 49990, perOutletMonthly: 1666, perOutletAnnual: 1388,
+        color: '#2563eb', popular: false,
+        features: [
+          'Up to 3 outlets',
+          'HQ Dashboard — all outlets in one view',
+          'Central Menu Management',
+          'Central Kitchen & Production',
+          'Inter-branch Stock Transfers',
+          'Consolidated Reports & Analytics',
+          'AI-Powered Voice Ordering',
+          'AI Menu & Sales Assistant',
+          'Captain/Waiter App',
+          'Customer Loyalty Program',
+          'WhatsApp Ordering Bot',
+          'Online Ordering Website',
+          'QR Menu & Table Ordering',
+          'Unlimited Users & Terminals',
+          'Inventory with Recipe Management',
+          'Aggregator Integration (Swiggy/Zomato)',
+          'Human + WhatsApp Support',
+        ]
+      },
+      {
+        id: 'chain5', name: 'Chain 5', tagline: 'Established Brand', outlets: 5,
+        monthly: 7999, annual: 79990, perOutletMonthly: 1600, perOutletAnnual: 1333,
+        color: '#dc2626', popular: true,
+        features: [
+          'Up to 5 outlets',
+          'Everything in Chain 3, plus:',
+          'Warehouse & Distribution Module',
+          'Custom Reports & Dashboards',
+          'Priority API Access',
+          'Multi-brand Support',
+          'Advanced Staff Permissions',
+          'Quarterly Business Review Calls',
+          'Priority Support (< 2hr response)',
+        ]
+      },
+      {
+        id: 'chain10', name: 'Chain 10+', tagline: 'Enterprise Scale', outlets: 10,
+        monthly: 14399, annual: 143990, perOutletMonthly: 1440, perOutletAnnual: 1200,
+        color: '#7c3aed', popular: false,
+        features: [
+          '10+ outlets (unlimited)',
+          'Everything in Chain 5, plus:',
+          'White-label Customer App',
+          'On-site Training & Setup',
+          'SLA-backed 99.9% Uptime',
+          'Custom Integrations',
+          'Franchise Management Tools',
+          'Dedicated Technical POC',
+          'Custom Billing Cycles',
+          'Volume Discounts on Hardware',
+        ]
+      }
+    ];
+
+    function formatINR(n) {
+      return '\u20B9' + n.toLocaleString('en-IN');
+    }
+
+    function renderPlans() {
+      const grid = document.getElementById('plans-grid');
+      grid.innerHTML = plans.map(plan => {
+
+        const featuresHtml = plan.features.map(f => {
+          const isBold = f.includes('Everything in');
+          return '<div class="feature-item' + (isBold ? ' bold' : '') + '">' +
+            (isBold ? '<span style="font-size:12px;margin-top:1px;">\u2191</span>' : '<div class="check"><svg viewBox="0 0 16 16"><path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>') +
+            '<span>' + f + '</span></div>';
+        }).join('');
+
+        let pricingHtml = '';
+        {
+          pricingHtml =
+            '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px;">' +
+              '<div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:14px 12px; text-align:center;">' +
+                '<div style="font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Monthly</div>' +
+                '<div style="font-size:28px; font-weight:800; line-height:1;">' + formatINR(plan.monthly) + '</div>' +
+                '<div style="font-size:11px; color:#6b7280; margin-top:4px;">/month</div>' +
+                '<div style="font-size:11px; color:#6b7280; margin-top:2px;">~' + formatINR(plan.perOutletMonthly) + '/outlet</div>' +
+              '</div>' +
+              '<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 12px; text-align:center; position:relative;">' +
+                '<div style="position:absolute; top:-8px; right:8px; background:#16a34a; color:#fff; font-size:9px; font-weight:700; padding:2px 8px; border-radius:100px;">SAVE 17%</div>' +
+                '<div style="font-size:11px; font-weight:700; color:#166534; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Annual</div>' +
+                '<div style="font-size:28px; font-weight:800; line-height:1; color:#166534;">' + formatINR(plan.annual) + '</div>' +
+                '<div style="font-size:11px; color:#166534; margin-top:4px;">/year (' + formatINR(Math.round(plan.annual/12)) + '/mo)</div>' +
+                '<div style="font-size:11px; color:#6b7280; margin-top:2px;">~' + formatINR(plan.perOutletAnnual) + '/outlet/mo</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        return '<div class="plan-card' + (plan.popular ? ' popular' : '') + '">' +
+          (plan.popular ? '<div class="popular-banner">Most Popular</div>' : '') +
+          '<div class="plan-header">' +
+            '<div class="plan-tagline" style="background:' + plan.color + '10; color:' + plan.color + '; border:1px solid ' + plan.color + '20;">' + plan.tagline + '</div>' +
+            '<div class="plan-name">' + plan.name + '</div>' +
+            '<div class="plan-outlets">Up to ' + plan.outlets + ' outlets</div>' +
+            pricingHtml +
+          '</div>' +
+          '<div class="plan-features"><div class="section-label">What\'s included</div>' + featuresHtml + '</div>' +
+          '<div class="plan-cta">' +
+            '<a href="https://wa.me/919004459951?text=Hi%2C%20I%27m%20interested%20in%20DineOpen%20' + plan.name + '%20plan">Get Started</a>' +
+            '<div class="trial-note">14-day free trial. No credit card required.</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // Initial render
+    renderPlans();
+  </script>
+</body>
+</html>

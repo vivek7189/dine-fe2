@@ -1882,6 +1882,22 @@ function RestaurantPOSContent() {
       console.log(`📡 Dashboard: Received 'table-status-updated' event:`, data);
       debouncedTableRefresh();
     });
+    channel.bind('order-voided', (data) => {
+      console.log(`📡 Dashboard: Received 'order-voided' event:`, data);
+      debouncedOrderRefresh();
+      // Show notification only for owner/admin
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user.role === 'owner' || user.role === 'admin') {
+          setNotification({
+            type: 'error',
+            title: `Order #${data.dailyOrderId || data.orderNumber || '?'} Voided`,
+            message: `Cancelled by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}. Amount: ${data.totalAmount || 0}`,
+            show: true
+          });
+        }
+      } catch (e) { /* ignore parse errors */ }
+    });
 
     // Cleanup on unmount
     return () => {
@@ -3499,6 +3515,78 @@ function RestaurantPOSContent() {
     }
   };
 
+  const updateOrderWithoutKOT = async (taxData = {}) => {
+    if (!currentOrder || cart.length === 0) {
+      setNotification({ type: 'error', title: t('dashboard.emptyCartNotice'), message: t('dashboard.addItemsBeforePlacing'), show: true });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+    if (!selectedRestaurant?.id) {
+      setNotification({ type: 'error', title: t('dashboard.noRestaurant'), message: t('dashboard.setupRestaurantFirst'), show: true });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    setPlacingOrder(true);
+    try {
+      const { taxBreakdown = [], totalTax = 0, finalAmount, subtotal, specialInstructions, deliveryInfo: deliveryInfoData, walletRedeemAmount: walletRedeem } = taxData;
+      const tableToUse = tableNumber || selectedTable?.number || currentOrder.tableNumber;
+
+      const updateData = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          total: item.price * item.quantity,
+          notes: item.notes || '',
+          category: item.category || '',
+          categoryId: item.categoryId || null,
+          selectedVariant: item.selectedVariant || null,
+          selectedCustomizations: item.selectedCustomizations || null,
+        })),
+        tableNumber: tableToUse || currentOrder.tableNumber,
+        orderType,
+        paymentMethod,
+        totalAmount: subtotal || getTotalAmount(),
+        taxBreakdown: taxBreakdown,
+        taxAmount: totalTax,
+        finalAmount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+        specialInstructions: specialInstructions || null,
+        deliveryInfo: deliveryInfoData || null,
+        walletRedeemAmount: walletRedeem || null,
+        skipKOT: true,
+        updatedAt: new Date().toISOString(),
+        lastUpdatedBy: { name: 'Staff Member', id: 'staff-001' }
+      };
+
+      const response = await apiClient.updateOrder(currentOrder.id, updateData);
+
+      if (response.data) {
+        setNotification({
+          type: 'success',
+          title: '✅ Order Updated',
+          message: `Order #${currentOrder.dailyOrderId || currentOrder.id.slice(-6)} updated without KOT`,
+          show: true
+        });
+
+        setCurrentOrder(null);
+        setActiveSavedOrderId(null);
+        fetchSavedOrders();
+        handleOrderActionComplete({
+          keepOrderSuccess: false,
+          hasTable: !!(tableNumber || selectedTable?.number)
+        });
+      }
+    } catch (error) {
+      console.error('Update order without KOT error:', error);
+      setNotification({ type: 'error', title: 'Update Failed', message: error.message || 'Failed to update order', show: true });
+      setTimeout(() => setNotification(null), 5000);
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
   const placeOrder = async (taxData = {}) => {
     if (cart.length === 0) {
       setNotification({
@@ -3576,7 +3664,11 @@ function RestaurantPOSContent() {
             price: item.price,
             quantity: item.quantity,
             total: item.price * item.quantity,
-            notes: ''
+            notes: item.notes || '',
+            category: item.category || '',
+            categoryId: item.categoryId || null,
+            selectedVariant: item.selectedVariant || null,
+            selectedCustomizations: item.selectedCustomizations || null,
           })),
           tableNumber: tableToUse || currentOrder.tableNumber,
           orderType,
@@ -3601,6 +3693,15 @@ function RestaurantPOSContent() {
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
         if (response.data) {
+          // Compute new/changed items for incremental KOT display
+          const existingItemIds = new Set((currentOrder.items || []).map(i => i.menuItemId));
+          const newItems = cart.filter(item => !existingItemIds.has(item.id));
+          const updatedItems = cart.filter(item => {
+            const existing = (currentOrder.items || []).find(i => i.menuItemId === item.id);
+            return existing && existing.quantity !== item.quantity;
+          });
+          const incrementalItems = [...newItems, ...updatedItems];
+
           // If the order was in 'saved' status, update it to 'confirmed' to send to KOT
           // This happens when user loads a saved order and clicks "Update Order"
           if (currentOrder.status === 'saved') {
@@ -3622,11 +3723,18 @@ function RestaurantPOSContent() {
             orderId: currentOrder.id,
             dailyOrderId: currentOrder.dailyOrderId,
             show: true,
-            message: t('dashboard.orderUpdatedShort'),
+            message: incrementalItems.length > 0
+              ? `KOT Update: ${incrementalItems.length} new/changed item(s)`
+              : t('dashboard.orderUpdatedShort'),
             kotData: {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
-              items: cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' })),
+              items: (incrementalItems.length > 0 ? incrementalItems : cart).map(item => ({
+                name: item.name, quantity: item.quantity || 1, notes: item.notes || '',
+                isNew: newItems.includes(item),
+                isUpdated: updatedItems.includes(item),
+              })),
+              isIncremental: incrementalItems.length > 0,
               tableNumber: roomForKot ? null : tableToUseForKot,
               roomNumber: roomForKot || null,
               customerName: customerName || null,
@@ -3957,6 +4065,18 @@ function RestaurantPOSContent() {
     } finally {
       setPlacingOrder(false);
     }
+  };
+
+  const placeOrderAndPrint = async (taxData = {}) => {
+    // Set flag so OrderSummary auto-prints KOT after success
+    window.__autoPrintKOT = true;
+    await placeOrder(taxData);
+  };
+
+  const completeBillingAndPrint = async () => {
+    // processOrder handles billing, then we trigger manual print
+    // The actual print trigger will be handled after processOrder succeeds
+    // by passing a flag through to OrderSummary
   };
 
   const clearCart = (opts = {}) => {
@@ -6707,6 +6827,8 @@ function RestaurantPOSContent() {
             onProcessOrder={processOrder}
             onSaveOrder={saveOrder}
             onPlaceOrder={placeOrder}
+            onUpdateWithoutKOT={updateOrderWithoutKOT}
+            onPlaceOrderAndPrint={placeOrderAndPrint}
             onRemoveFromCart={removeFromCart}
             onAddToCart={addToCart}
             onUpdateCartItemQuantity={updateCartItemQuantity}
@@ -6796,6 +6918,8 @@ function RestaurantPOSContent() {
                     onProcessOrder={processOrder}
                     onSaveOrder={saveOrder}
                     onPlaceOrder={placeOrder}
+                    onUpdateWithoutKOT={updateOrderWithoutKOT}
+                    onPlaceOrderAndPrint={placeOrderAndPrint}
                     onRemoveFromCart={removeFromCart}
                     onAddToCart={addToCart}
                     onToggleFavorite={handleToggleFavorite}

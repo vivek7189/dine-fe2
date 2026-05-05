@@ -358,6 +358,19 @@ const KitchenOrderTicket = () => {
     channel.bind('order-status-updated', (data) => handleOrderEvent('order-status-updated', data));
     channel.bind('order-updated', (data) => handleOrderEvent('order-updated', data));
     channel.bind('order-deleted', (data) => handleOrderEvent('order-deleted', data));
+    channel.bind('order-voided', (data) => {
+      console.log(`📡 KOT: Received 'order-voided' event:`, data);
+      handleOrderEvent('order-deleted', data);
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user.role === 'owner' || user.role === 'admin') {
+          setNotification({
+            show: true, type: 'error',
+            message: `Order #${data.dailyOrderId || data.orderNumber || '?'} VOIDED by ${data.cancelledBy || 'Staff'}${data.reason ? ` — ${data.reason}` : ''}`
+          });
+        }
+      } catch (e) { /* ignore */ }
+    });
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
@@ -1197,61 +1210,94 @@ const KitchenOrderTicket = () => {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        {Array.isArray(kot.items) && kot.items.map((item, index) => {
-                          const isNewItem = kot.updateHistory && kot.updateHistory.length > 0 && item.isNew;
-                          const isUpdatedItem = kot.updateHistory && kot.updateHistory.length > 0 && item.isUpdated;
-                          return (
-                            <div key={index} style={{
-                              display: 'flex', alignItems: 'flex-start', gap: '10px',
-                              padding: '7px 0',
-                              borderBottom: index < (Array.isArray(kot.items) ? kot.items.length - 1 : 0) ? '1px solid #f3f4f6' : 'none'
-                            }}>
-                              <span style={{
-                                fontSize: '14px', fontWeight: '700', color: '#374151',
-                                minWidth: '26px', textAlign: 'right'
+                        {(() => {
+                          if (!Array.isArray(kot.items)) return null;
+                          const hasUpdateHistory = kot.updateHistory && kot.updateHistory.length > 0;
+                          const originalItems = hasUpdateHistory ? kot.items.filter(item => !item.isNew && !item.isUpdated) : kot.items;
+                          const newItems = hasUpdateHistory ? kot.items.filter(item => item.isNew || item.isUpdated) : [];
+                          const allItemsToRender = [...originalItems, ...newItems];
+                          const firstNewItem = newItems[0];
+                          const addedTime = firstNewItem?.addedAt ? new Date(firstNewItem.addedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+
+                          const renderItem = (item, index, totalCount) => {
+                            const isNewItem = hasUpdateHistory && item.isNew;
+                            const isUpdatedItem = hasUpdateHistory && item.isUpdated;
+                            return (
+                              <div key={index} style={{
+                                display: 'flex', alignItems: 'flex-start', gap: '10px',
+                                padding: '7px 0',
+                                borderBottom: index < totalCount - 1 ? '1px solid #f3f4f6' : 'none'
                               }}>
-                                {item.quantity}×
-                              </span>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
-                                    {item.name}
-                                  </span>
-                                  {isNewItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.new')}</span>}
-                                  {isUpdatedItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#f59e0b', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.upd')}</span>}
-                                  {item.spiceLevel && item.spiceLevel !== 'mild' && (
-                                    <FaFire size={10} style={{ color: item.spiceLevel === 'hot' ? '#ef4444' : '#f59e0b' }} />
-                                  )}
-                                  {currentRestaurant?.posSettings?.showPriceOnKot && item.price != null && (
-                                    <span style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginLeft: 'auto' }}>
-                                      {formatCurrency(item.price * (item.quantity || 1))}
+                                <span style={{
+                                  fontSize: '14px', fontWeight: '700', color: '#374151',
+                                  minWidth: '26px', textAlign: 'right'
+                                }}>
+                                  {item.quantity}×
+                                </span>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
+                                      {item.name}
                                     </span>
-                                  )}
-                                </div>
-                                {/* Variant + Toppings */}
-                                {(getVariantName(item) || getToppings(item).length > 0) && (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
-                                    {getVariantName(item) && (
-                                      <span style={{ fontSize: '10px', fontWeight: '600', color: '#c2410c', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '1px 6px', borderRadius: '999px' }}>
-                                        {getVariantName(item)}
+                                    {isNewItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#22c55e', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.new')}</span>}
+                                    {isUpdatedItem && <span style={{ fontSize: '8px', fontWeight: '700', color: 'white', backgroundColor: '#f59e0b', padding: '1px 4px', borderRadius: '3px' }}>{t('kot.upd')}</span>}
+                                    {item.spiceLevel && item.spiceLevel !== 'mild' && (
+                                      <FaFire size={10} style={{ color: item.spiceLevel === 'hot' ? '#ef4444' : '#f59e0b' }} />
+                                    )}
+                                    {currentRestaurant?.posSettings?.showPriceOnKot && item.price != null && (
+                                      <span style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginLeft: 'auto' }}>
+                                        {formatCurrency(item.price * (item.quantity || 1))}
                                       </span>
                                     )}
-                                    {getToppings(item).map((c, idx) => (
-                                      <span key={idx} style={{ fontSize: '10px', fontWeight: '600', color: '#065f46', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '999px' }}>
-                                        {c.name || c}
-                                      </span>
-                                    ))}
                                   </div>
-                                )}
-                                {item.notes && (
-                                  <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: '500', marginTop: '2px' }}>
-                                    — {item.notes}
-                                  </div>
-                                )}
+                                  {/* Variant + Toppings */}
+                                  {(getVariantName(item) || getToppings(item).length > 0) && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
+                                      {getVariantName(item) && (
+                                        <span style={{ fontSize: '10px', fontWeight: '600', color: '#c2410c', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '1px 6px', borderRadius: '999px' }}>
+                                          {getVariantName(item)}
+                                        </span>
+                                      )}
+                                      {getToppings(item).map((c, idx) => (
+                                        <span key={idx} style={{ fontSize: '10px', fontWeight: '600', color: '#065f46', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '999px' }}>
+                                          {c.name || c}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {item.notes && (
+                                    <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: '500', marginTop: '2px' }}>
+                                      — {item.notes}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                            );
+                          };
+
+                          return (
+                            <>
+                              {originalItems.map((item, index) => renderItem(item, index, originalItems.length))}
+                              {newItems.length > 0 && hasUpdateHistory && (
+                                <div style={{
+                                  textAlign: 'center',
+                                  padding: '6px 8px',
+                                  margin: '4px 0',
+                                  background: 'linear-gradient(90deg, transparent, #dcfce7, transparent)',
+                                  borderTop: '1px dashed #22c55e',
+                                  borderBottom: '1px dashed #22c55e',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  color: '#16a34a',
+                                  letterSpacing: '0.5px',
+                                }}>
+                                  ✦ NEW ITEMS {addedTime ? `(${addedTime})` : ''} ✦
+                                </div>
+                              )}
+                              {newItems.map((item, index) => renderItem(item, index, newItems.length))}
+                            </>
                           );
-                        })}
+                        })()}
                       </div>
 
                       {/* Special Instructions */}

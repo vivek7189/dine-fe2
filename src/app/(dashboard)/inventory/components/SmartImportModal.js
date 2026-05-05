@@ -78,7 +78,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
       valid.push(f);
     }
     if (valid.length > 0) {
-      setImageFiles(prev => [...prev, ...valid].slice(0, 5)); // max 5 images
+      setImageFiles(prev => [...prev, ...valid].slice(0, 2)); // max 2 images
     }
   }, [setImageFiles]);
 
@@ -205,7 +205,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
                   Drop invoice image here or click to upload
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                  JPG, PNG, WebP &bull; Max 10MB &bull; Up to 5 images
+                  JPG, PNG, WebP &bull; Max 10MB &bull; Up to 2 images
                 </div>
                 <div style={{
                   marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -246,7 +246,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
                       </div>
                     </div>
                   ))}
-                  {imageFiles.length < 5 && (
+                  {imageFiles.length < 2 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                       style={{
@@ -812,14 +812,10 @@ export default function SmartImportModal({ isOpen, onClose, restaurantId, onSucc
     setError('');
     try {
       const formData = new FormData();
-      formData.append('image', imageFiles[0]);
-      formData.append('mode', 'invoice');
-      // If multiple images, append extras as additional context
-      if (imageFiles.length > 1) {
-        for (let i = 1; i < imageFiles.length; i++) {
-          formData.append(`image_${i}`, imageFiles[i]);
-        }
+      for (const file of imageFiles) {
+        formData.append('image', file);
       }
+      formData.append('mode', 'invoice');
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';

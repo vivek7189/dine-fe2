@@ -51,7 +51,8 @@ import {
   FaStar,
   FaCalendarAlt,
   FaTruck,
-  FaPencilAlt
+  FaPencilAlt,
+  FaEdit
 } from 'react-icons/fa';
 
 const OrderSummary = ({
@@ -135,6 +136,8 @@ const OrderSummary = ({
   setScheduledDate,
   scheduledTime = '',
   setScheduledTime,
+  onUpdateWithoutKOT,
+  onPlaceOrderAndPrint,
 }) => {
   // Business-type-aware billing labels (i18n — Arabic gets bilingual ar/en)
   const billingLabels = {
@@ -434,6 +437,109 @@ const OrderSummary = ({
       setWaSending(false);
     }
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-print KOT when "KOT & Print" button was used
+  useEffect(() => {
+    if (orderSuccess?.kotData && typeof window !== 'undefined' && window.__autoPrintKOT) {
+      window.__autoPrintKOT = false;
+      const timer = setTimeout(() => {
+        const k = orderSuccess.kotData;
+        if (!k) return;
+        const tableOrRoom = k.roomNumber ? `${t('invoice.room')}: ${k.roomNumber}` : (k.tableNumber ? `${t('invoice.table')}: ${k.tableNumber}` : '');
+        const totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
+        const specialInstructionsHtml = k.specialInstructions ? `<div class="divider">--------------------------------</div><div class="special-instructions"><strong>*** ${t('invoice.specialInstructions')} ***</strong><div>${(k.specialInstructions || '').replace(/</g,'&lt;')}</div></div>` : '';
+        const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${k.dailyOrderId || k.orderId}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${(k.restaurantName || 'Restaurant').replace(/</g,'&lt;')}</div><div class="kot-title">--- ${t('invoice.kitchenOrder')} ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>${t('invoice.orderHash')}:</strong> ${k.dailyOrderId || k.orderId}</div>${tableOrRoom ? `<div><strong>${k.roomNumber ? t('invoice.room') : t('invoice.table')}:</strong> ${k.roomNumber || k.tableNumber}</div>` : ''}<div><strong>${t('invoice.time')}:</strong> ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div><div><strong>${t('invoice.date')}:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>${k.customerName ? `<div><strong>${t('invoice.customer')}:</strong> ${(k.customerName || '').replace(/</g,'&lt;')}</div>` : ''}${k.orderType ? `<div><strong>${t('invoice.type')}:</strong> ${k.orderType}</div>` : ''}${k.waiterName ? `<div><strong>${t('invoice.waiter')}:</strong> ${(k.waiterName || '').replace(/</g,'&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">${t('invoice.qty')} &nbsp; ${t('invoice.item')}</div><div class="divider">--------------------------------</div>${(k.items || []).map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">${t('invoice.note')}: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div class="kot-footer">${t('invoice.totalItems')}: ${totalItems}</div>${specialInstructionsHtml}<div class="divider">================================</div></body></html>`;
+        const newPw = window.open('', '_blank', 'width=400,height=600');
+        if (newPw) {
+          kotPrintWindowRef.current = newPw;
+          newPw.document.write(kotContent);
+          newPw.document.close();
+          newPw.focus();
+          setTimeout(() => newPw.print(), 400);
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [orderSuccess?.kotData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-print Bill when "Bill & Print" button was used
+  useEffect(() => {
+    if (showInvoicePermanently && invoice && typeof window !== 'undefined' && window.__autoPrintBill) {
+      window.__autoPrintBill = false;
+      const timer = setTimeout(() => {
+        if (!invoice) return;
+        const currencySymbol = getCurrencySymbol();
+        const getSublineHtml = (item) => {
+          const parts = [];
+          if (item.spiritCategory) parts.push(item.spiritCategory);
+          if (item.abv) parts.push(`${item.abv}% ABV`);
+          if (item.bottleSize) parts.push(item.bottleSize);
+          if (item.servingUnit && item.servingUnit !== item.bottleSize) parts.push(item.servingUnit);
+          if (item.weight) parts.push(item.weight);
+          if (item.unit) parts.push(`/${item.unit}`);
+          if (item.servingSize) parts.push(item.servingSize);
+          return parts.length > 0 ? `<div style="font-size:9px;color:#6b7280;">${parts.join(' · ')}</div>` : '';
+        };
+        const billItems = invoice?.items || orderSuccess?.kotData?.items || [];
+        const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
+        const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
+        const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0);
+        const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
+        const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.offer')}${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
+        const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.manualDiscount')}:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
+        const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#b45309;"><span>${t('invoice.loyaltyRedeem')}:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
+        const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml;
+        const serviceChargeHtml = (invoice?.serviceChargeAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.serviceCharge')}${invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${currencySymbol}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
+        const tipHtml = (invoice?.tipAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.tip')}${invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${currencySymbol}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
+        const roundOffHtml = (invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.roundOff')}:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${currencySymbol}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
+        const splitPaymentHtml = (invoice?.splitPayments?.length >= 2) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.splitPayment')}:</div>${invoice.splitPayments.map(sp => `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${(sp.method || 'Cash').toUpperCase()}:</span><span>${currencySymbol}${(sp.amount || 0).toFixed(2)}</span></div>`).join('')}</div>` : '';
+        const cashReceivedHtml = (invoice?.cashReceived > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.cashReceived')}:</span><span>${currencySymbol}${invoice.cashReceived.toFixed(2)}</span></div>${(invoice?.changeReturned > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.change')}:</span><span>${currencySymbol}${invoice.changeReturned.toFixed(2)}</span></div>` : ''}</div>` : '';
+        const partialPayHtml = (invoice?.paidAmount > 0 && invoice?.outstandingAmount > 0) ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="font-weight:bold;margin-bottom:2px;">${t('invoice.partialPayment')}:</div><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.paid')}:</span><span>${currencySymbol}${invoice.paidAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626;"><span>${t('invoice.outstanding')}:</span><span>${currencySymbol}${invoice.outstandingAmount.toFixed(2)}</span></div></div>` : '';
+        const walletPayHtml = (invoice?.walletRedeemAmount || 0) > 0 ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;"><div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('dashboard.walletApplied')}:</span><span>-${currencySymbol}${invoice.walletRedeemAmount.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;"><span>${t('dashboard.amountToPay')}:</span><span>${currencySymbol}${Math.max(0, (invoice?.grandTotal || 0) - invoice.walletRedeemAmount).toFixed(2)}</span></div></div>` : '';
+        const printGrandTotal = invoice?.grandTotal || ((invoice?.subtotal || 0) - printTotalDiscount + (invoice?.taxBreakdown?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0) + (invoice?.serviceChargeAmount || 0) + (invoice?.tipAmount || 0) + (invoice?.roundOffAmount || 0));
+        const identityLines = [];
+        if (invoice?.restaurantLegalName && invoice.restaurantLegalName !== invoice.restaurantName) identityLines.push(invoice.restaurantLegalName.replace(/</g,'&lt;'));
+        if (invoice?.restaurantAddress) identityLines.push(invoice.restaurantAddress.replace(/</g,'&lt;'));
+        if (invoice?.restaurantPhone) identityLines.push(t('invoice.tel') + ': ' + invoice.restaurantPhone);
+        if (invoice?.showGstOnInvoice && invoice?.gstin) identityLines.push('GSTIN: ' + invoice.gstin);
+        if (invoice?.showFssaiOnInvoice && invoice?.fssai) identityLines.push('FSSAI: ' + invoice.fssai);
+        if (invoice?.showTaxIdOnInvoice && invoice?.vatNumber) identityLines.push((invoice?.countryCode === 'GB' ? 'VAT: ' : invoice?.countryCode === 'CA' ? 'GST/HST: ' : invoice?.countryCode === 'AE' ? 'TRN: ' : 'Tax ID: ') + invoice.vatNumber);
+        if (invoice?.showTaxIdOnInvoice && invoice?.taxId) identityLines.push((invoice?.countryCode === 'AU' ? 'ABN: ' : 'Tax ID: ') + invoice.taxId);
+        if (invoice?.showTaxIdOnInvoice && invoice?.businessRegistrationNumber) identityLines.push('Reg#: ' + invoice.businessRegistrationNumber);
+        const identityHtml = identityLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
+        const receiptLogo = printSettings?.receiptLogo || null;
+        const billHeaderHtml = getBillHeaderHTML((invoice?.restaurantName || 'Restaurant').replace(/</g,'&lt;'), identityHtml, receiptLogo, `--- ${bLabels.billTitle} ---`);
+        const invoiceContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${invoice?.dailyOrderId || invoice?.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${billHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${bLabels.billLabel}#:</span><span><strong>${invoice?.dailyOrderId || invoice?.id || 'N/A'}</strong></span></div><div><span>${t('invoice.date')}:</span><span>${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span></div>${invoice?.tableNumber ? `<div><span>${t('invoice.table')}:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice?.customerName ? `<div><span>${bLabels.customerLabel}:</span><span>${(invoice.customerName || '').replace(/</g,'&lt;')}</span></div>` : ''}<div><span>${t('invoice.payment')}:</span><span>${(invoice?.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">${t('invoice.amt')}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${t('invoice.subtotal')}:</span><span>${currencySymbol}${(invoice?.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${t('invoice.total')}:</span><span>${currencySymbol}${printGrandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}${walletPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">${t('invoice.poweredBy')}</p></div></body></html>`;
+        const win = window.open('', '_blank', 'width=800,height=600');
+        if (win) {
+          invoicePrintWindowRef.current = win;
+          win.document.write(invoiceContent);
+          win.document.close();
+          win.focus();
+          setTimeout(() => win.print(), 500);
+          // Food court token printing
+          if (printSettings?.tokenBillingEnabled && invoice?.id && invoice?.restaurantId) {
+            (async () => {
+              try {
+                const tokenRes = await apiClient.getTokenRender(invoice.restaurantId, invoice.id);
+                if (tokenRes?.success && tokenRes.tokens?.length > 0) {
+                  const { buildTokenSlipHTML } = await import('../utils/printFontSizes');
+                  for (let ti = 0; ti < tokenRes.tokens.length; ti++) {
+                    const tokenHtml = buildTokenSlipHTML(tokenRes.tokens[ti], printSettings);
+                    setTimeout(() => {
+                      const tw = window.open('', '_blank', 'width=300,height=400');
+                      if (tw) { tw.document.write(tokenHtml); tw.document.close(); tw.focus(); setTimeout(() => tw.print(), 300); }
+                    }, 1500 + (ti * 1500));
+                  }
+                }
+              } catch (err) { console.error('Token print error:', err); }
+            })();
+          }
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [showInvoicePermanently, invoice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Send bill on WhatsApp (via API)
   const handleSendBillWhatsApp = async () => {
@@ -2281,6 +2387,24 @@ const OrderSummary = ({
                       win.document.close();
                       win.focus();
                       setTimeout(() => win.print(), 500);
+                      // Food court token printing: print category-wise token slips after bill
+                      if (printSettings?.tokenBillingEnabled && invoice?.id && invoice?.restaurantId) {
+                        (async () => {
+                          try {
+                            const tokenRes = await apiClient.getTokenRender(invoice.restaurantId, invoice.id);
+                            if (tokenRes?.success && tokenRes.tokens?.length > 0) {
+                              const { buildTokenSlipHTML } = await import('../utils/printFontSizes');
+                              for (let ti = 0; ti < tokenRes.tokens.length; ti++) {
+                                const tokenHtml = buildTokenSlipHTML(tokenRes.tokens[ti], printSettings);
+                                setTimeout(() => {
+                                  const tw = window.open('', '_blank', 'width=300,height=400');
+                                  if (tw) { tw.document.write(tokenHtml); tw.document.close(); tw.focus(); setTimeout(() => tw.print(), 300); }
+                                }, 1500 + (ti * 1500));
+                              }
+                            }
+                          } catch (err) { console.error('Token print error:', err); }
+                        })();
+                      }
                     }}
                     style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}
                   >
@@ -4178,7 +4302,7 @@ const OrderSummary = ({
 
           {/* First Row - Save and Place Order (hidden in billing mode) */}
           {!billingMode && (
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
               {/* Schedule toggle button */}
               {setIsScheduledOrder && cart.length > 0 && (
                 <button
@@ -4208,7 +4332,49 @@ const OrderSummary = ({
                 </button>
               )}
 
-              {!posSettings.hideSaveOrder && <button
+              {/* Update Order (No KOT) - shown when editing existing running order */}
+              {currentOrder && currentOrder.status !== 'saved' && printSettings?.enableUpdateWithoutKOT && (
+                <button
+                  onClick={() => {
+                    if (typeof onUpdateWithoutKOT === 'function' && !orderBusy) {
+                      onUpdateWithoutKOT(buildTaxData());
+                    }
+                    if (isMobile && onClose && !orderBusy) {
+                      setTimeout(() => onClose(), 500);
+                    }
+                  }}
+                  disabled={orderBusy || cart.length === 0}
+                  style={{
+                    flex: 1,
+                    background: orderBusy || cart.length === 0
+                      ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                      : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    color: 'white',
+                    padding: '10px 8px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    border: 'none',
+                    cursor: orderBusy || cart.length === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                    fontSize: '11px',
+                    transition: 'all 0.2s',
+                    boxShadow: orderBusy || cart.length === 0 ? 'none' : '0 2px 8px rgba(59,130,246,0.3)',
+                    minWidth: 0,
+                  }}
+                >
+                  {placingOrder ? (
+                    <><FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> Updating...</>
+                  ) : (
+                    <><FaEdit size={11} /> Update Order</>
+                  )}
+                </button>
+              )}
+
+              {/* Save Order (Hold) - shown for new orders only (not editing existing) */}
+              {!currentOrder && !posSettings.hideSaveOrder && <button
                 onClick={() => {
                   if (typeof onSaveOrder === 'function' && !orderBusy) {
                     const saveOfferIds = offerSettings?.allowMultipleOffers && selectedOfferIds.length > 0
@@ -4246,7 +4412,7 @@ const OrderSummary = ({
                     ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                     : 'linear-gradient(135deg, #f97316, #ea580c)',
                   color: 'white',
-                  padding: '12px 14px',
+                  padding: '10px 8px',
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
@@ -4254,28 +4420,23 @@ const OrderSummary = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  fontSize: '12px',
+                  gap: '5px',
+                  fontSize: '11px',
                   transition: 'all 0.2s',
-                  boxShadow: orderBusy || cart.length === 0 || isEditingSavedOrder ? 'none' : '0 2px 8px rgba(249, 115, 22, 0.3)'
+                  boxShadow: orderBusy || cart.length === 0 || isEditingSavedOrder ? 'none' : '0 2px 8px rgba(249, 115, 22, 0.3)',
+                  minWidth: 0,
                 }}
               >
                 {savingOrder ? (
-                  <>
-                    <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                    Saving...
-                  </>
+                  <><FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</>
                 ) : (
-                  <>
-                    <FaSave size={12} />
-                    {posSettings.saveOrderLabel || t('dashboard.saveOrder')}
-                  </>
+                  <><FaSave size={11} /> {posSettings.saveOrderLabel || t('dashboard.saveOrder')}</>
                 )}
               </button>}
 
+              {/* Place Order (KOT) / Update & KOT */}
               <button
                 onClick={() => {
-                  // Intercept UPI — show QR modal
                   if (paymentMethod === 'upi' && upiConfigured) {
                     setPendingUpiAction('place');
                     setShowUpiQr(true);
@@ -4295,7 +4456,7 @@ const OrderSummary = ({
                     ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                     : 'linear-gradient(135deg, #ef4444, #dc2626)',
                   color: 'white',
-                  padding: '12px 14px',
+                  padding: '10px 8px',
                   borderRadius: '8px',
                   fontWeight: '600',
                   border: 'none',
@@ -4303,63 +4464,134 @@ const OrderSummary = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  fontSize: '12px',
+                  gap: '5px',
+                  fontSize: '11px',
                   transition: 'all 0.2s',
-                  boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)'
+                  boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
+                  minWidth: 0,
                 }}
               >
                 {placingOrder ? (
-                  <>
-                    <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                    {t('dashboard.orderProcessing')}
-                  </>
+                  <><FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> {t('dashboard.orderProcessing')}</>
                 ) : (
-                  <>
-                    <FaUtensils size={12} />
-                    {posSettings.placeOrderLabel || 'Place Order (KOT)'}
-                  </>
+                  <><FaUtensils size={11} /> {currentOrder && currentOrder.status !== 'saved' ? 'Update & KOT' : (posSettings.placeOrderLabel || 'Place Order (KOT)')}</>
                 )}
               </button>
+
+              {/* KOT & Print - combined button */}
+              {printSettings?.enableKOTAndPrint && (
+                <button
+                  onClick={() => {
+                    if (typeof onPlaceOrderAndPrint === 'function' && !orderBusy) {
+                      onPlaceOrderAndPrint(buildTaxData());
+                    }
+                    if (isMobile && onClose) {
+                      setTimeout(() => onClose(), 500);
+                    }
+                  }}
+                  disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                  style={{
+                    flex: 1,
+                    background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                      ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                      : 'linear-gradient(135deg, #991b1b, #7f1d1d)',
+                    color: 'white',
+                    padding: '10px 8px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    border: 'none',
+                    cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                    fontSize: '11px',
+                    transition: 'all 0.2s',
+                    boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 2px 8px rgba(153,27,27,0.3)',
+                    minWidth: 0,
+                  }}
+                >
+                  <FaPrint size={11} /> KOT & Print
+                </button>
+              )}
             </div>
           )}
 
-          {/* Complete Billing Button */}
-          <button
-            onClick={handleProcessOrder}
-            disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
-            style={{
-              width: '100%',
-              background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
-                ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
-                : 'linear-gradient(135deg, #10b981, #059669)',
-              color: 'white',
-              padding: billingMode ? '14px 16px' : '12px 14px',
-              borderRadius: '8px',
-              fontWeight: '700',
-              border: 'none',
-              cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              fontSize: billingMode ? '14px' : '12px',
-              transition: 'all 0.2s',
-              boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
-            }}
-          >
-            {processing ? (
-              <>
-                <FaSpinner size={billingMode ? 14 : 12} style={{ animation: 'spin 1s linear infinite' }} />
-                {t('dashboard.paymentProcessing')}
-              </>
-            ) : (
-              <>
-                <FaCheckCircle size={billingMode ? 14 : 12} />
-                {posSettings.completeBillingLabel || t('dashboard.completeBilling')}
-              </>
-            )}
-          </button>
+          {/* Billing Row */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {/* Complete Billing Button */}
+            <button
+              onClick={handleProcessOrder}
+              disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+              style={{
+                width: printSettings?.enableSaveAndPrint ? '48%' : '100%',
+                background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                  ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                  : 'linear-gradient(135deg, #10b981, #059669)',
+                color: 'white',
+                padding: billingMode ? '14px 16px' : '12px 14px',
+                borderRadius: '8px',
+                fontWeight: '700',
+                border: 'none',
+                cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontSize: billingMode ? '14px' : '12px',
+                transition: 'all 0.2s',
+                boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
+              }}
+            >
+              {processing ? (
+                <>
+                  <FaSpinner size={billingMode ? 14 : 12} style={{ animation: 'spin 1s linear infinite' }} />
+                  {t('dashboard.paymentProcessing')}
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle size={billingMode ? 14 : 12} />
+                  {posSettings.completeBillingLabel || t('dashboard.completeBilling')}
+                </>
+              )}
+            </button>
+
+              {/* Bill & Print - combined button */}
+              {printSettings?.enableSaveAndPrint && (
+                <button
+                  onClick={() => {
+                    window.__autoPrintBill = true;
+                    handleProcessOrder();
+                  }}
+                  disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
+                  style={{
+                    width: '48%',
+                    background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
+                      ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                      : 'linear-gradient(135deg, #065f46, #064e3b)',
+                    color: 'white',
+                    padding: billingMode ? '14px 16px' : '12px 14px',
+                    borderRadius: '8px',
+                    fontWeight: '700',
+                    border: 'none',
+                    cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontSize: billingMode ? '14px' : '12px',
+                    transition: 'all 0.2s',
+                    boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(6, 95, 70, 0.35)'
+                  }}
+                >
+                  {processing ? (
+                    <><FaSpinner size={billingMode ? 14 : 12} style={{ animation: 'spin 1s linear infinite' }} /> Processing...</>
+                  ) : (
+                    <><FaPrint size={billingMode ? 14 : 12} /> Bill & Print</>
+                  )}
+                </button>
+              )}
+          </div>
           </div>
         </div>
       )}

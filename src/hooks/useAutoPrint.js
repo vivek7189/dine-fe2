@@ -65,6 +65,23 @@ export function useAutoPrint(restaurantId, printSettings) {
         }
       });
 
+      // Auto-print KOT on order update (incremental: only new items)
+      channel.bind('kot-print-request', async (data) => {
+        if (!printSettings?.autoPrintOnKOT) return;
+        try {
+          const renderData = await apiClient.getKOTRender(
+            restaurantId, data.orderId,
+            { newOnly: data.isIncremental || false, stationId: data.printStationId || null }
+          );
+          if (renderData?.html) {
+            printQueueRef.current.push({ html: renderData.html, type: 'kot' });
+            processQueue();
+          }
+        } catch (err) {
+          console.error('Failed to fetch KOT render for auto-print (update):', err);
+        }
+      });
+
       // Auto-print bill when order is billed
       channel.bind('order-billed', async (data) => {
         if (!printSettings?.autoPrintOnBilling) return;

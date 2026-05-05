@@ -114,3 +114,53 @@ export const getKOTPrintCSS = (scaleOrPreset, fontId) => {
   const ff = getPrintFontFamily(fontId);
   return `@page{size:80mm auto;margin:0;}body{font-family:${ff};margin:16px;font-size:${f.body};line-height:${f.lineHeight};max-width:80mm;} .kot-header{text-align:center;margin-bottom:8px;} .restaurant-name{font-size:${f.restaurantName};font-weight:bold;text-transform:uppercase;} .kot-title{font-size:${f.billTitle};font-weight:bold;margin-top:4px;} .divider{text-align:center;margin:6px 0;} .kot-info{margin:8px 0;font-size:${f.info};} .kot-info div{margin:2px 0;} .item{margin:6px 0;} .item-main{display:flex;font-size:${f.body};} .item-qty{width:30px;font-weight:bold;} .item-name{font-weight:bold;} .item-detail{margin-left:30px;font-size:${f.itemDetail};} .item-note{margin-left:30px;font-size:${f.itemDetail};font-style:italic;} .kot-footer{text-align:center;margin-top:8px;font-weight:bold;font-size:${f.body};} .special-instructions{margin:8px 0;padding:6px;border:1px dashed #000;text-align:center;font-size:${f.info};} .special-instructions strong{display:block;margin-bottom:4px;} .special-instructions div{text-align:left;}`;
 };
+
+// Generate full HTML for a category-wise token slip (food court mode).
+// token: { tokenLabel, categoryName, items, itemCount, orderNumber, time, printStationName, restaurantName }
+export const buildTokenSlipHTML = (token, printSettings = {}) => {
+  const f = getPrintFontSizes(printSettings.billFontScale || 100);
+  const ff = getPrintFontFamily(printSettings.billFontFamily);
+  const divider = '================================';
+  const thinDivider = '--------------------------------';
+
+  const itemLines = token.items.map(i => {
+    let line = `<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>${i.quantity}x ${i.name}</span></div>`;
+    if (i.variant) line += `<div style="margin-left:24px;font-size:${f.itemDetail};color:#333;">&nbsp;&nbsp;${i.variant}</div>`;
+    if (i.customizations && i.customizations.length > 0) {
+      const custs = Array.isArray(i.customizations) ? i.customizations.map(c => c.name || c).join(', ') : '';
+      if (custs) line += `<div style="margin-left:24px;font-size:${f.itemDetail};color:#333;">&nbsp;&nbsp;${custs}</div>`;
+    }
+    return line;
+  }).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Token ${token.tokenLabel}</title>
+<style>
+@page{size:80mm auto;margin:0;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:${ff};font-size:${f.body};line-height:${f.lineHeight};width:80mm;padding:8px 12px;}
+.token-label{text-align:center;font-size:${s(28, printSettings.billFontScale || 100)}px;font-weight:900;padding:8px 0;border:2px dashed #000;margin-bottom:6px;letter-spacing:1px;}
+.order-num{text-align:center;font-size:${f.billTitle};font-weight:bold;margin:4px 0;}
+.divider{text-align:center;letter-spacing:2px;margin:4px 0;font-size:${f.info};}
+.items{margin:6px 0;font-size:${f.body};}
+.meta{text-align:center;font-size:${f.info};margin:2px 0;}
+.meta b{font-weight:bold;}
+.counter{text-align:center;font-weight:bold;font-size:${f.billTitle};margin-top:6px;text-transform:uppercase;}
+.footer{text-align:center;font-size:${f.footer};margin-top:6px;font-style:italic;}
+.restaurant{text-align:center;font-size:${f.footer};margin-top:4px;}
+</style></head><body>
+<div class="divider">${divider}</div>
+<div class="token-label">${token.tokenLabel}</div>
+<div class="divider">${divider}</div>
+<div class="order-num">Order #${token.orderNumber}</div>
+<div class="divider">${thinDivider}</div>
+<div class="items">${itemLines}</div>
+<div class="divider">${thinDivider}</div>
+<div class="meta">Items: <b>${token.itemCount}</b></div>
+${token.printStationName ? `<div class="counter">Counter: ${token.printStationName}</div>` : `<div class="counter">${token.categoryName}</div>`}
+<div class="meta">${token.time}</div>
+<div class="divider">${thinDivider}</div>
+<div class="footer">Present this token at counter</div>
+<div class="restaurant">${token.restaurantName}</div>
+<div class="divider">${divider}</div>
+</body></html>`;
+};
