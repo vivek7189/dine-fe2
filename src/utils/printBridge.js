@@ -23,8 +23,12 @@ import { isCapacitor, isTauri, isWeb } from './platform';
  * @param {object} [options.printSettings] - Print settings from /admin
  */
 export async function printDocument({ html, domSelector, type = 'bill', orderId, restaurantId, printSettings = {} } = {}) {
+  // Debug: log platform detection
+  console.log('[PrintBridge] printDocument called:', { type, hasHtml: !!html, isTauri: isTauri(), isCapacitor: isCapacitor(), isWeb: isWeb(), hasTauriInternals: typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__ });
+
   // Web: always use window.print() — prints current page as-is
   if (isWeb()) {
+    console.log('[PrintBridge] Detected as web, using window.print()');
     window.print();
     return;
   }

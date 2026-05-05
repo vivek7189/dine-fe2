@@ -15,6 +15,15 @@ pub fn run() {
             set_default_printer,
             get_default_printer,
         ])
+        .setup(|app| {
+            // Enable devtools in all builds for debugging
+            #[cfg(feature = "devtools")]
+            {
+                let window = app.get_webview_window("main").unwrap();
+                window.open_devtools();
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running DineOpen POS");
 }

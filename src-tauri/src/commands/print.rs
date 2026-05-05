@@ -66,33 +66,70 @@ fn direct_print(file_path: &str, printer_name: &str) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Windows: use PowerShell to set the target printer and print the HTML file.
-        // Uses Get-CimInstance (modern, works on Win 10/11).
-        // Temporarily sets default printer, prints, then restores previous default.
+        // Windows: Use PowerShell with .NET WebBrowser control for silent HTML printing.
+        // This renders the HTML properly and prints to the specified printer without
+        // showing any browser window. Much more reliable than Start-Process -Verb Print.
         let ps_cmd = format!(
             r#"
-            $prev = (Get-CimInstance Win32_Printer -Filter "Default=TRUE").Name
-            $p = Get-CimInstance Win32_Printer -Filter "Name='{name}'"
-            if ($p) {{ Invoke-CimMethod -InputObject $p -MethodName SetDefaultPrinter | Out-Null }}
-            Start-Process '{path}' -Verb Print -WindowStyle Hidden
-            Start-Sleep -Seconds 3
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+
+            # Set target printer as default (restore after)
+            $prev = $null
+            try {{
+                $prev = (Get-CimInstance Win32_Printer -Filter "Default=TRUE" -ErrorAction SilentlyContinue).Name
+                $p = Get-CimInstance Win32_Printer -Filter "Name='{name}'" -ErrorAction SilentlyContinue
+                if ($p) {{ Invoke-CimMethod -InputObject $p -MethodName SetDefaultPrinter -ErrorAction SilentlyContinue | Out-Null }}
+            }} catch {{}}
+
+            # Use WebBrowser control to render and print HTML silently
+            $wb = New-Object System.Windows.Forms.WebBrowser
+            $wb.ScriptErrorsSuppressed = $true
+            $wb.ScrollBarsEnabled = $false
+            $wb.Navigate('{path}')
+
+            # Wait for document to load (max 10 seconds)
+            $timeout = 100
+            while ($wb.ReadyState -ne [System.Windows.Forms.WebBrowserReadyState]::Complete -and $timeout -gt 0) {{
+                [System.Windows.Forms.Application]::DoEvents()
+                Start-Sleep -Milliseconds 100
+                $timeout--
+            }}
+
+            # Print silently (no dialog)
+            Start-Sleep -Milliseconds 500
+            $wb.Print()
+            Start-Sleep -Milliseconds 2000
+            [System.Windows.Forms.Application]::DoEvents()
+            $wb.Dispose()
+
+            # Restore previous default printer
             if ($prev) {{
-                $old = Get-CimInstance Win32_Printer -Filter "Name='$prev'"
-                if ($old) {{ Invoke-CimMethod -InputObject $old -MethodName SetDefaultPrinter | Out-Null }}
+                try {{
+                    $old = Get-CimInstance Win32_Printer -Filter "Name='$prev'" -ErrorAction SilentlyContinue
+                    if ($old) {{ Invoke-CimMethod -InputObject $old -MethodName SetDefaultPrinter -ErrorAction SilentlyContinue | Out-Null }}
+                }} catch {{}}
             }}
             "#,
             name = printer_name.replace("'", "''"),
-            path = file_path.replace("'", "''"),
+            path = file_path.replace("\\", "/").replace("'", "''"),
         );
 
         let result = Command::new("powershell")
-            .args(["-NoProfile", "-Command", &ps_cmd])
+            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_cmd])
             .output();
 
         match result {
             Ok(output) if output.status.success() => Ok(()),
-            _ => {
-                // Fallback: open in default browser for manual print
+            Ok(_output) => {
+                // If WebBrowser method fails, try rundll32 as fallback
+                let _ = Command::new("rundll32")
+                    .args(["mshtml.dll,PrintHTML", file_path])
+                    .spawn();
+                Ok(())
+            }
+            Err(_) => {
+                // Last resort: open in browser for manual print
                 let _ = Command::new("cmd")
                     .args(["/C", "start", "", file_path])
                     .spawn();

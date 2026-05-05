@@ -440,50 +440,73 @@ const OrderSummary = ({
     }
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-print KOT when "KOT & Print" button was used
+  // Auto-print KOT when order is placed
+  // Native (Tauri/Capacitor): always auto-print KOT when a default printer is set
+  // Web: only print if user clicked "KOT & Print" button (sets __autoPrintKOT flag)
   useEffect(() => {
-    if (orderSuccess?.kotData && typeof window !== 'undefined' && window.__autoPrintKOT) {
-      window.__autoPrintKOT = false;
-      const timer = setTimeout(() => {
-        const k = orderSuccess.kotData;
-        if (!k) return;
+    if (!orderSuccess?.kotData || typeof window === 'undefined') return;
+    // Skip optimistic render (orderId is null before API returns) to avoid double-printing
+    if (!orderSuccess.kotData.orderId) return;
 
-        const kotLabels = {
-          kitchenOrder: t('invoice.kitchenOrder'), orderHash: t('invoice.orderHash'),
-          table: t('invoice.table'), room: t('invoice.room'), time: t('invoice.time'),
-          date: t('invoice.date'), customer: t('invoice.customer'), type: t('invoice.type'),
-          waiter: t('invoice.waiter'), qty: t('invoice.qty'), item: t('invoice.item'),
-          totalItems: t('invoice.totalItems'), specialInstructions: t('invoice.specialInstructions'),
-          note: t('invoice.note'),
-        };
-        const kotContent = generateKOTHTML(k, printSettings || {}, kotLabels);
+    const isNative = supportsNativeAutoPrint();
+    const webPrintRequested = window.__autoPrintKOT;
 
-        // Native (Tauri/Capacitor): use native print bridge — works offline
-        if (supportsNativeAutoPrint()) {
-          printDocument({ html: kotContent, type: 'kot', printSettings: printSettings || {} });
-          // Track printed order to prevent duplicate from Pusher auto-print
-          if (k.orderId) window.__lastLocalPrintedKOT = k.orderId;
-        } else {
-          // Web: window.open + print dialog
-          const newPw = window.open('', '_blank', 'width=400,height=600');
-          if (newPw) {
-            kotPrintWindowRef.current = newPw;
-            newPw.document.write(kotContent);
-            newPw.document.close();
-            newPw.focus();
-            setTimeout(() => newPw.print(), 400);
-          }
+    console.log('[OrderSummary] KOT print effect fired:', { isNative, webPrintRequested, orderId: orderSuccess?.kotData?.orderId });
+
+    // On web, only print if explicitly requested via "KOT & Print" button
+    if (!isNative && !webPrintRequested) return;
+
+    window.__autoPrintKOT = false;
+    const timer = setTimeout(() => {
+      const k = orderSuccess.kotData;
+      if (!k) return;
+
+      const kotLabels = {
+        kitchenOrder: t('invoice.kitchenOrder'), orderHash: t('invoice.orderHash'),
+        table: t('invoice.table'), room: t('invoice.room'), time: t('invoice.time'),
+        date: t('invoice.date'), customer: t('invoice.customer'), type: t('invoice.type'),
+        waiter: t('invoice.waiter'), qty: t('invoice.qty'), item: t('invoice.item'),
+        totalItems: t('invoice.totalItems'), specialInstructions: t('invoice.specialInstructions'),
+        note: t('invoice.note'),
+      };
+      const kotContent = generateKOTHTML(k, printSettings || {}, kotLabels);
+
+      if (isNative) {
+        console.log('[OrderSummary] Sending KOT to native printer...');
+        printDocument({ html: kotContent, type: 'kot', printSettings: printSettings || {} });
+        // Track printed order to prevent duplicate from Pusher auto-print
+        if (k.orderId) window.__lastLocalPrintedKOT = k.orderId;
+      } else {
+        // Web: window.open + print dialog
+        const newPw = window.open('', '_blank', 'width=400,height=600');
+        if (newPw) {
+          kotPrintWindowRef.current = newPw;
+          newPw.document.write(kotContent);
+          newPw.document.close();
+          newPw.focus();
+          setTimeout(() => newPw.print(), 400);
         }
-      }, 800);
-      return () => clearTimeout(timer);
-    }
+      }
+    }, 800);
+    return () => clearTimeout(timer);
   }, [orderSuccess?.kotData]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-print Bill when "Bill & Print" button was used
+  // Auto-print Bill when billing completes
+  // Native (Tauri/Capacitor): always auto-print bill when a default printer is set
+  // Web: only print if user clicked "Bill & Print" button (sets __autoPrintBill flag)
   useEffect(() => {
-    if (showInvoicePermanently && invoice && typeof window !== 'undefined' && window.__autoPrintBill) {
-      window.__autoPrintBill = false;
-      const timer = setTimeout(() => {
+    if (!showInvoicePermanently || !invoice || typeof window === 'undefined') return;
+
+    const isNative = supportsNativeAutoPrint();
+    const webPrintRequested = window.__autoPrintBill;
+
+    console.log('[OrderSummary] Bill print effect fired:', { isNative, webPrintRequested, invoiceId: invoice?.id });
+
+    // On web, only print if explicitly requested via "Bill & Print" button
+    if (!isNative && !webPrintRequested) return;
+
+    window.__autoPrintBill = false;
+    const timer = setTimeout(() => {
         if (!invoice) return;
         const currencySymbol = getCurrencySymbol();
 
@@ -557,7 +580,6 @@ const OrderSummary = ({
         }
       }, 800);
       return () => clearTimeout(timer);
-    }
   }, [showInvoicePermanently, invoice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Send bill on WhatsApp (via API)
@@ -4501,8 +4523,12 @@ const OrderSummary = ({
               {printSettings?.enableKOTAndPrint && (
                 <button
                   onClick={() => {
+                    window.__autoPrintKOT = true;
                     if (typeof onPlaceOrderAndPrint === 'function' && !orderBusy) {
                       onPlaceOrderAndPrint(buildTaxData());
+                    } else if (typeof onPlaceOrder === 'function' && !orderBusy) {
+                      // Fallback: use regular place order if onPlaceOrderAndPrint not provided
+                      onPlaceOrder(buildTaxData());
                     }
                     if (isMobile && onClose) {
                       setTimeout(() => onClose(), 500);

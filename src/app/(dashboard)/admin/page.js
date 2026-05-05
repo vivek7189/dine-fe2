@@ -10595,7 +10595,7 @@ const Admin = () => {
             <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#374151', lineHeight: '1.8' }}>
               <li>Download the .exe file from the link above</li>
               <li>Double-click the downloaded file to install</li>
-              <li>If Windows SmartScreen appears, click <strong>"More info"</strong> then <strong>"Run anyway"</strong></li>
+              <li>If Windows SmartScreen appears, click <strong>&ldquo;More info&rdquo;</strong> then <strong>&ldquo;Run anyway&rdquo;</strong></li>
               <li>Log in with your DineOpen account and start billing</li>
             </ol>
           </div>
