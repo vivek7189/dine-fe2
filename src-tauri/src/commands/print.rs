@@ -67,19 +67,18 @@ fn direct_print(file_path: &str, printer_name: &str) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         // Windows: use PowerShell to set the target printer and print the HTML file.
-        // Start-Process with -Verb Print tells Windows to use the default "print"
-        // handler for .html files. We temporarily set the default printer so it
-        // goes to the right device (important for thermal printers).
+        // Uses Get-CimInstance (modern, works on Win 10/11).
+        // Temporarily sets default printer, prints, then restores previous default.
         let ps_cmd = format!(
             r#"
-            $prev = (Get-WmiObject -Query "SELECT * FROM Win32_Printer WHERE Default=TRUE").Name
-            $p = Get-WmiObject -Query "SELECT * FROM Win32_Printer WHERE Name='{name}'"
-            if ($p) {{ $p.SetDefaultPrinter() | Out-Null }}
+            $prev = (Get-CimInstance Win32_Printer -Filter "Default=TRUE").Name
+            $p = Get-CimInstance Win32_Printer -Filter "Name='{name}'"
+            if ($p) {{ Invoke-CimMethod -InputObject $p -MethodName SetDefaultPrinter | Out-Null }}
             Start-Process '{path}' -Verb Print -WindowStyle Hidden
             Start-Sleep -Seconds 3
             if ($prev) {{
-                $old = Get-WmiObject -Query "SELECT * FROM Win32_Printer WHERE Name='$prev'"
-                if ($old) {{ $old.SetDefaultPrinter() | Out-Null }}
+                $old = Get-CimInstance Win32_Printer -Filter "Name='$prev'"
+                if ($old) {{ Invoke-CimMethod -InputObject $old -MethodName SetDefaultPrinter | Out-Null }}
             }}
             "#,
             name = printer_name.replace("'", "''"),
@@ -167,40 +166,51 @@ pub async fn list_printers() -> Result<Vec<PrinterInfo>, String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Try wmic first (works on all Windows editions including Home)
-        let wmic_result = Command::new("wmic")
-            .args(["printer", "get", "Name"])
+        // Primary: PowerShell Get-CimInstance (works on Win 10/11, not deprecated)
+        let ps_cmd = r#"Get-CimInstance Win32_Printer | ForEach-Object { "$($_.Name)|$($_.PortName)|$($_.WorkOffline)" }"#;
+        let ps_result = Command::new("powershell")
+            .args(["-NoProfile", "-Command", ps_cmd])
             .output();
 
         let mut found = false;
-        if let Ok(output) = wmic_result {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines().skip(1) {
-                // skip header line "Name"
-                let name = line.trim().to_string();
-                if !name.is_empty() {
+        if let Ok(output) = ps_result {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    let parts: Vec<&str> = line.splitn(3, '|').collect();
+                    let name = parts.first().map(|s| s.trim()).unwrap_or("").to_string();
+                    if name.is_empty() {
+                        continue;
+                    }
+                    let port = parts.get(1).map(|s| s.trim()).unwrap_or("");
+                    // Detect connection type from port name
+                    let ptype = if port.starts_with("BTHHFP") || port.starts_with("BTHLE") || port.contains("Bluetooth") {
+                        "bluetooth"
+                    } else if port.starts_with("USB") || port.starts_with("DOT4") {
+                        "usb"
+                    } else if port.contains('.') || port.starts_with("WSD") || port.starts_with("TCP") {
+                        "network"
+                    } else {
+                        "usb"
+                    };
                     printers.push(PrinterInfo {
                         name: name.clone(),
-                        address: name,
-                        printer_type: "usb".to_string(),
+                        address: port.to_string(),
+                        printer_type: ptype.to_string(),
                     });
                     found = true;
                 }
             }
         }
 
-        // Fallback to PowerShell Get-Printer (available on Pro/Enterprise)
+        // Fallback: wmic (for older Windows versions)
         if !found {
-            if let Ok(output) = Command::new("powershell")
-                .args([
-                    "-NoProfile",
-                    "-Command",
-                    "(Get-WmiObject -Query \"SELECT Name FROM Win32_Printer\").Name",
-                ])
+            if let Ok(output) = Command::new("wmic")
+                .args(["printer", "get", "Name"])
                 .output()
             {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                for line in stdout.lines() {
+                for line in stdout.lines().skip(1) {
                     let name = line.trim().to_string();
                     if !name.is_empty() {
                         printers.push(PrinterInfo {
