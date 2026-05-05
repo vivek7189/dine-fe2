@@ -4300,6 +4300,7 @@ const Admin = () => {
       { id: 'print', label: 'Print Settings', icon: FaPrint },
       { id: 'features', label: 'Features', icon: FaToggleOn },
       { id: 'offline-data', label: 'Offline Data', icon: FaDatabase },
+      { id: 'app-download', label: 'App Download', icon: FaDownload },
     ]},
     { label: 'MANAGE', items: [
       { id: 'restaurants', label: 'Restaurants', icon: FaStore },
@@ -10480,6 +10481,125 @@ const Admin = () => {
 
       {activeTab === 'offline-data' && (
         <OfflineDataTab />
+      )}
+
+      {activeTab === 'app-download' && (
+        <div style={{ maxWidth: '800px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FaDownload size={22} color="white" />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>Download Desktop App</h2>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>Install the DineOpen POS app on your desktop for billing, orders, and more</p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '24px' }}>
+            {/* Windows Card */}
+            <div style={{
+              flex: '1',
+              minWidth: '280px',
+              padding: '28px',
+              borderRadius: '16px',
+              border: '1px solid #e5e7eb',
+              background: '#fff',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaWindows size={24} style={{ color: '#0078d4' }} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '17px', color: '#111827' }}>Windows</div>
+                  <div style={{ fontSize: '12px', color: '#9ca3af' }}>Windows 10 or later</div>
+                </div>
+              </div>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: '1.5' }}>
+                Download the app for Windows to install on desktop and start billing. Works offline with auto-print support.
+              </p>
+              <a
+                href="https://drive.google.com/file/d/1rKnk6WKoHQEzGSO3LilIm-axur9qtaxT/view?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #0078d4, #005a9e)',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0,120,212,0.3)',
+                  transition: 'transform 0.15s',
+                }}
+              >
+                <FaDownload size={14} />
+                Download for Windows (.exe)
+              </a>
+            </div>
+
+            {/* Mac Card */}
+            <div style={{
+              flex: '1',
+              minWidth: '280px',
+              padding: '28px',
+              borderRadius: '16px',
+              border: '1px solid #e5e7eb',
+              background: '#fff',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaApple size={24} style={{ color: '#333' }} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '17px', color: '#111827' }}>Mac</div>
+                  <div style={{ fontSize: '12px', color: '#9ca3af' }}>macOS 11 or later</div>
+                </div>
+              </div>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: '1.5' }}>
+                Desktop app for Mac with native printing and offline billing support.
+              </p>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 24px',
+                background: '#e5e7eb',
+                color: '#6b7280',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '14px',
+              }}>
+                Coming Soon
+              </span>
+            </div>
+          </div>
+
+          {/* Installation instructions */}
+          <div style={{
+            marginTop: '28px',
+            padding: '20px 24px',
+            borderRadius: '12px',
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+          }}>
+            <div style={{ fontWeight: '600', fontSize: '14px', color: '#15803d', marginBottom: '10px' }}>
+              Installation Instructions (Windows)
+            </div>
+            <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#374151', lineHeight: '1.8' }}>
+              <li>Download the .exe file from the link above</li>
+              <li>Double-click the downloaded file to install</li>
+              <li>If Windows SmartScreen appears, click <strong>"More info"</strong> then <strong>"Run anyway"</strong></li>
+              <li>Log in with your DineOpen account and start billing</li>
+            </ol>
+          </div>
+        </div>
       )}
 
       <style jsx>{`
