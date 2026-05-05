@@ -2388,9 +2388,7 @@ export function HeadquartersContent({ embedded = false }) {
           {orgData?.settings?.centralKitchen && (
             <TabButton id="central-kitchen" icon={FaIndustry} label={t('hq.kitchen')} active={activeTab === 'central-kitchen'} />
           )}
-          {orgData && (
-            <TabButton id="hq-reports" icon={FaFileAlt} label={t('hq.reports')} active={activeTab === 'hq-reports'} />
-          )}
+          <TabButton id="hq-reports" icon={FaFileAlt} label={t('hq.reports')} active={activeTab === 'hq-reports'} />
         </div>
 
         {/* Right: Filter Chips - Only show when filtering (not all selected) */}
@@ -2491,8 +2489,12 @@ export function HeadquartersContent({ embedded = false }) {
         {activeTab === 'central-kitchen' && orgData && (
           <CentralKitchenTab orgData={orgData} outlets={orgOutlets} formatCurrency={formatCurrency} />
         )}
-        {activeTab === 'hq-reports' && orgData && (
-          <HQReportsTab orgData={orgData} outlets={orgOutlets} formatCurrency={formatCurrency} />
+        {activeTab === 'hq-reports' && (
+          <HQReportsTab
+            orgData={orgData || (() => { try { const r = JSON.parse(localStorage.getItem('selectedRestaurant')); return r ? { id: r.id, name: r.name, settings: {} } : null; } catch { return null; } })()}
+            outlets={orgData ? orgOutlets : { outlet: [], central_kitchen: [], warehouse: [] }}
+            formatCurrency={formatCurrency}
+          />
         )}
       </div>
 
