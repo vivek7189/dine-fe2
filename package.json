@@ -10,6 +10,7 @@
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:run": "npx cap run android",
+    "tauri": "tauri",
     "tauri:dev": "npx tauri dev",
     "tauri:build": "npx tauri build",
     "tauri:export": "node scripts/build-tauri.js"
