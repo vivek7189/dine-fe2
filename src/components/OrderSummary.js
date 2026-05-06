@@ -1140,64 +1140,85 @@ const OrderSummary = ({
     return printSettings?.manualPrintEnabled !== false;
   };
 
-  const generateInvoice = async (orderId) => {
-    try {
-      console.log('Fetching unified bill render for order ID:', orderId);
-      // Use the unified render endpoint (/api/bill/render) so the on-screen
-      // bill summary is sourced from the SAME payload the android + electron
-      // printers consume. This guarantees pixel/data parity between what the
-      // user sees on screen and what the thermal printer prints.
-      const response = await apiClient.getBillRender(restaurantId, orderId);
-      if (response && response.success) {
-        // `response.invoice` is the legacy-compatible flat shape (same fields
-        // as the old POST /api/invoice/generate response), so existing JSX
-        // that reads `invoice.restaurantName`, `invoice.grandTotal`, etc.
-        // works unchanged.
-        const invoiceData = response.invoice || response.bill;
-        // Override with locally-calculated billing values so the on-screen
-        // invoice always matches what the user saw during billing.
-        // The backend may recalculate offers differently (e.g. usage limits).
-        const localTaxData = buildTaxData();
-        if (localTaxData.subtotal) invoiceData.subtotal = localTaxData.subtotal;
-        if (localTaxData.offerDiscount != null) invoiceData.discountAmount = localTaxData.offerDiscount;
-        if (localTaxData.manualDiscount != null) invoiceData.manualDiscount = localTaxData.manualDiscount;
-        if (localTaxData.loyaltyDiscount != null) invoiceData.loyaltyDiscount = localTaxData.loyaltyDiscount;
-        if (localTaxData.totalDiscountAmount != null) invoiceData.totalDiscount = localTaxData.totalDiscountAmount;
-        if (localTaxData.taxBreakdown?.length) invoiceData.taxBreakdown = localTaxData.taxBreakdown;
-        if (localTaxData.finalAmount != null) invoiceData.grandTotal = localTaxData.finalAmount;
-        invoiceData.totalTax = localTaxData.taxBreakdown?.reduce((s, t) => s + (t.amount || 0), 0) || 0;
-        invoiceData.taxAmount = invoiceData.totalTax;
-        if (localTaxData.serviceChargeAmount != null) invoiceData.serviceChargeAmount = localTaxData.serviceChargeAmount;
-        if (localTaxData.serviceChargeRate != null) invoiceData.serviceChargeRate = localTaxData.serviceChargeRate;
-        if (localTaxData.tipAmount != null) invoiceData.tipAmount = localTaxData.tipAmount;
-        if (localTaxData.tipPercentage != null) invoiceData.tipPercentage = localTaxData.tipPercentage;
-        if (localTaxData.roundOffAmount != null) invoiceData.roundOffAmount = localTaxData.roundOffAmount;
-        if (localTaxData.splitPayments) invoiceData.splitPayments = localTaxData.splitPayments;
-        if (localTaxData.cashReceived != null) invoiceData.cashReceived = localTaxData.cashReceived;
-        if (localTaxData.changeReturned != null) invoiceData.changeReturned = localTaxData.changeReturned;
-        if (localTaxData.partialPayAmount != null) {
-          invoiceData.paidAmount = localTaxData.partialPayAmount;
-          invoiceData.outstandingAmount = Math.round(((localTaxData.finalAmount || 0) - localTaxData.partialPayAmount) * 100) / 100;
-        }
-        // Wallet
-        if (useWallet && parseFloat(walletRedeemAmount) > 0) {
-          invoiceData.walletRedeemAmount = parseFloat(walletRedeemAmount);
-        }
-        setInvoice(invoiceData);
-        setShowInvoicePermanently(true);
+  // Apply local tax data overrides to an invoice object (shared by online + offline paths)
+  const applyLocalTaxOverrides = (invoiceData, localTaxData) => {
+    if (localTaxData.subtotal) invoiceData.subtotal = localTaxData.subtotal;
+    if (localTaxData.offerDiscount != null) invoiceData.discountAmount = localTaxData.offerDiscount;
+    if (localTaxData.manualDiscount != null) invoiceData.manualDiscount = localTaxData.manualDiscount;
+    if (localTaxData.loyaltyDiscount != null) invoiceData.loyaltyDiscount = localTaxData.loyaltyDiscount;
+    if (localTaxData.totalDiscountAmount != null) invoiceData.totalDiscount = localTaxData.totalDiscountAmount;
+    if (localTaxData.taxBreakdown?.length) invoiceData.taxBreakdown = localTaxData.taxBreakdown;
+    if (localTaxData.finalAmount != null) invoiceData.grandTotal = localTaxData.finalAmount;
+    invoiceData.totalTax = localTaxData.taxBreakdown?.reduce((s, t) => s + (t.amount || 0), 0) || 0;
+    invoiceData.taxAmount = invoiceData.totalTax;
+    if (localTaxData.serviceChargeAmount != null) invoiceData.serviceChargeAmount = localTaxData.serviceChargeAmount;
+    if (localTaxData.serviceChargeRate != null) invoiceData.serviceChargeRate = localTaxData.serviceChargeRate;
+    if (localTaxData.tipAmount != null) invoiceData.tipAmount = localTaxData.tipAmount;
+    if (localTaxData.tipPercentage != null) invoiceData.tipPercentage = localTaxData.tipPercentage;
+    if (localTaxData.roundOffAmount != null) invoiceData.roundOffAmount = localTaxData.roundOffAmount;
+    if (localTaxData.splitPayments) invoiceData.splitPayments = localTaxData.splitPayments;
+    if (localTaxData.cashReceived != null) invoiceData.cashReceived = localTaxData.cashReceived;
+    if (localTaxData.changeReturned != null) invoiceData.changeReturned = localTaxData.changeReturned;
+    if (localTaxData.partialPayAmount != null) {
+      invoiceData.paidAmount = localTaxData.partialPayAmount;
+      invoiceData.outstandingAmount = Math.round(((localTaxData.finalAmount || 0) - localTaxData.partialPayAmount) * 100) / 100;
+    }
+    if (useWallet && parseFloat(walletRedeemAmount) > 0) {
+      invoiceData.walletRedeemAmount = parseFloat(walletRedeemAmount);
+    }
+    return invoiceData;
+  };
 
-        // Persist the invoice doc in the background (for reports / history /
-        // invoiceId on the order). Non-blocking — the UI already has what it
-        // needs from the render endpoint.
-        apiClient.generateInvoice(orderId).catch((err) =>
-          console.warn('Invoice persistence (non-blocking):', err),
-        );
-        return true;
+  const generateInvoice = async (orderId) => {
+    // Try API first (gets formatted invoice with restaurant details)
+    try {
+      if (navigator.onLine) {
+        const response = await apiClient.getBillRender(restaurantId, orderId);
+        if (response?.success) {
+          const invoiceData = response.invoice || response.bill;
+          const localTaxData = buildTaxData();
+          applyLocalTaxOverrides(invoiceData, localTaxData);
+          setInvoice(invoiceData);
+          setShowInvoicePermanently(true);
+          apiClient.generateInvoice(orderId).catch((err) =>
+            console.warn('Invoice persistence (non-blocking):', err),
+          );
+          return true;
+        }
       }
-      console.error('Bill render fetch failed:', response);
-      return false;
     } catch (error) {
-      console.error('Error fetching bill render:', error);
+      console.warn('Bill render API unavailable, generating invoice locally:', error.message);
+    }
+
+    // Offline fallback: build invoice from local cart + tax data
+    try {
+      const localTaxData = buildTaxData();
+      const localInvoice = {
+        orderId,
+        orderNumber: orderId?.slice(-4)?.toUpperCase() || '',
+        restaurantName: restaurantName || '',
+        items: (cart || []).map(item => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+          total: (item.price || 0) * (item.quantity || 1),
+          variant: item.selectedVariant?.name,
+          customizations: item.selectedCustomizations,
+        })),
+        tableNumber: tableNumber || selectedTable?.name || selectedTable?.number || '',
+        customerName: customerName || 'Walk-in',
+        customerPhone: customerMobile || '',
+        paymentMethod: paymentMethod || 'cash',
+        orderType: orderType || 'dine_in',
+        generatedAt: new Date().toISOString(),
+        _offlineGenerated: true,
+      };
+      applyLocalTaxOverrides(localInvoice, localTaxData);
+      setInvoice(localInvoice);
+      setShowInvoicePermanently(true);
+      return true;
+    } catch (err) {
+      console.error('Local invoice generation failed:', err);
       return false;
     }
   };

@@ -1108,13 +1108,24 @@ const OrderHistory = () => {
   const [syncingOrderKey, setSyncingOrderKey] = useState(null);
   const handleRetrySync = async (order) => {
     if (!order?.idempotencyKey) return;
+    if (!navigator.onLine) {
+      setDeleteError('Cannot sync while offline. Please connect to the internet first.');
+      return;
+    }
     setSyncingOrderKey(order.idempotencyKey);
     try {
+      // Reset to pending so sync engine picks it up
       await updateOrderSyncStatus(order.idempotencyKey, 'pending', { retryCount: 0 });
       await syncPendingOrders(apiClient);
+      // Remove the offline order from local display immediately
+      setOrders(prev => prev.filter(o => o.idempotencyKey !== order.idempotencyKey));
+      setDeleteSuccess('Order synced successfully');
+      setTimeout(() => setDeleteSuccess(null), 4000);
+      // Refresh from server to get the synced version
       await fetchOrders();
     } catch (err) {
       console.error('Retry sync failed:', err);
+      setDeleteError('Sync failed — will retry automatically when online');
     } finally {
       setSyncingOrderKey(null);
     }
@@ -2587,15 +2598,15 @@ const OrderHistory = () => {
                                   <FaCloudUploadAlt className="text-[8px]" /> {t('orderHistory.offline')}
                                 </span>
                               )}
-                              {order._isOffline && order.syncStatus === 'failed' && (
+                              {order._isOffline && (order.syncStatus === 'failed' || order.syncStatus === 'pending') && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleRetrySync(order); }}
                                   disabled={syncingOrderKey === order.idempotencyKey}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
-                                  title={t('orderHistory.retrySync')}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium border transition-colors ${order.syncStatus === 'failed' ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
+                                  title={order.syncStatus === 'failed' ? t('orderHistory.retrySync') : 'Sync now'}
                                 >
                                   <FaSync className={`text-[8px] ${syncingOrderKey === order.idempotencyKey ? 'animate-spin' : ''}`} />
-                                  {syncingOrderKey === order.idempotencyKey ? t('orderHistory.syncing') : t('orderHistory.retry')}
+                                  {syncingOrderKey === order.idempotencyKey ? t('orderHistory.syncing') : (order.syncStatus === 'failed' ? t('orderHistory.retry') : 'Sync')}
                                 </button>
                               )}
                             </div>
@@ -2679,7 +2690,7 @@ const OrderHistory = () => {
                             </button>
                           </div>
                           <div className="space-y-1.5">
-                            {(expandedOrders.has(order.id) ? order.items : order.items.slice(0, 2)).map((item, idx) => (
+                            {(expandedOrders.has(order.id) ? (order.items || []) : (order.items || []).slice(0, 2)).map((item, idx) => (
                               <div key={idx} className="flex justify-between text-sm py-1">
                                 <span className="text-gray-700">{item.quantity}x {item.name}</span>
                                 <span className="font-medium text-gray-900">{formatCurrency(item.total || (item.price * item.quantity))}</span>

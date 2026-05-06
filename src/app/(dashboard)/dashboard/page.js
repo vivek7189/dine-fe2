@@ -62,7 +62,7 @@ import { t } from '../../../lib/i18n';
 import { useLoading } from '../../../contexts/LoadingContext';
 import IntelligentChatbot from '../../../components/IntelligentChatbot';
 import RAGInitializer from '../../../components/RAGInitializer';
-import { getCachedDashboardData, setCachedDashboardData } from '../../../utils/dashboardCache';
+import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
@@ -343,13 +343,32 @@ function RestaurantPOSContent() {
     if (!rid) return;
     try {
       setTablesRefreshing(true);
-      // Only fetch floors - tables are nested inside floors
-      const floorsRes = await apiClient.getFloors(rid).catch(() => ({ floors: [] }));
-      const floorsData = floorsRes?.floors || floorsRes || [];
-      setTablesData({
-        floors: floorsData,
-        tables: [] // Tables are already nested in floors, no need for separate API call
-      });
+
+      // Offline: load from cache immediately
+      if (!navigator.onLine) {
+        const cached = getCachedTablesData(rid);
+        if (cached?.floors) {
+          setTablesData({ floors: cached.floors, tables: [] });
+          return;
+        }
+      }
+
+      const floorsRes = await apiClient.getFloors(rid).catch(() => null);
+
+      if (floorsRes) {
+        const floorsData = floorsRes?.floors || floorsRes || [];
+        setTablesData({ floors: floorsData, tables: [] });
+        // Cache for offline use
+        setCachedTablesData(rid, { floors: floorsData });
+      } else {
+        // API failed — try cache fallback
+        const cached = getCachedTablesData(rid);
+        if (cached?.floors) {
+          setTablesData({ floors: cached.floors, tables: [] });
+        } else {
+          setTablesData({ floors: [], tables: [] });
+        }
+      }
     } finally {
       setTablesRefreshing(false);
     }
@@ -1286,43 +1305,68 @@ function RestaurantPOSContent() {
   };
 
   const updateTableStatus = async (tableId, status, orderId = null) => {
-    try {
-      console.log(`🪑 Updating table ${tableId} status to ${status} with orderId: ${orderId}`);
-      const result = await apiClient.updateTableStatus(tableId, status, orderId, selectedRestaurant?.id);
-      console.log('✅ Table status update successful:', result);
-      
-      // Update local tables state
-      setTables(prevTables => 
-        prevTables.map(table => 
-          table.id === tableId 
-            ? { ...table, status, currentOrderId: orderId }
-            : table
+    console.log(`🪑 Updating table ${tableId} status to ${status} with orderId: ${orderId}`);
+
+    // 1. Optimistic: update local state immediately (before API call)
+    setTables(prevTables =>
+      prevTables.map(table =>
+        table.id === tableId
+          ? { ...table, status, currentOrderId: orderId }
+          : table
+      )
+    );
+
+    // 2. Update tablesData (floors with nested tables) for DashboardTablesPanel
+    setTablesData(prev => ({
+      ...prev,
+      floors: (prev.floors || []).map(floor => ({
+        ...floor,
+        tables: (floor.tables || []).map(t =>
+          t.id === tableId ? { ...t, status, currentOrderId: orderId } : t
         )
-      );
-      
-      // Update floors cache
-      if (selectedRestaurant?.id) {
+      }))
+    }));
+
+    // 3. Update localStorage caches
+    if (selectedRestaurant?.id) {
+      try {
         const cacheKey = `floors_${selectedRestaurant.id}`;
         const cachedData = localStorage.getItem(cacheKey);
         if (cachedData) {
           const cache = JSON.parse(cachedData);
-          // Update table in floors structure
-          cache.floors = cache.floors.map(floor => ({
+          cache.floors = (cache.floors || []).map(floor => ({
             ...floor,
-            tables: floor.tables.map(table => 
-              table.id === tableId 
-                ? { ...table, status, currentOrderId: orderId }
-                : table
+            tables: (floor.tables || []).map(t =>
+              t.id === tableId ? { ...t, status, currentOrderId: orderId } : t
             )
           }));
           localStorage.setItem(cacheKey, JSON.stringify(cache));
-          console.log(`🏢 Updated table ${tableId} status in floors cache`);
         }
-      }
-      
+      } catch (e) {}
+      // Also update dashboardCache tables cache
+      try {
+        const tablesCache = getCachedTablesData(selectedRestaurant.id);
+        if (tablesCache?.floors) {
+          const updatedFloors = tablesCache.floors.map(floor => ({
+            ...floor,
+            tables: (floor.tables || []).map(t =>
+              t.id === tableId ? { ...t, status, currentOrderId: orderId } : t
+            )
+          }));
+          setCachedTablesData(selectedRestaurant.id, { floors: updatedFloors });
+        }
+      } catch (e) {}
+    }
+
+    // 4. Try API call (non-blocking — local state already updated)
+    try {
+      await apiClient.updateTableStatus(tableId, status, orderId, selectedRestaurant?.id);
     } catch (error) {
-      console.error('❌ Error updating table status:', error);
-      console.error('Table ID:', tableId, 'Status:', status, 'Order ID:', orderId);
+      console.warn('Table status API failed (local state updated):', error.message);
+      // If online but API failed (server error), refetch to get correct state
+      if (navigator.onLine && selectedRestaurant?.id) {
+        prefetchTables(selectedRestaurant.id);
+      }
     }
   };
 

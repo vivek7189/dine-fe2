@@ -36,18 +36,6 @@ pub async fn print_document(
             direct_print(&file_str, &printer.name)?;
         }
 
-        // DEBUG: Save a copy for inspection (cross-platform path)
-        {
-            let debug_dir = if cfg!(target_os = "windows") {
-                std::env::temp_dir().join("dineopen-prints")
-            } else {
-                std::path::PathBuf::from("/tmp/dineopen-prints")
-            };
-            let _ = fs::create_dir_all(&debug_dir);
-            let debug_path = debug_dir.join(&file_name);
-            let _ = fs::copy(&file_path, &debug_path);
-        }
-
         // Clean up temp file after a delay
         let path_clone = file_path.clone();
         std::thread::spawn(move || {
