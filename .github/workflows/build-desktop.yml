@@ -70,7 +70,7 @@ jobs:
         with:
           script: |
             const version = '${{ steps.version.outputs.version }}';
-            const isDraft = '${{ github.event.inputs.draft }}' === 'true' || '${{ github.ref_type }}' === 'tag';
+            const isDraft = '${{ github.event.inputs.draft }}' === 'true' && '${{ github.ref_type }}' !== 'tag';
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
