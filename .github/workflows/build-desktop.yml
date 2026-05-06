@@ -27,7 +27,9 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Extract version from tag or config
         id: version
@@ -53,8 +55,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin ${{ github.event.repository.default_branch }}
+          git checkout ${{ github.event.repository.default_branch }}
+          git pull origin ${{ github.event.repository.default_branch }}
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i 's/"version": "[^"]*"/"version": "'$VERSION'"/' src-tauri/tauri.conf.json
+          sed -i '0,/^version = "[^"]*"/s//version = "'$VERSION'"/' src-tauri/Cargo.toml
           git add src-tauri/tauri.conf.json src-tauri/Cargo.toml
-          git diff --cached --quiet && echo "No changes" || (git commit -m "chore: bump desktop app version to v${{ steps.version.outputs.version }}" && git push origin HEAD:${{ github.event.repository.default_branch }})
+          git diff --cached --quiet && echo "No changes" || (git commit -m "chore: bump desktop app version to v$VERSION" && git push origin ${{ github.event.repository.default_branch }})
 
       - name: Create GitHub Release
         id: create
@@ -93,12 +101,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.repository.default_branch }}
-
-      - name: Pull latest
-        run: git pull
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
