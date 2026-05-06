@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation';
 export default function TauriHome() {
   const router = useRouter();
   useEffect(() => { router.replace('/login'); }, [router]);
-  return null;
+  return (<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0f172a',color:'white',fontSize:18}}>Loading DineOpen POS...</div>);
 }
 `;
 
@@ -129,6 +129,51 @@ function run() {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app',
       },
     });
+
+    // 8. Fix missing HTML files — Next.js 15 app router with 'use client' pages
+    //    generates server HTML in .next/server/app/ but doesn't always copy them
+    //    to /out during static export. Copy any missing HTML files.
+    const serverAppDir = path.join(ROOT, '.next', 'server', 'app');
+    const outDir = path.join(ROOT, 'out');
+    if (fs.existsSync(serverAppDir) && fs.existsSync(outDir)) {
+      let copied = 0;
+      const serverHtmlFiles = fs.readdirSync(serverAppDir).filter(f => f.endsWith('.html') && !f.startsWith('_'));
+      for (const htmlFile of serverHtmlFiles) {
+        const pageName = htmlFile.replace('.html', '');
+        const outHtml = path.join(outDir, htmlFile);
+        const outDirIndex = path.join(outDir, pageName, 'index.html');
+        // Copy as both flat file and directory/index.html for compatibility
+        if (!fs.existsSync(outHtml) && !fs.existsSync(outDirIndex)) {
+          const src = path.join(serverAppDir, htmlFile);
+          if (pageName === 'index') {
+            fs.copyFileSync(src, path.join(outDir, 'index.html'));
+          } else {
+            fs.mkdirSync(path.join(outDir, pageName), { recursive: true });
+            fs.copyFileSync(src, outDirIndex);
+            fs.copyFileSync(src, outHtml);
+          }
+          copied++;
+        }
+      }
+      // Also handle subdirectory pages (e.g., invoice/dashboard)
+      const walkServerApp = (dir, rel = '') => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (entry.isDirectory() && !entry.name.startsWith('_') && !entry.name.startsWith('(')) {
+            walkServerApp(path.join(dir, entry.name), path.join(rel, entry.name));
+          } else if (entry.isFile() && entry.name.endsWith('.html') && !entry.name.startsWith('_')) {
+            const pageName = entry.name.replace('.html', '');
+            const outPath = rel ? path.join(outDir, rel, entry.name) : path.join(outDir, entry.name);
+            if (!fs.existsSync(outPath)) {
+              fs.mkdirSync(path.dirname(outPath), { recursive: true });
+              fs.copyFileSync(path.join(dir, entry.name), outPath);
+              copied++;
+            }
+          }
+        }
+      };
+      walkServerApp(serverAppDir);
+      if (copied > 0) log(`Copied ${copied} missing HTML files from .next/server/app/ to /out`);
+    }
 
     buildSuccess = true;
     log('Static export complete! Output in /out directory.');
