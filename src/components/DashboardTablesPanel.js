@@ -6,7 +6,8 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { getBillPrintCSS, getBillHeaderHTML } from '../utils/printFontSizes';
+import { getBillPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
+import { printHtmlInHiddenFrame, printDocument, supportsNativeAutoPrint } from '../utils/printBridge';
 
 export default function DashboardTablesPanel({
   floors = [],
@@ -469,6 +470,39 @@ export default function DashboardTablesPanel({
     }
   };
 
+  const printFoodCourtTokensForOrder = async (order, delay = 1200) => {
+    if (!printSettings?.tokenBillingEnabled || !selectedRestaurant?.id || !order?.id) return;
+
+    try {
+      const tokenRes = await apiClient.getTokenRender(selectedRestaurant.id, order.id);
+      const tokens = tokenRes?.tokens || [];
+      if (!tokenRes?.success || tokens.length === 0) return;
+
+      const isNative = supportsNativeAutoPrint();
+      const pause = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+      if (isNative) {
+        // Native (Tauri/Capacitor): print each token as separate job — auto-cut between jobs
+        if (delay > 0) await pause(delay);
+        for (const token of tokens) {
+          const html = buildTokenSlipHTML(token, printSettings);
+          await printDocument({ html, type: 'bill', printSettings: printSettings || {} });
+          await pause(350);
+        }
+      } else {
+        // Web: combine all tokens with page breaks and print via hidden iframe
+        const tokenHtml = buildTokenSlipsDocumentHTML(tokens, printSettings);
+        setTimeout(() => {
+          printHtmlInHiddenFrame(tokenHtml).catch((err) => {
+            console.error('Food court token print failed:', err);
+          });
+        }, delay);
+      }
+    } catch (err) {
+      console.error('Food court token print error:', err);
+    }
+  };
+
   // Open manual print window with bill in standard format
   const openManualPrintWindow = (order, table) => {
     const win = window.open('', '_blank', 'width=800,height=600');
@@ -560,6 +594,7 @@ export default function DashboardTablesPanel({
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 500);
+    printFoodCourtTokensForOrder(order);
   };
 
 

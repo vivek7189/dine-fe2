@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaDatabase, FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaSpinner, FaClipboardList, FaShoppingCart, FaServer, FaToggleOn, FaToggleOff, FaPowerOff } from 'react-icons/fa';
-import { getOfflineEngineEnabled, setOfflineEngineEnabled } from '../hooks/useSyncEngine';
+import { FaDatabase, FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaSpinner, FaClipboardList, FaShoppingCart, FaServer, FaToggleOn, FaToggleOff, FaPowerOff, FaRedo, FaCircle, FaClock } from 'react-icons/fa';
+import { getOfflineEngineEnabled, setOfflineEngineEnabled, useSyncEngine } from '../hooks/useSyncEngine';
+import apiClient from '../lib/api';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -25,6 +26,20 @@ export default function OfflineDataTab() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [toast, setToast] = useState(null);
   const [offlineEnabled, setOfflineEnabled] = useState(() => getOfflineEngineEnabled());
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState(null);
+  const [expandedFailed, setExpandedFailed] = useState(false);
+
+  const {
+    pendingCount: syncPendingCount,
+    failedOrders: syncFailedOrders,
+    isOnline,
+    isSyncing,
+    circuitInfo,
+    manualSync,
+    retrySingleOrder,
+    retryAllFailed,
+    deleteFailedOrder,
+  } = useSyncEngine(apiClient);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -46,6 +61,10 @@ export default function OfflineDataTab() {
 
       // Get cached API data
       const cachedItems = await db.getAll('cached_api');
+
+      // Get essential data
+      let essentialItems = [];
+      try { essentialItems = await db.getAll('essential_data'); } catch { /* store may not exist yet */ }
 
       // Get sync logs
       const syncLogs = await db.getAll('sync_log');
@@ -111,6 +130,11 @@ export default function OfflineDataTab() {
         cache: {
           items: cachedItems.length,
           keys: cachedItems.map(c => c.cacheKey),
+        },
+        essentialData: {
+          count: essentialItems.length,
+          keys: essentialItems.map(e => e.key),
+          lastUpdated: essentialItems.length > 0 ? Math.max(...essentialItems.map(e => e.updatedAt || 0)) : null,
         },
         syncLogs: {
           count: syncLogs.length,
@@ -281,6 +305,21 @@ export default function OfflineDataTab() {
     }
   };
 
+  const handleClearEssential = async () => {
+    setClearing('essential');
+    try {
+      const { clearAllEssentialData } = await import('../lib/offlineDb');
+      await clearAllEssentialData();
+      showToast('Essential data cleared — will re-cache on next data load');
+      await loadStats();
+    } catch (err) {
+      showToast('Failed to clear essential data: ' + err.message, 'error');
+    } finally {
+      setClearing(null);
+      setConfirmAction(null);
+    }
+  };
+
   const actionMap = {
     all: { fn: handleClearAll, label: 'Clear ALL Offline Data', desc: 'This will delete all offline orders (including pending/failed), cached API data, sync logs, service worker caches, and localStorage caches. This cannot be undone.' },
     orders: { fn: handleClearOrders, label: 'Clear Offline Orders', desc: 'This will delete all offline orders including pending, failed, and synced orders from IndexedDB. Unsynced orders will be lost.' },
@@ -288,6 +327,7 @@ export default function OfflineDataTab() {
     logs: { fn: handleClearLogs, label: 'Clear Sync Logs', desc: 'This will clear all sync debug logs. No data will be lost.' },
     sw: { fn: handleClearSWCache, label: 'Clear Service Worker Caches', desc: 'This will clear all browser service worker caches (API responses, static assets). Pages may load slower on next visit.' },
     localStorage: { fn: handleClearLocalStorage, label: 'Clear Dashboard Cache', desc: 'This will clear all dashboard/page data caches from localStorage. Pages will fetch fresh data on next visit.' },
+    essential: { fn: handleClearEssential, label: 'Clear Essential Data', desc: 'This will clear persistent billing data (menu, floors, tax, print settings) from IndexedDB. This data is needed for offline billing after app restart. It will be re-cached automatically on next successful data load.' },
   };
 
   const cardStyle = {
@@ -532,6 +572,219 @@ export default function OfflineDataTab() {
                 <FaExclamationTriangle size={12} />
                 You have {stats.orders.pending} order(s) waiting to sync. Clearing will permanently delete them.
               </div>
+            )}
+          </div>
+
+          {/* Sync Engine Status */}
+          <div style={{
+            ...cardStyle,
+            border: circuitInfo.state === 'open' ? '1px solid #fca5a5' : circuitInfo.state === 'half_open' ? '1px solid #fde68a' : '1px solid #bbf7d0',
+            background: circuitInfo.state === 'open' ? '#fef2f2' : circuitInfo.state === 'half_open' ? '#fffbeb' : '#f0fdf4',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaCircle size={10} style={{
+                  color: circuitInfo.state === 'open' ? '#dc2626' : circuitInfo.state === 'half_open' ? '#f59e0b' : '#16a34a',
+                }} />
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>Sync Engine</h3>
+                <span style={{
+                  ...statBoxStyle,
+                  background: circuitInfo.state === 'open' ? '#fef2f2' : circuitInfo.state === 'half_open' ? '#fffbeb' : '#f0fdf4',
+                  color: circuitInfo.state === 'open' ? '#dc2626' : circuitInfo.state === 'half_open' ? '#d97706' : '#16a34a',
+                  fontSize: '12px',
+                }}>
+                  {circuitInfo.state === 'open' ? 'Paused' : circuitInfo.state === 'half_open' ? 'Testing' : isSyncing ? 'Syncing...' : 'Active'}
+                </span>
+                {!isOnline && (
+                  <span style={{ ...statBoxStyle, background: '#fef3c7', color: '#92400e', fontSize: '12px' }}>
+                    Offline
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={manualSync}
+                  disabled={!isOnline || isSyncing}
+                  style={{
+                    ...btnStyle('#2563eb'),
+                    opacity: (!isOnline || isSyncing) ? 0.4 : 1,
+                  }}
+                >
+                  {isSyncing ? <FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <FaSync size={11} />}
+                  Force Sync Now
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ ...statBoxStyle, background: '#fff7ed', color: '#c2410c' }}>
+                <FaClock size={11} /> {syncPendingCount} pending
+              </div>
+              <div style={{ ...statBoxStyle, background: '#fef2f2', color: '#dc2626' }}>
+                <FaExclamationTriangle size={11} /> {syncFailedOrders.length} failed
+              </div>
+              {circuitInfo.lastSuccessAt > 0 && (
+                <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <FaCheckCircle size={10} style={{ color: '#16a34a' }} /> Last sync: {formatTime(circuitInfo.lastSuccessAt)}
+                </div>
+              )}
+            </div>
+
+            {circuitInfo.state === 'open' && (
+              <div style={{
+                padding: '10px 14px', borderRadius: '8px', background: '#fee2e2',
+                fontSize: '13px', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px',
+              }}>
+                <FaExclamationTriangle size={12} />
+                Sync paused after {circuitInfo.consecutiveFailures} consecutive failures.
+                {circuitInfo.nextRetryIn > 0 && (
+                  <span> Auto-retry in {Math.ceil(circuitInfo.nextRetryIn / 1000)}s</span>
+                )}
+              </div>
+            )}
+
+            {/* Failed Orders List */}
+            {syncFailedOrders.length > 0 && (
+              <div style={{ marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <button
+                    onClick={() => setExpandedFailed(!expandedFailed)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#dc2626', padding: 0 }}
+                  >
+                    {expandedFailed ? '▼' : '▶'} {syncFailedOrders.length} Failed Order{syncFailedOrders.length !== 1 ? 's' : ''}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await retryAllFailed();
+                      showToast('All failed orders re-queued for sync');
+                    }}
+                    disabled={isSyncing}
+                    style={btnStyle('#f59e0b')}
+                  >
+                    <FaRedo size={11} /> Retry All
+                  </button>
+                </div>
+
+                {expandedFailed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {syncFailedOrders.map((order) => (
+                      <div key={order.idempotencyKey} style={{
+                        padding: '10px 14px', borderRadius: '8px', background: '#fff',
+                        border: '1px solid #fca5a5', fontSize: '13px',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: '600', color: '#111', marginBottom: '4px' }}>
+                              {order.orderData?._offlineAction === 'create_saved_cart' ? 'Saved Cart' :
+                               order.orderData?._offlineAction === 'complete_billing_new' ? 'New Bill' :
+                               order.orderData?._offlineAction === 'complete_billing_existing' ? 'Existing Bill' : 'Order'}
+                              {order.orderData?.items?.length > 0 && ` — ${order.orderData.items.length} item${order.orderData.items.length !== 1 ? 's' : ''}`}
+                            </div>
+                            <div style={{ color: '#9ca3af', fontSize: '12px' }}>
+                              {formatTime(order.createdAt)}
+                              {order.retryCount > 0 && <span> · {order.retryCount}/{5} attempts</span>}
+                            </div>
+                            {order.lastError && (
+                              <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>
+                                {order.lastError}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                            <button
+                              onClick={async () => {
+                                await retrySingleOrder(order.idempotencyKey);
+                                showToast('Order re-queued for sync');
+                              }}
+                              disabled={isSyncing}
+                              style={{
+                                padding: '4px 10px', borderRadius: '6px', border: '1px solid #f59e0b',
+                                background: '#fffbeb', color: '#92400e', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                              }}
+                            >
+                              <FaRedo size={10} /> Retry
+                            </button>
+                            {confirmDeleteKey === order.idempotencyKey ? (
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button
+                                  onClick={async () => {
+                                    await deleteFailedOrder(order.idempotencyKey);
+                                    setConfirmDeleteKey(null);
+                                    showToast('Failed order deleted');
+                                    await loadStats();
+                                  }}
+                                  style={{
+                                    padding: '4px 10px', borderRadius: '6px', border: 'none',
+                                    background: '#dc2626', color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                                  }}
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteKey(null)}
+                                  style={{
+                                    padding: '4px 10px', borderRadius: '6px', border: '1px solid #e5e7eb',
+                                    background: '#fff', color: '#374151', fontSize: '12px', cursor: 'pointer',
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteKey(order.idempotencyKey)}
+                                style={{
+                                  padding: '4px 10px', borderRadius: '6px', border: '1px solid #fca5a5',
+                                  background: '#fef2f2', color: '#dc2626', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                                }}
+                              >
+                                <FaTrash size={10} /> Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Essential Data (Persistent Cache) */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaDatabase style={{ color: '#059669' }} />
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>Essential Data (Persistent)</h3>
+                <span style={{ ...statBoxStyle, background: '#ecfdf5', color: '#065f46', fontSize: '12px' }}>
+                  {stats.essentialData.count} items
+                </span>
+              </div>
+              <button onClick={() => setConfirmAction('essential')} disabled={!!clearing || stats.essentialData.count === 0} style={{ ...btnStyle('#059669'), opacity: stats.essentialData.count === 0 ? 0.4 : 1 }}>
+                <FaTrash size={11} /> Clear
+              </button>
+            </div>
+            {stats.essentialData.count > 0 ? (
+              <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {stats.essentialData.keys.map(key => (
+                    <span key={key} style={{ padding: '3px 10px', borderRadius: '6px', background: '#ecfdf5', color: '#065f46', fontSize: '12px', fontFamily: 'monospace' }}>
+                      {key}
+                    </span>
+                  ))}
+                </div>
+                {stats.essentialData.lastUpdated && (
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                    Last updated: {formatTime(stats.essentialData.lastUpdated)}
+                  </div>
+                )}
+                <div style={{ marginTop: '8px', padding: '8px 12px', background: '#ecfdf5', borderRadius: '8px', fontSize: '12px', color: '#065f46' }}>
+                  This data survives app restarts and enables offline billing. Not cleared by &quot;Clear API Cache&quot;.
+                </div>
+              </>
+            ) : (
+              <p style={{ margin: 0, color: '#9ca3af', fontSize: '13px' }}>No essential data cached. Visit the billing page while online to cache data.</p>
             )}
           </div>
 

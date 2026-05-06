@@ -15,6 +15,8 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import apiClient from '../../../lib/api';
 import { t } from '../../../lib/i18n';
+import { setCachedData, getCachedData } from '../../../lib/offlineDb';
+import OfflineBanner from '../../../components/OfflineBanner';
 
 // ─── Onboarding Checklist Widget ─────────────────────────────
 function OnboardingChecklist({ onDismiss }) {
@@ -253,8 +255,23 @@ export default function HomePage() {
       const restaurantId = localStorage.getItem('selectedRestaurantId') || userData?.restaurantId;
       if (!restaurantId) return;
       const data = await apiClient.getOrders(restaurantId, { limit: 5, sort: 'newest' });
-      if (data?.orders) setRecentOrders(data.orders.slice(0, 5));
-    } catch (err) { console.error('Error loading recent orders:', err); }
+      if (data?.orders) {
+        const orders = data.orders.slice(0, 5);
+        setRecentOrders(orders);
+        setCachedData('home_orders_' + restaurantId, orders).catch(() => {});
+      }
+    } catch (err) {
+      console.error('Error loading recent orders:', err);
+      try {
+        const restaurantId = localStorage.getItem('selectedRestaurantId') || userData?.restaurantId;
+        if (!restaurantId) return;
+        const cached = await Promise.race([
+          getCachedData('home_orders_' + restaurantId),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ]);
+        if (cached) setRecentOrders(cached);
+      } catch { /* no cached data */ }
+    }
   };
 
   const loadTables = async (userData) => {
@@ -265,9 +282,22 @@ export default function HomePage() {
       if (data?.tables) {
         const total = data.tables.length;
         const occupied = data.tables.filter(t => t.status === 'occupied' || t.status === 'reserved').length;
-        setTables({ total, occupied, available: total - occupied });
+        const tableData = { total, occupied, available: total - occupied };
+        setTables(tableData);
+        setCachedData('home_tables_' + restaurantId, tableData).catch(() => {});
       }
-    } catch (err) { console.error('Error loading tables:', err); }
+    } catch (err) {
+      console.error('Error loading tables:', err);
+      try {
+        const restaurantId = localStorage.getItem('selectedRestaurantId') || userData?.restaurantId;
+        if (!restaurantId) return;
+        const cached = await Promise.race([
+          getCachedData('home_tables_' + restaurantId),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ]);
+        if (cached) setTables(cached);
+      } catch { /* no cached data */ }
+    }
   };
 
   const navigateTo = (href) => {
@@ -396,6 +426,8 @@ export default function HomePage() {
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .animate-in { animation: fadeInUp 0.4s ease forwards; }
       `}</style>
+
+      <OfflineBanner />
 
       {/* Header */}
       <div className="animate-in" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>

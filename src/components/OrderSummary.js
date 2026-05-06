@@ -7,9 +7,9 @@ import { t } from '../lib/i18n';
 import { useCurrency } from '../contexts/CurrencyContext';
 import useCustomerLookup, { getPhoneMinLength } from '../hooks/useCustomerLookup';
 import useOfferEngine, { calculateDiscountForOffer } from '../hooks/useOfferEngine';
-import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML } from '../utils/printFontSizes';
+import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipHTML, buildTokenSlipsDocumentHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
-import { printDocument, supportsNativeAutoPrint } from '../utils/printBridge';
+import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../utils/printBridge';
 
 const CustomerDetailModal = dynamic(() => import('./CustomerDetailModal'), { ssr: false });
 import UpiPaymentModal from './UpiPaymentModal';
@@ -368,6 +368,44 @@ const OrderSummary = ({
 
   const kotPrintWindowRef = useRef(null);
   const invoicePrintWindowRef = useRef(null);
+  const [foodCourtTokenPreview, setFoodCourtTokenPreview] = useState(null);
+
+  const printFoodCourtTokens = useCallback(async (tokenRestaurantId, orderId, { delay = 900 } = {}) => {
+    if (!printSettings?.tokenBillingEnabled || !tokenRestaurantId || !orderId) return;
+
+    const isNativePrint = supportsNativeAutoPrint();
+    try {
+      const tokenRes = await apiClient.getTokenRender(tokenRestaurantId, orderId);
+      const tokens = tokenRes?.tokens || [];
+      if (!tokenRes?.success || tokens.length === 0) {
+        setFoodCourtTokenPreview(null);
+        return;
+      }
+
+      if (isNativePrint) {
+        const pause = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        if (delay > 0) {
+          await pause(delay);
+        }
+        for (const token of tokens) {
+          const tokenHtml = buildTokenSlipHTML(token, printSettings);
+          await printDocument({ html: tokenHtml, type: 'bill', printSettings: printSettings || {} });
+          await pause(350);
+        }
+        return;
+      }
+
+      setTimeout(() => {
+        setFoodCourtTokenPreview({
+          restaurantId: tokenRestaurantId,
+          orderId,
+          tokens,
+        });
+      }, delay);
+    } catch (err) {
+      console.error('Token print error:', err);
+    }
+  }, [printSettings]);
 
   // Dismiss KOT/billing summary when user starts a new action (adds items, loads saved order)
   // Also reset all offer/loyalty/discount state since this is a fresh order
@@ -537,9 +575,15 @@ const OrderSummary = ({
 
         // Native (Tauri/Capacitor): use native print bridge — works offline
         if (supportsNativeAutoPrint()) {
+          // Track printed order BEFORE printing to prevent duplicate from Pusher auto-print
+          const localOrderId = invoice?.id || invoice?.orderId;
+          if (localOrderId) {
+            window.__lastLocalPrintedBill = localOrderId;
+            window.__lastLocalPrintedTokens = localOrderId;
+          }
           printDocument({ html: invoiceContent, type: 'bill', printSettings: printSettings || {} });
-          // Track printed order to prevent duplicate from Pusher auto-print
-          if (invoice?.id || invoice?.orderId) window.__lastLocalPrintedBill = invoice.id || invoice.orderId;
+          // Print food court tokens after bill on native (each token = separate print job with auto-cut)
+          printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
         } else {
           // Web: window.open + print dialog
           const win = window.open('', '_blank', 'width=800,height=600');
@@ -548,35 +592,11 @@ const OrderSummary = ({
             win.document.write(invoiceContent);
             win.document.close();
             win.focus();
-            setTimeout(() => win.print(), 500);
+            setTimeout(() => {
+              win.print();
+              printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
+            }, 500);
           }
-        }
-
-        // Food court token printing (online only — tokens require API)
-        if (printSettings?.tokenBillingEnabled && invoice?.id && invoice?.restaurantId) {
-          (async () => {
-            try {
-              const tokenRes = await apiClient.getTokenRender(invoice.restaurantId, invoice.id);
-              if (tokenRes?.success && tokenRes.tokens?.length > 0) {
-                const { buildTokenSlipHTML } = await import('../utils/printFontSizes');
-                for (let ti = 0; ti < tokenRes.tokens.length; ti++) {
-                  const tokenHtml = buildTokenSlipHTML(tokenRes.tokens[ti], printSettings);
-                  if (supportsNativeAutoPrint()) {
-                    // Native: use print bridge
-                    setTimeout(() => {
-                      printDocument({ html: tokenHtml, type: 'bill', printSettings: printSettings || {} });
-                    }, 500 + (ti * 800));
-                  } else {
-                    // Web: window.open
-                    setTimeout(() => {
-                      const tw = window.open('', '_blank', 'width=300,height=400');
-                      if (tw) { tw.document.write(tokenHtml); tw.document.close(); tw.focus(); setTimeout(() => tw.print(), 300); }
-                    }, 1500 + (ti * 1500));
-                  }
-                }
-              }
-            } catch (err) { console.error('Token print error:', err); }
-          })();
         }
       }, 800);
       return () => clearTimeout(timer);
@@ -610,7 +630,27 @@ const OrderSummary = ({
       setWaSending(false);
     }
   };
-  
+
+  const printPreviewedFoodCourtTokens = () => {
+    if (!foodCourtTokenPreview?.tokens?.length) return;
+    const html = buildTokenSlipsDocumentHTML(foodCourtTokenPreview.tokens, printSettings || {});
+    printHtmlInHiddenFrame(html).catch((err) => {
+      console.error('Food court token preview print failed:', err);
+      alert('Token preview could not be printed.');
+    });
+  };
+
+  const tokenSlipPalette = [
+    { bg: '#fef2f2', fg: '#b91c1c', border: '#fecaca', icon: FaTag },
+    { bg: '#eff6ff', fg: '#1d4ed8', border: '#bfdbfe', icon: FaUtensils },
+    { bg: '#f0fdf4', fg: '#15803d', border: '#bbf7d0', icon: FaConciergeBell },
+    { bg: '#fff7ed', fg: '#c2410c', border: '#fed7aa', icon: FaPrint },
+    { bg: '#f5f3ff', fg: '#6d28d9', border: '#ddd6fe', icon: FaCreditCard },
+    { bg: '#ecfeff', fg: '#0e7490', border: '#a5f3fc', icon: FaShoppingCart },
+  ];
+
+  const getTokenSlipTheme = (index) => tokenSlipPalette[index % tokenSlipPalette.length];
+
   // Debug: Log cart prop received by OrderSummary
   console.log('📋 OrderSummary: Received cart prop:', cart);
   console.log('📋 OrderSummary: Cart length:', cart?.length);
@@ -2375,6 +2415,7 @@ const OrderSummary = ({
                       if (printWindow && !printWindow.closed) {
                         printWindow.focus();
                         printWindow.print();
+                        printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
                         return;
                       }
                       const win = window.open('', '_blank', 'width=800,height=600');
@@ -2427,25 +2468,11 @@ const OrderSummary = ({
                       win.document.write(invoiceContent);
                       win.document.close();
                       win.focus();
-                      setTimeout(() => win.print(), 500);
-                      // Food court token printing: print category-wise token slips after bill
-                      if (printSettings?.tokenBillingEnabled && invoice?.id && invoice?.restaurantId) {
-                        (async () => {
-                          try {
-                            const tokenRes = await apiClient.getTokenRender(invoice.restaurantId, invoice.id);
-                            if (tokenRes?.success && tokenRes.tokens?.length > 0) {
-                              const { buildTokenSlipHTML } = await import('../utils/printFontSizes');
-                              for (let ti = 0; ti < tokenRes.tokens.length; ti++) {
-                                const tokenHtml = buildTokenSlipHTML(tokenRes.tokens[ti], printSettings);
-                                setTimeout(() => {
-                                  const tw = window.open('', '_blank', 'width=300,height=400');
-                                  if (tw) { tw.document.write(tokenHtml); tw.document.close(); tw.focus(); setTimeout(() => tw.print(), 300); }
-                                }, 1500 + (ti * 1500));
-                              }
-                            }
-                          } catch (err) { console.error('Token print error:', err); }
-                        })();
-                      }
+                      setTimeout(() => {
+                        win.print();
+                        // Food court token printing: preview/print category-wise token slips after bill.
+                        printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
+                      }, 500);
                     }}
                     style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}
                   >
@@ -5296,6 +5323,243 @@ const OrderSummary = ({
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
               >
                 {totalDiscountAmount > 0 ? `Apply & Save ${formatCurrency(totalDiscountAmount)}` : 'Done'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {foodCourtTokenPreview?.tokens?.length > 0 && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setFoodCourtTokenPreview(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            background: 'rgba(15, 23, 42, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(1120px, 100%)',
+              maxHeight: '92vh',
+              background: '#fff',
+              borderRadius: '18px',
+              overflow: 'hidden',
+              boxShadow: '0 24px 80px rgba(15, 23, 42, 0.28)',
+              border: '1px solid #e2e8f0',
+              display: 'grid',
+              gridTemplateRows: 'auto 1fr auto'
+            }}
+          >
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#0f172a', fontWeight: 800, fontSize: '16px' }}>
+                  <FaPrint size={15} color="#16a34a" />
+                  Food Court Tokens
+                </div>
+                <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                  Each category prints as its own thermal slip. The preview below matches the printed order.
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={printPreviewedFoodCourtTokens}
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: '#16a34a',
+                    color: '#fff',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <FaPrint size={13} />
+                  Print Tokens
+                </button>
+                <button
+                  onClick={() => setFoodCourtTokenPreview(null)}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    background: '#fff',
+                    color: '#334155',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <FaTimes size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '18px',
+              overflow: 'auto',
+              background: '#f8fafc'
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+                gap: '16px',
+                alignItems: 'start'
+              }}>
+                {foodCourtTokenPreview.tokens.map((token, index) => {
+                  const theme = getTokenSlipTheme(index);
+                  const SlipIcon = theme.icon;
+                  return (
+                    <div
+                      key={`${token.tokenLabel}-${index}`}
+                      style={{
+                        background: '#fff',
+                        borderRadius: '14px',
+                        border: `1px solid ${theme.border}`,
+                        boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div style={{
+                        padding: '14px 14px 12px',
+                        borderBottom: `1px dashed ${theme.border}`,
+                        background: theme.bg
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '34px',
+                              height: '34px',
+                              borderRadius: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#fff',
+                              border: `1px solid ${theme.border}`,
+                              color: theme.fg
+                            }}>
+                              <SlipIcon size={16} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                                {token.categoryName || 'General'}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                Order #{token.orderNumber}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            color: theme.fg,
+                            background: '#fff',
+                            border: `1px solid ${theme.border}`,
+                            borderRadius: '999px',
+                            padding: '5px 10px'
+                          }}>
+                            {token.tokenLabel}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ padding: '12px 14px 14px' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px' }}>
+                          Counter {token.printStationName || token.categoryName || 'General'}
+                        </div>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                          {(token.items || []).map((item, itemIndex) => (
+                            <div
+                              key={`${token.tokenLabel}-${itemIndex}`}
+                              style={{
+                                padding: '10px 12px',
+                                borderRadius: '10px',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                                <div style={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                                  {item.quantity || 1}x {item.name || 'Item'}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                  slip
+                                </div>
+                              </div>
+                              {(item.variant || (Array.isArray(item.customizations) && item.customizations.length > 0)) && (
+                                <div style={{ marginTop: '6px', fontSize: '11px', color: '#475569', lineHeight: 1.45 }}>
+                                  {item.variant && <div>Variant: {item.variant}</div>}
+                                  {Array.isArray(item.customizations) && item.customizations.length > 0 && (
+                                    <div>Notes: {item.customizations.map(c => c.name || c).join(', ')}</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{
+                          marginTop: '12px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '11px',
+                          color: '#64748b'
+                        }}>
+                          <span>{token.time}</span>
+                          <span>{token.itemCount} items</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{
+              padding: '12px 20px',
+              borderTop: '1px solid #e2e8f0',
+              background: '#fff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: '12px',
+              alignItems: 'center',
+              fontSize: '12px',
+              color: '#64748b'
+            }}>
+              <span>{foodCourtTokenPreview.tokens.length} category slips ready to print.</span>
+              <button
+                onClick={() => setFoodCourtTokenPreview(null)}
+                style={{
+                  border: '1px solid #e2e8f0',
+                  background: '#fff',
+                  color: '#334155',
+                  borderRadius: '10px',
+                  padding: '9px 14px',
+                  cursor: 'pointer',
+                  fontWeight: 700
+                }}
+              >
+                Close
               </button>
             </div>
           </div>

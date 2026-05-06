@@ -11,6 +11,7 @@ import { canPerform } from '../../../lib/permissions';
 import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
@@ -230,6 +231,7 @@ const TableManagement = () => {
   const router = useRouter();
   const { isLoading } = useLoading();
   const { getCurrencySymbol } = useCurrency();
+  const { isOnline } = useNetworkStatus();
   const { showSuccess, showError, showWarning, NotificationContainer } = useNotification();
   const [currentLanguage, setCurrentLanguage] = useState('en');
 
@@ -625,7 +627,10 @@ const TableManagement = () => {
     } catch (err) {
       console.warn('🔌 Floors API failed, trying IndexedDB:', err.message);
       try {
-        const idbData = await getCachedData(`tables_${restaurantId}`);
+        const idbData = await Promise.race([
+          getCachedData(`tables_${restaurantId}`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ]);
         if (idbData?.floors) {
           setFloors(idbData.floors);
         } else {
@@ -639,6 +644,7 @@ const TableManagement = () => {
 
   // ── Reset all tables ──────────────────────────────────
   const handleResetAllTables = async () => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     const allTables = floors.flatMap(f => f.tables || []);
     const occupiedCount = allTables.filter(t => t.status === 'occupied').length;
     if (occupiedCount === 0) {
@@ -664,6 +670,7 @@ const TableManagement = () => {
 
   // ── CRUD operations ────────────────────────────────────
   const addFloor = async () => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     if (!newFloor.name.trim() || !selectedRestaurant) return;
     setActionLoading(true);
     try {
@@ -701,6 +708,7 @@ const TableManagement = () => {
   const [deletingFloor, setDeletingFloor] = useState(false);
 
   const deleteFloor = async (floorId) => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     if (!selectedRestaurant?.id) {
       showError('No restaurant selected');
       return;
@@ -747,6 +755,7 @@ const TableManagement = () => {
   };
 
   const addTable = async () => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     if (!newTable.name.trim() || !selectedFloorForTable || !selectedRestaurant) return;
     setActionLoading(true);
     try {
@@ -811,6 +820,7 @@ const TableManagement = () => {
   };
 
   const deleteTable = async (tableId) => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     if (!confirm(t('tables.deleteThisTable'))) return;
     try {
       await apiClient.deleteTable(tableId, selectedRestaurant?.id);
@@ -820,6 +830,7 @@ const TableManagement = () => {
   };
 
   const createBooking = async () => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     if (!selectedTable || !bookingData.customerName.trim() || !selectedRestaurant) return;
     setBookingSubmitting(true);
     try {
@@ -870,6 +881,7 @@ const TableManagement = () => {
   };
 
   const cancelBooking = async (bookingId) => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     try {
       await apiClient.cancelBooking(bookingId);
       fetchBookingsForDate(selectedDate);
@@ -879,6 +891,7 @@ const TableManagement = () => {
   };
 
   const updateBookingStatus = async (bookingId, status) => {
+    if (!isOnline) { showError('You are offline. Go online to make changes.'); return; }
     try {
       await apiClient.updateBooking(bookingId, { status });
       fetchBookingsForDate(selectedDate);

@@ -8,7 +8,8 @@ import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
-import { isWeb } from '../../../utils/platform';
+import { isWeb, isTauri } from '../../../utils/platform';
+import { isAutoUpdateEnabled, setAutoUpdateEnabled, checkForUpdates, getAppVersion, restartApp } from '../../../utils/autoUpdater';
 import { 
   FaStore, 
   FaUsers, 
@@ -3975,6 +3976,134 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     </div>
   );
 };
+
+/** Auto-Update Settings — only rendered inside Tauri desktop app */
+function AutoUpdateSection() {
+  const [enabled, setEnabled] = useState(false);
+  const [version, setVersion] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState(null); // 'up-to-date' | 'downloading' | 'ready' | 'error'
+  const [updateVersion, setUpdateVersion] = useState(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const desktop = isTauri();
+    setIsDesktop(desktop);
+    if (!desktop) return;
+    setEnabled(isAutoUpdateEnabled());
+    getAppVersion().then(v => setVersion(v));
+  }, []);
+
+  if (!isDesktop) return null;
+
+  const handleToggle = () => {
+    const newVal = !enabled;
+    setEnabled(newVal);
+    setAutoUpdateEnabled(newVal);
+  };
+
+  const handleCheckNow = async () => {
+    setChecking(true);
+    setUpdateStatus(null);
+    const result = await checkForUpdates({
+      autoInstall: true,
+      onUpdateFound: ({ version: v }) => {
+        setUpdateVersion(v);
+        setUpdateStatus('downloading');
+      },
+      onUpToDate: () => setUpdateStatus('up-to-date'),
+      onError: () => setUpdateStatus('error'),
+    });
+    if (result?.installed) {
+      setUpdateStatus('ready');
+      setUpdateVersion(result.version);
+    }
+    setChecking(false);
+  };
+
+  return (
+    <div style={{
+      marginTop: '28px',
+      padding: '24px',
+      borderRadius: '12px',
+      background: '#fff',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+    }}>
+      <div style={{ fontWeight: '700', fontSize: '16px', color: '#111827', marginBottom: '16px' }}>
+        Automatic Updates
+      </div>
+
+      {/* Version display */}
+      {version && (
+        <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+          Current version: <strong>v{version}</strong>
+        </div>
+      )}
+
+      {/* Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Auto-update on startup</div>
+          <div style={{ fontSize: '12px', color: '#9ca3af' }}>Automatically check and install updates when the app launches</div>
+        </div>
+        <button
+          onClick={handleToggle}
+          style={{
+            width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+            background: enabled ? '#22c55e' : '#d1d5db',
+            position: 'relative', transition: 'background 0.2s',
+          }}
+        >
+          <div style={{
+            width: '18px', height: '18px', borderRadius: '50%', background: 'white',
+            position: 'absolute', top: '3px', left: enabled ? '23px' : '3px',
+            transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          }} />
+        </button>
+      </div>
+
+      {/* Manual check button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button
+          onClick={handleCheckNow}
+          disabled={checking}
+          style={{
+            padding: '8px 18px', background: checking ? '#9ca3af' : '#3b82f6', color: 'white',
+            border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px',
+            cursor: checking ? 'default' : 'pointer',
+          }}
+        >
+          {checking ? 'Checking...' : 'Check for Updates'}
+        </button>
+
+        {updateStatus === 'up-to-date' && (
+          <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>App is up to date</span>
+        )}
+        {updateStatus === 'downloading' && (
+          <span style={{ fontSize: '13px', color: '#3b82f6', fontWeight: '500' }}>Downloading v{updateVersion}...</span>
+        )}
+        {updateStatus === 'ready' && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>v{updateVersion} ready!</span>
+            <button
+              onClick={() => restartApp()}
+              style={{
+                padding: '6px 14px', background: '#22c55e', color: 'white',
+                border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer',
+              }}
+            >
+              Restart Now
+            </button>
+          </span>
+        )}
+        {updateStatus === 'error' && (
+          <span style={{ fontSize: '13px', color: '#ef4444', fontWeight: '500' }}>Failed to check for updates</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const Admin = () => {
   const router = useRouter();
@@ -10599,6 +10728,9 @@ const Admin = () => {
               <li>Log in with your DineOpen account and start billing</li>
             </ol>
           </div>
+
+          {/* Auto-Update Settings — only visible on Tauri desktop app */}
+          <AutoUpdateSection />
         </div>
       )}
 

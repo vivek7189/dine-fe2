@@ -586,22 +586,113 @@ export async function prefetchDashboardInBackground(apiClient) {
 
     // Also persist to IndexedDB if available
     try {
-      const { setCachedData } = await import('../lib/offlineDb');
+      const { setCachedData, saveEssentialData } = await import('../lib/offlineDb');
       await setCachedData(`dashboard_${restaurant.id}`, dataToCache);
+      // Save to essential_data (survives restart, separate from clearable cache)
+      saveEssentialData(`menu_${restaurant.id}`, menuItems);
+      saveEssentialData(`floors_${restaurant.id}`, floors);
+      saveEssentialData(`restaurant_${restaurant.id}`, restaurant);
     } catch { /* IndexedDB not critical */ }
 
     // Step 4: Prefetch tax settings
     try {
       const taxResponse = await apiClient.getTaxSettings(restaurant.id);
-      if (taxResponse) {
-        const { setCachedData } = await import('../lib/offlineDb');
-        await setCachedData(`tax_${restaurant.id}`, taxResponse).catch(() => {});
+      if (taxResponse?.taxSettings) {
+        const { setCachedData, saveEssentialData } = await import('../lib/offlineDb');
+        await setCachedData(`tax_${restaurant.id}`, taxResponse.taxSettings).catch(() => {});
+        saveEssentialData(`tax_${restaurant.id}`, taxResponse.taxSettings);
       }
     } catch { /* tax not critical */ }
+
+    // Step 5: Prefetch print settings
+    try {
+      const printResponse = await apiClient.getPrintSettings(restaurant.id);
+      if (printResponse?.printSettings) {
+        const { saveEssentialData } = await import('../lib/offlineDb');
+        saveEssentialData(`printSettings_${restaurant.id}`, printResponse.printSettings);
+      }
+    } catch { /* print settings not critical */ }
+
+    // Step 6: Prefetch pricing rules
+    try {
+      const pricingResponse = await apiClient.getPricingSettings(restaurant.id);
+      const mp = pricingResponse?.settings?.multiPricing;
+      if (mp) {
+        const { saveEssentialData } = await import('../lib/offlineDb');
+        saveEssentialData(`pricingRules_${restaurant.id}`, { enabled: mp.enabled, rules: mp.rules || [] });
+      }
+    } catch { /* pricing not critical */ }
 
     console.log('✅ Background prefetch: complete for', restaurant.name);
   } catch (error) {
     console.warn('⚠️ Background prefetch failed (non-critical):', error.message);
   }
+}
+
+/**
+ * Update a single menu item across all cache layers.
+ * Used when a menu item is modified offline (availability, price, favorite)
+ * so the change reflects on both /menu and /dashboard pages.
+ *
+ * @param {string} restaurantId
+ * @param {string} itemId
+ * @param {Object} updates - Partial fields to merge into the item (e.g. { isAvailable: false })
+ */
+export async function updateMenuItemInAllCaches(restaurantId, itemId, updates) {
+  const applyUpdate = (items) =>
+    items.map(item => item.id === itemId ? { ...item, ...updates } : item);
+
+  try {
+    // 1. localStorage menu cache (menu page)
+    const menuCacheKey = `${MENU_CACHE_PREFIX}${restaurantId}`;
+    const menuRaw = localStorage.getItem(menuCacheKey);
+    if (menuRaw) {
+      const menuCache = JSON.parse(menuRaw);
+      if (menuCache.data?.menuItems) {
+        menuCache.data.menuItems = applyUpdate(menuCache.data.menuItems);
+        menuCache.timestamp = Date.now();
+        localStorage.setItem(menuCacheKey, JSON.stringify(menuCache));
+      }
+    }
+  } catch { /* best effort */ }
+
+  try {
+    // 2. localStorage dashboard cache
+    const dashCacheKey = `${CACHE_PREFIX}${restaurantId}`;
+    const dashRaw = localStorage.getItem(dashCacheKey);
+    if (dashRaw) {
+      const dashCache = JSON.parse(dashRaw);
+      if (dashCache.data?.menuItems) {
+        dashCache.data.menuItems = applyUpdate(dashCache.data.menuItems);
+        dashCache.timestamp = Date.now();
+        localStorage.setItem(dashCacheKey, JSON.stringify(dashCache));
+      }
+    }
+  } catch { /* best effort */ }
+
+  try {
+    // 3. IndexedDB caches + essential data
+    const { setCachedData, getCachedData, saveEssentialData, getEssentialData } = await import('../lib/offlineDb');
+
+    // IndexedDB menu cache
+    const menuIdb = await getCachedData(`menu_${restaurantId}`);
+    if (menuIdb?.menuItems) {
+      menuIdb.menuItems = applyUpdate(menuIdb.menuItems);
+      await setCachedData(`menu_${restaurantId}`, menuIdb);
+    }
+
+    // IndexedDB dashboard cache
+    const dashIdb = await getCachedData(`dashboard_${restaurantId}`);
+    if (dashIdb?.menuItems) {
+      dashIdb.menuItems = applyUpdate(dashIdb.menuItems);
+      await setCachedData(`dashboard_${restaurantId}`, dashIdb);
+    }
+
+    // Essential data (persistent fallback)
+    const essentialMenu = await getEssentialData(`menu_${restaurantId}`);
+    if (Array.isArray(essentialMenu)) {
+      await saveEssentialData(`menu_${restaurantId}`, applyUpdate(essentialMenu));
+    }
+  } catch { /* best effort — IndexedDB may not be available */ }
 }
 

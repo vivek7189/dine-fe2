@@ -33,6 +33,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEwMTgwNjg2MjBBQUU4OUIKUldTYjZLb2doZ1lZRU96MXJ2a0pxVmtyWkpOUS9vN2p6WWtMR0VBQ0NGNWRtWXdWcGh3WWFZc2MK",
+      "endpoints": ["https://dine-backend-lake.vercel.app/api/public/desktop-update"]
+    }
   }
 }

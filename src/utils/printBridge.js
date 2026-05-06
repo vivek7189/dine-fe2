@@ -63,6 +63,56 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
 }
 
 /**
+ * Print a complete HTML document in a hidden iframe.
+ * This avoids popup blockers for web preview/print flows that are triggered by a user click.
+ */
+export function printHtmlInHiddenFrame(html) {
+  if (!isWeb() || typeof document === 'undefined') {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.position = 'fixed';
+    frame.style.right = '0';
+    frame.style.bottom = '0';
+    frame.style.width = '0';
+    frame.style.height = '0';
+    frame.style.border = '0';
+    frame.style.opacity = '0';
+    frame.style.pointerEvents = 'none';
+
+    const cleanup = () => {
+      try {
+        frame.remove();
+      } catch (err) {
+        // ignore cleanup failures
+      }
+    };
+
+    frame.onload = () => {
+      try {
+        const win = frame.contentWindow;
+        if (!win) throw new Error('Print frame window unavailable');
+        win.focus();
+        win.print();
+        setTimeout(() => {
+          cleanup();
+          resolve();
+        }, 1200);
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  });
+}
+
+/**
  * Capture HTML from an on-screen DOM element.
  * Wraps the element's innerHTML in a full HTML document with print styles.
  */

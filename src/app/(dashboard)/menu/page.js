@@ -12,10 +12,13 @@ import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import { getDisplayImage } from '../../../utils/placeholderImages';
-import { getCachedMenuData, setCachedMenuData } from '../../../utils/dashboardCache';
+import { getCachedMenuData, setCachedMenuData, updateMenuItemInAllCaches } from '../../../utils/dashboardCache';
 import { getCachedData, setCachedData } from '../../../lib/offlineDb';
+import { queueOfflineOrder, generateIdempotencyKey } from '../../../lib/syncEngine';
+import { getOfflineEngineEnabled } from '../../../hooks/useSyncEngine';
 import { canPerform } from '../../../lib/permissions';
 import OfflineBanner from '../../../components/OfflineBanner';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { 
   FaPlus, 
   FaEdit,
@@ -108,8 +111,9 @@ const CategoryDropdown = ({
   };
 
   const handleAddNew = async () => {
+    if (!navigator.onLine) { alert('You are offline. Go online to make changes.'); return; }
     if (!newCategory.name.trim()) return;
-    
+
     try {
       setLoading(true);
       const response = await apiClient.createCategory(restaurantId, newCategory);
@@ -138,8 +142,9 @@ const CategoryDropdown = ({
   };
 
   const handleUpdate = async () => {
+    if (!navigator.onLine) { alert('You are offline. Go online to make changes.'); return; }
     if (!editingCategory || !newCategory.name.trim()) return;
-    
+
     try {
       setLoading(true);
       const response = await apiClient.updateCategory(restaurantId, editingCategory.id, newCategory);
@@ -158,8 +163,9 @@ const CategoryDropdown = ({
   };
 
   const handleDelete = async (category) => {
+    if (!navigator.onLine) { alert('You are offline. Go online to make changes.'); return; }
     if (!confirm(t('menu.deleteCategoryConfirm', { name: category.name }))) return;
-    
+
     try {
       setLoading(true);
       await apiClient.deleteCategory(restaurantId, category.id);
@@ -1939,6 +1945,7 @@ const MenuManagement = () => {
   const { isLoading } = useLoading();
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
+  const { isOnline } = useNetworkStatus();
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]); // Dynamic: from backend or from menu photo extraction
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -2342,6 +2349,7 @@ const MenuManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isOnline && !editingItem) { alert('You are offline. Go online to add new items.'); return; }
     if (!currentRestaurant) return;
 
     try {
@@ -2431,11 +2439,41 @@ const MenuManagement = () => {
 
       if (editingItem) {
         // Update existing item
-        await apiClient.updateMenuItem(editingItem.id, itemData, currentRestaurant?.id);
+        if (!isOnline && !getOfflineEngineEnabled()) {
+          setError('You are offline. Go online to make changes.');
+          return;
+        }
+        if (!isOnline && getOfflineEngineEnabled()) {
+          // Offline: queue update for later sync, update local state + caches
+          const updateFields = {
+            name: itemData.name,
+            price: itemData.price,
+            description: itemData.description,
+            category: itemData.category,
+            veg: itemData.veg,
+            variants: itemData.variants,
+            customizations: itemData.customizations,
+            pricingRules: itemData.pricingRules,
+          };
+          await queueOfflineOrder({
+            restaurantId: currentRestaurant.id,
+            _offlineAction: 'update_menu_item',
+            _menuItemId: editingItem.id,
+            _menuUpdateData: updateFields,
+            _restaurantId: currentRestaurant.id,
+            idempotencyKey: generateIdempotencyKey(),
+          });
+          updateMenuItemInAllCaches(currentRestaurant.id, editingItem.id, updateFields).catch(() => {});
+        } else {
+          await apiClient.updateMenuItem(editingItem.id, itemData, currentRestaurant?.id);
+        }
         setMenuItems(items => items.map(item =>
           item.id === editingItem.id ? { ...itemData, id: editingItem.id } : item
         ));
-        setSuccessMessage(t('menu.itemUpdatedSuccess', { name: formData.name }));
+        setSuccessMessage(!isOnline
+          ? `${formData.name} updated offline — will sync when online`
+          : t('menu.itemUpdatedSuccess', { name: formData.name })
+        );
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         // Add new item
@@ -2630,6 +2668,7 @@ const MenuManagement = () => {
   };
 
   const handleDelete = async (itemId) => {
+    if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
     if (!confirm(t('menu.deleteItemConfirm'))) return;
 
     try {
@@ -2645,6 +2684,7 @@ const MenuManagement = () => {
   };
 
   const handleBulkDeleteClick = () => {
+    if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
     console.log('🗑️ Bulk delete clicked. Current restaurant:', currentRestaurant);
 
     if (!currentRestaurant?.id) {
@@ -2704,7 +2744,18 @@ const MenuManagement = () => {
 
     try {
       const isCurrentlyFavorite = item.isFavorite === true;
-      
+
+      if (!isOnline) {
+        // Offline: optimistic local + cache update only (syncs on next online menu load)
+        setMenuItems(prevItems => prevItems.map(menuItem =>
+          menuItem.id === item.id
+            ? { ...menuItem, isFavorite: !isCurrentlyFavorite }
+            : menuItem
+        ));
+        updateMenuItemInAllCaches(currentRestaurant.id, item.id, { isFavorite: !isCurrentlyFavorite }).catch(() => {});
+        return;
+      }
+
       if (isCurrentlyFavorite) {
         await apiClient.unmarkMenuItemAsFavorite(currentRestaurant.id, item.id);
       } else {
@@ -2712,14 +2763,14 @@ const MenuManagement = () => {
       }
 
       // Update the menu item in state
-      setMenuItems(prevItems => prevItems.map(menuItem => 
-        menuItem.id === item.id 
+      setMenuItems(prevItems => prevItems.map(menuItem =>
+        menuItem.id === item.id
           ? { ...menuItem, isFavorite: !isCurrentlyFavorite }
           : menuItem
       ));
 
       // Reload menu data to sync with backend
-      await loadMenuData(currentRestaurant.id, false); // Don't use cache for immediate update
+      await loadMenuData(currentRestaurant.id, false);
     } catch (error) {
       console.error('Error toggling favorite:', error);
       setError(t('menu.failedUpdateFavorite'));
@@ -2730,8 +2781,28 @@ const MenuManagement = () => {
     try {
       setOperationLoading(true);
       const updatedData = { isAvailable: !currentStatus };
-      await apiClient.updateMenuItem(itemId, updatedData, currentRestaurant?.id);
-      setMenuItems(items => items.map(item => 
+
+      if (!isOnline) {
+        if (!getOfflineEngineEnabled()) {
+          setError('You are offline. Go online to make changes.');
+          return;
+        }
+        // Queue for later sync
+        await queueOfflineOrder({
+          restaurantId: currentRestaurant?.id,
+          _offlineAction: 'update_menu_item',
+          _menuItemId: itemId,
+          _menuUpdateData: updatedData,
+          _restaurantId: currentRestaurant?.id,
+          idempotencyKey: generateIdempotencyKey(),
+        });
+        // Update all caches so dashboard reflects the change
+        updateMenuItemInAllCaches(currentRestaurant?.id, itemId, updatedData).catch(() => {});
+      } else {
+        await apiClient.updateMenuItem(itemId, updatedData, currentRestaurant?.id);
+      }
+
+      setMenuItems(items => items.map(item =>
         item.id === itemId ? { ...item, isAvailable: !currentStatus } : item
       ));
     } catch (error) {
@@ -3079,6 +3150,7 @@ const MenuManagement = () => {
 
   // Image upload handlers
   const handleImagesUploaded = async (files) => {
+    if (!isOnline) { alert('You are offline. Go online to upload images.'); return; }
     console.log('🖼️ Uploading images for item:', {
       editingItem: !!editingItem,
       itemId: editingItem?.id,
@@ -3214,6 +3286,7 @@ const MenuManagement = () => {
   };
 
   const handlePhotoUpload = async (event) => {
+    if (!isOnline) { alert('You are offline. Go online to upload.'); return; }
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 

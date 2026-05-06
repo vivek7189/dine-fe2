@@ -10,7 +10,8 @@ import DineAIButton from '../../components/dineai/DineAIButton';
 import BulkMenuUpload from '../../components/BulkMenuUpload';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
-import { isWeb } from '../../utils/platform';
+import { isWeb, isTauri } from '../../utils/platform';
+import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils } from 'react-icons/fa';
 
@@ -92,6 +93,31 @@ function DashboardLayoutContent({ children }) {
 
   // Auto-print on native platforms (Capacitor/Tauri) — no-op on web
   useAutoPrint(selectedRestaurantId, nativePrintSettings);
+
+  // Auto-update check on Tauri desktop — runs once on mount after 5s delay
+  const [updateReady, setUpdateReady] = useState(null);
+  useEffect(() => {
+    if (!isTauri() || !isAutoUpdateEnabled()) return;
+    const timer = setTimeout(() => {
+      checkForUpdates({
+        autoInstall: true,
+        onUpdateFound: ({ version }) => {
+          console.log('[AutoUpdater] Update found:', version);
+        },
+        onUpToDate: () => {
+          console.log('[AutoUpdater] App is up to date');
+        },
+        onError: (err) => {
+          console.warn('[AutoUpdater] Check failed:', err);
+        },
+      }).then((result) => {
+        if (result?.installed) {
+          setUpdateReady(result.version);
+        }
+      });
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Route guard: check if user has permission to access current page
   useEffect(() => {
@@ -265,6 +291,42 @@ function DashboardLayoutContent({ children }) {
                 height: '100vh'
               }}
             >
+              {/* Auto-update ready banner (Tauri only) */}
+              {updateReady && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                  padding: '10px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  borderBottom: '1px solid #3b82f6',
+                }}>
+                  <span style={{ fontSize: '13px', color: '#1e3a5f', fontWeight: '600', flex: 1 }}>
+                    Update v{updateReady} is ready. Restart to apply.
+                  </span>
+                  <button
+                    onClick={() => restartApp()}
+                    style={{
+                      padding: '6px 14px', backgroundColor: '#3b82f6', color: 'white',
+                      border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Restart Now
+                  </button>
+                  <button
+                    onClick={() => setUpdateReady(null)}
+                    style={{
+                      padding: '6px 14px', backgroundColor: 'transparent', color: '#3b82f6',
+                      border: '1px solid #3b82f6', borderRadius: '8px', fontWeight: '600', fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Later
+                  </button>
+                </div>
+              )}
+
               {/* Demo menu banner — show on all pages except /menu */}
               {hasDefaultMenu && pathname !== '/menu' && (
                 <div style={{

@@ -35,6 +35,19 @@ pub async fn print_document(
         for _ in 0..copy_count {
             direct_print(&file_str, &printer.name)?;
         }
+
+        // DEBUG: Save a copy for inspection (cross-platform path)
+        {
+            let debug_dir = if cfg!(target_os = "windows") {
+                std::env::temp_dir().join("dineopen-prints")
+            } else {
+                std::path::PathBuf::from("/tmp/dineopen-prints")
+            };
+            let _ = fs::create_dir_all(&debug_dir);
+            let debug_path = debug_dir.join(&file_name);
+            let _ = fs::copy(&file_path, &debug_path);
+        }
+
         // Clean up temp file after a delay
         let path_clone = file_path.clone();
         std::thread::spawn(move || {
@@ -67,48 +80,69 @@ fn direct_print(file_path: &str, printer_name: &str) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         // Windows: Use PowerShell with .NET WebBrowser control for silent HTML printing.
-        // This renders the HTML properly and prints to the specified printer without
-        // showing any browser window. Much more reliable than Start-Process -Verb Print.
+        // Uses a mutex-like approach: sets target printer as default, prints, restores.
+        // Uses OLECMDID_PRINT with DONTPROMPTUSER for truly silent printing (no dialog).
+        // Serialized: each call blocks until the print is spooled — safe for rapid calls
+        // from token billing (bill + N tokens with 350ms delay between them).
         let ps_cmd = format!(
             r#"
             Add-Type -AssemblyName System.Windows.Forms
             Add-Type -AssemblyName System.Drawing
 
-            # Set target printer as default (restore after)
-            $prev = $null
+            # Use a named mutex to prevent concurrent printer default swaps
+            $mtx = New-Object System.Threading.Mutex($false, 'Global\DineOpenPrint')
+            $acquired = $mtx.WaitOne(15000)
+            if (-not $acquired) {{ exit 1 }}
+
             try {{
-                $prev = (Get-CimInstance Win32_Printer -Filter "Default=TRUE" -ErrorAction SilentlyContinue).Name
-                $p = Get-CimInstance Win32_Printer -Filter "Name='{name}'" -ErrorAction SilentlyContinue
-                if ($p) {{ Invoke-CimMethod -InputObject $p -MethodName SetDefaultPrinter -ErrorAction SilentlyContinue | Out-Null }}
-            }} catch {{}}
-
-            # Use WebBrowser control to render and print HTML silently
-            $wb = New-Object System.Windows.Forms.WebBrowser
-            $wb.ScriptErrorsSuppressed = $true
-            $wb.ScrollBarsEnabled = $false
-            $wb.Navigate('{path}')
-
-            # Wait for document to load (max 10 seconds)
-            $timeout = 100
-            while ($wb.ReadyState -ne [System.Windows.Forms.WebBrowserReadyState]::Complete -and $timeout -gt 0) {{
-                [System.Windows.Forms.Application]::DoEvents()
-                Start-Sleep -Milliseconds 100
-                $timeout--
-            }}
-
-            # Print silently (no dialog)
-            Start-Sleep -Milliseconds 500
-            $wb.Print()
-            Start-Sleep -Milliseconds 2000
-            [System.Windows.Forms.Application]::DoEvents()
-            $wb.Dispose()
-
-            # Restore previous default printer
-            if ($prev) {{
+                # Save current default printer
+                $prev = $null
                 try {{
-                    $old = Get-CimInstance Win32_Printer -Filter "Name='$prev'" -ErrorAction SilentlyContinue
-                    if ($old) {{ Invoke-CimMethod -InputObject $old -MethodName SetDefaultPrinter -ErrorAction SilentlyContinue | Out-Null }}
+                    $prev = (Get-CimInstance Win32_Printer -Filter "Default=TRUE" -ErrorAction SilentlyContinue).Name
                 }} catch {{}}
+
+                # Set target printer as default
+                try {{
+                    $p = Get-CimInstance Win32_Printer -Filter "Name='{name}'" -ErrorAction SilentlyContinue
+                    if ($p) {{ Invoke-CimMethod -InputObject $p -MethodName SetDefaultPrinter -ErrorAction SilentlyContinue | Out-Null }}
+                }} catch {{}}
+
+                # Use WebBrowser control to render and print HTML silently
+                $wb = New-Object System.Windows.Forms.WebBrowser
+                $wb.ScriptErrorsSuppressed = $true
+                $wb.ScrollBarsEnabled = $false
+                $wb.Navigate('{path}')
+
+                # Wait for document to load (max 8 seconds)
+                $timeout = 80
+                while ($wb.ReadyState -ne [System.Windows.Forms.WebBrowserReadyState]::Complete -and $timeout -gt 0) {{
+                    [System.Windows.Forms.Application]::DoEvents()
+                    Start-Sleep -Milliseconds 100
+                    $timeout--
+                }}
+
+                # Print silently using OLECMDID_PRINT (6) with DONTPROMPTUSER (2)
+                Start-Sleep -Milliseconds 300
+                try {{
+                    $wb.Document.ExecCommand('print', $false, $null)
+                }} catch {{
+                    # Fallback to .Print() if ExecCommand fails
+                    $wb.Print()
+                }}
+                Start-Sleep -Milliseconds 1500
+                [System.Windows.Forms.Application]::DoEvents()
+                $wb.Dispose()
+
+                # Restore previous default printer
+                if ($prev -and $prev -ne '{name}') {{
+                    try {{
+                        $old = Get-CimInstance Win32_Printer -Filter "Name='$prev'" -ErrorAction SilentlyContinue
+                        if ($old) {{ Invoke-CimMethod -InputObject $old -MethodName SetDefaultPrinter -ErrorAction SilentlyContinue | Out-Null }}
+                    }} catch {{}}
+                }}
+            }} finally {{
+                $mtx.ReleaseMutex()
+                $mtx.Dispose()
             }}
             "#,
             name = printer_name.replace("'", "''"),
@@ -301,9 +335,9 @@ fn get_config_path() -> std::path::PathBuf {
     path
 }
 
-fn timestamp() -> u64 {
+fn timestamp() -> u128 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
-        .as_secs()
+        .as_millis()
 }

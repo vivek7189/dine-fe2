@@ -9,11 +9,13 @@ import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedOrderHistoryData, setCachedOrderHistoryData } from '../../../utils/dashboardCache';
 import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import { getAllOfflineOrders, updateOrderSyncStatus } from '../../../lib/offlineDb';
-import { syncPendingOrders } from '../../../lib/syncEngine';
+import { syncPendingOrders, queueOfflineOrder, generateIdempotencyKey } from '../../../lib/syncEngine';
+import { getOfflineEngineEnabled } from '../../../hooks/useSyncEngine';
 import OfflineBanner from '../../../components/OfflineBanner';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
-import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
-import { printDocument } from '../../../utils/printBridge';
+import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML } from '../../../utils/printFontSizes';
+import { printDocument, printHtmlInHiddenFrame } from '../../../utils/printBridge';
 import OrderSummary from '../../../components/OrderSummary';
 import {
   FaSearch,
@@ -100,6 +102,7 @@ const OrderHistory = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { formatCurrency, getCurrencySymbol, currencySettings } = useCurrency();
+  const { isOnline } = useNetworkStatus();
 
   // View mode: 'orders' or 'summary' — persisted in URL
   const urlView = searchParams.get('view');
@@ -839,6 +842,33 @@ const OrderHistory = () => {
     setCancelSubmitting(true);
     setCancelError(null);
     try {
+      // Offline: queue for later sync
+      if (!isOnline) {
+        if (!getOfflineEngineEnabled()) {
+          setCancelError('You are offline. Please go online to cancel orders.');
+          return;
+        }
+        await queueOfflineOrder({
+          restaurantId,
+          _offlineAction: 'cancel_order',
+          _existingOrderId: cancelModalOrderId,
+          _cancelReason: reason,
+          idempotencyKey: generateIdempotencyKey(),
+        });
+        // Optimistic local update
+        setOrders(prev => prev.map(o =>
+          o.id === cancelModalOrderId ? { ...o, status: 'cancelled' } : o
+        ));
+        setScheduledOrders(prev => prev.map(o =>
+          o.id === cancelModalOrderId ? { ...o, status: 'cancelled' } : o
+        ));
+        setCancelModalOrderId(null);
+        setCancelReason('');
+        setDeleteSuccess('Order cancelled offline — will sync when online');
+        setTimeout(() => setDeleteSuccess(null), 4000);
+        return;
+      }
+
       await apiClient.cancelOrder(cancelModalOrderId, reason);
       // Update scheduledOrders locally
       setScheduledOrders(prev => prev.map(o =>
@@ -963,6 +993,43 @@ const OrderHistory = () => {
         },
       };
 
+      // Offline: queue for later sync
+      if (!isOnline) {
+        if (!getOfflineEngineEnabled()) {
+          alert('You are offline. Please go online to complete billing.');
+          setBillingModalProcessing(false);
+          return;
+        }
+        const paymentData = {
+          orderId: order.id,
+          paymentMethod: splitPayments ? 'split' : billingModalPaymentMethod,
+          amount: isPartialPayment ? partialPayAmount : paymentAmount,
+          userId: currentUser.id,
+          restaurantId,
+          paymentStatus: isPartialPayment ? 'partial' : 'completed',
+        };
+        await queueOfflineOrder({
+          ...updateData,
+          restaurantId,
+          _offlineAction: 'complete_billing_existing',
+          _existingOrderId: order.id,
+          _paymentData: paymentData,
+          idempotencyKey: generateIdempotencyKey(),
+        });
+        // Optimistic local update
+        setOrders(prevOrders => prevOrders.map(o =>
+          o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
+        ));
+        setScheduledOrders(prev => prev.map(o =>
+          o.id === order.id ? { ...o, status: 'completed', paymentStatus: isPartialPayment ? 'partial' : 'paid' } : o
+        ));
+        closeBillingModal();
+        setDeleteSuccess('Order billed offline — will sync when online');
+        setTimeout(() => setDeleteSuccess(null), 4000);
+        setBillingModalProcessing(false);
+        return { orderId: order.id };
+      }
+
       await apiClient.updateOrder(order.id, updateData);
 
       await apiClient.verifyPayment({
@@ -1054,6 +1121,7 @@ const OrderHistory = () => {
   };
 
   const handleDeleteOrder = (orderId) => {
+    if (!isOnline) return;
     setDeleteError(null);
     setDeleteConfirmOrderId(orderId);
   };
@@ -1073,6 +1141,29 @@ const OrderHistory = () => {
       setDeleteError(error.message || t('common.error') || 'Failed to delete order');
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  const printFoodCourtTokensForOrder = async (order, delay = 1200) => {
+    if (!printSettings?.tokenBillingEnabled || order?.status !== 'completed') return;
+
+    const tokenRestaurantId = order.restaurantId || restaurantId || restaurant?.id;
+    const orderId = order.id || order.orderId;
+    if (!tokenRestaurantId || !orderId) return;
+
+    try {
+      const tokenRes = await apiClient.getTokenRender(tokenRestaurantId, orderId);
+      const tokens = tokenRes?.tokens || [];
+      if (!tokenRes?.success || tokens.length === 0) return;
+
+      const tokenHtml = buildTokenSlipsDocumentHTML(tokens, printSettings);
+      setTimeout(() => {
+        printHtmlInHiddenFrame(tokenHtml).catch((err) => {
+          console.error('Food court token print failed:', err);
+        });
+      }, delay);
+    } catch (err) {
+      console.error('Food court token print error:', err);
     }
   };
 
@@ -1142,6 +1233,7 @@ const OrderHistory = () => {
         win.focus();
         setTimeout(() => { win.print(); }, 500);
       }
+      printFoodCourtTokensForOrder(order);
     } else {
       // KOT format - matches KOT Printer app's generateKOTHtml
       const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);

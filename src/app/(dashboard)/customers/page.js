@@ -9,6 +9,9 @@ import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedCustomersData, setCachedCustomersData } from '../../../utils/dashboardCache';
+import { setCachedData, getCachedData } from '../../../lib/offlineDb';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import OfflineBanner from '../../../components/OfflineBanner';
 import { canPerform } from '../../../lib/permissions';
 import { 
   FaUsers, 
@@ -320,6 +323,7 @@ CustomerForm.displayName = 'CustomerForm';
 const Customers = () => {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
+  const { isOnline } = useNetworkStatus();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backgroundLoading, setBackgroundLoading] = useState(false);
@@ -995,12 +999,32 @@ const Customers = () => {
           totalPages: response.totalPages || 1
         };
         setCachedCustomersData(restaurantId, dataToCache);
+        setCachedData('customers_' + restaurantId, dataToCache).catch(() => {});
         console.log('✅ Customers data cached');
       }
 
     } catch (error) {
       console.error('Error loading customers:', error);
-      setError(t('customers.messages.failedToLoad'));
+      // Try IndexedDB fallback before showing error
+      if (customers.length === 0) {
+        try {
+          const idbCached = await Promise.race([
+            getCachedData('customers_' + restaurantId),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+          ]);
+          if (idbCached) {
+            setCustomers(idbCached.customers || []);
+            setTotalCustomers(idbCached.total || 0);
+            setTotalPages(idbCached.totalPages || 1);
+          } else {
+            setError(t('customers.messages.failedToLoad'));
+          }
+        } catch {
+          setError(t('customers.messages.failedToLoad'));
+        }
+      } else {
+        setError(t('customers.messages.failedToLoad'));
+      }
     } finally {
       setLoading(false);
       setBackgroundLoading(false);
@@ -1113,6 +1137,7 @@ const Customers = () => {
 
   // Handle delete customer — show confirmation modal
   const handleDelete = (customer) => {
+    if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
     setDeleteConfirmCustomer(customer);
   };
 
@@ -1161,6 +1186,7 @@ const Customers = () => {
 
   // Handle edit customer
   const handleEdit = (customer) => {
+    if (!isOnline) { alert('You are offline. Go online to make changes.'); return; }
     setSelectedCustomer(customer);
     setCustomerForm({
       name: customer.name || '',
@@ -1511,6 +1537,8 @@ const Customers = () => {
           paddingTop: 0,
           boxSizing: 'border-box'
         }}>
+          <OfflineBanner />
+
           {/* Sticky Header + Tabs */}
           <div style={{
             position: 'sticky',
@@ -1551,7 +1579,9 @@ const Customers = () => {
 
             {engagementTab === 'customers' && canAddCustomer && (
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => isOnline && setShowAddModal(true)}
+              disabled={!isOnline}
+              title={!isOnline ? 'Go online to add customers' : ''}
               style={{
                 backgroundColor: '#111827',
                 color: 'white',
@@ -1560,7 +1590,8 @@ const Customers = () => {
                 padding: isMobile ? '8px 12px' : '10px 18px',
                 fontSize: isMobile ? '12px' : '14px',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: !isOnline ? 'not-allowed' : 'pointer',
+                opacity: !isOnline ? 0.5 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px'
@@ -2468,7 +2499,9 @@ const Customers = () => {
                 </p>
                 {!searchTerm && canAddCustomer && (
                   <button
-                    onClick={() => setShowAddModal(true)}
+                    onClick={() => isOnline && setShowAddModal(true)}
+                    disabled={!isOnline}
+                    title={!isOnline ? 'Go online to add customers' : ''}
                     style={{
                       backgroundColor: '#111827',
                       color: 'white',
@@ -2477,7 +2510,8 @@ const Customers = () => {
                       padding: isMobile ? '8px 16px' : '10px 20px',
                       fontSize: isMobile ? '12px' : '14px',
                       fontWeight: '600',
-                      cursor: 'pointer',
+                      cursor: !isOnline ? 'not-allowed' : 'pointer',
+                      opacity: !isOnline ? 0.5 : 1,
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',

@@ -64,7 +64,7 @@ import IntelligentChatbot from '../../../components/IntelligentChatbot';
 import RAGInitializer from '../../../components/RAGInitializer';
 import { getCachedDashboardData, setCachedDashboardData } from '../../../utils/dashboardCache';
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
-import { setCachedData, getCachedData } from '../../../lib/offlineDb';
+import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
 
 function RestaurantPOSContent() {
@@ -646,6 +646,7 @@ function RestaurantPOSContent() {
         setTaxSettings(taxSettingsResponse.taxSettings);
         // Cache in IndexedDB for offline use
         setCachedData(`tax_${restaurantId}`, taxSettingsResponse.taxSettings).catch(() => {});
+        saveEssentialData(`tax_${restaurantId}`, taxSettingsResponse.taxSettings);
         console.log('🏛️ Tax settings loaded and cached:', taxSettingsResponse.taxSettings);
       } else {
         console.log('🏛️ No tax settings found for restaurant');
@@ -653,8 +654,9 @@ function RestaurantPOSContent() {
       }
     } catch (error) {
       console.error('🏛️ Error loading tax settings:', error);
-      // Try IndexedDB fallback
-      const cachedTax = await getCachedData(`tax_${restaurantId}`).catch(() => null);
+      // Try IndexedDB fallback (cached_api first, then essential_data)
+      const cachedTax = await getCachedData(`tax_${restaurantId}`).catch(() => null)
+        || await getEssentialData(`tax_${restaurantId}`);
       if (cachedTax) {
         setTaxSettings(cachedTax);
         console.log('🏛️ Loaded tax settings from offline cache');
@@ -712,6 +714,7 @@ function RestaurantPOSContent() {
 
       if (printSettingsResponse.success) {
         setPrintSettings(printSettingsResponse.printSettings);
+        saveEssentialData(`printSettings_${restaurantId}`, printSettingsResponse.printSettings);
         console.log('🖨️ Print settings loaded:', printSettingsResponse.printSettings);
       } else {
         console.log('🖨️ No print settings found, using defaults');
@@ -719,7 +722,13 @@ function RestaurantPOSContent() {
       }
     } catch (error) {
       console.error('🖨️ Error loading print settings:', error);
-      setPrintSettings(null);
+      const cachedPrint = await getEssentialData(`printSettings_${restaurantId}`);
+      if (cachedPrint) {
+        setPrintSettings(cachedPrint);
+        console.log('🖨️ Loaded print settings from offline cache');
+      } else {
+        setPrintSettings(null);
+      }
     }
   }, []);
 
@@ -878,6 +887,9 @@ function RestaurantPOSContent() {
             setCachedDashboardData(restaurant.id, dataToCache);
             // Also persist to IndexedDB for deeper offline support
             setCachedData(`dashboard_${restaurant.id}`, dataToCache).catch(() => {});
+            // Save to essential_data (survives restart)
+            saveEssentialData(`menu_${restaurant.id}`, freshMenuItems);
+            saveEssentialData(`floors_${restaurant.id}`, freshFloors);
 
             // Load multi-pricing rules
             try {
@@ -891,6 +903,7 @@ function RestaurantPOSContent() {
                 setPricingRules([]);
                 setActivePricingRuleId(null);
               }
+              saveEssentialData(`pricingRules_${restaurant.id}`, { enabled: mp?.enabled, rules: mp?.rules || [] });
             } catch { /* ignore — backward compatible */ }
 
             console.log('✅ Fresh data loaded and cached');
@@ -924,8 +937,18 @@ function RestaurantPOSContent() {
               floorsResponse = { floors: idbCached.floors || [] };
               console.log('📦 Loaded data from IndexedDB offline cache');
             } else {
-              menuResponse = { menuItems: [] };
-              floorsResponse = { floors: [] };
+              // Try essential_data (survives restart even when cached_api is cleared)
+              const essMenu = await getEssentialData(`menu_${restaurant.id}`);
+              const essFloors = await getEssentialData(`floors_${restaurant.id}`);
+              menuResponse = { menuItems: essMenu || [] };
+              floorsResponse = { floors: essFloors || [] };
+              if (essMenu || essFloors) console.log('📦 Loaded data from essential_data offline cache');
+            }
+            // Also try pricing rules from essential_data
+            const essPricing = await getEssentialData(`pricingRules_${restaurant.id}`);
+            if (essPricing?.enabled) {
+              setMultiPricingEnabled(true);
+              setPricingRules((essPricing.rules || []).filter(r => r.isActive));
             }
           }
           
@@ -957,6 +980,9 @@ function RestaurantPOSContent() {
           setCachedDashboardData(restaurant.id, dataToCache);
           // Also persist to IndexedDB for deeper offline support
           setCachedData(`dashboard_${restaurant.id}`, dataToCache).catch(() => {});
+          // Save to essential_data (survives restart)
+          saveEssentialData(`menu_${restaurant.id}`, fetchedMenuItems);
+          saveEssentialData(`floors_${restaurant.id}`, fetchedFloors);
 
           // Load multi-pricing rules immediately (non-cached path)
           try {
@@ -970,6 +996,7 @@ function RestaurantPOSContent() {
               setPricingRules([]);
               setActivePricingRuleId(null);
             }
+            saveEssentialData(`pricingRules_${restaurant.id}`, { enabled: mp?.enabled, rules: mp?.rules || [] });
           } catch { /* ignore */ }
 
         console.log('✅ Restaurant data loaded successfully');
@@ -7576,7 +7603,23 @@ function RestaurantPOSContent() {
                   onClick={async () => {
                     setResetLoading(true);
                     try {
-                      await apiClient.resetAllTables(selectedRestaurant.id);
+                      // Offline: queue for later sync
+                      if (!isOnline) {
+                        if (!offlineEnabled) {
+                          setNotification({ type: 'error', title: 'Offline', message: 'You are offline. Go online to reset tables.', show: true });
+                          setTimeout(() => setNotification(null), 4000);
+                          setResetLoading(false);
+                          return;
+                        }
+                        await queueOfflineOrder({
+                          restaurantId: selectedRestaurant.id,
+                          _offlineAction: 'reset_all_tables',
+                          _restaurantId: selectedRestaurant.id,
+                          idempotencyKey: generateIdempotencyKey(),
+                        });
+                      } else {
+                        await apiClient.resetAllTables(selectedRestaurant.id);
+                      }
                       setTablesData(prev => ({
                         ...prev,
                         floors: prev.floors.map(floor => ({
@@ -7592,7 +7635,9 @@ function RestaurantPOSContent() {
                       setShowResetConfirm(false);
                       setNotification({
                         type: 'success', title: t('dashboard.tablesReset'),
-                        message: `${occupiedCount} table${occupiedCount !== 1 ? 's' : ''} reset to available.`,
+                        message: !isOnline
+                          ? `${occupiedCount} table${occupiedCount !== 1 ? 's' : ''} reset locally — will sync when online.`
+                          : `${occupiedCount} table${occupiedCount !== 1 ? 's' : ''} reset to available.`,
                         show: true
                       });
                       setTimeout(() => setNotification(null), 4000);

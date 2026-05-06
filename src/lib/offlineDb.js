@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'dineopen_offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise = null;
 
@@ -25,6 +25,11 @@ export function getDb() {
         if (!db.objectStoreNames.contains('sync_log')) {
           const logStore = db.createObjectStore('sync_log', { keyPath: 'id', autoIncrement: true });
           logStore.createIndex('by_time', 'timestamp');
+        }
+
+        // Essential data — persistent cache that survives restart (v2)
+        if (!db.objectStoreNames.contains('essential_data')) {
+          db.createObjectStore('essential_data', { keyPath: 'key' });
         }
       },
     });
@@ -125,4 +130,40 @@ export async function getSyncLogs(limit = 50) {
 export async function clearSyncLogs() {
   const db = await getDb();
   return db.clear('sync_log');
+}
+
+// ==========================================
+// Essential Data (persistent, survives restart)
+// ==========================================
+
+export async function saveEssentialData(key, data) {
+  try {
+    const db = await getDb();
+    return db.put('essential_data', { key, data, updatedAt: Date.now() });
+  } catch { /* fire-and-forget */ }
+}
+
+export async function getEssentialData(key) {
+  try {
+    const db = await getDb();
+    const result = await db.get('essential_data', key);
+    return result?.data || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearAllEssentialData() {
+  const db = await getDb();
+  return db.clear('essential_data');
+}
+
+export async function getEssentialDataStats() {
+  try {
+    const db = await getDb();
+    const keys = await db.getAllKeys('essential_data');
+    return { count: keys.length, keys };
+  } catch {
+    return { count: 0, keys: [] };
+  }
 }

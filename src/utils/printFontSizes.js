@@ -117,50 +117,92 @@ export const getKOTPrintCSS = (scaleOrPreset, fontId) => {
 
 // Generate full HTML for a category-wise token slip (food court mode).
 // token: { tokenLabel, categoryName, items, itemCount, orderNumber, time, printStationName, restaurantName }
-export const buildTokenSlipHTML = (token, printSettings = {}) => {
+const escapePrintHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const getTokenSlipScale = (printSettings = {}) => {
+  const raw = printSettings.billFontScale || 100;
+  return typeof raw === 'number' ? raw : 100;
+};
+
+const getTokenSlipCSS = (printSettings = {}, { combined = false } = {}) => {
   const f = getPrintFontSizes(printSettings.billFontScale || 100);
   const ff = getPrintFontFamily(printSettings.billFontFamily);
-  const divider = '================================';
-  const thinDivider = '--------------------------------';
+  const scale = getTokenSlipScale(printSettings);
 
-  const itemLines = token.items.map(i => {
-    let line = `<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>${i.quantity}x ${i.name}</span></div>`;
-    if (i.variant) line += `<div style="margin-left:24px;font-size:${f.itemDetail};color:#333;">&nbsp;&nbsp;${i.variant}</div>`;
+  return `
+@page{size:80mm auto;margin:0;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:${ff};font-size:${f.body};line-height:${f.lineHeight};${combined ? 'background:#f3f4f6;padding:16px;' : 'width:80mm;padding:6px 10px;'}}
+.token-slip{width:${combined ? '80mm' : '100%'};background:white;color:black;${combined ? 'padding:8px 12px;margin:0 auto 16px;box-shadow:0 8px 24px rgba(15,23,42,0.12);page-break-after:always;break-after:page;' : ''}}
+.token-slip:last-child{page-break-after:auto;break-after:auto;}
+.token-label{text-align:center;font-size:${s(48, scale)}px;font-weight:900;padding:${s(12, scale)}px 4px;border:3px dashed #000;margin:4px 0;letter-spacing:3px;line-height:1.1;}
+.order-num{text-align:center;font-size:${s(16, scale)}px;font-weight:bold;margin:6px 0 2px;}
+.divider{text-align:center;letter-spacing:2px;margin:3px 0;font-size:${f.info};}
+.divider-thick{text-align:center;letter-spacing:1px;margin:2px 0;font-size:${s(15, scale)}px;font-weight:bold;}
+.items{margin:6px 0;font-size:${s(16, scale)}px;}
+.item-line{display:flex;justify-content:space-between;padding:3px 0;font-weight:600;}
+.item-detail{margin-left:20px;font-size:${f.itemDetail};color:#333;font-weight:normal;}
+.meta{text-align:center;font-size:${f.info};margin:2px 0;}
+.meta b{font-weight:bold;}
+.counter{text-align:center;font-weight:900;font-size:${s(22, scale)}px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:1px;border-top:1px solid #000;border-bottom:1px solid #000;padding:4px 0;}
+.time{text-align:center;font-size:${s(14, scale)}px;margin:4px 0;}
+.footer{text-align:center;font-size:${f.footer};margin-top:6px;font-style:italic;}
+.restaurant{text-align:center;font-size:${s(14, scale)}px;font-weight:bold;margin-top:2px;}
+@media print{body{background:white;padding:0;}.token-slip{margin:0;box-shadow:none;}}
+`;
+};
+
+const buildTokenSlipBody = (token) => {
+  const thickDiv = '================================';
+  const thinDiv = '--------------------------------';
+
+  const itemLines = (token.items || []).map(i => {
+    let line = `<div class="item-line"><span>${escapePrintHtml(i.quantity || 1)} x ${escapePrintHtml(i.name || 'Item')}</span></div>`;
+    if (i.variant) line += `<div class="item-detail">${escapePrintHtml(i.variant)}</div>`;
     if (i.customizations && i.customizations.length > 0) {
       const custs = Array.isArray(i.customizations) ? i.customizations.map(c => c.name || c).join(', ') : '';
-      if (custs) line += `<div style="margin-left:24px;font-size:${f.itemDetail};color:#333;">&nbsp;&nbsp;${custs}</div>`;
+      if (custs) line += `<div class="item-detail">${escapePrintHtml(custs)}</div>`;
     }
     return line;
   }).join('');
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Token ${token.tokenLabel}</title>
-<style>
-@page{size:80mm auto;margin:0;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:${ff};font-size:${f.body};line-height:${f.lineHeight};width:80mm;padding:8px 12px;}
-.token-label{text-align:center;font-size:${s(28, printSettings.billFontScale || 100)}px;font-weight:900;padding:8px 0;border:2px dashed #000;margin-bottom:6px;letter-spacing:1px;}
-.order-num{text-align:center;font-size:${f.billTitle};font-weight:bold;margin:4px 0;}
-.divider{text-align:center;letter-spacing:2px;margin:4px 0;font-size:${f.info};}
-.items{margin:6px 0;font-size:${f.body};}
-.meta{text-align:center;font-size:${f.info};margin:2px 0;}
-.meta b{font-weight:bold;}
-.counter{text-align:center;font-weight:bold;font-size:${f.billTitle};margin-top:6px;text-transform:uppercase;}
-.footer{text-align:center;font-size:${f.footer};margin-top:6px;font-style:italic;}
-.restaurant{text-align:center;font-size:${f.footer};margin-top:4px;}
-</style></head><body>
-<div class="divider">${divider}</div>
-<div class="token-label">${token.tokenLabel}</div>
-<div class="divider">${divider}</div>
-<div class="order-num">Order #${token.orderNumber}</div>
-<div class="divider">${thinDivider}</div>
+  const counterName = token.printStationName || token.categoryName || '';
+
+  return `<section class="token-slip">
+<div class="divider-thick">${thickDiv}</div>
+<div class="token-label">${escapePrintHtml(token.tokenLabel)}</div>
+<div class="divider-thick">${thickDiv}</div>
+<div class="order-num">Order #${escapePrintHtml(token.orderNumber)}</div>
+<div class="divider">${thinDiv}</div>
 <div class="items">${itemLines}</div>
-<div class="divider">${thinDivider}</div>
-<div class="meta">Items: <b>${token.itemCount}</b></div>
-${token.printStationName ? `<div class="counter">Counter: ${token.printStationName}</div>` : `<div class="counter">${token.categoryName}</div>`}
-<div class="meta">${token.time}</div>
-<div class="divider">${thinDivider}</div>
+<div class="divider">${thinDiv}</div>
+<div class="meta">Items: <b>${escapePrintHtml(token.itemCount || 0)}</b></div>
+${counterName ? `<div class="counter">${escapePrintHtml(counterName)}</div>` : ''}
+<div class="time">${escapePrintHtml(token.time)}</div>
+<div class="divider">${thinDiv}</div>
 <div class="footer">Present this token at counter</div>
-<div class="restaurant">${token.restaurantName}</div>
-<div class="divider">${divider}</div>
-</body></html>`;
+<div class="restaurant">${escapePrintHtml(token.restaurantName)}</div>
+<div class="divider-thick">${thickDiv}</div>
+</section>`;
+};
+
+export const buildTokenSlipHTML = (token, printSettings = {}) => {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Token ${escapePrintHtml(token.tokenLabel)}</title>
+<style>${getTokenSlipCSS(printSettings)}</style></head><body>${buildTokenSlipBody(token)}</body></html>`;
+};
+
+// Generate a single browser-preview document containing every token slip.
+// Each token still prints as its own 80mm page via page breaks.
+export const buildTokenSlipsDocumentHTML = (tokens = [], printSettings = {}) => {
+  const firstToken = tokens[0] || {};
+  const orderNumber = firstToken.orderNumber || '';
+  const title = `Food Court Tokens${orderNumber ? ` - Order #${orderNumber}` : ''}`;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapePrintHtml(title)}</title>
+<style>${getTokenSlipCSS(printSettings, { combined: true })}</style></head><body>${tokens.map(buildTokenSlipBody).join('')}</body></html>`;
 };
