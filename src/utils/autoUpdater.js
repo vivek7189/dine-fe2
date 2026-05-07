@@ -1,7 +1,7 @@
-// Auto-update utility for Tauri desktop app.
+// Auto-update utility for Tauri and Electron desktop apps.
 // All functions are no-ops on web/Capacitor — safe to import anywhere.
 
-import { isTauri } from './platform';
+import { isTauri, isElectron } from './platform';
 
 const STORAGE_KEY = 'dineopen_auto_update_enabled';
 
@@ -26,15 +26,24 @@ export function setAutoUpdateEnabled(enabled) {
   }
 }
 
-/** Get the current app version from tauri.conf.json */
+/** Get the current app version */
 export async function getAppVersion() {
-  if (!isTauri()) return null;
-  try {
-    const { getVersion } = await import('@tauri-apps/api/app');
-    return await getVersion();
-  } catch {
-    return null;
+  if (isTauri()) {
+    try {
+      const { getVersion } = await import('@tauri-apps/api/app');
+      return await getVersion();
+    } catch {
+      return null;
+    }
   }
+  if (isElectron()) {
+    try {
+      return await window.electronAPI.getVersion();
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -55,8 +64,27 @@ export async function checkForUpdates({
   onUpToDate,
   onError,
 } = {}) {
-  if (!isTauri()) return { available: false };
+  if (!isTauri() && !isElectron()) return { available: false };
 
+  // Electron: delegate to main process via IPC
+  if (isElectron()) {
+    try {
+      console.log('[AutoUpdater] Checking for updates (Electron)...');
+      const result = await window.electronAPI.checkForUpdates();
+      if (result?.available) {
+        onUpdateFound?.({ version: result.version, body: '' });
+        return { available: true, version: result.version, installed: result.installed };
+      }
+      onUpToDate?.();
+      return { available: false };
+    } catch (err) {
+      console.error('[AutoUpdater] Electron update check failed:', err);
+      onError?.(err);
+      return { available: false, error: err.message };
+    }
+  }
+
+  // Tauri: use plugin-updater
   try {
     const { check } = await import('@tauri-apps/plugin-updater');
     console.log('[AutoUpdater] Checking for updates...');
@@ -107,6 +135,14 @@ export async function checkForUpdates({
 
 /** Restart the app to apply a downloaded update */
 export async function restartApp() {
+  if (isElectron()) {
+    try {
+      await window.electronAPI.restartApp();
+    } catch (err) {
+      console.error('[AutoUpdater] Electron relaunch failed:', err);
+    }
+    return;
+  }
   if (!isTauri()) return;
   try {
     const { relaunch } = await import('@tauri-apps/plugin-process');

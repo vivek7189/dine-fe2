@@ -1,4 +1,4 @@
-// Platform detection for Capacitor (Android), Tauri (Desktop), and Web
+// Platform detection for Capacitor (Android), Tauri (Desktop), Electron (Desktop), and Web
 // Used to conditionally enable native features (printing, etc.)
 
 /** Capacitor (Android phone/tablet) */
@@ -14,14 +14,21 @@ export function isTauri() {
     window.__TAURI_INTERNALS__ !== undefined;
 }
 
-/** Standard web browser (not wrapped in native shell) */
-export function isWeb() {
-  return !isCapacitor() && !isTauri();
+/** Electron (Windows/Mac/Linux desktop) */
+export function isElectron() {
+  return typeof window !== 'undefined' &&
+    window.electronAPI !== undefined;
 }
 
-/** Returns 'capacitor' | 'tauri' | 'web' */
+/** Standard web browser (not wrapped in native shell) */
+export function isWeb() {
+  return !isCapacitor() && !isTauri() && !isElectron();
+}
+
+/** Returns 'capacitor' | 'tauri' | 'electron' | 'web' */
 export function getPlatform() {
   if (isCapacitor()) return 'capacitor';
   if (isTauri()) return 'tauri';
+  if (isElectron()) return 'electron';
   return 'web';
 }

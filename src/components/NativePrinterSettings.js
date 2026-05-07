@@ -5,7 +5,7 @@
 // Shows: scan for printers, select default, test print, connection status.
 
 import { useState, useEffect, useCallback } from 'react';
-import { isWeb, isCapacitor, isTauri } from '../utils/platform';
+import { isWeb, isCapacitor, isTauri, isElectron } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
 import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope } from 'react-icons/fa';
 
@@ -18,6 +18,7 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [webPlatform, setWebPlatform] = useState(true);
   const [diagReport, setDiagReport] = useState(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [appVersion, setAppVersion] = useState(null);
 
   const scanPrinters = useCallback(async () => {
     setIsScanning(true);
@@ -30,6 +31,13 @@ export default function NativePrinterSettings({ restaurantId }) {
         const { invoke } = await import('@tauri-apps/api/core');
         const result = await invoke('list_printers');
         setPrinters(result || []);
+      } else if (isElectron()) {
+        const printers = await window.electronAPI.getPrinters();
+        setPrinters((printers || []).map(p => ({
+          name: p.displayName || p.name,
+          address: p.name,
+          type: p.isDefault ? 'default' : 'usb',
+        })));
       }
     } catch (err) {
       console.error('Failed to scan printers:', err);
@@ -46,6 +54,8 @@ export default function NativePrinterSettings({ restaurantId }) {
       } else if (isTauri()) {
         const { invoke } = await import('@tauri-apps/api/core');
         await invoke('set_default_printer', { printerName: printer.name });
+      } else if (isElectron()) {
+        await window.electronAPI.setDefaultPrinter(printer.name);
       }
       setSelectedPrinter(printer);
       setIsConnected(true);
@@ -94,9 +104,16 @@ export default function NativePrinterSettings({ restaurantId }) {
     }
   }, []);
 
-  // Detect platform on mount
+  // Detect platform and app version on mount
   useEffect(() => {
     setWebPlatform(isWeb());
+    if (isTauri()) {
+      import('@tauri-apps/api/app').then(({ getVersion }) => {
+        getVersion().then(v => setAppVersion(v)).catch(() => {});
+      }).catch(() => {});
+    } else if (isElectron()) {
+      window.electronAPI.getVersion().then(v => setAppVersion(v)).catch(() => {});
+    }
   }, []);
 
   // Check connection status on mount
@@ -117,6 +134,12 @@ export default function NativePrinterSettings({ restaurantId }) {
           const defaultPrinter = await invoke('get_default_printer');
           if (defaultPrinter && defaultPrinter.name) {
             setSelectedPrinter(defaultPrinter);
+            setIsConnected(true);
+          }
+        } else if (isElectron()) {
+          const name = await window.electronAPI.getDefaultPrinter();
+          if (name) {
+            setSelectedPrinter({ name, address: name, type: 'usb' });
             setIsConnected(true);
           }
         }
@@ -143,6 +166,11 @@ export default function NativePrinterSettings({ restaurantId }) {
         <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#15803d' }}>
           Native Printer Setup
         </h4>
+        {appVersion && (
+          <span style={{ fontSize: '11px', color: '#6b7280', backgroundColor: '#e5e7eb', padding: '2px 8px', borderRadius: '10px' }}>
+            v{appVersion}
+          </span>
+        )}
         {isConnected ? (
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#16a34a', marginLeft: 'auto' }}>
             <FaCheckCircle /> Connected

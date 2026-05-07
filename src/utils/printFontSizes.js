@@ -146,7 +146,9 @@ body{font-family:${ff};font-size:${f.body};line-height:${f.lineHeight};${combine
 .divider-thick{text-align:center;letter-spacing:1px;margin:2px 0;font-size:${s(15, scale)}px;font-weight:bold;}
 .items{margin:6px 0;font-size:${s(16, scale)}px;}
 .item-line{display:flex;justify-content:space-between;padding:3px 0;font-weight:600;}
+.item-price{text-align:right;font-size:${s(14, scale)}px;white-space:nowrap;}
 .item-detail{margin-left:20px;font-size:${f.itemDetail};color:#333;font-weight:normal;}
+.token-total{display:flex;justify-content:space-between;padding:6px 0;font-weight:900;font-size:${s(18, scale)}px;border-top:2px solid #000;margin-top:4px;}
 .meta{text-align:center;font-size:${f.info};margin:2px 0;}
 .meta b{font-weight:bold;}
 .counter{text-align:center;font-weight:900;font-size:${s(22, scale)}px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:1px;border-top:1px solid #000;border-bottom:1px solid #000;padding:4px 0;}
@@ -162,7 +164,10 @@ const buildTokenSlipBody = (token) => {
   const thinDiv = '--------------------------------';
 
   const itemLines = (token.items || []).map(i => {
-    let line = `<div class="item-line"><span>${escapePrintHtml(i.quantity || 1)} x ${escapePrintHtml(i.name || 'Item')}</span></div>`;
+    const qty = i.quantity || 1;
+    const price = i.price || 0;
+    const itemTotal = i.total || (qty * price);
+    let line = `<div class="item-line"><span>${escapePrintHtml(qty)} x ${escapePrintHtml(i.name || 'Item')}${price ? ` @ ₹${price}` : ''}</span>${itemTotal ? `<span class="item-price">₹${itemTotal.toFixed(2)}</span>` : ''}</div>`;
     if (i.variant) line += `<div class="item-detail">${escapePrintHtml(i.variant)}</div>`;
     if (i.customizations && i.customizations.length > 0) {
       const custs = Array.isArray(i.customizations) ? i.customizations.map(c => c.name || c).join(', ') : '';
@@ -179,7 +184,7 @@ const buildTokenSlipBody = (token) => {
 <div class="divider-thick">${thickDiv}</div>
 <div class="order-num">Order #${escapePrintHtml(token.orderNumber)}</div>
 <div class="divider">${thinDiv}</div>
-<div class="items">${itemLines}</div>
+<div class="items">${itemLines}${token.tokenTotal ? `<div class="token-total"><span>Total</span><span>₹${token.tokenTotal.toFixed(2)}</span></div>` : ''}</div>
 <div class="divider">${thinDiv}</div>
 <div class="meta">Items: <b>${escapePrintHtml(token.itemCount || 0)}</b></div>
 ${counterName ? `<div class="counter">${escapePrintHtml(counterName)}</div>` : ''}

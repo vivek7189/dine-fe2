@@ -14,6 +14,9 @@ import {
   retryAllFailed as _retryAllFailed,
   deleteFailedOrder as _deleteFailedOrder,
   getFailedOrdersList,
+  pauseSyncEngine,
+  resumeSyncEngine,
+  isSyncEnginePaused,
 } from '../lib/syncEngine';
 import { getOfflineOrderCount } from '../lib/offlineDb';
 
@@ -69,6 +72,7 @@ export function useSyncEngine(apiClient) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [circuitInfo, setCircuitInfo] = useState(() => getCircuitState());
   const [offlineEnabled, _setOfflineEnabled] = useState(() => getOfflineEngineEnabled());
+  const [syncPaused, setSyncPaused] = useState(() => isSyncEnginePaused());
   const syncTimeoutRef = useRef(null);
 
   const setOfflineEnabled = useCallback((enabled) => {
@@ -94,6 +98,8 @@ export function useSyncEngine(apiClient) {
       } else if (['sync_complete', 'sync_error'].includes(event.type)) {
         setIsSyncing(false);
       }
+      if (event.type === 'sync_paused') setSyncPaused(true);
+      if (event.type === 'sync_resumed') setSyncPaused(false);
       if (['sync_complete', 'synced', 'queued', 'failed', 'retry_queued', 'retry_all_queued', 'order_deleted', 'circuit_open', 'circuit_half_open'].includes(event.type)) {
         refreshCounts();
       }
@@ -165,6 +171,20 @@ export function useSyncEngine(apiClient) {
     await refreshCounts();
   }, [refreshCounts]);
 
+  const handlePauseSync = useCallback(() => {
+    pauseSyncEngine();
+    stopPeriodicSync();
+  }, []);
+
+  const handleResumeSync = useCallback(() => {
+    resumeSyncEngine();
+    if (isOnline && apiClient) {
+      startPeriodicSync(apiClient);
+      // Trigger immediate sync on resume
+      setTimeout(() => syncPendingOrders(apiClient), 500);
+    }
+  }, [isOnline, apiClient]);
+
   return {
     pendingCount,
     failedOrders,
@@ -182,5 +202,8 @@ export function useSyncEngine(apiClient) {
     retrySingleOrder,
     retryAllFailed,
     deleteFailedOrder,
+    syncPaused,
+    pauseSync: handlePauseSync,
+    resumeSync: handleResumeSync,
   };
 }

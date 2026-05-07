@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaDatabase, FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaSpinner, FaClipboardList, FaShoppingCart, FaServer, FaToggleOn, FaToggleOff, FaPowerOff, FaRedo, FaCircle, FaClock } from 'react-icons/fa';
 import { getOfflineEngineEnabled, setOfflineEngineEnabled, useSyncEngine } from '../hooks/useSyncEngine';
 import apiClient from '../lib/api';
-import { isTauri } from '../utils/platform';
+import { isTauri, isElectron } from '../utils/platform';
 import { getSyncStatus, getPendingMutations, getSyncHistory, triggerSync, pauseSync, resumeSync, retryMutation, deleteMutation, clearCache, getCacheStats } from '../lib/tauriSync';
+import * as electronSync from '../lib/electronSync';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -895,6 +896,9 @@ export default function OfflineDataTab() {
       {/* Tauri Desktop: SQLite Sync Dashboard */}
       {isTauri() && <TauriSyncDashboard />}
 
+      {/* Electron Desktop: JS Sync Dashboard */}
+      {isElectron() && <ElectronSyncDashboard />}
+
       <style jsx>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -1199,6 +1203,195 @@ function TauriSyncDashboard() {
             <div>Mutation queue: <strong>{pendingTotal}</strong> items</div>
             <div>Permanently failed: <strong style={{ color: (syncStatus?.permanently_failed_count || 0) > 0 ? '#ef4444' : '#374151' }}>{syncStatus?.permanently_failed_count || 0}</strong></div>
             <div>Cache entries: <strong>{cacheStats?.entry_count || 0}</strong> ({formatBytes(cacheStats?.total_size_bytes || 0)})</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──── Electron JS Sync Dashboard (only renders in Electron desktop app) ────
+
+function ElectronSyncDashboard() {
+  const [status, setStatus] = useState(null);
+  const [mutations, setMutations] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [cacheStats, setCacheStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      const [s, m, h, c] = await Promise.all([
+        electronSync.getSyncStatus(),
+        electronSync.getPendingMutations(),
+        electronSync.getSyncHistory(30),
+        electronSync.getCacheStats(),
+      ]);
+      setStatus(s);
+      setMutations(m || []);
+      setHistory(h || []);
+      setCacheStats(c);
+    } catch (e) { console.error('[ElectronSync] refresh failed:', e); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const t = setInterval(refresh, 5000);
+    return () => clearInterval(t);
+  }, [refresh]);
+
+  if (loading || !status) return <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}><FaSpinner size={20} style={{ animation: 'spin 1s linear infinite' }} /></div>;
+
+  const pendingTotal = (status.pending_count || 0) + (status.failed_count || 0);
+  const isOnline = status.is_online;
+  const isPaused = status.is_paused;
+
+  return (
+    <div style={{ marginTop: '24px', borderTop: '2px solid #e5e7eb', paddingTop: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <FaDatabase size={18} color="white" />
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#111827' }}>Desktop Offline Engine</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>SQLite cache &amp; background sync (Electron)</p>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '10px', height: '10px', borderRadius: '50%',
+            background: isOnline ? '#22c55e' : '#ef4444',
+            boxShadow: `0 0 8px ${isOnline ? '#22c55e' : '#ef4444'}`,
+          }} />
+          <span style={{ fontSize: '13px', fontWeight: '600', color: isOnline ? '#16a34a' : '#dc2626' }}>
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
+        </div>
+      </div>
+
+      {/* Status summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+        {[
+          { label: 'Pending', value: status.pending_count || 0, color: '#f59e0b' },
+          { label: 'Failed', value: status.failed_count || 0, color: '#ef4444' },
+          { label: 'Perm Failed', value: status.permanently_failed_count || 0, color: '#991b1b' },
+          { label: 'Sync', value: isPaused ? 'Paused' : status.syncing_count > 0 ? 'Syncing' : 'Ready', color: isPaused ? '#f59e0b' : status.syncing_count > 0 ? '#3b82f6' : '#16a34a' },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{
+            padding: '14px 16px', borderRadius: '12px', background: '#f9fafb', border: '1px solid #e5e7eb',
+          }}>
+            <div style={{ fontSize: '24px', fontWeight: '800', color }}>{value}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <button
+          onClick={async () => { await electronSync.triggerSync(); setTimeout(refresh, 1000); }}
+          disabled={pendingTotal === 0 || !isOnline || isPaused}
+          style={{
+            padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+            background: '#2563eb', color: '#fff', fontWeight: '600', fontSize: '13px',
+            opacity: (pendingTotal === 0 || !isOnline || isPaused) ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          <FaSync size={12} />
+          Sync Now
+        </button>
+        <button
+          onClick={async () => { isPaused ? await electronSync.resumeSync() : await electronSync.pauseSync(); refresh(); }}
+          style={{
+            padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', cursor: 'pointer',
+            background: '#fff', color: '#374151', fontWeight: '600', fontSize: '13px',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          {isPaused ? <FaToggleOff size={14} /> : <FaToggleOn size={14} />}
+          {isPaused ? 'Resume Sync' : 'Pause Sync'}
+        </button>
+        <button
+          onClick={async () => { await electronSync.clearCache(); refresh(); }}
+          style={{
+            padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', cursor: 'pointer',
+            background: '#fff', color: '#374151', fontWeight: '600', fontSize: '13px',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          <FaTrash size={11} /> Clear Cache
+        </button>
+        {status.last_sync_at && (
+          <span style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FaClock size={10} /> Last sync: {new Date(status.last_sync_at * 1000).toLocaleString()}
+          </span>
+        )}
+      </div>
+
+      {/* Cache stats */}
+      {cacheStats && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+          <h4 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>SQLite Cache</h4>
+          <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.8' }}>
+            <div>Cached endpoints: <strong>{cacheStats.entry_count}</strong></div>
+            <div>Total size: <strong>{formatBytes(cacheStats.total_size_bytes || 0)}</strong></div>
+          </div>
+        </div>
+      )}
+
+      {/* Mutation queue */}
+      {mutations.length > 0 && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+          <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Mutation Queue ({mutations.length})</h4>
+          <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+            {mutations.map(m => (
+              <div key={m.id} style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0',
+                borderBottom: '1px solid #f3f4f6', fontSize: '12px',
+              }}>
+                <span style={{
+                  padding: '2px 6px', borderRadius: '4px', fontWeight: '600', fontSize: '10px',
+                  background: m.status === 'pending' ? '#fef3c7' : m.status === 'failed' ? '#fee2e2' : m.status === 'syncing' ? '#dbeafe' : '#fecaca',
+                  color: m.status === 'pending' ? '#92400e' : m.status === 'failed' ? '#991b1b' : m.status === 'syncing' ? '#1e40af' : '#7f1d1d',
+                }}>{m.status}</span>
+                <span style={{ color: '#6b7280', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {m.method} {m.endpoint}
+                </span>
+                {m.retry_count > 0 && <span style={{ color: '#ef4444' }}>x{m.retry_count}</span>}
+                {(m.status === 'failed' || m.status === 'permanently_failed') && (
+                  <button onClick={async () => { await electronSync.retryMutation(m.id); refresh(); }}
+                    style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontSize: '11px' }}>
+                    Retry
+                  </button>
+                )}
+                <button onClick={async () => { await electronSync.deleteMutation(m.id); refresh(); }}
+                  style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #fecaca', background: '#fff', cursor: 'pointer', fontSize: '11px', color: '#ef4444' }}>
+                  Del
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Sync history */}
+      {history.length > 0 && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+          <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Sync History (last 30)</h4>
+          <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+            {history.map(h => (
+              <div key={h.id} style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0',
+                borderBottom: '1px solid #f3f4f6', fontSize: '11px', color: '#6b7280',
+              }}>
+                <span style={{ color: h.status === 'success' ? '#16a34a' : h.status === 'failed' ? '#ef4444' : '#f59e0b', fontWeight: '600' }}>
+                  {h.action}
+                </span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.endpoint || '-'}</span>
+                <span>{new Date(h.timestamp * 1000).toLocaleTimeString()}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

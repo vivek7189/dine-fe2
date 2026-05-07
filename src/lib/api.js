@@ -1,4 +1,5 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
+import { setCachedData, getCachedData } from './offlineDb';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -164,6 +165,11 @@ class ApiClient {
         return await this._tauriRequest(endpoint, config);
       }
 
+      // Electron desktop: route through Node.js main process for SQLite offline cache
+      if (typeof window !== 'undefined' && window.electronAPI?.apiRequest) {
+        return await this._electronRequest(endpoint, config);
+      }
+
       const response = await fetch(url, config);
 
       // Report network success — we got a response from the server
@@ -263,12 +269,28 @@ class ApiClient {
         throw new Error(data.message || data.error || `API request failed (${response.status})`);
       }
 
+      // Cache successful GET responses to IndexedDB for offline fallback (all pages)
+      const method = (config.method || 'GET').toUpperCase();
+      if (method === 'GET') {
+        setCachedData(`api_${endpoint}`, data).catch(() => {});
+      }
+
       return data;
     } catch (error) {
       // Network error (fetch itself failed — no response at all)
       // Chrome/Firefox: "Failed to fetch", Safari/WebKit/Tauri: "Load failed"
-      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Load failed') || error.message.includes('NetworkError') || error.message.includes('cancelled'))) {
+      const isNetworkError = error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Load failed') || error.message.includes('NetworkError') || error.message.includes('cancelled'));
+      if (isNetworkError) {
         reportNetworkFailure();
+
+        // Offline fallback: serve cached data for GET requests
+        const method = (config.method || 'GET').toUpperCase();
+        if (method === 'GET') {
+          try {
+            const cached = await getCachedData(`api_${endpoint}`);
+            if (cached) return cached;
+          } catch { /* cache miss — fall through to throw */ }
+        }
       }
       // Only log if it's not a handled error to reduce console noise
       if (error.message && !error.message.includes('not found') && !error.message.includes('failed')) {
@@ -320,6 +342,72 @@ class ApiClient {
       }
 
       // 403 with expired token — attempt refresh
+      if (result.status_code === 403) {
+        const errorMsg = errorData.error || errorData.message || '';
+        if (errorMsg.toLowerCase().includes('invalid or expired token')) {
+          try {
+            await this.refreshToken();
+            return this.request(endpoint, { ...config, method }, true);
+          } catch {
+            this.forceLogout();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            throw new Error('Session expired. Please login again.');
+          }
+        }
+        throw new Error(errorData.message || errorData.error || 'Access denied.');
+      }
+
+      throw new Error(errorData.message || errorData.error || `API request failed (${result.status_code})`);
+    }
+
+    // Report network status to useNetworkStatus hook
+    if (result.from_cache) {
+      reportNetworkFailure();
+    } else if (!result.is_queued) {
+      reportNetworkSuccess();
+    }
+
+    return result.data;
+  }
+
+  // Electron proxy: route API calls through Node.js main process for SQLite offline cache
+  async _electronRequest(endpoint, config) {
+    const method = (config.method || 'GET').toUpperCase();
+    const headers = {};
+    if (config.headers) {
+      Object.keys(config.headers).forEach(k => {
+        if (config.headers[k]) headers[k] = config.headers[k];
+      });
+    }
+
+    const result = await window.electronAPI.apiRequest({
+      endpoint,
+      method,
+      body: typeof config.body === 'string' ? config.body : null,
+      headers: Object.keys(headers).length > 0 ? headers : null,
+    });
+
+    // Handle errors (same logic as _tauriRequest)
+    if (result.error && result.status_code >= 400) {
+      let errorData;
+      try { errorData = JSON.parse(result.error); } catch { errorData = { error: result.error }; }
+
+      if (result.status_code === 401 && errorData.inactive) {
+        this.forceLogout();
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        throw new Error(errorData.message || 'Your account has been deactivated.');
+      }
+
+      if (result.status_code === 401) {
+        this.forceLogout();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        throw new Error(errorData.message || errorData.error || 'Session expired. Please login again.');
+      }
+
       if (result.status_code === 403) {
         const errorMsg = errorData.error || errorData.message || '';
         if (errorMsg.toLowerCase().includes('invalid or expired token')) {

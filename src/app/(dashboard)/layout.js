@@ -10,7 +10,7 @@ import DineAIButton from '../../components/dineai/DineAIButton';
 import BulkMenuUpload from '../../components/BulkMenuUpload';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
-import { isWeb, isTauri } from '../../utils/platform';
+import { isWeb, isTauri, isElectron } from '../../utils/platform';
 import { isAutoUpdateEnabled, checkForUpdates, restartApp } from '../../utils/autoUpdater';
 import apiClient from '../../lib/api';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils } from 'react-icons/fa';
@@ -97,7 +97,7 @@ function DashboardLayoutContent({ children }) {
   // Auto-update check on Tauri desktop — runs once on mount after 5s delay
   const [updateReady, setUpdateReady] = useState(null);
   useEffect(() => {
-    if (!isTauri() || !isAutoUpdateEnabled()) return;
+    if ((!isTauri() && !isElectron()) || !isAutoUpdateEnabled()) return;
     const timer = setTimeout(() => {
       checkForUpdates({
         autoInstall: true,

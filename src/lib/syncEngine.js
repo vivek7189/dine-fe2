@@ -92,6 +92,24 @@ export function getCircuitState() {
 
 let isSyncing = false;
 let syncListeners = [];
+let _syncPaused = false;
+
+/** Pause the sync engine — no syncs will run until resumed */
+export function pauseSyncEngine() {
+  _syncPaused = true;
+  notifyListeners({ type: 'sync_paused' });
+}
+
+/** Resume the sync engine */
+export function resumeSyncEngine() {
+  _syncPaused = false;
+  notifyListeners({ type: 'sync_resumed' });
+}
+
+/** Check if sync is paused */
+export function isSyncEnginePaused() {
+  return _syncPaused;
+}
 
 export function onSyncStatusChange(listener) {
   syncListeners.push(listener);
@@ -293,6 +311,7 @@ async function recoverStuckOrders() {
 
 export async function syncPendingOrders(apiClient) {
   if (isSyncing) return;
+  if (_syncPaused) return;
   if (!navigator.onLine) return;
   if (isCircuitOpen()) {
     notifyListeners({ type: 'circuit_blocked', ...getCircuitState() });
@@ -358,6 +377,7 @@ export async function syncPendingOrders(apiClient) {
 
 export async function syncPendingOrdersBatch(apiClient) {
   if (isSyncing) return;
+  if (_syncPaused) return;
   if (!navigator.onLine) return;
   if (isCircuitOpen()) {
     notifyListeners({ type: 'circuit_blocked', ...getCircuitState() });

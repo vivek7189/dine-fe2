@@ -9,7 +9,7 @@
 //   3. Fetched from API via `orderId` + `restaurantId` (auto-print, or when bill not on screen)
 // Falls back to window.print() if nothing else works.
 
-import { isCapacitor, isTauri, isWeb } from './platform';
+import { isCapacitor, isTauri, isElectron, isWeb } from './platform';
 
 /**
  * Print a document across all platforms.
@@ -59,6 +59,9 @@ export async function printDocument({ html, domSelector, type = 'bill', orderId,
   }
   if (isTauri()) {
     return printViaTauri({ html: printHtml, type, printSettings });
+  }
+  if (isElectron()) {
+    return printViaElectron({ html: printHtml, type, printSettings });
   }
 }
 
@@ -182,7 +185,19 @@ async function printViaTauri({ html, type, printSettings }) {
   }
 }
 
+/** Electron: send to system printer via IPC */
+async function printViaElectron({ html, type, printSettings }) {
+  try {
+    await window.electronAPI.print(html, {
+      copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
+    });
+  } catch (err) {
+    console.error('Electron print failed, falling back to window.print:', err);
+    window.print();
+  }
+}
+
 /** Check if the current platform supports native auto-print (not web) */
 export function supportsNativeAutoPrint() {
-  return isCapacitor() || isTauri();
+  return isCapacitor() || isTauri() || isElectron();
 }
