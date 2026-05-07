@@ -86,6 +86,14 @@ export default function DashboardTablesPanel({
     return () => clearInterval(interval);
   }, []);
 
+  // Close print dropdown on outside click
+  useEffect(() => {
+    if (!printDropdownTable) return;
+    const handler = () => setPrintDropdownTable(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [printDropdownTable]);
+
   // Ref for the recently updated table card
   const updatedTableRef = useRef(null);
 
@@ -113,6 +121,7 @@ export default function DashboardTablesPanel({
 
   // Track which tables are currently printing
   const [printingTables, setPrintingTables] = useState({});
+  const [printDropdownTable, setPrintDropdownTable] = useState(null);
 
   // Sort tables: alphabetic names first (sorted A-Z), then numeric names (sorted 1,2,3...)
   const sortTables = (tablesArr) => {
@@ -467,6 +476,106 @@ export default function DashboardTablesPanel({
     } catch (error) {
       console.error('Error fetching order for print:', error);
       setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+    }
+  };
+
+  const handlePrintBill = async (table) => {
+    setPrintDropdownTable(null);
+    if (!table.currentOrderId || !selectedRestaurant?.id) return;
+    const tableId = table.id || table.currentOrderId;
+    setPrintingTables(prev => ({ ...prev, [tableId]: true }));
+
+    try {
+      const response = await apiClient.getOrderById(table.currentOrderId);
+      if (!response.orders || response.orders.length === 0) {
+        setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+        return;
+      }
+      const order = response.orders[0];
+
+      if (supportsNativeAutoPrint()) {
+        const items = order.items || [];
+        const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+        const taxBreakdown = order.taxBreakdown || [];
+        const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
+        const total = order.finalAmount || (subtotal + taxTotal);
+        const currencySymbol = getCurrencySymbol();
+
+        const itemsHtml = items.map(item =>
+          `<tr>
+            <td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td>
+            <td style="text-align:center;">${item.quantity || 1}</td>
+            <td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
+          </tr>`
+        ).join('');
+
+        const taxHtml = taxBreakdown.map(tax =>
+          `<tr>
+            <td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td>
+            <td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td>
+          </tr>`
+        ).join('');
+
+        const _tpIdLines = [];
+        if (selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName) _tpIdLines.push(selectedRestaurant.legalBusinessName.replace(/</g, '&lt;'));
+        if (selectedRestaurant?.address) _tpIdLines.push(selectedRestaurant.address.replace(/</g, '&lt;'));
+        if (selectedRestaurant?.phone) _tpIdLines.push('Tel: ' + selectedRestaurant.phone);
+        if (selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin) _tpIdLines.push('GSTIN: ' + selectedRestaurant.gstin);
+        if (selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai) _tpIdLines.push('FSSAI: ' + selectedRestaurant.fssai);
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber) _tpIdLines.push('Tax ID: ' + selectedRestaurant.vatNumber);
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId) _tpIdLines.push('Tax ID: ' + selectedRestaurant.taxId);
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber) _tpIdLines.push('Reg#: ' + selectedRestaurant.businessRegistrationNumber);
+        const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
+        const _tpHeaderHtml = getBillHeaderHTML((restaurantName || 'Restaurant').replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
+
+        const billContent = `<!DOCTYPE html><html><head><title>Bill</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div><div>Table: ${order.tableNumber || '-'}</div></div><div class="divider">--------------------------------</div><table class="items-table" width="100%"><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr>${itemsHtml}</table><div class="divider">--------------------------------</div><div class="total-section"><div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${taxHtml ? `${taxBreakdown.map(tax => `<div class="total-row"><span>${tax.name} (${tax.rate}%)</span><span>${currencySymbol}${(tax.amount || 0).toFixed(2)}</span></div>`).join('')}` : ''}<div class="total-row" style="font-weight:bold;font-size:16px;"><span>TOTAL</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer">Thank you!</div></body></html>`;
+
+        await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
+      } else {
+        openManualPrintWindow(order, table);
+      }
+    } catch (error) {
+      console.error('Error printing bill:', error);
+    } finally {
+      setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
+    }
+  };
+
+  const handlePrintKOT = async (table) => {
+    setPrintDropdownTable(null);
+    if (!table.currentOrderId || !selectedRestaurant?.id) return;
+    const tableId = table.id || table.currentOrderId;
+    setPrintingTables(prev => ({ ...prev, [tableId]: true }));
+
+    try {
+      const response = await apiClient.getOrderById(table.currentOrderId);
+      if (!response.orders || response.orders.length === 0) {
+        setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+        return;
+      }
+      const order = response.orders[0];
+      const items = order.items || [];
+      const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
+
+      const kotHtml = `<!DOCTYPE html><html><head><title>KOT</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div style="text-align:center;font-weight:bold;font-size:16px;">${(restaurantName || 'Restaurant').replace(/</g, '&lt;')}</div><div style="text-align:center;font-weight:bold;margin:6px 0;">--- KITCHEN ORDER ---</div><div class="divider">--------------------------------</div><div class="bill-info"><div>Order# ${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div>${order.tableNumber ? `<div>Table: ${order.tableNumber}</div>` : ''}${order.roomNumber ? `<div>Room: ${order.roomNumber}</div>` : ''}<div>Time: ${formattedTime}</div><div>Date: ${formattedDate}</div>${order.customerDisplay?.name || order.customerInfo?.name ? `<div>Customer: ${(order.customerDisplay?.name || order.customerInfo?.name).replace(/</g, '&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div style="margin:4px 0;"><span style="font-weight:bold;">${i.quantity || 1}x</span> ${(i.name || '').replace(/</g, '&lt;')}${i.selectedVariant?.name ? `<div style="padding-left:20px;font-size:11px;color:#666;">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div style="padding-left:20px;font-size:11px;color:#666;">+ ${(c.name || c || '').toString().replace(/</g, '&lt;')}</div>`).join('')}${i.notes ? `<div style="padding-left:20px;font-size:10px;font-style:italic;">Note: ${i.notes.replace(/</g, '&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div style="font-weight:bold;text-align:center;">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+
+      if (supportsNativeAutoPrint()) {
+        await printDocument({ html: kotHtml, type: 'kot', printSettings: printSettings || {} });
+      } else {
+        const pw = window.open('', '_blank', 'width=400,height=600');
+        if (pw) {
+          pw.document.write(kotHtml);
+          pw.document.close();
+          pw.focus();
+          setTimeout(() => pw.print(), 400);
+        }
+      }
+    } catch (error) {
+      console.error('Error printing KOT:', error);
+    } finally {
+      setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
     }
   };
 
@@ -1131,83 +1240,131 @@ export default function DashboardTablesPanel({
                       ) : (
                         /* Occupied/Reserved/Cleaning tables - Show Print, Add, More buttons */
                         <div style={{ display: 'flex', gap: '6px' }}>
-                          {/* Print Button - Smart print (auto or manual based on settings) */}
+                          {/* Print Button with Dropdown */}
                           {(() => {
                             const tableId = t.id || t.currentOrderId;
                             const isPrinting = printingTables[tableId];
+                            const isDropdownOpen = printDropdownTable === tableId;
                             return (
-                              <button
-                                className="btn-action"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (t.currentOrderId && !isPrinting) handleSmartPrint(t);
-                                }}
-                                disabled={isPrinting}
-                                style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  padding: 0,
-                                  background: isPrinting
-                                    ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
-                                    : '#ffffff',
-                                  color: isPrinting ? '#3b82f6' : '#6b7280',
-                                  border: isPrinting ? '1px solid #93c5fd' : '1px solid #d1d5db',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  cursor: isPrinting ? 'not-allowed' : 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  position: 'relative',
-                                  overflow: 'visible',
-                                  opacity: isPrinting ? 0.85 : 1,
-                                  transition: 'all 0.2s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (!isPrinting) {
-                                    e.currentTarget.style.background = '#f3f4f6';
-                                    e.currentTarget.style.color = '#374151';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!isPrinting) {
-                                    e.currentTarget.style.background = '#ffffff';
-                                    e.currentTarget.style.color = '#6b7280';
-                                  }
-                                }}
-                                title={isPrinting ? 'Printing...' : 'Print Bill'}
-                              >
-                                {isPrinting ? (
-                                  <FaSpinner size={11} className="animate-spin" />
-                                ) : (
-                                  <FaPrint size={11} />
-                                )}
-                                {/* Small loading indicator badge on top-right */}
-                                {isPrinting && (
-                                  <div style={{
-                                    position: 'absolute',
-                                    top: '-4px',
-                                    right: '-4px',
-                                    width: '12px',
-                                    height: '12px',
-                                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                    borderRadius: '50%',
+                              <div style={{ position: 'relative' }}>
+                                <button
+                                  className="btn-action"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isPrinting && t.currentOrderId) {
+                                      setPrintDropdownTable(prev => prev === tableId ? null : tableId);
+                                    }
+                                  }}
+                                  disabled={isPrinting}
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    padding: 0,
+                                    background: isPrinting
+                                      ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
+                                      : isDropdownOpen ? '#f3f4f6' : '#ffffff',
+                                    color: isPrinting ? '#3b82f6' : '#6b7280',
+                                    border: isPrinting ? '1px solid #93c5fd' : isDropdownOpen ? '1px solid #9ca3af' : '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    cursor: isPrinting ? 'not-allowed' : 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.4)',
-                                    animation: 'pulse 1s infinite'
-                                  }}>
+                                    position: 'relative',
+                                    overflow: 'visible',
+                                    opacity: isPrinting ? 0.85 : 1,
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                  title={isPrinting ? 'Printing...' : 'Print'}
+                                >
+                                  {isPrinting ? (
+                                    <FaSpinner size={11} className="animate-spin" />
+                                  ) : (
+                                    <FaPrint size={11} />
+                                  )}
+                                  {isPrinting && (
                                     <div style={{
-                                      width: '4px',
-                                      height: '4px',
+                                      position: 'absolute',
+                                      top: '-4px',
+                                      right: '-4px',
+                                      width: '12px',
+                                      height: '12px',
+                                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                      borderRadius: '50%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      boxShadow: '0 2px 4px rgba(59, 130, 246, 0.4)',
+                                      animation: 'pulse 1s infinite'
+                                    }}>
+                                      <div style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />
+                                    </div>
+                                  )}
+                                </button>
+                                {/* Print Dropdown */}
+                                {isDropdownOpen && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      position: 'absolute',
+                                      top: '100%',
+                                      left: 0,
+                                      marginTop: '4px',
                                       background: '#ffffff',
-                                      borderRadius: '50%'
-                                    }} />
+                                      border: '1px solid #e5e7eb',
+                                      borderRadius: '8px',
+                                      boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                                      zIndex: 50,
+                                      minWidth: '140px',
+                                      overflow: 'hidden',
+                                    }}
+                                  >
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handlePrintBill(t); }}
+                                      style={{
+                                        width: '100%',
+                                        padding: '8px 14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontSize: '12px',
+                                        fontWeight: 500,
+                                        color: '#374151',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        borderBottom: '1px solid #f3f4f6',
+                                      }}
+                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                      <FaReceipt size={11} style={{ color: '#10b981' }} /> Print Bill
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handlePrintKOT(t); }}
+                                      style={{
+                                        width: '100%',
+                                        padding: '8px 14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontSize: '12px',
+                                        fontWeight: 500,
+                                        color: '#374151',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                      }}
+                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                      <FaUtensils size={11} style={{ color: '#f59e0b' }} /> Print KOT
+                                    </button>
                                   </div>
                                 )}
-                              </button>
+                              </div>
                             );
                           })()}
                           {/* Add Items Button - Gray style */}

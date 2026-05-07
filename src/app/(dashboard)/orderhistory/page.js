@@ -15,7 +15,7 @@ import OfflineBanner from '../../../components/OfflineBanner';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML } from '../../../utils/printFontSizes';
-import { printDocument, printHtmlInHiddenFrame } from '../../../utils/printBridge';
+import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import OrderSummary from '../../../components/OrderSummary';
 import {
   FaSearch,
@@ -167,6 +167,7 @@ const OrderHistory = () => {
   const [upiSettings, setUpiSettings] = useState({});
   const [whatsappConnected, setWhatsappConnected] = useState(false);
   const [printingOrderId, setPrintingOrderId] = useState(null);
+  const [printDropdownOrderId, setPrintDropdownOrderId] = useState(null);
   const [printSuccess, setPrintSuccess] = useState(null);
   const [analyticsStats, setAnalyticsStats] = useState(null);
   const [taxSettings, setTaxSettings] = useState(null);
@@ -181,6 +182,13 @@ const OrderHistory = () => {
   const [scheduledLoading, setScheduledLoading] = useState(false);
   const [scheduledViewMode, setScheduledViewMode] = useState('list'); // 'list' or 'calendar'
   const [scheduledDateFilter, setScheduledDateFilter] = useState('upcoming'); // 'upcoming', 'today', 'thisWeek', 'thisMonth', 'all', 'past'
+
+  useEffect(() => {
+    if (!printDropdownOrderId) return;
+    const handler = () => setPrintDropdownOrderId(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [printDropdownOrderId]);
 
   useEffect(() => {
     // Initialize language
@@ -1237,12 +1245,16 @@ const OrderHistory = () => {
 
       const billContent = `<!DOCTYPE html><html><head><title>${bLabels.billLabel} #${orderNum}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${_headerHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div class="info-row"><span>${bLabels.billLabel}#:</span><span><strong>${orderNum}</strong></span></div><div class="info-row"><span>Date:</span><span>${formattedDate} ${formattedTime}</span></div>${tableNum ? `<div class="info-row"><span>Table:</span><span>${tableNum}</span></div>` : ''}${roomNum ? `<div class="info-row"><span>Room:</span><span>${roomNum}</span></div>` : ''}${customerName ? `<div class="info-row"><span>${bLabels.customerLabel}:</span><span>${String(customerName).replace(/</g,'&lt;')}</span></div>` : ''}<div class="info-row"><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">${bLabels.itemCol}</th><th style="text-align:center;">${bLabels.qtyCol}</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div class="info-row"><span>Subtotal:</span><span>${symbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${symbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>${bLabels.footer}</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
 
-      const win = window.open('', '_blank', 'width=400,height=600');
-      if (win) {
-        win.document.write(billContent);
-        win.document.close();
-        win.focus();
-        setTimeout(() => { win.print(); }, 500);
+      if (supportsNativeAutoPrint()) {
+        printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
+      } else {
+        const win = window.open('', '_blank', 'width=400,height=600');
+        if (win) {
+          win.document.write(billContent);
+          win.document.close();
+          win.focus();
+          setTimeout(() => { win.print(); }, 500);
+        }
       }
       printFoodCourtTokensForOrder(order);
     } else {
@@ -1251,13 +1263,58 @@ const OrderHistory = () => {
       const specialInstructions = order.specialInstructions || '';
       const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong><strong>Date:</strong></strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
 
-      const pw = window.open('', '_blank', 'width=400,height=600');
-      if (pw) {
-        pw.document.write(kotContent);
-        pw.document.close();
-        pw.focus();
-        setTimeout(() => { pw.print(); }, 400);
+      if (supportsNativeAutoPrint()) {
+        printDocument({ html: kotContent, type: 'kot', printSettings: printSettings || {} });
+      } else {
+        const pw = window.open('', '_blank', 'width=400,height=600');
+        if (pw) {
+          pw.document.write(kotContent);
+          pw.document.close();
+          pw.focus();
+          setTimeout(() => { pw.print(); }, 400);
+        }
       }
+    }
+  };
+
+  const handlePrintBill = (order) => {
+    setPrintDropdownOrderId(null);
+    // Force bill print by temporarily setting status
+    const billOrder = { ...order, status: 'completed' };
+    if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
+      // Try KOT printer app first
+      setPrintingOrderId(order.id);
+      apiClient.requestManualPrint(order.id, 'bill')
+        .then((response) => {
+          if (response?.success) {
+            setPrintSuccess(`Bill sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
+            setTimeout(() => setPrintSuccess(null), 3000);
+          }
+        })
+        .catch(() => browserPrint(billOrder))
+        .finally(() => setPrintingOrderId(null));
+    } else {
+      browserPrint(billOrder);
+    }
+  };
+
+  const handlePrintKOT = (order) => {
+    setPrintDropdownOrderId(null);
+    // Force KOT print by temporarily setting status to pending
+    const kotOrder = { ...order, status: 'active' };
+    if (printSettings?.kotPrinterEnabled && printSettings?.usePusherForKOT) {
+      setPrintingOrderId(order.id);
+      apiClient.requestManualPrint(order.id, 'kot')
+        .then((response) => {
+          if (response?.success) {
+            setPrintSuccess(`KOT sent to printer (#${order.dailyOrderId || order.id?.slice(-4)})`);
+            setTimeout(() => setPrintSuccess(null), 3000);
+          }
+        })
+        .catch(() => browserPrint(kotOrder))
+        .finally(() => setPrintingOrderId(null));
+    } else {
+      browserPrint(kotOrder);
     }
   };
 
@@ -2395,14 +2452,79 @@ const OrderHistory = () => {
                                     <FaWallet size={11} />
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => handleSmartPrint(order)}
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-colors ${printingOrderId === order.id ? 'bg-orange-200 border-orange-300 cursor-wait' : 'text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200'}`}
-                                  title={order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT')}
-                                  disabled={printingOrderId === order.id}
-                                >
-                                  {printingOrderId === order.id ? <FaSpinner size={11} className="animate-spin" /> : <FaPrint size={11} />}
-                                </button>
+                                <div style={{ position: 'relative' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPrintDropdownOrderId(prev => prev === order.id ? null : order.id);
+                                    }}
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-colors ${printingOrderId === order.id ? 'bg-orange-200 border-orange-300 cursor-wait' : 'text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200'}`}
+                                    title="Print"
+                                    disabled={printingOrderId === order.id}
+                                  >
+                                    {printingOrderId === order.id ? <FaSpinner size={11} className="animate-spin" /> : <FaPrint size={11} />}
+                                  </button>
+                                  {printDropdownOrderId === order.id && (
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        right: 0,
+                                        marginTop: '4px',
+                                        background: '#ffffff',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '8px',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                                        zIndex: 50,
+                                        minWidth: '130px',
+                                        overflow: 'hidden',
+                                      }}
+                                    >
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handlePrintBill(order); }}
+                                        style={{
+                                          width: '100%',
+                                          padding: '8px 12px',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px',
+                                          fontSize: '12px',
+                                          fontWeight: 500,
+                                          color: '#374151',
+                                          background: 'transparent',
+                                          border: 'none',
+                                          borderBottom: '1px solid #f3f4f6',
+                                          cursor: 'pointer',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                      >
+                                        <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handlePrintKOT(order); }}
+                                        style={{
+                                          width: '100%',
+                                          padding: '8px 12px',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px',
+                                          fontSize: '12px',
+                                          fontWeight: 500,
+                                          color: '#374151',
+                                          background: 'transparent',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                      >
+                                        <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                                 <button
                                   onClick={() => handleViewOrder(order)}
                                   className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors"
@@ -2753,15 +2875,80 @@ const OrderHistory = () => {
                             >
                               <FaEye /> {t('orderHistory.view')}
                             </button>
-                            <button
-                              onClick={() => handleSmartPrint(order)}
-                              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
-                              title={order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT')}
-                              disabled={printingOrderId === order.id}
-                            >
-                              {printingOrderId === order.id ? <FaSpinner className="animate-spin" /> : <FaPrint />}
-                              {printingOrderId === order.id ? t('orderHistory.sending') : (order.status === 'completed' ? t('orderHistory.printBill') : t('orderHistory.printKOT'))}
-                            </button>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPrintDropdownOrderId(prev => prev === order.id ? null : order.id);
+                                }}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
+                                title="Print"
+                                disabled={printingOrderId === order.id}
+                              >
+                                {printingOrderId === order.id ? <FaSpinner className="animate-spin" /> : <FaPrint />}
+                                {printingOrderId === order.id ? t('orderHistory.sending') : 'Print'}
+                              </button>
+                              {printDropdownOrderId === order.id && (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    marginTop: '4px',
+                                    background: '#ffffff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                                    zIndex: 50,
+                                    minWidth: '130px',
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handlePrintBill(order); }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 12px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      fontSize: '12px',
+                                      fontWeight: 500,
+                                      color: '#374151',
+                                      background: 'transparent',
+                                      border: 'none',
+                                      borderBottom: '1px solid #f3f4f6',
+                                      cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                  >
+                                    <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handlePrintKOT(order); }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 12px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      fontSize: '12px',
+                                      fontWeight: 500,
+                                      color: '#374151',
+                                      background: 'transparent',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                  >
+                                    <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && (
                               <button
                                 onClick={() => handleCancelOrder(order.id)}

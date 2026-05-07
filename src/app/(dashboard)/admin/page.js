@@ -3000,7 +3000,10 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     tokenBillingEnabled: false,
     enableUpdateWithoutKOT: false,
     enableKOTAndPrint: false,
-    enableSaveAndPrint: false
+    enableSaveAndPrint: false,
+    // Auto-print on button click (works on both Web and Tauri)
+    autoPrintOnPlaceOrder: false,
+    autoPrintOnCompleteBilling: false,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3120,9 +3123,23 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       section: 'main'
     },
     {
+      key: 'autoPrintOnPlaceOrder',
+      title: 'Auto-Print on Place Order (KOT)',
+      description: 'Automatically print KOT when "Place Order" is clicked (without needing KOT & Print button)',
+      icon: <FaPrint size={18} />,
+      section: 'main'
+    },
+    {
+      key: 'autoPrintOnCompleteBilling',
+      title: 'Auto-Print on Complete Billing',
+      description: 'Automatically print bill when "Complete Billing" is clicked (without needing Bill & Print button)',
+      icon: <FaReceipt size={18} />,
+      section: 'main'
+    },
+    {
       key: 'kotPrinterEnabled',
       title: 'KOT Printer App (Auto-Print)',
-      description: 'Enable automatic printing via dine-kot-printer app',
+      description: 'Enable automatic printing via dine-kot-printer app (Web only)',
       icon: <FaPrint size={18} />,
       section: 'main'
     },

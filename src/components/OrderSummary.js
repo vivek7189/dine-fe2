@@ -494,20 +494,21 @@ const OrderSummary = ({
   }, [cart?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-print KOT when order is placed
-  // Native (Tauri/Capacitor): always auto-print KOT when a default printer is set
-  // Web: only print if user clicked "KOT & Print" button (sets __autoPrintKOT flag)
+  // Prints if: user clicked "KOT & Print" button (sets __autoPrintKOT flag)
+  //        OR: autoPrintOnPlaceOrder setting is ON (auto-print on every Place Order)
   useEffect(() => {
     if (!orderSuccess?.kotData || typeof window === 'undefined') return;
     // Skip optimistic render (orderId is null before API returns) to avoid double-printing
     if (!orderSuccess.kotData.orderId) return;
 
     const isNative = supportsNativeAutoPrint();
-    const webPrintRequested = window.__autoPrintKOT;
+    const buttonPrintRequested = window.__autoPrintKOT;
+    const autoPrintEnabled = !!printSettings?.autoPrintOnPlaceOrder;
 
-    console.log('[OrderSummary] KOT print effect fired:', { isNative, webPrintRequested, orderId: orderSuccess?.kotData?.orderId });
+    console.log('[OrderSummary] KOT print effect fired:', { isNative, buttonPrintRequested, autoPrintEnabled, orderId: orderSuccess?.kotData?.orderId });
 
-    // On web, only print if explicitly requested via "KOT & Print" button
-    if (!isNative && !webPrintRequested) return;
+    // Only print if explicitly requested via button OR auto-print setting is ON
+    if (!buttonPrintRequested && !autoPrintEnabled) return;
 
     window.__autoPrintKOT = false;
     const timer = setTimeout(() => {
@@ -545,18 +546,19 @@ const OrderSummary = ({
   }, [orderSuccess?.kotData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-print Bill when billing completes
-  // Native (Tauri/Capacitor): always auto-print bill when a default printer is set
-  // Web: only print if user clicked "Bill & Print" button (sets __autoPrintBill flag)
+  // Prints if: user clicked "Bill & Print" button (sets __autoPrintBill flag)
+  //        OR: autoPrintOnCompleteBilling setting is ON (auto-print on every Complete Billing)
   useEffect(() => {
     if (!showInvoicePermanently || !invoice || typeof window === 'undefined') return;
 
     const isNative = supportsNativeAutoPrint();
-    const webPrintRequested = window.__autoPrintBill;
+    const buttonPrintRequested = window.__autoPrintBill;
+    const autoPrintEnabled = !!printSettings?.autoPrintOnCompleteBilling;
 
-    console.log('[OrderSummary] Bill print effect fired:', { isNative, webPrintRequested, invoiceId: invoice?.id });
+    console.log('[OrderSummary] Bill print effect fired:', { isNative, buttonPrintRequested, autoPrintEnabled, invoiceId: invoice?.id });
 
-    // On web, only print if explicitly requested via "Bill & Print" button
-    if (!isNative && !webPrintRequested) return;
+    // Only print if explicitly requested via button OR auto-print setting is ON
+    if (!buttonPrintRequested && !autoPrintEnabled) return;
 
     window.__autoPrintBill = false;
     const timer = setTimeout(() => {

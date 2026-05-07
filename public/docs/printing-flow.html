@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DineOpen Printing Flow — Internal Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; color: #0f172a; }
+  .subtitle { font-size: 14px; color: #64748b; margin-bottom: 32px; }
+  h2 { font-size: 20px; font-weight: 600; margin: 32px 0 16px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 20px 0 10px; color: #334155; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-web { background: #dbeafe; color: #1d4ed8; }
+  .badge-tauri { background: #dcfce7; color: #16a34a; }
+  .badge-both { background: #fef3c7; color: #b45309; }
+
+  /* Section cards */
+  .section { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 24px; margin-bottom: 24px; }
+
+  /* Flow diagram */
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .flow-step { display: flex; align-items: stretch; gap: 16px; }
+  .flow-line { width: 2px; background: #cbd5e1; margin-left: 15px; min-height: 20px; }
+  .flow-dot { width: 32px; min-width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .flow-content { flex: 1; padding: 4px 0 16px; }
+  .flow-content strong { font-size: 14px; }
+  .flow-content p { font-size: 13px; color: #64748b; margin-top: 2px; }
+  .dot-blue { background: #3b82f6; }
+  .dot-green { background: #22c55e; }
+  .dot-amber { background: #f59e0b; }
+  .dot-purple { background: #8b5cf6; }
+  .dot-red { background: #ef4444; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+  th { background: #f1f5f9; text-align: left; padding: 10px 14px; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  tr:hover td { background: #f8fafc; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag-on { background: #dcfce7; color: #16a34a; }
+  .tag-off { background: #fee2e2; color: #dc2626; }
+  .tag-default { background: #f1f5f9; color: #64748b; }
+
+  /* Platform comparison */
+  .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .platform-card { border-radius: 10px; padding: 20px; border: 1px solid #e2e8f0; }
+  .platform-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .platform-card ul { list-style: none; padding: 0; }
+  .platform-card li { padding: 4px 0; font-size: 13px; color: #475569; display: flex; align-items: flex-start; gap: 6px; }
+  .platform-card li::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+  .pc-web { background: #eff6ff; }
+  .pc-web li::before { background: #3b82f6; }
+  .pc-tauri { background: #f0fdf4; }
+  .pc-tauri li::before { background: #22c55e; }
+
+  /* Button cards */
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .btn-card { border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; background: #fff; }
+  .btn-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .btn-name { font-weight: 600; font-size: 14px; }
+  .btn-card p { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+  .btn-card code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #7c3aed; }
+
+  /* Visual flow boxes */
+  .visual-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .vf-box { padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .vf-action { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .vf-check { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .vf-print { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  .vf-arrow { color: #94a3b8; font-size: 18px; }
+
+  /* Dropdown preview */
+  .dropdown-preview { display: inline-flex; flex-direction: column; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); overflow: hidden; margin: 12px 0; min-width: 160px; }
+  .dropdown-item { padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; color: #374151; cursor: default; border-bottom: 1px solid #f3f4f6; }
+  .dropdown-item:last-child { border-bottom: none; }
+  .dropdown-item:hover { background: #f9fafb; }
+  .di-icon { width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .di-bill { background: #dcfce7; color: #16a34a; }
+  .di-kot { background: #fef3c7; color: #d97706; }
+
+  /* Settings groups */
+  .setting-group { margin: 8px 0; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #3b82f6; }
+  .setting-group.sg-green { border-left-color: #22c55e; }
+  .setting-group.sg-purple { border-left-color: #8b5cf6; }
+  .setting-group.sg-amber { border-left-color: #f59e0b; }
+  .setting-name { font-weight: 600; font-size: 13px; }
+  .setting-desc { font-size: 12px; color: #64748b; }
+
+  /* Recommended config */
+  .config-box { border-radius: 10px; padding: 16px 20px; margin: 8px 0; border: 1px solid #e2e8f0; }
+  .config-box h4 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .config-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; }
+  .config-row span:first-child { color: #475569; }
+
+  /* Troubleshoot */
+  .trouble-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+  .trouble-box h4 { color: #dc2626; font-size: 14px; margin-bottom: 6px; }
+  .trouble-box p { font-size: 13px; color: #7f1d1d; }
+  .trouble-fix { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-top: 8px; }
+  .trouble-fix p { color: #166534; }
+
+  .note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #92400e; margin: 12px 0; }
+
+  @media (max-width: 768px) {
+    .platform-grid, .btn-grid { grid-template-columns: 1fr; }
+    .visual-flow { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>DineOpen Printing Flow</h1>
+  <p class="subtitle">Internal guide &mdash; How printing works on Web (Browser) and Tauri (Desktop App)</p>
+
+  <!-- ===== SECTION 1: Platform Difference ===== -->
+  <div class="section">
+    <h2>1. Two Platforms, Same Logic</h2>
+    <p style="font-size:14px; color:#475569; margin-bottom:12px;">The print <strong>trigger logic</strong> (flags, settings, button clicks) is identical on both platforms. Only the <strong>print execution</strong> differs.</p>
+
+    <div class="platform-grid">
+      <div class="platform-card pc-web">
+        <h4><span class="badge badge-web">Web</span> Browser</h4>
+        <ul>
+          <li>Opens a hidden window with print HTML</li>
+          <li>Calls <code>window.print()</code></li>
+          <li>System print dialog always appears</li>
+          <li>User clicks "Print" in dialog</li>
+        </ul>
+      </div>
+      <div class="platform-card pc-tauri">
+        <h4><span class="badge badge-tauri">Tauri</span> Desktop App</h4>
+        <ul>
+          <li>Calls Rust <code>print_document</code> command</li>
+          <li>Uses <code>lp</code> (Mac) or PowerShell (Windows)</li>
+          <li><strong>Silent print</strong> if default printer is set</li>
+          <li>Falls back to browser dialog if no printer set</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 2: The 4 Buttons ===== -->
+  <div class="section">
+    <h2>2. The 4 Print Buttons</h2>
+    <p style="font-size:14px; color:#475569; margin-bottom:16px;">There are 4 buttons on the billing screen. Each one's print behavior is controlled by a setting flag.</p>
+
+    <div class="btn-grid">
+      <!-- Place Order -->
+      <div class="btn-card" style="border-top: 3px solid #3b82f6;">
+        <div class="btn-card-header">
+          <span class="btn-name">Place Order (KOT)</span>
+          <span class="tag tag-default">Print optional</span>
+        </div>
+        <p>Sends order to kitchen display/tickets.</p>
+        <p>Prints KOT <strong>only if</strong> <code>autoPrintOnPlaceOrder</code> = ON</p>
+        <p style="margin-top:6px; font-size:11px; color:#94a3b8;">Default: OFF &mdash; no print happens</p>
+      </div>
+
+      <!-- KOT & Print -->
+      <div class="btn-card" style="border-top: 3px solid #8b5cf6;">
+        <div class="btn-card-header">
+          <span class="btn-name">KOT & Print</span>
+          <span class="tag tag-on">Always prints</span>
+        </div>
+        <p>Sends order to kitchen + <strong>always prints KOT</strong>.</p>
+        <p>Button visibility: <code>enableKOTAndPrint</code></p>
+        <p style="margin-top:6px; font-size:11px; color:#94a3b8;">Default: Hidden (button not shown)</p>
+      </div>
+
+      <!-- Complete Billing -->
+      <div class="btn-card" style="border-top: 3px solid #22c55e;">
+        <div class="btn-card-header">
+          <span class="btn-name">Complete Billing</span>
+          <span class="tag tag-default">Print optional</span>
+        </div>
+        <p>Completes billing + processes payment.</p>
+        <p>Prints bill <strong>only if</strong> <code>autoPrintOnCompleteBilling</code> = ON</p>
+        <p style="margin-top:6px; font-size:11px; color:#94a3b8;">Default: OFF &mdash; no print happens</p>
+      </div>
+
+      <!-- Bill & Print -->
+      <div class="btn-card" style="border-top: 3px solid #f59e0b;">
+        <div class="btn-card-header">
+          <span class="btn-name">Bill & Print</span>
+          <span class="tag tag-on">Always prints</span>
+        </div>
+        <p>Completes billing + <strong>always prints bill</strong>.</p>
+        <p>Button visibility: <code>enableSaveAndPrint</code></p>
+        <p style="margin-top:6px; font-size:11px; color:#94a3b8;">Default: Hidden (button not shown)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 3: Visual Flow ===== -->
+  <div class="section">
+    <h2>3. How Each Button Works (Flow)</h2>
+
+    <h3 style="color:#3b82f6;">Place Order (KOT)</h3>
+    <div class="visual-flow">
+      <div class="vf-box vf-action">Click "Place Order"</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-action">Send to Kitchen</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-check">Check: autoPrintOnPlaceOrder?</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-print">If ON &rarr; Print KOT</div>
+    </div>
+
+    <h3 style="color:#8b5cf6;">KOT & Print</h3>
+    <div class="visual-flow">
+      <div class="vf-box vf-action">Click "KOT & Print"</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-check">Set __autoPrintKOT = true</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-action">Send to Kitchen</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-print">Always Print KOT</div>
+    </div>
+
+    <h3 style="color:#22c55e;">Complete Billing</h3>
+    <div class="visual-flow">
+      <div class="vf-box vf-action">Click "Complete Billing"</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-action">Process Payment</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-check">Check: autoPrintOnCompleteBilling?</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-print">If ON &rarr; Print Bill</div>
+    </div>
+
+    <h3 style="color:#f59e0b;">Bill & Print</h3>
+    <div class="visual-flow">
+      <div class="vf-box vf-action">Click "Bill & Print"</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-check">Set __autoPrintBill = true</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-action">Process Payment</div>
+      <span class="vf-arrow">&rarr;</span>
+      <div class="vf-box vf-print">Always Print Bill</div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 4: Print Execution ===== -->
+  <div class="section">
+    <h2>4. Print Execution (What Happens After Trigger)</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:25%;">Step</th>
+          <th style="width:37%;"><span class="badge badge-web">Web</span> Browser</th>
+          <th style="width:37%;"><span class="badge badge-tauri">Tauri</span> Desktop</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Generate HTML</strong></td>
+          <td>Same &mdash; <code>generateBillHTML()</code> or <code>generateKOTHTML()</code></td>
+          <td>Same &mdash; identical HTML generation</td>
+        </tr>
+        <tr>
+          <td><strong>2. Send to printer</strong></td>
+          <td><code>window.open()</code> &rarr; new window with HTML</td>
+          <td><code>invoke('print_document')</code> &rarr; Rust command</td>
+        </tr>
+        <tr>
+          <td><strong>3. Print dialog</strong></td>
+          <td><code>window.print()</code> &rarr; System dialog appears</td>
+          <td>No dialog (silent print via <code>lp</code> / PowerShell)</td>
+        </tr>
+        <tr>
+          <td><strong>4. User action</strong></td>
+          <td>User must click "Print" in dialog</td>
+          <td>No action needed &mdash; prints automatically</td>
+        </tr>
+        <tr>
+          <td><strong>5. No printer set</strong></td>
+          <td>N/A (always shows dialog)</td>
+          <td>Falls back to browser dialog</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== SECTION 5: Print Dropdown (Table & Order History) ===== -->
+  <div class="section">
+    <h2>5. Print Dropdown (Table View & Order History)</h2>
+    <p style="font-size:14px; color:#475569; margin-bottom:16px;">On the <strong>Table Card</strong> (running tables) and <strong>Order History</strong> page, clicking the print icon opens a dropdown menu:</p>
+
+    <div style="display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap;">
+      <div>
+        <h3>Dropdown Menu</h3>
+        <div class="dropdown-preview">
+          <div class="dropdown-item">
+            <span class="di-icon di-bill">&#x1F4C4;</span>
+            <span>Print Bill</span>
+          </div>
+          <div class="dropdown-item">
+            <span class="di-icon di-kot">&#x1F374;</span>
+            <span>Print KOT</span>
+          </div>
+        </div>
+        <p style="font-size:12px; color:#94a3b8; margin-top:4px;">Click outside to close</p>
+      </div>
+
+      <div style="flex:1; min-width:280px;">
+        <h3>How It Works</h3>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-dot dot-blue">1</div>
+            <div class="flow-content">
+              <strong>Click print icon on table card or order row</strong>
+              <p>Dropdown opens with two options</p>
+            </div>
+          </div>
+          <div class="flow-line"></div>
+          <div class="flow-step">
+            <div class="flow-dot dot-amber">2</div>
+            <div class="flow-content">
+              <strong>Choose "Print Bill" or "Print KOT"</strong>
+              <p>Fetches order data from API</p>
+            </div>
+          </div>
+          <div class="flow-line"></div>
+          <div class="flow-step">
+            <div class="flow-dot dot-green">3</div>
+            <div class="flow-content">
+              <strong>Generates HTML (bill or KOT format)</strong>
+              <p>Uses <code>generateBillHTML()</code> or builds KOT layout</p>
+            </div>
+          </div>
+          <div class="flow-line"></div>
+          <div class="flow-step">
+            <div class="flow-dot dot-purple">4</div>
+            <div class="flow-content">
+              <strong>Print executes</strong>
+              <p><span class="badge badge-tauri">Tauri</span> Silent native print &nbsp;|&nbsp; <span class="badge badge-web">Web</span> System dialog</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Where this dropdown appears:</strong><br>
+      &bull; <strong>Dashboard Table Cards</strong> &mdash; print icon on each running table<br>
+      &bull; <strong>Order History</strong> &mdash; print button on each order (both table view and card view)
+    </div>
+  </div>
+
+  <!-- ===== SECTION 6: All Print Settings ===== -->
+  <div class="section">
+    <h2>6. All Print Settings (Admin &rarr; Print Settings)</h2>
+
+    <h3>Button Visibility</h3>
+    <div class="setting-group">
+      <div class="setting-name">enableKOTAndPrint</div>
+      <div class="setting-desc">Shows/hides the "KOT & Print" button. When clicked, always prints KOT.</div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-name">enableSaveAndPrint</div>
+      <div class="setting-desc">Shows/hides the "Bill & Print" button. When clicked, always prints bill.</div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-name">manualPrintEnabled</div>
+      <div class="setting-desc">Shows "Print" button on order summary for manual reprinting.</div>
+    </div>
+
+    <h3>Auto-Print on Action</h3>
+    <div class="setting-group sg-green">
+      <div class="setting-name">autoPrintOnPlaceOrder</div>
+      <div class="setting-desc">When ON, "Place Order" button auto-prints KOT. No need for separate "KOT & Print" button.</div>
+    </div>
+    <div class="setting-group sg-green">
+      <div class="setting-name">autoPrintOnCompleteBilling</div>
+      <div class="setting-desc">When ON, "Complete Billing" button auto-prints bill. No need for separate "Bill & Print" button.</div>
+    </div>
+
+    <h3>Pusher / External App (Advanced)</h3>
+    <div class="setting-group sg-purple">
+      <div class="setting-name">kotPrinterEnabled</div>
+      <div class="setting-desc">Enables <code>dine-kot-printer</code> external app workflow (mainly for Web).</div>
+    </div>
+    <div class="setting-group sg-purple">
+      <div class="setting-name">autoPrintOnKOT</div>
+      <div class="setting-desc">Pusher-triggered KOT print. For external printer app or multi-terminal Tauri setup.</div>
+    </div>
+    <div class="setting-group sg-purple">
+      <div class="setting-name">autoPrintOnBilling</div>
+      <div class="setting-desc">Pusher-triggered bill print. For external printer app or multi-terminal Tauri setup.</div>
+    </div>
+    <div class="setting-group sg-purple">
+      <div class="setting-name">usePusherForKOT</div>
+      <div class="setting-desc">Master switch for Pusher-based auto-print. Must be ON for the above two to work.</div>
+    </div>
+
+    <h3>Display Settings (Not Printing)</h3>
+    <div class="setting-group sg-amber">
+      <div class="setting-name">showKOTSummaryAfterOrder</div>
+      <div class="setting-desc">Show KOT summary card on dashboard after placing an order.</div>
+    </div>
+    <div class="setting-group sg-amber">
+      <div class="setting-name">showBillSummaryAfterBilling</div>
+      <div class="setting-desc">Show bill summary card on dashboard after completing billing.</div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 7: Recommended Configurations ===== -->
+  <div class="section">
+    <h2>7. Recommended Settings</h2>
+
+    <div class="platform-grid">
+      <!-- Tauri Auto -->
+      <div class="config-box" style="border-left: 4px solid #22c55e;">
+        <h4><span class="badge badge-tauri">Tauri</span> Auto-Print Everything</h4>
+        <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Best for: Single terminal, thermal printer</p>
+        <div class="config-row"><span>Auto-Print on Place Order</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>Auto-Print on Complete Billing</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>KOT & Print Button</span> <span class="tag tag-off">OFF</span></div>
+        <div class="config-row"><span>Bill & Print Button</span> <span class="tag tag-off">OFF</span></div>
+        <div class="config-row"><span>KOT Printer App</span> <span class="tag tag-off">OFF</span></div>
+        <div class="config-row" style="margin-top:6px; font-weight:600; color:#dc2626;"><span>Default Printer</span> <span>MUST SET</span></div>
+      </div>
+
+      <!-- Tauri Manual -->
+      <div class="config-box" style="border-left: 4px solid #3b82f6;">
+        <h4><span class="badge badge-tauri">Tauri</span> Manual Control</h4>
+        <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Best for: Print only specific orders</p>
+        <div class="config-row"><span>Auto-Print on Place Order</span> <span class="tag tag-off">OFF</span></div>
+        <div class="config-row"><span>Auto-Print on Complete Billing</span> <span class="tag tag-off">OFF</span></div>
+        <div class="config-row"><span>KOT & Print Button</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>Bill & Print Button</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row" style="margin-top:6px; font-weight:600; color:#dc2626;"><span>Default Printer</span> <span>MUST SET</span></div>
+      </div>
+
+      <!-- Web Manual -->
+      <div class="config-box" style="border-left: 4px solid #6366f1;">
+        <h4><span class="badge badge-web">Web</span> Manual Print (Dialog)</h4>
+        <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Best for: Browser-only, no external app</p>
+        <div class="config-row"><span>Auto-Print on Place Order</span> <span class="tag tag-off">OFF</span></div>
+        <div class="config-row"><span>Auto-Print on Complete Billing</span> <span class="tag tag-off">OFF</span></div>
+        <div class="config-row"><span>KOT & Print Button</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>Bill & Print Button</span> <span class="tag tag-on">ON</span></div>
+      </div>
+
+      <!-- Web + Printer App -->
+      <div class="config-box" style="border-left: 4px solid #8b5cf6;">
+        <h4><span class="badge badge-web">Web</span> + KOT Printer App</h4>
+        <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Best for: Auto-print via external app</p>
+        <div class="config-row"><span>KOT Printer App</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>Auto-Print on KOT (Pusher)</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>Auto-Print on Billing (Pusher)</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>Use Pusher for Real-time Print</span> <span class="tag tag-on">ON</span></div>
+        <div class="config-row"><span>KOT & Print / Bill & Print</span> <span class="tag tag-off">OFF</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 8: Technical Architecture ===== -->
+  <div class="section">
+    <h2>8. Technical Architecture</h2>
+
+    <h3>Key Files</h3>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Role</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>src/components/OrderSummary.js</code></td><td>Button handlers + print useEffects for KOT and Bill</td></tr>
+        <tr><td><code>src/utils/printBridge.js</code></td><td>Cross-platform print abstraction (<code>printDocument</code>, <code>supportsNativeAutoPrint</code>)</td></tr>
+        <tr><td><code>src/utils/printHtmlGenerator.js</code></td><td>Bill & KOT HTML generation</td></tr>
+        <tr><td><code>src/utils/printFontSizes.js</code></td><td>Print CSS &amp; bill header HTML</td></tr>
+        <tr><td><code>src/hooks/useAutoPrint.js</code></td><td>Pusher-based auto-print (multi-terminal)</td></tr>
+        <tr><td><code>src-tauri/src/commands/print.rs</code></td><td>Rust native print commands (Mac: lp, Windows: PowerShell)</td></tr>
+        <tr><td><code>src/components/NativePrinterSettings.js</code></td><td>Printer config UI (scan, select, test)</td></tr>
+        <tr><td><code>src/components/DashboardTablesPanel.js</code></td><td>Table card print dropdown (Print Bill / Print KOT)</td></tr>
+        <tr><td><code>src/app/(dashboard)/orderhistory/page.js</code></td><td>Order history print dropdown</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Print Decision Tree</h3>
+    <div style="background:#f8fafc; border-radius:10px; padding:20px; font-family:monospace; font-size:12px; line-height:1.8; overflow-x:auto; margin:12px 0;">
+<pre style="margin:0;">
+Button Click
+  |
+  |-- "Place Order (KOT)" --> placeOrder()
+  |     |__ After success --> useEffect checks:
+  |           if (__autoPrintKOT || autoPrintOnPlaceOrder) --> <span style="color:#16a34a; font-weight:bold;">PRINT KOT</span>
+  |
+  |-- "KOT & Print" --> sets __autoPrintKOT = true --> placeOrder()
+  |     |__ After success --> useEffect checks:
+  |           if (__autoPrintKOT || autoPrintOnPlaceOrder) --> <span style="color:#16a34a; font-weight:bold;">PRINT KOT</span> (always true)
+  |
+  |-- "Complete Billing" --> processOrder()
+  |     |__ After success --> useEffect checks:
+  |           if (__autoPrintBill || autoPrintOnCompleteBilling) --> <span style="color:#16a34a; font-weight:bold;">PRINT BILL</span>
+  |
+  |-- "Bill & Print" --> sets __autoPrintBill = true --> processOrder()
+        |__ After success --> useEffect checks:
+              if (__autoPrintBill || autoPrintOnCompleteBilling) --> <span style="color:#16a34a; font-weight:bold;">PRINT BILL</span> (always true)
+
+
+Print Execution:
+  |
+  |-- supportsNativeAutoPrint()?
+  |     |-- YES (Tauri) --> invoke('print_document') --> Rust --> lp/PowerShell --> <span style="color:#16a34a; font-weight:bold;">Silent Print</span>
+  |     |-- NO  (Web)   --> window.open() --> window.print() --> <span style="color:#3b82f6; font-weight:bold;">System Dialog</span>
+</pre>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 9: Troubleshooting ===== -->
+  <div class="section">
+    <h2>9. Troubleshooting</h2>
+
+    <div class="trouble-box">
+      <h4>Print dialog showing on Tauri desktop (not silent)</h4>
+      <p>No default printer is set in the Tauri app.</p>
+      <div class="trouble-fix">
+        <p><strong>Fix:</strong> Go to Admin &rarr; Print Settings &rarr; Click "Scan Printers" &rarr; Select your thermal printer &rarr; Click "Test Print" to verify silent printing works.</p>
+      </div>
+    </div>
+
+    <div class="trouble-box">
+      <h4>Print not happening on "Place Order" or "Complete Billing"</h4>
+      <p>The auto-print settings are OFF (default).</p>
+      <div class="trouble-fix">
+        <p><strong>Fix:</strong> Go to Admin &rarr; Print Settings &rarr; Turn ON "Auto-Print on Place Order" and/or "Auto-Print on Complete Billing".</p>
+      </div>
+    </div>
+
+    <div class="trouble-box">
+      <h4>"KOT & Print" or "Bill & Print" button not visible</h4>
+      <p>These buttons are hidden by default.</p>
+      <div class="trouble-fix">
+        <p><strong>Fix:</strong> Go to Admin &rarr; Print Settings &rarr; Turn ON "KOT & Print Button" or "Bill & Print Button".</p>
+      </div>
+    </div>
+
+    <div class="trouble-box">
+      <h4>Order History not printing silently on Tauri</h4>
+      <p>Fixed in latest update. Order History now uses native <code>printDocument()</code> on Tauri.</p>
+      <div class="trouble-fix">
+        <p><strong>Verify:</strong> Make sure your app is updated to the latest version and a default printer is set.</p>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center; font-size:12px; color:#94a3b8; margin-top:32px; padding-bottom:24px;">
+    DineOpen Internal Documentation &bull; Last updated: May 2026
+  </p>
+
+</div>
+</body>
+</html>
