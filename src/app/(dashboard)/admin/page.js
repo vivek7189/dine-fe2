@@ -8,7 +8,7 @@ import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
-import { isWeb, isTauri } from '../../../utils/platform';
+import { isWeb, isTauri, isElectron } from '../../../utils/platform';
 import { isAutoUpdateEnabled, setAutoUpdateEnabled, checkForUpdates, getAppVersion, restartApp } from '../../../utils/autoUpdater';
 import { 
   FaStore, 
@@ -4152,7 +4152,7 @@ function AppDownloadTab() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {downloads.mac.dmgArm && (
                     <a href={downloads.mac.dmgArm.url} style={btnStyle('linear-gradient(135deg, #333, #111)', '0 4px 14px rgba(0,0,0,0.2)')}>
-                      <FaDownload size={14} /> Download for Apple Silicon ({formatSize(downloads.mac.dmgArm.size)})
+                      <FaDownload size={14} /> Download for Mac {downloads.mac.dmgArm.name?.includes('aarch64') ? '(Apple Silicon)' : ''} {formatSize(downloads.mac.dmgArm.size) && `(${formatSize(downloads.mac.dmgArm.size)})`}
                     </a>
                   )}
                   {downloads.mac.dmgIntel && (
@@ -4209,7 +4209,7 @@ function AutoUpdateSection() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    const desktop = isTauri();
+    const desktop = isTauri() || isElectron();
     setIsDesktop(desktop);
     if (!desktop) return;
     setEnabled(isAutoUpdateEnabled());
