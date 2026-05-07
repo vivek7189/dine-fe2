@@ -1,6 +1,6 @@
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 class ApiClient {
   constructor() {

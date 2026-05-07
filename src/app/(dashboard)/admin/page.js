@@ -45,6 +45,7 @@ import {
   FaGoogle,
   FaReceipt,
   FaGlobe,
+  FaDesktop,
   FaPrint,
   FaDownload,
   FaWindows,
@@ -3093,99 +3094,100 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
   }, []);
 
   const settingsConfig = [
-    // Main settings
+    // Button settings (shared — visible on both Web and Tauri)
     {
-      key: 'tokenBillingEnabled',
-      title: 'Food Court Token Billing',
-      description: 'Print separate category-wise token slips after billing for counter pickup',
-      icon: <FaTicketAlt size={18} />,
-      section: 'main'
+      key: 'enableKOTAndPrint',
+      title: 'KOT & Print Button',
+      description: 'Show combined button to send KOT and always print KOT slip',
+      icon: <FaPrint size={18} />,
+      section: 'buttons'
+    },
+    {
+      key: 'enableSaveAndPrint',
+      title: 'Bill & Print Button',
+      description: 'Show combined button to complete billing and always print bill',
+      icon: <FaReceipt size={18} />,
+      section: 'buttons'
     },
     {
       key: 'enableUpdateWithoutKOT',
       title: 'Update Order Without KOT',
       description: 'Allow saving order changes without sending to kitchen (for drinks, water etc.)',
       icon: <FaEdit size={18} />,
-      section: 'main'
+      section: 'buttons'
     },
     {
-      key: 'enableKOTAndPrint',
-      title: 'KOT & Print Button',
-      description: 'Show combined button to send KOT and auto-print KOT slip',
-      icon: <FaPrint size={18} />,
-      section: 'main'
+      key: 'tokenBillingEnabled',
+      title: 'Food Court Token Billing',
+      description: 'Print separate category-wise token slips after billing for counter pickup',
+      icon: <FaTicketAlt size={18} />,
+      section: 'buttons'
     },
-    {
-      key: 'enableSaveAndPrint',
-      title: 'Bill & Print Button',
-      description: 'Show combined button to complete billing and auto-print bill',
-      icon: <FaReceipt size={18} />,
-      section: 'main'
-    },
+    // Desktop App (Tauri) — auto-print settings
     {
       key: 'autoPrintOnPlaceOrder',
-      title: 'Auto-Print on Place Order (KOT)',
-      description: 'Automatically print KOT when "Place Order" is clicked (without needing KOT & Print button)',
+      title: 'Auto-Print KOT on Place Order',
+      description: 'Silently print KOT when "Place Order" is clicked',
       icon: <FaPrint size={18} />,
-      section: 'main'
+      section: 'tauri'
     },
     {
       key: 'autoPrintOnCompleteBilling',
-      title: 'Auto-Print on Complete Billing',
-      description: 'Automatically print bill when "Complete Billing" is clicked (without needing Bill & Print button)',
+      title: 'Auto-Print Bill on Complete Billing',
+      description: 'Silently print bill when "Complete Billing" is clicked',
       icon: <FaReceipt size={18} />,
-      section: 'main'
+      section: 'tauri'
     },
+    // Web — auto-print via KOT Printer App (Pusher)
     {
       key: 'kotPrinterEnabled',
-      title: 'KOT Printer App (Auto-Print)',
-      description: 'Enable automatic printing via dine-kot-printer app (Web only)',
+      title: 'KOT Printer App',
+      description: 'Enable automatic printing via dine-kot-printer desktop app',
       icon: <FaPrint size={18} />,
-      section: 'main'
+      section: 'web'
     },
     {
-      key: 'manualPrintEnabled',
-      title: 'Manual Print Button',
-      description: 'Show manual print button on dashboard order summary',
-      icon: <FaReceipt size={18} />,
-      section: 'main'
+      key: 'autoPrintOnKOT',
+      title: 'Auto-Print on KOT',
+      description: 'Automatically print when order is sent to kitchen',
+      icon: <FaPrint size={18} />,
+      section: 'web'
     },
+    {
+      key: 'autoPrintOnBilling',
+      title: 'Auto-Print on Billing',
+      description: 'Automatically print bill when billing is completed',
+      icon: <FaReceipt size={18} />,
+      section: 'web'
+    },
+    {
+      key: 'usePusherForKOT',
+      title: 'Use Pusher for Real-time Print',
+      description: 'Use real-time Pusher events for instant print triggers',
+      icon: <FaClock size={18} />,
+      section: 'web'
+    },
+    // Display settings (shared)
     {
       key: 'showKOTSummaryAfterOrder',
       title: 'Show KOT Summary After Order',
       description: 'Display order summary on dashboard after placing order to kitchen',
       icon: <FaEye size={18} />,
-      section: 'main'
+      section: 'display'
     },
     {
       key: 'showBillSummaryAfterBilling',
       title: 'Show Bill Summary After Billing',
       description: 'Display bill summary on dashboard after completing billing',
       icon: <FaEye size={18} />,
-      section: 'main'
-    },
-    // Auto-print triggers (for dine-kot-printer app)
-    {
-      key: 'autoPrintOnKOT',
-      title: 'Auto-Print on KOT',
-      description: 'Automatically print when order is sent to kitchen (for kot-printer app)',
-      icon: <FaPrint size={18} />,
-      section: 'autoprint'
+      section: 'display'
     },
     {
-      key: 'autoPrintOnBilling',
-      title: 'Auto-Print on Billing',
-      description: 'Automatically print bill when billing is completed (for kot-printer app)',
+      key: 'manualPrintEnabled',
+      title: 'Manual Print Button',
+      description: 'Show manual print button on dashboard order summary',
       icon: <FaReceipt size={18} />,
-      section: 'autoprint'
-    },
-    // Advanced settings
-    {
-      key: 'usePusherForKOT',
-      title: 'Use Pusher for Real-time Print',
-      description: 'Use real-time Pusher events instead of polling (Advanced)',
-      icon: <FaClock size={18} />,
-      section: 'advanced'
+      section: 'display'
     },
     // Future reserved (disabled)
     {
@@ -3319,13 +3321,82 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
             {/* LEFT COLUMN — All Settings */}
             <div style={{ flex: '1', minWidth: '340px', maxWidth: '640px' }}>
 
-              {/* Dashboard Settings */}
+              {/* How the 4 Buttons Work — info card */}
+              <div style={{ marginBottom: '20px', padding: '14px 16px', background: '#f0f9ff', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#0369a1', margin: '0 0 8px 0' }}>How the 4 Buttons Work</p>
+                <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.7 }}>
+                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ fontWeight: 600, minWidth: '110px' }}>Place Order</span><span>Sends KOT. Auto-prints if enabled below.</span></div>
+                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ fontWeight: 600, minWidth: '110px' }}>KOT & Print</span><span>Sends KOT + always prints KOT slip.</span></div>
+                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ fontWeight: 600, minWidth: '110px' }}>Complete Bill</span><span>Bills order. Auto-prints if enabled below.</span></div>
+                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ fontWeight: 600, minWidth: '110px' }}>Bill & Print</span><span>Bills + always prints bill.</span></div>
+                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b' }}>
+                    Desktop App: Silent print to default printer &nbsp;|&nbsp; Web: Opens system print dialog
+                  </div>
+                </div>
+              </div>
+
+              {/* Button Settings (shared) */}
               <div style={{ marginBottom: '20px' }}>
                 <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Dashboard Settings
+                  Button Settings
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {settingsConfig.filter(s => s.section === 'main').map((setting) => (
+                  {settingsConfig.filter(s => s.section === 'buttons').map((setting) => (
+                    <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop App — Auto-Print (only visible in Tauri) */}
+              {!isWeb() && (
+                <div style={{ marginBottom: '20px', padding: '14px 16px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <FaDesktop size={14} style={{ color: '#16a34a' }} />
+                    <p style={{ fontSize: '13px', fontWeight: '600', color: '#15803d', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Desktop App — Auto-Print
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#166534', margin: '0 0 10px 0' }}>
+                    Prints silently to your default printer. No dialog box.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {settingsConfig.filter(s => s.section === 'tauri').map((setting) => (
+                      <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+                    ))}
+                  </div>
+                  <div style={{ marginTop: '12px' }}>
+                    <NativePrinterSettings restaurantId={selectedRestaurant?.id} />
+                  </div>
+                </div>
+              )}
+
+              {/* Web — Auto-Print via KOT Printer App (only visible in browser) */}
+              {isWeb() && (
+                <div style={{ marginBottom: '20px', padding: '14px 16px', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <FaGlobe size={14} style={{ color: '#2563eb' }} />
+                    <p style={{ fontSize: '13px', fontWeight: '600', color: '#1d4ed8', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Web — Auto-Print via KOT Printer App
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#1e40af', margin: '0 0 10px 0' }}>
+                    Requires dine-kot-printer desktop app running on the same network.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {settingsConfig.filter(s => s.section === 'web').map((setting) => (
+                      <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Display Settings */}
+              <div style={{ marginBottom: '20px' }}>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Display Settings
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {settingsConfig.filter(s => s.section === 'display').map((setting) => (
                     <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
                   ))}
                 </div>
@@ -3717,39 +3788,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
           </div>
           {/* /Two-column flex end — but we continue left column content below for small screens */}
 
-          {/* Auto-Print Settings */}
-          <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
-            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Auto-Print Triggers (for KOT Printer App)
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {settingsConfig.filter(s => s.section === 'autoprint').map((setting) => (
-                <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
-              ))}
-            </div>
-          </div>
-
           {/* Print Stations — Kitchen Routing */}
           <PrintStationManager restaurantId={selectedRestaurant?.id} />
-
-          {/* Native Printer Setup — only visible on Capacitor/Tauri apps */}
-          {!isWeb() && (
-            <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
-              <NativePrinterSettings restaurantId={selectedRestaurant?.id} />
-            </div>
-          )}
-
-          {/* Advanced Settings */}
-          <div style={{ marginBottom: '20px', maxWidth: '640px' }}>
-            <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Advanced Settings
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {settingsConfig.filter(s => s.section === 'advanced').map((setting) => (
-                <SettingToggle key={setting.key} setting={setting} printSettings={printSettings} toggleSetting={toggleSetting} />
-              ))}
-            </div>
-          </div>
 
           {/* Future Settings */}
           <div style={{ marginBottom: '24px', maxWidth: '640px' }}>
