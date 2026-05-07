@@ -34,11 +34,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": false
+    "createUpdaterArtifacts": "v2Compatible"
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEwMTgwNjg2MjBBQUU4OUIKUldTYjZLb2doZ1lZRU96MXJ2a0pxVmtyWkpOUS9vN2p6WWtMR0VBQ0NGNWRtWXdWcGh3WWFZc2MK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJEMTUyQTA4RjY0RkM2MkQKUldRdHhrLzJDQ29WTGJIS1p3Y09EcXEydlZUWU1QNmwvOG1ORmFaSDR1WnNTNjNlRU9scGN0MzUK",
       "endpoints": ["https://dine-backend-lake.vercel.app/api/public/desktop-update"]
     }
   }

@@ -159,6 +159,11 @@ class ApiClient {
     }
 
     try {
+      // Tauri desktop: route through Rust proxy for offline SQLite cache
+      if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
+        return await this._tauriRequest(endpoint, config);
+      }
+
       const response = await fetch(url, config);
 
       // Report network success — we got a response from the server
@@ -271,6 +276,78 @@ class ApiClient {
       }
       throw error;
     }
+  }
+
+  // Tauri proxy: route API calls through Rust for SQLite offline cache
+  async _tauriRequest(endpoint, config) {
+    const method = (config.method || 'GET').toUpperCase();
+    const headers = {};
+    if (config.headers) {
+      Object.keys(config.headers).forEach(k => {
+        if (config.headers[k]) headers[k] = config.headers[k];
+      });
+    }
+
+    const result = await window.__TAURI_INTERNALS__.invoke('api_request', {
+      request: {
+        endpoint,
+        method,
+        body: typeof config.body === 'string' ? config.body : null,
+        headers: Object.keys(headers).length > 0 ? headers : null,
+        cache_ttl: null,
+      }
+    });
+
+    // Handle errors (mirror the fetch path behavior)
+    if (result.error && result.status_code >= 400) {
+      let errorData;
+      try { errorData = JSON.parse(result.error); } catch { errorData = { error: result.error }; }
+
+      // Staff deactivated
+      if (result.status_code === 401 && errorData.inactive) {
+        this.forceLogout();
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        throw new Error(errorData.message || 'Your account has been deactivated.');
+      }
+
+      // Token expired
+      if (result.status_code === 401) {
+        this.forceLogout();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        throw new Error(errorData.message || errorData.error || 'Session expired. Please login again.');
+      }
+
+      // 403 with expired token — attempt refresh
+      if (result.status_code === 403) {
+        const errorMsg = errorData.error || errorData.message || '';
+        if (errorMsg.toLowerCase().includes('invalid or expired token')) {
+          try {
+            await this.refreshToken();
+            return this.request(endpoint, { ...config, method }, true);
+          } catch {
+            this.forceLogout();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            throw new Error('Session expired. Please login again.');
+          }
+        }
+        throw new Error(errorData.message || errorData.error || 'Access denied.');
+      }
+
+      throw new Error(errorData.message || errorData.error || `API request failed (${result.status_code})`);
+    }
+
+    // Report network status to useNetworkStatus hook
+    if (result.from_cache) {
+      reportNetworkFailure();
+    } else if (!result.is_queued) {
+      reportNetworkSuccess();
+    }
+
+    return result.data;
   }
 
   // HTTP method shortcuts

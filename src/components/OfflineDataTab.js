@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaDatabase, FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaSpinner, FaClipboardList, FaShoppingCart, FaServer, FaToggleOn, FaToggleOff, FaPowerOff, FaRedo, FaCircle, FaClock } from 'react-icons/fa';
 import { getOfflineEngineEnabled, setOfflineEngineEnabled, useSyncEngine } from '../hooks/useSyncEngine';
 import apiClient from '../lib/api';
+import { isTauri } from '../utils/platform';
+import { getSyncStatus, getPendingMutations, getSyncHistory, triggerSync, pauseSync, resumeSync, retryMutation, deleteMutation, clearCache, getCacheStats } from '../lib/tauriSync';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -890,12 +892,316 @@ export default function OfflineDataTab() {
         </>
       )}
 
+      {/* Tauri Desktop: SQLite Sync Dashboard */}
+      {isTauri() && <TauriSyncDashboard />}
+
       <style jsx>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
       `}</style>
+    </div>
+  );
+}
+
+// ──── Tauri SQLite Sync Dashboard (only renders in desktop app) ────
+
+function TauriSyncDashboard() {
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [mutations, setMutations] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [cacheStats, setCacheStatsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState('status'); // status | queue | history | cache
+  const [actionLoading, setActionLoading] = useState(null);
+
+  const loadAll = useCallback(async () => {
+    try {
+      const [status, muts, hist, cache] = await Promise.all([
+        getSyncStatus(),
+        getPendingMutations(),
+        getSyncHistory(50),
+        getCacheStats(),
+      ]);
+      if (status) setSyncStatus(status);
+      if (muts) setMutations(muts);
+      if (hist) setHistory(hist);
+      if (cache) setCacheStatsData(cache);
+    } catch (e) {
+      console.warn('Failed to load Tauri sync data:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+    const interval = setInterval(loadAll, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [loadAll]);
+
+  const handleAction = async (action, label) => {
+    setActionLoading(label);
+    try {
+      await action();
+      await loadAll();
+    } catch (e) {
+      console.error(`${label} failed:`, e);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const formatTs = (ts) => {
+    if (!ts) return '—';
+    return new Date(ts * 1000).toLocaleString();
+  };
+
+  const sectionBtn = (id, label) => (
+    <button
+      key={id}
+      onClick={() => setActiveSection(id)}
+      style={{
+        padding: '8px 16px',
+        borderRadius: '8px',
+        border: 'none',
+        background: activeSection === id ? '#4f46e5' : '#f3f4f6',
+        color: activeSection === id ? '#fff' : '#374151',
+        fontWeight: '600',
+        fontSize: '13px',
+        cursor: 'pointer',
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  if (loading) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>
+        <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Loading Tauri sync data...
+      </div>
+    );
+  }
+
+  const pendingTotal = (syncStatus?.pending_count || 0) + (syncStatus?.failed_count || 0) + (syncStatus?.syncing_count || 0);
+
+  return (
+    <div style={{ marginTop: '24px', borderTop: '2px solid #e5e7eb', paddingTop: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <FaDatabase size={18} color="white" />
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#111827' }}>Desktop Offline Engine</h3>
+          <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>SQLite cache &amp; background sync (Tauri)</p>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '10px', height: '10px', borderRadius: '50%',
+            background: syncStatus?.is_online ? '#22c55e' : '#ef4444',
+            boxShadow: `0 0 8px ${syncStatus?.is_online ? '#22c55e' : '#ef4444'}`,
+          }} />
+          <span style={{ fontSize: '13px', fontWeight: '600', color: syncStatus?.is_online ? '#16a34a' : '#dc2626' }}>
+            {syncStatus?.is_online ? 'Online' : 'Offline'}
+          </span>
+        </div>
+      </div>
+
+      {/* Status summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+        {[
+          { label: 'Pending', value: syncStatus?.pending_count || 0, color: '#f59e0b' },
+          { label: 'Failed', value: syncStatus?.failed_count || 0, color: '#ef4444' },
+          { label: 'Syncing', value: syncStatus?.syncing_count || 0, color: '#3b82f6' },
+          { label: 'Cached APIs', value: cacheStats?.entry_count || 0, color: '#8b5cf6' },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{
+            padding: '14px 16px', borderRadius: '12px', background: '#f9fafb', border: '1px solid #e5e7eb',
+          }}>
+            <div style={{ fontSize: '24px', fontWeight: '800', color }}>{value}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => handleAction(triggerSync, 'sync')}
+          disabled={actionLoading === 'sync' || pendingTotal === 0}
+          style={{
+            padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+            background: '#4f46e5', color: '#fff', fontWeight: '600', fontSize: '13px',
+            opacity: (actionLoading === 'sync' || pendingTotal === 0) ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          <FaSync size={12} style={actionLoading === 'sync' ? { animation: 'spin 1s linear infinite' } : {}} />
+          Sync Now
+        </button>
+        <button
+          onClick={() => handleAction(syncStatus?.is_paused ? resumeSync : pauseSync, 'pause')}
+          style={{
+            padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', cursor: 'pointer',
+            background: '#fff', color: '#374151', fontWeight: '600', fontSize: '13px',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          {syncStatus?.is_paused ? <FaToggleOff size={14} /> : <FaToggleOn size={14} />}
+          {syncStatus?.is_paused ? 'Resume Sync' : 'Pause Sync'}
+        </button>
+        {syncStatus?.last_sync_at && (
+          <span style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FaClock size={10} /> Last sync: {formatTs(syncStatus.last_sync_at)}
+          </span>
+        )}
+      </div>
+
+      {/* Section tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        {sectionBtn('status', 'Overview')}
+        {sectionBtn('queue', `Queue (${mutations.length})`)}
+        {sectionBtn('history', 'Sync History')}
+        {sectionBtn('cache', 'Cache')}
+      </div>
+
+      {/* Queue section */}
+      {activeSection === 'queue' && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+          {mutations.length === 0 ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>
+              No pending mutations. All synced!
+            </div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {mutations.map((m) => (
+                <div key={m.id} style={{
+                  padding: '12px 16px', borderBottom: '1px solid #f3f4f6',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                }}>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700',
+                    background: m.method === 'POST' ? '#dcfce7' : m.method === 'DELETE' ? '#fee2e2' : '#dbeafe',
+                    color: m.method === 'POST' ? '#166534' : m.method === 'DELETE' ? '#991b1b' : '#1e40af',
+                  }}>{m.method}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {m.endpoint}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                      {formatTs(m.queued_at)} {m.retry_count > 0 && `• ${m.retry_count} retries`}
+                      {m.last_error && <span style={{ color: '#ef4444' }}> • {m.last_error.slice(0, 60)}</span>}
+                    </div>
+                  </div>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600',
+                    background: m.status === 'pending' ? '#fef3c7' : m.status === 'failed' ? '#fee2e2' : m.status === 'syncing' ? '#dbeafe' : '#fecaca',
+                    color: m.status === 'pending' ? '#92400e' : m.status === 'failed' ? '#991b1b' : m.status === 'syncing' ? '#1e40af' : '#7f1d1d',
+                  }}>{m.status}</span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {(m.status === 'failed' || m.status === 'permanently_failed') && (
+                      <button onClick={() => handleAction(() => retryMutation(m.id), `retry-${m.id}`)} style={{
+                        padding: '4px 8px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff',
+                        cursor: 'pointer', fontSize: '11px', color: '#4f46e5',
+                      }}>Retry</button>
+                    )}
+                    <button onClick={() => handleAction(() => deleteMutation(m.id), `del-${m.id}`)} style={{
+                      padding: '4px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff',
+                      cursor: 'pointer', fontSize: '11px', color: '#ef4444',
+                    }}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* History section */}
+      {activeSection === 'history' && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+          {history.length === 0 ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>No sync history yet.</div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {history.map((h) => (
+                <div key={h.id} style={{
+                  padding: '10px 16px', borderBottom: '1px solid #f3f4f6',
+                  display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px',
+                }}>
+                  <div style={{
+                    width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+                    background: h.status === 'success' ? '#22c55e' : h.status === 'failed' ? '#ef4444' : h.status === 'error' ? '#f59e0b' : '#9ca3af',
+                  }} />
+                  <span style={{ color: '#6b7280', minWidth: '130px' }}>{formatTs(h.timestamp)}</span>
+                  <span style={{ fontWeight: '600', color: '#374151', minWidth: '80px' }}>{h.action}</span>
+                  <span style={{ color: '#6b7280', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {h.endpoint || ''} {h.details ? `— ${h.details}` : ''}
+                  </span>
+                  {h.duration_ms > 0 && (
+                    <span style={{ color: '#9ca3af', fontSize: '11px' }}>{h.duration_ms}ms</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cache section */}
+      {activeSection === 'cache' && cacheStats && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Cached Endpoints</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>{cacheStats.entry_count}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Cache Size</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>{formatBytes(cacheStats.total_size_bytes)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Oldest Entry</div>
+              <div style={{ fontSize: '14px', color: '#374151' }}>{formatTs(cacheStats.oldest_entry_at)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Newest Entry</div>
+              <div style={{ fontSize: '14px', color: '#374151' }}>{formatTs(cacheStats.newest_entry_at)}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => handleAction(async () => { await clearCache(); await loadAll(); }, 'clearCache')}
+            disabled={actionLoading === 'clearCache' || cacheStats.entry_count === 0}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fff',
+              color: '#ef4444', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+              opacity: cacheStats.entry_count === 0 ? 0.4 : 1,
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            <FaTrash size={11} /> Clear SQLite Cache
+          </button>
+        </div>
+      )}
+
+      {/* Overview (default) */}
+      {activeSection === 'status' && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
+          <p style={{ margin: '0 0 12px', fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+            The desktop app routes all API calls through a local SQLite database. When online, data is fetched
+            from the cloud and cached locally. When offline, cached data is served instantly and mutations
+            (orders, updates) are queued for automatic sync when connectivity returns.
+          </p>
+          <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.8' }}>
+            <div>Sync daemon: <strong style={{ color: syncStatus?.is_paused ? '#ef4444' : '#22c55e' }}>{syncStatus?.is_paused ? 'Paused' : 'Active'}</strong></div>
+            <div>Mutation queue: <strong>{pendingTotal}</strong> items</div>
+            <div>Permanently failed: <strong style={{ color: (syncStatus?.permanently_failed_count || 0) > 0 ? '#ef4444' : '#374151' }}>{syncStatus?.permanently_failed_count || 0}</strong></div>
+            <div>Cache entries: <strong>{cacheStats?.entry_count || 0}</strong> ({formatBytes(cacheStats?.total_size_bytes || 0)})</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
