@@ -4058,7 +4058,7 @@ function AppDownloadTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app'}/api/public/desktop-downloads`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app'}/api/public/desktop-downloads`)
       .then(r => r.json())
       .then(data => { setDownloads(data); setLoading(false); })
       .catch(() => setLoading(false));

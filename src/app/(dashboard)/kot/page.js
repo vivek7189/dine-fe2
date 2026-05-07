@@ -232,7 +232,7 @@ const KitchenOrderTicket = () => {
         setRefreshing(true);
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
       const response = await fetch(`${backendUrl}/api/kot/${restaurantId}`, {
         method: 'GET',
         headers: {

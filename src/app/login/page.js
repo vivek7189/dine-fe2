@@ -294,6 +294,7 @@ const Login = () => {
 
   // Tauri desktop app detection and browser-based auth
   const [isTauriApp, setIsTauriApp] = useState(false);
+  const [isElectronApp, setIsElectronApp] = useState(false);
   const [desktopSessionId, setDesktopSessionId] = useState(null);
   const [desktopAuthPolling, setDesktopAuthPolling] = useState(false);
 
@@ -318,6 +319,10 @@ const Login = () => {
       setIsTauriApp(true);
       console.log('🖥️ Tauri desktop app detected');
     }
+    if (window.electronAPI) {
+      setIsElectronApp(true);
+      console.log('🖥️ Electron desktop app detected');
+    }
   }, []);
 
   // Poll backend for desktop auth session result
@@ -325,7 +330,7 @@ const Login = () => {
     if (!desktopAuthPolling || !desktopSessionId) return;
 
     // Always poll production backend — desktop-auth page runs on dineopen.com and stores session there
-    const backendUrl = isTauriApp ? 'https://dine-backend-lake.vercel.app' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003');
+    const backendUrl = (isTauriApp || isElectronApp) ? 'https://dine-be2-phi.vercel.app' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003');
     let cancelled = false;
 
     const poll = async () => {

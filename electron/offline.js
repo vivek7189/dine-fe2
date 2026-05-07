@@ -18,7 +18,7 @@ const { ipcMain } = require('electron');
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
 const SYNC_INTERVAL_MS = 30_000;       // 30 seconds
 const SYNC_THROTTLE_MS = 500;          // between mutations
 const GET_TIMEOUT_MS = 10_000;

@@ -8,7 +8,7 @@ const nextConfig = {
     unoptimized: true,
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://dine-backend-lake.vercel.app',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app',
   },
   experimental: {
     optimizePackageImports: ['react-icons'],
