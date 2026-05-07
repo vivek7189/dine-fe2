@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -77,7 +77,9 @@ import {
   FaDatabase,
   FaCloudUploadAlt,
   FaImage,
-  FaTicketAlt
+  FaTicketAlt,
+  FaTh,
+  FaList
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -4126,6 +4128,7 @@ const Admin = () => {
   const [editingStaff, setEditingStaff] = useState(false);
   const [editStaffForm, setEditStaffForm] = useState({ name: '', phone: '', email: '', role: '', pageAccess: {} });
   const [editStaffSaving, setEditStaffSaving] = useState(false);
+  const [staffViewMode, setStaffViewMode] = useState('card');
   const [searchTerm, setSearchTerm] = useState('');
   const [authorized, setAuthorized] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState({
@@ -5669,7 +5672,7 @@ const Admin = () => {
             display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap'
           }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>Restaurant:</span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
               {restaurants.map((restaurant) => (
                 <button key={restaurant.id} onClick={() => setSelectedRestaurant(restaurant)}
                   style={{
@@ -5681,6 +5684,29 @@ const Admin = () => {
                   }}
                 >{restaurant.name}</button>
               ))}
+            </div>
+            {/* View Toggle */}
+            <div style={{ display: 'flex', gap: '2px', marginLeft: 'auto', background: '#f3f4f6', borderRadius: '8px', padding: '3px' }}>
+              <button onClick={() => setStaffViewMode('card')}
+                style={{
+                  padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px',
+                  backgroundColor: staffViewMode === 'card' ? 'white' : 'transparent',
+                  color: staffViewMode === 'card' ? '#111827' : '#6b7280',
+                  boxShadow: staffViewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              ><FaTh size={11} /> Cards</button>
+              <button onClick={() => setStaffViewMode('table')}
+                style={{
+                  padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px',
+                  backgroundColor: staffViewMode === 'table' ? 'white' : 'transparent',
+                  color: staffViewMode === 'table' ? '#111827' : '#6b7280',
+                  boxShadow: staffViewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              ><FaList size={11} /> Table</button>
             </div>
           </div>
         )}
@@ -5874,8 +5900,122 @@ const Admin = () => {
               );
             })}
           </div>
+        ) : staffViewMode === 'table' ? (
+          // Staff Table View
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Name</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Phone</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Role</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Status</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>User ID</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Last Login</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStaff.map((member) => {
+                    const roleInfo = getRoleInfo(member.role);
+                    const isInactive = member.status === 'inactive';
+                    return (
+                      <tr key={member.id} style={{ borderBottom: '1px solid #f3f4f6', opacity: isInactive ? 0.6 : 1, transition: 'background 0.1s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                      >
+                        <td style={{ padding: '10px 16px', fontWeight: 500, color: '#111827', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0,
+                              background: isInactive ? '#f3f4f6' : roleInfo.bg,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                              {React.createElement(roleInfo.icon, { size: 13, color: isInactive ? '#9ca3af' : roleInfo.color })}
+                            </div>
+                            {member.name || 'Unknown'}
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>{member.phone || '—'}</td>
+                        <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+                            backgroundColor: roleInfo.bg, color: roleInfo.color
+                          }}>{roleInfo.label}</span>
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                            letterSpacing: '0.04em', textTransform: 'uppercase',
+                            backgroundColor: isInactive ? '#fef2f2' : '#f0fdf4',
+                            color: isInactive ? '#dc2626' : '#15803d',
+                            border: isInactive ? '1px solid #fecaca' : '1px solid #bbf7d0'
+                          }}>{isInactive ? 'Inactive' : 'Active'}</span>
+                        </td>
+                        <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
+                          {member.loginId ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#0c4a6e', backgroundColor: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>{member.loginId}</span>
+                              <button onClick={() => copyToClipboard(member.loginId, 'userId', member.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: copiedCredentials[`${member.id}_userId`] ? '#10b981' : '#9ca3af' }}
+                                title="Copy User ID"
+                              ><FaCopy size={10} /></button>
+                            </div>
+                          ) : <span style={{ color: '#9ca3af', fontSize: '12px' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '10px 16px', color: '#6b7280', fontSize: '12px', whiteSpace: 'nowrap' }}>{formatDateTime(member.lastLogin)}</td>
+                        <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setSelectedStaff(member)}
+                              style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#6b7280', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
+                              title="View Details"
+                            ><FaEye size={9} /> View</button>
+                            {canManageStaff(member.role) && (
+                              <button onClick={() => {
+                                setSelectedStaff(member);
+                                setEditStaffForm({
+                                  name: member.name || '',
+                                  phone: member.phone || '',
+                                  email: member.email || '',
+                                  role: member.role || 'employee',
+                                  pageAccess: JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
+                                });
+                                setEditingStaff(true);
+                              }}
+                                style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#d97706', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
+                                title="Edit Staff"
+                              ><FaEdit size={9} /> Edit</button>
+                            )}
+                            {canManageStaff(member.role) && (
+                              <button onClick={() => toggleStaffStatus(member.id)}
+                                style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: member.status === 'active' ? '#dc2626' : '#059669', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
+                                title={member.status === 'active' ? 'Deactivate' : 'Activate'}
+                              >{member.status === 'active' ? <><FaUserTimes size={9} /></> : <><FaUserCheck size={9} /></>}</button>
+                            )}
+                            {(currentUserRole === 'owner' || currentUserRole === 'admin') && canManageStaff(member.role) && (
+                              <button onClick={() => openResetPasswordModal(member)}
+                                style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#6b7280', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
+                                title="Reset Password"
+                              ><FaKey size={9} /></button>
+                            )}
+                            {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
+                              <button onClick={() => deleteStaff(member.id, member.name)}
+                                style={{ background: 'none', border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#dc2626', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
+                                title="Delete Staff"
+                              ><FaTrash size={9} /></button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
-          // Staff Grid
+          // Staff Card Grid
           <div style={{
             display: 'grid',
             gridTemplateColumns: isClient && isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -6321,6 +6461,22 @@ const Admin = () => {
                       style={{ backgroundColor: 'transparent', color: '#6b7280', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
                       title="View Details"
                     ><FaEye size={10} /> View</button>
+                    {canManageStaff(member.role) && (
+                      <button onClick={() => {
+                        setSelectedStaff(member);
+                        setEditStaffForm({
+                          name: member.name || '',
+                          phone: member.phone || '',
+                          email: member.email || '',
+                          role: member.role || 'employee',
+                          pageAccess: JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee)),
+                        });
+                        setEditingStaff(true);
+                      }}
+                        style={{ backgroundColor: 'transparent', color: '#d97706', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
+                        title="Edit Staff"
+                      ><FaEdit size={10} /> Edit</button>
+                    )}
                     {canManageStaff(member.role) && (
                       <button onClick={() => toggleStaffStatus(member.id)}
                         style={{ backgroundColor: 'transparent', color: member.status === 'active' ? '#dc2626' : '#059669', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s' }}
