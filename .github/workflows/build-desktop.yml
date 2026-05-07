@@ -92,10 +92,11 @@ jobs:
         include:
           - platform: windows-latest
             args: ''
-          - platform: macos-latest
-            args: '--target aarch64-apple-darwin'
-          - platform: macos-latest
-            args: '--target x86_64-apple-darwin'
+          # Mac builds disabled for now — re-enable when needed
+          # - platform: macos-latest
+          #   args: '--target aarch64-apple-darwin'
+          # - platform: macos-latest
+          #   args: '--target x86_64-apple-darwin'
 
     runs-on: ${{ matrix.platform }}
 

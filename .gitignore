@@ -46,3 +46,4 @@ android/.gradle/
 
 # tauri (Rust build artifacts)
 src-tauri/target/
+src-tauri/resources/SumatraPDF.exe

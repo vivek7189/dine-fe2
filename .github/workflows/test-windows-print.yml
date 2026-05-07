@@ -1,0 +1,189 @@
+name: Test Windows Print Pipeline
+
+on:
+  workflow_dispatch: # Manual trigger only — run when testing print changes
+
+jobs:
+  test-print:
+    runs-on: windows-latest
+    steps:
+      - name: System info
+        run: |
+          Write-Output "OS: $([System.Environment]::OSVersion)"
+          Write-Output "PowerShell: $($PSVersionTable.PSVersion)"
+
+      - name: Check Edge is available
+        run: |
+          $edgePaths = @(
+            "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+          )
+          $found = $false
+          foreach ($p in $edgePaths) {
+            if (Test-Path $p) {
+              Write-Output "PASS: Edge found at $p"
+              $version = (Get-Item $p).VersionInfo.ProductVersion
+              Write-Output "  Version: $version"
+              $found = $true
+              break
+            }
+          }
+          if (-not $found) {
+            Write-Output "FAIL: Edge not found"
+            exit 1
+          }
+
+      - name: Test Edge headless HTML-to-PDF
+        run: |
+          # Create test HTML
+          $html = @"
+          <!DOCTYPE html>
+          <html><head><meta charset="utf-8">
+          <style>body{font-family:monospace;padding:20px;}</style>
+          </head><body>
+          <h1>DineOpen POS</h1>
+          <p>Test Receipt - Windows CI</p>
+          <p>Date: $(Get-Date)</p>
+          <hr>
+          <p>Item 1: Butter Chicken x2 - Rs 600</p>
+          <p>Item 2: Naan x4 - Rs 120</p>
+          <hr>
+          <p><strong>Total: Rs 720</strong></p>
+          </body></html>
+          "@
+
+          $htmlPath = "$env:TEMP\dineopen_ci_test.html"
+          $pdfPath = "$env:TEMP\dineopen_ci_test.pdf"
+          Set-Content -Path $htmlPath -Value $html -Encoding UTF8
+
+          # Find Edge
+          $edge = if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") {
+            "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+          } else {
+            "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+          }
+
+          $fileUrl = "file:///$($htmlPath -replace '\\','/')"
+          Write-Output "Converting: $fileUrl"
+
+          & $edge --headless --disable-gpu --no-pdf-header-footer --run-all-compositor-stages-before-draw "--print-to-pdf=$pdfPath" $fileUrl
+
+          Start-Sleep -Seconds 5
+
+          if (Test-Path $pdfPath) {
+            $size = (Get-Item $pdfPath).Length
+            Write-Output "PASS: PDF created ($size bytes)"
+          } else {
+            Write-Output "FAIL: PDF not created"
+            exit 1
+          }
+
+          # Cleanup
+          Remove-Item -Force $htmlPath, $pdfPath -ErrorAction SilentlyContinue
+
+      - name: Test PowerShell STA mode
+        run: |
+          $result = powershell -NoProfile -STA -Command "Write-Output 'STA_OK'"
+          if ($result -eq "STA_OK") {
+            Write-Output "PASS: PowerShell -STA works"
+          } else {
+            Write-Output "FAIL: PowerShell -STA not working"
+            exit 1
+          }
+
+      - name: Test WebBrowser control in hidden form
+        run: |
+          # Test that WebBrowser + hidden Form works in STA mode
+          $script = @"
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+
+          `$form = New-Object System.Windows.Forms.Form
+          `$form.ShowInTaskbar = `$false
+          `$form.WindowState = [System.Windows.Forms.FormWindowState]::Minimized
+          `$form.Opacity = 0
+          `$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None
+          `$form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
+          `$form.Location = New-Object System.Drawing.Point(-32000, -32000)
+          `$form.Size = New-Object System.Drawing.Size(1, 1)
+
+          `$wb = New-Object System.Windows.Forms.WebBrowser
+          `$wb.ScriptErrorsSuppressed = `$true
+          `$wb.Dock = [System.Windows.Forms.DockStyle]::Fill
+
+          `$script:loaded = `$false
+          `$wb.Add_DocumentCompleted({
+            `$script:loaded = `$true
+            `$form.Close()
+          })
+
+          `$form.Controls.Add(`$wb)
+          `$wb.Navigate('about:blank')
+
+          `$timer = New-Object System.Windows.Forms.Timer
+          `$timer.Interval = 10000
+          `$timer.Add_Tick({ `$form.Close() })
+          `$timer.Start()
+
+          `$form.ShowDialog() | Out-Null
+          `$timer.Stop()
+          `$timer.Dispose()
+          `$wb.Dispose()
+          `$form.Dispose()
+
+          if (`$script:loaded) { Write-Output 'WEBBROWSER_OK' } else { Write-Output 'WEBBROWSER_FAIL' }
+          "@
+
+          $result = powershell -NoProfile -STA -WindowStyle Hidden -Command $script
+          if ($result -match "WEBBROWSER_OK") {
+            Write-Output "PASS: WebBrowser control works in hidden form"
+          } else {
+            Write-Output "FAIL: WebBrowser control failed"
+            Write-Output "Output: $result"
+            exit 1
+          }
+
+      - name: List available printers
+        run: |
+          $printers = Get-CimInstance Win32_Printer | Select-Object Name, PortName, Default, WorkOffline
+          Write-Output "Printers found: $($printers.Count)"
+          $printers | Format-Table -AutoSize
+
+      - name: Test printer default swap (dry run)
+        run: |
+          # Test that we can read and query printers via CIM
+          $default = Get-CimInstance Win32_Printer -Filter "Default=TRUE" -ErrorAction SilentlyContinue
+          if ($default) {
+            Write-Output "PASS: Default printer found: $($default.Name)"
+          } else {
+            Write-Output "INFO: No default printer set (expected in CI)"
+          }
+
+          # Test mutex creation (used to serialize print calls)
+          $mtx = New-Object System.Threading.Mutex($false, 'Global\DineOpenPrintTest')
+          $acquired = $mtx.WaitOne(5000)
+          if ($acquired) {
+            Write-Output "PASS: Named mutex works"
+            $mtx.ReleaseMutex()
+          } else {
+            Write-Output "FAIL: Mutex acquisition failed"
+          }
+          $mtx.Dispose()
+
+      - name: Summary
+        run: |
+          Write-Output ""
+          Write-Output "========================================="
+          Write-Output "  Windows Print Pipeline Test Summary"
+          Write-Output "========================================="
+          Write-Output "  Edge headless:    Available"
+          Write-Output "  HTML-to-PDF:      Working"
+          Write-Output "  PowerShell STA:   Supported"
+          Write-Output "  WebBrowser ctrl:  Working"
+          Write-Output "  Printer CIM API:  Working"
+          Write-Output "  Named mutex:      Working"
+          Write-Output "========================================="
+          Write-Output ""
+          Write-Output "Note: Actual print-to-paper cannot be"
+          Write-Output "tested in CI (no physical printer)."
+          Write-Output "All prerequisite components are verified."

@@ -3002,9 +3002,11 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
     enableUpdateWithoutKOT: false,
     enableKOTAndPrint: false,
     enableSaveAndPrint: false,
-    // Auto-print on button click (works on both Web and Tauri)
+    // Auto-print on button click (Tauri desktop)
     autoPrintOnPlaceOrder: false,
+    autoPrintOnKOTAndPrint: true,
     autoPrintOnCompleteBilling: false,
+    autoPrintOnBillAndPrint: true,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3123,18 +3125,32 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
       icon: <FaTicketAlt size={18} />,
       section: 'buttons'
     },
-    // Desktop App (Tauri) — auto-print settings
+    // Desktop App (Tauri) — auto-print settings for all 4 buttons
     {
       key: 'autoPrintOnPlaceOrder',
-      title: 'Auto-Print KOT on Place Order',
-      description: 'Silently print KOT when "Place Order" is clicked',
+      title: 'Print KOT on "Place Order"',
+      description: 'Silently print KOT slip when Place Order is clicked',
+      icon: <FaPrint size={18} />,
+      section: 'tauri'
+    },
+    {
+      key: 'autoPrintOnKOTAndPrint',
+      title: 'Print KOT on "KOT & Print"',
+      description: 'Silently print KOT slip when KOT & Print is clicked',
       icon: <FaPrint size={18} />,
       section: 'tauri'
     },
     {
       key: 'autoPrintOnCompleteBilling',
-      title: 'Auto-Print Bill on Complete Billing',
-      description: 'Silently print bill when "Complete Billing" is clicked',
+      title: 'Print Bill on "Complete Billing"',
+      description: 'Silently print bill when Complete Billing is clicked',
+      icon: <FaReceipt size={18} />,
+      section: 'tauri'
+    },
+    {
+      key: 'autoPrintOnBillAndPrint',
+      title: 'Print Bill on "Bill & Print"',
+      description: 'Silently print bill when Bill & Print is clicked',
       icon: <FaReceipt size={18} />,
       section: 'tauri'
     },

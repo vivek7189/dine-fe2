@@ -81,6 +81,22 @@ export default function DashboardTablesPanel({
 
   // Timer tick to keep elapsed times updated (every 60s)
   const [, setTick] = useState(0);
+
+  // Table Actions Modal state
+  const [actionsModal, setActionsModal] = useState({ open: false, table: null, order: null, loading: false });
+
+  // Modal cart state (separate from main cart)
+  const [modalCart, setModalCart] = useState([]);
+  const [modalPaymentMethod, setModalPaymentMethod] = useState('cash');
+  const [modalProcessing, setModalProcessing] = useState(false);
+
+  // Track which tables are currently printing
+  const [printingTables, setPrintingTables] = useState({});
+  const [printDropdownTable, setPrintDropdownTable] = useState(null);
+
+  // Ref for the recently updated table card
+  const updatedTableRef = useRef(null);
+
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
@@ -93,9 +109,6 @@ export default function DashboardTablesPanel({
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
   }, [printDropdownTable]);
-
-  // Ref for the recently updated table card
-  const updatedTableRef = useRef(null);
 
   // Auto-clear the recently updated table highlight after 3 seconds, and scroll into view
   useEffect(() => {
@@ -110,18 +123,6 @@ export default function DashboardTablesPanel({
       return () => clearTimeout(timeout);
     }
   }, [recentlyUpdatedTableId, onClearRecentlyUpdated]);
-
-  // Table Actions Modal state
-  const [actionsModal, setActionsModal] = useState({ open: false, table: null, order: null, loading: false });
-
-  // Modal cart state (separate from main cart)
-  const [modalCart, setModalCart] = useState([]);
-  const [modalPaymentMethod, setModalPaymentMethod] = useState('cash');
-  const [modalProcessing, setModalProcessing] = useState(false);
-
-  // Track which tables are currently printing
-  const [printingTables, setPrintingTables] = useState({});
-  const [printDropdownTable, setPrintDropdownTable] = useState(null);
 
   // Sort tables: alphabetic names first (sorted A-Z), then numeric names (sorted 1,2,3...)
   const sortTables = (tablesArr) => {

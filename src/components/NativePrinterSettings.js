@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isWeb, isCapacitor, isTauri } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
-import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi } from 'react-icons/fa';
+import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWifi, FaStethoscope } from 'react-icons/fa';
 
 export default function NativePrinterSettings({ restaurantId }) {
   const [printers, setPrinters] = useState([]);
@@ -16,6 +16,8 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [isConnected, setIsConnected] = useState(false);
   const [testPrintStatus, setTestPrintStatus] = useState(null);
   const [webPlatform, setWebPlatform] = useState(true);
+  const [diagReport, setDiagReport] = useState(null);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
 
   const scanPrinters = useCallback(async () => {
     setIsScanning(true);
@@ -74,6 +76,22 @@ export default function NativePrinterSettings({ restaurantId }) {
       setTestPrintStatus('error');
     }
     setTimeout(() => setTestPrintStatus(null), 3000);
+  }, []);
+
+  const runDiagnostics = useCallback(async () => {
+    setIsDiagnosing(true);
+    setDiagReport(null);
+    try {
+      if (isTauri()) {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const report = await invoke('diagnose_print');
+        setDiagReport(report);
+      }
+    } catch (err) {
+      setDiagReport('Diagnostics failed: ' + err.message);
+    } finally {
+      setIsDiagnosing(false);
+    }
   }, []);
 
   // Detect platform on mount
@@ -216,6 +234,32 @@ export default function NativePrinterSettings({ restaurantId }) {
           ))}
         </div>
       )}
+
+      {/* Diagnostics */}
+      <div style={{ marginTop: '12px', borderTop: '1px solid #d1d5db', paddingTop: '12px' }}>
+        <button
+          onClick={runDiagnostics}
+          disabled={isDiagnosing}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center',
+            padding: '8px 12px', fontSize: '12px', fontWeight: 500,
+            backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px',
+            cursor: isDiagnosing ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <FaStethoscope />
+          {isDiagnosing ? 'Running Diagnostics...' : 'Run Print Diagnostics'}
+        </button>
+        {diagReport && (
+          <pre style={{
+            marginTop: '8px', padding: '10px', backgroundColor: '#1f2937', color: '#10b981',
+            borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '300px', overflow: 'auto',
+          }}>
+            {diagReport}
+          </pre>
+        )}
+      </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

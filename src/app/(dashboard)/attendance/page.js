@@ -25,6 +25,7 @@ function formatDate(d) {
 function formatTime(d) {
   if (!d) return '-';
   const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '-';
   return dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
@@ -43,7 +44,11 @@ function toMonthStr(d) {
 
 function diffHours(clockIn, clockOut) {
   if (!clockIn || !clockOut) return '-';
-  const ms = new Date(clockOut) - new Date(clockIn);
+  const cin = new Date(clockIn);
+  const cout = new Date(clockOut);
+  if (isNaN(cin.getTime()) || isNaN(cout.getTime())) return '-';
+  const ms = cout - cin;
+  if (ms <= 0) return '-';
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   return `${h}h ${m}m`;
@@ -51,8 +56,12 @@ function diffHours(clockIn, clockOut) {
 
 function lateBy(clockIn, expectedStart) {
   if (!clockIn || !expectedStart) return '-';
-  const [eh, em] = expectedStart.split(':').map(Number);
+  const parts = expectedStart.split(':');
+  const eh = parseInt(parts[0], 10);
+  const em = parseInt(parts[1], 10);
+  if (isNaN(eh) || isNaN(em)) return '-';
   const ci = new Date(clockIn);
+  if (isNaN(ci.getTime())) return '-';
   const expected = new Date(ci);
   expected.setHours(eh, em, 0, 0);
   const diff = ci - expected;
@@ -531,9 +540,30 @@ export default function AttendancePage() {
     if (!manualForm.staffId || !manualForm.date) return showToast('Staff and date are required', 'error');
     try {
       const staff = staffList.find(s => s._id === manualForm.staffId);
+      // Convert time strings (e.g., "11:34") to full ISO datetime using the selected date
+      let clockInISO = null;
+      let clockOutISO = null;
+      if (manualForm.clockIn) {
+        const [h, m] = manualForm.clockIn.split(':').map(Number);
+        const d = new Date(manualForm.date + 'T00:00:00');
+        d.setHours(h, m, 0, 0);
+        clockInISO = d.toISOString();
+      }
+      if (manualForm.clockOut) {
+        const [h, m] = manualForm.clockOut.split(':').map(Number);
+        const d = new Date(manualForm.date + 'T00:00:00');
+        d.setHours(h, m, 0, 0);
+        clockOutISO = d.toISOString();
+      }
       await attendanceApi.addManualEntry(restaurantId, {
-        ...manualForm,
+        staffId: manualForm.staffId,
+        date: manualForm.date,
+        status: manualForm.status,
+        clockIn: clockInISO,
+        clockOut: clockOutISO,
+        notes: manualForm.notes,
         staffName: staff?.name || '',
+        role: staff?.role || '',
       });
       showToast('Manual entry added successfully', 'success');
       setShowManualEntry(false);
@@ -902,12 +932,16 @@ export default function AttendancePage() {
               <tbody>
                 {attendance.map((a, i) => {
                   const sc = STATUS_COLORS[a.status] || STATUS_COLORS.present;
+                  // Resolve name/role from staffList if not in attendance record
+                  const staff = staffList.find(s => s._id === a.staffId || s.id === a.staffId);
+                  const displayName = a.staffName || staff?.name || '-';
+                  const displayRole = a.role || staff?.role || '-';
                   return (
-                    <tr key={a._id || i} style={{ borderBottom: '1px solid #f3f4f6', transition: 'background 0.15s' }}
+                    <tr key={a._id || a.id || i} style={{ borderBottom: '1px solid #f3f4f6', transition: 'background 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '12px' }}>{a.staffName || '-'}</td>
-                      <td style={{ padding: '12px', color: '#6b7280' }}>{a.role || '-'}</td>
+                      <td style={{ padding: '12px' }}>{displayName}</td>
+                      <td style={{ padding: '12px', color: '#6b7280' }}>{displayRole}</td>
                       <td style={{ padding: '12px' }}>{formatTime(a.clockIn)}</td>
                       <td style={{ padding: '12px' }}>{formatTime(a.clockOut)}</td>
                       <td style={{ padding: '12px' }}>
@@ -1049,9 +1083,10 @@ export default function AttendancePage() {
                 <tbody>
                   {dayDetails.map((a, i) => {
                     const sc = STATUS_COLORS[a.status] || STATUS_COLORS.present;
+                    const calStaff = staffList.find(s => s._id === a.staffId || s.id === a.staffId);
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '10px 12px' }}>{a.staffName || '-'}</td>
+                        <td style={{ padding: '10px 12px' }}>{a.staffName || calStaff?.name || '-'}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
                         </td>

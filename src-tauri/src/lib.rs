@@ -7,6 +7,7 @@ use commands::print::print_document;
 use commands::print::list_printers;
 use commands::print::set_default_printer;
 use commands::print::get_default_printer;
+use commands::print::diagnose_print;
 use commands::api_proxy::api_request;
 use commands::sync_control::{
     get_sync_status, get_pending_mutations, get_sync_history,
@@ -31,6 +32,7 @@ pub fn run() {
             list_printers,
             set_default_printer,
             get_default_printer,
+            diagnose_print,
             // API proxy (offline cache)
             api_request,
             // Sync controls
