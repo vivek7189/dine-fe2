@@ -23,6 +23,8 @@ import {
   FaExchangeAlt,
   FaSearch,
   FaArrowLeft,
+  FaCheckCircle,
+  FaUserPlus,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -119,7 +121,10 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [offerSettings, setOfferSettings] = useState({
     autoApplyBestOffer: false,
     allowMultipleOffers: false,
-    maxOffersAllowed: 1
+    maxOffersAllowed: 1,
+    couponsEnabled: false,
+    allowCouponsWithOffers: true,
+    maxCouponsPerOrder: 1
   });
 
   const emptyOffer = {
@@ -166,7 +171,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [menuLoaded, setMenuLoaded] = useState(false);
   // Groups sub-view state
   const GROUP_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280'];
-  const [offersSubView, setOffersSubView] = useState('offers'); // 'offers' | 'groups'
+  const [offersSubView, setOffersSubView] = useState('offers'); // 'offers' | 'groups' | 'coupons'
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
   const [groupForm, setGroupForm] = useState({ name: '', description: '', color: '#ef4444', icon: '' });
@@ -182,6 +187,33 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   const [togglingId, setTogglingId] = useState(null); // offer.id currently being toggled
   const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(null); // { id, name } of group pending delete
   const [deletingGroup, setDeletingGroup] = useState(false);
+  // Coupon state
+  const [coupons, setCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [couponSubView, setCouponSubView] = useState('public'); // 'public' | 'private'
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState(null);
+  const [couponForm, setCouponForm] = useState({
+    code: '', description: '', discountType: 'flat', value: '',
+    minOrderAmount: '', maxDiscountAmount: '', maxUses: '',
+    validFrom: '', validTo: ''
+  });
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [deleteCouponConfirm, setDeleteCouponConfirm] = useState(null);
+  const [deletingCoupon, setDeletingCoupon] = useState(false);
+  // Private coupon generation state
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateForm, setGenerateForm] = useState({
+    customerPhone: '', customerName: '', totalAmount: '',
+    validFrom: '', validTo: ''
+  });
+  const [couponDenominations, setCouponDenominations] = useState([]); // array of numbers e.g. [500, 200, 200, 100]
+  const [denomInput, setDenomInput] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [customerSearchResults, setCustomerSearchResults] = useState([]);
+  const [customerLookupStatus, setCustomerLookupStatus] = useState('idle'); // idle | searching | found | not_found
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const customerSearchRef = useRef(null);
   const [offerErrors, setOfferErrors] = useState({
     maxOffersAllowed: '',
     discountValue: '',
@@ -207,6 +239,18 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Close customer dropdown on outside click
+  useEffect(() => {
+    if (!showCustomerDropdown) return;
+    const handleClick = (e) => {
+      if (customerSearchRef.current && !customerSearchRef.current.contains(e.target)) {
+        setShowCustomerDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showCustomerDropdown]);
 
   useEffect(() => {
     // Only access localStorage on the client
@@ -348,6 +392,205 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
       setSavingSettings(false);
     }
   };
+
+  // Coupon functions
+  const loadCoupons = async () => {
+    const rid = getRestaurantId();
+    if (!rid) return;
+    setCouponsLoading(true);
+    try {
+      const res = await apiClient.getCoupons(rid);
+      setCoupons(res.coupons || []);
+    } catch (err) {
+      console.error('Error loading coupons:', err);
+    } finally {
+      setCouponsLoading(false);
+    }
+  };
+
+  const handleSaveCoupon = async () => {
+    const rid = getRestaurantId();
+    if (!rid) return;
+    if (!couponForm.code.trim() || !couponForm.value) {
+      showError('Code and value are required');
+      return;
+    }
+    setCouponSaving(true);
+    try {
+      const data = {
+        code: couponForm.code.trim().toUpperCase(),
+        type: 'public',
+        description: couponForm.description,
+        discountType: couponForm.discountType,
+        value: Number(couponForm.value),
+        minOrderAmount: Number(couponForm.minOrderAmount) || 0,
+        maxDiscountAmount: couponForm.discountType === 'percentage' ? (Number(couponForm.maxDiscountAmount) || 0) : 0,
+        maxUses: Number(couponForm.maxUses) || 0,
+        validFrom: couponForm.validFrom || new Date().toISOString().split('T')[0],
+        validTo: couponForm.validTo || null,
+      };
+      if (editingCoupon) {
+        await apiClient.updateCoupon(rid, editingCoupon.id, data);
+        showSuccess('Coupon updated');
+      } else {
+        await apiClient.createCoupon(rid, data);
+        showSuccess('Coupon created');
+      }
+      setShowCouponModal(false);
+      setEditingCoupon(null);
+      setCouponForm({ code: '', description: '', discountType: 'flat', value: '', minOrderAmount: '', maxDiscountAmount: '', maxUses: '', validFrom: '', validTo: '' });
+      loadCoupons();
+    } catch (err) {
+      console.error('Error saving coupon:', err);
+      showError(err.message || 'Failed to save coupon');
+    } finally {
+      setCouponSaving(false);
+    }
+  };
+
+  const handleDeleteCoupon = async (couponId) => {
+    const rid = getRestaurantId();
+    if (!rid) return;
+    setDeletingCoupon(true);
+    try {
+      await apiClient.deleteCoupon(rid, couponId);
+      showSuccess('Coupon deleted');
+      setDeleteCouponConfirm(null);
+      loadCoupons();
+    } catch (err) {
+      console.error('Error deleting coupon:', err);
+      showError('Failed to delete coupon');
+    } finally {
+      setDeletingCoupon(false);
+    }
+  };
+
+  // Customer phone search for generate modal
+  const handleCustomerPhoneSearch = (phone) => {
+    const digits = phone.replace(/\D/g, '');
+    setGenerateForm(p => ({ ...p, customerPhone: digits, customerName: '' }));
+    setCustomerLookupStatus('searching');
+
+    if (digits.length < 3) {
+      setCustomerSearchResults([]);
+      setShowCustomerDropdown(false);
+      setCustomerLookupStatus('idle');
+      return;
+    }
+
+    // Ensure customers are loaded
+    if (!customersLoaded) ensureCustomersLoaded();
+
+    // Filter from loaded customers
+    const matches = customersList.filter(c => {
+      const cPhone = String(c.phone || '').replace(/\D/g, '');
+      const cName = (c.name || '').toLowerCase();
+      return cPhone.includes(digits) || cName.includes(digits.toLowerCase());
+    }).slice(0, 8);
+
+    setCustomerSearchResults(matches);
+    setShowCustomerDropdown(matches.length > 0);
+
+    // Check for exact match
+    const exactMatch = customersList.find(c => {
+      const cPhone = String(c.phone || '').replace(/\D/g, '');
+      return cPhone === digits || cPhone.endsWith(digits);
+    });
+    if (exactMatch && digits.length >= 10) {
+      setCustomerLookupStatus('found');
+      setGenerateForm(p => ({ ...p, customerName: exactMatch.name || '' }));
+    } else if (digits.length >= 10) {
+      setCustomerLookupStatus('not_found');
+    } else {
+      setCustomerLookupStatus('searching');
+    }
+  };
+
+  const selectCustomerForGenerate = (customer) => {
+    const phone = String(customer.phone || '').replace(/\D/g, '');
+    setGenerateForm(p => ({ ...p, customerPhone: phone, customerName: customer.name || '' }));
+    setCustomerLookupStatus('found');
+    setShowCustomerDropdown(false);
+  };
+
+  const handleAddNewCustomerForGenerate = async () => {
+    const rid = getRestaurantId();
+    if (!rid || !generateForm.customerPhone) return;
+    try {
+      const resp = await apiClient.createCustomer(rid, {
+        phone: generateForm.customerPhone,
+        name: generateForm.customerName || 'Customer',
+      });
+      if (resp?.customer) {
+        setCustomersList(prev => [...prev, resp.customer]);
+        setCustomerLookupStatus('found');
+        showSuccess('Customer added successfully');
+      }
+    } catch (err) {
+      showError(err.message || 'Failed to add customer');
+    }
+  };
+
+  const handleGeneratePrivate = async () => {
+    const rid = getRestaurantId();
+    if (!rid) return;
+    if (!generateForm.customerPhone) {
+      showError('Customer phone is required');
+      return;
+    }
+    if (couponDenominations.length === 0) {
+      showError('Add at least one coupon denomination');
+      return;
+    }
+    const total = couponDenominations.reduce((s, d) => s + d, 0);
+
+    setGenerating(true);
+    try {
+      // If new customer, create profile first
+      if (customerLookupStatus === 'not_found' && generateForm.customerPhone.length >= 10) {
+        await apiClient.createCustomer(rid, {
+          phone: generateForm.customerPhone,
+          name: generateForm.customerName || 'Customer',
+        }).catch(() => {}); // Ignore if already exists
+        setCustomersLoaded(false); // Refresh customers list next time
+      }
+
+      await apiClient.generatePrivateCoupons(rid, {
+        customerPhone: generateForm.customerPhone,
+        customerName: generateForm.customerName,
+        totalAmount: total,
+        denominations: couponDenominations,
+        validFrom: generateForm.validFrom || new Date().toISOString().split('T')[0],
+        validTo: generateForm.validTo || null,
+      });
+      showSuccess(`${couponDenominations.length} coupons generated for ${generateForm.customerPhone}`);
+      setShowGenerateModal(false);
+      setGenerateForm({ customerPhone: '', customerName: '', totalAmount: '', validFrom: '', validTo: '' });
+      setCouponDenominations([]);
+      setDenomInput('');
+      setCustomerLookupStatus('idle');
+      setCustomerSearchResults([]);
+      loadCoupons();
+    } catch (err) {
+      console.error('Error generating coupons:', err);
+      showError(err.message || 'Failed to generate coupons');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const addDenomination = (value) => {
+    const num = Number(value);
+    if (!num || num <= 0) return;
+    setCouponDenominations(prev => [...prev, num]);
+    setDenomInput('');
+  };
+
+  const removeDenomination = (index) => {
+    setCouponDenominations(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const denomTotal = couponDenominations.reduce((s, d) => s + d, 0);
 
   const inferDiscountMode = (offer) => {
     if (offer?.crossItemBogo?.enabled) return 'bogo_cross';
@@ -959,10 +1202,14 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
           {[
             { id: 'offers', label: 'Offers', icon: <FaTag size={12} /> },
             { id: 'groups', label: `Groups (${customerGroups.length})`, icon: <FaLayerGroup size={12} /> },
+            { id: 'coupons', label: 'Coupons', icon: <FaGift size={12} /> },
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setOffersSubView(tab.id)}
+              onClick={() => {
+                setOffersSubView(tab.id);
+                if (tab.id === 'coupons' && coupons.length === 0) loadCoupons();
+              }}
               style={{
                 padding: isMobile ? '8px 14px' : '8px 20px',
                 borderRadius: '8px',
@@ -1068,6 +1315,673 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Coupons Sub-view */}
+        {offersSubView === 'coupons' && (
+          <div>
+            {/* Coupon Settings Card */}
+            <div style={{
+              backgroundColor: 'white', borderRadius: isMobile ? '12px' : '16px',
+              padding: isMobile ? '14px' : '24px', marginBottom: isMobile ? '12px' : '20px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: isMobile ? '15px' : '18px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaCog color="#6b7280" size={16} /> Coupon Settings
+                </h3>
+                <button
+                  onClick={saveOfferSettings}
+                  disabled={savingSettings}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px', border: 'none',
+                    background: '#ef4444', color: 'white', fontWeight: '600',
+                    fontSize: '13px', cursor: savingSettings ? 'not-allowed' : 'pointer',
+                    opacity: savingSettings ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <FaSave size={12} /> {savingSettings ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Master Toggle */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: offerSettings.couponsEnabled ? '#f0fdf4' : '#f9fafb', borderRadius: '10px', border: offerSettings.couponsEnabled ? '1px solid #bbf7d0' : '1px solid #e5e7eb' }}>
+                  <div>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#1f2937' }}>Enable Coupon System</span>
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>When disabled, coupon features are hidden across all platforms</p>
+                  </div>
+                  <button onClick={() => setOfferSettings(prev => ({ ...prev, couponsEnabled: !prev.couponsEnabled }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    {offerSettings.couponsEnabled ? <FaToggleOn size={28} color="#16a34a" /> : <FaToggleOff size={28} color="#9ca3af" />}
+                  </button>
+                </div>
+                {offerSettings.couponsEnabled && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                      <div>
+                        <span style={{ fontWeight: '600', fontSize: '13px', color: '#374151' }}>Allow Coupons With Offers</span>
+                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#6b7280' }}>Let customers use coupons alongside active offers</p>
+                      </div>
+                      <button onClick={() => setOfferSettings(prev => ({ ...prev, allowCouponsWithOffers: !prev.allowCouponsWithOffers }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                        {offerSettings.allowCouponsWithOffers ? <FaToggleOn size={24} color="#ef4444" /> : <FaToggleOff size={24} color="#9ca3af" />}
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                      <span style={{ fontWeight: '600', fontSize: '13px', color: '#374151' }}>Max Coupons Per Order</span>
+                      <input
+                        type="number" min="1" max="10"
+                        value={offerSettings.maxCouponsPerOrder}
+                        onChange={(e) => setOfferSettings(prev => ({ ...prev, maxCouponsPerOrder: Math.max(1, Number(e.target.value) || 1) }))}
+                        style={{ width: '60px', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', textAlign: 'center' }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {offerSettings.couponsEnabled && (
+              <>
+                {/* Public/Private toggle */}
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: '#f3f4f6', borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
+                  {[
+                    { id: 'public', label: `Public (${coupons.filter(c => c.type !== 'private').length})` },
+                    { id: 'private', label: `Private (${coupons.filter(c => c.type === 'private').length})` },
+                  ].map(tab => (
+                    <button key={tab.id} onClick={() => setCouponSubView(tab.id)} style={{
+                      padding: '6px 16px', borderRadius: '8px', border: 'none',
+                      background: couponSubView === tab.id ? 'white' : 'transparent',
+                      color: couponSubView === tab.id ? '#1f2937' : '#6b7280',
+                      fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                      boxShadow: couponSubView === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.15s'
+                    }}>
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Public Coupons */}
+                {couponSubView === 'public' && (
+                  <div style={{
+                    backgroundColor: 'white', borderRadius: isMobile ? '12px' : '16px',
+                    padding: isMobile ? '14px' : '24px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '15px' : '18px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FaGift color="#ef4444" size={16} /> Public Coupons
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setEditingCoupon(null);
+                          setCouponForm({ code: '', description: '', discountType: 'flat', value: '', minOrderAmount: '', maxDiscountAmount: '', maxUses: '', validFrom: '', validTo: '' });
+                          setShowCouponModal(true);
+                        }}
+                        style={{
+                          padding: '8px 16px', borderRadius: '8px', border: 'none',
+                          background: '#ef4444', color: 'white', fontWeight: '600',
+                          fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                      >
+                        <FaPlus size={11} /> Create Coupon
+                      </button>
+                    </div>
+
+                    {couponsLoading ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Loading coupons...</div>
+                    ) : coupons.filter(c => c.type !== 'private').length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                        <FaGift size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                        <p style={{ margin: 0, fontSize: '14px' }}>No public coupons yet. Create one to get started.</p>
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                              {['Code', 'Description', 'Discount', 'Min Order', 'Used/Max', 'Valid Until', 'Status', 'Actions'].map(h => (
+                                <th key={h} style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#6b7280', fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {coupons.filter(c => c.type !== 'private').map(coupon => {
+                              const now = new Date();
+                              const validTo = coupon.validTo ? new Date(coupon.validTo?._seconds ? coupon.validTo._seconds * 1000 : coupon.validTo) : null;
+                              const isExpired = validTo && validTo < now;
+                              const isMaxed = coupon.maxUses && coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses;
+                              const status = !coupon.isActive ? 'Inactive' : isExpired ? 'Expired' : isMaxed ? 'Used Up' : 'Active';
+                              const statusColor = status === 'Active' ? '#16a34a' : status === 'Inactive' ? '#6b7280' : '#dc2626';
+                              return (
+                                <tr key={coupon.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '10px 8px', fontWeight: '700', fontFamily: 'monospace', color: '#1f2937' }}>{coupon.code}</td>
+                                  <td style={{ padding: '10px 8px', color: '#6b7280', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{coupon.description || '-'}</td>
+                                  <td style={{ padding: '10px 8px', fontWeight: '600', color: '#1f2937' }}>
+                                    {coupon.discountType === 'percentage' ? `${coupon.value}%` : `${getCurrencySymbol()}${coupon.value}`}
+                                    {coupon.discountType === 'percentage' && coupon.maxDiscountAmount > 0 && <span style={{ fontSize: '11px', color: '#9ca3af' }}> (max {getCurrencySymbol()}{coupon.maxDiscountAmount})</span>}
+                                  </td>
+                                  <td style={{ padding: '10px 8px', color: '#6b7280' }}>{coupon.minOrderAmount > 0 ? `${getCurrencySymbol()}${coupon.minOrderAmount}` : '-'}</td>
+                                  <td style={{ padding: '10px 8px', color: '#6b7280' }}>{coupon.usedCount || 0}/{coupon.maxUses || '∞'}</td>
+                                  <td style={{ padding: '10px 8px', color: '#6b7280' }}>{validTo ? validTo.toLocaleDateString() : 'No expiry'}</td>
+                                  <td style={{ padding: '10px 8px' }}><span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: statusColor + '15', color: statusColor }}>{status}</span></td>
+                                  <td style={{ padding: '10px 8px', display: 'flex', gap: '6px' }}>
+                                    <button
+                                      onClick={() => {
+                                        setEditingCoupon(coupon);
+                                        setCouponForm({
+                                          code: coupon.code, description: coupon.description || '',
+                                          discountType: coupon.discountType, value: String(coupon.value),
+                                          minOrderAmount: String(coupon.minOrderAmount || ''), maxDiscountAmount: String(coupon.maxDiscountAmount || ''),
+                                          maxUses: String(coupon.maxUses || ''),
+                                          validFrom: coupon.validFrom ? new Date(coupon.validFrom?._seconds ? coupon.validFrom._seconds * 1000 : coupon.validFrom).toISOString().split('T')[0] : '',
+                                          validTo: validTo ? validTo.toISOString().split('T')[0] : '',
+                                        });
+                                        setShowCouponModal(true);
+                                      }}
+                                      style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#3b82f6', fontSize: '12px' }}
+                                    >
+                                      <FaEdit size={11} />
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteCouponConfirm(coupon)}
+                                      style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#ef4444', fontSize: '12px' }}
+                                    >
+                                      <FaTrash size={11} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Private Coupons */}
+                {couponSubView === 'private' && (
+                  <div style={{
+                    backgroundColor: 'white', borderRadius: isMobile ? '12px' : '16px',
+                    padding: isMobile ? '14px' : '24px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '15px' : '18px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FaUser color="#ec4899" size={16} /> Private Coupons
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setGenerateForm({ customerPhone: '', customerName: '', totalAmount: '', validFrom: '', validTo: '' });
+                          setCouponDenominations([]);
+                          setDenomInput('');
+                          setCustomerLookupStatus('idle');
+                          setCustomerSearchResults([]);
+                          setShowCustomerDropdown(false);
+                          setShowGenerateModal(true);
+                        }}
+                        style={{
+                          padding: '8px 16px', borderRadius: '8px', border: 'none',
+                          background: '#ec4899', color: 'white', fontWeight: '600',
+                          fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                      >
+                        <FaPlus size={11} /> Generate for Customer
+                      </button>
+                    </div>
+
+                    {couponsLoading ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Loading coupons...</div>
+                    ) : coupons.filter(c => c.type === 'private').length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                        <FaUser size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                        <p style={{ margin: 0, fontSize: '14px' }}>No private coupons yet. Generate coupons for a customer.</p>
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                              {['Code', 'Customer', 'Denomination', 'Valid Until', 'Status', 'Redeemed', 'Actions'].map(h => (
+                                <th key={h} style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#6b7280', fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {coupons.filter(c => c.type === 'private').map(coupon => {
+                              const now = new Date();
+                              const validTo = coupon.validTo ? new Date(coupon.validTo?._seconds ? coupon.validTo._seconds * 1000 : coupon.validTo) : null;
+                              const isExpired = validTo && validTo < now;
+                              const isRedeemed = !!coupon.redeemedAt;
+                              const status = isRedeemed ? 'Redeemed' : !coupon.isActive ? 'Inactive' : isExpired ? 'Expired' : 'Active';
+                              const statusColor = status === 'Active' ? '#16a34a' : status === 'Redeemed' ? '#3b82f6' : '#dc2626';
+                              const redeemedAt = coupon.redeemedAt ? new Date(coupon.redeemedAt?._seconds ? coupon.redeemedAt._seconds * 1000 : coupon.redeemedAt) : null;
+                              return (
+                                <tr key={coupon.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '10px 8px', fontWeight: '700', fontFamily: 'monospace', color: '#1f2937' }}>{coupon.code}</td>
+                                  <td style={{ padding: '10px 8px', color: '#374151' }}>
+                                    <div>{coupon.customerName || '-'}</div>
+                                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>{coupon.customerPhone}</div>
+                                  </td>
+                                  <td style={{ padding: '10px 8px', fontWeight: '600', color: '#1f2937' }}>{getCurrencySymbol()}{coupon.denomination || coupon.value}</td>
+                                  <td style={{ padding: '10px 8px', color: '#6b7280' }}>{validTo ? validTo.toLocaleDateString() : 'No expiry'}</td>
+                                  <td style={{ padding: '10px 8px' }}><span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: statusColor + '15', color: statusColor }}>{status}</span></td>
+                                  <td style={{ padding: '10px 8px', color: '#6b7280', fontSize: '12px' }}>
+                                    {redeemedAt ? redeemedAt.toLocaleDateString() : '-'}
+                                    {coupon.redeemedOrderId && <div style={{ fontSize: '10px', color: '#9ca3af' }}>Order: {coupon.redeemedOrderId.slice(-6)}</div>}
+                                  </td>
+                                  <td style={{ padding: '10px 8px' }}>
+                                    {isRedeemed ? (
+                                      <button
+                                        onClick={() => setDeleteCouponConfirm(coupon)}
+                                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#ef4444', fontSize: '12px' }}
+                                      >
+                                        <FaTrash size={11} />
+                                      </button>
+                                    ) : (
+                                      <div style={{ display: 'flex', gap: '4px' }}>
+                                        <button
+                                          onClick={() => setDeleteCouponConfirm(coupon)}
+                                          style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#ef4444', fontSize: '12px' }}
+                                        >
+                                          <FaTrash size={11} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Create/Edit Public Coupon Modal */}
+            {showCouponModal && createPortal(
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px' }}>
+                <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>{editingCoupon ? 'Edit Coupon' : 'Create Public Coupon'}</h3>
+                    <button onClick={() => { setShowCouponModal(false); setEditingCoupon(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FaTimes size={18} color="#6b7280" /></button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Coupon Code *</label>
+                      <input
+                        value={couponForm.code}
+                        onChange={(e) => setCouponForm(p => ({ ...p, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
+                        placeholder="e.g., SAVE20"
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'monospace', fontWeight: '700', letterSpacing: '1px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Description</label>
+                      <input
+                        value={couponForm.description}
+                        onChange={(e) => setCouponForm(p => ({ ...p, description: e.target.value }))}
+                        placeholder="e.g., Get ₹200 off on orders above ₹1000"
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Discount Type</label>
+                        <select
+                          value={couponForm.discountType}
+                          onChange={(e) => setCouponForm(p => ({ ...p, discountType: e.target.value }))}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', background: 'white', boxSizing: 'border-box' }}
+                        >
+                          <option value="flat">Flat Amount ({getCurrencySymbol()})</option>
+                          <option value="percentage">Percentage (%)</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Value *</label>
+                        <input
+                          type="number" min="0"
+                          value={couponForm.value}
+                          onChange={(e) => setCouponForm(p => ({ ...p, value: e.target.value }))}
+                          placeholder={couponForm.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 200'}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Min Order Amount</label>
+                        <input
+                          type="number" min="0"
+                          value={couponForm.minOrderAmount}
+                          onChange={(e) => setCouponForm(p => ({ ...p, minOrderAmount: e.target.value }))}
+                          placeholder="0 = no minimum"
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      {couponForm.discountType === 'percentage' && (
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Max Discount</label>
+                          <input
+                            type="number" min="0"
+                            value={couponForm.maxDiscountAmount}
+                            onChange={(e) => setCouponForm(p => ({ ...p, maxDiscountAmount: e.target.value }))}
+                            placeholder="0 = no cap"
+                            style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Max Uses (0 = unlimited)</label>
+                      <input
+                        type="number" min="0"
+                        value={couponForm.maxUses}
+                        onChange={(e) => setCouponForm(p => ({ ...p, maxUses: e.target.value }))}
+                        placeholder="0 = unlimited"
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Valid From</label>
+                        <input
+                          type="date"
+                          value={couponForm.validFrom}
+                          onChange={(e) => setCouponForm(p => ({ ...p, validFrom: e.target.value }))}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Valid To</label>
+                        <input
+                          type="date"
+                          value={couponForm.validTo}
+                          onChange={(e) => setCouponForm(p => ({ ...p, validTo: e.target.value }))}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button
+                      onClick={() => { setShowCouponModal(false); setEditingCoupon(null); }}
+                      style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', background: 'white', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveCoupon}
+                      disabled={couponSaving}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', border: 'none',
+                        background: '#ef4444', color: 'white', fontWeight: '600', fontSize: '14px',
+                        cursor: couponSaving ? 'not-allowed' : 'pointer', opacity: couponSaving ? 0.6 : 1
+                      }}
+                    >
+                      {couponSaving ? 'Saving...' : editingCoupon ? 'Update Coupon' : 'Create Coupon'}
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
+
+            {/* Generate Private Coupons Modal */}
+            {showGenerateModal && createPortal(
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 10000, padding: isMobile ? '0' : '16px' }}
+                onClick={(e) => { if (e.target === e.currentTarget) setShowGenerateModal(false); }}>
+                <div style={{ background: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px', width: '100%', maxWidth: isMobile ? '100%' : '480px', maxHeight: isMobile ? '92vh' : '90vh', overflow: 'auto', padding: isMobile ? '20px 16px 28px' : '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '16px' : '20px' }}>
+                    <h3 style={{ margin: 0, fontSize: isMobile ? '16px' : '18px', fontWeight: '700' }}>Generate Private Coupons</h3>
+                    <button onClick={() => { setShowGenerateModal(false); setShowCustomerDropdown(false); setCustomerLookupStatus('idle'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FaTimes size={18} color="#6b7280" /></button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '12px' : '14px' }}>
+                    {/* Customer Phone with Search */}
+                    <div style={{ position: 'relative' }} ref={customerSearchRef}>
+                      <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Customer Phone *</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          value={generateForm.customerPhone}
+                          onChange={(e) => handleCustomerPhoneSearch(e.target.value)}
+                          onFocus={() => { if (customerSearchResults.length > 0) setShowCustomerDropdown(true); }}
+                          placeholder="Search by phone or name..."
+                          style={{
+                            width: '100%', padding: isMobile ? '12px 40px 12px 12px' : '10px 36px 10px 12px',
+                            border: `1.5px solid ${customerLookupStatus === 'found' ? '#22c55e' : customerLookupStatus === 'not_found' ? '#f59e0b' : '#d1d5db'}`,
+                            borderRadius: '8px', fontSize: isMobile ? '15px' : '14px', boxSizing: 'border-box',
+                            backgroundColor: customerLookupStatus === 'found' ? '#f0fdf4' : '#fff',
+                            transition: 'border-color 0.2s, background-color 0.2s',
+                          }}
+                        />
+                        <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                          {customerLookupStatus === 'searching' && generateForm.customerPhone.length >= 3 ? (
+                            <span style={{ width: '14px', height: '14px', border: '2px solid #fecdd3', borderTopColor: '#ec4899', borderRadius: '50%', animation: 'custSpin .6s linear infinite', display: 'inline-block' }} />
+                          ) : customerLookupStatus === 'found' ? (
+                            <FaCheckCircle size={14} color="#22c55e" />
+                          ) : customerLookupStatus === 'not_found' ? (
+                            <FaUserPlus size={13} color="#f59e0b" />
+                          ) : (
+                            <FaSearch size={12} color="#9ca3af" />
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Customer Search Dropdown */}
+                      {showCustomerDropdown && customerSearchResults.length > 0 && (
+                        <div style={{
+                          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                          background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.12)', maxHeight: '180px', overflowY: 'auto', marginTop: '4px',
+                        }}>
+                          {customerSearchResults.map((c, idx) => (
+                            <button
+                              key={c.id || idx}
+                              onClick={() => selectCustomerForGenerate(c)}
+                              style={{
+                                width: '100%', padding: isMobile ? '12px' : '10px 12px', border: 'none', borderBottom: idx < customerSearchResults.length - 1 ? '1px solid #f3f4f6' : 'none',
+                                background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left',
+                                fontSize: isMobile ? '14px' : '13px',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
+                            >
+                              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <FaUser size={10} color="#ec4899" />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: '600', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name || 'Unnamed'}</div>
+                                <div style={{ fontSize: '11px', color: '#6b7280' }}>{c.phone}</div>
+                              </div>
+                              {c.totalOrders > 0 && (
+                                <span style={{ fontSize: '10px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.totalOrders} orders</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* New customer prompt */}
+                      {customerLookupStatus === 'not_found' && generateForm.customerPhone.length >= 10 && (
+                        <div style={{
+                          marginTop: '6px', padding: '8px 12px', borderRadius: '8px',
+                          border: '1px solid #fde68a', background: '#fffbeb',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
+                          fontSize: isMobile ? '12px' : '11px',
+                        }}>
+                          <span style={{ color: '#92400e' }}>New customer — will be saved on generate</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Customer Name */}
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Customer Name{customerLookupStatus === 'not_found' ? ' *' : ''}</label>
+                      <input
+                        value={generateForm.customerName}
+                        onChange={(e) => setGenerateForm(p => ({ ...p, customerName: e.target.value }))}
+                        placeholder={customerLookupStatus === 'found' ? 'Auto-filled from customer' : 'Enter customer name'}
+                        readOnly={customerLookupStatus === 'found'}
+                        style={{
+                          width: '100%', padding: isMobile ? '12px' : '10px 12px',
+                          border: '1px solid #d1d5db', borderRadius: '8px', fontSize: isMobile ? '14px' : '13px',
+                          boxSizing: 'border-box',
+                          backgroundColor: customerLookupStatus === 'found' ? '#f9fafb' : '#fff',
+                        }}
+                      />
+                    </div>
+
+                    {/* Coupon Denominations — add individually */}
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Add Coupon Values *</label>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        {[100, 200, 250, 500, 1000].map(d => (
+                          <button
+                            key={d}
+                            onClick={() => addDenomination(d)}
+                            style={{
+                              padding: isMobile ? '8px 14px' : '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600',
+                              border: '1px solid #fecdd3', background: '#fff1f2', color: '#e11d48', cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fecdd3'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff1f2'; }}
+                          >
+                            +{getCurrencySymbol()}{d}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          type="number" min="1"
+                          value={denomInput}
+                          onChange={(e) => setDenomInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addDenomination(denomInput); } }}
+                          placeholder="Custom amount"
+                          style={{
+                            flex: 1, padding: isMobile ? '12px' : '10px 12px', border: '1px solid #d1d5db',
+                            borderRadius: '8px', fontSize: isMobile ? '14px' : '13px', boxSizing: 'border-box',
+                          }}
+                        />
+                        <button
+                          onClick={() => addDenomination(denomInput)}
+                          disabled={!denomInput || Number(denomInput) <= 0}
+                          style={{
+                            padding: isMobile ? '12px 16px' : '10px 16px', borderRadius: '8px', border: 'none',
+                            background: denomInput && Number(denomInput) > 0 ? '#ec4899' : '#e5e7eb',
+                            color: denomInput && Number(denomInput) > 0 ? 'white' : '#9ca3af',
+                            fontWeight: '600', fontSize: '13px', cursor: denomInput && Number(denomInput) > 0 ? 'pointer' : 'not-allowed',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Added coupons list */}
+                    {couponDenominations.length > 0 && (
+                      <div style={{ background: '#fef2f2', borderRadius: '10px', padding: isMobile ? '12px' : '14px', border: '1px solid #fecdd3' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: '#e11d48' }}>
+                            {couponDenominations.length} coupon{couponDenominations.length > 1 ? 's' : ''} — Total: {getCurrencySymbol()}{denomTotal}
+                          </span>
+                          <button onClick={() => setCouponDenominations([])} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#6b7280', textDecoration: 'underline' }}>Clear all</button>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {couponDenominations.map((d, i) => (
+                            <span key={i} style={{
+                              padding: '4px 8px 4px 10px', borderRadius: '16px', background: 'white', border: '1px solid #fecdd3',
+                              fontSize: '12px', fontWeight: '600', color: '#e11d48', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            }}>
+                              {getCurrencySymbol()}{d}
+                              <button onClick={() => removeDenomination(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center' }}>
+                                <FaTimes size={8} color="#9ca3af" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Validity dates */}
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Valid From</label>
+                        <input
+                          type="date"
+                          value={generateForm.validFrom}
+                          onChange={(e) => setGenerateForm(p => ({ ...p, validFrom: e.target.value }))}
+                          style={{ width: '100%', padding: isMobile ? '12px' : '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '4px', display: 'block' }}>Valid To</label>
+                        <input
+                          type="date"
+                          value={generateForm.validTo}
+                          onChange={(e) => setGenerateForm(p => ({ ...p, validTo: e.target.value }))}
+                          style={{ width: '100%', padding: isMobile ? '12px' : '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: isMobile ? '16px' : '24px' }}>
+                    <button
+                      onClick={() => { setShowGenerateModal(false); setShowCustomerDropdown(false); setCustomerLookupStatus('idle'); }}
+                      style={{ flex: 1, padding: isMobile ? '14px' : '12px', borderRadius: '10px', border: '1px solid #d1d5db', background: 'white', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleGeneratePrivate}
+                      disabled={generating || couponDenominations.length === 0}
+                      style={{
+                        flex: 1, padding: isMobile ? '14px' : '12px', borderRadius: '10px', border: 'none',
+                        background: (generating || couponDenominations.length === 0) ? '#e5e7eb' : '#ec4899',
+                        color: (generating || couponDenominations.length === 0) ? '#9ca3af' : 'white',
+                        fontWeight: '600', fontSize: '14px',
+                        cursor: (generating || couponDenominations.length === 0) ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {generating ? 'Generating...' : `Generate ${couponDenominations.length > 0 ? couponDenominations.length + ' ' : ''}Coupons`}
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
+
+            {/* Delete Confirmation */}
+            {deleteCouponConfirm && createPortal(
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, padding: '16px' }}>
+                <div style={{ background: 'white', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%' }}>
+                  <h3 style={{ margin: '0 0 12px', fontSize: '16px', fontWeight: '700' }}>Delete Coupon?</h3>
+                  <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '14px' }}>
+                    Are you sure you want to delete coupon <strong>{deleteCouponConfirm.code}</strong>? This action cannot be undone.
+                  </p>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button onClick={() => setDeleteCouponConfirm(null)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #d1d5db', background: 'white', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                    <button
+                      onClick={() => handleDeleteCoupon(deleteCouponConfirm.id)}
+                      disabled={deletingCoupon}
+                      style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: '#ef4444', color: 'white', fontWeight: '600', cursor: deletingCoupon ? 'not-allowed' : 'pointer', opacity: deletingCoupon ? 0.6 : 1 }}
+                    >
+                      {deletingCoupon ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
             )}
           </div>
         )}

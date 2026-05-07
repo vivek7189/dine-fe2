@@ -2456,6 +2456,31 @@ class ApiClient {
     });
   }
 
+  async validateCoupon(restaurantId, code, customerPhone, cartTotal) {
+    return this.request(`/api/automation/${restaurantId}/coupons/validate`, {
+      method: 'POST',
+      body: { code, customerPhone, cartTotal },
+    });
+  }
+
+  async redeemCoupon(restaurantId, couponId, orderId) {
+    return this.request(`/api/automation/${restaurantId}/coupons/redeem`, {
+      method: 'POST',
+      body: { couponId, orderId },
+    });
+  }
+
+  async generatePrivateCoupons(restaurantId, data) {
+    return this.request(`/api/automation/${restaurantId}/coupons/generate-private`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async getCustomerCoupons(restaurantId, phone) {
+    return this.request(`/api/automation/${restaurantId}/coupons/customer/${encodeURIComponent(phone)}`);
+  }
+
   // WhatsApp Settings
   async getWhatsAppSettings(restaurantId) {
     return this.request(`/api/automation/${restaurantId}/whatsapp`);

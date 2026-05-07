@@ -267,6 +267,13 @@ const OrderSummary = ({
   const [manualDiscountValue, setManualDiscountValue] = useState('');
   const [manualDiscountTypeState, setManualDiscountTypeState] = useState('flat'); // 'flat' or 'percentage'
 
+  // Coupon State
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // { id, code, discountAmount, discountType, value }
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [customerCoupons, setCustomerCoupons] = useState([]);
+
   // Delivery Person Info
   const [deliveryInfo, setDeliveryInfo] = useState({ personName: '', personPhone: '', cashHandedOver: false });
   const [staffList, setStaffList] = useState([]);
@@ -423,6 +430,10 @@ const OrderSummary = ({
       resetOffers();
       setManualDiscountValue('');
       setManualDiscountTypeState('flat');
+      setAppliedCoupon(null);
+      setCouponCode('');
+      setCouponError('');
+      setCustomerCoupons([]);
       setRedeemLoyaltyPoints(0);
       setSliderLocalValue(0);
       setUseWallet(false);
@@ -453,6 +464,10 @@ const OrderSummary = ({
       resetOffers();
       setManualDiscountValue('');
       setManualDiscountTypeState('flat');
+      setAppliedCoupon(null);
+      setCouponCode('');
+      setCouponError('');
+      setCustomerCoupons([]);
       setRedeemLoyaltyPoints(0);
       setSliderLocalValue(0);
       setUseWallet(false);
@@ -709,8 +724,11 @@ const OrderSummary = ({
     return Math.floor(eligibleAmount / earnPerAmount) * pointsRate;
   }, [loyaltySettings, getTotalAmount, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, redeemLoyaltyPoints]);
 
+  // Coupon discount
+  const getCouponDiscountAmount = () => appliedCoupon?.discountAmount || 0;
+
   // Total discount for display
-  const totalDiscountAmount = offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount();
+  const totalDiscountAmount = offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount();
 
   // Discount settings from taxSettings
   const discountSettings = taxSettings?.discountSettings || {};
@@ -718,6 +736,51 @@ const OrderSummary = ({
   const canEditManualDiscount = discountEnabled &&
     discountSettings.allowManualDiscount !== false &&
     (discountSettings.manualDiscountRoles || ['owner']).includes(userRole?.toLowerCase());
+
+  // Coupon helpers
+  const couponsEnabled = offerSettings?.couponsEnabled === true;
+
+  const handleApplyCoupon = async (code) => {
+    if (!code?.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await apiClient.validateCoupon(restaurantId, code.trim(), customerMobile || '', getTotalAmount());
+      if (res.valid) {
+        // Stacking check
+        if (!offerSettings?.allowCouponsWithOffers && offerDiscount > 0) {
+          setCouponError('Remove offers to use a coupon');
+          setCouponLoading(false);
+          return;
+        }
+        setAppliedCoupon({ ...res.coupon, discountAmount: res.discountAmount });
+        setCouponCode('');
+        setCouponError('');
+      } else {
+        setCouponError(res.reason || 'Invalid coupon');
+      }
+    } catch (err) {
+      setCouponError('Failed to validate coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
+
+  // Fetch customer coupons when customer phone is set
+  useEffect(() => {
+    if (!couponsEnabled || !customerMobile || lookupStatus !== 'found') {
+      setCustomerCoupons([]);
+      return;
+    }
+    apiClient.getCustomerCoupons(restaurantId, customerMobile)
+      .then(res => setCustomerCoupons(res.coupons || []))
+      .catch(() => setCustomerCoupons([]));
+  }, [couponsEnabled, customerMobile, lookupStatus, restaurantId]);
 
   // Compute unit price for an item considering variant and selected customizations
   // Uses item.price (which reflects the active pricing rule) over item.basePrice
@@ -805,7 +868,7 @@ const OrderSummary = ({
       // Apply discounts even if tax is disabled
       const subtotal = getTotalAmount();
       const loyaltyDiscAmt = getLoyaltyDiscountAmount();
-      const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt;
+      const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt + getCouponDiscountAmount();
       const discountedAmt = Math.max(0, subtotal - discTotal);
       const sc = calcServiceCharge(discountedAmt);
       setServiceChargeAmount(sc);
@@ -906,7 +969,7 @@ const OrderSummary = ({
     setRoundOffAmount(ro);
     setGrandTotal(withTip + ro);
 
-  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, restaurantCategories]);
+  }, [cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, getManualDiscountAmount, getLoyaltyDiscountAmount, appliedCoupon, tipAmount, calcServiceCharge, calcRoundOff, resolveTaxesForItem, restaurantCategories]);
   
   // Calculate tax when cart changes — useLayoutEffect ensures billing totals
   // are recalculated synchronously before paint, preventing stale grandTotal
@@ -919,7 +982,7 @@ const OrderSummary = ({
       setTotalTax(0);
       setGrandTotal(getTotalAmount());
     }
-  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState, redeemLoyaltyPoints, tipAmount, billingSettings]);
+  }, [calculateTax, cart, restaurantId, getTotalAmount, taxSettings, offerDiscount, manualDiscountValue, manualDiscountTypeState, redeemLoyaltyPoints, tipAmount, billingSettings, appliedCoupon]);
 
   // Pre-populate special instructions when editing an existing order
   useEffect(() => {
@@ -1146,6 +1209,8 @@ const OrderSummary = ({
     if (localTaxData.offerDiscount != null) invoiceData.discountAmount = localTaxData.offerDiscount;
     if (localTaxData.manualDiscount != null) invoiceData.manualDiscount = localTaxData.manualDiscount;
     if (localTaxData.loyaltyDiscount != null) invoiceData.loyaltyDiscount = localTaxData.loyaltyDiscount;
+    if (localTaxData.couponDiscount != null) invoiceData.couponDiscount = localTaxData.couponDiscount;
+    if (localTaxData.couponCode) invoiceData.couponCode = localTaxData.couponCode;
     if (localTaxData.totalDiscountAmount != null) invoiceData.totalDiscount = localTaxData.totalDiscountAmount;
     if (localTaxData.taxBreakdown?.length) invoiceData.taxBreakdown = localTaxData.taxBreakdown;
     if (localTaxData.finalAmount != null) invoiceData.grandTotal = localTaxData.finalAmount;
@@ -1245,9 +1310,12 @@ const OrderSummary = ({
       manualDiscount: getManualDiscountAmount(),
       offerDiscount,
       selectedOfferName,
-      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount(),
+      totalDiscountAmount: offerDiscount + getManualDiscountAmount() + getLoyaltyDiscountAmount() + getCouponDiscountAmount(),
       redeemLoyaltyPoints: redeemLoyaltyPoints > 0 ? redeemLoyaltyPoints : 0,
       loyaltyDiscount: getLoyaltyDiscountAmount(),
+      couponDiscount: getCouponDiscountAmount() > 0 ? getCouponDiscountAmount() : null,
+      couponCode: appliedCoupon?.code || null,
+      couponId: appliedCoupon?.id || null,
       serviceChargeRate: serviceChargeAmount > 0 ? billingSettings.serviceChargeRate : null,
       serviceChargeAmount: serviceChargeAmount > 0 ? serviceChargeAmount : null,
       tipAmount: tipAmount > 0 ? tipAmount : null,
@@ -1285,6 +1353,11 @@ const OrderSummary = ({
           const result = await onProcessOrder(buildTaxData());
           if (result && result.orderId) {
             await generateInvoice(result.orderId);
+            // Redeem coupon after successful order
+            if (appliedCoupon?.id) {
+              apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));
+              setAppliedCoupon(null);
+            }
           }
         } catch (error) {
           console.error('Error in UPI confirm order:', error);
@@ -1310,6 +1383,11 @@ const OrderSummary = ({
         if (result && result.orderId) {
           console.log('Generating invoice for order:', result.orderId);
           const invoiceGenerated = await generateInvoice(result.orderId);
+          // Redeem coupon after successful order
+          if (appliedCoupon?.id) {
+            apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));
+            setAppliedCoupon(null);
+          }
         }
       } catch (error) {
         console.error('Error in handleProcessOrder:', error);
@@ -2347,6 +2425,12 @@ const OrderSummary = ({
                           <span>-{formatCurrency(invoice.loyaltyDiscount)}</span>
                         </div>
                       )}
+                      {(invoice?.couponDiscount || 0) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px', color: '#e11d48' }}>
+                          <span>Coupon ({invoice.couponCode}):</span>
+                          <span>-{formatCurrency(invoice.couponDiscount)}</span>
+                        </div>
+                      )}
                       {invoice?.taxBreakdown?.map((tax, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
                           <span>{tax.name} ({tax.rate}%)</span>
@@ -2457,12 +2541,13 @@ const OrderSummary = ({
                       };
                       const itemsHtml = billItems.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g,'&lt;')}${getSublineHtml(item)}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || item.total/item.quantity || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
                       const taxHtml = (invoice?.taxBreakdown || []).map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
-                      const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0);
+                      const printTotalDiscount = (invoice?.discountAmount || 0) + (invoice?.manualDiscount || 0) + (invoice?.loyaltyDiscount || 0) + (invoice?.couponDiscount || 0);
                       const offerName = typeof invoice?.appliedOffer === 'string' ? invoice.appliedOffer : (invoice?.appliedOffer?.name || invoice?.selectedOfferName || '');
                       const offerDiscHtml = (invoice?.discountAmount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.offer')}${offerName ? ` (${offerName})` : ''}:</span><span>-${currencySymbol}${(invoice.discountAmount).toFixed(2)}</span></div>` : '';
                       const manualDiscHtml = (invoice?.manualDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#16a34a;"><span>${t('invoice.manualDiscount')}:</span><span>-${currencySymbol}${(invoice.manualDiscount).toFixed(2)}</span></div>` : '';
                       const loyaltyDiscHtml = (invoice?.loyaltyDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#b45309;"><span>${t('invoice.loyaltyRedeem')}:</span><span>-${currencySymbol}${(invoice.loyaltyDiscount).toFixed(2)}</span></div>` : '';
-                      const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml;
+                      const couponDiscHtml = (invoice?.couponDiscount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#e11d48;"><span>Coupon (${invoice.couponCode || ''}):</span><span>-${currencySymbol}${(invoice.couponDiscount).toFixed(2)}</span></div>` : '';
+                      const discountHtml = offerDiscHtml + manualDiscHtml + loyaltyDiscHtml + couponDiscHtml;
                       const serviceChargeHtml = (invoice?.serviceChargeAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.serviceCharge')}${invoice?.serviceChargeRate ? ` (${invoice.serviceChargeRate}%)` : ''}:</span><span>${currencySymbol}${invoice.serviceChargeAmount.toFixed(2)}</span></div>` : '';
                       const tipHtml = (invoice?.tipAmount > 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.tip')}${invoice?.tipPercentage ? ` (${invoice.tipPercentage}%)` : ''}:</span><span>${currencySymbol}${invoice.tipAmount.toFixed(2)}</span></div>` : '';
                       const roundOffHtml = (invoice?.roundOffAmount != null && invoice?.roundOffAmount !== 0) ? `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${t('invoice.roundOff')}:</span><span>${invoice.roundOffAmount > 0 ? '+' : ''}${currencySymbol}${invoice.roundOffAmount.toFixed(2)}</span></div>` : '';
@@ -3290,7 +3375,8 @@ const OrderSummary = ({
                 const activeOfferCount = (offerSettings?.allowMultipleOffers ? selectedOfferIds : (selectedOfferId ? [selectedOfferId] : [])).length;
                 const loyaltyDisc = getLoyaltyDiscountAmount();
                 const earnPts = getLoyaltyPointsToEarn();
-                const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0;
+                const couponDisc = getCouponDiscountAmount();
+                const hasApplied = activeOfferCount > 0 || loyaltyDisc > 0 || couponDisc > 0;
 
                 return (
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', marginBottom: '6px' }}>
@@ -5178,6 +5264,96 @@ const OrderSummary = ({
                         return `${f.qty}× ${match?.name || f.itemId}`;
                       }).join(', ')}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* COUPON CODE Section */}
+              {couponsEnabled && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>
+                    Coupon Code
+                  </div>
+                  {appliedCoupon ? (
+                    <div style={{
+                      padding: '12px 14px', borderRadius: '12px',
+                      border: '1.5px solid #86efac', background: '#f0fdf4',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#15803d', fontFamily: 'monospace' }}>{appliedCoupon.code}</div>
+                        <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '2px' }}>
+                          Saving {formatCurrency(appliedCoupon.discountAmount)}
+                        </div>
+                      </div>
+                      <button onClick={handleRemoveCoupon} style={{
+                        padding: '4px 10px', borderRadius: '6px', border: '1px solid #fca5a5',
+                        background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 600, cursor: 'pointer'
+                      }}>
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: couponError ? '6px' : (customerCoupons.length > 0 ? '8px' : '0') }}>
+                        <input
+                          value={couponCode}
+                          onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                          placeholder="Enter coupon code"
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleApplyCoupon(couponCode); }}
+                          style={{
+                            flex: 1, padding: '10px 12px', borderRadius: '10px',
+                            border: couponError ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0',
+                            fontSize: '13px', fontFamily: 'monospace', fontWeight: 600,
+                            letterSpacing: '1px', outline: 'none',
+                          }}
+                        />
+                        <button
+                          onClick={() => handleApplyCoupon(couponCode)}
+                          disabled={couponLoading || !couponCode.trim()}
+                          style={{
+                            padding: '10px 16px', borderRadius: '10px', border: 'none',
+                            background: couponLoading || !couponCode.trim() ? '#e5e7eb' : '#ef4444',
+                            color: couponLoading || !couponCode.trim() ? '#9ca3af' : 'white',
+                            fontWeight: 600, fontSize: '12px', cursor: couponLoading ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {couponLoading ? '...' : 'Apply'}
+                        </button>
+                      </div>
+                      {couponError && (
+                        <div style={{ fontSize: '11px', color: '#dc2626', marginBottom: customerCoupons.length > 0 ? '8px' : '0' }}>{couponError}</div>
+                      )}
+                      {/* Customer's available coupons */}
+                      {customerCoupons.length > 0 && (
+                        <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Available coupons:</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {customerCoupons.map(c => (
+                              <button
+                                key={c.id}
+                                onClick={() => handleApplyCoupon(c.code)}
+                                style={{
+                                  width: '100%', padding: '8px 12px', borderRadius: '10px',
+                                  border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer',
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  textAlign: 'left', transition: 'all 0.15s',
+                                }}
+                              >
+                                <div>
+                                  <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', color: '#1f2937' }}>{c.code}</span>
+                                  {c.type === 'private' && <span style={{ fontSize: '9px', marginLeft: '6px', padding: '1px 5px', borderRadius: '4px', background: '#fef2f2', color: '#e11d48', fontWeight: 600 }}>YOURS</span>}
+                                </div>
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
+                                  {c.discountType === 'percentage' ? `${c.value}% off` : formatCurrency(c.value)}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
