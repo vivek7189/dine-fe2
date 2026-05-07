@@ -38,7 +38,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJEMTUyQTA4RjY0RkM2MkQKUldRdHhrLzJDQ29WTGJIS1p3Y09EcXEydlZUWU1QNmwvOG1ORmFaSDR1WnNTNjNlRU9scGN0MzUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY5QzJCM0RBNkI4QTNBODcKUldTSE9vcHIyclBDYWJwSHQvV2pkZDlGUWNUMkY2Y1FUcVZ4U2lpVFhGdHU3WElqWElOU1ZpeDUK",
       "endpoints": ["https://dine-backend-lake.vercel.app/api/public/desktop-update"]
     }
   }
