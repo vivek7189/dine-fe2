@@ -17,7 +17,7 @@ impl SyncDaemon {
         let p = paused.clone();
         let n = notify.clone();
 
-        tokio::spawn(async move {
+        tauri::async_runtime::spawn(async move {
             let mut consecutive_failures: u32 = 0;
 
             loop {
