@@ -282,7 +282,13 @@ export default function AttendancePage() {
   useEffect(() => {
     if (!restaurantId) return;
     apiClient.getStaff(restaurantId).then(res => {
-      setStaffList((res?.staff || []).filter(s => s.status === 'active'));
+      // Normalize: API returns `id` but some code uses `_id` — ensure both exist
+      const staff = (res?.staff || []).filter(s => s.status === 'active').map(s => ({
+        ...s,
+        _id: s._id || s.id,
+        id: s.id || s._id,
+      }));
+      setStaffList(staff);
     }).catch(() => {});
   }, [restaurantId]);
 

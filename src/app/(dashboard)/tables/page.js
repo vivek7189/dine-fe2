@@ -16,10 +16,14 @@ import {
   FaPlus, FaTrash, FaCog, FaUsers, FaClock, FaUtensils, FaCheck, FaBan, FaChair,
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
-  FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode
+  FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode,
+  FaPrint, FaReceipt
 } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
+import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
+import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
+import TableBillingModal from '../../../components/TableBillingModal';
 
 const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
   const [qrCodes, setQrCodes] = useState(new Map());
@@ -251,6 +255,15 @@ const TableManagement = () => {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
   const [userRole, setUserRole] = useState(null);
 
+  // Print state
+  const [printSettings, setPrintSettings] = useState(null);
+  const [printingTables, setPrintingTables] = useState({});
+  const [printDropdownTable, setPrintDropdownTable] = useState(null);
+
+  // Billing modal data (loaded lazily when modal opens)
+  const [taxSettings, setTaxSettings] = useState(null);
+  const [menuItems, setMenuItems] = useState(null);
+
   // Floor filter
   const [selectedFloorId, setSelectedFloorId] = useState('all');
 
@@ -272,6 +285,10 @@ const TableManagement = () => {
   const [floorModalTab, setFloorModalTab] = useState('details'); // 'details' | 'order'
   const [floorOrderList, setFloorOrderList] = useState([]); // for reordering
   const [savingFloorOrder, setSavingFloorOrder] = useState(false);
+
+  // Billing modal state (shared component)
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
+  const [billingModalTable, setBillingModalTable] = useState(null);
 
   // Dropdown state
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -539,6 +556,37 @@ const TableManagement = () => {
       }
     };
   }, [selectedRestaurant?.id]);
+
+  // Load print settings
+  useEffect(() => {
+    if (!selectedRestaurant?.id) return;
+    apiClient.getPrintSettings(selectedRestaurant.id).then(res => {
+      if (res?.success) setPrintSettings(res.printSettings);
+    }).catch(() => {});
+  }, [selectedRestaurant?.id]);
+
+  // Lazy-load billing modal data when modal opens
+  useEffect(() => {
+    if (!billingModalOpen || !selectedRestaurant?.id) return;
+    if (!taxSettings) {
+      apiClient.getTaxSettings(selectedRestaurant.id).then(res => {
+        setTaxSettings(res?.taxSettings || res || null);
+      }).catch(() => {});
+    }
+    if (!menuItems) {
+      apiClient.getMenu(selectedRestaurant.id).then(res => {
+        setMenuItems(res?.menuItems || res?.items || []);
+      }).catch(() => {});
+    }
+  }, [billingModalOpen, selectedRestaurant?.id]);
+
+  // Close print dropdown on outside click
+  useEffect(() => {
+    if (!printDropdownTable) return;
+    const handler = () => setPrintDropdownTable(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [printDropdownTable]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -854,6 +902,123 @@ const TableManagement = () => {
       if (bookingData.bookingDate !== selectedDate) fetchBookingsForDate(bookingData.bookingDate);
       showSuccess(t('tables.bookingConfirmed'));
     } catch (err) { showError(`Failed: ${err.message}`); } finally { setBookingSubmitting(false); }
+  };
+
+  // ── Print Functions ─────────────────────────────────────────
+  const handlePrintBill = async (table) => {
+    setPrintDropdownTable(null);
+    if (!table.currentOrderId || !selectedRestaurant?.id) return;
+    const tableId = table.id || table.currentOrderId;
+    setPrintingTables(prev => ({ ...prev, [tableId]: true }));
+
+    try {
+      const response = await apiClient.getOrderById(table.currentOrderId);
+      if (!response.orders || response.orders.length === 0) {
+        setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+        return;
+      }
+      const order = response.orders[0];
+      const restaurantName = selectedRestaurant?.name || 'Restaurant';
+
+      if (supportsNativeAutoPrint()) {
+        const items = order.items || [];
+        const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+        const taxBreakdown = order.taxBreakdown || [];
+        const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
+        const total = order.finalAmount || (subtotal + taxTotal);
+        const currencySymbol = getCurrencySymbol();
+
+        const itemsHtml = items.map(item =>
+          `<tr><td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`
+        ).join('');
+
+        const _tpIdLines = [];
+        if (selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName) _tpIdLines.push(selectedRestaurant.legalBusinessName.replace(/</g, '&lt;'));
+        if (selectedRestaurant?.address) _tpIdLines.push(selectedRestaurant.address.replace(/</g, '&lt;'));
+        if (selectedRestaurant?.phone) _tpIdLines.push('Tel: ' + selectedRestaurant.phone);
+        if (selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin) _tpIdLines.push('GSTIN: ' + selectedRestaurant.gstin);
+        if (selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai) _tpIdLines.push('FSSAI: ' + selectedRestaurant.fssai);
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber) _tpIdLines.push('Tax ID: ' + selectedRestaurant.vatNumber);
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId) _tpIdLines.push('Tax ID: ' + selectedRestaurant.taxId);
+        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber) _tpIdLines.push('Reg#: ' + selectedRestaurant.businessRegistrationNumber);
+        const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
+        const _tpHeaderHtml = getBillHeaderHTML(restaurantName.replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
+
+        const billContent = `<!DOCTYPE html><html><head><title>Bill</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div><div>Table: ${order.tableNumber || table?.name || '-'}</div></div><div class="divider">--------------------------------</div><table class="items-table" width="100%"><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr>${itemsHtml}</table><div class="divider">--------------------------------</div><div class="total-section"><div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${taxBreakdown.map(tax => `<div class="total-row"><span>${tax.name} (${tax.rate}%)</span><span>${currencySymbol}${(tax.amount || 0).toFixed(2)}</span></div>`).join('')}<div class="total-row" style="font-weight:bold;font-size:16px;"><span>TOTAL</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer">Thank you!</div></body></html>`;
+
+        await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
+      } else {
+        openManualPrintWindow(order, table);
+      }
+    } catch (error) {
+      console.error('Error printing bill:', error);
+    } finally {
+      setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
+    }
+  };
+
+  const handlePrintKOT = async (table) => {
+    setPrintDropdownTable(null);
+    if (!table.currentOrderId || !selectedRestaurant?.id) return;
+    const tableId = table.id || table.currentOrderId;
+    setPrintingTables(prev => ({ ...prev, [tableId]: true }));
+
+    try {
+      const response = await apiClient.getOrderById(table.currentOrderId);
+      if (!response.orders || response.orders.length === 0) {
+        setPrintingTables(prev => ({ ...prev, [tableId]: false }));
+        return;
+      }
+      const order = response.orders[0];
+      const items = order.items || [];
+      const restaurantName = selectedRestaurant?.name || 'Restaurant';
+      const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
+
+      const kotHtml = `<!DOCTYPE html><html><head><title>KOT</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div style="text-align:center;font-weight:bold;font-size:16px;">${restaurantName.replace(/</g, '&lt;')}</div><div style="text-align:center;font-weight:bold;margin:6px 0;">--- KITCHEN ORDER ---</div><div class="divider">--------------------------------</div><div class="bill-info"><div>Order# ${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div>${order.tableNumber ? `<div>Table: ${order.tableNumber}</div>` : ''}${order.roomNumber ? `<div>Room: ${order.roomNumber}</div>` : ''}<div>Time: ${formattedTime}</div><div>Date: ${formattedDate}</div>${order.customerDisplay?.name || order.customerInfo?.name ? `<div>Customer: ${(order.customerDisplay?.name || order.customerInfo?.name).replace(/</g, '&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div style="margin:4px 0;"><span style="font-weight:bold;">${i.quantity || 1}x</span> ${(i.name || '').replace(/</g, '&lt;')}${i.selectedVariant?.name ? `<div style="padding-left:20px;font-size:11px;color:#666;">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div style="padding-left:20px;font-size:11px;color:#666;">+ ${(c.name || c || '').toString().replace(/</g, '&lt;')}</div>`).join('')}${i.notes ? `<div style="padding-left:20px;font-size:10px;font-style:italic;">Note: ${i.notes.replace(/</g, '&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div style="font-weight:bold;text-align:center;">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+
+      if (supportsNativeAutoPrint()) {
+        await printDocument({ html: kotHtml, type: 'kot', printSettings: printSettings || {} });
+      } else {
+        const pw = window.open('', '_blank', 'width=400,height=600');
+        if (pw) { pw.document.write(kotHtml); pw.document.close(); pw.focus(); setTimeout(() => pw.print(), 400); }
+      }
+    } catch (error) {
+      console.error('Error printing KOT:', error);
+    } finally {
+      setTimeout(() => setPrintingTables(prev => ({ ...prev, [tableId]: false })), 1000);
+    }
+  };
+
+  const openManualPrintWindow = (order, table) => {
+    const win = window.open('', '_blank', 'width=800,height=600');
+    if (!win) { alert('Please allow popups to print'); return; }
+    const items = order.items || [];
+    const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+    const taxBreakdown = order.taxBreakdown || [];
+    const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
+    const total = order.finalAmount || (subtotal + taxTotal);
+    const currencySymbol = getCurrencySymbol();
+    const restaurantName = selectedRestaurant?.name || 'Restaurant';
+
+    const itemsHtml = items.map(item => `<tr><td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td><td style="text-align:center;">${item.quantity || 1}</td><td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td></tr>`).join('');
+    const taxHtml = taxBreakdown.map(tax => `<tr><td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td><td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td></tr>`).join('');
+
+    const _tpIdLines = [];
+    if (selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName) _tpIdLines.push(selectedRestaurant.legalBusinessName.replace(/</g, '&lt;'));
+    if (selectedRestaurant?.address) _tpIdLines.push(selectedRestaurant.address.replace(/</g, '&lt;'));
+    if (selectedRestaurant?.phone) _tpIdLines.push('Tel: ' + selectedRestaurant.phone);
+    if (selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin) _tpIdLines.push('GSTIN: ' + selectedRestaurant.gstin);
+    const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
+    const _tpHeaderHtml = getBillHeaderHTML(restaurantName.replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
+
+    const billContent = `<!DOCTYPE html><html><head><title>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>Bill#:</span><span><strong>${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</strong></span></div><div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div>${order.tableNumber || table?.name ? `<div><span>Table:</span><span>${order.tableNumber || table?.name}</span></div>` : ''}${order.customerInfo?.name ? `<div><span>Customer:</span><span>${(order.customerInfo.name || '').replace(/</g, '&lt;')}</span></div>` : ''}<div><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div></div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}<div class="total-row"><span>TOTAL:</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer"><p>Thank you for dining with us!</p><p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p></div></body></html>`;
+
+    win.document.write(billContent);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 500);
   };
 
   const handleTableAction = (action, table) => {
@@ -1447,19 +1612,60 @@ const TableManagement = () => {
                                 </button>
                               )}
                               {isOccupied && (
-                                <div style={{ display: 'flex', gap: '6px' }}>
+                                <div style={{ display: 'flex', gap: '6px', position: 'relative' }}>
+                                  {/* Print button with dropdown */}
+                                  <div style={{ position: 'relative' }}>
+                                    <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
+                                      width: '32px', height: '32px', background: printingTables[table.id] ? '#dbeafe' : 'white', border: '1px solid #e5e7eb', color: printingTables[table.id] ? '#3b82f6' : '#374151',
+                                      borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                    }}>
+                                      {printingTables[table.id] ? <FaSpinner size={10} className="spin" /> : <FaPrint size={10} />}
+                                    </button>
+                                    {printDropdownTable === table.id && (
+                                      <div onClick={(e) => e.stopPropagation()} style={{
+                                        position: 'absolute', bottom: '100%', left: 0, marginBottom: '4px',
+                                        background: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                        border: '1px solid #e5e7eb', zIndex: 50, minWidth: '120px', overflow: 'hidden',
+                                      }}>
+                                        <button onClick={() => { handlePrintBill(table); setPrintDropdownTable(null); }} style={{
+                                          width: '100%', padding: '8px 12px', border: 'none', background: 'white', cursor: 'pointer',
+                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px',
+                                          borderBottom: '1px solid #f3f4f6',
+                                        }}>
+                                          <FaReceipt size={10} /> Print Bill
+                                        </button>
+                                        <button onClick={() => { handlePrintKOT(table); setPrintDropdownTable(null); }} style={{
+                                          width: '100%', padding: '8px 12px', border: 'none', background: 'white', cursor: 'pointer',
+                                          fontSize: '11px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px',
+                                        }}>
+                                          <FaPrint size={10} /> Print KOT
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Add items button */}
                                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('view-order', table); }} style={{
                                     flex: 1, padding: '8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
                                     borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                                   }}>
-                                    <FaEye size={10} /> {t('tables.view')}
+                                    <FaPlus size={9} /> Add
                                   </button>
-                                  <button className="tbl-action" onClick={(e) => { e.stopPropagation(); handleTableAction('make-available', table); }} style={{
-                                    width: '32px', height: '32px', background: '#fef2f2', border: 'none', color: '#ef4444',
-                                    borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                  {/* Complete Bill button */}
+                                  <button className="tbl-action" onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (table.currentOrderId) {
+                                      setBillingModalTable(table);
+                                      setBillingModalOpen(true);
+                                    } else {
+                                      handleTableAction('make-available', table);
+                                    }
+                                  }} style={{
+                                    padding: '6px 10px', background: '#dc2626', border: 'none', color: 'white',
+                                    borderRadius: '6px', fontSize: '10px', fontWeight: 600, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0,
                                   }}>
-                                    <FaCheck size={10} />
+                                    <FaReceipt size={9} /> Bill
                                   </button>
                                 </div>
                               )}
@@ -2259,6 +2465,22 @@ const TableManagement = () => {
           restaurant={selectedRestaurant}
         />
       )}
+
+      {/* Shared Billing Modal */}
+      <TableBillingModal
+        open={billingModalOpen}
+        table={billingModalTable}
+        onClose={() => { setBillingModalOpen(false); setBillingModalTable(null); }}
+        selectedRestaurant={selectedRestaurant}
+        restaurantName={selectedRestaurant?.name || ''}
+        taxSettings={taxSettings}
+        menuItems={menuItems}
+        printSettings={printSettings}
+        billingSettings={selectedRestaurant?.billingSettings || {}}
+        countryCode={selectedRestaurant?.countryCode || 'IN'}
+        businessType={selectedRestaurant?.businessType || 'restaurant'}
+        onRefreshTables={() => loadFloorsAndTables(selectedRestaurant?.id, true)}
+      />
 
       <NotificationContainer />
     </div>
