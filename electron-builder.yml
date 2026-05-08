@@ -11,8 +11,8 @@ extraMetadata:
 
 publish:
   provider: github
-  owner: vivek7189
-  repo: dine-fe2
+  owner: kevinjane71
+  repo: dine-frontend
 
 win:
   icon: electron/icons/icon.ico
