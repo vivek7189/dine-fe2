@@ -76,6 +76,7 @@ import {
   FaLock,
   FaMobileAlt,
   FaDatabase,
+  FaNetworkWired,
   FaCloudUploadAlt,
   FaImage,
   FaTicketAlt,
@@ -86,6 +87,7 @@ import {
 import dynamic from 'next/dynamic';
 import GoogleReviews from '../../../components/GoogleReviews';
 import OfflineDataTab from '../../../components/OfflineDataTab';
+import TerminalsTab from '../../../components/lan/TerminalsTab';
 import WhatsAppTab from '../../../components/WhatsAppTab';
 import { useNotification } from '../../../components/Notification';
 
@@ -164,11 +166,11 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
   const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
   // --- Tax state ---
   const [taxSettings, setTaxSettings] = useState({
-    enabled: true,
-    taxes: [{ id: 'gst', name: 'GST', rate: 5, enabled: true, type: 'percentage' }],
-    defaultTaxRate: 5,
+    enabled: false,
+    taxes: [],
+    defaultTaxRate: 0,
     taxGroups: [],
-    taxComplianceAccepted: true,
+    taxComplianceAccepted: false,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2299,6 +2301,10 @@ const CurrencyManagement = ({ restaurants, selectedRestaurant, setSelectedRestau
     try {
       const response = await apiClient.updateCurrencySettings(selectedRestaurant.id, currencySettings);
       if (response.success) {
+        // Broadcast currency change to all pages via CurrencyContext
+        window.dispatchEvent(new CustomEvent('currencyChanged', {
+          detail: { settings: currencySettings }
+        }));
         const msg = response.taxSettingsUpdated
           ? 'Currency settings saved! Tax labels were automatically updated.'
           : 'Currency settings saved successfully!';
@@ -4652,6 +4658,7 @@ const Admin = () => {
       { id: 'print', label: 'Print Settings', icon: FaPrint },
       { id: 'features', label: 'Features', icon: FaToggleOn },
       { id: 'offline-data', label: 'Offline Data', icon: FaDatabase },
+      ...(typeof window !== 'undefined' && window.electronAPI ? [{ id: 'terminals', label: 'Terminals & LAN', icon: FaNetworkWired }] : []),
       { id: 'app-download', label: 'App Download', icon: FaDownload },
     ]},
     { label: 'MANAGE', items: [
@@ -10986,6 +10993,10 @@ const Admin = () => {
 
       {activeTab === 'offline-data' && (
         <OfflineDataTab />
+      )}
+
+      {activeTab === 'terminals' && (
+        <TerminalsTab restaurantId={selectedRestaurant?.id} />
       )}
 
       {activeTab === 'app-download' && (

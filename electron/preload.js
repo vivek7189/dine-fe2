@@ -19,21 +19,57 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getVersion: () =>
     ipcRenderer.invoke('electron:getVersion'),
 
-  // Offline SQLite proxy — ALL API calls route through this
+  // Offline local-first proxy — ALL API calls route through this
   apiRequest: (request) =>
     ipcRenderer.invoke('electron:apiRequest', request),
 
-  // Sync control — for admin dashboard
+  // Sync control
   offlineSync: {
     getSyncStatus: () => ipcRenderer.invoke('electron:getSyncStatus'),
-    getPendingMutations: () => ipcRenderer.invoke('electron:getPendingMutations'),
     getSyncHistory: (limit) => ipcRenderer.invoke('electron:getSyncHistory', limit),
     triggerSync: () => ipcRenderer.invoke('electron:triggerSync'),
     pauseSync: () => ipcRenderer.invoke('electron:pauseSync'),
     resumeSync: () => ipcRenderer.invoke('electron:resumeSync'),
-    retryMutation: (id) => ipcRenderer.invoke('electron:retryMutation', id),
-    deleteMutation: (id) => ipcRenderer.invoke('electron:deleteMutation', id),
-    clearCache: () => ipcRenderer.invoke('electron:clearCache'),
-    getCacheStats: () => ipcRenderer.invoke('electron:getCacheStats'),
+    forcePull: (restaurantId) => ipcRenderer.invoke('electron:forcePull', restaurantId),
   },
+
+  // LAN hub control + terminal identity + pairing
+  lanHub: {
+    // Hub control
+    startHub: (port) => ipcRenderer.invoke('electron:startHub', port),
+    stopHub: () => ipcRenderer.invoke('electron:stopHub'),
+    getHubInfo: () => ipcRenderer.invoke('electron:getHubInfo'),
+    getConnectedTerminals: () => ipcRenderer.invoke('electron:getConnectedTerminals'),
+    discoverHub: () => ipcRenderer.invoke('electron:discoverHub'),
+    getDiscoveredHub: () => ipcRenderer.invoke('electron:getDiscoveredHub'),
+
+    // Terminal identity
+    getTerminalId: () => ipcRenderer.invoke('electron:getTerminalId'),
+    getTerminalConfig: () => ipcRenderer.invoke('electron:getTerminalConfig'),
+    isPaired: () => ipcRenderer.invoke('electron:isPaired'),
+    isHub: () => ipcRenderer.invoke('electron:isHub'),
+
+    // Pairing
+    pairWithHub: (data) => ipcRenderer.invoke('electron:pairWithHub', data),
+    unpair: () => ipcRenderer.invoke('electron:unpair'),
+    getPairingCode: () => ipcRenderer.invoke('electron:getPairingCode'),
+    regeneratePairingCode: () => ipcRenderer.invoke('electron:regeneratePairingCode'),
+    getHubQrData: () => ipcRenderer.invoke('electron:getHubQrData'),
+
+    // Local staff auth
+    localStaffLogin: (data) => ipcRenderer.invoke('electron:localStaffLogin', data),
+  },
+
+  // Hub real-time events (forwarded from hub WebSocket)
+  onHubEvent: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('hub-event', handler);
+    return () => ipcRenderer.removeListener('hub-event', handler);
+  },
+
+  // Image helpers
+  getImageUrl: (urlOrLocal) => ipcRenderer.invoke('electron:getImageUrl', urlOrLocal),
+
+  // Data management
+  clearLocalData: () => ipcRenderer.invoke('electron:clearLocalData'),
 });

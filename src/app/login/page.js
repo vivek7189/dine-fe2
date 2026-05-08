@@ -263,10 +263,67 @@ const Login = () => {
   const [pinIdentifier, setPinIdentifier] = useState('');
   const [pinCode, setPinCode] = useState('');
 
+  // LAN pairing state (Electron only)
+  const [showPairingOverlay, setShowPairingOverlay] = useState(false);
+  const [discoveredHub, setDiscoveredHub] = useState(null);
+  const [pairingCodeInput, setPairingCodeInput] = useState('');
+  const [pairingError, setPairingError] = useState('');
+  const [pairingLoading, setPairingLoading] = useState(false);
+
   // Country selection state
   const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Default to India
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [countrySearchTerm, setCountrySearchTerm] = useState('');
+
+  // Electron: auto-discover LAN hub on mount
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronAPI?.lanHub) return;
+    const api = window.electronAPI.lanHub;
+    (async () => {
+      try {
+        // Check if already paired — if so, switch to staff login directly
+        const paired = await api.isPaired();
+        if (paired) {
+          setLoginType('staff');
+          setStep('staff-login');
+          return;
+        }
+        // Try discovering a hub on LAN
+        const result = await api.discoverHub();
+        if (result?.found && result.hub) {
+          setDiscoveredHub(result.hub);
+          setShowPairingOverlay(true);
+        }
+      } catch {
+        // ignore discovery errors
+      }
+    })();
+  }, []);
+
+  const handlePairWithHub = async () => {
+    if (!discoveredHub || !pairingCodeInput) return;
+    setPairingLoading(true);
+    setPairingError('');
+    try {
+      const result = await window.electronAPI.lanHub.pairWithHub({
+        host: discoveredHub.host,
+        port: discoveredHub.port,
+        pairingCode: pairingCodeInput,
+        terminalName: 'Terminal',
+      });
+      if (result.success) {
+        setShowPairingOverlay(false);
+        setLoginType('staff');
+        setStep('staff-login');
+      } else {
+        setPairingError(result.error || 'Pairing failed');
+      }
+    } catch (e) {
+      setPairingError('Connection failed: ' + e.message);
+    } finally {
+      setPairingLoading(false);
+    }
+  };
 
   // Auto-detect country on mount for correct dial code pre-selection
   useEffect(() => {
@@ -1353,8 +1410,39 @@ const Login = () => {
     }
 
     setLoading(true);
-    
+
     try {
+      // On Electron with LAN pairing, try local staff login first (works offline)
+      if (typeof window !== 'undefined' && window.electronAPI?.lanHub?.localStaffLogin) {
+        try {
+          const localResult = await window.electronAPI.lanHub.localStaffLogin({
+            loginId: staffCredentials.loginId,
+            password: staffCredentials.password,
+          });
+          if (localResult.success) {
+            apiClient.setToken(localResult.token);
+            const userData = {
+              ...localResult.user,
+              restaurant: localResult.restaurant,
+            };
+            apiClient.setUser(userData);
+            if (!localStorage.getItem('selectedCountryCode')) {
+              const { countryCode } = detectCountry();
+              if (countryCode) localStorage.setItem('selectedCountryCode', countryCode);
+            }
+            if (localResult.user?.restaurantId || localResult.restaurant?.id) {
+              const rid = localResult.user?.restaurantId || localResult.restaurant?.id;
+              localStorage.setItem('selectedRestaurantId', rid);
+            }
+            triggerDashboardPrefetch();
+            router.replace(getRefRedirectPath());
+            return;
+          }
+        } catch {
+          // Local auth failed or not available, fall through to cloud
+        }
+      }
+
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
       const response = await fetch(`${backendUrl}/api/auth/staff/login`, {
         method: 'POST',
@@ -1368,7 +1456,7 @@ const Login = () => {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         // Store auth token in both cookie (for cross-subdomain) and localStorage
         apiClient.setToken(data.token);
@@ -1441,8 +1529,78 @@ const Login = () => {
       flexDirection: "column", // Changed to column to accommodate header
       alignItems: "center",
       // justifyContent: "center", // Removed to allow custom spacing
-      padding: "0" // Reset padding to handle header
+      padding: "0", // Reset padding to handle header
+      position: "relative"
     }}
+    >
+      {/* LAN Hub Pairing Overlay (Electron only) */}
+      {showPairingOverlay && discoveredHub && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '20px', padding: '32px',
+            maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700, color: '#1e293b' }}>
+              Hub Found on Network
+            </h2>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#64748b' }}>
+              {discoveredHub.txt?.restaurantId ? `Restaurant hub at ` : 'LAN hub at '}
+              {discoveredHub.host}:{discoveredHub.port}
+            </p>
+
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+              Enter 6-digit pairing code
+            </label>
+            <input
+              type="text"
+              maxLength={6}
+              value={pairingCodeInput}
+              onChange={(e) => setPairingCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              style={{
+                width: '100%', padding: '14px', fontSize: '24px', fontWeight: 700,
+                textAlign: 'center', letterSpacing: '8px', fontFamily: 'monospace',
+                borderRadius: '12px', border: '2px solid #e5e7eb', outline: 'none',
+                marginBottom: '8px', boxSizing: 'border-box',
+              }}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter' && pairingCodeInput.length === 6) handlePairWithHub(); }}
+            />
+
+            {pairingError && (
+              <div style={{ color: '#dc2626', fontSize: '12px', marginBottom: '8px' }}>{pairingError}</div>
+            )}
+
+            <button
+              onClick={handlePairWithHub}
+              disabled={pairingLoading || pairingCodeInput.length !== 6}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
+                background: pairingCodeInput.length === 6 ? '#6366f1' : '#d1d5db',
+                color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                marginBottom: '12px',
+              }}
+            >
+              {pairingLoading ? 'Connecting...' : 'Join Hub'}
+            </button>
+
+            <button
+              onClick={() => setShowPairingOverlay(false)}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '10px',
+                border: '1px solid #d1d5db', background: '#fff',
+                color: '#6b7280', fontSize: '13px', cursor: 'pointer',
+              }}
+            >
+              Skip &mdash; Use Cloud Login
+            </button>
+          </div>
+        </div>
+      )}
     >
       {/* Small Header for Home Navigation */}
       <div style={{

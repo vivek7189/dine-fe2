@@ -66,6 +66,7 @@ import { getCachedDashboardData, setCachedDashboardData, getCachedTablesData, se
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
+import { useHubEvents } from '../../../hooks/useHubEvents';
 
 function RestaurantPOSContent() {
   const searchParams = useSearchParams();
@@ -1891,6 +1892,41 @@ function RestaurantPOSContent() {
   const prefetchTablesRef = useRef(prefetchTables);
   useEffect(() => { prefetchTablesRef.current = prefetchTables; }, [prefetchTables]);
 
+  // Stable ref for menu refresh on real-time events
+  const refreshMenuRef = useRef(null);
+  refreshMenuRef.current = async (restaurantId) => {
+    try {
+      apiClient.invalidateCache(`/api/menus/${restaurantId}`);
+      const menuResponse = await apiClient.getMenu(restaurantId);
+      const freshMenuItems = menuResponse.menuItems || [];
+      if (freshMenuItems.length > 0) {
+        setMenuItems(freshMenuItems);
+        setIsDemoMode(false);
+        // Update caches
+        const cachedData = getCachedDashboardData(restaurantId);
+        if (cachedData) {
+          setCachedDashboardData(restaurantId, { ...cachedData, menuItems: freshMenuItems });
+        }
+        saveEssentialData(`menu_${restaurantId}`, freshMenuItems);
+      }
+    } catch (e) {
+      console.error('[Dashboard] Menu refresh failed:', e.message);
+    }
+  };
+
+  // LAN Hub events for menu changes (Electron only)
+  useHubEvents({
+    'menu-updated': () => {
+      if (selectedRestaurant?.id) refreshMenuRef.current?.(selectedRestaurant.id);
+    },
+    'menu-item-created': () => {
+      if (selectedRestaurant?.id) refreshMenuRef.current?.(selectedRestaurant.id);
+    },
+    'menu-item-deleted': () => {
+      if (selectedRestaurant?.id) refreshMenuRef.current?.(selectedRestaurant.id);
+    },
+  });
+
   // Pusher subscription for real-time table status updates
   useEffect(() => {
     if (!selectedRestaurant?.id) return;
@@ -1970,10 +2006,21 @@ function RestaurantPOSContent() {
       } catch (e) { /* ignore parse errors */ }
     });
 
+    // Menu events: refresh menu data when another user/terminal edits menu
+    let menuDebounce = null;
+    const debouncedMenuRefresh = () => {
+      if (menuDebounce) clearTimeout(menuDebounce);
+      menuDebounce = setTimeout(() => refreshMenuRef.current?.(restaurantId), 1500);
+    };
+    channel.bind('menu-updated', debouncedMenuRefresh);
+    channel.bind('menu-item-created', debouncedMenuRefresh);
+    channel.bind('menu-item-deleted', debouncedMenuRefresh);
+
     // Cleanup on unmount
     return () => {
       if (tableDebounce) clearTimeout(tableDebounce);
       if (orderDebounce) clearTimeout(orderDebounce);
+      if (menuDebounce) clearTimeout(menuDebounce);
       console.log(`📡 Dashboard: Unsubscribing from channel '${channelName}'`);
       channel.unbind_all();
       pusher.unsubscribe(channelName);

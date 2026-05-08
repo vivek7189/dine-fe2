@@ -66,9 +66,21 @@ export function CurrencyProvider({ children }) {
       }
     };
 
+    // Listen for currency settings changes (from admin page)
+    const handleCurrencyChange = (event) => {
+      const newSettings = event.detail?.settings;
+      if (newSettings) {
+        setCurrencySettings(newSettings);
+      }
+    };
+
     if (typeof window !== 'undefined') {
       window.addEventListener('restaurantChanged', handleRestaurantChange);
-      return () => window.removeEventListener('restaurantChanged', handleRestaurantChange);
+      window.addEventListener('currencyChanged', handleCurrencyChange);
+      return () => {
+        window.removeEventListener('restaurantChanged', handleRestaurantChange);
+        window.removeEventListener('currencyChanged', handleCurrencyChange);
+      };
     }
   }, [loadCurrencySettings]);
 

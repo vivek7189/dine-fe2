@@ -897,9 +897,10 @@ const OrderSummary = ({
     }
 
     const subtotal = getTotalAmount();
-    // Apply discounts before tax (offers + manual + loyalty)
+    // Apply discounts before tax (offers + manual + loyalty + coupon)
     const loyaltyDiscAmt = getLoyaltyDiscountAmount();
-    const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt;
+    const couponDiscAmt = getCouponDiscountAmount();
+    const discTotal = offerDiscount + getManualDiscountAmount() + loyaltyDiscAmt + couponDiscAmt;
     const discountedAmt = Math.max(0, subtotal - discTotal);
 
     // Service charge (after discounts, before tax)
@@ -963,7 +964,9 @@ const OrderSummary = ({
             totalTaxAmount += taxAmount;
           }
         });
-      } else if (taxSettings.defaultTaxRate) {
+      } else if (taxSettings.defaultTaxRate && !Array.isArray(taxSettings.taxes)) {
+        // Legacy fallback: only apply defaultTaxRate when taxes array doesn't exist (old data)
+        // If taxes: [] exists (user cleared all taxes), respect that — no tax
         const taxAmount = taxableAmount * (taxSettings.defaultTaxRate / 100);
         calculatedTaxes.push({
           name: 'GST',
@@ -5509,6 +5512,12 @@ const OrderSummary = ({
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span style={{ color: '#b45309' }}>Loyalty ({redeemLoyaltyPoints} pts)</span>
                     <span style={{ fontWeight: 600, color: '#b45309' }}>-{formatCurrency(getLoyaltyDiscountAmount())}</span>
+                  </div>
+                )}
+                {getCouponDiscountAmount() > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ color: '#7c3aed' }}>Coupon{appliedCoupon?.code ? ` (${appliedCoupon.code})` : ''}</span>
+                    <span style={{ fontWeight: 600, color: '#7c3aed' }}>-{formatCurrency(getCouponDiscountAmount())}</span>
                   </div>
                 )}
                 {taxBreakdown.map((tax, idx) => (
