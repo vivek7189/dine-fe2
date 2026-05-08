@@ -132,7 +132,8 @@ function storeAuthToken(token) {
 // ─── Sync Logging ───────────────────────────────────────────────────────────
 
 function logSyncAction(action, endpoint, details) {
-  const db = getLocalDb();
+  let db;
+  try { db = getLocalDb(); } catch { return; }
   if (!db) return;
 
   try {
