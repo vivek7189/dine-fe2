@@ -185,10 +185,11 @@ async function printViaTauri({ html, type, printSettings }) {
   }
 }
 
-/** Electron: send to system printer via IPC */
+/** Electron: send to system printer via IPC — routes to KOT/bill printer based on type */
 async function printViaElectron({ html, type, printSettings }) {
   try {
     await window.electronAPI.print(html, {
+      type,
       copies: type === 'kot' ? (printSettings.kotCopies || 1) : 1,
     });
   } catch (err) {

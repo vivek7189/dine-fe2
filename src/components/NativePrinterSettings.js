@@ -12,13 +12,18 @@ import { FaBluetooth, FaPrint, FaSync, FaCheckCircle, FaTimesCircle, FaUsb, FaWi
 export default function NativePrinterSettings({ restaurantId }) {
   const [printers, setPrinters] = useState([]);
   const [selectedPrinter, setSelectedPrinter] = useState(null);
+  const [kotPrinter, setKotPrinter] = useState(null);
+  const [billPrinter, setBillPrinter] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [testPrintStatus, setTestPrintStatus] = useState(null);
+  const [testKotStatus, setTestKotStatus] = useState(null);
+  const [testBillStatus, setTestBillStatus] = useState(null);
   const [webPlatform, setWebPlatform] = useState(true);
   const [diagReport, setDiagReport] = useState(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
+  const isElectronPlatform = !isWeb() && isElectron();
 
   const scanPrinters = useCallback(async () => {
     setIsScanning(true);
@@ -65,27 +70,68 @@ export default function NativePrinterSettings({ restaurantId }) {
     }
   }, []);
 
+  // Assign a printer to a specific role (Electron multi-printer)
+  const assignPrinter = useCallback(async (role, printer) => {
+    if (!isElectronPlatform) return;
+    const config = {};
+    if (role === 'kot') {
+      config.kotPrinter = printer ? printer.name : null;
+      setKotPrinter(printer);
+    } else if (role === 'bill') {
+      config.billPrinter = printer ? printer.name : null;
+      setBillPrinter(printer);
+    }
+    try {
+      await window.electronAPI.setPrinterConfig(config);
+    } catch (err) {
+      console.error('Failed to save printer config:', err);
+    }
+  }, [isElectronPlatform]);
+
+  const makeTestHtml = (label) => `
+    <!DOCTYPE html><html><head>
+    <style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',monospace;padding:16px;text-align:center;}</style>
+    </head><body>
+      <h2>DineOpen POS</h2>
+      <p>--- ${label} TEST ---</p>
+      <p>Printer is working correctly!</p>
+      <p>${new Date().toLocaleString()}</p>
+      <p>================================</p>
+    </body></html>
+  `;
+
   const testPrint = useCallback(async () => {
     setTestPrintStatus('printing');
     try {
-      const testHtml = `
-        <!DOCTYPE html><html><head>
-        <style>@page{size:80mm auto;margin:0;}body{font-family:'Courier New',monospace;padding:16px;text-align:center;}</style>
-        </head><body>
-          <h2>DineOpen POS</h2>
-          <p>--- TEST PRINT ---</p>
-          <p>Printer is working correctly!</p>
-          <p>${new Date().toLocaleString()}</p>
-          <p>================================</p>
-        </body></html>
-      `;
-      await printDocument({ html: testHtml, type: 'bill' });
+      await printDocument({ html: makeTestHtml('PRINT'), type: 'bill' });
       setTestPrintStatus('success');
     } catch (err) {
       console.error('Test print failed:', err);
       setTestPrintStatus('error');
     }
     setTimeout(() => setTestPrintStatus(null), 3000);
+  }, []);
+
+  const testKotPrint = useCallback(async () => {
+    setTestKotStatus('printing');
+    try {
+      await printDocument({ html: makeTestHtml('KOT PRINTER'), type: 'kot' });
+      setTestKotStatus('success');
+    } catch (err) {
+      setTestKotStatus('error');
+    }
+    setTimeout(() => setTestKotStatus(null), 3000);
+  }, []);
+
+  const testBillPrint = useCallback(async () => {
+    setTestBillStatus('printing');
+    try {
+      await printDocument({ html: makeTestHtml('BILL PRINTER'), type: 'bill' });
+      setTestBillStatus('success');
+    } catch (err) {
+      setTestBillStatus('error');
+    }
+    setTimeout(() => setTestBillStatus(null), 3000);
   }, []);
 
   const runDiagnostics = useCallback(async () => {
@@ -137,10 +183,16 @@ export default function NativePrinterSettings({ restaurantId }) {
             setIsConnected(true);
           }
         } else if (isElectron()) {
-          const name = await window.electronAPI.getDefaultPrinter();
-          if (name) {
-            setSelectedPrinter({ name, address: name, type: 'usb' });
+          const config = await window.electronAPI.getPrinterConfig();
+          if (config?.defaultPrinter) {
+            setSelectedPrinter({ name: config.defaultPrinter, address: config.defaultPrinter, type: 'usb' });
             setIsConnected(true);
+          }
+          if (config?.kotPrinter) {
+            setKotPrinter({ name: config.kotPrinter, address: config.kotPrinter, type: 'usb' });
+          }
+          if (config?.billPrinter) {
+            setBillPrinter({ name: config.billPrinter, address: config.billPrinter, type: 'usb' });
           }
         }
       } catch (err) {
@@ -260,6 +312,96 @@ export default function NativePrinterSettings({ restaurantId }) {
               )}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* KOT / Bill Printer Assignment (Electron only) */}
+      {isElectronPlatform && printers.length > 0 && (
+        <div style={{
+          marginTop: '12px', padding: '12px', backgroundColor: '#eff6ff',
+          borderRadius: '8px', border: '1px solid #bfdbfe',
+        }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#1d4ed8', marginBottom: '10px' }}>
+            Printer Routing — Assign printers by job type
+          </div>
+
+          {/* KOT Printer */}
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px' }}>
+              KOT Printer (Kitchen Orders)
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <select
+                value={kotPrinter?.name || ''}
+                onChange={(e) => {
+                  const p = printers.find(pr => pr.name === e.target.value);
+                  assignPrinter('kot', p || null);
+                }}
+                style={{
+                  flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
+                  border: '1px solid #d1d5db', backgroundColor: 'white',
+                }}
+              >
+                <option value="">Use default printer</option>
+                {printers.map((p, i) => (
+                  <option key={p.address || i} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={testKotPrint}
+                disabled={!kotPrinter || testKotStatus === 'printing'}
+                style={{
+                  padding: '6px 12px', fontSize: '12px', fontWeight: 500,
+                  backgroundColor: kotPrinter ? '#f97316' : '#e5e7eb', color: 'white',
+                  border: 'none', borderRadius: '6px',
+                  cursor: kotPrinter ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {testKotStatus === 'printing' ? '...' : testKotStatus === 'success' ? 'OK' : testKotStatus === 'error' ? 'Fail' : 'Test'}
+              </button>
+            </div>
+          </div>
+
+          {/* Bill Printer */}
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px' }}>
+              Bill Printer (Invoices / Receipts)
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <select
+                value={billPrinter?.name || ''}
+                onChange={(e) => {
+                  const p = printers.find(pr => pr.name === e.target.value);
+                  assignPrinter('bill', p || null);
+                }}
+                style={{
+                  flex: 1, padding: '6px 10px', fontSize: '13px', borderRadius: '6px',
+                  border: '1px solid #d1d5db', backgroundColor: 'white',
+                }}
+              >
+                <option value="">Use default printer</option>
+                {printers.map((p, i) => (
+                  <option key={p.address || i} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={testBillPrint}
+                disabled={!billPrinter || testBillStatus === 'printing'}
+                style={{
+                  padding: '6px 12px', fontSize: '12px', fontWeight: 500,
+                  backgroundColor: billPrinter ? '#2563eb' : '#e5e7eb', color: 'white',
+                  border: 'none', borderRadius: '6px',
+                  cursor: billPrinter ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {testBillStatus === 'printing' ? '...' : testBillStatus === 'success' ? 'OK' : testBillStatus === 'error' ? 'Fail' : 'Test'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px' }}>
+            If not assigned, both KOT and bill jobs go to the default printer above.
+          </div>
         </div>
       )}
 

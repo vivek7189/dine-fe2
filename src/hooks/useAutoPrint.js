@@ -1,16 +1,19 @@
 'use client';
 
-// Auto-print hook for native platforms (Capacitor/Tauri).
-// Listens to Pusher events and auto-prints KOTs/bills when enabled in /admin settings.
-// No-op on web — web uses the dedicated /print-kot page for KOT printing.
+// Auto-print hook for native platforms (Electron/Capacitor/Tauri).
+// Listens to Pusher AND LAN Hub events for real-time auto-printing.
+// Works both online (Pusher + cloud API) and offline (LAN hub + local API).
+//
+// Flow: event arrives → fetch render data (cloud or local) → generate HTML locally → print
 //
 // Deduplication: if an order was already printed locally (via OrderSummary "KOT & Print"
-// or "Bill & Print"), the Pusher-triggered print is skipped to avoid double-printing.
-// Offline resilience: if the API fetch fails (offline), the event is skipped gracefully.
+// or "Bill & Print"), the event-triggered print is skipped to avoid double-printing.
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supportsNativeAutoPrint, printDocument } from '../utils/printBridge';
+import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
+import { isElectron } from '../utils/platform';
 import apiClient from '../lib/api';
 
 const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY || '4e1f74ae05c66bbc4eec';
@@ -21,16 +24,13 @@ const recentlyPrinted = new Set();
 function markPrinted(orderId, type) {
   const key = `${type}:${orderId}`;
   recentlyPrinted.add(key);
-  // Clean up old entries
   if (recentlyPrinted.size > 50) {
     const first = recentlyPrinted.values().next().value;
     recentlyPrinted.delete(first);
   }
-  // Auto-expire after 60 seconds
   setTimeout(() => recentlyPrinted.delete(key), 60000);
 }
 function wasPrinted(orderId, type) {
-  // Check both our set and the window flags set by OrderSummary
   if (recentlyPrinted.has(`${type}:${orderId}`)) return true;
   if (type === 'kot' && typeof window !== 'undefined' && window.__lastLocalPrintedKOT === orderId) {
     return true;
@@ -40,13 +40,38 @@ function wasPrinted(orderId, type) {
   }
   return false;
 }
-// Clear local print flags after 30s (enough time for Pusher events to arrive and be checked)
 if (typeof window !== 'undefined') {
   setInterval(() => {
     window.__lastLocalPrintedBill = null;
     window.__lastLocalPrintedKOT = null;
     window.__lastLocalPrintedTokens = null;
   }, 30000);
+}
+
+// ── HTML generation from render data ──
+// The render API returns structured data (kot/bill objects), not pre-built HTML.
+// We generate HTML locally using the same generators as OrderSummary.
+function kotRenderToHtml(renderData) {
+  if (renderData?.html) return renderData.html; // if server ever returns pre-built HTML
+  const kot = renderData?.kot;
+  if (!kot) return null;
+  const ps = renderData?.printSettings || {};
+  const labels = renderData?.labels || {};
+  // Enrich kot with restaurant name for the generator
+  const kotData = {
+    ...kot,
+    restaurantName: renderData?.restaurant?.name || kot.restaurantName || 'Restaurant',
+  };
+  return generateKOTHTML(kotData, ps, labels);
+}
+
+function billRenderToHtml(renderData) {
+  if (renderData?.html) return renderData.html;
+  const invoice = renderData?.invoice || renderData?.bill;
+  if (!invoice) return null;
+  const ps = renderData?.printSettings || {};
+  const labels = renderData?.labels || {};
+  return generateBillHTML(invoice, ps, labels);
 }
 
 export function useAutoPrint(restaurantId, printSettings) {
@@ -70,17 +95,15 @@ export function useAutoPrint(restaurantId, printSettings) {
       } catch (err) {
         console.error('Auto-print failed:', err);
       }
-      // Small delay between prints to prevent printer buffer overflow
       await new Promise(r => setTimeout(r, 500));
     }
 
     isPrintingRef.current = false;
   }, [printSettings]);
 
-  // Print food court token slips after bill (each token = separate print job with auto-cut)
+  // Print food court token slips after bill
   const printTokensForOrder = useCallback(async (orderId, ps) => {
     if (!ps?.tokenBillingEnabled || !restaurantId || !orderId) return;
-    // Skip if tokens were already printed locally (by OrderSummary "Bill & Print")
     if (typeof window !== 'undefined' && window.__lastLocalPrintedTokens === orderId) {
       window.__lastLocalPrintedTokens = null;
       return;
@@ -90,7 +113,6 @@ export function useAutoPrint(restaurantId, printSettings) {
       const tokens = tokenRes?.tokens || [];
       if (!tokenRes?.success || tokens.length === 0) return;
 
-      // Queue each token as a separate print job — native printers auto-cut between jobs
       for (const token of tokens) {
         const tokenHtml = buildTokenSlipHTML(token, ps || {});
         printQueueRef.current.push({ html: tokenHtml, type: 'bill', orderId: `token-${orderId}` });
@@ -101,11 +123,65 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
   }, [restaurantId, processQueue]);
 
+  // ── Shared handlers used by both Pusher and LAN hub ──
+  const handleKotCreated = useCallback(async (data) => {
+    if (!printSettings?.autoPrintOnKOT) return;
+    const orderId = data.orderId || data.id;
+    if (!orderId || wasPrinted(orderId, 'kot')) return;
+    try {
+      const renderData = await apiClient.getKOTRender(restaurantId, orderId);
+      const html = kotRenderToHtml(renderData);
+      if (html) {
+        printQueueRef.current.push({ html, type: 'kot', orderId });
+        processQueue();
+      }
+    } catch (err) {
+      console.warn('Auto-print KOT skipped:', err.message);
+    }
+  }, [restaurantId, printSettings, processQueue]);
+
+  const handleKotPrintRequest = useCallback(async (data) => {
+    if (!printSettings?.autoPrintOnKOT) return;
+    const orderId = data.orderId || data.id;
+    if (!orderId || wasPrinted(orderId, 'kot')) return;
+    try {
+      const renderData = await apiClient.getKOTRender(
+        restaurantId, orderId,
+        { newOnly: data.isIncremental || false, stationId: data.printStationId || null }
+      );
+      const html = kotRenderToHtml(renderData);
+      if (html) {
+        printQueueRef.current.push({ html, type: 'kot', orderId });
+        processQueue();
+      }
+    } catch (err) {
+      console.warn('Auto-print KOT (update) skipped:', err.message);
+    }
+  }, [restaurantId, printSettings, processQueue]);
+
+  const handleBillingPrint = useCallback(async (data) => {
+    if (!printSettings?.autoPrintOnBilling) return;
+    const orderId = data.orderId || data.id;
+    if (!orderId || wasPrinted(orderId, 'bill')) return;
+    try {
+      const renderData = await apiClient.getBillRender(restaurantId, orderId);
+      const html = billRenderToHtml(renderData);
+      if (html) {
+        printQueueRef.current.push({ html, type: 'bill', orderId });
+        processQueue();
+      }
+      if (data.tokenBillingEnabled || printSettings?.tokenBillingEnabled) {
+        setTimeout(() => printTokensForOrder(orderId, printSettings), 900);
+      }
+    } catch (err) {
+      console.warn('Auto-print bill skipped:', err.message);
+    }
+  }, [restaurantId, printSettings, processQueue, printTokensForOrder]);
+
+  // ──── Pusher events (online) ────
   useEffect(() => {
-    // Only activate on native platforms with valid config
     if (!supportsNativeAutoPrint() || !restaurantId) return;
     if (!printSettings?.autoPrintOnKOT && !printSettings?.autoPrintOnBilling) return;
-    // Respect "Use Pusher for Real-time Print" setting — if disabled, skip Pusher auto-print
     if (!printSettings?.usePusherForKOT) return;
 
     let channel;
@@ -116,62 +192,8 @@ export function useAutoPrint(restaurantId, printSettings) {
 
       channel = pusher.subscribe(`restaurant-${restaurantId}`);
 
-      // Auto-print KOT when new order created
-      channel.bind('order-created', async (data) => {
-        if (!printSettings?.autoPrintOnKOT) return;
-        if (wasPrinted(data.orderId, 'kot')) return; // Already printed locally
-        try {
-          const renderData = await apiClient.getKOTRender(restaurantId, data.orderId);
-          if (renderData?.html) {
-            printQueueRef.current.push({ html: renderData.html, type: 'kot', orderId: data.orderId });
-            processQueue();
-          }
-        } catch (err) {
-          // Offline or API failure — skip gracefully (order will print when manually triggered)
-          console.warn('Auto-print KOT skipped (offline or API error):', err.message);
-        }
-      });
-
-      // Auto-print KOT on order update (incremental: only new items)
-      channel.bind('kot-print-request', async (data) => {
-        if (!printSettings?.autoPrintOnKOT) return;
-        if (wasPrinted(data.orderId, 'kot')) return;
-        try {
-          const renderData = await apiClient.getKOTRender(
-            restaurantId, data.orderId,
-            { newOnly: data.isIncremental || false, stationId: data.printStationId || null }
-          );
-          if (renderData?.html) {
-            printQueueRef.current.push({ html: renderData.html, type: 'kot', orderId: data.orderId });
-            processQueue();
-          }
-        } catch (err) {
-          console.warn('Auto-print KOT (update) skipped (offline or API error):', err.message);
-        }
-      });
-
-      // Auto-print bill when order is billed
-      // Listen to both event names: 'billing-print-request' (from backend) and 'order-billed' (legacy)
-      const handleBillingPrint = async (data) => {
-        if (!printSettings?.autoPrintOnBilling) return;
-        const orderId = data.orderId || data.id;
-        if (wasPrinted(orderId, 'bill')) return; // Already printed locally
-        try {
-          const renderData = await apiClient.getBillRender(restaurantId, orderId);
-          if (renderData?.html) {
-            printQueueRef.current.push({ html: renderData.html, type: 'bill', orderId });
-            processQueue();
-          }
-          // Print food court token slips if enabled (flag comes from Pusher event data or local settings)
-          if (data.tokenBillingEnabled || printSettings?.tokenBillingEnabled) {
-            // Delay slightly so bill prints first
-            setTimeout(() => printTokensForOrder(orderId, printSettings), 900);
-          }
-        } catch (err) {
-          console.warn('Auto-print bill skipped (offline or API error):', err.message);
-        }
-      };
-
+      channel.bind('order-created', handleKotCreated);
+      channel.bind('kot-print-request', handleKotPrintRequest);
       channel.bind('billing-print-request', handleBillingPrint);
     });
 
@@ -185,5 +207,29 @@ export function useAutoPrint(restaurantId, printSettings) {
         pusherRef.current = null;
       }
     };
-  }, [restaurantId, printSettings, processQueue, printTokensForOrder]);
+  }, [restaurantId, printSettings, handleKotCreated, handleKotPrintRequest, handleBillingPrint]);
+
+  // ──── LAN Hub events (offline) ────
+  // When on LAN (Electron paired with hub), events come via IPC instead of Pusher.
+  useEffect(() => {
+    if (!isElectron() || !window.electronAPI?.onHubEvent) return;
+    if (!restaurantId) return;
+    if (!printSettings?.autoPrintOnKOT && !printSettings?.autoPrintOnBilling) return;
+
+    const unsubscribe = window.electronAPI.onHubEvent(async (msg) => {
+      if (msg.type !== 'event') return;
+
+      if (msg.event === 'order-created') {
+        handleKotCreated(msg.data || {});
+      } else if (msg.event === 'kot-print-request') {
+        handleKotPrintRequest(msg.data || {});
+      } else if (msg.event === 'billing-print-request') {
+        handleBillingPrint(msg.data || {});
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [restaurantId, printSettings, handleKotCreated, handleKotPrintRequest, handleBillingPrint]);
 }

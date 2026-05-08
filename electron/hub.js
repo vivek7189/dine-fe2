@@ -297,6 +297,15 @@ function broadcastEntityEvent(entityType, operation, data, entityId) {
   });
 }
 
+// Broadcast an arbitrary event to all LAN terminals (used for print requests)
+function broadcastRawEvent(eventName, data) {
+  broadcast(null, {
+    type: 'event',
+    event: eventName,
+    data: data || {},
+  });
+}
+
 // ─── Apply changes to local SQLite ──────────────────────────────────────────
 
 function applyChange(msg) {
@@ -1110,4 +1119,5 @@ module.exports = {
   generatePairingCode,
   verifyStaffLogin,
   broadcastEntityEvent,
+  broadcastRawEvent,
 };
