@@ -1,9 +1,18 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 
 let mainWindow;
+const OUT_DIR = path.join(__dirname, '..', 'out');
+
+// ──── Custom protocol to serve Next.js static export ────
+// Next.js uses absolute paths like /_next/static/... which don't work with file://
+// Register app:// protocol that serves files from the /out directory
+protocol.registerSchemesAsPrivileged([{
+  scheme: 'app',
+  privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true },
+}]);
 
 // ──── Settings persistence (printer, etc.) ────
 const settingsPath = path.join(app.getPath('userData'), 'dineopen-settings.json');
@@ -36,15 +45,16 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: false, // Allow app:// protocol to call external APIs (CORS)
     },
   });
 
-  // Load the static export
-  const indexPath = path.join(__dirname, '..', 'out', 'index.html');
+  // Load the static export via custom protocol
+  const indexPath = path.join(OUT_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
-    mainWindow.loadFile(indexPath);
+    mainWindow.loadURL('app://pos/login');
   } else {
-    // Dev mode: load from Next.js dev server (go straight to login)
+    // Dev mode: load from Next.js dev server
     mainWindow.loadURL('http://localhost:3002/login');
   }
 
@@ -54,13 +64,117 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Register app:// protocol to serve Next.js static export from /out
+  protocol.handle('app', (request) => {
+    const url = new URL(request.url);
+    let filePath = decodeURIComponent(url.pathname);
+
+    // Try exact file first, then index.html for directory routes
+    let fullPath = path.join(OUT_DIR, filePath);
+
+    // If it's a route (no extension), look for directory/index.html
+    if (!path.extname(fullPath)) {
+      const indexHtml = path.join(fullPath, 'index.html');
+      if (fs.existsSync(indexHtml)) {
+        fullPath = indexHtml;
+      } else {
+        // Try .html extension
+        const htmlFile = fullPath + '.html';
+        if (fs.existsSync(htmlFile)) {
+          fullPath = htmlFile;
+        }
+      }
+    }
+
+    // Fallback: serve the file if it exists, otherwise 404
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+      return new Response(fs.readFileSync(fullPath), {
+        headers: { 'Content-Type': getMimeType(fullPath) },
+      });
+    }
+
+    // For SPA-style navigation, fall back to login/index.html
+    const loginIndex = path.join(OUT_DIR, 'login', 'index.html');
+    if (fs.existsSync(loginIndex)) {
+      return new Response(fs.readFileSync(loginIndex), {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+
+    return new Response('Not Found', { status: 404 });
+  });
+
   createWindow();
   try {
     initOfflineEngine(app);
   } catch (err) {
     console.error('[Offline] Failed to initialize offline engine:', err.message);
+    // Register fallback API proxy so the app works even without offline engine
+    registerFallbackApiProxy();
   }
 });
+
+// Fallback: direct cloud proxy when offline engine can't initialize
+function registerFallbackApiProxy() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
+
+  // Only register if not already registered by offline engine
+  try {
+    ipcMain.handle('electron:apiRequest', async (_event, request) => {
+      const { method = 'GET', endpoint, body, headers = {} } = request;
+      const url = `${API_URL}${endpoint}`;
+      const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json', ...headers },
+      };
+      // body is already JSON-stringified by the renderer's apiClient
+      if (body && method !== 'GET') {
+        opts.body = typeof body === 'string' ? body : JSON.stringify(body);
+      }
+      try {
+        const res = await fetch(url, opts);
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { error: text || 'Non-JSON response' }; }
+        if (!res.ok) {
+          return { error: typeof data === 'string' ? data : JSON.stringify(data), status_code: res.status };
+        }
+        // Wrap in { data } to match offline engine response format expected by _electronRequest
+        return { data };
+      } catch (err) {
+        return { error: err.message, success: false, status_code: 0 };
+      }
+    });
+  } catch { /* already registered */ }
+
+  // Register stub handlers for other IPC methods that offline engine provides
+  const stubs = [
+    'electron:getSyncStatus', 'electron:getSyncHistory', 'electron:triggerSync',
+    'electron:pauseSync', 'electron:resumeSync', 'electron:forcePull',
+    'electron:startHub', 'electron:stopHub', 'electron:getHubInfo',
+    'electron:getConnectedTerminals', 'electron:discoverHub', 'electron:getDiscoveredHub',
+    'electron:getTerminalId', 'electron:getTerminalConfig', 'electron:isPaired',
+    'electron:isHub', 'electron:pairWithHub', 'electron:unpair',
+    'electron:getPairingCode', 'electron:regeneratePairingCode', 'electron:getHubQrData',
+    'electron:localStaffLogin', 'electron:getImageUrl', 'electron:clearLocalData',
+  ];
+  for (const channel of stubs) {
+    try { ipcMain.handle(channel, async () => null); } catch { /* already registered */ }
+  }
+}
+
+function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const types = {
+    '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
+    '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon', '.woff': 'font/woff', '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf', '.eot': 'application/vnd.ms-fontobject',
+    '.txt': 'text/plain', '.map': 'application/json', '.webp': 'image/webp',
+  };
+  return types[ext] || 'application/octet-stream';
+}
 
 app.on('window-all-closed', () => {
   shutdownOfflineEngine();

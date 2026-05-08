@@ -659,13 +659,13 @@ function initOfflineEngine(app) {
 }
 
 function shutdownOfflineEngine() {
-  stopSyncDaemon();
-  disconnectFromHub();
-  stopAdvertising();
-  stopDiscovery();
-  cleanupLan();
-  stopHub().catch(() => {});
-  closeLocalDb();
+  try { stopSyncDaemon(); } catch {}
+  try { disconnectFromHub(); } catch {}
+  try { stopAdvertising(); } catch {}
+  try { stopDiscovery(); } catch {}
+  try { cleanupLan(); } catch {}
+  try { stopHub().catch(() => {}); } catch {}
+  try { closeLocalDb(); } catch {}
   console.log('[Offline] Engine shut down');
 }
 
