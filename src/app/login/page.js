@@ -1601,7 +1601,7 @@ const Login = () => {
           </div>
         </div>
       )}
-    >
+
       {/* Small Header for Home Navigation */}
       <div style={{
         width: '100%',
