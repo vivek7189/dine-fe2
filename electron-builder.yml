@@ -15,10 +15,12 @@ publish:
   repo: dine-fe2
 
 win:
+  icon: electron/icons/icon.ico
   target:
     - nsis
     - msi
 mac:
+  icon: electron/icons/icon.icns
   target: dmg
   category: public.app-category.business
   identity: null
