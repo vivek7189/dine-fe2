@@ -73,11 +73,19 @@ app.on('activate', () => {
 
 // ──── IPC: Printing ────
 
-ipcMain.handle('electron:print', async (event, { html, copies }) => {
+ipcMain.handle('electron:print', async (event, { html, copies, type }) => {
   const settings = loadSettings();
-  const deviceName = settings.defaultPrinter || undefined;
+  // Route to the correct printer based on job type
+  let deviceName;
+  if (type === 'kot' && settings.kotPrinter) {
+    deviceName = settings.kotPrinter;
+  } else if (type === 'bill' && settings.billPrinter) {
+    deviceName = settings.billPrinter;
+  } else {
+    deviceName = settings.defaultPrinter || undefined;
+  }
 
-  console.log('[Print] Request received — copies:', copies || 1, 'printer:', deviceName || '(system default)');
+  console.log('[Print] Request received — type:', type || 'unknown', 'copies:', copies || 1, 'printer:', deviceName || '(system default)');
   console.log('[Print] HTML length:', html?.length || 0);
 
   const printWin = new BrowserWindow({
@@ -142,6 +150,24 @@ ipcMain.handle('electron:setDefaultPrinter', async (event, { name }) => {
 ipcMain.handle('electron:getDefaultPrinter', async () => {
   const settings = loadSettings();
   return settings.defaultPrinter || null;
+});
+
+ipcMain.handle('electron:setPrinterConfig', async (event, config) => {
+  const settings = loadSettings();
+  if (config.defaultPrinter !== undefined) settings.defaultPrinter = config.defaultPrinter;
+  if (config.kotPrinter !== undefined) settings.kotPrinter = config.kotPrinter;
+  if (config.billPrinter !== undefined) settings.billPrinter = config.billPrinter;
+  saveSettings(settings);
+  return { success: true };
+});
+
+ipcMain.handle('electron:getPrinterConfig', async () => {
+  const settings = loadSettings();
+  return {
+    defaultPrinter: settings.defaultPrinter || null,
+    kotPrinter: settings.kotPrinter || null,
+    billPrinter: settings.billPrinter || null,
+  };
 });
 
 // ──── IPC: Auto-update ────

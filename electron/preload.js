@@ -10,6 +10,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('electron:setDefaultPrinter', { name }),
   getDefaultPrinter: () =>
     ipcRenderer.invoke('electron:getDefaultPrinter'),
+  setPrinterConfig: (config) =>
+    ipcRenderer.invoke('electron:setPrinterConfig', config),
+  getPrinterConfig: () =>
+    ipcRenderer.invoke('electron:getPrinterConfig'),
 
   // Auto-update
   checkForUpdates: () =>
