@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import apiClient from '@/lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import { getDenominationLabels, buildDenomState, getQuickPresets, computeDenomTotal } from '@/lib/denominationData';
 import {
   LuBanknote,
   LuClock,
@@ -110,7 +111,21 @@ function formatDateTime(dateStr) {
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function RegisterPage() {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, getCurrencySymbol, currencySettings } = useCurrency();
+  const currencySymbol = getCurrencySymbol();
+  const currencyCode = currencySettings?.currencyCode || 'INR';
+  const denominationLabels = useMemo(
+    () => getDenominationLabels(currencyCode, currencySymbol),
+    [currencyCode, currencySymbol]
+  );
+  const emptyDenomState = useMemo(
+    () => buildDenomState(currencyCode),
+    [currencyCode]
+  );
+  const openingPresets = useMemo(
+    () => getQuickPresets(currencyCode),
+    [currencyCode]
+  );
 
   // State
   const [loading, setLoading] = useState(true);
@@ -145,9 +160,17 @@ export default function RegisterPage() {
   const [closing, setClosing] = useState(false);
   const [closeSummary, setCloseSummary] = useState(null);
 
-  // Denomination
+  // Denomination (closing)
   const [showDenom, setShowDenom] = useState(false);
-  const [denoms, setDenoms] = useState({ 2000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins2: 0, coins1: 0 });
+  const [denoms, setDenoms] = useState(() => buildDenomState('INR'));
+
+  // Denomination (opening)
+  const [showOpeningDenom, setShowOpeningDenom] = useState(false);
+  const [openingDenoms, setOpeningDenoms] = useState(() => buildDenomState('INR'));
+
+  // Payment summary (live)
+  const [livePaymentSummary, setLivePaymentSummary] = useState(null);
+  const [loadingPaymentSummary, setLoadingPaymentSummary] = useState(false);
 
   // History
   const [showHistory, setShowHistory] = useState(false);
@@ -202,6 +225,34 @@ export default function RegisterPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Reset denomination state when currency changes (only if register not open)
+  useEffect(() => {
+    if (!register) {
+      setDenoms(buildDenomState(currencyCode));
+      setOpeningDenoms(buildDenomState(currencyCode));
+    }
+  }, [currencyCode, register]);
+
+  // Fetch payment summary when register is open
+  const fetchPaymentSummary = useCallback(async () => {
+    if (!register?.id) return;
+    setLoadingPaymentSummary(true);
+    try {
+      const res = await apiClient.getXReport(register.id);
+      setLivePaymentSummary(res.summary || res || null);
+    } catch (err) {
+      console.error('Failed to fetch payment summary:', err);
+    } finally {
+      setLoadingPaymentSummary(false);
+    }
+  }, [register?.id]);
+
+  useEffect(() => {
+    if (register && register.status === 'open') {
+      fetchPaymentSummary();
+    }
+  }, [register, fetchPaymentSummary]);
 
   // ── Duration timer ──────────────────────────────────────────────────────
 
@@ -277,6 +328,7 @@ export default function RegisterPage() {
       setTxReason('');
       setTxType('in');
       await loadData();
+      fetchPaymentSummary();
     } catch (err) {
       setError(err.message || 'Failed to record cash movement');
     } finally {
@@ -308,7 +360,7 @@ export default function RegisterPage() {
         setCashTips('');
         setCloseNotes('');
         setShowDenom(false);
-        setDenoms({ 2000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins2: 0, coins1: 0 });
+        setDenoms(emptyDenomState);
         await loadData();
       }
     } catch (err) {
@@ -325,7 +377,7 @@ export default function RegisterPage() {
     setCashTips('');
     setCloseNotes('');
     setShowDenom(false);
-    setDenoms({ 2000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins2: 0, coins1: 0 });
+    setDenoms(emptyDenomState);
     setSuccess('Register closed successfully');
     localStorage.setItem('registerOpen', 'false');
     await loadData();
@@ -408,11 +460,7 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
 
   // ── Denomination helpers ────────────────────────────────────────────────
 
-  const denomTotal = Object.entries(denoms).reduce((sum, [key, count]) => {
-    if (key === 'coins2') return sum + count * 2;
-    if (key === 'coins1') return sum + count * 1;
-    return sum + Number(key) * count;
-  }, 0);
+  const denomTotal = computeDenomTotal(denominationLabels, denoms);
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -507,10 +555,10 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
                 <label style={labelStyle}>Opening Cash</label>
                 {/* Quick presets */}
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', justifyContent: 'center' }}>
-                  {[1000, 2000, 5000].map(amt => (
+                  {openingPresets.map(amt => (
                     <button
                       key={amt}
-                      onClick={() => setOpeningCash(String(amt))}
+                      onClick={() => { setOpeningCash(String(amt)); setShowOpeningDenom(false); }}
                       style={{
                         ...btnBase,
                         background: openingCash === String(amt) ? '#3b82f6' : '#f1f5f9',
@@ -520,10 +568,55 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
                         borderRadius: '8px',
                       }}
                     >
-                      {'\u20B9'}{amt.toLocaleString()}
+                      {currencySymbol}{amt.toLocaleString()}
                     </button>
                   ))}
                 </div>
+                {/* Denomination counter toggle for opening */}
+                {denominationLabels.length > 0 && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <button
+                      onClick={() => {
+                        if (showOpeningDenom) {
+                          setShowOpeningDenom(false);
+                          setOpeningDenoms(emptyDenomState);
+                          setOpeningCash('');
+                        } else {
+                          setShowOpeningDenom(true);
+                          setOpeningCash('0');
+                        }
+                      }}
+                      style={{
+                        ...btnBase,
+                        background: showOpeningDenom ? '#eff6ff' : '#f8fafc',
+                        color: showOpeningDenom ? '#2563eb' : '#64748b',
+                        border: `1px solid ${showOpeningDenom ? '#bfdbfe' : '#e2e8f0'}`,
+                        width: '100%',
+                        justifyContent: 'center',
+                        padding: '8px',
+                        fontSize: '12px',
+                      }}
+                    >
+                      <LuBanknote size={14} />
+                      {showOpeningDenom ? 'Hide Denomination Counter' : 'Count by Denomination'}
+                    </button>
+                  </div>
+                )}
+                {showOpeningDenom && (
+                  <DenominationCounter
+                    denominationLabels={denominationLabels}
+                    denoms={openingDenoms}
+                    onDenomChange={(key, count) => {
+                      const parsed = Math.max(0, parseInt(count) || 0);
+                      const newDenoms = { ...openingDenoms, [key]: parsed };
+                      setOpeningDenoms(newDenoms);
+                      const total = computeDenomTotal(denominationLabels, { ...newDenoms, [key]: parsed });
+                      setOpeningCash(String(total));
+                    }}
+                    total={computeDenomTotal(denominationLabels, openingDenoms)}
+                    formatCurrency={formatCurrency}
+                  />
+                )}
                 <div style={{ position: 'relative' }}>
                   <span style={{
                     position: 'absolute',
@@ -534,13 +627,14 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
                     fontWeight: '600',
                     fontSize: '15px',
                   }}>
-                    {'\u20B9'}
+                    {currencySymbol}
                   </span>
                   <input
                     type="number"
                     value={openingCash}
-                    onChange={e => setOpeningCash(e.target.value)}
+                    onChange={e => { if (!showOpeningDenom) setOpeningCash(e.target.value); }}
                     onFocus={e => { if (e.target.value === '0') e.target.select(); }}
+                    readOnly={showOpeningDenom}
                     placeholder="0.00"
                     style={{
                       ...inputStyle,
@@ -716,6 +810,92 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
               bg="#f5f3ff"
             />
           </div>
+
+          {/* Payment Summary */}
+          {(livePaymentSummary || loadingPaymentSummary) && (
+            <div style={{ ...cardStyle, marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
+                  Payment Summary
+                </h3>
+                <button
+                  onClick={fetchPaymentSummary}
+                  disabled={loadingPaymentSummary}
+                  style={{
+                    ...btnBase,
+                    background: '#f8fafc',
+                    color: '#64748b',
+                    border: '1px solid #e2e8f0',
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    opacity: loadingPaymentSummary ? 0.6 : 1,
+                  }}
+                >
+                  {loadingPaymentSummary ? (
+                    <LuLoaderCircle size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <LuReceipt size={13} />
+                  )}
+                  Refresh
+                </button>
+              </div>
+              {loadingPaymentSummary && !livePaymentSummary ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: '14px' }}>
+                  Loading payment data...
+                </div>
+              ) : livePaymentSummary ? (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                  gap: '10px',
+                }}>
+                  <PaymentMethodCard
+                    icon={<LuBanknote size={18} />}
+                    label="Cash Sales"
+                    value={formatCurrency(livePaymentSummary.cashSales || 0)}
+                    color="#16a34a"
+                    bg="#f0fdf4"
+                  />
+                  <PaymentMethodCard
+                    icon={<LuCreditCard size={18} />}
+                    label="Card Sales"
+                    value={formatCurrency(livePaymentSummary.cardSales || 0)}
+                    color="#2563eb"
+                    bg="#eff6ff"
+                  />
+                  <PaymentMethodCard
+                    icon={<LuWallet size={18} />}
+                    label="UPI Sales"
+                    value={formatCurrency(livePaymentSummary.upiSales || 0)}
+                    color="#7c3aed"
+                    bg="#f5f3ff"
+                  />
+                  <PaymentMethodCard
+                    icon={<LuReceipt size={18} />}
+                    label="Aggregator"
+                    value={formatCurrency(livePaymentSummary.aggregatorSales || 0)}
+                    color="#ea580c"
+                    bg="#fff7ed"
+                  />
+                  <PaymentMethodCard
+                    icon={<LuHandCoins size={18} />}
+                    label="Other Sales"
+                    value={formatCurrency(livePaymentSummary.otherSales || 0)}
+                    color="#64748b"
+                    bg="#f8fafc"
+                  />
+                  <PaymentMethodCard
+                    icon={<LuTrendingUp size={18} />}
+                    label="Total Sales"
+                    value={formatCurrency(livePaymentSummary.totalSales || 0)}
+                    color="#0f172a"
+                    bg="#f1f5f9"
+                    bold
+                  />
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {/* Cash Movements Section */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
@@ -934,6 +1114,7 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
                 setTxReason('');
               }}
               formatCurrency={formatCurrency}
+              currencySymbol={currencySymbol}
             />
           )}
 
@@ -964,11 +1145,14 @@ ${s.closingCash !== undefined ? `<div class="row bold"><span>Difference</span><s
                 setCashTips('');
                 setCloseNotes('');
                 setShowDenom(false);
-                setDenoms({ 2000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins2: 0, coins1: 0 });
+                setDenoms(emptyDenomState);
               }}
               formatCurrency={formatCurrency}
               isMobile={isMobile}
               posSettings={posSettings}
+              currencySymbol={currencySymbol}
+              denominationLabels={denominationLabels}
+              emptyDenomState={emptyDenomState}
             />
           )}
 
@@ -1105,7 +1289,7 @@ function StatCard({ icon, label, value, color, bg }) {
 
 function TransactionModal({
   txType, txAmount, setTxAmount, txReason, setTxReason,
-  savingTx, handleTransaction, onCancel, formatCurrency,
+  savingTx, handleTransaction, onCancel, formatCurrency, currencySymbol,
 }) {
   const isIn = txType === 'in';
   const isDrop = txType === 'drop';
@@ -1192,7 +1376,7 @@ function TransactionModal({
               fontWeight: '600',
               fontSize: '15px',
             }}>
-              {'\u20B9'}
+              {currencySymbol}
             </span>
             <input
               type="number"
@@ -1277,51 +1461,23 @@ function CloseRegisterModal({
   closeNotes, setCloseNotes, closeSummary, closing, expectedCash,
   showDenom, setShowDenom, denoms, setDenoms, denomTotal,
   handleCloseRegister, handleCloseModalDone, onCancel, formatCurrency, isMobile, posSettings,
+  currencySymbol, denominationLabels, emptyDenomState,
 }) {
-  const denominationLabels = [
-    { key: '2000', label: '\u20B92,000', value: 2000 },
-    { key: '500', label: '\u20B9500', value: 500 },
-    { key: '200', label: '\u20B9200', value: 200 },
-    { key: '100', label: '\u20B9100', value: 100 },
-    { key: '50', label: '\u20B950', value: 50 },
-    { key: '20', label: '\u20B920', value: 20 },
-    { key: '10', label: '\u20B910', value: 10 },
-    { key: '5', label: '\u20B95', value: 5 },
-    { key: 'coins2', label: '\u20B92 coins', value: 2, isCoin: true },
-    { key: 'coins1', label: '\u20B91 coins', value: 1, isCoin: true },
-  ];
-
   const handleDenomChange = (key, count) => {
     const parsed = Math.max(0, parseInt(count) || 0);
     const newDenoms = { ...denoms, [key]: parsed };
-
-    // For coin keys, consolidate into the 'coins' field as total rupee value
-    if (key === 'coins2' || key === 'coins1') {
-      // Store the individual coin count under its own key for display
-      // But also update 'coins' to be total coin value
-      // We need the coin counts to persist individually for UI
-      setDenoms(newDenoms);
-    } else {
-      setDenoms(newDenoms);
-    }
-
-    // Compute new total and set closingCash
-    const total = denominationLabels.reduce((sum, d) => {
-      const c = d.key === key ? parsed : (newDenoms[d.key] || 0);
-      return sum + c * d.value;
-    }, 0);
+    setDenoms(newDenoms);
+    const total = computeDenomTotal(denominationLabels, { ...newDenoms, [key]: parsed });
     setClosingCash(String(total));
   };
 
-  const computedDenomTotal = denominationLabels.reduce((sum, d) => {
-    return sum + (denoms[d.key] || 0) * d.value;
-  }, 0);
+  const computedDenomTotal = computeDenomTotal(denominationLabels, denoms);
 
   const handleToggleDenom = () => {
     if (showDenom) {
       // Turning off denomination mode - clear denomination values and let user type manually
       setShowDenom(false);
-      setDenoms({ 2000: 0, 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, coins2: 0, coins1: 0 });
+      setDenoms(emptyDenomState);
       setClosingCash('');
     } else {
       setShowDenom(true);
@@ -1680,7 +1836,7 @@ function CloseRegisterModal({
               fontWeight: '600',
               fontSize: '15px',
             }}>
-              {'\u20B9'}
+              {currencySymbol}
             </span>
             <input
               type="number"
@@ -1726,94 +1882,13 @@ function CloseRegisterModal({
 
         {/* Denomination Counter */}
         {showDenom && (
-          <div style={{
-            background: '#f8fafc',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '16px',
-            border: '1px solid #e2e8f0',
-          }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 80px 100px',
-              gap: '6px',
-              alignItems: 'center',
-              fontSize: '13px',
-            }}>
-              <span style={{
-                fontWeight: '600',
-                color: '#64748b',
-                fontSize: '11px',
-                textTransform: 'uppercase',
-              }}>
-                Denomination
-              </span>
-              <span style={{
-                fontWeight: '600',
-                color: '#64748b',
-                fontSize: '11px',
-                textTransform: 'uppercase',
-                textAlign: 'center',
-              }}>
-                Count
-              </span>
-              <span style={{
-                fontWeight: '600',
-                color: '#64748b',
-                fontSize: '11px',
-                textTransform: 'uppercase',
-                textAlign: 'right',
-              }}>
-                Subtotal
-              </span>
-              {denominationLabels.map(d => (
-                <React.Fragment key={d.key}>
-                  <span style={{ color: '#374151', fontWeight: '500' }}>{d.label}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={denoms[d.key] || ''}
-                    onChange={e => handleDenomChange(d.key, e.target.value)}
-                    placeholder="0"
-                    style={{
-                      ...inputStyle,
-                      padding: '6px 8px',
-                      textAlign: 'center',
-                      fontSize: '13px',
-                    }}
-                  />
-                  <span style={{
-                    textAlign: 'right',
-                    fontFamily: 'monospace',
-                    fontWeight: '500',
-                    color: '#475569',
-                  }}>
-                    {formatCurrency((denoms[d.key] || 0) * d.value)}
-                  </span>
-                </React.Fragment>
-              ))}
-            </div>
-            <div style={{
-              borderTop: '2px solid #e2e8f0',
-              marginTop: '10px',
-              paddingTop: '10px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>
-                Total Counted
-              </span>
-              <span style={{
-                fontWeight: '700',
-                color: '#0f172a',
-                fontSize: '16px',
-                fontFamily: 'monospace',
-              }}>
-                {formatCurrency(computedDenomTotal)}
-              </span>
-            </div>
-          </div>
+          <DenominationCounter
+            denominationLabels={denominationLabels}
+            denoms={denoms}
+            onDenomChange={handleDenomChange}
+            total={computedDenomTotal}
+            formatCurrency={formatCurrency}
+          />
         )}
 
         {/* Closing Cash Input */}
@@ -1829,7 +1904,7 @@ function CloseRegisterModal({
               fontWeight: '600',
               fontSize: '15px',
             }}>
-              {'\u20B9'}
+              {currencySymbol}
             </span>
             <input
               type="number"
@@ -2144,6 +2219,93 @@ function SummaryRow({ label, value, bold, color }) {
       }}>
         {value}
       </span>
+    </div>
+  );
+}
+
+function PaymentMethodCard({ icon, label, value, color, bg, bold }) {
+  return (
+    <div style={{
+      background: bg,
+      borderRadius: '10px',
+      padding: '12px 14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+    }}>
+      <div style={{ color, flexShrink: 0 }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+          {label}
+        </div>
+        <div style={{ fontSize: bold ? '16px' : '15px', fontWeight: bold ? '700' : '600', color: '#0f172a', marginTop: '1px', fontFamily: 'monospace' }}>
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DenominationCounter({ denominationLabels, denoms, onDenomChange, total, formatCurrency }) {
+  return (
+    <div style={{
+      background: '#f8fafc',
+      borderRadius: '12px',
+      padding: '16px',
+      marginBottom: '16px',
+      border: '1px solid #e2e8f0',
+    }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 80px 100px',
+        gap: '6px',
+        alignItems: 'center',
+        fontSize: '13px',
+      }}>
+        <span style={{ fontWeight: '600', color: '#64748b', fontSize: '11px', textTransform: 'uppercase' }}>
+          Denomination
+        </span>
+        <span style={{ fontWeight: '600', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', textAlign: 'center' }}>
+          Count
+        </span>
+        <span style={{ fontWeight: '600', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', textAlign: 'right' }}>
+          Subtotal
+        </span>
+        {denominationLabels.map(d => (
+          <React.Fragment key={d.key}>
+            <span style={{ color: '#374151', fontWeight: '500' }}>{d.label}</span>
+            <input
+              type="number"
+              min="0"
+              value={denoms[d.key] || ''}
+              onChange={e => onDenomChange(d.key, e.target.value)}
+              placeholder="0"
+              style={{
+                ...inputStyle,
+                padding: '6px 8px',
+                textAlign: 'center',
+                fontSize: '13px',
+              }}
+            />
+            <span style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: '500', color: '#475569' }}>
+              {formatCurrency((denoms[d.key] || 0) * d.value)}
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+      <div style={{
+        borderTop: '2px solid #e2e8f0',
+        marginTop: '10px',
+        paddingTop: '10px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>Total Counted</span>
+        <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '16px', fontFamily: 'monospace' }}>
+          {formatCurrency(total)}
+        </span>
+      </div>
     </div>
   );
 }
