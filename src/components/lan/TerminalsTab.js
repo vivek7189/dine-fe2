@@ -50,20 +50,8 @@ export default function TerminalsTab({ restaurantId }) {
   const [codeCopied, setCodeCopied] = useState(false);
   const pollRef = useRef(null);
 
-  // Not available in browser
-  if (!isElectron()) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-        <FaNetworkWired size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
-        <h3 style={{ margin: '0 0 8px', fontSize: '17px', color: '#374151' }}>Terminal Management</h3>
-        <p style={{ fontSize: '14px' }}>
-          Terminal and LAN hub management is only available on the desktop POS app.
-        </p>
-      </div>
-    );
-  }
-
-  const api = typeof window !== 'undefined' ? window.electronAPI?.lanHub : null;
+  const electronAvailable = isElectron();
+  const api = (typeof window !== 'undefined' && electronAvailable) ? window.electronAPI?.lanHub : null;
 
   const refresh = useCallback(async () => {
     if (!api) return;
@@ -96,10 +84,24 @@ export default function TerminalsTab({ restaurantId }) {
   }, [api]);
 
   useEffect(() => {
+    if (!electronAvailable) return;
     refresh();
     pollRef.current = setInterval(refresh, 5000);
     return () => clearInterval(pollRef.current);
-  }, [refresh]);
+  }, [refresh, electronAvailable]);
+
+  // Not available in browser
+  if (!electronAvailable) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+        <FaNetworkWired size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
+        <h3 style={{ margin: '0 0 8px', fontSize: '17px', color: '#374151' }}>Terminal Management</h3>
+        <p style={{ fontSize: '14px' }}>
+          Terminal and LAN hub management is only available on the desktop POS app.
+        </p>
+      </div>
+    );
+  }
 
   const handleStartHub = async () => {
     try {
