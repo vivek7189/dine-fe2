@@ -11,13 +11,18 @@ extraMetadata:
 
 publish:
   provider: github
+  owner: vivek7189
+  repo: dine-fe2
 
 win:
-  target: nsis
+  target:
+    - nsis
+    - msi
 mac:
   target: dmg
   category: public.app-category.business
   identity: null
+  artifactName: "${productName}-${version}-${arch}.${ext}"
 dmg:
   contents:
     - x: 130

@@ -659,19 +659,20 @@ const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRe
                       )}
                     </div>
 
-                    {/* Save Tax Button */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                      <button onClick={saveTaxSettings} disabled={saving}
-                        style={{
-                          backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '10px 20px', borderRadius: '8px',
-                          fontWeight: '600', fontSize: '13px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
-                        }}>
-                        {saving ? <><FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><FaSave size={12} /> Save Tax Settings</>}
-                      </button>
-                    </div>
                   </div>
                 )}
+
+                {/* Save Tax Button — always visible so user can save disabled state */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                  <button onClick={saveTaxSettings} disabled={saving}
+                    style={{
+                      backgroundColor: saving ? '#9ca3af' : '#ef4444', color: 'white', padding: '10px 20px', borderRadius: '8px',
+                      fontWeight: '600', fontSize: '13px', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
+                    }}>
+                    {saving ? <><FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><FaSave size={12} /> Save Tax Settings</>}
+                  </button>
+                </div>
 
                 {/* Discount Settings */}
                 <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>

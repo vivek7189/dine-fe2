@@ -25,8 +25,13 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
+            arch: arm64
+          - os: macos-latest
+            platform: mac
+            arch: x64
           - os: windows-latest
             platform: win
+            arch: ''
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -69,4 +74,9 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --config electron-builder.yml --publish always --${{ matrix.platform }}
+        run: |
+          if [ -n "${{ matrix.arch }}" ]; then
+            npx electron-builder --config electron-builder.yml --publish always --${{ matrix.platform }} --${{ matrix.arch }}
+          else
+            npx electron-builder --config electron-builder.yml --publish always --${{ matrix.platform }}
+          fi

@@ -1,11 +1,11 @@
 name: Build Desktop App
 
 on:
-  # Automatic: push a tag like v1.1.0 to trigger
-  push:
-    tags:
-      - 'v*'
-  # Manual: can still trigger from GitHub Actions UI
+  # Tauri builds disabled — Electron builds handle v* tags now (see build-electron.yml)
+  # push:
+  #   tags:
+  #     - 'v*'
+  # Manual: can still trigger from GitHub Actions UI if needed
   workflow_dispatch:
     inputs:
       draft:
