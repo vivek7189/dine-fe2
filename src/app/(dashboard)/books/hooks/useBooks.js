@@ -147,10 +147,10 @@ export default function useBooks() {
       if (expenseCategoryFilter) params.category = expenseCategoryFilter;
       const res = await apiClient.getBooksExpenses(restaurantId, params);
       if (res.success) {
-        // Parse subCategory string back to subCategories array for display
+        // Normalize subCategories to always be an array
         const expenses = (res.data.expenses || []).map(exp => ({
           ...exp,
-          subCategories: parseExpenseSubCategories(exp),
+          subCategories: normalizeSubCategories(exp),
         }));
         setExpensesList(expenses);
         setExpensesSummary({ total: res.data.total, byCategory: res.data.byCategory, count: res.data.count });
@@ -302,23 +302,9 @@ export default function useBooks() {
     else if (activeTab === 'payroll') fetchPayroll();
   }, [activeTab, period, customStart, customEnd]);
 
-  // Encode subCategories array as comma-separated string for backend storage
-  const prepareExpenseData = (formData) => {
-    const data = { ...formData };
-    // Store as comma-separated string (backend may not support arrays)
-    if (Array.isArray(data.subCategories)) {
-      data.subCategory = data.subCategories.join(',');
-    }
-    delete data.subCategories;
-    return data;
-  };
-
-  // Decode subCategory string back to array
-  const parseExpenseSubCategories = (expense) => {
-    if (expense.subCategories && Array.isArray(expense.subCategories)) return expense.subCategories;
-    if (expense.subCategory && typeof expense.subCategory === 'string') {
-      return expense.subCategory.split(',').map(s => s.trim()).filter(Boolean);
-    }
+  // Ensure subCategories is always a clean array
+  const normalizeSubCategories = (expense) => {
+    if (Array.isArray(expense.subCategories)) return expense.subCategories;
     return [];
   };
 
@@ -329,7 +315,7 @@ export default function useBooks() {
       return;
     }
     try {
-      const res = await apiClient.createBooksExpense(restaurantId, prepareExpenseData(expenseFormData));
+      const res = await apiClient.createBooksExpense(restaurantId, expenseFormData);
       if (res.success) {
         setSuccess('Expense added');
         setShowAddExpenseModal(false);
@@ -343,7 +329,7 @@ export default function useBooks() {
   const handleUpdateExpense = async () => {
     if (!editingExpense) return;
     try {
-      const res = await apiClient.updateBooksExpense(restaurantId, editingExpense.id, prepareExpenseData(expenseFormData));
+      const res = await apiClient.updateBooksExpense(restaurantId, editingExpense.id, expenseFormData);
       if (res.success) {
         setSuccess('Expense updated');
         setShowAddExpenseModal(false);
@@ -370,7 +356,7 @@ export default function useBooks() {
     setEditingExpense(expense);
     setExpenseFormData({
       category: expense.category || '',
-      subCategories: parseExpenseSubCategories(expense),
+      subCategories: normalizeSubCategories(expense),
       amount: expense.amount || '',
       date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : '',
       description: expense.description || '',
@@ -412,6 +398,6 @@ export default function useBooks() {
     restaurantId, apiClient,
     EXPENSE_CATEGORIES, PAYMENT_METHODS, PERIODS,
     customCategories, setCustomCategories, showManageCategories, setShowManageCategories,
-    handleSaveCustomCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP, SUB_CATEGORIES_MAP, parseExpenseSubCategories,
+    handleSaveCustomCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP, SUB_CATEGORIES_MAP,
   };
 }
