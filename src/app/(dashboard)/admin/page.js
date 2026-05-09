@@ -4171,7 +4171,9 @@ function AppDownloadTab() {
                   )}
                 </div>
               ) : (
-                <span style={disabledBtn}>Not available</span>
+                <a href="https://drive.google.com/file/d/1KTQvBDRoHTXcmaNJk1jIMEqTs2kdpeDW/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #333, #111)', '0 4px 14px rgba(0,0,0,0.2)')}>
+                  <FaDownload size={14} /> Download for Mac
+                </a>
               )}
             </div>
           </div>
