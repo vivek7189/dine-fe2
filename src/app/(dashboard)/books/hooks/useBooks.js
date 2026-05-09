@@ -3,17 +3,30 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
 
+const DEFAULT_SUB_CATEGORIES = {
+  rent: ['Office Rent', 'Kitchen Rent', 'Storage Rent'],
+  utilities: ['Electricity', 'Water', 'Gas', 'Phone', 'Internet'],
+  salaries: ['Chef', 'Waiter', 'Manager', 'Cleaner'],
+  marketing: ['Social Media', 'Print Ads', 'Promotions', 'Events'],
+  repairs: ['Plumbing', 'Electrical', 'AC/Heating', 'Furniture'],
+  supplies: ['Kitchen Supplies', 'Cleaning Supplies', 'Office Supplies'],
+  insurance: ['Property', 'Liability', 'Health', 'Vehicle'],
+  licenses: ['Food License', 'Liquor License', 'Business Permit'],
+  equipment: ['Kitchen Equipment', 'POS Hardware', 'Furniture'],
+  miscellaneous: [],
+};
+
 const DEFAULT_EXPENSE_CATEGORIES = [
-  { value: 'rent', label: 'Rent' },
-  { value: 'utilities', label: 'Utilities' },
-  { value: 'salaries', label: 'Salaries & Wages' },
-  { value: 'marketing', label: 'Marketing' },
-  { value: 'repairs', label: 'Repairs & Maintenance' },
-  { value: 'supplies', label: 'Supplies' },
-  { value: 'insurance', label: 'Insurance' },
-  { value: 'licenses', label: 'Licenses & Permits' },
-  { value: 'equipment', label: 'Equipment' },
-  { value: 'miscellaneous', label: 'Miscellaneous' },
+  { value: 'rent', label: 'Rent', subCategories: DEFAULT_SUB_CATEGORIES.rent },
+  { value: 'utilities', label: 'Utilities', subCategories: DEFAULT_SUB_CATEGORIES.utilities },
+  { value: 'salaries', label: 'Salaries & Wages', subCategories: DEFAULT_SUB_CATEGORIES.salaries },
+  { value: 'marketing', label: 'Marketing', subCategories: DEFAULT_SUB_CATEGORIES.marketing },
+  { value: 'repairs', label: 'Repairs & Maintenance', subCategories: DEFAULT_SUB_CATEGORIES.repairs },
+  { value: 'supplies', label: 'Supplies', subCategories: DEFAULT_SUB_CATEGORIES.supplies },
+  { value: 'insurance', label: 'Insurance', subCategories: DEFAULT_SUB_CATEGORIES.insurance },
+  { value: 'licenses', label: 'Licenses & Permits', subCategories: DEFAULT_SUB_CATEGORIES.licenses },
+  { value: 'equipment', label: 'Equipment', subCategories: DEFAULT_SUB_CATEGORIES.equipment },
+  { value: 'miscellaneous', label: 'Miscellaneous', subCategories: DEFAULT_SUB_CATEGORIES.miscellaneous },
 ];
 
 const PAYMENT_METHODS = [
@@ -34,7 +47,7 @@ const PERIODS = [
 ];
 
 const defaultExpenseForm = {
-  category: '', amount: '', date: new Date().toISOString().split('T')[0],
+  category: '', subCategories: [], amount: '', date: new Date().toISOString().split('T')[0],
   description: '', paymentMethod: 'cash', vendor: '', isRecurring: false, recurringFrequency: 'monthly'
 };
 
@@ -141,23 +154,32 @@ export default function useBooks() {
     setLoadingExpenses(false);
   }, [restaurantId, getParams, expenseCategoryFilter]);
 
-  // Merged categories: defaults + custom
+  // Merged categories: defaults + custom (with sub-category merging)
   const EXPENSE_CATEGORIES = (() => {
-    const merged = [...DEFAULT_EXPENSE_CATEGORIES];
+    const merged = DEFAULT_EXPENSE_CATEGORIES.map(d => {
+      // Check if custom categories override this default's subCategories
+      const custom = customCategories.find(cc => cc.value === d.value);
+      if (custom) {
+        return { ...d, ...custom, subCategories: custom.subCategories || d.subCategories || [] };
+      }
+      return { ...d };
+    });
     for (const cc of customCategories) {
       if (!merged.some(d => d.value === cc.value)) {
-        merged.push(cc);
+        merged.push({ ...cc, subCategories: cc.subCategories || [] });
       }
     }
     return merged;
   })();
 
-  // Build label/color lookup from merged categories
+  // Build label/color/sub-category lookups from merged categories
   const CATEGORY_LABELS_MAP = {};
   const CATEGORY_COLORS_MAP = {};
+  const SUB_CATEGORIES_MAP = {};
   for (const cat of EXPENSE_CATEGORIES) {
     CATEGORY_LABELS_MAP[cat.value] = cat.label;
     if (cat.color) CATEGORY_COLORS_MAP[cat.value] = cat.color;
+    SUB_CATEGORIES_MAP[cat.value] = cat.subCategories || [];
   }
 
   const fetchExpenseCategories = useCallback(async () => {
@@ -323,6 +345,7 @@ export default function useBooks() {
     setEditingExpense(expense);
     setExpenseFormData({
       category: expense.category || '',
+      subCategories: expense.subCategories || [],
       amount: expense.amount || '',
       date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : '',
       description: expense.description || '',
@@ -363,7 +386,7 @@ export default function useBooks() {
     getModalStyles, getModalContentStyles,
     restaurantId, apiClient,
     EXPENSE_CATEGORIES, PAYMENT_METHODS, PERIODS,
-    customCategories, showManageCategories, setShowManageCategories,
-    handleSaveCustomCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP,
+    customCategories, setCustomCategories, showManageCategories, setShowManageCategories,
+    handleSaveCustomCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP, SUB_CATEGORIES_MAP,
   };
 }

@@ -4,7 +4,23 @@ const fs = require('fs');
 const { initOfflineEngine, shutdownOfflineEngine } = require('./offline');
 
 let mainWindow;
+let printWindow;
 const OUT_DIR = path.join(__dirname, '..', 'out');
+
+// ──── Printer cache (avoid OS enumeration on every print) ────
+let cachedPrinters = null;
+let printerCacheTime = 0;
+const PRINTER_CACHE_TTL = 30000; // 30 seconds
+
+async function getCachedPrinters(webContents) {
+  const now = Date.now();
+  if (cachedPrinters && (now - printerCacheTime) < PRINTER_CACHE_TTL) {
+    return cachedPrinters;
+  }
+  cachedPrinters = await webContents.getPrintersAsync();
+  printerCacheTime = now;
+  return cachedPrinters;
+}
 
 // ──── Custom protocol to serve Next.js static export ────
 // Next.js uses absolute paths like /_next/static/... which don't work with file://
@@ -63,6 +79,18 @@ function createWindow() {
   });
 }
 
+// ──── Persistent hidden print window (reused across all print jobs) ────
+function createPrintWindow() {
+  printWindow = new BrowserWindow({
+    show: false,
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  });
+  printWindow.loadURL('data:text/html;charset=utf-8,<html><body></body></html>');
+  printWindow.on('closed', () => {
+    printWindow = null;
+  });
+}
+
 app.whenReady().then(() => {
   // Register app:// protocol to serve Next.js static export from /out
   protocol.handle('app', (request) => {
@@ -105,6 +133,17 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+  createPrintWindow();
+
+  // Pre-warm printer cache once the print window is ready
+  if (printWindow) {
+    printWindow.webContents.once('did-finish-load', () => {
+      getCachedPrinters(printWindow.webContents)
+        .then(p => console.log('[Print] Printer cache warmed:', p.length, 'printers'))
+        .catch(() => {});
+    });
+  }
+
   try {
     initOfflineEngine(app);
   } catch (err) {
@@ -199,59 +238,64 @@ ipcMain.handle('electron:print', async (event, { html, copies, type }) => {
     deviceName = settings.defaultPrinter || undefined;
   }
 
-  console.log('[Print] Request received — type:', type || 'unknown', 'copies:', copies || 1, 'printer:', deviceName || '(system default)');
-  console.log('[Print] HTML length:', html?.length || 0);
+  console.log('[Print] type:', type || 'unknown', 'copies:', copies || 1,
+    'printer:', deviceName || '(system default)', 'html:', html?.length || 0);
 
-  const printWin = new BrowserWindow({
-    show: false,
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
-  });
+  // Ensure persistent print window exists
+  if (!printWindow || printWindow.isDestroyed()) {
+    createPrintWindow();
+  }
 
-  await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  // Load HTML into the reusable print window
+  await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 
-  // Check if any printers are available
-  const printers = await printWin.webContents.getPrintersAsync();
-  console.log('[Print] Available printers:', printers.map(p => p.name).join(', ') || '(none)');
+  // Use cached printer list (avoids OS enumeration on every print)
+  const printers = await getCachedPrinters(printWindow.webContents);
+  console.log('[Print] Printers:', printers.map(p => p.name).join(', ') || '(none)');
 
-  // If no working printers, save as PDF to prove the pipeline works
+  // If no working printers, save as PDF fallback
   if (!printers.length || printers.every(p => p.status !== 0)) {
-    console.log('[Print] No active printer found — saving PDF as proof');
-    const pdfPath = path.join(app.getPath('desktop'), `DineOpen-print-test-${Date.now()}.pdf`);
-    const pdfData = await printWin.webContents.printToPDF({
+    console.log('[Print] No active printer — saving PDF');
+    const pdfPath = path.join(app.getPath('desktop'), `DineOpen-print-${Date.now()}.pdf`);
+    const pdfData = await printWindow.webContents.printToPDF({
       printBackground: true,
-      pageSize: { width: 80000, height: 297000 }, // ~80mm receipt width
+      pageSize: { width: 80000, height: 297000 },
     });
     fs.writeFileSync(pdfPath, pdfData);
-    printWin.close();
-    console.log('[Print] PDF saved to:', pdfPath);
     return { success: true, fallback: 'pdf', path: pdfPath };
   }
 
-  return new Promise((resolve, reject) => {
-    printWin.webContents.print(
-      {
-        silent: true,
-        deviceName,
-        copies: copies || 1,
-        printBackground: true,
-      },
-      (success, failureReason) => {
-        printWin.close();
-        if (success) {
-          console.log('[Print] ✓ Sent to printer successfully');
-          resolve({ success: true });
-        } else {
-          console.error('[Print] ✗ Failed:', failureReason);
-          reject(new Error(failureReason || 'Print failed'));
-        }
+  // Fire-and-forget: send to printer and return immediately (don't wait for spool)
+  printWindow.webContents.print(
+    {
+      silent: true,
+      deviceName,
+      copies: copies || 1,
+      printBackground: true,
+      // Force 80mm thermal paper size (in microns: 80mm = 80000, height auto = long roll)
+      pageSize: { width: 80000, height: 297000 },
+      // Zero margins so content fills full paper width (margins handled in CSS)
+      margins: { marginType: 'none' },
+    },
+    (success, failureReason) => {
+      if (success) {
+        console.log('[Print] Sent to printer');
+      } else {
+        console.error('[Print] Failed:', failureReason);
       }
-    );
-  });
+    }
+  );
+
+  return { success: true };
 });
 
 ipcMain.handle('electron:listPrinters', async () => {
   if (!mainWindow) return [];
-  return mainWindow.webContents.getPrintersAsync();
+  const printers = await mainWindow.webContents.getPrintersAsync();
+  // Populate print cache so next print job is faster
+  cachedPrinters = printers;
+  printerCacheTime = Date.now();
+  return printers;
 });
 
 ipcMain.handle('electron:setDefaultPrinter', async (event, { name }) => {

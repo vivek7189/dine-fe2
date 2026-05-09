@@ -7,7 +7,8 @@ import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import TableBillingModal from './TableBillingModal';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { getBillPrintCSS, getBillHeaderHTML, buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
+import { buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
+import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
 import { printHtmlInHiddenFrame, printDocument, supportsNativeAutoPrint } from '../utils/printBridge';
 
 export default function DashboardTablesPanel({
@@ -284,7 +285,9 @@ export default function DashboardTablesPanel({
       // Check if manual print is enabled
       if (isManualPrintEnabled()) {
         // Manual print - open browser print window with bill format
-        openManualPrintWindow(order, table);
+        const invoice = buildInvoiceFromOrder(order);
+        const billHtml = generateBillHTML(invoice, printSettings || {});
+        openManualPrintWindow(billHtml);
         // Brief delay to show feedback
         setTimeout(() => {
           setPrintingTables(prev => ({ ...prev, [tableId]: false }));
@@ -301,7 +304,9 @@ export default function DashboardTablesPanel({
         } catch (error) {
           console.error('Error sending print command:', error);
           // Fallback to manual print if auto fails
-          openManualPrintWindow(order, table);
+          const invoice = buildInvoiceFromOrder(order);
+          const billHtml = generateBillHTML(invoice, printSettings || {});
+          openManualPrintWindow(billHtml);
           setTimeout(() => {
             setPrintingTables(prev => ({ ...prev, [tableId]: false }));
           }, 1000);
@@ -311,6 +316,33 @@ export default function DashboardTablesPanel({
       console.error('Error fetching order for print:', error);
       setPrintingTables(prev => ({ ...prev, [tableId]: false }));
     }
+  };
+
+  // Build invoice object for generateBillHTML from order + restaurant data
+  const buildInvoiceFromOrder = (order) => {
+    const currencySymbol = getCurrencySymbol();
+    const items = order.items || [];
+    const subtotal = order.totalAmount || order.subtotal || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+    return {
+      ...order,
+      currencySymbol,
+      subtotal,
+      grandTotal: order.finalAmount || order.grandTotal || subtotal,
+      restaurantName: restaurantName || 'Restaurant',
+      restaurantLegalName: selectedRestaurant?.legalBusinessName,
+      restaurantAddress: selectedRestaurant?.address,
+      restaurantPhone: selectedRestaurant?.phone,
+      gstin: selectedRestaurant?.gstin,
+      fssai: selectedRestaurant?.fssai,
+      vatNumber: selectedRestaurant?.vatNumber,
+      taxId: selectedRestaurant?.taxId,
+      businessRegistrationNumber: selectedRestaurant?.businessRegistrationNumber,
+      showGstOnInvoice: selectedRestaurant?.showGstOnInvoice,
+      showFssaiOnInvoice: selectedRestaurant?.showFssaiOnInvoice,
+      showTaxIdOnInvoice: selectedRestaurant?.showTaxIdOnInvoice,
+      countryCode: selectedRestaurant?.countryCode || countryCode,
+      customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+    };
   };
 
   const handlePrintBill = async (table) => {
@@ -326,48 +358,15 @@ export default function DashboardTablesPanel({
         return;
       }
       const order = response.orders[0];
+      const invoice = buildInvoiceFromOrder(order);
+      const billContent = generateBillHTML(invoice, printSettings || {});
 
       if (supportsNativeAutoPrint()) {
-        const items = order.items || [];
-        const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
-        const taxBreakdown = order.taxBreakdown || [];
-        const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
-        const total = order.finalAmount || (subtotal + taxTotal);
-        const currencySymbol = getCurrencySymbol();
-
-        const itemsHtml = items.map(item =>
-          `<tr>
-            <td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td>
-            <td style="text-align:center;">${item.quantity || 1}</td>
-            <td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
-          </tr>`
-        ).join('');
-
-        const taxHtml = taxBreakdown.map(tax =>
-          `<tr>
-            <td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td>
-            <td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td>
-          </tr>`
-        ).join('');
-
-        const _tpIdLines = [];
-        if (selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName) _tpIdLines.push(selectedRestaurant.legalBusinessName.replace(/</g, '&lt;'));
-        if (selectedRestaurant?.address) _tpIdLines.push(selectedRestaurant.address.replace(/</g, '&lt;'));
-        if (selectedRestaurant?.phone) _tpIdLines.push('Tel: ' + selectedRestaurant.phone);
-        if (selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin) _tpIdLines.push('GSTIN: ' + selectedRestaurant.gstin);
-        if (selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai) _tpIdLines.push('FSSAI: ' + selectedRestaurant.fssai);
-        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber) _tpIdLines.push('Tax ID: ' + selectedRestaurant.vatNumber);
-        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId) _tpIdLines.push('Tax ID: ' + selectedRestaurant.taxId);
-        if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber) _tpIdLines.push('Reg#: ' + selectedRestaurant.businessRegistrationNumber);
-        const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
-        const _tpHeaderHtml = getBillHeaderHTML((restaurantName || 'Restaurant').replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
-
-        const billContent = `<!DOCTYPE html><html><head><title>Bill</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body>${_tpHeaderHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div><div>Table: ${order.tableNumber || '-'}</div></div><div class="divider">--------------------------------</div><table class="items-table" width="100%"><tr><th style="text-align:left;">Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amt</th></tr>${itemsHtml}</table><div class="divider">--------------------------------</div><div class="total-section"><div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>${taxHtml ? `${taxBreakdown.map(tax => `<div class="total-row"><span>${tax.name} (${tax.rate}%)</span><span>${currencySymbol}${(tax.amount || 0).toFixed(2)}</span></div>`).join('')}` : ''}<div class="total-row" style="font-weight:bold;font-size:16px;"><span>TOTAL</span><span>${currencySymbol}${total.toFixed(2)}</span></div></div><div class="divider">================================</div><div class="bill-footer">Thank you!</div></body></html>`;
-
         await printDocument({ html: billContent, type: 'bill', printSettings: printSettings || {} });
       } else {
-        openManualPrintWindow(order, table);
+        openManualPrintWindow(billContent);
       }
+      printFoodCourtTokensForOrder(order);
     } catch (error) {
       console.error('Error printing bill:', error);
     } finally {
@@ -388,12 +387,13 @@ export default function DashboardTablesPanel({
         return;
       }
       const order = response.orders[0];
-      const items = order.items || [];
-      const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-      const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
-
-      const kotHtml = `<!DOCTYPE html><html><head><title>KOT</title><style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style></head><body><div style="text-align:center;font-weight:bold;font-size:16px;">${(restaurantName || 'Restaurant').replace(/</g, '&lt;')}</div><div style="text-align:center;font-weight:bold;margin:6px 0;">--- KITCHEN ORDER ---</div><div class="divider">--------------------------------</div><div class="bill-info"><div>Order# ${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</div>${order.tableNumber ? `<div>Table: ${order.tableNumber}</div>` : ''}${order.roomNumber ? `<div>Room: ${order.roomNumber}</div>` : ''}<div>Time: ${formattedTime}</div><div>Date: ${formattedDate}</div>${order.customerDisplay?.name || order.customerInfo?.name ? `<div>Customer: ${(order.customerDisplay?.name || order.customerInfo?.name).replace(/</g, '&lt;')}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div style="margin:4px 0;"><span style="font-weight:bold;">${i.quantity || 1}x</span> ${(i.name || '').replace(/</g, '&lt;')}${i.selectedVariant?.name ? `<div style="padding-left:20px;font-size:11px;color:#666;">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div style="padding-left:20px;font-size:11px;color:#666;">+ ${(c.name || c || '').toString().replace(/</g, '&lt;')}</div>`).join('')}${i.notes ? `<div style="padding-left:20px;font-size:10px;font-style:italic;">Note: ${i.notes.replace(/</g, '&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div><div style="font-weight:bold;text-align:center;">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+      const kotData = {
+        ...order,
+        restaurantName: restaurantName || 'Restaurant',
+        orderId: order.id,
+        customerName: order.customerDisplay?.name || order.customerInfo?.name || order.customerName,
+      };
+      const kotHtml = generateKOTHTML(kotData, printSettings || {});
 
       if (supportsNativeAutoPrint()) {
         await printDocument({ html: kotHtml, type: 'kot', printSettings: printSettings || {} });
@@ -446,98 +446,18 @@ export default function DashboardTablesPanel({
     }
   };
 
-  // Open manual print window with bill in standard format
-  const openManualPrintWindow = (order, table) => {
+  // Open manual print window with bill HTML
+  const openManualPrintWindow = (billHtml) => {
     const win = window.open('', '_blank', 'width=800,height=600');
     if (!win) {
       alert('Please allow popups to print');
       return;
     }
 
-    const items = order.items || [];
-    const subtotal = order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
-    const taxBreakdown = order.taxBreakdown || [];
-    const taxTotal = taxBreakdown.reduce((sum, tax) => sum + (tax.amount || 0), 0);
-    const total = order.finalAmount || (subtotal + taxTotal);
-
-    const currencySymbol = getCurrencySymbol();
-    const itemsHtml = items.map(item =>
-      `<tr>
-        <td style="text-align:left;">${(item.name || '').replace(/</g, '&lt;')}</td>
-        <td style="text-align:center;">${item.quantity || 1}</td>
-        <td style="text-align:right;">${currencySymbol}${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
-      </tr>`
-    ).join('');
-
-    const taxHtml = taxBreakdown.map(tax =>
-      `<tr>
-        <td colspan="2" style="text-align:left;">${tax.name} (${tax.rate}%)</td>
-        <td style="text-align:right;">${currencySymbol}${(tax.amount || 0).toFixed(2)}</td>
-      </tr>`
-    ).join('');
-
-    const _tpIdLines = [];
-    if (selectedRestaurant?.legalBusinessName && selectedRestaurant.legalBusinessName !== restaurantName) _tpIdLines.push(selectedRestaurant.legalBusinessName.replace(/</g, '&lt;'));
-    if (selectedRestaurant?.address) _tpIdLines.push(selectedRestaurant.address.replace(/</g, '&lt;'));
-    if (selectedRestaurant?.phone) _tpIdLines.push('Tel: ' + selectedRestaurant.phone);
-    if (selectedRestaurant?.showGstOnInvoice && selectedRestaurant?.gstin) _tpIdLines.push('GSTIN: ' + selectedRestaurant.gstin);
-    if (selectedRestaurant?.showFssaiOnInvoice && selectedRestaurant?.fssai) _tpIdLines.push('FSSAI: ' + selectedRestaurant.fssai);
-    if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.vatNumber) _tpIdLines.push('Tax ID: ' + selectedRestaurant.vatNumber);
-    if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.taxId) _tpIdLines.push('Tax ID: ' + selectedRestaurant.taxId);
-    if (selectedRestaurant?.showTaxIdOnInvoice && selectedRestaurant?.businessRegistrationNumber) _tpIdLines.push('Reg#: ' + selectedRestaurant.businessRegistrationNumber);
-    const _tpIdHtml = _tpIdLines.map(l => `<div style="font-size:11px;">${l}</div>`).join('');
-    const _tpHeaderHtml = getBillHeaderHTML((restaurantName || 'Restaurant').replace(/</g, '&lt;'), _tpIdHtml, printSettings?.receiptLogo || null, '--- BILL / INVOICE ---');
-
-    const billContent = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Bill #${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</title>
-  <style>${getBillPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily)}</style>
-</head>
-<body>
-  ${_tpHeaderHtml}
-  <div class="divider">--------------------------------</div>
-  <div class="bill-info">
-    <div><span>Bill#:</span><span><strong>${order.dailyOrderId || order.id?.slice(-6) || 'N/A'}</strong></span></div>
-    <div><span>Date:</span><span>${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></div>
-    ${order.tableNumber || table?.name ? `<div><span>Table:</span><span>${order.tableNumber || table?.name || table?.number}</span></div>` : ''}
-    ${order.customerInfo?.name ? `<div><span>Customer:</span><span>${(order.customerInfo.name || '').replace(/</g, '&lt;')}</span></div>` : ''}
-    <div><span>Payment:</span><span>${(order.paymentMethod || 'CASH').toUpperCase()}</span></div>
-  </div>
-  <div class="divider">--------------------------------</div>
-  <table>
-    <thead>
-      <tr>
-        <th style="text-align:left;">Item</th>
-        <th style="text-align:center;">Qty</th>
-        <th style="text-align:right;">Amt</th>
-      </tr>
-    </thead>
-    <tbody>${itemsHtml}</tbody>
-  </table>
-  <div class="total-section">
-    <div class="bill-info">
-      <div><span>Subtotal:</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>
-    </div>
-    ${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}
-    <div class="total-row">
-      <span>TOTAL:</span>
-      <span>${currencySymbol}${total.toFixed(2)}</span>
-    </div>
-  </div>
-  <div class="divider">================================</div>
-  <div class="bill-footer">
-    <p>Thank you for dining with us!</p>
-    <p style="font-size:10px;margin-top:4px;">Powered by DineOpen</p>
-  </div>
-</body>
-</html>`;
-
-    win.document.write(billContent);
+    win.document.write(billHtml);
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 500);
-    printFoodCourtTokensForOrder(order);
   };
 
 

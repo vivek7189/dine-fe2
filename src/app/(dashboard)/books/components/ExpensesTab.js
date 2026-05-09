@@ -148,6 +148,14 @@ export default function ExpensesTab({
                         }}>
                           {getCatLabel(expense.category)}
                         </span>
+                        {(expense.subCategories || []).map(sub => (
+                          <span key={sub} style={{
+                            padding: '2px 7px', borderRadius: '99px', fontSize: '9px', fontWeight: 600,
+                            backgroundColor: `${color}0D`, color: `${color}CC`, border: `1px solid ${color}22`,
+                          }}>
+                            {sub}
+                          </span>
+                        ))}
                         {expense.isRecurring && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#8b5cf6', fontWeight: 600 }}>
                             <FaSync size={8} /> {expense.recurringFrequency}

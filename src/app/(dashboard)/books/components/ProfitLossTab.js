@@ -42,9 +42,35 @@ function PnlRow({ label, value, formatCurrency, bold, indent, negative, color, b
   );
 }
 
-function exportPnlCSV(pnlData, formatCurrency) {
+function exportPnlCSV(pnlData, formatCurrency, labelMap, expensesList) {
   if (!pnlData) return;
+  const getLabel = (key) => labelMap?.[key] || DEFAULT_CATEGORY_LABELS[key] || key;
   const { revenue, cogs, grossProfit, grossMargin, expenses, expensesByCategory, supplierCredits, netProfit, netMargin } = pnlData;
+
+  // Build sub-category breakdown from expensesList (grouped by category then sub-category)
+  const subCatBreakdown = {};
+  for (const exp of (expensesList || [])) {
+    if (exp.subCategories?.length > 0) {
+      const cat = exp.category;
+      if (!subCatBreakdown[cat]) subCatBreakdown[cat] = {};
+      for (const sub of exp.subCategories) {
+        subCatBreakdown[cat][sub] = (subCatBreakdown[cat][sub] || 0) + (Number(exp.amount) || 0);
+      }
+    }
+  }
+
+  // Build expense rows with sub-category detail
+  const expenseRows = [];
+  for (const [cat, amt] of Object.entries(expensesByCategory || {}).sort((a, b) => b[1] - a[1])) {
+    expenseRows.push([`  ${getLabel(cat)}`, -amt]);
+    // Add sub-category detail rows
+    if (subCatBreakdown[cat]) {
+      for (const [sub, subAmt] of Object.entries(subCatBreakdown[cat]).sort((a, b) => b[1] - a[1])) {
+        expenseRows.push([`    - ${sub}`, -subAmt]);
+      }
+    }
+  }
+
   const lines = [
     ['Profit & Loss Statement'],
     [],
@@ -54,7 +80,7 @@ function exportPnlCSV(pnlData, formatCurrency) {
     [`Gross Margin`, `${grossMargin}%`],
     [],
     ['Less: Operating Expenses'],
-    ...Object.entries(expensesByCategory || {}).map(([cat, amt]) => [`  ${getCatLabel(cat)}`, -amt]),
+    ...expenseRows,
     ['Total Expenses', -expenses],
     [],
     ['Supplier Credits', supplierCredits],
@@ -72,7 +98,7 @@ function exportPnlCSV(pnlData, formatCurrency) {
   URL.revokeObjectURL(url);
 }
 
-export default function ProfitLossTab({ pnlData, loadingPnl, isMobile, formatCurrency, CATEGORY_LABELS_MAP }) {
+export default function ProfitLossTab({ pnlData, loadingPnl, isMobile, formatCurrency, CATEGORY_LABELS_MAP, expensesList }) {
   const getCatLabel = (key) => CATEGORY_LABELS_MAP?.[key] || DEFAULT_CATEGORY_LABELS[key] || key;
   if (loadingPnl && !pnlData) {
     return (
@@ -110,7 +136,7 @@ export default function ProfitLossTab({ pnlData, loadingPnl, isMobile, formatCur
           )}
         </div>
         <button
-          onClick={() => exportPnlCSV(pnlData, formatCurrency)}
+          onClick={() => exportPnlCSV(pnlData, formatCurrency, CATEGORY_LABELS_MAP, expensesList)}
           style={{
             padding: '9px 16px', backgroundColor: 'white', color: '#374151',
             border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px',
