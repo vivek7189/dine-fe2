@@ -2820,7 +2820,9 @@ function RestaurantPOSContent() {
 
         // OFFLINE PATH: Queue update + payment for later sync
         // Check both isOnline state AND navigator.onLine for reliability (WebKit can be slow to fire offline events)
-        if (!isOnline || !navigator.onLine) {
+        // Electron: skip — apiClient routes through offline engine / local SQLite
+        const _isElectronBilling = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
+        if ((!isOnline || !navigator.onLine) && !_isElectronBilling) {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
@@ -3014,7 +3016,9 @@ function RestaurantPOSContent() {
         console.log('🛒 Creating order with data:', orderData);
 
         // OFFLINE PATH: Queue order + payment for later sync
-        if (!isOnline || !navigator.onLine) {
+        // Electron: skip — apiClient routes through offline engine / local SQLite
+        const _isElectronNewBilling = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
+        if ((!isOnline || !navigator.onLine) && !_isElectronNewBilling) {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);
@@ -3962,8 +3966,10 @@ function RestaurantPOSContent() {
 
         console.log('Creating order with data:', orderData);
 
-        // OFFLINE PATH: If offline, queue immediately to IndexedDB
-        if (!isOnline || !navigator.onLine) {
+        // OFFLINE PATH: If offline, queue to IndexedDB (web) or let Electron handle via SQLite
+        // Electron: skip this block — apiClient routes through offline engine / local SQLite
+        const _isElectronApp = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
+        if ((!isOnline || !navigator.onLine) && !_isElectronApp) {
           if (!offlineEnabled) {
             setNotification({ type: 'error', title: t('dashboard.noInternet'), message: t('dashboard.offlineMsg'), show: true });
             setTimeout(() => setNotification(null), 4000);

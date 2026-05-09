@@ -1122,14 +1122,45 @@ function saveKotItems(restaurantId, items) {
 
 function getKotItems(restaurantId, status) {
   const db = getLocalDb();
+  let kotOrders;
   if (status) {
-    return parseRows(
+    kotOrders = parseRows(
       db.prepare('SELECT data FROM kot_queue WHERE restaurant_id = ? AND status = ?').all(restaurantId, status)
     );
+  } else {
+    kotOrders = parseRows(
+      db.prepare('SELECT data FROM kot_queue WHERE restaurant_id = ?').all(restaurantId)
+    );
   }
-  return parseRows(
-    db.prepare('SELECT data FROM kot_queue WHERE restaurant_id = ?').all(restaurantId)
-  );
+
+  // Merge locally-created orders that aren't yet in kot_queue.
+  // These are orders created offline via entityStore.createOrder() and stored
+  // in the orders table with is_local = 1. They need to appear in KOT view.
+  try {
+    const validStatuses = status ? [status] : ['confirmed', 'preparing', 'ready', 'pending'];
+    const placeholders = validStatuses.map(() => '?').join(',');
+    const localOrders = parseRows(
+      db.prepare(
+        `SELECT data FROM orders WHERE restaurant_id = ? AND status IN (${placeholders}) ORDER BY created_at DESC LIMIT 100`
+      ).all(restaurantId, ...validStatuses)
+    );
+    const existingIds = new Set(kotOrders.map(o => o.id || o._id));
+    for (const order of localOrders) {
+      if (!existingIds.has(order.id) && !existingIds.has(order._id)) {
+        // Format to match the backend KOT response shape
+        kotOrders.push({
+          ...order,
+          kotId: `KOT-${(order.id || '').slice(-6).toUpperCase()}`,
+          kotTime: order.createdAt || new Date().toISOString(),
+          estimatedTime: Math.max(15, (order.items?.length || 0) * 8),
+        });
+      }
+    }
+  } catch (e) {
+    // Non-critical — kot_queue data alone is fine
+  }
+
+  return kotOrders;
 }
 
 function updateKotStatus(orderId, restaurantId, status) {

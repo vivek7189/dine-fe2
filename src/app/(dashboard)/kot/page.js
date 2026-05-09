@@ -232,21 +232,9 @@ const KitchenOrderTicket = () => {
         setRefreshing(true);
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://dine-be2-phi.vercel.app';
-      const response = await fetch(`${backendUrl}/api/kot/${restaurantId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch KOT orders: ${response.status} - ${errorText}`);
-      }
-
-      const kotData = await response.json();
+      // Use apiClient so Electron routes through offline engine / local SQLite.
+      // On web, apiClient.getKotOrders uses fetch internally — same result.
+      const kotData = await apiClient.getKotOrders(restaurantId);
       const freshOrders = kotData.orders || [];
 
       // Merge any pending offline orders so they show immediately
