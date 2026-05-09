@@ -291,26 +291,52 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
   // 4. Route the request
   const parsedBody = body ? tryParse(body) : null;
 
+  // Hot paths — order-taking flow: tables, orders, KOT, register, invoices, saved-carts, floors.
+  // These use local-first for reads so the dashboard/tables/kitchen pages are instant.
+  // Settings (tax, print, business, menu-theme) use cloud-first for correct data format.
+  const isHotPath = /\/(tables|orders|kot|register|invoices|saved-carts|floors|customers|menus|waiters|staff|offers|bookings)\b/.test(endpoint);
+
+  // Extract restaurant ID to check if local DB has been seeded
+  const hotRidMatch = endpoint.match(/\/api\/(?:tables|orders|kot|register|invoices|saved-carts|floors|customers|menus|waiters|staff|offers|bookings)\/([a-zA-Z0-9_-]+)/);
+  const hotRid = hotRidMatch ? hotRidMatch[1] : null;
+  // Only use local-first for hot paths AFTER the initial seed has completed.
+  // This prevents first-time users from seeing empty pages.
+  const localSeeded = hotRid && !seedingInProgress && hasLocalData(hotRid);
+
   if (m === 'GET') {
-    // ── READ requests: cloud-first when online, local fallback when offline ──
-    // This ensures the Electron app behaves exactly like the web app when online.
-    // Only falls back to local SQLite when the cloud is unreachable (offline/LAN).
+    if (isHotPath && localSeeded) {
+      // ── HOT reads: local-first for instant UI, cloud sync in background ──
+      const localResult = routeLocally(endpoint, m, parsedBody);
+      if (localResult.handled) {
+        // Serve from local SQLite instantly — cloud syncs in background via daemon
+        return {
+          data: localResult.data,
+          from_cache: true,
+          is_queued: false,
+          mutation_id: null,
+          status_code: localResult.statusCode || 200,
+          error: null,
+        };
+      }
+      // Local has no data — fall through to cloud (e.g., first load)
+    }
+
+    // ── COLD reads: cloud-first for settings/config (correct data format) ──
     const cloudResult = await proxyToCloud(endpoint, m, body, headers);
 
     if (cloudResult.status_code < 400) {
-      // Cloud succeeded — return cloud response (identical to web)
       return cloudResult;
     }
 
     // Cloud failed — fall back to local router (offline mode)
-    const localResult = routeLocally(endpoint, m, parsedBody);
-    if (localResult.handled) {
+    const localResult2 = routeLocally(endpoint, m, parsedBody);
+    if (localResult2.handled) {
       return {
-        data: localResult.data,
+        data: localResult2.data,
         from_cache: true,
         is_queued: false,
         mutation_id: null,
-        status_code: localResult.statusCode || 200,
+        status_code: localResult2.statusCode || 200,
         error: null,
       };
     }
@@ -326,6 +352,8 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
 
   if (localResult.handled) {
     wakeSync();
+    // Also fire cloud request in background for immediate sync (don't await)
+    proxyToCloud(endpoint, m, body, headers).catch(() => {});
     return {
       data: localResult.data,
       from_cache: false,

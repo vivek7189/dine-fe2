@@ -121,9 +121,31 @@ function saveFloors(restaurantId, floors) {
 
 function getFloors(restaurantId) {
   const db = getLocalDb();
-  return parseRows(
+  const floors = parseRows(
     db.prepare('SELECT data FROM floors WHERE restaurant_id = ?').all(restaurantId)
   );
+  // Overlay live table data from tables_local so status changes are instant.
+  // Floor objects embed tables at sync time, but table status/order updates
+  // go into tables_local — merge them so getFloors always reflects the latest state.
+  const liveTables = db.prepare(
+    'SELECT id, status, current_order_id, data FROM tables_local WHERE restaurant_id = ?'
+  ).all(restaurantId);
+  if (liveTables.length > 0) {
+    const tableMap = {};
+    for (const row of liveTables) {
+      const parsed = parseData(row);
+      if (parsed) tableMap[row.id] = parsed;
+    }
+    for (const floor of floors) {
+      if (Array.isArray(floor.tables)) {
+        floor.tables = floor.tables.map(t => {
+          const live = tableMap[t.id || t._id];
+          return live || t;
+        });
+      }
+    }
+  }
+  return floors;
 }
 
 function createFloor(restaurantId, floor) {
@@ -236,6 +258,10 @@ function updateTableStatus(tableId, restaurantId, status, orderId) {
   if (data) {
     data.status = status;
     data.currentOrderId = orderId || null;
+    data.updatedAt = new Date().toISOString();
+    if (status === 'occupied' && orderId) {
+      data.lastOrderTime = new Date().toISOString();
+    }
     db.prepare(
       'UPDATE tables_local SET status = ?, current_order_id = ?, data = ?, synced_at = ? WHERE id = ?'
     ).run(status, orderId || null, JSON.stringify(data), now(), tableId);
@@ -263,6 +289,8 @@ function resetAllTables(restaurantId) {
       if (data) {
         data.status = 'available';
         data.currentOrderId = null;
+        data.currentOrderTotal = null;
+        data.updatedAt = new Date().toISOString();
         updateStmt.run('available', JSON.stringify(data), ts, data.id || data._id);
       }
     }
@@ -643,6 +671,29 @@ function getOrder(orderId) {
   return parseData(row);
 }
 
+// Helper: release a table when its linked order is completed/cancelled
+function releaseTableForOrder(db, orderId, restaurantId) {
+  try {
+    const tableRow = db.prepare(
+      'SELECT id, data FROM tables_local WHERE restaurant_id = ? AND current_order_id = ?'
+    ).get(restaurantId, orderId);
+    if (tableRow) {
+      const tData = parseData(tableRow);
+      if (tData) {
+        tData.status = 'available';
+        tData.currentOrderId = null;
+        tData.currentOrderTotal = null;
+        tData.updatedAt = new Date().toISOString();
+        db.prepare(
+          'UPDATE tables_local SET status = ?, current_order_id = ?, data = ?, synced_at = ? WHERE id = ?'
+        ).run('available', null, JSON.stringify(tData), now(), tableRow.id);
+      }
+    }
+  } catch (e) {
+    // Non-critical — cloud sync will fix it
+  }
+}
+
 function createOrder(restaurantId, orderData) {
   const db = getLocalDb();
   const ts = now();
@@ -664,6 +715,30 @@ function createOrder(restaurantId, orderData) {
     1, null, ts, ts
   );
   logChange('order', id, restaurantId, 'CREATE', '/api/orders', 'POST', order);
+
+  // Auto-update the linked table to 'occupied' so tables view reflects instantly.
+  // Matches the exact fields the backend sets in Firestore on order creation.
+  const tbl = order.tableNumber || order.tableId;
+  if (tbl) {
+    // Find the table by name/number (tableNumber is the name the frontend sends)
+    const tableRow = db.prepare(
+      'SELECT id, data FROM tables_local WHERE restaurant_id = ? AND (name = ? OR id = ?)'
+    ).get(restaurantId, String(tbl), String(tbl));
+    if (tableRow) {
+      const tData = parseData(tableRow);
+      if (tData) {
+        tData.status = 'occupied';
+        tData.currentOrderId = id;
+        tData.currentOrderTotal = order.finalAmount || order.totalAmount || 0;
+        tData.lastOrderTime = new Date().toISOString();
+        tData.updatedAt = new Date().toISOString();
+        db.prepare(
+          'UPDATE tables_local SET status = ?, current_order_id = ?, data = ?, synced_at = ? WHERE id = ?'
+        ).run('occupied', id, JSON.stringify(tData), ts, tableRow.id);
+      }
+    }
+  }
+
   return order;
 }
 
@@ -695,6 +770,11 @@ function updateOrderStatus(orderId, restaurantId, status, extra) {
     'UPDATE orders SET status = ?, data = ?, updated_at = ? WHERE id = ?'
   ).run(status, JSON.stringify(existing), now(), orderId);
   logChange('order', orderId, restaurantId, 'UPDATE', `/api/orders/${orderId}/status`, 'PATCH', { status, ...(extra || {}) });
+
+  // Release the linked table when order is completed/cancelled
+  if (status === 'completed' || status === 'cancelled') {
+    releaseTableForOrder(db, orderId, restaurantId);
+  }
   return existing;
 }
 
@@ -709,6 +789,8 @@ function cancelOrder(orderId, restaurantId, reason) {
     'UPDATE orders SET status = ?, data = ?, updated_at = ? WHERE id = ?'
   ).run('cancelled', JSON.stringify(existing), now(), orderId);
   logChange('order', orderId, restaurantId, 'UPDATE', `/api/orders/${orderId}/cancel`, 'PATCH', { reason });
+  // Release the linked table
+  releaseTableForOrder(db, orderId, restaurantId);
   return existing;
 }
 

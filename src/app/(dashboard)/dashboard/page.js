@@ -3693,7 +3693,8 @@ function RestaurantPOSContent() {
         fetchSavedOrders();
         handleOrderActionComplete({
           keepOrderSuccess: false,
-          hasTable: !!(tableNumber || selectedTable?.number)
+          hasTable: !!(tableNumber || selectedTable?.number),
+          keepTable: true,
         });
       }
     } catch (error) {
@@ -3867,7 +3868,8 @@ function RestaurantPOSContent() {
           fetchSavedOrders(); // Refresh saved orders list
           handleOrderActionComplete({
             keepOrderSuccess: true,
-            hasTable: !!(tableNumber || selectedTable?.number)
+            hasTable: !!(tableNumber || selectedTable?.number),
+            keepTable: true,
           });
         }
       } else {
@@ -3998,7 +4000,8 @@ function RestaurantPOSContent() {
             setActiveSavedOrderId(null);
             handleOrderActionComplete({
               keepOrderSuccess: true,
-              hasTable: !!(tableNumber || selectedTable?.number)
+              hasTable: !!(tableNumber || selectedTable?.number),
+              keepTable: true,
             });
             setTimeout(() => setNotification(null), 4000);
           } catch (offlineErr) {
@@ -4048,7 +4051,8 @@ function RestaurantPOSContent() {
         setActiveSavedOrderId(null);
         handleOrderActionComplete({
           keepOrderSuccess: true,
-          hasTable: !!(tableNumber || selectedTable?.number)
+          hasTable: !!(tableNumber || selectedTable?.number),
+          keepTable: true,
         });
 
         // Fire API call — don't block the UI
@@ -4198,7 +4202,7 @@ function RestaurantPOSContent() {
   };
 
   const clearCart = (opts = {}) => {
-    const { keepOrderSuccess = false, preserveUrl = false } = opts;
+    const { keepOrderSuccess = false, preserveUrl = false, keepTable = false } = opts;
     setCart([]);
     setTableNumber('');
     setCurrentOrder(null);
@@ -4218,9 +4222,11 @@ function RestaurantPOSContent() {
       // Only redirect if not preserving URL (avoids losing view state)
       if (!preserveUrl && typeof window !== 'undefined') router.replace('/dashboard');
     }
-    if (selectedTable && selectedTable.id) {
-      // Release table
+    if (selectedTable && selectedTable.id && !keepTable) {
+      // Release table — skip when order was just placed (table stays occupied)
       apiClient.updateTableStatus(selectedTable.id, 'available', null, selectedRestaurant?.id);
+      setSelectedTable(null);
+    } else if (keepTable) {
       setSelectedTable(null);
     }
     // Reset return tracking
@@ -4275,7 +4281,7 @@ function RestaurantPOSContent() {
 
   // Helper function to handle return navigation after order action
   const handleOrderActionComplete = (opts = {}) => {
-    const { keepOrderSuccess = true, hasTable = false } = opts;
+    const { keepOrderSuccess = true, hasTable = false, keepTable = false } = opts;
 
     // Determine where to return
     // Only switch to tables if explicitly set as returnToView
@@ -4288,10 +4294,10 @@ function RestaurantPOSContent() {
       }
       switchView('tables', true);
       prefetchTables(selectedRestaurant?.id);
-      clearCart({ keepOrderSuccess, preserveUrl: true });
+      clearCart({ keepOrderSuccess, preserveUrl: true, keepTable });
     } else {
       // User came from order history, edit mode, or no specific source - stay on orders view
-      clearCart({ keepOrderSuccess, preserveUrl: true });
+      clearCart({ keepOrderSuccess, preserveUrl: true, keepTable });
       // Clean up URL params - remove view param and any stale table params for clean URL
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);

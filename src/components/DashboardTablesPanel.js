@@ -104,7 +104,7 @@ export default function DashboardTablesPanel({
     return () => document.removeEventListener('click', handler);
   }, [printDropdownTable]);
 
-  // Auto-clear the recently updated table highlight after 3 seconds, and scroll into view
+  // Auto-clear the recently updated table highlight after a brief flash, and scroll into view
   useEffect(() => {
     if (recentlyUpdatedTableId) {
       // Scroll the highlighted table into view
@@ -113,7 +113,7 @@ export default function DashboardTablesPanel({
       }
       const timeout = setTimeout(() => {
         if (onClearRecentlyUpdated) onClearRecentlyUpdated();
-      }, 3000);
+      }, 800);
       return () => clearTimeout(timeout);
     }
   }, [recentlyUpdatedTableId, onClearRecentlyUpdated]);
