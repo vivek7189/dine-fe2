@@ -144,7 +144,11 @@ function routeLocally(endpoint, method, body) {
 
   // ── ORDERS ──
   if (m === 'GET' && (p = match('/api/orders/single/:orderId', path))) {
-    return safe(() => ok({ order: entityStore.getOrder(p.orderId), success: true }));
+    return safe(() => {
+      const order = entityStore.getOrder(p.orderId);
+      if (!order) return NOT_HANDLED;
+      return ok({ order, success: true });
+    });
   }
   if (m === 'PATCH' && (p = match('/api/orders/:orderId/status', path))) {
     return safe(() => {
@@ -281,7 +285,11 @@ function routeLocally(endpoint, method, body) {
     return safe(() => ok({ tax: entityStore.updateTaxSettings(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/admin/tax/:restaurantId', path))) {
-    return safe(() => ok({ tax: entityStore.getTaxSettings(p.restaurantId), success: true }));
+    return safe(() => {
+      const tax = entityStore.getTaxSettings(p.restaurantId);
+      if (!tax) return NOT_HANDLED;
+      return ok({ tax, success: true });
+    });
   }
 
   // ── BUSINESS ──
@@ -289,7 +297,11 @@ function routeLocally(endpoint, method, body) {
     return safe(() => ok({ business: entityStore.updateBusinessSettings(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/admin/business/:restaurantId', path))) {
-    return safe(() => ok({ business: entityStore.getBusinessSettings(p.restaurantId), success: true }));
+    return safe(() => {
+      const business = entityStore.getBusinessSettings(p.restaurantId);
+      if (!business) return NOT_HANDLED;
+      return ok({ business, success: true });
+    });
   }
 
   // ── PRINT SETTINGS ──
@@ -297,13 +309,21 @@ function routeLocally(endpoint, method, body) {
     return safe(() => ok({ settings: entityStore.updatePrintSettings(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/admin/print-settings/:restaurantId', path))) {
-    return safe(() => ok({ settings: entityStore.getPrintSettings(p.restaurantId), success: true }));
+    return safe(() => {
+      const settings = entityStore.getPrintSettings(p.restaurantId);
+      if (!settings) return NOT_HANDLED;
+      return ok({ settings, success: true });
+    });
   }
   if (m === 'PUT' && (p = match('/api/admin/print-stations/:restaurantId', path))) {
     return safe(() => ok({ stations: entityStore.updatePrintStations(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/admin/print-stations/:restaurantId', path))) {
-    return safe(() => ok({ stations: entityStore.getPrintStations(p.restaurantId), success: true }));
+    return safe(() => {
+      const stations = entityStore.getPrintStations(p.restaurantId);
+      if (!stations) return NOT_HANDLED;
+      return ok({ stations, success: true });
+    });
   }
 
   // ── CUSTOMERS ──
@@ -408,7 +428,11 @@ function routeLocally(endpoint, method, body) {
     return safe(() => ok({ register: entityStore.openRegister(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/register/:restaurantId/current', path))) {
-    return safe(() => ok({ register: entityStore.getCurrentRegister(p.restaurantId), success: true }));
+    return safe(() => {
+      const register = entityStore.getCurrentRegister(p.restaurantId);
+      if (!register) return NOT_HANDLED;
+      return ok({ register, success: true });
+    });
   }
   if (m === 'GET' && (p = match('/api/register/:restaurantId/history', path))) {
     return safe(() => ok({ history: entityStore.getEntities('register_history', p.restaurantId), success: true }));
@@ -420,7 +444,11 @@ function routeLocally(endpoint, method, body) {
     return safe(() => ok({ register: entityStore.closeRegister(p.registerId, body.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/register/:registerId/x-report', path))) {
-    return safe(() => ok({ register: entityStore.getEntity('register', p.registerId), success: true }));
+    return safe(() => {
+      const register = entityStore.getEntity('register', p.registerId);
+      if (!register) return NOT_HANDLED;
+      return ok({ register, success: true });
+    });
   }
 
   // ── INVOICES ──
@@ -446,7 +474,11 @@ function routeLocally(endpoint, method, body) {
     });
   }
   if (m === 'GET' && (p = match('/api/invoice/:invoiceId', path))) {
-    return safe(() => ok({ invoice: entityStore.getInvoice(p.invoiceId), success: true }));
+    return safe(() => {
+      const invoice = entityStore.getInvoice(p.invoiceId);
+      if (!invoice) return NOT_HANDLED;
+      return ok({ invoice, success: true });
+    });
   }
   if (m === 'GET' && (p = match('/api/invoices/:restaurantId', path))) {
     return safe(() => ok({ invoices: entityStore.getInvoices(p.restaurantId), success: true }));
@@ -457,12 +489,20 @@ function routeLocally(endpoint, method, body) {
     return safe(() => ok({ theme: entityStore.updateMenuTheme(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/menu-theme/:restaurantId', path))) {
-    return safe(() => ok({ theme: entityStore.getMenuTheme(p.restaurantId), success: true }));
+    return safe(() => {
+      const theme = entityStore.getMenuTheme(p.restaurantId);
+      if (!theme) return NOT_HANDLED;
+      return ok({ theme, success: true });
+    });
   }
 
   // ── RESTAURANT ──
   if (m === 'GET' && (p = match('/api/restaurant/info/:restaurantId', path))) {
-    return safe(() => ok({ restaurant: entityStore.getRestaurant(p.restaurantId), success: true }));
+    return safe(() => {
+      const restaurant = entityStore.getRestaurant(p.restaurantId);
+      if (!restaurant) return NOT_HANDLED;
+      return ok({ restaurant, success: true });
+    });
   }
   if (m === 'PATCH' && (p = match('/api/restaurants/:restaurantId', path))) {
     return safe(() => {
@@ -472,7 +512,32 @@ function routeLocally(endpoint, method, body) {
     });
   }
   if (m === 'GET' && path === '/api/restaurants') {
-    return safe(() => ok({ restaurant: entityStore.getRestaurant(query.id), success: true }));
+    return safe(() => {
+      // If a specific restaurant ID is requested, serve from local
+      if (query.id) {
+        const restaurant = entityStore.getRestaurant(query.id);
+        if (restaurant) return ok({ restaurant, success: true });
+      }
+      // For restaurant list, fall through to cloud — local DB may not have all restaurants
+      return NOT_HANDLED;
+    });
+  }
+
+  // ── OFFERS ──
+  if (m === 'GET' && (p = match('/api/offers/:restaurantId/active', path))) {
+    return safe(() => {
+      const offers = entityStore.getOffers(p.restaurantId);
+      const now = new Date();
+      const active = (offers || []).filter(o => {
+        if (!o.isActive) return false;
+        if (o.endDate && new Date(o.endDate) < now) return false;
+        return true;
+      });
+      return ok({ offers: active, success: true });
+    });
+  }
+  if (m === 'GET' && (p = match('/api/offers/:restaurantId', path))) {
+    return safe(() => ok({ offers: entityStore.getOffers(p.restaurantId) || [], success: true }));
   }
 
   // ── ANALYTICS ──

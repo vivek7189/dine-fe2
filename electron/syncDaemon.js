@@ -55,6 +55,7 @@ const PULL_ENTITIES = [
   { type: 'business_settings', endpoint: (rid) => `/api/admin/business/${rid}`, key: null, store: 'saveBusinessSettings' },
   { type: 'billing_settings', endpoint: (rid) => `/api/admin/business/${rid}`, key: 'billingSettings', store: 'saveBillingSettings' },
   { type: 'print_settings', endpoint: (rid) => `/api/admin/print-settings/${rid}`, key: null, store: 'savePrintSettings' },
+  { type: 'print_stations', endpoint: (rid) => `/api/admin/print-stations/${rid}`, key: null, store: 'savePrintStations' },
   { type: 'staff', endpoint: (rid) => `/api/staff/${rid}`, key: 'staff', store: 'saveStaff' },
   { type: 'waiters', endpoint: (rid) => `/api/waiters/${rid}`, key: 'waiters', store: 'saveWaiters' },
   { type: 'customers', endpoint: (rid) => `/api/customers/${rid}`, key: 'customers', store: 'saveCustomers' },
@@ -62,6 +63,11 @@ const PULL_ENTITIES = [
   { type: 'saved_carts', endpoint: (rid) => `/api/saved-carts/${rid}`, key: 'carts', store: 'saveSavedCarts' },
   { type: 'kot', endpoint: (rid) => `/api/kot/${rid}`, key: 'orders', store: 'saveKotItems' },
   { type: 'register', endpoint: (rid) => `/api/register/${rid}/current`, key: null, store: 'saveRegister' },
+  { type: 'restaurant', endpoint: (rid) => `/api/restaurant/info/${rid}`, key: 'restaurant', store: 'saveRestaurant' },
+  { type: 'bookings', endpoint: (rid) => `/api/bookings/${rid}`, key: 'bookings', store: 'saveBookings' },
+  { type: 'invoices', endpoint: (rid) => `/api/invoices/${rid}`, key: 'invoices', store: 'saveInvoices' },
+  { type: 'offers', endpoint: (rid) => `/api/offers/${rid}`, key: 'offers', store: 'saveOffers' },
+  { type: 'menu_theme', endpoint: (rid) => `/api/menu-theme/${rid}`, key: null, store: 'saveMenuTheme' },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -367,7 +373,7 @@ function shouldPull(entityType) {
   if (/orders|tables|kot|register/.test(entityType)) return now - lastPull > 5_000;
 
   // WARM: pull every 5 minutes
-  if (/menu|customers|inventory|staff|saved_carts|waiters/.test(entityType))
+  if (/menu|customers|inventory|staff|saved_carts|waiters|bookings/.test(entityType))
     return now - lastPull > 300_000;
 
   // COLD: pull every 30 minutes

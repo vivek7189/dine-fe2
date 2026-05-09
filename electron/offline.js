@@ -224,7 +224,7 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
   }
 
   // 2. Persist active restaurant ID and auto-seed if first time
-  const ridMatch = endpoint.match(/\/api\/(?:orders|menus|tables|floors|staff|customers|inventory|kot|register|saved-carts|waiters|bookings|invoices)\/([a-zA-Z0-9_-]+)/);
+  const ridMatch = endpoint.match(/\/api\/(?:orders|menus|tables|floors|staff|customers|inventory|kot|register|saved-carts|waiters|bookings|invoices|menu-theme|analytics|billing|restaurant\/info|admin\/tax|admin\/business|admin\/print-settings|admin\/print-stations)\/([a-zA-Z0-9_-]+)/);
   if (ridMatch) {
     const detectedRid = ridMatch[1];
     try {
