@@ -288,27 +288,55 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
     }
   }
 
-  // 4. Try local router (SQLite) — this is the main path
-  const localResult = routeLocally(endpoint, m, body ? tryParse(body) : null);
+  // 4. Route the request
+  const parsedBody = body ? tryParse(body) : null;
 
-  if (localResult.handled) {
-    // Local SQLite handled the request — return immediately
-    // For mutations, wake the sync daemon so it pushes to cloud ASAP
-    if (m !== 'GET') {
-      wakeSync();
+  if (m === 'GET') {
+    // ── READ requests: cloud-first when online, local fallback when offline ──
+    // This ensures the Electron app behaves exactly like the web app when online.
+    // Only falls back to local SQLite when the cloud is unreachable (offline/LAN).
+    const cloudResult = await proxyToCloud(endpoint, m, body, headers);
+
+    if (cloudResult.status_code < 400) {
+      // Cloud succeeded — return cloud response (identical to web)
+      return cloudResult;
     }
 
+    // Cloud failed — fall back to local router (offline mode)
+    const localResult = routeLocally(endpoint, m, parsedBody);
+    if (localResult.handled) {
+      return {
+        data: localResult.data,
+        from_cache: true,
+        is_queued: false,
+        mutation_id: null,
+        status_code: localResult.statusCode || 200,
+        error: null,
+      };
+    }
+
+    // Neither cloud nor local handled it — return the cloud error
+    return cloudResult;
+  }
+
+  // ── WRITE requests (POST/PATCH/PUT/DELETE): local-first for instant response ──
+  // Mutations go through local router for instant UI response, then sync to cloud
+  // in the background via change_log + sync daemon.
+  const localResult = routeLocally(endpoint, m, parsedBody);
+
+  if (localResult.handled) {
+    wakeSync();
     return {
       data: localResult.data,
       from_cache: false,
-      is_queued: m !== 'GET',
+      is_queued: true,
       mutation_id: null,
       status_code: localResult.statusCode || 200,
       error: null,
     };
   }
 
-  // 5. Not handled locally — proxy to cloud (fallback for auth, uploads, AI, etc.)
+  // Not handled locally — proxy to cloud
   return proxyToCloud(endpoint, m, body, headers);
 }
 
