@@ -4061,8 +4061,8 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 /** App Download Tab — simple Google Drive download links for Windows + Mac */
 function AppDownloadTab() {
-  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1u2pDaz-JqJIglvRTKXyGmeSnXoZMor1O/view?usp=sharing';
-  const MAC_DOWNLOAD_URL = ''; // TODO: add Mac Google Drive URL
+  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1btcVMAf3i8IjaEVk1UH8g5MGw3ere387/view?usp=sharing';
+  const MAC_DOWNLOAD_URL = 'https://drive.google.com/file/d/1q5D7zLYfn_XEBdB8AlZFOiZEkI7zeMHy/view?usp=sharing';
 
   const btnStyle = (bg, shadow) => ({
     display: 'inline-flex', alignItems: 'center', gap: '8px',
