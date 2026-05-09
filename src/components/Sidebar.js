@@ -37,11 +37,19 @@ import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
 import { performLogout } from '../lib/logout';
 import { useLoading } from '../contexts/LoadingContext';
+import { isElectron } from '../utils/platform';
 
 export default function Sidebar({ isDashboardPage = false }) {
   const pathname = usePathname();
   const router = useRouter();
   const { startLoading } = useLoading();
+  const [electronVersion, setElectronVersion] = useState(null);
+
+  useEffect(() => {
+    if (isElectron() && window.electronAPI?.getVersion) {
+      window.electronAPI.getVersion().then(v => setElectronVersion(v)).catch(() => {});
+    }
+  }, []);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [allRestaurants, setAllRestaurants] = useState([]);
@@ -598,6 +606,14 @@ export default function Sidebar({ isDashboardPage = false }) {
                     </div>
                   </div>
                 </Link>
+
+                {electronVersion && (
+                  <div className="px-3 -mt-1 mb-1">
+                    <span style={{ fontSize: '10px', color: '#9ca3af', background: '#f3f4f6', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>
+                      v{electronVersion}
+                    </span>
+                  </div>
+                )}
 
                 {/* Logout Button */}
                 <button
