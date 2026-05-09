@@ -66,12 +66,14 @@ function createWindow() {
   });
 
   // Load the static export via custom protocol
+  // Start at /dashboard — the frontend auth guard will redirect to /login if not authenticated.
+  // This preserves the session for users who are already logged in (PIN/MPIN login).
   const indexPath = path.join(OUT_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
-    mainWindow.loadURL('app://pos/login');
+    mainWindow.loadURL('app://pos/dashboard');
   } else {
     // Dev mode: load from Next.js dev server
-    mainWindow.loadURL('http://localhost:3002/login');
+    mainWindow.loadURL('http://localhost:3002/dashboard');
   }
 
   mainWindow.on('closed', () => {
@@ -216,12 +218,28 @@ function getMimeType(filePath) {
 }
 
 app.on('window-all-closed', () => {
-  shutdownOfflineEngine();
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    // On Windows/Linux, quit the app and shut down offline engine
+    shutdownOfflineEngine();
+    app.quit();
+  }
+  // On macOS, keep the app running in the dock (standard Mac behavior).
+  // Don't shutdown offline engine so it's ready when the window is reopened.
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  // macOS: user clicked the dock icon — reopen the window
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    createWindow();
+  }
+});
+
+app.on('will-quit', () => {
+  // Clean up offline engine when the app is fully quitting (Cmd+Q on Mac, or close on Windows/Linux)
+  shutdownOfflineEngine();
 });
 
 // ──── IPC: Printing ────
@@ -336,6 +354,14 @@ try {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
+  // GitHub token for accessing releases (read-only, works with private or public repo)
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'kevinjane71',
+    repo: 'dine-frontend',
+    token: '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',
+  });
+
   autoUpdater.on('error', (err) => {
     console.error('[AutoUpdater] Error:', err.message);
   });
@@ -346,16 +372,25 @@ try {
 ipcMain.handle('electron:checkForUpdates', async () => {
   if (!autoUpdater) return { available: false, error: 'updater not available' };
   try {
+    console.log('[AutoUpdater] Current version:', app.getVersion());
+    console.log('[AutoUpdater] Checking GitHub for updates...');
     const result = await autoUpdater.checkForUpdates();
-    if (result && result.updateInfo && result.updateInfo.version !== app.getVersion()) {
-      // Download the update
-      await autoUpdater.downloadUpdate();
-      return {
-        available: true,
-        version: result.updateInfo.version,
-        installed: true,
-      };
+    console.log('[AutoUpdater] Check result:', JSON.stringify(result?.updateInfo || null));
+    if (result && result.updateInfo) {
+      const remoteVersion = result.updateInfo.version;
+      const localVersion = app.getVersion();
+      console.log(`[AutoUpdater] Remote: ${remoteVersion}, Local: ${localVersion}`);
+      if (remoteVersion !== localVersion) {
+        console.log('[AutoUpdater] Update available! Downloading...');
+        await autoUpdater.downloadUpdate();
+        return {
+          available: true,
+          version: remoteVersion,
+          installed: true,
+        };
+      }
     }
+    console.log('[AutoUpdater] No update available');
     return { available: false };
   } catch (err) {
     console.error('[AutoUpdater] Check failed:', err);
