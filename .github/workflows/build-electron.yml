@@ -11,6 +11,11 @@ on:
         required: false
         default: 'true'
         type: boolean
+      build_mac:
+        description: 'Build Mac DMG (arm64 + x64)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   NEXT_PUBLIC_API_URL: https://dine-be2-phi.vercel.app
@@ -33,6 +38,10 @@ jobs:
             platform: win
             arch: ''
     runs-on: ${{ matrix.os }}
+    # On tag push: only build Windows. On manual trigger: build Mac only if build_mac is checked.
+    if: >-
+      matrix.platform == 'win' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.build_mac == 'true')
 
     steps:
       - name: Checkout code
