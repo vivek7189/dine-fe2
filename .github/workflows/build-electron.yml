@@ -21,27 +21,11 @@ env:
   NEXT_PUBLIC_API_URL: https://dine-be2-phi.vercel.app
 
 jobs:
-  build-electron:
+  # Windows exe — always builds (on tag push and manual trigger)
+  build-windows:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            platform: mac
-            arch: arm64
-          - os: macos-latest
-            platform: mac
-            arch: x64
-          - os: windows-latest
-            platform: win
-            arch: ''
-    runs-on: ${{ matrix.os }}
-    # On tag push: only build Windows. On manual trigger: build Mac only if build_mac is checked.
-    if: >-
-      matrix.platform == 'win' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.build_mac == 'true')
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -83,9 +67,57 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --config electron-builder.yml --publish always --win
+
+  # Mac DMG — only builds on manual trigger with build_mac checked
+  build-mac:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_mac == 'true'
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
         run: |
-          if [ -n "${{ matrix.arch }}" ]; then
-            npx electron-builder --config electron-builder.yml --publish always --${{ matrix.platform }} --${{ matrix.arch }}
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
           else
-            npx electron-builder --config electron-builder.yml --publish always --${{ matrix.platform }}
+            VERSION=$(node -p "require('./package.json').version")
           fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Set package.json version
+        shell: bash
+        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rebuild better-sqlite3 for Electron
+        shell: bash
+        run: npx electron-rebuild -f -w better-sqlite3
+
+      - name: Build Next.js static export for Electron
+        run: node scripts/build-electron.js
+
+      - name: Build Electron app and publish to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --config electron-builder.yml --publish always --mac --${{ matrix.arch }}
