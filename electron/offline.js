@@ -306,76 +306,83 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
   const parsedBody = body ? tryParse(body) : null;
   debugLog(`handleApiRequest: ${m} ${endpoint}`, parsedBody ? `body.restaurantId=${parsedBody.restaurantId}` : 'no body');
 
-  // Hot paths — order-taking flow: tables, orders, KOT, register, invoices, saved-carts, floors.
-  // These use local-first for reads so the dashboard/tables/kitchen pages are instant.
-  // Settings (tax, print, business, menu-theme) use cloud-first for correct data format.
-  const isHotPath = /\/(tables|orders|kot|register|invoices|saved-carts|floors|customers|menus|waiters|staff|offers|bookings)\b/.test(endpoint);
+  // ── ONLINE MODE: cloud-first (same as web) ──────────────────────────────
+  // When the machine has network, route ALL requests to the cloud API directly.
+  // This eliminates sync race conditions (duplicate orders, stale table status, etc.).
+  // Local SQLite is only used as a fallback when the cloud is unreachable.
+  const { net } = require('electron');
+  const isOnline = net.isOnline();
 
-  // Extract restaurant ID to check if local DB has been seeded
-  const hotRidMatch = endpoint.match(/\/api\/(?:tables|orders|kot|register|invoices|saved-carts|floors|customers|menus|waiters|staff|offers|bookings)\/([a-zA-Z0-9_-]+)/);
-  const hotRid = hotRidMatch ? hotRidMatch[1] : null;
-  // Only use local-first for hot paths AFTER the initial seed has completed.
-  // This prevents first-time users from seeing empty pages.
-  const localSeeded = hotRid && !seedingInProgress && hasLocalData(hotRid);
+  if (isOnline) {
+    debugLog(`ONLINE: proxying ${m} ${endpoint} to cloud`);
+    try {
+      const cloudResult = await proxyToCloud(endpoint, m, body, headers);
+      if (cloudResult.status_code < 400) {
+        return cloudResult;
+      }
+      // Cloud returned an error status — for writes, fall through to local
+      if (m !== 'GET') {
+        debugLog(`ONLINE WRITE failed (${cloudResult.status_code}), falling back to local`);
+      } else {
+        // For reads, try local fallback
+        const localFallback = routeLocally(endpoint, m, parsedBody);
+        if (localFallback.handled) {
+          return {
+            data: localFallback.data,
+            from_cache: true,
+            is_queued: false,
+            mutation_id: null,
+            status_code: localFallback.statusCode || 200,
+            error: null,
+          };
+        }
+        return cloudResult;
+      }
+    } catch (cloudErr) {
+      debugLog(`ONLINE: cloud error for ${m} ${endpoint}: ${cloudErr.message}`);
+      // Network error — fall through to offline path below
+    }
+  }
+
+  // ── OFFLINE MODE: local-first ───────────────────────────────────────────
+  // When offline (or cloud failed above), use local SQLite routing.
+  debugLog(`OFFLINE: routing ${m} ${endpoint} locally`);
 
   if (m === 'GET') {
-    if (isHotPath && localSeeded) {
-      // ── HOT reads: local-first for instant UI, cloud sync in background ──
-      const localResult = routeLocally(endpoint, m, parsedBody);
-      if (localResult.handled) {
-        // Serve from local SQLite instantly — cloud syncs in background via daemon
-        return {
-          data: localResult.data,
-          from_cache: true,
-          is_queued: false,
-          mutation_id: null,
-          status_code: localResult.statusCode || 200,
-          error: null,
-        };
-      }
-      // Local has no data — fall through to cloud (e.g., first load)
-    }
-
-    // ── COLD reads: cloud-first for settings/config (correct data format) ──
-    const cloudResult = await proxyToCloud(endpoint, m, body, headers);
-
-    if (cloudResult.status_code < 400) {
-      return cloudResult;
-    }
-
-    // Cloud failed — fall back to local router (offline mode)
-    const localResult2 = routeLocally(endpoint, m, parsedBody);
-    if (localResult2.handled) {
+    const localResult = routeLocally(endpoint, m, parsedBody);
+    if (localResult.handled) {
       return {
-        data: localResult2.data,
+        data: localResult.data,
         from_cache: true,
         is_queued: false,
         mutation_id: null,
-        status_code: localResult2.statusCode || 200,
+        status_code: localResult.statusCode || 200,
         error: null,
       };
     }
-
-    // Neither cloud nor local handled it — return the cloud error
-    return cloudResult;
+    // Local has no data either — return a generic error
+    return {
+      data: { error: 'No data available offline', success: false },
+      from_cache: false,
+      is_queued: false,
+      mutation_id: null,
+      status_code: 503,
+      error: 'No data available offline',
+    };
   }
 
-  // ── WRITE requests (POST/PATCH/PUT/DELETE): local-first for instant response ──
-  // Mutations go through local router for instant UI response, then sync to cloud
-  // in the background via change_log + sync daemon.
+  // ── OFFLINE WRITES: local-first + queue for sync ────────────────────────
   try {
-    debugLog(`WRITE: calling routeLocally for ${m} ${endpoint}`);
+    debugLog(`OFFLINE WRITE: calling routeLocally for ${m} ${endpoint}`);
     const localResult = routeLocally(endpoint, m, parsedBody);
-    debugLog(`WRITE: routeLocally returned handled=${localResult.handled}, statusCode=${localResult.statusCode || 'n/a'}`);
+    debugLog(`OFFLINE WRITE: routeLocally returned handled=${localResult.handled}, statusCode=${localResult.statusCode || 'n/a'}`);
 
     if (localResult.handled) {
       const sc = localResult.statusCode || 200;
       console.log(`[Offline] WRITE handled locally: ${m} ${endpoint} → status ${sc}`);
 
-      // If local router returned an error (e.g. createOrder threw inside safe()),
-      // propagate as a proper error so _electronRequest triggers the catch path.
       if (sc >= 400) {
-        debugLog(`WRITE: local error ${sc}:`, localResult.data);
+        debugLog(`OFFLINE WRITE: local error ${sc}:`, localResult.data);
         return {
           data: localResult.data,
           from_cache: false,
@@ -387,8 +394,6 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
       }
 
       wakeSync();
-      // Sync daemon handles pushing to cloud exclusively — do NOT also fire
-      // proxyToCloud here, as that causes duplicate orders on the backend.
       return {
         data: localResult.data,
         from_cache: false,
@@ -398,15 +403,21 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
         error: null,
       };
     }
-    debugLog(`WRITE: not handled locally, falling through to cloud`);
+    debugLog(`OFFLINE WRITE: not handled locally`);
   } catch (localErr) {
     console.error(`[Offline] WRITE local router error for ${m} ${endpoint}:`, localErr.message);
-    debugLog(`WRITE: routeLocally THREW: ${localErr.message}`, localErr.stack);
-    // Local router threw — still try cloud as fallback
+    debugLog(`OFFLINE WRITE: routeLocally THREW: ${localErr.message}`, localErr.stack);
   }
 
-  // Not handled locally — proxy to cloud
-  return proxyToCloud(endpoint, m, body, headers);
+  // Nothing handled it
+  return {
+    data: { error: 'Request failed offline', success: false },
+    from_cache: false,
+    is_queued: false,
+    mutation_id: null,
+    status_code: 503,
+    error: 'Request failed offline',
+  };
 }
 
 function tryParse(body) {
