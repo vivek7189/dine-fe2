@@ -14,6 +14,10 @@ import { FaWifi, FaSync, FaLock } from 'react-icons/fa';
 export default function OfflineBanner({ pendingCount = 0, failedCount = 0 }) {
   const { isOnline } = useNetworkStatus();
 
+  // Electron: offline mode is fully functional (SQLite), not read-only — hide the banner
+  const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
+  if (isElectron) return null;
+
   if (isOnline && failedCount === 0) return null;
   if (isOnline && pendingCount === 0 && failedCount === 0) return null;
 

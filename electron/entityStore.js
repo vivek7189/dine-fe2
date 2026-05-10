@@ -1,7 +1,18 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const pathMod = require('path');
 const { getLocalDb } = require('./localDb');
 
 const now = () => Date.now();
+
+// Diagnostic file logger — shared log path with offline.js
+const _debugLogPath = pathMod.join(require('os').homedir(), 'dine-offline-debug.log');
+function debugLog(...args) {
+  try {
+    const line = `[${new Date().toISOString()}] [entityStore] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`;
+    fs.appendFileSync(_debugLogPath, line);
+  } catch { /* ignore */ }
+}
 
 // ============================================
 // Helpers
@@ -617,6 +628,53 @@ function saveOrders(restaurantId, orders) {
   insertMany(orders);
 }
 
+// Enrich order items that are missing names by looking up the local menu cache.
+// This handles orders created before the write-time enrichment was added,
+// and also serves as a safety net if write-time enrichment fails.
+function enrichOrderItems(db, order) {
+  if (!order || !Array.isArray(order.items) || order.items.length === 0) return order;
+  // Check if any item is missing a name
+  const needsEnrichment = order.items.some(i => !i.name && i.menuItemId);
+  if (!needsEnrichment) return order;
+  try {
+    const rid = order.restaurantId;
+    if (!rid) return order;
+    const menuRows = db.prepare('SELECT id, data FROM menu_items WHERE restaurant_id = ?').all(rid);
+    if (menuRows.length === 0) return order;
+    const menuMap = {};
+    for (const row of menuRows) {
+      const parsed = parseData(row);
+      if (parsed) {
+        menuMap[row.id] = parsed;
+        if (parsed.id) menuMap[parsed.id] = parsed;
+        if (parsed._id) menuMap[parsed._id] = parsed;
+      }
+    }
+    order.items = order.items.map(item => {
+      if (item.name) return item; // already has name
+      const menuItem = menuMap[item.menuItemId];
+      if (!menuItem) return item;
+      const selectedVariant = item.selectedVariant || null;
+      const customizations = Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [];
+      let basePrice = typeof selectedVariant?.price === 'number'
+        ? selectedVariant.price
+        : (typeof item.basePrice === 'number' ? item.basePrice : menuItem.price);
+      const customizationPrice = customizations.reduce((sum, c) => sum + (typeof c.price === 'number' ? c.price : 0), 0);
+      const unitPrice = (basePrice || 0) + (customizationPrice || 0);
+      const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+      return {
+        ...item,
+        name: menuItem.name,
+        price: unitPrice,
+        total: unitPrice * qty,
+        category: menuItem.category || item.category || '',
+        shortCode: menuItem.shortCode || item.shortCode || null,
+      };
+    });
+  } catch (e) { /* non-critical — items display without names */ }
+  return order;
+}
+
 function getOrders(restaurantId, filters) {
   filters = filters || {};
   const db = getLocalDb();
@@ -662,13 +720,16 @@ function getOrders(restaurantId, filters) {
     params.push(parseInt(filters.limit));
   }
 
-  return parseRows(db.prepare(query).all(...params));
+  const orders = parseRows(db.prepare(query).all(...params));
+  // Enrich items at read-time as a safety net for orders missing item names
+  return orders.map(o => enrichOrderItems(db, o));
 }
 
 function getOrder(orderId) {
   const db = getLocalDb();
   const row = db.prepare('SELECT data FROM orders WHERE id = ?').get(orderId);
-  return parseData(row);
+  const order = parseData(row);
+  return enrichOrderItems(db, order);
 }
 
 // Helper: release a table when its linked order is completed/cancelled
@@ -695,18 +756,88 @@ function releaseTableForOrder(db, orderId, restaurantId) {
 }
 
 function createOrder(restaurantId, orderData) {
+  debugLog('createOrder called — restaurantId:', restaurantId, 'items:', (orderData.items || []).length);
   const db = getLocalDb();
   const ts = now();
   const id = orderData.id || crypto.randomUUID();
   const idempotencyKey = orderData.idempotencyKey || crypto.randomUUID();
-  const order = { ...orderData, id, idempotencyKey, restaurantId };
+
+  // Enrich items with name/price from local menu cache (mirrors backend logic).
+  // The frontend sends { menuItemId, quantity, basePrice, selectedVariant, selectedCustomizations }
+  // but not the item name — the backend resolves it from Firestore. We do the same from SQLite.
+  let enrichedItems = orderData.items || [];
+  try {
+    const menuRows = db.prepare('SELECT id, name, price, data FROM menu_items WHERE restaurant_id = ?').all(restaurantId);
+    console.log(`[entityStore] createOrder: found ${menuRows.length} menu items for restaurant ${restaurantId}`);
+    if (menuRows.length > 0 && enrichedItems.length > 0) {
+      // Build a fast lookup map by id
+      const menuMap = {};
+      for (const row of menuRows) {
+        const parsed = parseData(row);
+        if (parsed) {
+          menuMap[row.id] = parsed;
+          if (parsed.id) menuMap[parsed.id] = parsed;
+          if (parsed._id) menuMap[parsed._id] = parsed;
+        }
+      }
+      let totalAmount = 0;
+      enrichedItems = enrichedItems.map(item => {
+        // Try exact match, then fallback to name-based match
+        let menuItem = menuMap[item.menuItemId];
+        if (!menuItem && item.name) {
+          // Fallback: match by name if menuItemId lookup fails
+          menuItem = menuRows.map(r => parseData(r)).filter(Boolean)
+            .find(m => m.name && m.name.toLowerCase() === item.name.toLowerCase());
+        }
+        if (!menuItem) {
+          console.log(`[entityStore] createOrder: menu item NOT found for menuItemId=${item.menuItemId}, name=${item.name || 'N/A'}`);
+          return item; // keep as-is if not found
+        }
+        const selectedVariant = item.selectedVariant || null;
+        const customizations = Array.isArray(item.selectedCustomizations) ? item.selectedCustomizations : [];
+        let basePrice = typeof selectedVariant?.price === 'number'
+          ? selectedVariant.price
+          : (typeof item.basePrice === 'number' ? item.basePrice : menuItem.price);
+        const customizationPrice = customizations.reduce((sum, c) => sum + (typeof c.price === 'number' ? c.price : 0), 0);
+        const unitPrice = (basePrice || 0) + (customizationPrice || 0);
+        const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+        const itemTotal = unitPrice * qty;
+        totalAmount += itemTotal;
+        return {
+          menuItemId: item.menuItemId,
+          name: menuItem.name,
+          price: unitPrice,
+          quantity: qty,
+          total: itemTotal,
+          category: menuItem.category || '',
+          shortCode: menuItem.shortCode || null,
+          notes: item.notes || '',
+          selectedVariant: selectedVariant ? { name: selectedVariant.name, price: selectedVariant.price || 0 } : null,
+          selectedCustomizations: customizations.map(c => ({ id: c.id || null, name: c.name || c, price: typeof c.price === 'number' ? c.price : 0 })),
+        };
+      });
+      // Recalculate totals if not provided
+      if (!orderData.totalAmount && !orderData.finalAmount) {
+        orderData.totalAmount = totalAmount;
+      }
+    }
+  } catch (e) { console.error('[entityStore] createOrder enrichment error:', e); }
+
+  // Generate a local dailyOrderId if not provided (backend normally does this).
+  // Prefix with 'A' + short hex to distinguish offline-created orders.
+  let dailyOrderId = orderData.dailyOrderId || null;
+  if (!dailyOrderId) {
+    dailyOrderId = 'A' + id.replace(/-/g, '').slice(0, 5).toUpperCase();
+  }
+
+  const order = { ...orderData, items: enrichedItems, id, idempotencyKey, restaurantId, dailyOrderId, syncSource: 'offline', createdAt: new Date().toISOString() };
   db.prepare(
     `INSERT INTO orders
      (id, restaurant_id, daily_order_id, status, table_id, total, data, idempotency_key, is_local, synced_at, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id, restaurantId,
-    order.dailyOrderId || null,
+    dailyOrderId,
     order.status || 'confirmed',
     order.tableNumber || order.tableId || null,
     order.finalAmount || order.totalAmount || 0,
@@ -714,6 +845,7 @@ function createOrder(restaurantId, orderData) {
     idempotencyKey,
     1, null, ts, ts
   );
+  debugLog('createOrder INSERT success — id:', id, 'dailyOrderId:', dailyOrderId);
   logChange('order', id, restaurantId, 'CREATE', '/api/orders', 'POST', order);
 
   // Auto-update the linked table to 'occupied' so tables view reflects instantly.
@@ -1160,7 +1292,8 @@ function getKotItems(restaurantId, status) {
     // Non-critical — kot_queue data alone is fine
   }
 
-  return kotOrders;
+  // Enrich items at read-time for any KOT orders missing item names
+  return kotOrders.map(o => enrichOrderItems(db, o));
 }
 
 function updateKotStatus(orderId, restaurantId, status) {

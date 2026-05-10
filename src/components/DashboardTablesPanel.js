@@ -1063,9 +1063,9 @@ export default function DashboardTablesPanel({
                                     onClick={(e) => e.stopPropagation()}
                                     style={{
                                       position: 'absolute',
-                                      top: '100%',
+                                      bottom: '100%',
                                       left: 0,
-                                      marginTop: '4px',
+                                      marginBottom: '4px',
                                       background: '#ffffff',
                                       border: '1px solid #e5e7eb',
                                       borderRadius: '8px',

@@ -362,10 +362,11 @@ class ApiClient {
       throw new Error(errorData.message || errorData.error || `API request failed (${result.status_code})`);
     }
 
-    // Report network status to useNetworkStatus hook
-    if (result.from_cache) {
+    // Report network status — from_cache on Electron/Tauri just means "local-first SQLite",
+    // not a network failure. Only report offline if navigator confirms no connectivity.
+    if (result.from_cache && typeof navigator !== 'undefined' && !navigator.onLine) {
       reportNetworkFailure();
-    } else if (!result.is_queued) {
+    } else if (!result.from_cache && !result.is_queued) {
       reportNetworkSuccess();
     }
 
@@ -382,17 +383,27 @@ class ApiClient {
       });
     }
 
+    if (method !== 'GET') {
+      console.log(`[_electronRequest] ${method} ${endpoint} — sending IPC`);
+    }
+
     const result = await window.electronAPI.apiRequest({
       endpoint,
       method,
-      body: typeof config.body === 'string' ? config.body : null,
+      body: typeof config.body === 'string' ? config.body : (config.body ? JSON.stringify(config.body) : null),
       headers: Object.keys(headers).length > 0 ? headers : null,
     });
 
+    if (method !== 'GET') {
+      console.log(`[_electronRequest] ${method} ${endpoint} — result:`, { status_code: result?.status_code, error: result?.error, from_cache: result?.from_cache, is_queued: result?.is_queued, dataKeys: result?.data ? Object.keys(result.data) : null });
+    }
+
     // Handle errors (same logic as _tauriRequest)
-    if (result.error && result.status_code >= 400) {
+    // Check both top-level error field AND status_code (local router errors may have error=null but status>=400)
+    if ((result.error || result.status_code >= 400) && result.status_code >= 400) {
       let errorData;
-      try { errorData = JSON.parse(result.error); } catch { errorData = { error: result.error }; }
+      const errStr = result.error || (result.data ? JSON.stringify(result.data) : 'Unknown error');
+      try { errorData = typeof errStr === 'string' ? JSON.parse(errStr) : errStr; } catch { errorData = { error: errStr }; }
 
       if (result.status_code === 401 && errorData.inactive) {
         this.forceLogout();
@@ -428,10 +439,11 @@ class ApiClient {
       throw new Error(errorData.message || errorData.error || `API request failed (${result.status_code})`);
     }
 
-    // Report network status to useNetworkStatus hook
-    if (result.from_cache) {
+    // Report network status — from_cache on Electron/Tauri just means "local-first SQLite",
+    // not a network failure. Only report offline if navigator confirms no connectivity.
+    if (result.from_cache && typeof navigator !== 'undefined' && !navigator.onLine) {
       reportNetworkFailure();
-    } else if (!result.is_queued) {
+    } else if (!result.from_cache && !result.is_queued) {
       reportNetworkSuccess();
     }
 

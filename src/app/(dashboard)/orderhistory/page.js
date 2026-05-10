@@ -450,7 +450,7 @@ const OrderHistory = () => {
         return dateB - dateA;
       });
 
-      // Merge any pending offline orders so they show immediately
+      // Merge any pending offline orders from IndexedDB so they show immediately
       const mergedOrders = await mergeOfflineOrderHistory(filteredOrders, restaurantId);
       setOrders(mergedOrders);
       setTotalPages(response.pagination?.totalPages || 1);
@@ -2469,9 +2469,9 @@ const OrderHistory = () => {
                                       onClick={(e) => e.stopPropagation()}
                                       style={{
                                         position: 'absolute',
-                                        top: '100%',
+                                        bottom: '100%',
                                         right: 0,
-                                        marginTop: '4px',
+                                        marginBottom: '4px',
                                         background: '#ffffff',
                                         border: '1px solid #e5e7eb',
                                         borderRadius: '8px',
@@ -2893,9 +2893,9 @@ const OrderHistory = () => {
                                   onClick={(e) => e.stopPropagation()}
                                   style={{
                                     position: 'absolute',
-                                    top: '100%',
+                                    bottom: '100%',
                                     right: 0,
-                                    marginTop: '4px',
+                                    marginBottom: '4px',
                                     background: '#ffffff',
                                     border: '1px solid #e5e7eb',
                                     borderRadius: '8px',

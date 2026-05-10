@@ -92,14 +92,18 @@ function safe(fn) {
   try {
     const result = fn();
     if (result && typeof result.then === 'function') {
-      return result.catch((err) => ({
-        handled: true,
-        data: { error: err.message || 'Internal local error', success: false },
-        statusCode: 500,
-      }));
+      return result.catch((err) => {
+        console.error('[localRouter] safe() caught async error:', err.message, err.stack);
+        return {
+          handled: true,
+          data: { error: err.message || 'Internal local error', success: false },
+          statusCode: 500,
+        };
+      });
     }
     return result;
   } catch (err) {
+    console.error('[localRouter] safe() caught error:', err.message, err.stack);
     return {
       handled: true,
       data: { error: err.message || 'Internal local error', success: false },

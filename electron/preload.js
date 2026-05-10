@@ -76,4 +76,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Data management
   clearLocalData: () => ipcRenderer.invoke('electron:clearLocalData'),
+
+  // Emergency direct SQLite save — bypasses normal API routing
+  saveOrderDirect: (orderData) =>
+    ipcRenderer.invoke('electron:saveOrderDirect', orderData),
+
+  // Build version marker for debugging
+  buildVersion: 'v1.4.8-fix12',
 });

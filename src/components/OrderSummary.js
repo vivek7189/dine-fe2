@@ -1255,8 +1255,10 @@ const OrderSummary = ({
 
   const generateInvoice = async (orderId) => {
     // Try API first (gets formatted invoice with restaurant details)
+    // Electron: always try API — localRouter handles bill render from SQLite even when offline
+    const _isElectronInvoice = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
     try {
-      if (navigator.onLine) {
+      if (navigator.onLine || _isElectronInvoice) {
         const response = await apiClient.getBillRender(restaurantId, orderId);
         if (response?.success) {
           const invoiceData = response.invoice || response.bill;

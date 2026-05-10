@@ -532,8 +532,9 @@ const KitchenOrderTicket = () => {
   };
 
   // ─── Actions ───
+  const _isElectronKot = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
   const startCooking = async (kotId, orderId) => {
-    if (!isOnline) return;
+    if (!isOnline && !_isElectronKot) return;
     setUpdatingOrderId(orderId);
     try {
       await apiClient.startCooking(orderId);
@@ -548,7 +549,7 @@ const KitchenOrderTicket = () => {
   };
 
   const markReady = async (kotId, orderId) => {
-    if (!isOnline) return;
+    if (!isOnline && !_isElectronKot) return;
     setUpdatingOrderId(orderId);
     try {
       await apiClient.markReady(orderId);
@@ -564,7 +565,7 @@ const KitchenOrderTicket = () => {
   };
 
   const markDone = (kotId, orderId) => {
-    if (!isOnline) return;
+    if (!isOnline && !_isElectronKot) return;
     // Show transition overlay first
     setTransitioning(prev => ({ ...prev, [orderId]: { newStatus: 'completed', label: t('kot.tabDone'), targetTab: 'done' } }));
 
@@ -617,7 +618,7 @@ const KitchenOrderTicket = () => {
   };
 
   const cancelOrder = async (kotId, orderId) => {
-    if (!isOnline) return;
+    if (!isOnline && !_isElectronKot) return;
     const reason = prompt(t('kot.cancelReason'));
     if (reason === null) return;
     setUpdatingOrderId(orderId);
@@ -647,7 +648,7 @@ const KitchenOrderTicket = () => {
   };
 
   const confirmDeleteOrder = async () => {
-    if (!isOnline) return;
+    if (!isOnline && !_isElectronKot) return;
     const { orderId } = deleteModal;
     closeDeleteModal();
     setDeletingOrderId(orderId);

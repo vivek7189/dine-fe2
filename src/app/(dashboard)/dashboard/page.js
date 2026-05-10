@@ -345,8 +345,9 @@ function RestaurantPOSContent() {
     try {
       setTablesRefreshing(true);
 
-      // Offline: load from cache immediately
-      if (!navigator.onLine) {
+      // Offline: load from cache immediately (web only — Electron always queries SQLite)
+      const _isElectronPrefetch = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
+      if (!navigator.onLine && !_isElectronPrefetch) {
         const cached = getCachedTablesData(rid);
         if (cached?.floors) {
           setTablesData({ floors: cached.floors, tables: [] });
@@ -3167,6 +3168,7 @@ function RestaurantPOSContent() {
       console.error('Order processing error:', error);
 
       // If this is a network error (offline), try to queue the billing offline
+      // Electron: also allow IndexedDB fallback — the local SQLite path may have failed
       const isNetworkError = !navigator.onLine || error.message?.includes('Load failed') || error.message?.includes('Failed to fetch') || error.message?.includes('Network');
       if (isNetworkError && offlineEnabled) {
         try {
@@ -4066,7 +4068,10 @@ function RestaurantPOSContent() {
           const response = await apiClient.createOrder(orderData);
           console.log('Create order response:', response);
 
-          if (response.order) {
+          const _orderObj = response.order || response;
+          const _orderId = _orderObj?.id || _orderObj?.orderId || orderData.idempotencyKey;
+          const _dailyOrderId = _orderObj?.dailyOrderId || null;
+          if (_orderId || response.success) {
             console.log(`✅ Order created with status=confirmed. Table ${tableNumber || 'N/A'} managed by backend.`);
 
             // Background refresh tables
@@ -4078,20 +4083,20 @@ function RestaurantPOSContent() {
             setNotification({
               type: 'success',
               title: t('dashboard.orderSentToChefEmoji'),
-              message: t('dashboard.orderSentToChefSuccessMsg', { id: response.order.dailyOrderId || response.order.id.slice(-6) }),
+              message: t('dashboard.orderSentToChefSuccessMsg', { id: _dailyOrderId || (_orderId || '').slice?.(-6) || '' }),
               show: true
             });
 
             // Update KOT summary with real IDs and remove processing state
             setOrderSuccess({
-              orderId: response.order.id,
-              dailyOrderId: response.order.dailyOrderId,
+              orderId: _orderId,
+              dailyOrderId: _dailyOrderId,
               show: true,
               processing: false,
               message: t('dashboard.orderPlacedToKitchen'),
               kotData: {
-                orderId: response.order.id,
-                dailyOrderId: response.order.dailyOrderId,
+                orderId: _orderId,
+                dailyOrderId: _dailyOrderId,
                 items: cartKotItems,
                 tableNumber: savedTableNumber,
                 roomNumber: savedRoomNumber,
@@ -4116,8 +4121,8 @@ function RestaurantPOSContent() {
               try {
                 await apiClient.redeemCustomerWallet(walletCustId, {
                   amount: walletRedeem,
-                  orderId: response.order.id,
-                  notes: `Redeemed during billing for order #${response.order.dailyOrderId || response.order.id.slice(-6)}`
+                  orderId: _orderId,
+                  notes: `Redeemed during billing for order #${_dailyOrderId || (_orderId || '').slice?.(-6) || ''}`
                 });
                 console.log('💰 Wallet redeemed:', walletRedeem);
               } catch (walletErr) {
@@ -4126,45 +4131,93 @@ function RestaurantPOSContent() {
             }
 
             setTimeout(() => setNotification(null), 4000);
+          } else {
+            console.error('Order API returned no order object:', response);
           }
         } catch (apiError) {
-          console.error('Order API call failed, queuing for offline sync:', apiError);
+          console.error('Order API call failed:', apiError);
 
-          // Queue for offline sync instead of failing
-          try {
-            if (typeof queueOfflineOrder === 'function' && offlineEnabled) {
-              await queueOfflineOrder(orderData);
-              // Update summary to show queued instead of processing
-              setOrderSuccess(prev => prev ? { ...prev, processing: false, queued: true } : prev);
-              setNotification({
-                type: 'warning',
-                title: t('dashboard.orderQueued'),
-                message: t('dashboard.orderQueuedSyncMsg'),
-                show: true
-              });
-            } else {
-              // Fallback: restore cart for manual retry
+          // Electron: the normal API path failed. Use the emergency direct save to SQLite.
+          // Also queue to IndexedDB as a safety net — it worked before and ensures
+          // the order syncs to cloud even if SQLite save fails.
+          const _isElectronCatch = typeof window !== 'undefined' && !!window.electronAPI?.saveOrderDirect;
+          if (_isElectronCatch) {
+            console.log('[Electron] Normal API path failed, using saveOrderDirect emergency fallback');
+            let directSaveOk = false;
+            try {
+              const directResult = await window.electronAPI.saveOrderDirect(orderData);
+              console.log('[Electron] saveOrderDirect result:', directResult);
+              directSaveOk = directResult?.success === true;
+            } catch (directErr) {
+              console.error('[Electron] saveOrderDirect also failed:', directErr);
+            }
+            // Also queue to IndexedDB as safety net (so order syncs when online even if SQLite failed)
+            if (!directSaveOk) {
+              try {
+                if (typeof queueOfflineOrder === 'function' && offlineEnabled) {
+                  await queueOfflineOrder(orderData);
+                  console.log('[Electron] Fallback: order queued to IndexedDB');
+                }
+              } catch (iqErr) {
+                console.error('[Electron] IndexedDB fallback also failed:', iqErr);
+              }
+            }
+            // Set a local orderId so KOT auto-print triggers (it skips if orderId is null)
+            const localOrderId = orderData.idempotencyKey || 'local';
+            setOrderSuccess(prev => prev ? {
+              ...prev,
+              processing: false,
+              orderId: prev.orderId || localOrderId,
+              kotData: prev.kotData ? { ...prev.kotData, orderId: prev.kotData.orderId || localOrderId } : prev.kotData
+            } : prev);
+            setNotification({
+              type: 'success',
+              title: t('dashboard.orderSentToChefEmoji'),
+              message: directSaveOk ? 'Order saved locally. Will sync when online.' : 'Order queued. Will sync when online.',
+              show: true
+            });
+            // Background refresh tables from local DB
+            if (tableNumber || selectedTable?.number) {
+              prefetchTables(selectedRestaurant?.id);
+            }
+            setTimeout(() => setNotification(null), 4000);
+          } else {
+            // Web: Queue for offline sync via IndexedDB
+            try {
+              if (typeof queueOfflineOrder === 'function' && offlineEnabled) {
+                await queueOfflineOrder(orderData);
+                // Update summary to show queued instead of processing
+                setOrderSuccess(prev => prev ? { ...prev, processing: false, queued: true } : prev);
+                setNotification({
+                  type: 'warning',
+                  title: t('dashboard.orderQueued'),
+                  message: t('dashboard.orderQueuedSyncMsg'),
+                  show: true
+                });
+              } else {
+                // Fallback: restore cart for manual retry
+                setOrderSuccess(null);
+                setCart(cartBackup);
+                localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
+                setNotification({
+                  type: 'error',
+                  title: t('dashboard.orderFailed'),
+                  message: apiError.message || t('dashboard.orderFailedRestored'),
+                  show: true
+                });
+              }
+            } catch (queueError) {
+              console.error('Failed to queue order:', queueError);
               setOrderSuccess(null);
               setCart(cartBackup);
               localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
               setNotification({
                 type: 'error',
                 title: t('dashboard.orderFailed'),
-                message: apiError.message || t('dashboard.orderFailedRestored'),
+                message: t('dashboard.orderFailedRestored'),
                 show: true
               });
             }
-          } catch (queueError) {
-            console.error('Failed to queue order:', queueError);
-            setOrderSuccess(null);
-            setCart(cartBackup);
-            localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
-            setNotification({
-              type: 'error',
-              title: t('dashboard.orderFailed'),
-              message: t('dashboard.orderFailedRestored'),
-              show: true
-            });
           }
           setTimeout(() => setNotification(null), 6000);
         }
@@ -4471,18 +4524,29 @@ function RestaurantPOSContent() {
   }, [lastSyncEvent]);
 
   // Network transition notifications — only show offline (online is indicated by green dot + sync result)
+  const _isElectronOfflineNotice = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
   useEffect(() => {
     if (!networkTransition) return;
     if (networkTransition === 'went_offline') {
       setNotification({
-        type: 'error',
-        title: t('dashboard.youreOffline'),
-        message: t('dashboard.offlineNoticeMsg'),
+        type: _isElectronOfflineNotice ? 'info' : 'error',
+        title: _isElectronOfflineNotice ? 'Offline Mode Active' : t('dashboard.youreOffline'),
+        message: _isElectronOfflineNotice
+          ? `Offline mode — orders, billing & KOT saved locally. Auto-sync on reconnect. [${window.electronAPI?.buildVersion || '?'}]`
+          : t('dashboard.offlineNoticeMsg'),
+        show: true
+      });
+      setTimeout(() => setNotification(null), 5000);
+    }
+    if (networkTransition === 'came_online' && _isElectronOfflineNotice) {
+      setNotification({
+        type: 'success',
+        title: 'Back Online',
+        message: 'Connection restored. Syncing your offline orders to the cloud...',
         show: true
       });
       setTimeout(() => setNotification(null), 4000);
     }
-    // No "Back Online" notification — the green dot returning + "Orders Synced" notification is enough
     clearTransition();
   }, [networkTransition, clearTransition]);
 

@@ -29,7 +29,21 @@ const { initImageStore, saveFormDataImage, getImageUrl } = require('./imageStore
 const { startHub, stopHub, isHubRunning, getHubInfo, getConnectedTerminals, getPairingCode, generatePairingCode, verifyStaffLogin: hubVerifyStaffLogin } = require('./hub');
 const { advertiseHub, stopAdvertising, discoverHub, stopDiscovery, getDiscoveredHub, cleanup: cleanupLan } = require('./lanDiscovery');
 const { getTerminalId, getTerminalConfig, saveTerminalConfig, isPaired, isHub, setHubMode, clearPairing } = require('./terminalIdentity');
-const { verifyStaffLogin, saveStaffCredentials } = require('./entityStore');
+const entityStore = require('./entityStore');
+const { verifyStaffLogin, saveStaffCredentials } = entityStore;
+
+const fs = require('fs');
+const pathMod = require('path');
+
+// Diagnostic file logger — writes to ~/dine-offline-debug.log
+const _debugLogPath = pathMod.join(require('os').homedir(), 'dine-offline-debug.log');
+function debugLog(...args) {
+  try {
+    const line = `[${new Date().toISOString()}] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`;
+    fs.appendFileSync(_debugLogPath, line);
+  } catch { /* ignore */ }
+}
+debugLog('=== Offline engine module loaded ===');
 
 let WebSocket;
 try {
@@ -290,6 +304,7 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
 
   // 4. Route the request
   const parsedBody = body ? tryParse(body) : null;
+  debugLog(`handleApiRequest: ${m} ${endpoint}`, parsedBody ? `body.restaurantId=${parsedBody.restaurantId}` : 'no body');
 
   // Hot paths — order-taking flow: tables, orders, KOT, register, invoices, saved-carts, floors.
   // These use local-first for reads so the dashboard/tables/kitchen pages are instant.
@@ -348,20 +363,46 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
   // ── WRITE requests (POST/PATCH/PUT/DELETE): local-first for instant response ──
   // Mutations go through local router for instant UI response, then sync to cloud
   // in the background via change_log + sync daemon.
-  const localResult = routeLocally(endpoint, m, parsedBody);
+  try {
+    debugLog(`WRITE: calling routeLocally for ${m} ${endpoint}`);
+    const localResult = routeLocally(endpoint, m, parsedBody);
+    debugLog(`WRITE: routeLocally returned handled=${localResult.handled}, statusCode=${localResult.statusCode || 'n/a'}`);
 
-  if (localResult.handled) {
-    wakeSync();
-    // Also fire cloud request in background for immediate sync (don't await)
-    proxyToCloud(endpoint, m, body, headers).catch(() => {});
-    return {
-      data: localResult.data,
-      from_cache: false,
-      is_queued: true,
-      mutation_id: null,
-      status_code: localResult.statusCode || 200,
-      error: null,
-    };
+    if (localResult.handled) {
+      const sc = localResult.statusCode || 200;
+      console.log(`[Offline] WRITE handled locally: ${m} ${endpoint} → status ${sc}`);
+
+      // If local router returned an error (e.g. createOrder threw inside safe()),
+      // propagate as a proper error so _electronRequest triggers the catch path.
+      if (sc >= 400) {
+        debugLog(`WRITE: local error ${sc}:`, localResult.data);
+        return {
+          data: localResult.data,
+          from_cache: false,
+          is_queued: false,
+          mutation_id: null,
+          status_code: sc,
+          error: JSON.stringify(localResult.data),
+        };
+      }
+
+      wakeSync();
+      // Also fire cloud request in background for immediate sync (don't await)
+      proxyToCloud(endpoint, m, body, headers).catch(() => {});
+      return {
+        data: localResult.data,
+        from_cache: false,
+        is_queued: true,
+        mutation_id: null,
+        status_code: sc,
+        error: null,
+      };
+    }
+    debugLog(`WRITE: not handled locally, falling through to cloud`);
+  } catch (localErr) {
+    console.error(`[Offline] WRITE local router error for ${m} ${endpoint}:`, localErr.message);
+    debugLog(`WRITE: routeLocally THREW: ${localErr.message}`, localErr.stack);
+    // Local router threw — still try cloud as fallback
   }
 
   // Not handled locally — proxy to cloud
@@ -382,8 +423,33 @@ function tryParse(body) {
 
 function registerIPC() {
   // Main API proxy — single entry point for ALL API calls from renderer
+  debugLog('registerIPC: registering electron:apiRequest handler');
   ipcMain.handle('electron:apiRequest', async (_event, request) => {
-    return handleApiRequest(request);
+    debugLog(`IPC electron:apiRequest received: ${request?.method} ${request?.endpoint}`);
+    try {
+      const result = await handleApiRequest(request);
+      debugLog(`IPC electron:apiRequest done: ${request?.method} ${request?.endpoint} → status ${result?.status_code}`);
+      return result;
+    } catch (err) {
+      debugLog(`IPC electron:apiRequest ERROR: ${request?.method} ${request?.endpoint} → ${err.message}`);
+      throw err;
+    }
+  });
+
+  // Emergency direct order save — bypasses all routing, saves straight to SQLite
+  ipcMain.handle('electron:saveOrderDirect', async (_event, orderData) => {
+    try {
+      debugLog('saveOrderDirect called with restaurantId:', orderData?.restaurantId);
+      console.log('[Offline] saveOrderDirect called — emergency fallback');
+      const order = entityStore.createOrder(orderData.restaurantId, orderData);
+      debugLog('saveOrderDirect SUCCESS — order id:', order?.id);
+      wakeSync();
+      return { success: true, order };
+    } catch (err) {
+      debugLog('saveOrderDirect FAILED:', err.message, err.stack);
+      console.error('[Offline] saveOrderDirect FAILED:', err.message);
+      return { success: false, error: err.message };
+    }
   });
 
   // ── Sync Control ──
@@ -653,16 +719,30 @@ function registerIPC() {
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 function initOfflineEngine(app) {
+  debugLog('initOfflineEngine: starting');
   const userDataPath = app.getPath('userData');
+  debugLog('initOfflineEngine: userDataPath =', userDataPath);
 
   // Initialize local database (creates tables via migrations)
-  initLocalDb(userDataPath);
+  try {
+    initLocalDb(userDataPath);
+    debugLog('initOfflineEngine: DB initialized OK');
+  } catch (dbErr) {
+    debugLog('initOfflineEngine: DB init FAILED:', dbErr.message, dbErr.stack);
+    throw dbErr;
+  }
 
   // Initialize image storage directory
   initImageStore(userDataPath);
 
   // Register IPC handlers
-  registerIPC();
+  try {
+    registerIPC();
+    debugLog('initOfflineEngine: IPC handlers registered OK');
+  } catch (ipcErr) {
+    debugLog('initOfflineEngine: IPC registration FAILED:', ipcErr.message, ipcErr.stack);
+    throw ipcErr;
+  }
 
   // Start background sync daemon
   startSyncDaemon();
