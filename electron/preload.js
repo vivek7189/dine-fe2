@@ -82,5 +82,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('electron:saveOrderDirect', orderData),
 
   // Build version marker for debugging
-  buildVersion: 'v1.4.8-fix15',
+  buildVersion: 'v1.4.8-fix17',
 });

@@ -342,33 +342,35 @@ function RestaurantPOSContent() {
   // Optimistic table overrides — survives prefetchTables overwrites for 10 seconds
   const optimisticTableOverridesRef = useRef({});
 
+  // Apply optimistic overrides on top of any floors data
+  const applyTableOverrides = useCallback((floorsData) => {
+    if (!floorsData) return floorsData;
+    const overrides = optimisticTableOverridesRef.current;
+    const now = Date.now();
+    for (const key of Object.keys(overrides)) {
+      if (overrides[key].expiresAt < now) delete overrides[key];
+    }
+    if (Object.keys(overrides).length === 0) return floorsData;
+    return floorsData.map(floor => ({
+      ...floor,
+      tables: (floor.tables || []).map(t => {
+        const override = overrides[String(t.name)] || overrides[String(t.number)];
+        if (override) {
+          const { expiresAt, ...overrideData } = override;
+          return { ...t, ...overrideData };
+        }
+        return t;
+      })
+    }));
+  }, []);
+
   // Prefetch tables/floors once restaurant is known
   const prefetchTables = useCallback(async (rid) => {
     if (!rid) return;
     try {
       setTablesRefreshing(true);
 
-      // Helper: apply optimistic overrides on top of fetched data
-      const applyOverrides = (floorsData) => {
-        const overrides = optimisticTableOverridesRef.current;
-        const now = Date.now();
-        // Clean expired overrides
-        for (const key of Object.keys(overrides)) {
-          if (overrides[key].expiresAt < now) delete overrides[key];
-        }
-        if (Object.keys(overrides).length === 0) return floorsData;
-        return floorsData.map(floor => ({
-          ...floor,
-          tables: (floor.tables || []).map(t => {
-            const override = overrides[String(t.name)] || overrides[String(t.number)];
-            if (override) {
-              const { expiresAt, ...overrideData } = override;
-              return { ...t, ...overrideData };
-            }
-            return t;
-          })
-        }));
-      };
+      const applyOverrides = applyTableOverrides;
 
       // Offline: load from cache immediately (web only — Electron always queries SQLite)
       const _isElectronPrefetch = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
@@ -890,7 +892,7 @@ function RestaurantPOSContent() {
             // Restore cached state immediately
             if (cachedData.menuItems) setMenuItems(cachedData.menuItems);
             if (cachedData.floors) setFloors(cachedData.floors);
-            if (cachedData.tablesData) setTablesData(cachedData.tablesData);
+            if (cachedData.tablesData) setTablesData({ ...cachedData.tablesData, floors: applyTableOverrides(cachedData.tablesData.floors) });
             // Hide loading immediately to show cached data
             setLoading(false);
 
@@ -943,11 +945,11 @@ function RestaurantPOSContent() {
 
             // Reuse already-fetched floors for tables (avoid duplicate getFloors call)
             setTablesData({
-              floors: freshFloors,
-              tables: [] // Tables are nested in floors
+              floors: applyTableOverrides(freshFloors),
+              tables: []
             });
 
-            // Cache the fresh data with tablesData structure
+            // Cache the fresh data with tablesData structure (cache raw, not overridden)
             const dataToCache = {
               menuItems: freshMenuItems,
               floors: freshFloors,
@@ -1037,8 +1039,8 @@ function RestaurantPOSContent() {
           setFloors(fetchedFloors);
           // Reuse already-fetched floors for tables (avoid duplicate getFloors call)
           setTablesData({
-            floors: fetchedFloors,
-            tables: [] // Tables are nested in floors
+            floors: applyTableOverrides(fetchedFloors),
+            tables: []
           });
 
           const dataToCache = {
