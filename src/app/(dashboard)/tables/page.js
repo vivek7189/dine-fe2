@@ -847,24 +847,29 @@ const TableManagement = () => {
   };
 
   const updateTableStatus = async (tableId, newStatus, additionalData = {}) => {
-    setActionLoading(true);
+    // Optimistic: update UI immediately before API call
+    const prevFloors = floors;
+    setFloors(prev => prev.map(floor => ({
+      ...floor,
+      tables: (floor.tables || []).map(table => {
+        if (table.id === tableId) {
+          const updated = { ...table, status: newStatus, ...additionalData };
+          if (newStatus === 'available') { updated.customerName = null; updated.startTime = null; updated.reservationTime = null; updated.currentOrderId = null; }
+          return updated;
+        }
+        return table;
+      })
+    })));
+    setTableStatusesForDate(prev => ({ ...prev, [tableId]: newStatus }));
+    setActiveDropdown(null);
+
     try {
       await apiClient.updateTableStatus(tableId, newStatus, additionalData.orderId, selectedRestaurant?.id);
-      setFloors(prev => prev.map(floor => ({
-        ...floor,
-        tables: (floor.tables || []).map(table => {
-          if (table.id === tableId) {
-            const updated = { ...table, status: newStatus, ...additionalData };
-            if (newStatus === 'available') { updated.customerName = null; updated.startTime = null; updated.reservationTime = null; }
-            return updated;
-          }
-          return table;
-        })
-      })));
-      setTableStatusesForDate(prev => ({ ...prev, [tableId]: newStatus }));
-      setActiveDropdown(null);
-    } catch (err) { showError(`Failed: ${err.message}`); }
-    finally { setActionLoading(false); }
+    } catch (err) {
+      // Revert on error
+      setFloors(prevFloors);
+      showError(`Failed: ${err.message}`);
+    }
   };
 
   const deleteTable = async (tableId) => {
@@ -2480,6 +2485,20 @@ const TableManagement = () => {
         countryCode={selectedRestaurant?.countryCode || 'IN'}
         businessType={selectedRestaurant?.businessType || 'restaurant'}
         onRefreshTables={() => loadFloorsAndTables(selectedRestaurant?.id, true)}
+        onOptimisticTableUpdate={(tableId, newStatus) => {
+          setFloors(prev => prev.map(floor => ({
+            ...floor,
+            tables: (floor.tables || []).map(t => {
+              if (t.id === tableId) {
+                const updated = { ...t, status: newStatus, currentOrderId: null, currentOrderTotal: null };
+                if (newStatus === 'available') { updated.customerName = null; updated.startTime = null; }
+                return updated;
+              }
+              return t;
+            })
+          })));
+          setTableStatusesForDate(prev => ({ ...prev, [tableId]: newStatus }));
+        }}
       />
 
       <NotificationContainer />

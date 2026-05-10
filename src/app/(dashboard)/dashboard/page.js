@@ -339,18 +339,43 @@ function RestaurantPOSContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isListeningVoice]);
 
+  // Optimistic table overrides — survives prefetchTables overwrites for 10 seconds
+  const optimisticTableOverridesRef = useRef({});
+
   // Prefetch tables/floors once restaurant is known
   const prefetchTables = useCallback(async (rid) => {
     if (!rid) return;
     try {
       setTablesRefreshing(true);
 
+      // Helper: apply optimistic overrides on top of fetched data
+      const applyOverrides = (floorsData) => {
+        const overrides = optimisticTableOverridesRef.current;
+        const now = Date.now();
+        // Clean expired overrides
+        for (const key of Object.keys(overrides)) {
+          if (overrides[key].expiresAt < now) delete overrides[key];
+        }
+        if (Object.keys(overrides).length === 0) return floorsData;
+        return floorsData.map(floor => ({
+          ...floor,
+          tables: (floor.tables || []).map(t => {
+            const override = overrides[String(t.name)] || overrides[String(t.number)];
+            if (override) {
+              const { expiresAt, ...overrideData } = override;
+              return { ...t, ...overrideData };
+            }
+            return t;
+          })
+        }));
+      };
+
       // Offline: load from cache immediately (web only — Electron always queries SQLite)
       const _isElectronPrefetch = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
       if (!navigator.onLine && !_isElectronPrefetch) {
         const cached = getCachedTablesData(rid);
         if (cached?.floors) {
-          setTablesData({ floors: cached.floors, tables: [] });
+          setTablesData({ floors: applyOverrides(cached.floors), tables: [] });
           return;
         }
       }
@@ -359,14 +384,14 @@ function RestaurantPOSContent() {
 
       if (floorsRes) {
         const floorsData = floorsRes?.floors || floorsRes || [];
-        setTablesData({ floors: floorsData, tables: [] });
+        setTablesData({ floors: applyOverrides(floorsData), tables: [] });
         // Cache for offline use
         setCachedTablesData(rid, { floors: floorsData });
       } else {
         // API failed — try cache fallback
         const cached = getCachedTablesData(rid);
         if (cached?.floors) {
-          setTablesData({ floors: cached.floors, tables: [] });
+          setTablesData({ floors: applyOverrides(cached.floors), tables: [] });
         } else {
           setTablesData({ floors: [], tables: [] });
         }
@@ -375,6 +400,29 @@ function RestaurantPOSContent() {
       setTablesRefreshing(false);
     }
   }, []);
+
+  // Optimistic table status update — instantly change UI, revert on error
+  const optimisticTableStatus = useCallback((tableName, status, orderId = null, orderTotal = null) => {
+    if (!tableName) return;
+    // Store override so prefetchTables won't overwrite it
+    optimisticTableOverridesRef.current[String(tableName)] = {
+      status, currentOrderId: orderId, currentOrderTotal: orderTotal,
+      lastOrderTime: new Date().toISOString(),
+      expiresAt: Date.now() + 10000, // 10 second TTL
+    };
+    setTablesData(prev => ({
+      ...prev,
+      floors: (prev.floors || []).map(floor => ({
+        ...floor,
+        tables: (floor.tables || []).map(t =>
+          (String(t.name) === String(tableName) || String(t.number) === String(tableName))
+            ? { ...t, status, currentOrderId: orderId, currentOrderTotal: orderTotal, lastOrderTime: new Date().toISOString() }
+            : t
+        )
+      }))
+    }));
+  }, []);
+
   const [fullscreenStep, setFullscreenStep] = useState(0); // 0: normal, 1: nav hidden, 2: fullscreen
   const [showLogoutDropdown, setShowLogoutDropdown] = useState(false);
   const [user, setUser] = useState(null);
@@ -2819,6 +2867,12 @@ function RestaurantPOSContent() {
 
         console.log('🔄 Update data for existing order:', updateData);
 
+        // Optimistic: mark table as available immediately (billing completes the order)
+        const billingTableName = tableToUse || currentOrder.tableNumber;
+        if (billingTableName) {
+          optimisticTableStatus(billingTableName, 'available', null, null);
+        }
+
         // OFFLINE PATH: Queue update + payment for later sync
         // Check both isOnline state AND navigator.onLine for reliability (WebKit can be slow to fire offline events)
         // Electron: skip — apiClient routes through offline engine / local SQLite
@@ -3016,6 +3070,12 @@ function RestaurantPOSContent() {
 
         console.log('🛒 Creating order with data:', orderData);
 
+        // Optimistic: mark table as available immediately (direct billing = completed order)
+        const newBillingTableName = finalTableNumber || tableToUse;
+        if (newBillingTableName) {
+          optimisticTableStatus(newBillingTableName, 'available', null, null);
+        }
+
         // OFFLINE PATH: Queue order + payment for later sync
         // Electron: skip — apiClient routes through offline engine / local SQLite
         const _isElectronNewBilling = typeof window !== 'undefined' && !!window.electronAPI?.apiRequest;
@@ -3166,6 +3226,12 @@ function RestaurantPOSContent() {
 
     } catch (error) {
       console.error('Order processing error:', error);
+
+      // Revert optimistic table status — mark back as occupied since billing failed
+      const revertTableName = tableToUse || currentOrder?.tableNumber || selectedTable?.name;
+      if (revertTableName) {
+        optimisticTableStatus(revertTableName, 'occupied', currentOrder?.id || null, null);
+      }
 
       // If this is a network error (offline), try to queue the billing offline
       // Electron: also allow IndexedDB fallback — the local SQLite path may have failed
@@ -4055,6 +4121,11 @@ function RestaurantPOSContent() {
           }
         });
 
+        // Optimistic: mark table as occupied immediately
+        if (savedTableNumber) {
+          optimisticTableStatus(savedTableNumber, 'occupied', null, orderData.finalAmount || 0);
+        }
+
         // Clear cart and reset immediately for fast next-order flow
         setActiveSavedOrderId(null);
         handleOrderActionComplete({
@@ -4199,6 +4270,8 @@ function RestaurantPOSContent() {
                 setOrderSuccess(null);
                 setCart(cartBackup);
                 localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
+                // Revert optimistic table status
+                if (savedTableNumber) optimisticTableStatus(savedTableNumber, 'available', null, null);
                 setNotification({
                   type: 'error',
                   title: t('dashboard.orderFailed'),
@@ -4211,6 +4284,8 @@ function RestaurantPOSContent() {
               setOrderSuccess(null);
               setCart(cartBackup);
               localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
+              // Revert optimistic table status
+              if (savedTableNumber) optimisticTableStatus(savedTableNumber, 'available', null, null);
               setNotification({
                 type: 'error',
                 title: t('dashboard.orderFailed'),
@@ -6282,16 +6357,7 @@ function RestaurantPOSContent() {
                     }}>
                       {viewMode === 'orders' ? t('dashboard.tables') : t('dashboard.orders')}
                     </span>
-                    {tablesRefreshing && (
-                      <div style={{ position: 'absolute', top: '-6px', right: '-6px' }}>
-                        <svg width="14" height="14" viewBox="0 0 50 50">
-                          <circle cx="25" cy="25" r="20" stroke="#ef4444" strokeWidth="6" fill="none" opacity="0.2" />
-                          <path d="M25 5 a20 20 0 0 1 0 40 a20 20 0 0 1 0-40" stroke="#ef4444" strokeWidth="6" fill="none">
-                            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite" />
-                          </path>
-                        </svg>
-                      </div>
-                    )}
+                    {/* Refreshing spinner removed — optimistic updates handle instant UI changes */}
                 </button>
                 </div>
 
@@ -6900,6 +6966,19 @@ function RestaurantPOSContent() {
                   if (selectedRestaurant?.id) {
                     prefetchTables(selectedRestaurant.id);
                   }
+                }}
+                onOptimisticTableUpdate={(tableId, newStatus) => {
+                  setTablesData(prev => ({
+                    ...prev,
+                    floors: (prev.floors || []).map(floor => ({
+                      ...floor,
+                      tables: (floor.tables || []).map(t =>
+                        t.id === tableId
+                          ? { ...t, status: newStatus, currentOrderId: null, currentOrderTotal: null, customerName: null, startTime: null }
+                          : t
+                      )
+                    }))
+                  }));
                 }}
                 onTakeOrder={(tbl, tableInfo) => {
                   // Clear previous order data when taking order from a new table

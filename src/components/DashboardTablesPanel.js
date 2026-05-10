@@ -55,6 +55,7 @@ export default function DashboardTablesPanel({
   menuItems,
   printSettings,
   onRefreshTables, // Callback to refresh tables data after billing
+  onOptimisticTableUpdate, // Optimistic table status update (instant UI change)
   recentlyUpdatedTableId, // Table ID that just had an order action (for highlight animation)
   onClearRecentlyUpdated, // Callback to clear the highlight
   upiSettings = {},
@@ -589,22 +590,6 @@ export default function DashboardTablesPanel({
           0%, 100% { opacity: 0.55; }
           50% { opacity: 0.35; }
         }
-        .table-card-updated {
-          position: relative;
-          pointer-events: none;
-        }
-        .table-card-updated > * {
-          opacity: 0.3;
-        }
-        .table-card-updated::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: rgba(254, 242, 242, 0.6);
-          animation: tablePulseOverlay 1.8s ease-in-out infinite;
-          z-index: 10;
-        }
         .table-card {
           transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -670,12 +655,7 @@ export default function DashboardTablesPanel({
                 {group.tables?.length || 0} Tables
               </span>
             </div>
-            {isRefreshing && (
-              <div style={{ fontSize: '11px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div className="animate-spin w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full"></div>
-                Refreshing...
-            </div>
-          )}
+            {/* Refreshing indicator removed — optimistic updates handle instant UI changes */}
           </div>
 
           <div style={{
@@ -699,7 +679,7 @@ export default function DashboardTablesPanel({
                 <div
                   key={t.id || tIdx}
                   ref={isRecentlyUpdated ? updatedTableRef : undefined}
-                  className={`table-card${isRecentlyUpdated ? ' table-card-updated' : ''}`}
+                  className="table-card"
                   style={{
                     background: config.bg, // Light background color based on status
                     borderRadius: '12px',
@@ -743,28 +723,6 @@ export default function DashboardTablesPanel({
                          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
                       </rect>
                     </svg>
-                  )}
-
-                  {/* Updating spinner overlay */}
-                  {isRecentlyUpdated && (
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 20,
-                      pointerEvents: 'none',
-                    }}>
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        border: '3px solid #fecaca',
-                        borderTopColor: '#ef4444',
-                        animation: 'tableSpinRing 0.8s linear infinite',
-                      }} />
-                    </div>
                   )}
 
                   <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -1298,6 +1256,7 @@ export default function DashboardTablesPanel({
         upiSettings={upiSettings}
         whatsappConnected={whatsappConnected}
         onRefreshTables={onRefreshTables}
+        onOptimisticTableUpdate={onOptimisticTableUpdate}
       />
 
       {/* Order Summary Slider */}

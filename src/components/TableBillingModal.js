@@ -28,6 +28,7 @@ export default function TableBillingModal({
   upiSettings = {},
   whatsappConnected = false,
   onRefreshTables,
+  onOptimisticTableUpdate,
 }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -171,6 +172,12 @@ export default function TableBillingModal({
         }
       };
 
+      // Optimistic: close modal and mark table available immediately
+      handleClose();
+      if (onOptimisticTableUpdate && table) {
+        onOptimisticTableUpdate(table.id, 'available');
+      }
+
       await apiClient.updateOrder(order.id, updateData);
 
       // Process payment
@@ -192,10 +199,7 @@ export default function TableBillingModal({
         }
       }
 
-      // Close modal
-      handleClose();
-
-      // Refresh tables in background
+      // Background refresh to sync final state from server
       if (onRefreshTables) {
         onRefreshTables();
       }
@@ -203,6 +207,10 @@ export default function TableBillingModal({
       console.log('Billing completed for order:', order.id);
     } catch (error) {
       console.error('Billing error:', error);
+      // Revert: refresh tables to restore actual state from server
+      if (onRefreshTables) {
+        onRefreshTables();
+      }
       alert('Billing failed: ' + (error.message || 'Unknown error'));
     } finally {
       setModalProcessing(false);

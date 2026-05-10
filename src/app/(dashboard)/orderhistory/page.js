@@ -2292,19 +2292,7 @@ const OrderHistory = () => {
 
       {/* Orders List */}
       <div className="flex-1 p-3 sm:px-6 sm:py-4 overflow-y-auto relative">
-        {/* Fetching overlay — semi-transparent with spinner when loading with existing orders */}
-        {(loading || backgroundLoading) && orders.length > 0 && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-start justify-center pt-20" style={{ animation: 'fadeIn 0.15s ease-out' }}>
-            <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-lg border border-gray-200" style={{ animation: 'slideDown 0.2s ease-out' }}>
-              <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm font-medium text-gray-700">{t('orderHistory.updatingOrders')}</span>
-            </div>
-            <style>{`
-              @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-              @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-            `}</style>
-          </div>
-        )}
+        {/* Overlay removed — thin loading bar at top is sufficient */}
         <div className="w-full px-3 sm:px-6 lg:px-8">
           {!loading && orders.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-16 text-center">
