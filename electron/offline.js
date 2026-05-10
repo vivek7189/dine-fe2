@@ -387,8 +387,8 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
       }
 
       wakeSync();
-      // Also fire cloud request in background for immediate sync (don't await)
-      proxyToCloud(endpoint, m, body, headers).catch(() => {});
+      // Sync daemon handles pushing to cloud exclusively — do NOT also fire
+      // proxyToCloud here, as that causes duplicate orders on the backend.
       return {
         data: localResult.data,
         from_cache: false,

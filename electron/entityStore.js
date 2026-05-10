@@ -195,16 +195,49 @@ function saveTables(restaurantId, tables) {
   const db = getLocalDb();
   const ts = now();
   const insertMany = db.transaction((tables) => {
+    // Before wiping, snapshot locally-occupied tables that have active orders
+    // so we don't overwrite local status with stale cloud data.
+    const localOccupied = {};
+    try {
+      const rows = db.prepare(
+        "SELECT id, status, current_order_id, data FROM tables_local WHERE restaurant_id = ? AND status = 'occupied' AND current_order_id IS NOT NULL"
+      ).all(restaurantId);
+      for (const row of rows) {
+        // Verify the order actually exists locally (not a stale reference)
+        const orderExists = db.prepare('SELECT 1 FROM orders WHERE id = ? AND status NOT IN (?, ?)').get(row.current_order_id, 'completed', 'cancelled');
+        if (orderExists) {
+          localOccupied[row.id] = { status: row.status, currentOrderId: row.current_order_id, data: row.data };
+        }
+      }
+    } catch (e) { /* ignore — fresh DB might not have orders table yet */ }
+
     db.prepare('DELETE FROM tables_local WHERE restaurant_id = ?').run(restaurantId);
     const stmt = db.prepare(
       'INSERT INTO tables_local (id, restaurant_id, floor_id, name, status, current_order_id, data, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
     for (const table of tables) {
+      const tableId = table.id || table._id;
+      let status = table.status || 'available';
+      let currentOrderId = table.currentOrderId || null;
+      let dataJson = JSON.stringify(table);
+
+      // Preserve local occupied status if cloud hasn't caught up yet
+      const local = localOccupied[tableId];
+      if (local && status !== 'occupied') {
+        status = 'occupied';
+        currentOrderId = local.currentOrderId;
+        // Merge: use cloud data but override status fields
+        try {
+          const merged = { ...table, status: 'occupied', currentOrderId: local.currentOrderId };
+          dataJson = JSON.stringify(merged);
+        } catch { /* use cloud data as-is */ }
+      }
+
       stmt.run(
-        table.id || table._id, restaurantId,
+        tableId, restaurantId,
         table.floor || table.floorId || '',
-        table.name || '', table.status || 'available',
-        table.currentOrderId || null, JSON.stringify(table), ts
+        table.name || '', status,
+        currentOrderId, dataJson, ts
       );
     }
   });
