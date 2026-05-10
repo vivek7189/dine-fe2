@@ -226,7 +226,7 @@ async function pushChanges() {
   for (const entry of rows) {
     const { id, endpoint, method, payload } = entry;
 
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json', 'X-Sync-Source': 'offline' };
     const token = getAuthToken();
     if (token) headers['Authorization'] = token;
 

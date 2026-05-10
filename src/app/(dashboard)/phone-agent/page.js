@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import {
   FaPhone,
@@ -102,14 +103,7 @@ export default function PhoneAgentPage() {
     setRestaurantId(id);
   }, [router]);
 
-  // Load agent data
-  useEffect(() => {
-    if (restaurantId) {
-      loadAgentStatus();
-    }
-  }, [restaurantId]);
-
-  const loadAgentStatus = async () => {
+  const loadAgentStatus = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get(`/api/bolna/status/${restaurantId}`);
@@ -132,7 +126,14 @@ export default function PhoneAgentPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId]);
+
+  // Load agent data
+  useEffect(() => {
+    if (restaurantId) {
+      loadAgentStatus();
+    }
+  }, [restaurantId, loadAgentStatus]);
 
   // Enable phone agent
   const handleEnable = async () => {
@@ -220,7 +221,7 @@ export default function PhoneAgentPage() {
   };
 
   // Load call logs
-  const loadCallLogs = async () => {
+  const loadCallLogs = useCallback(async () => {
     setCallsLoading(true);
     try {
       const response = await apiClient.get(`/api/bolna/calls/${restaurantId}?limit=50`);
@@ -232,14 +233,14 @@ export default function PhoneAgentPage() {
     } finally {
       setCallsLoading(false);
     }
-  };
+  }, [restaurantId]);
 
   // Load call logs when switching to that tab
   useEffect(() => {
     if (activeTab === 'calls' && restaurantId && agentExists) {
       loadCallLogs();
     }
-  }, [activeTab, restaurantId, agentExists]);
+  }, [activeTab, restaurantId, agentExists, loadCallLogs]);
 
   // Disable agent
   const handleDisable = async () => {
@@ -517,28 +518,11 @@ function SetupTab({ agentExists, agent, settings, setSettings, enabling, setting
                 <span className="text-xl font-bold text-emerald-600">3</span>
               </div>
               <h4 className="font-semibold text-gray-900 mb-1">AI Answers Calls</h4>
-              <p className="text-sm text-gray-500">When customers call and you don't pick up, AI answers — handles menu queries, bookings, and orders.</p>
+              <p className="text-sm text-gray-500">When customers call and you don&apos;t pick up, AI answers — handles menu queries, bookings, and orders.</p>
             </div>
           </div>
         </div>
 
-        {/* Pricing Info */}
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-6">
-          <div className="flex items-start gap-3">
-            <FaInfoCircle className="text-amber-500 text-xl mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-1">Pricing</h4>
-              <p className="text-sm text-gray-600 mb-2">
-                Powered by Bolna AI. Pay only for what you use:
-              </p>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>~ Rs.5/min per call (Pay-as-you-go) or ~ Rs.2.50/min with your own API key</li>
-                <li>Phone number: ~$2-5/month</li>
-                <li>50 calls/month (2 min avg) = Rs.510/month</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
@@ -643,7 +627,7 @@ function SetupTab({ agentExists, agent, settings, setSettings, enabling, setting
             <ForwardingOption
               label="Forward if busy"
               code={`**67*${agent.phoneNumber}#`}
-              description="AI answers only when owner's line is busy."
+              description="AI answers only when owner&apos;s line is busy."
               copyToClipboard={copyToClipboard}
             />
             <ForwardingOption
@@ -796,7 +780,7 @@ function MenuTab({ agentExists, agent, syncing, handleSyncMenu }) {
           <p className="text-sm text-blue-700">
             <FaInfoCircle className="inline mr-2" />
             <strong>Tip:</strong> Want the agent to know more? Go to{' '}
-            <a href="/dineai" className="underline font-medium">DineAI Studio</a>{' '}
+            <Link href="/dineai" className="underline font-medium">DineAI Studio</Link>{' '}
             to upload documents, add FAQs, and train the knowledge base. The phone agent uses the same knowledge.
           </p>
         </div>
