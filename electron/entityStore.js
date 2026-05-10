@@ -851,13 +851,28 @@ function createOrder(restaurantId, orderData) {
   // Auto-update the linked table to 'occupied' so tables view reflects instantly.
   // Matches the exact fields the backend sets in Firestore on order creation.
   const tbl = order.tableNumber || order.tableId;
+  debugLog('createOrder table update — tbl:', tbl, 'restaurantId:', restaurantId);
   if (tbl) {
-    // Find the table by name/number (tableNumber is the name the frontend sends)
+    // Find the table by name/number OR by number field in JSON data
     const tableRow = db.prepare(
-      'SELECT id, data FROM tables_local WHERE restaurant_id = ? AND (name = ? OR id = ?)'
+      'SELECT id, name, data FROM tables_local WHERE restaurant_id = ? AND (name = ? OR id = ?)'
     ).get(restaurantId, String(tbl), String(tbl));
-    if (tableRow) {
-      const tData = parseData(tableRow);
+    // If no match by name/id, try matching by number field in the JSON data
+    let finalTableRow = tableRow;
+    if (!finalTableRow) {
+      const allTables = db.prepare('SELECT id, name, data FROM tables_local WHERE restaurant_id = ?').all(restaurantId);
+      debugLog('createOrder table lookup miss — tbl:', tbl, 'total tables:', allTables.length, 'names:', allTables.map(r => r.name).join(','));
+      for (const row of allTables) {
+        const parsed = parseData(row);
+        if (parsed && (String(parsed.number) === String(tbl) || String(parsed.name) === String(tbl))) {
+          finalTableRow = row;
+          break;
+        }
+      }
+    }
+    if (finalTableRow) {
+      debugLog('createOrder table found — id:', finalTableRow.id, 'name:', finalTableRow.name);
+      const tData = parseData(finalTableRow);
       if (tData) {
         tData.status = 'occupied';
         tData.currentOrderId = id;
@@ -866,8 +881,11 @@ function createOrder(restaurantId, orderData) {
         tData.updatedAt = new Date().toISOString();
         db.prepare(
           'UPDATE tables_local SET status = ?, current_order_id = ?, data = ?, synced_at = ? WHERE id = ?'
-        ).run('occupied', id, JSON.stringify(tData), ts, tableRow.id);
+        ).run('occupied', id, JSON.stringify(tData), ts, finalTableRow.id);
+        debugLog('createOrder table updated to occupied — id:', finalTableRow.id);
       }
+    } else {
+      debugLog('createOrder table NOT found — tbl:', tbl);
     }
   }
 

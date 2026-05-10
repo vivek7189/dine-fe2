@@ -290,33 +290,38 @@ function routeLocally(endpoint, method, body) {
   }
   if (m === 'GET' && (p = match('/api/admin/tax/:restaurantId', path))) {
     return safe(() => {
-      const tax = entityStore.getTaxSettings(p.restaurantId);
-      if (!tax) return NOT_HANDLED;
-      return ok({ tax, success: true });
+      const raw = entityStore.getTaxSettings(p.restaurantId);
+      if (!raw) return NOT_HANDLED;
+      // Sync daemon stores full API response; unwrap if nested
+      const tax = raw.taxSettings || raw;
+      return ok({ taxSettings: tax, success: true });
     });
   }
 
   // ── BUSINESS ──
   if (m === 'PUT' && (p = match('/api/admin/business/:restaurantId', path))) {
-    return safe(() => ok({ business: entityStore.updateBusinessSettings(p.restaurantId, body), success: true }));
+    return safe(() => ok({ businessSettings: entityStore.updateBusinessSettings(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/admin/business/:restaurantId', path))) {
     return safe(() => {
-      const business = entityStore.getBusinessSettings(p.restaurantId);
-      if (!business) return NOT_HANDLED;
-      return ok({ business, success: true });
+      const raw = entityStore.getBusinessSettings(p.restaurantId);
+      if (!raw) return NOT_HANDLED;
+      const business = raw.businessSettings || raw;
+      return ok({ businessSettings: business, success: true });
     });
   }
 
   // ── PRINT SETTINGS ──
   if (m === 'PUT' && (p = match('/api/admin/print-settings/:restaurantId', path))) {
-    return safe(() => ok({ settings: entityStore.updatePrintSettings(p.restaurantId, body), success: true }));
+    return safe(() => ok({ printSettings: entityStore.updatePrintSettings(p.restaurantId, body), success: true }));
   }
   if (m === 'GET' && (p = match('/api/admin/print-settings/:restaurantId', path))) {
     return safe(() => {
-      const settings = entityStore.getPrintSettings(p.restaurantId);
-      if (!settings) return NOT_HANDLED;
-      return ok({ settings, success: true });
+      const raw = entityStore.getPrintSettings(p.restaurantId);
+      if (!raw) return NOT_HANDLED;
+      // Sync daemon stores full API response { success, printSettings }; unwrap if nested
+      const settings = raw.printSettings || raw;
+      return ok({ printSettings: settings, success: true });
     });
   }
   if (m === 'PUT' && (p = match('/api/admin/print-stations/:restaurantId', path))) {
