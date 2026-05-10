@@ -613,7 +613,7 @@ function SetupTab({ agentExists, agent, settings, setSettings, enabling, setting
           {/* Call Forwarding Instructions */}
           <h4 className="font-semibold text-gray-900 mb-3">Set Up Call Forwarding</h4>
           <p className="text-sm text-gray-500 mb-4">
-            Forward your restaurant's existing phone number to this AI number. Takes 30 seconds — just dial from your phone:
+            Forward your restaurant&apos;s existing phone number to this AI number. Takes 30 seconds — just dial from your phone:
           </p>
 
           <div className="space-y-3">
