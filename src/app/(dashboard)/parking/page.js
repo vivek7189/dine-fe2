@@ -161,21 +161,23 @@ export default function ParkingDashboardPage() {
     if (!restaurantId) return;
     setLoading(true);
     try {
-      const [configRes, statsRes, zonesRes, ratesRes] = await Promise.all([
+      const [configRes, statsRes, zonesRes, ratesRes] = await Promise.allSettled([
         apiClient.getParkingConfig(restaurantId),
         apiClient.getParkingDashboardStats(restaurantId),
         apiClient.getParkingZones(restaurantId),
         apiClient.getParkingRates(restaurantId)
       ]);
-      setConfig(configRes.config);
-      setStats(statsRes.stats);
-      setZones(zonesRes.zones || []);
-      setRates(ratesRes.rates || []);
-      if (zonesRes.zones?.length > 0 && !entryForm.zoneId) {
-        setEntryForm(f => ({ ...f, zoneId: zonesRes.zones[0].id }));
+      if (configRes.status === 'fulfilled') setConfig(configRes.value.config);
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value.stats);
+      const fetchedZones = zonesRes.status === 'fulfilled' ? (zonesRes.value.zones || []) : [];
+      const fetchedRates = ratesRes.status === 'fulfilled' ? (ratesRes.value.rates || []) : [];
+      setZones(fetchedZones);
+      setRates(fetchedRates);
+      if (fetchedZones.length > 0 && !entryForm.zoneId) {
+        setEntryForm(f => ({ ...f, zoneId: fetchedZones[0].id }));
       }
-      if (ratesRes.rates?.length > 0 && !entryForm.rateId) {
-        const defaultRate = ratesRes.rates.find(r => r.isDefault) || ratesRes.rates[0];
+      if (fetchedRates.length > 0 && !entryForm.rateId) {
+        const defaultRate = fetchedRates.find(r => r.isDefault) || fetchedRates[0];
         setEntryForm(f => ({ ...f, rateId: defaultRate.id }));
       }
       setLastRefreshedAt(new Date());
