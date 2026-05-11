@@ -14,6 +14,7 @@ export const FEATURE_OPS = {
   tables: ['read', 'add', 'update', 'delete', 'reset'],
   customers: ['read', 'add', 'update', 'delete'],
   offers: ['read', 'add', 'update', 'delete'],
+  parking: ['read', 'add', 'update', 'delete', 'config'],
   admin: ADMIN_TAB_OPS
 };
 
@@ -26,7 +27,8 @@ export const OP_LABELS = {
   cancel: 'Cancel',
   refund: 'Refund',
   completeBill: 'Complete Bill',
-  reset: 'Reset All'
+  reset: 'Reset All',
+  config: 'Configure'
 };
 
 export const ADMIN_TAB_LABELS = {

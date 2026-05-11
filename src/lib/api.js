@@ -3442,6 +3442,55 @@ class ApiClient {
   markTalabatOrderPrepared(restaurantId, orderId) { return this.request(`/api/aggregators/talabat/mark-prepared/${restaurantId}/${orderId}`, { method: 'POST' }); }
   getTalabatOrders(restaurantId, limit) { return this.request(`/api/aggregators/talabat/orders/${restaurantId}${limit ? `?limit=${limit}` : ''}`); }
   getAggregatorWebhookUrls() { return this.request('/api/aggregators/webhook-url'); }
+
+  // ── Parking Management ──────────────────────────────────────
+  getParkingConfig(restaurantId) { return this.request(`/api/parking/config/${restaurantId}`); }
+  updateParkingConfig(restaurantId, data) { return this.request(`/api/parking/config/${restaurantId}`, { method: 'PUT', body: data }); }
+  getParkingDashboardStats(restaurantId) { return this.request(`/api/parking/config/${restaurantId}/dashboard-stats`); }
+
+  getParkingZones(restaurantId) { return this.request(`/api/parking/zones/${restaurantId}`); }
+  createParkingZone(restaurantId, data) { return this.request(`/api/parking/zones/${restaurantId}`, { method: 'POST', body: data }); }
+  updateParkingZone(restaurantId, zoneId, data) { return this.request(`/api/parking/zones/${restaurantId}/${zoneId}`, { method: 'PUT', body: data }); }
+  deleteParkingZone(restaurantId, zoneId) { return this.request(`/api/parking/zones/${restaurantId}/${zoneId}`, { method: 'DELETE' }); }
+
+  getParkingSlots(restaurantId, filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/parking/slots/${restaurantId}${query ? `?${query}` : ''}`);
+  }
+  createParkingSlot(restaurantId, data) { return this.request(`/api/parking/slots/${restaurantId}`, { method: 'POST', body: data }); }
+  bulkCreateParkingSlots(restaurantId, data) { return this.request(`/api/parking/slots/${restaurantId}/bulk`, { method: 'POST', body: data }); }
+  updateParkingSlot(restaurantId, slotId, data) { return this.request(`/api/parking/slots/${restaurantId}/${slotId}`, { method: 'PUT', body: data }); }
+  deleteParkingSlot(restaurantId, slotId) { return this.request(`/api/parking/slots/${restaurantId}/${slotId}`, { method: 'DELETE' }); }
+
+  getParkingRates(restaurantId) { return this.request(`/api/parking/rates/${restaurantId}`); }
+  createParkingRate(restaurantId, data) { return this.request(`/api/parking/rates/${restaurantId}`, { method: 'POST', body: data }); }
+  updateParkingRate(restaurantId, rateId, data) { return this.request(`/api/parking/rates/${restaurantId}/${rateId}`, { method: 'PUT', body: data }); }
+  deleteParkingRate(restaurantId, rateId) { return this.request(`/api/parking/rates/${restaurantId}/${rateId}`, { method: 'DELETE' }); }
+
+  getParkingTickets(restaurantId, filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/parking/tickets/${restaurantId}${query ? `?${query}` : ''}`);
+  }
+  getParkingTicket(restaurantId, ticketId) { return this.request(`/api/parking/tickets/${restaurantId}/${ticketId}`); }
+  lookupParkingTicket(restaurantId, filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/parking/tickets/${restaurantId}/lookup${query ? `?${query}` : ''}`);
+  }
+  createParkingEntry(restaurantId, data) { return this.request(`/api/parking/tickets/${restaurantId}/entry`, { method: 'POST', body: data }); }
+  processParkingExit(restaurantId, data) { return this.request(`/api/parking/tickets/${restaurantId}/exit`, { method: 'POST', body: data }); }
+  confirmParkingExit(restaurantId, data) { return this.request(`/api/parking/tickets/${restaurantId}/exit/confirm`, { method: 'POST', body: data }); }
+  updateParkingTicket(restaurantId, ticketId, data) { return this.request(`/api/parking/tickets/${restaurantId}/${ticketId}`, { method: 'PUT', body: data }); }
+  cancelParkingTicket(restaurantId, ticketId, reason) { return this.request(`/api/parking/tickets/${restaurantId}/${ticketId}/cancel`, { method: 'POST', body: { reason } }); }
+  getParkingTicketPrintData(restaurantId, ticketId) { return this.request(`/api/parking/tickets/${restaurantId}/${ticketId}/print-data`); }
+
+  recognizeLicensePlate(restaurantId, formData) {
+    return this.upload(`/api/parking/ai/recognize-plate/${restaurantId}`, formData);
+  }
+
+  getParkingReports(restaurantId, filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/parking/reports/${restaurantId}${query ? `?${query}` : ''}`);
+  }
 }
 
 const apiClient = new ApiClient();

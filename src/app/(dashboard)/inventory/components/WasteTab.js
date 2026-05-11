@@ -50,7 +50,7 @@ const btnStyle = (bg, color) => ({
   border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
 });
 
-export default function WasteTab({ waste, inventoryItems, isMobile, formatCurrency, permissions = { read: true, add: true, update: true, delete: true } }) {
+export default function WasteTab({ waste, inventoryItems, isMobile, formatCurrency, permissions = { read: true, add: true, update: true, delete: true }, currentRestaurant }) {
   const {
     loading, wasteEntries, wasteSummary, expiryAlerts,
     wastePeriod, setWastePeriod, wasteReason, setWasteReason,
@@ -193,7 +193,8 @@ export default function WasteTab({ waste, inventoryItems, isMobile, formatCurren
         <InventoryDownloadPDFButton
           reportType="waste"
           data={{ entries: wasteEntries, summary: wasteSummary }}
-          org={{}}
+          org={{ name: currentRestaurant?.name || '' }}
+          logoUrl={currentRestaurant?.printSettings?.receiptLogo?.url || null}
           filename="waste-report.pdf"
         />
       </div>

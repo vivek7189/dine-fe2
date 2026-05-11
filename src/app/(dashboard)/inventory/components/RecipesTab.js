@@ -24,6 +24,7 @@ export default function RecipesTab({
   handleEditRecipe,
   handleViewRecipe,
   permissions = { read: true, add: true, update: true, delete: true },
+  currentRestaurant,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -100,7 +101,8 @@ export default function RecipesTab({
         <InventoryDownloadPDFButton
           reportType="recipes"
           data={{ recipes }}
-          org={{}}
+          org={{ name: currentRestaurant?.name || '' }}
+          logoUrl={currentRestaurant?.printSettings?.receiptLogo?.url || null}
           filename="recipes-report.pdf"
         />
       </div>

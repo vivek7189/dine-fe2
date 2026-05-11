@@ -37,6 +37,7 @@ const ROUTE_ACCESS_MAP = {
   '/offers': 'offers',
   '/automation': 'admin',
   '/spaces': 'admin',
+  '/parking': 'parking',
 };
 
 // Pages accessible to everyone (no permission check needed)

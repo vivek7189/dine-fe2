@@ -81,7 +81,8 @@ import {
   FaImage,
   FaTicketAlt,
   FaTh,
-  FaList
+  FaList,
+  FaParking
 } from 'react-icons/fa';
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
@@ -4487,6 +4488,7 @@ const Admin = () => {
     { id: 'invoice', name: 'Invoice & Billing', icon: FaFileInvoice, description: 'Professional invoicing, quotes, and expense tracking', color: '#0ea5e9' },
     { id: 'multiPricing', name: 'Multi-Tier Pricing', icon: FaLayerGroup, description: 'Per-item pricing for AC/Non-AC/Takeaway and custom rules', color: '#8b5cf6' },
     { id: 'google-reviews', name: 'Google Reviews', icon: FaGoogle, description: 'Manage, reply & collect Google Reviews', color: '#ea4335' },
+    { id: 'parking', name: 'Parking Management', icon: FaParking, description: 'Vehicle parking lot management with tickets & QR scanning', color: '#0369a1' },
   ];
 
   useEffect(() => {
@@ -4516,6 +4518,14 @@ const Admin = () => {
       await apiClient.updateFeatures(featureNotAllowed);
       localStorage.setItem('navNotAllowedPages', JSON.stringify(featureNotAllowed));
       window.dispatchEvent(new CustomEvent('featuresUpdated', { detail: { notAllowedPages: featureNotAllowed } }));
+      // Sync parkingEnabled flag on restaurant document
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user?.restaurantId) {
+          const parkingEnabled = !featureNotAllowed.includes('parking');
+          await apiClient.updateRestaurant(user.restaurantId, { parkingEnabled });
+        }
+      } catch (e) { /* ignore parking flag sync error */ }
       setFeaturesMessage({ type: 'success', text: 'Features updated! Sidebar refreshed.' });
     } catch (err) {
       setFeaturesMessage({ type: 'error', text: err.message || 'Failed to save features' });

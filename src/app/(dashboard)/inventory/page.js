@@ -292,6 +292,7 @@ export default function InventoryManagement() {
             todayUsageSummary={inventory.todayUsageSummary}
             onViewHistory={inventory.handleViewHistory}
             permissions={permissions}
+            currentRestaurant={inventory.currentRestaurant}
           />
         )}
 
@@ -307,6 +308,7 @@ export default function InventoryManagement() {
             handleViewRecipe={inventory.handleViewRecipe}
             handleDeleteRecipe={inventory.handleDeleteRecipe}
             permissions={permissions}
+            currentRestaurant={inventory.currentRestaurant}
           />
         )}
 
@@ -388,6 +390,7 @@ export default function InventoryManagement() {
             isMobile={isMobile}
             formatCurrency={formatCurrency}
             permissions={permissions}
+            currentRestaurant={inventory.currentRestaurant}
           />
         )}
 

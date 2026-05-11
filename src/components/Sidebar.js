@@ -29,7 +29,8 @@ import {
   FaBook,
   FaUserClock,
   FaDoorOpen,
-  FaPhoneAlt
+  FaPhoneAlt,
+  FaParking
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -278,6 +279,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'invoice', name: t('nav.invoice'), icon: FaFileInvoice, href: '/invoice', color: '#0ea5e9', roles: ['owner', 'admin', 'manager'] },
     { id: 'google-reviews', name: t('nav.googleReviews'), icon: FaGoogle, href: '/admin?tab=google-reviews', color: '#ea4335', roles: ['owner', 'admin', 'manager'] },
     { id: 'spaces', name: t('nav.spaces'), icon: FaDoorOpen, href: '/spaces', color: '#0d9488', roles: ['owner', 'admin', 'manager'] },
+    { id: 'parking', name: t('nav.parking') || 'Parking', icon: FaParking, href: '/parking', color: '#0369a1', roles: ['owner', 'admin', 'manager'] },
     // --- Settings (always last) ---
     { id: 'admin', name: t('nav.admin'), icon: FaCog, href: '/admin', color: '#64748b', roles: ['owner', 'admin', 'manager', 'employee', 'cashier', 'sales', 'waiter'] },
     { id: 'profile', name: t('nav.profile'), icon: FaUser, href: '/profile', color: '#ec4899', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
@@ -328,6 +330,7 @@ export default function Sidebar({ isDashboardPage = false }) {
         'attendance': 'admin',
         'google-reviews': 'admin',
         'spaces': 'admin',
+        'parking': 'parking',
       };
       const accessKey = accessMap[item.id];
       if (!accessKey) return true; // no access mapping = always visible (e.g. home, profile)

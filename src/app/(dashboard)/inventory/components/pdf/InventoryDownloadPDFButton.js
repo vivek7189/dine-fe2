@@ -5,14 +5,14 @@ import { pdf } from '@react-pdf/renderer';
 import { InventoryPDFDocument } from './InventoryPDFDocument';
 import { FaDownload } from 'react-icons/fa';
 
-export default function InventoryDownloadPDFButton({ reportType, data, org, filename, style }) {
+export default function InventoryDownloadPDFButton({ reportType, data, org, logoUrl, filename, style }) {
   const [generating, setGenerating] = useState(false);
 
   async function handleDownload() {
     setGenerating(true);
     try {
       const blob = await pdf(
-        <InventoryPDFDocument reportType={reportType} data={data} org={org} />
+        <InventoryPDFDocument reportType={reportType} data={data} org={org} logoUrl={logoUrl} />
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

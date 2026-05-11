@@ -12,6 +12,7 @@ export default function StockTab({
   getStatusColor, dashboardStats, inventoryItems, todayUsageSummary = [],
   onViewHistory,
   permissions = { read: true, add: true, update: true, delete: true },
+  currentRestaurant,
 }) {
   const getStockBarColor = (current, min, max) => {
     const ratio = max > 0 ? current / max : 0;
@@ -143,7 +144,8 @@ export default function StockTab({
         <InventoryDownloadPDFButton
           reportType="stock"
           data={{ items: sortedItems, stats: dashboardStats }}
-          org={{}}
+          org={{ name: currentRestaurant?.name || '' }}
+          logoUrl={currentRestaurant?.printSettings?.receiptLogo?.url || null}
           filename="stock-report.pdf"
         />
       </div>

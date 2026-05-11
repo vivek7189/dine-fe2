@@ -1,6 +1,6 @@
 'use client';
 
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 
 function formatCurrency(amount) {
   if (amount === null || amount === undefined || isNaN(amount)) return 'Rs.0.00';
@@ -25,6 +25,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontFamily: 'Helvetica-Bold' },
   subtitle: { fontSize: 9, color: '#6b7280', marginTop: 3 },
   orgName: { fontSize: 14, fontFamily: 'Helvetica-Bold' },
+  logo: { width: 48, height: 48, objectFit: 'contain', borderRadius: 4, marginBottom: 4 },
+  headerBar: { height: 4, backgroundColor: '#16a34a', marginBottom: 16, borderRadius: 2 },
   sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', marginTop: 16, marginBottom: 8 },
   statsRow: { flexDirection: 'row', marginBottom: 16, gap: 12 },
   statBox: { flex: 1, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 4, padding: 10 },
@@ -95,18 +97,22 @@ const recipeCols = {
   cost: { width: '20%', textAlign: 'right' },
 };
 
-function ReportHeader({ org, reportTitle }) {
+function ReportHeader({ org, reportTitle, logoUrl }) {
   return (
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.title}>{reportTitle}</Text>
-        <Text style={styles.subtitle}>Generated on {formatDate(new Date().toISOString())}</Text>
-      </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={styles.orgName}>{org.name || ''}</Text>
-        {org.address && <Text style={styles.subtitle}>{org.address}</Text>}
-        {org.phone && <Text style={styles.subtitle}>{org.phone}</Text>}
-        {org.email && <Text style={styles.subtitle}>{org.email}</Text>}
+    <View fixed>
+      <View style={styles.headerBar} />
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>{reportTitle}</Text>
+          <Text style={styles.subtitle}>Generated on {formatDate(new Date().toISOString())}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          {logoUrl && <Image src={logoUrl} style={styles.logo} />}
+          <Text style={styles.orgName}>{org.name || ''}</Text>
+          {org.address && <Text style={styles.subtitle}>{org.address}</Text>}
+          {org.phone && <Text style={styles.subtitle}>{org.phone}</Text>}
+          {org.email && <Text style={styles.subtitle}>{org.email}</Text>}
+        </View>
       </View>
     </View>
   );
@@ -398,7 +404,7 @@ const reportTitles = {
   audit: 'Stock Audit Report',
 };
 
-export function InventoryPDFDocument({ reportType, data, org }) {
+export function InventoryPDFDocument({ reportType, data, org, logoUrl }) {
   const safeOrg = org || {};
   const safeData = data || {};
   const title = reportTitles[reportType] || 'Inventory Report';
@@ -406,7 +412,7 @@ export function InventoryPDFDocument({ reportType, data, org }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <ReportHeader org={safeOrg} reportTitle={title} />
+        <ReportHeader org={safeOrg} reportTitle={title} logoUrl={logoUrl} />
 
         {reportType === 'stock' && <StockReport data={safeData} />}
         {reportType === 'recipes' && <RecipesReport data={safeData} />}
