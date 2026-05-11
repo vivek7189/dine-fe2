@@ -163,6 +163,12 @@ const OrderHistory = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [cancelError, setCancelError] = useState(null);
+  // Edit Completed Order state
+  const [editCompletedOrder, setEditCompletedOrder] = useState(null);
+  const [editCompletedForm, setEditCompletedForm] = useState({});
+  const [editCompletedSaving, setEditCompletedSaving] = useState(false);
+  const [editCompletedHistory, setEditCompletedHistory] = useState([]);
+  const [canEditCompletedOrders, setCanEditCompletedOrders] = useState(false);
   const [printSettings, setPrintSettings] = useState(null);
   const [upiSettings, setUpiSettings] = useState({});
   const [whatsappConnected, setWhatsappConnected] = useState(false);
@@ -613,6 +619,26 @@ const OrderHistory = () => {
     };
     fetchPrintSettings();
   }, [restaurantId]);
+
+  // Check if user has edit-completed-orders permission
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = (user.role || '').toLowerCase();
+      if (role === 'owner' || role === 'admin') {
+        setCanEditCompletedOrders(true);
+      } else if (user.allowEditCompletedOrders) {
+        setCanEditCompletedOrders(true);
+      } else {
+        // Fetch fresh user data to check permission
+        apiClient.getUserProfile?.().then(res => {
+          if (res?.user?.allowEditCompletedOrders) {
+            setCanEditCompletedOrders(true);
+          }
+        }).catch(() => {});
+      }
+    } catch {}
+  }, []);
 
   // Fetch tax settings for billing modal
   useEffect(() => {
@@ -1112,6 +1138,55 @@ const OrderHistory = () => {
   };
 
   const handleEditOrder = (orderId) => router.push(`/dashboard?orderId=${orderId}&mode=edit&from=orderhistory`);
+
+  // Edit completed order handlers
+  const handleOpenEditCompleted = async (order) => {
+    setEditCompletedOrder(order);
+    setEditCompletedForm({
+      orderType: order.orderType || 'dine-in',
+      paymentMethod: order.paymentMethod || 'cash',
+      deliveryType: order.deliveryType || '',
+      tableNumber: order.tableNumber || '',
+      notes: order.notes || order.specialInstructions || '',
+      customerName: order.customerInfo?.name || order.customerDisplay?.name || '',
+      customerPhone: order.customerInfo?.phone || order.customerDisplay?.phone || '',
+    });
+    setEditCompletedHistory(order.editHistory || []);
+    // Also fetch latest edit history from server
+    try {
+      const res = await apiClient.getOrderEditHistory(order.id);
+      if (res.editHistory) setEditCompletedHistory(res.editHistory);
+    } catch {}
+  };
+
+  const handleSaveEditCompleted = async () => {
+    if (!editCompletedOrder) return;
+    setEditCompletedSaving(true);
+    try {
+      const payload = {
+        orderType: editCompletedForm.orderType,
+        paymentMethod: editCompletedForm.paymentMethod,
+        deliveryType: editCompletedForm.deliveryType,
+        tableNumber: editCompletedForm.tableNumber,
+        notes: editCompletedForm.notes,
+        customerInfo: {
+          name: editCompletedForm.customerName,
+          phone: editCompletedForm.customerPhone,
+        },
+      };
+      const res = await apiClient.editCompletedOrder(editCompletedOrder.id, payload);
+      if (res.success) {
+        // Update order in local state
+        setOrders(prev => prev.map(o => o.id === editCompletedOrder.id ? { ...o, ...res.order } : o));
+        setEditCompletedHistory(res.order?.editHistory || [...editCompletedHistory, res.editEntry]);
+        setEditCompletedOrder(null);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to save changes');
+    } finally {
+      setEditCompletedSaving(false);
+    }
+  };
 
   const [syncingOrderKey, setSyncingOrderKey] = useState(null);
   const handleRetrySync = async (order) => {
@@ -2524,7 +2599,16 @@ const OrderHistory = () => {
                                   <button
                                     onClick={() => handleEditOrder(order.id)}
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-red-500 hover:bg-red-600 border border-red-500 transition-colors"
-                                    title={t('orderHistory.edit')}
+                                    title="Update Order"
+                                  >
+                                    <FaEdit size={10} />
+                                  </button>
+                                )}
+                                {canEditCompletedOrders && order.status === 'completed' && (
+                                  <button
+                                    onClick={() => handleOpenEditCompleted(order)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-red-600 hover:bg-red-700 border border-red-600 transition-colors"
+                                    title="Edit Order"
                                   >
                                     <FaEdit size={10} />
                                   </button>
@@ -2950,7 +3034,15 @@ const OrderHistory = () => {
                                 onClick={() => handleEditOrder(order.id)}
                                 className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
                               >
-                                <FaEdit /> {t('orderHistory.edit')}
+                                <FaEdit /> Update Order
+                              </button>
+                            )}
+                            {canEditCompletedOrders && order.status === 'completed' && (
+                              <button
+                                onClick={() => handleOpenEditCompleted(order)}
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1.5"
+                              >
+                                <FaEdit /> Edit Order
                               </button>
                             )}
                             {/* Delete button hidden by request — use Cancel instead */}
@@ -3441,6 +3533,211 @@ const OrderHistory = () => {
                     )}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ========== EDIT COMPLETED ORDER MODAL ========== */}
+      {editCompletedOrder && (
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes editCompBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes editCompDialogIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+          ` }} />
+          <div
+            className="fixed inset-0 z-[10400] flex items-center justify-center p-4 sm:p-6"
+            style={{ animation: 'editCompBackdropIn 0.2s ease-out' }}
+            aria-modal="true"
+            role="dialog"
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => !editCompletedSaving && setEditCompletedOrder(null)}
+            />
+            <div
+              className="relative w-full max-w-[min(95vw,560px)] max-h-[90vh] rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden flex flex-col"
+              style={{ animation: 'editCompDialogIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                    <FaEdit className="text-red-600 text-lg" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Edit Completed Order</h2>
+                    <p className="text-xs text-gray-500">#{editCompletedOrder.dailyOrderId || editCompletedOrder.orderNumber} &bull; {editCompletedOrder.id?.slice(0, 8)}...</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditCompletedOrder(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  <FaTimes size={16} />
+                </button>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                {/* Items (read-only) */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Items (read-only)</label>
+                  <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700 space-y-1">
+                    {(editCompletedOrder.items || []).map((item, i) => (
+                      <div key={i} className="flex justify-between">
+                        <span>{item.quantity}x {item.name}{item.variant?.name ? ` (${item.variant.name})` : ''}</span>
+                        <span className="font-medium">{formatCurrency(item.total || item.price * item.quantity)}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-bold">
+                      <span>Total</span>
+                      <span>{formatCurrency(editCompletedOrder.finalAmount || editCompletedOrder.totalAmount)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Type */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Order Type</label>
+                  <select
+                    value={editCompletedForm.orderType}
+                    onChange={(e) => setEditCompletedForm(f => ({ ...f, orderType: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                  >
+                    <option value="dine-in">Dine-in</option>
+                    <option value="takeaway">Takeaway</option>
+                    <option value="delivery">Delivery</option>
+                  </select>
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Payment Method</label>
+                  <select
+                    value={editCompletedForm.paymentMethod}
+                    onChange={(e) => setEditCompletedForm(f => ({ ...f, paymentMethod: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                    <option value="online">Online</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {/* Delivery Type */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Delivery Type</label>
+                  <input
+                    type="text"
+                    value={editCompletedForm.deliveryType}
+                    onChange={(e) => setEditCompletedForm(f => ({ ...f, deliveryType: e.target.value }))}
+                    placeholder="e.g., self-pickup, delivery partner"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                  />
+                </div>
+
+                {/* Table Number */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Table Number</label>
+                  <input
+                    type="text"
+                    value={editCompletedForm.tableNumber}
+                    onChange={(e) => setEditCompletedForm(f => ({ ...f, tableNumber: e.target.value }))}
+                    placeholder="Table number"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                  />
+                </div>
+
+                {/* Customer Info */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Customer Name</label>
+                    <input
+                      type="text"
+                      value={editCompletedForm.customerName}
+                      onChange={(e) => setEditCompletedForm(f => ({ ...f, customerName: e.target.value }))}
+                      placeholder="Customer name"
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Customer Phone</label>
+                    <input
+                      type="text"
+                      value={editCompletedForm.customerPhone}
+                      onChange={(e) => setEditCompletedForm(f => ({ ...f, customerPhone: e.target.value }))}
+                      placeholder="Phone number"
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Notes</label>
+                  <textarea
+                    value={editCompletedForm.notes}
+                    onChange={(e) => setEditCompletedForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="Any additional notes..."
+                    rows={2}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none resize-none"
+                  />
+                </div>
+
+                {/* Edit History */}
+                {editCompletedHistory.length > 0 && (
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Edit History</label>
+                    <div className="space-y-2">
+                      {editCompletedHistory.slice().reverse().map((entry, i) => (
+                        <div key={i} className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-semibold text-amber-800">
+                              {entry.editedBy?.name || 'Unknown'} ({entry.editedBy?.role})
+                            </span>
+                            <span className="text-xs text-amber-600">
+                              {entry.editedAt ? new Date(entry.editedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
+                          </div>
+                          <div className="space-y-0.5">
+                            {(entry.changes || []).map((c, j) => (
+                              <div key={j} className="text-xs text-gray-700">
+                                <span className="font-medium">{c.field}</span>: <span className="text-red-600 line-through">{c.from || '(empty)'}</span> → <span className="text-green-700 font-medium">{c.to || '(empty)'}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+                <button
+                  onClick={() => setEditCompletedOrder(null)}
+                  disabled={editCompletedSaving}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEditCompleted}
+                  disabled={editCompletedSaving}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                >
+                  {editCompletedSaving ? (
+                    <><FaSpinner className="animate-spin" /> Saving...</>
+                  ) : (
+                    <><FaEdit /> Save Changes</>
+                  )}
+                </button>
               </div>
             </div>
           </div>

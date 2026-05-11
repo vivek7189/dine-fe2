@@ -2917,6 +2917,33 @@ class ApiClient {
     });
   }
 
+  // Edit Completed Orders
+  async editCompletedOrder(orderId, data) {
+    return this.request(`/api/orders/${orderId}/edit-completed`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  async getOrderEditHistory(orderId) {
+    return this.request(`/api/orders/${orderId}/edit-history`);
+  }
+
+  async searchAdminUsers(query) {
+    return this.request(`/api/admin/users/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async toggleEditCompletedPermission(userId, allow) {
+    return this.request(`/api/admin/users/${userId}/allow-edit-completed`, {
+      method: 'PATCH',
+      body: { allow },
+    });
+  }
+
+  async getUsersWithEditPermission() {
+    return this.request('/api/admin/users/edit-completed-users');
+  }
+
   async getCustomerCreditHistory(customerId) {
     return this.request(`/api/customers/${customerId}/credit-history`);
   }

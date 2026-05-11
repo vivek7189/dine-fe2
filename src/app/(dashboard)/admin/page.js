@@ -4390,6 +4390,12 @@ const Admin = () => {
   const [isClient, setIsClient] = useState(false);
   const [orderManagementSeqEnabled, setOrderManagementSeqEnabled] = useState(false);
   const [orderManagementSaving, setOrderManagementSaving] = useState(false);
+  // Edit Completed Orders
+  const [editCompletedSearch, setEditCompletedSearch] = useState('');
+  const [editCompletedSearching, setEditCompletedSearching] = useState(false);
+  const [editCompletedSearchResults, setEditCompletedSearchResults] = useState([]);
+  const [editCompletedPermittedUsers, setEditCompletedPermittedUsers] = useState([]);
+  const [editCompletedTogglingId, setEditCompletedTogglingId] = useState(null);
   const [currentLang, setCurrentLang] = useState('en');
   const [posSettings, setPosSettings] = useState({});
   const [posSettingsSaving, setPosSettingsSaving] = useState(false);
@@ -4701,6 +4707,12 @@ const Admin = () => {
   useEffect(() => {
     if (activeTab === 'order-management' && selectedRestaurant) {
       setOrderManagementSeqEnabled(!!(selectedRestaurant.orderSettings && selectedRestaurant.orderSettings.sequentialOrderIdEnabled));
+    }
+    // Load permitted users for edit completed orders
+    if (activeTab === 'order-management') {
+      apiClient.getUsersWithEditPermission().then(res => {
+        setEditCompletedPermittedUsers(res.users || []);
+      }).catch(() => {});
     }
   }, [activeTab, selectedRestaurant]);
 
@@ -10807,6 +10819,185 @@ const Admin = () => {
             )}
             {!selectedRestaurant && restaurants.length === 0 && (
               <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>Add a restaurant first, then configure order numbering here.</p>
+            )}
+          </div>
+
+          {/* Edit Completed Orders Card */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(239,68,68,0.06)',
+            padding: '32px',
+            border: '1px solid #f1f5f9',
+            marginTop: '24px'
+          }}>
+            <div style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '1px solid #f3e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 14px rgba(245,158,11,0.35)'
+                }}>
+                  <FaEdit size={20} color="white" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                    Edit Completed Orders
+                  </h2>
+                  <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '14px' }}>
+                    Allow specific users to edit completed order metadata
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px', lineHeight: 1.6 }}>
+              Search for a user by phone number or email to grant them permission to edit completed orders.
+              They can change order type, payment method, customer info, and delivery type — but NOT items or prices.
+            </p>
+
+            {/* Search user */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+              <input
+                type="text"
+                value={editCompletedSearch}
+                onChange={(e) => setEditCompletedSearch(e.target.value)}
+                placeholder="Enter phone number or email..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && editCompletedSearch.trim().length >= 3) {
+                    setEditCompletedSearching(true);
+                    apiClient.searchAdminUsers(editCompletedSearch.trim()).then(res => {
+                      setEditCompletedSearchResults(res.users || []);
+                    }).catch(() => {
+                      showError('Failed to search users');
+                    }).finally(() => setEditCompletedSearching(false));
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: '12px',
+                  border: '1px solid #e5e7eb', fontSize: '14px', outline: 'none'
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (editCompletedSearch.trim().length < 3) return;
+                  setEditCompletedSearching(true);
+                  apiClient.searchAdminUsers(editCompletedSearch.trim()).then(res => {
+                    setEditCompletedSearchResults(res.users || []);
+                  }).catch(() => {
+                    showError('Failed to search users');
+                  }).finally(() => setEditCompletedSearching(false));
+                }}
+                disabled={editCompletedSearching || editCompletedSearch.trim().length < 3}
+                style={{
+                  padding: '12px 20px', borderRadius: '12px', fontWeight: '600', fontSize: '14px',
+                  border: 'none', cursor: editCompletedSearching ? 'not-allowed' : 'pointer',
+                  background: editCompletedSearching ? '#9ca3af' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white', display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+              >
+                {editCompletedSearching ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={14} /> : <FaSearch size={14} />}
+                Search
+              </button>
+            </div>
+
+            {/* Search results */}
+            {editCompletedSearchResults.length > 0 && (
+              <div style={{
+                backgroundColor: '#f8fafc', borderRadius: '12px', padding: '16px',
+                border: '1px solid #e5e7eb', marginBottom: '20px'
+              }}>
+                <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '12px', textTransform: 'uppercase' }}>
+                  Search Results
+                </p>
+                {editCompletedSearchResults.map(u => (
+                  <div key={u.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 14px', backgroundColor: 'white', borderRadius: '10px',
+                    border: '1px solid #e5e7eb', marginBottom: '8px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{u.name || 'No name'}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{u.email} {u.phone && `• ${u.phone}`} • {u.role}</div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setEditCompletedTogglingId(u.id);
+                        try {
+                          const newAllow = !u.allowEditCompletedOrders;
+                          await apiClient.toggleEditCompletedPermission(u.id, newAllow);
+                          setEditCompletedSearchResults(prev => prev.map(x => x.id === u.id ? { ...x, allowEditCompletedOrders: newAllow } : x));
+                          // Refresh permitted users list
+                          const res = await apiClient.getUsersWithEditPermission();
+                          setEditCompletedPermittedUsers(res.users || []);
+                          showSuccess(newAllow ? 'Permission enabled' : 'Permission removed');
+                        } catch {
+                          showError('Failed to update permission');
+                        } finally {
+                          setEditCompletedTogglingId(null);
+                        }
+                      }}
+                      disabled={editCompletedTogglingId === u.id}
+                      style={{
+                        padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '13px',
+                        border: 'none', cursor: editCompletedTogglingId === u.id ? 'not-allowed' : 'pointer',
+                        background: u.allowEditCompletedOrders ? '#fee2e2' : '#dcfce7',
+                        color: u.allowEditCompletedOrders ? '#dc2626' : '#16a34a'
+                      }}
+                    >
+                      {editCompletedTogglingId === u.id ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={12} /> : u.allowEditCompletedOrders ? 'Revoke' : 'Grant'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {editCompletedSearchResults.length === 0 && editCompletedSearch.trim().length >= 3 && !editCompletedSearching && (
+              <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>No users found. Try a different phone number or email.</p>
+            )}
+
+            {/* Currently permitted users */}
+            {editCompletedPermittedUsers.length > 0 && (
+              <div>
+                <p style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '12px', textTransform: 'uppercase' }}>
+                  Users with Edit Permission ({editCompletedPermittedUsers.length})
+                </p>
+                {editCompletedPermittedUsers.map(u => (
+                  <div key={u.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px', backgroundColor: '#fffbeb', borderRadius: '10px',
+                    border: '1px solid #fde68a', marginBottom: '8px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{u.name || 'No name'}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>{u.email} {u.phone && `• ${u.phone}`} • {u.role}</div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setEditCompletedTogglingId(u.id);
+                        try {
+                          await apiClient.toggleEditCompletedPermission(u.id, false);
+                          setEditCompletedPermittedUsers(prev => prev.filter(x => x.id !== u.id));
+                          showSuccess('Permission removed');
+                        } catch {
+                          showError('Failed to remove permission');
+                        } finally {
+                          setEditCompletedTogglingId(null);
+                        }
+                      }}
+                      disabled={editCompletedTogglingId === u.id}
+                      style={{
+                        padding: '6px 14px', borderRadius: '8px', fontWeight: '600', fontSize: '12px',
+                        border: 'none', cursor: editCompletedTogglingId === u.id ? 'not-allowed' : 'pointer',
+                        background: '#fee2e2', color: '#dc2626'
+                      }}
+                    >
+                      {editCompletedTogglingId === u.id ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} size={11} /> : 'Revoke'}
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
