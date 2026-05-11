@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FaParking, FaCar, FaMotorcycle, FaTruck, FaBus, FaPlus, FaTimes, FaSearch,
   FaQrcode, FaCamera, FaPrint, FaSignOutAlt, FaSignInAlt, FaChartBar,
   FaCog, FaLayerGroup, FaMoneyBillWave, FaSpinner, FaCheck, FaExclamationTriangle,
   FaClock, FaHashtag, FaMapMarkerAlt, FaRobot, FaBan, FaEye, FaFilter,
-  FaChevronDown, FaChevronRight
+  FaChevronDown, FaChevronRight, FaChevronLeft, FaSync, FaUndo
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import Link from 'next/link';
@@ -53,9 +53,16 @@ function formatTime(iso) {
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '-';
   const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
+  const m = Math.round(minutes % 60);
   if (h === 0) return `${m}m`;
   return `${h}h ${m}m`;
+}
+
+function calcElapsed(entryTime) {
+  if (!entryTime) return '';
+  const entry = entryTime?._seconds ? new Date(entryTime._seconds * 1000) : new Date(entryTime);
+  const mins = Math.max(0, Math.floor((Date.now() - entry.getTime()) / 60000));
+  return formatDuration(mins);
 }
 
 function ticketStatusBadge(s) {
@@ -98,7 +105,8 @@ export default function ParkingDashboardPage() {
   const [entryForm, setEntryForm] = useState({
     vehicleNumber: '', vehicleType: 'car', vehicleColor: '',
     zoneId: '', slotId: '', rateId: '', notes: '',
-    vehicleImageUrl: '', aiRecognizedPlate: '', aiConfidence: 0
+    vehicleImageUrl: '', vehicleImageFile: null,
+    aiRecognizedPlate: '', aiConfidence: 0
   });
   const [entryLoading, setEntryLoading] = useState(false);
   const [aiScanning, setAiScanning] = useState(false);
@@ -108,6 +116,21 @@ export default function ParkingDashboardPage() {
   const [exitLoading, setExitLoading] = useState(false);
   const [confirmingExit, setConfirmingExit] = useState(false);
   const [exitPaymentMethod, setExitPaymentMethod] = useState('cash');
+
+  // Lost ticket
+  const [lostTicketModal, setLostTicketModal] = useState(false);
+  const [lostTicketForm, setLostTicketForm] = useState({ vehicleNumber: '', vehicleType: '', vehicleColor: '' });
+  const [lostTicketLoading, setLostTicketLoading] = useState(false);
+  const [lostTicketResult, setLostTicketResult] = useState(null);
+
+  // Cancel ticket
+  const [cancelModal, setCancelModal] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  // Auto-refresh
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
+  const [elapsedTick, setElapsedTick] = useState(0);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -148,7 +171,6 @@ export default function ParkingDashboardPage() {
       setStats(statsRes.stats);
       setZones(zonesRes.zones || []);
       setRates(ratesRes.rates || []);
-      // Set default zone and rate in entry form
       if (zonesRes.zones?.length > 0 && !entryForm.zoneId) {
         setEntryForm(f => ({ ...f, zoneId: zonesRes.zones[0].id }));
       }
@@ -156,6 +178,7 @@ export default function ParkingDashboardPage() {
         const defaultRate = ratesRes.rates.find(r => r.isDefault) || ratesRes.rates[0];
         setEntryForm(f => ({ ...f, rateId: defaultRate.id }));
       }
+      setLastRefreshedAt(new Date());
     } catch (e) {
       console.error('Failed to load parking data:', e);
     } finally {
@@ -185,6 +208,34 @@ export default function ParkingDashboardPage() {
   useEffect(() => {
     if (tab === 'tickets' || tab === 'history') loadTickets();
   }, [tab, loadTickets]);
+
+  // ─── Auto-refresh: visibility change ──────────────────
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && restaurantId) {
+        loadData();
+        if (tab === 'tickets' || tab === 'history') loadTickets();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [restaurantId, tab, loadData, loadTickets]);
+
+  // ─── Auto-refresh: 30s polling ────────────────────────
+  useEffect(() => {
+    if (!restaurantId) return;
+    const interval = setInterval(() => {
+      loadData();
+      if (tab === 'tickets') loadTickets();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [restaurantId, tab, loadData, loadTickets]);
+
+  // ─── Elapsed timer tick (every 60s) ───────────────────
+  useEffect(() => {
+    const interval = setInterval(() => setElapsedTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // ─── No config state ─────────────────────────────────
   if (!loading && !config) {
@@ -218,18 +269,15 @@ export default function ParkingDashboardPage() {
     }
     setEntryLoading(true);
     try {
-      const res = await apiClient.createParkingEntry(restaurantId, entryForm);
+      const payload = { ...entryForm };
+      delete payload.vehicleImageFile;
+      const res = await apiClient.createParkingEntry(restaurantId, payload);
       if (res.success) {
         showToast(`Ticket ${res.ticket.ticketNumber} created`);
         setEntryModal(false);
-        setEntryForm({
-          vehicleNumber: '', vehicleType: 'car', vehicleColor: '',
-          zoneId: zones[0]?.id || '', slotId: '', rateId: rates.find(r => r.isDefault)?.id || rates[0]?.id || '',
-          notes: '', vehicleImageUrl: '', aiRecognizedPlate: '', aiConfidence: 0
-        });
+        resetEntryForm();
         loadData();
         if (tab === 'tickets') loadTickets();
-        // Print slip
         if (res.printData?.qrCodeDataUrl) {
           handlePrintEntrySlip(res.printData, res.ticket);
         }
@@ -239,6 +287,16 @@ export default function ParkingDashboardPage() {
     } finally {
       setEntryLoading(false);
     }
+  };
+
+  const resetEntryForm = () => {
+    if (entryForm.vehicleImageUrl?.startsWith('blob:')) URL.revokeObjectURL(entryForm.vehicleImageUrl);
+    setEntryForm({
+      vehicleNumber: '', vehicleType: 'car', vehicleColor: '',
+      zoneId: zones[0]?.id || '', slotId: '', rateId: rates.find(r => r.isDefault)?.id || rates[0]?.id || '',
+      notes: '', vehicleImageUrl: '', vehicleImageFile: null,
+      aiRecognizedPlate: '', aiConfidence: 0
+    });
   };
 
   // ─── AI Plate Scan ────────────────────────────────────
@@ -287,12 +345,15 @@ export default function ParkingDashboardPage() {
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      // For now, create a local preview URL
       const url = URL.createObjectURL(file);
-      setEntryForm(f => ({ ...f, vehicleImageUrl: url }));
-      showToast('Photo captured');
+      setEntryForm(f => ({ ...f, vehicleImageUrl: url, vehicleImageFile: file }));
     };
     input.click();
+  };
+
+  const removeVehiclePhoto = () => {
+    if (entryForm.vehicleImageUrl?.startsWith('blob:')) URL.revokeObjectURL(entryForm.vehicleImageUrl);
+    setEntryForm(f => ({ ...f, vehicleImageUrl: '', vehicleImageFile: null }));
   };
 
   // ─── Exit Flow ────────────────────────────────────────
@@ -329,7 +390,7 @@ export default function ParkingDashboardPage() {
         setExitPreview(null);
         setExitForm({ ticketNumber: '', qrData: '' });
         loadData();
-        if (tab === 'tickets') loadTickets();
+        if (tab === 'tickets' || tab === 'history') loadTickets();
       }
     } catch (e) {
       showToast(e.message || 'Failed to confirm exit', 'error');
@@ -338,16 +399,73 @@ export default function ParkingDashboardPage() {
     }
   };
 
-  // ─── Cancel Ticket ────────────────────────────────────
-  const handleCancelTicket = async (ticketId) => {
-    if (!confirm('Cancel this ticket?')) return;
+  // ─── Cancel Ticket (modal-based) ──────────────────────
+  const openCancelModal = (ticketId) => {
+    setCancelModal(ticketId);
+    setCancelReason('');
+  };
+
+  const confirmCancelTicket = async () => {
+    if (!cancelModal) return;
+    setCancelLoading(true);
     try {
-      await apiClient.cancelParkingTicket(restaurantId, ticketId, 'Cancelled by operator');
+      await apiClient.cancelParkingTicket(restaurantId, cancelModal, cancelReason || 'Cancelled by operator');
       showToast('Ticket cancelled');
+      setCancelModal(null);
       loadData();
       loadTickets();
+      if (ticketDetail?.id === cancelModal) setTicketDetail(null);
     } catch (e) {
       showToast('Failed to cancel', 'error');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  // ─── Lost Ticket Flow ─────────────────────────────────
+  const handleLostTicketLookup = async () => {
+    if (!lostTicketForm.vehicleNumber) {
+      showToast('Vehicle number is required', 'error');
+      return;
+    }
+    setLostTicketLoading(true);
+    try {
+      const res = await apiClient.lookupParkingTicket(restaurantId, {
+        vehicleNumber: lostTicketForm.vehicleNumber,
+        status: 'active'
+      });
+      const found = res.tickets || res.ticket ? [res.ticket].filter(Boolean) : [];
+      if (found.length > 0) {
+        setLostTicketResult(found[0]);
+      } else {
+        showToast('No active ticket found for this vehicle', 'error');
+      }
+    } catch (e) {
+      showToast(e.message || 'Lookup failed', 'error');
+    } finally {
+      setLostTicketLoading(false);
+    }
+  };
+
+  const handleLostTicketExit = async () => {
+    if (!lostTicketResult) return;
+    setLostTicketLoading(true);
+    try {
+      const res = await apiClient.processParkingExit(restaurantId, {
+        ticketId: lostTicketResult.id,
+        lostTicket: true,
+        vehicleNumber: lostTicketForm.vehicleNumber
+      });
+      if (res.success) {
+        setExitPreview({ ...res.exitPreview, isLostTicket: true });
+        setLostTicketModal(false);
+        setLostTicketResult(null);
+        setExitModal(true);
+      }
+    } catch (e) {
+      showToast(e.message || 'Failed to process lost ticket', 'error');
+    } finally {
+      setLostTicketLoading(false);
     }
   };
 
@@ -366,6 +484,34 @@ export default function ParkingDashboardPage() {
         w.print();
       }
     }
+  };
+
+  const handlePrintExitSlip = (ticket) => {
+    const { generateParkingExitSlipHTML } = require('../../../utils/printHtmlGenerator');
+    if (typeof generateParkingExitSlipHTML === 'function') {
+      const html = generateParkingExitSlipHTML(ticket, config || {});
+      const w = window.open('', '_blank', 'width=400,height=600');
+      if (w) {
+        w.document.write(html);
+        w.document.close();
+        w.print();
+      }
+    }
+  };
+
+  // ─── Date navigation ─────────────────────────────────
+  const navigateDate = (direction) => {
+    const d = new Date(dateFilter);
+    d.setDate(d.getDate() + direction);
+    setDateFilter(d.toISOString().split('T')[0]);
+  };
+  const goToToday = () => setDateFilter(new Date().toISOString().split('T')[0]);
+  const isToday = dateFilter === new Date().toISOString().split('T')[0];
+
+  // ─── Manual refresh ───────────────────────────────────
+  const handleRefresh = () => {
+    loadData();
+    if (tab === 'tickets' || tab === 'history') loadTickets();
   };
 
   // ─── Filtered tickets ────────────────────────────────
@@ -417,7 +563,7 @@ export default function ParkingDashboardPage() {
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button onClick={() => setEntryModal(true)} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
             background: SUCCESS, color: '#fff', border: 'none', borderRadius: 8,
@@ -432,15 +578,36 @@ export default function ParkingDashboardPage() {
           }}>
             <FaSignOutAlt /> Vehicle Exit
           </button>
-          <Link href="/parking/config" style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px',
-            background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 8,
-            fontWeight: 500, fontSize: 14, textDecoration: 'none', cursor: 'pointer'
+          <button onClick={() => { setLostTicketModal(true); setLostTicketForm({ vehicleNumber: '', vehicleType: '', vehicleColor: '' }); setLostTicketResult(null); }} style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
+            background: WARNING, color: '#fff', border: 'none', borderRadius: 8,
+            fontWeight: 600, fontSize: 14, cursor: 'pointer'
           }}>
-            <FaCog />
+            <FaExclamationTriangle /> Lost Ticket
+          </button>
+          <button onClick={handleRefresh} title="Refresh data" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 40, height: 40, background: '#f1f5f9', border: '1px solid #e2e8f0',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+            <FaSync size={14} color="#475569" />
+          </button>
+          <Link href="/parking/config" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 40, height: 40, background: '#f1f5f9', border: '1px solid #e2e8f0',
+            borderRadius: 8, textDecoration: 'none', cursor: 'pointer'
+          }}>
+            <FaCog size={14} color="#475569" />
           </Link>
         </div>
       </div>
+
+      {/* Last refreshed indicator */}
+      {lastRefreshedAt && (
+        <div style={{ padding: isMobile ? '4px 16px' : '4px 32px', fontSize: 11, color: '#94a3b8', background: '#fff', borderBottom: '1px solid #f1f5f9' }}>
+          Last updated: {lastRefreshedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} &middot; Auto-refreshes every 30s
+        </div>
+      )}
 
       {/* Stats Bar */}
       {loading ? (
@@ -501,21 +668,60 @@ export default function ParkingDashboardPage() {
                   placeholder="Search vehicle or ticket number..."
                   style={{
                     width: '100%', padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0',
-                    borderRadius: 8, fontSize: 14, outline: 'none'
+                    borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box'
                   }}
                 />
               </div>
               {tab === 'history' && (
-                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                  style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}>
-                  <option value="">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[
+                    { value: '', label: 'All' },
+                    { value: 'completed', label: 'Completed' },
+                    { value: 'cancelled', label: 'Cancelled' },
+                    { value: 'lost_ticket', label: 'Lost Ticket' },
+                  ].map(chip => {
+                    const active = statusFilter === chip.value;
+                    return (
+                      <button key={chip.value} onClick={() => setStatusFilter(chip.value)}
+                        style={{
+                          padding: '6px 14px', borderRadius: 20,
+                          border: active ? `2px solid ${PRIMARY}` : '1px solid #e2e8f0',
+                          background: active ? PRIMARY_LIGHT : '#fff',
+                          color: active ? PRIMARY_DARK : '#64748b',
+                          fontWeight: active ? 600 : 400, fontSize: 13, cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}>
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
-              <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-                style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14 }} />
+              {/* Date navigation */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                <button onClick={() => navigateDate(-1)} style={{
+                  padding: '9px 10px', border: '1px solid #e2e8f0', borderRadius: '8px 0 0 8px',
+                  background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                }}>
+                  <FaChevronLeft size={12} color="#475569" />
+                </button>
+                <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+                  style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderLeft: 'none', borderRight: 'none', borderRadius: 0, fontSize: 14, outline: 'none' }} />
+                <button onClick={() => navigateDate(1)} style={{
+                  padding: '9px 10px', border: '1px solid #e2e8f0', borderRadius: '0 8px 8px 0',
+                  background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                }}>
+                  <FaChevronRight size={12} color="#475569" />
+                </button>
+                {!isToday && (
+                  <button onClick={goToToday} style={{
+                    padding: '8px 14px', background: PRIMARY_LIGHT, color: PRIMARY, border: `1px solid ${PRIMARY}`,
+                    borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginLeft: 6
+                  }}>
+                    Today
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Ticket List */}
@@ -567,6 +773,12 @@ export default function ParkingDashboardPage() {
                         <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 500 }}>
                           {formatTime(entryTime.toISOString())}
                         </div>
+                        {/* Live elapsed timer for active tickets */}
+                        {ticket.status === 'active' && (
+                          <div style={{ fontSize: 12, color: WARNING, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+                            <FaClock size={10} /> {calcElapsed(ticket.entryTime)}
+                          </div>
+                        )}
                         {ticket.status === 'completed' && ticket.finalAmount !== null && (
                           <div style={{ fontSize: 14, color: SUCCESS, fontWeight: 700 }}>
                             {ticket.currency} {ticket.finalAmount}
@@ -582,7 +794,7 @@ export default function ParkingDashboardPage() {
                             }}>
                             Exit
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); handleCancelTicket(ticket.id); }}
+                          <button onClick={(e) => { e.stopPropagation(); openCancelModal(ticket.id); }}
                             style={{
                               padding: '6px 10px', background: '#fee2e2', color: DANGER, border: 'none',
                               borderRadius: 6, fontSize: 12, cursor: 'pointer'
@@ -677,16 +889,30 @@ export default function ParkingDashboardPage() {
                 placeholder="Optional notes..." style={inputStyle} />
             </FormField>
 
-            {/* Vehicle Photo */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleVehiclePhoto} style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8,
-                cursor: 'pointer', fontSize: 13, color: '#475569'
-              }}>
-                <FaCamera /> {entryForm.vehicleImageUrl ? 'Photo Taken' : 'Take Photo'}
-              </button>
-            </div>
+            {/* Vehicle Photo with Preview */}
+            <FormField label="Vehicle Photo">
+              {entryForm.vehicleImageUrl ? (
+                <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                  <img src={entryForm.vehicleImageUrl} alt="Vehicle preview"
+                    style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
+                  <button onClick={removeVehiclePhoto} style={{
+                    position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaTimes color="#fff" size={12} />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={handleVehiclePhoto} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '24px', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 10,
+                  cursor: 'pointer', fontSize: 14, color: '#64748b'
+                }}>
+                  <FaCamera size={18} /> Take or Upload Vehicle Photo
+                </button>
+              )}
+            </FormField>
 
             <button onClick={handleEntry} disabled={entryLoading} style={{
               padding: '14px', background: entryLoading ? '#94a3b8' : SUCCESS,
@@ -711,7 +937,7 @@ export default function ParkingDashboardPage() {
               <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, fontWeight: 500 }}>or</div>
               <FormField label="QR Code Data">
                 <input value={exitForm.qrData} onChange={e => setExitForm(f => ({ ...f, qrData: e.target.value }))}
-                  placeholder="Scan QR code..." style={inputStyle} />
+                  placeholder="Scan or paste QR code data..." style={inputStyle} />
               </FormField>
               <button onClick={handleExitLookup} disabled={exitLoading} style={{
                 padding: '14px', background: exitLoading ? '#94a3b8' : PRIMARY,
@@ -723,6 +949,17 @@ export default function ParkingDashboardPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Lost ticket surcharge indicator */}
+              {exitPreview.isLostTicket && (
+                <div style={{
+                  padding: '10px 14px', background: WARNING_BG, borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: 8, border: `1px solid #fbbf24`
+                }}>
+                  <FaExclamationTriangle color={WARNING} />
+                  <span style={{ fontSize: 13, color: '#92400e', fontWeight: 600 }}>Lost ticket - surcharge may be applied</span>
+                </div>
+              )}
+
               <div style={{ background: PRIMARY_BG, borderRadius: 12, padding: 16 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <InfoRow label="Ticket" value={exitPreview.ticketNumber} />
@@ -791,6 +1028,13 @@ export default function ParkingDashboardPage() {
                 {ticketDetail.finalAmount !== null && ticketDetail.finalAmount !== undefined && <InfoRow label="Amount" value={`${ticketDetail.currency || 'AED'} ${ticketDetail.finalAmount}`} />}
                 {ticketDetail.paymentMethod && <InfoRow label="Payment" value={ticketDetail.paymentMethod} />}
               </div>
+              {/* Live elapsed for active tickets */}
+              {ticketDetail.status === 'active' && (
+                <div style={{ marginTop: 10, padding: '10px 12px', background: WARNING_BG, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <FaClock color={WARNING} size={14} />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#92400e' }}>Parked for: {calcElapsed(ticketDetail.entryTime)}</span>
+                </div>
+              )}
             </div>
             {ticketDetail.vehicleImageUrl && (
               <img src={ticketDetail.vehicleImageUrl} alt="Vehicle" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 10 }} />
@@ -805,6 +1049,142 @@ export default function ParkingDashboardPage() {
                 {ticketDetail.notes}
               </div>
             )}
+            {/* Action buttons based on status */}
+            {ticketDetail.status === 'active' && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <button onClick={() => {
+                  const tn = ticketDetail.ticketNumber;
+                  setTicketDetail(null);
+                  setExitModal(true);
+                  setExitForm({ ticketNumber: tn, qrData: '' });
+                  handleExitLookupDirect(tn);
+                }} style={{
+                  flex: 1, padding: '12px', background: PRIMARY, color: '#fff',
+                  border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                }}>
+                  <FaSignOutAlt /> Process Exit
+                </button>
+                <button onClick={() => {
+                  openCancelModal(ticketDetail.id);
+                }} style={{
+                  padding: '12px 16px', background: DANGER_BG, color: DANGER,
+                  border: `1px solid ${DANGER}`, borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14,
+                  display: 'flex', alignItems: 'center', gap: 4
+                }}>
+                  <FaBan /> Cancel
+                </button>
+              </div>
+            )}
+            {ticketDetail.status === 'completed' && (
+              <button onClick={() => handlePrintExitSlip(ticketDetail)} style={{
+                width: '100%', padding: '12px', background: '#f1f5f9', color: '#475569',
+                border: '1px solid #e2e8f0', borderRadius: 8, fontWeight: 600, cursor: 'pointer',
+                fontSize: 14, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+              }}>
+                <FaPrint /> Reprint Receipt
+              </button>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* ═══ LOST TICKET MODAL ═══ */}
+      {lostTicketModal && (
+        <Modal title="Lost Ticket Lookup" onClose={() => { setLostTicketModal(false); setLostTicketResult(null); }} isMobile={isMobile}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '10px 14px', background: WARNING_BG, borderRadius: 8, fontSize: 13, color: '#92400e', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FaExclamationTriangle /> Find a vehicle&apos;s active ticket by searching their plate number.
+            </div>
+
+            <FormField label="Vehicle Number *">
+              <input value={lostTicketForm.vehicleNumber}
+                onChange={e => setLostTicketForm(f => ({ ...f, vehicleNumber: e.target.value.toUpperCase() }))}
+                placeholder="e.g. A 12345 DXB" style={inputStyle} />
+            </FormField>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <FormField label="Vehicle Type (optional)">
+                <select value={lostTicketForm.vehicleType}
+                  onChange={e => setLostTicketForm(f => ({ ...f, vehicleType: e.target.value }))} style={inputStyle}>
+                  <option value="">Any</option>
+                  {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Vehicle Color (optional)">
+                <input value={lostTicketForm.vehicleColor}
+                  onChange={e => setLostTicketForm(f => ({ ...f, vehicleColor: e.target.value }))}
+                  placeholder="e.g. White" style={inputStyle} />
+              </FormField>
+            </div>
+
+            {!lostTicketResult ? (
+              <button onClick={handleLostTicketLookup} disabled={lostTicketLoading} style={{
+                padding: '14px', background: lostTicketLoading ? '#94a3b8' : WARNING,
+                color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700,
+                fontSize: 16, cursor: lostTicketLoading ? 'wait' : 'pointer'
+              }}>
+                {lostTicketLoading ? <><FaSpinner className="spin" /> Searching...</> : <><FaSearch /> Find Active Ticket</>}
+              </button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: SUCCESS_BG, borderRadius: 10, padding: 14, border: `1px solid #86efac` }}>
+                  <div style={{ fontSize: 13, color: '#166534', fontWeight: 600, marginBottom: 8 }}>Ticket Found</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    <InfoRow label="Ticket" value={lostTicketResult.ticketNumber} />
+                    <InfoRow label="Vehicle" value={lostTicketResult.vehicleNumber} />
+                    <InfoRow label="Type" value={lostTicketResult.vehicleType} />
+                    <InfoRow label="Zone" value={lostTicketResult.zoneName || '-'} />
+                    <InfoRow label="Entry" value={formatDateTime(lostTicketResult.entryTime?._seconds ? new Date(lostTicketResult.entryTime._seconds * 1000).toISOString() : lostTicketResult.entryTime)} />
+                    <InfoRow label="Parked For" value={calcElapsed(lostTicketResult.entryTime)} />
+                  </div>
+                </div>
+                <button onClick={handleLostTicketExit} disabled={lostTicketLoading} style={{
+                  padding: '14px', background: lostTicketLoading ? '#94a3b8' : PRIMARY,
+                  color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700,
+                  fontSize: 16, cursor: lostTicketLoading ? 'wait' : 'pointer'
+                }}>
+                  {lostTicketLoading ? <><FaSpinner className="spin" /> Processing...</> : <><FaSignOutAlt /> Process Exit (Lost Ticket)</>}
+                </button>
+                <button onClick={() => setLostTicketResult(null)} style={{
+                  padding: '10px', background: '#f1f5f9', color: '#475569',
+                  border: '1px solid #e2e8f0', borderRadius: 8, fontWeight: 500,
+                  fontSize: 14, cursor: 'pointer'
+                }}>
+                  Search Again
+                </button>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* ═══ CANCEL TICKET MODAL ═══ */}
+      {cancelModal && (
+        <Modal title="Cancel Ticket" onClose={() => setCancelModal(null)} isMobile={isMobile}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '12px 14px', background: DANGER_BG, borderRadius: 8, fontSize: 14, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FaExclamationTriangle /> Are you sure you want to cancel this ticket? This action cannot be undone.
+            </div>
+            <FormField label="Reason for cancellation">
+              <input value={cancelReason} onChange={e => setCancelReason(e.target.value)}
+                placeholder="e.g. Duplicate entry, Customer request..." style={inputStyle} />
+            </FormField>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setCancelModal(null)} style={{
+                flex: 1, padding: '12px', background: '#f1f5f9', color: '#475569',
+                border: '1px solid #e2e8f0', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14
+              }}>
+                Keep Ticket
+              </button>
+              <button onClick={confirmCancelTicket} disabled={cancelLoading} style={{
+                flex: 1, padding: '12px', background: cancelLoading ? '#94a3b8' : DANGER,
+                color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600,
+                cursor: cancelLoading ? 'wait' : 'pointer', fontSize: 14
+              }}>
+                {cancelLoading ? 'Cancelling...' : 'Cancel Ticket'}
+              </button>
+            </div>
           </div>
         </Modal>
       )}
@@ -880,7 +1260,7 @@ function LiveViewTab({ stats, zones, config, isMobile, loading }) {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280, 1fr))', gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
       {zones.filter(z => z.isActive).map(zone => {
         const total = zone.totalSlots || 0;
         const occupied = zone.occupiedSlots || 0;
