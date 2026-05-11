@@ -37,6 +37,7 @@
     "@vercel/analytics": "^1.5.0",
     "axios": "^1.12.2",
     "better-sqlite3": "^12.9.0",
+    "electron-updater": "^6.0.0",
     "firebase": "^10.14.1",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.3",
@@ -44,6 +45,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.556.0",
     "next": "15.5.7",
+    "posthog-js": "^1.372.10",
     "postprocessing": "^6.38.0",
     "pusher-js": "^8.4.0",
     "qrcode": "^1.5.4",
@@ -56,8 +58,7 @@
     "serwist": "^9.5.7",
     "three": "^0.181.2",
     "uuid": "^13.0.0",
-    "xlsx": "^0.18.5",
-    "electron-updater": "^6.0.0"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",

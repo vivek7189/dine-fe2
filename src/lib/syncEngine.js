@@ -160,14 +160,17 @@ async function executeOfflineAction(apiClient, orderData) {
   const action = orderData._offlineAction || 'create_order';
   const cleanData = cleanOrderData(orderData);
 
+  // Set offline sync header so backend skips table availability checks
+  const syncHeaders = { 'x-sync-source': 'offline' };
+
   switch (action) {
     case 'create_saved_cart': {
-      const response = await apiClient.createSavedCart(cleanData);
+      const response = await apiClient.createSavedCart(cleanData, { headers: syncHeaders });
       return { order: response.cart, actionType: action };
     }
 
     case 'complete_billing_new': {
-      const response = await apiClient.createOrder(cleanData);
+      const response = await apiClient.createOrder(cleanData, { headers: syncHeaders });
       if (response.order && orderData._paymentData) {
         try {
           await apiClient.verifyPayment({
@@ -183,7 +186,7 @@ async function executeOfflineAction(apiClient, orderData) {
 
     case 'complete_billing_existing': {
       const orderId = orderData._existingOrderId;
-      const response = await apiClient.updateOrder(orderId, cleanData);
+      const response = await apiClient.updateOrder(orderId, cleanData, { headers: syncHeaders });
       if (response.data && orderData._paymentData) {
         try {
           await apiClient.verifyPayment(orderData._paymentData);
@@ -217,7 +220,7 @@ async function executeOfflineAction(apiClient, orderData) {
 
     case 'create_order':
     default: {
-      const response = await apiClient.createOrder(cleanData);
+      const response = await apiClient.createOrder(cleanData, { headers: syncHeaders });
       return { order: response.order, idempotent: response.idempotent, actionType: action };
     }
   }

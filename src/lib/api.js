@@ -993,11 +993,12 @@ class ApiClient {
   }
 
   // Order endpoints
-  async createOrder(orderData) {
+  async createOrder(orderData, extraOptions = {}) {
     console.log('📤 API Client - Creating order with data:', orderData);
     return this.request('/api/orders', {
       method: 'POST',
       body: orderData,
+      ...extraOptions,
     });
   }
 
@@ -1027,10 +1028,11 @@ class ApiClient {
     });
   }
 
-  async updateOrder(orderId, updateData) {
+  async updateOrder(orderId, updateData, extraOptions = {}) {
     return this.request(`/api/orders/${orderId}`, {
       method: 'PATCH',
       body: updateData,
+      ...extraOptions,
     });
   }
 
@@ -1040,10 +1042,11 @@ class ApiClient {
     return this.request(`/api/saved-carts/${restaurantId}${query}`);
   }
 
-  async createSavedCart(cartData) {
+  async createSavedCart(cartData, extraOptions = {}) {
     return this.request('/api/saved-carts', {
       method: 'POST',
       body: cartData,
+      ...extraOptions,
     });
   }
 

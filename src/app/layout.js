@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import TokenExtractor from '../components/TokenExtractor'
 import { Analytics } from "@vercel/analytics/next"
 import { LoadingProvider } from '../contexts/LoadingContext'
+import PostHogProvider from '../components/PostHogProvider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -72,10 +73,12 @@ export default function RootLayout({ children }) {
             });
           }
         ` }} />
-        <LoadingProvider>
-          <TokenExtractor />
-          {children}
-        </LoadingProvider>
+        <PostHogProvider>
+          <LoadingProvider>
+            <TokenExtractor />
+            {children}
+          </LoadingProvider>
+        </PostHogProvider>
         <Analytics />
         {/* <script
           src="https://fixflow-fe.vercel.app/sdk.js"
