@@ -2006,7 +2006,17 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     if (!reportData || exporting) return;
     setExporting(true);
     try {
-      const logoUrl = restaurantData?.printSettings?.receiptLogo?.url || null;
+      // Fetch fresh print settings to get latest logo
+      let logoUrl = restaurantData?.printSettings?.receiptLogo?.url || null;
+      const restaurantId = restaurantData?.id || orgData?.id;
+      if (restaurantId) {
+        try {
+          const psRes = await apiClient.getPrintSettings(restaurantId);
+          if (psRes?.printSettings?.receiptLogo?.url) {
+            logoUrl = psRes.printSettings.receiptLogo.url;
+          }
+        } catch {}
+      }
       const orgName = restaurantData?.name || orgData?.name || '';
       const dateRangeStr = `${startDate} to ${endDate}`;
       const { pdf: pdfFunc } = await import('@react-pdf/renderer');

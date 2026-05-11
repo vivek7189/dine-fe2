@@ -4,15 +4,37 @@ import { useState } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { InventoryPDFDocument } from './InventoryPDFDocument';
 import { FaDownload } from 'react-icons/fa';
+import apiClient from '../../../../../lib/api';
 
-export default function InventoryDownloadPDFButton({ reportType, data, org, logoUrl, filename, style }) {
+export default function InventoryDownloadPDFButton({ reportType, data, org, logoUrl: logoUrlProp, filename, style }) {
   const [generating, setGenerating] = useState(false);
 
   async function handleDownload() {
     setGenerating(true);
     try {
+      // Fetch fresh print settings to get latest logo
+      let logoUrl = logoUrlProp || null;
+      if (!logoUrl) {
+        try {
+          const rid = localStorage.getItem('selectedRestaurantId') || org?.id;
+          if (rid) {
+            const psRes = await apiClient.getPrintSettings(rid);
+            if (psRes?.printSettings?.receiptLogo?.url) {
+              logoUrl = psRes.printSettings.receiptLogo.url;
+            }
+          }
+        } catch {}
+      }
+      // Also get restaurant name if org is empty
+      const safeOrg = (org && org.name) ? org : (() => {
+        try {
+          const r = JSON.parse(localStorage.getItem('selectedRestaurant'));
+          return r ? { name: r.name } : org;
+        } catch { return org; }
+      })();
+
       const blob = await pdf(
-        <InventoryPDFDocument reportType={reportType} data={data} org={org} logoUrl={logoUrl} />
+        <InventoryPDFDocument reportType={reportType} data={data} org={safeOrg} logoUrl={logoUrl} />
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
