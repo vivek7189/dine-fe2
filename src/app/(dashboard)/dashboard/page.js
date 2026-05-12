@@ -354,7 +354,9 @@ function RestaurantPOSContent() {
     return floorsData.map(floor => ({
       ...floor,
       tables: (floor.tables || []).map(t => {
-        const override = overrides[String(t.name)] || overrides[String(t.number)];
+        // Check composite key (floorId_tableId) first for precise match, then fall back to name
+        const compositeKey = `${floor.id || ''}_${t.id}`;
+        const override = overrides[compositeKey] || overrides[String(t.name)] || overrides[String(t.number)];
         if (override) {
           const { expiresAt, ...overrideData } = override;
           return { ...t, ...overrideData };
@@ -404,10 +406,13 @@ function RestaurantPOSContent() {
   }, []);
 
   // Optimistic table status update — instantly change UI, revert on error
-  const optimisticTableStatus = useCallback((tableName, status, orderId = null, orderTotal = null) => {
-    if (!tableName) return;
+  const optimisticTableStatus = useCallback((tableIdentifier, status, orderId = null, orderTotal = null) => {
+    if (!tableIdentifier) return;
+    const isObj = typeof tableIdentifier === 'object' && tableIdentifier?.id;
+    const tableName = isObj ? tableIdentifier.name : tableIdentifier;
+    const overrideKey = isObj ? `${tableIdentifier.floorId || ''}_${tableIdentifier.id}` : String(tableName);
     // Store override so prefetchTables won't overwrite it
-    optimisticTableOverridesRef.current[String(tableName)] = {
+    optimisticTableOverridesRef.current[overrideKey] = {
       status, currentOrderId: orderId, currentOrderTotal: orderTotal,
       lastOrderTime: new Date().toISOString(),
       expiresAt: Date.now() + 10000, // 10 second TTL
@@ -416,11 +421,14 @@ function RestaurantPOSContent() {
       ...prev,
       floors: (prev.floors || []).map(floor => ({
         ...floor,
-        tables: (floor.tables || []).map(t =>
-          (String(t.name) === String(tableName) || String(t.number) === String(tableName))
+        tables: (floor.tables || []).map(t => {
+          const match = isObj
+            ? (t.id === tableIdentifier.id && (!tableIdentifier.floorId || floor.id === tableIdentifier.floorId))
+            : (String(t.name) === String(tableName) || String(t.number) === String(tableName));
+          return match
             ? { ...t, status, currentOrderId: orderId, currentOrderTotal: orderTotal, lastOrderTime: new Date().toISOString() }
-            : t
-        )
+            : t;
+        })
       }))
     }));
   }, []);
@@ -1435,6 +1443,7 @@ function RestaurantPOSContent() {
         id: tableIdParam || null,
         name: tableParam,
         floor: floorParam || null,
+        floorId: searchParams.get('floorId') || null,
         capacity: capacityParam
       });
       setTableNumber(tableParam); // Auto-fill the table number input field
@@ -2286,6 +2295,16 @@ function RestaurantPOSContent() {
             setLocationType('table');
             setTableNumber(order.tableNumber || '');
             setManualRoomNumber('');
+            // Restore floor/table IDs from order so updates go to the correct table
+            const cd = order.customerDisplay || {};
+            if (cd.tableId || order.tableId) {
+              setSelectedTable({
+                id: cd.tableId || order.tableId || null,
+                name: order.tableNumber,
+                floor: cd.floorName || order.floorName || null,
+                floorId: cd.floorId || order.floorId || null,
+              });
+            }
           } else {
             // No table or room - default to table
             setLocationType('table');
@@ -2808,6 +2827,9 @@ function RestaurantPOSContent() {
           })),
           tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber) : null,
           roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber) : null, // NEW: Include room number
+          floorId: selectedTable?.floorId || null,
+          floorName: selectedTable?.floor || null,
+          tableId: selectedTable?.id || null,
           orderType,
           paymentMethod,
           status: 'completed', // Mark as completed
@@ -2857,7 +2879,8 @@ function RestaurantPOSContent() {
             name: customerName || currentOrder.customerInfo?.name || 'Walk-in Customer',
             phone: customerMobile || currentOrder.customerInfo?.phone || null,
             tableNumber: !isRoomOrder ? (tableToUse || currentOrder.tableNumber || null) : null,
-            roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber || null) : null
+            roomNumber: isRoomOrder ? (roomNumber || currentOrder.roomNumber || null) : null,
+            floorName: selectedTable?.floor || null
           },
           customerId: customerData?.id || null
         };
@@ -2872,7 +2895,12 @@ function RestaurantPOSContent() {
         // Optimistic: mark table as available immediately (billing completes the order)
         const billingTableName = tableToUse || currentOrder.tableNumber;
         if (billingTableName) {
-          optimisticTableStatus(billingTableName, 'available', null, null);
+          optimisticTableStatus(
+            selectedTable?.id
+              ? { id: selectedTable.id, name: billingTableName, floorId: selectedTable.floorId }
+              : billingTableName,
+            'available', null, null
+          );
         }
 
         // OFFLINE PATH: Queue update + payment for later sync
@@ -3052,6 +3080,9 @@ function RestaurantPOSContent() {
         restaurantId: selectedRestaurant.id,
           tableNumber: finalTableNumber || null,
           roomNumber: roomNumber || null, // NEW: Include room number for hotel orders
+          floorId: selectedTable?.floorId || null,
+          floorName: selectedTable?.floor || null,
+          tableId: selectedTable?.id || null,
         orderType,
         paymentMethod,
           status: 'completed', // Set status to completed since payment is processed immediately
@@ -3078,7 +3109,8 @@ function RestaurantPOSContent() {
             name: customerName || 'Walk-in Customer',
             phone: customerMobile || null,
             tableNumber: finalTableNumber || null,
-            roomNumber: roomNumber || null // NEW: Include room number in customer info
+            roomNumber: roomNumber || null,
+            floorName: selectedTable?.floor || null
         },
         customerId: customerData?.id || null,
         // Tax information from OrderSummary
@@ -3133,7 +3165,12 @@ function RestaurantPOSContent() {
         // Optimistic: mark table as available immediately (direct billing = completed order)
         const newBillingTableName = finalTableNumber || tableToUse;
         if (newBillingTableName) {
-          optimisticTableStatus(newBillingTableName, 'available', null, null);
+          optimisticTableStatus(
+            selectedTable?.id
+              ? { id: selectedTable.id, name: newBillingTableName, floorId: selectedTable.floorId }
+              : newBillingTableName,
+            'available', null, null
+          );
         }
 
         // OFFLINE PATH: Queue order + payment for later sync
@@ -3342,7 +3379,12 @@ function RestaurantPOSContent() {
       // Revert optimistic table status — mark back as occupied since billing failed
       const revertTableName = tableToUse || currentOrder?.tableNumber || selectedTable?.name;
       if (revertTableName) {
-        optimisticTableStatus(revertTableName, 'occupied', currentOrder?.id || null, null);
+        optimisticTableStatus(
+          selectedTable?.id
+            ? { id: selectedTable.id, name: revertTableName, floorId: selectedTable.floorId }
+            : revertTableName,
+          'occupied', currentOrder?.id || null, null
+        );
       }
 
       // If this is a network error (offline), try to queue the billing offline
@@ -3848,6 +3890,9 @@ function RestaurantPOSContent() {
           selectedCustomizations: item.selectedCustomizations || null,
         })),
         tableNumber: tableToUse || currentOrder.tableNumber,
+        floorId: selectedTable?.floorId || null,
+        floorName: selectedTable?.floor || null,
+        tableId: selectedTable?.id || null,
         orderType,
         paymentMethod,
         totalAmount: subtotal || getTotalAmount(),
@@ -3998,6 +4043,9 @@ function RestaurantPOSContent() {
             selectedCustomizations: item.selectedCustomizations || null,
           })),
           tableNumber: tableToUse || currentOrder.tableNumber,
+          floorId: selectedTable?.floorId || null,
+          floorName: selectedTable?.floor || null,
+          tableId: selectedTable?.id || null,
           orderType,
           paymentMethod,
           // Tax information from OrderSummary
@@ -4064,6 +4112,7 @@ function RestaurantPOSContent() {
               isIncremental: incrementalItems.length > 0,
               tableNumber: roomForKot ? null : tableToUseForKot,
               roomNumber: roomForKot || null,
+              floorName: selectedTable?.floor || null,
               customerName: customerName || null,
               orderType,
               restaurantName: selectedRestaurant?.name || 'Restaurant',
@@ -4126,6 +4175,9 @@ function RestaurantPOSContent() {
           idempotencyKey,
           tableNumber: finalTableNumber || null,
           roomNumber: roomNumber || null,
+          floorId: selectedTable?.floorId || null,
+          floorName: selectedTable?.floor || null,
+          tableId: selectedTable?.id || null,
           items: cart.map(item => ({
             menuItemId: item.id,
             quantity: item.quantity,
@@ -4138,7 +4190,8 @@ function RestaurantPOSContent() {
             name: customerName || null,
             phone: customerMobile || null,
             tableNumber: finalTableNumber || null,
-            roomNumber: roomNumber || null
+            roomNumber: roomNumber || null,
+            floorName: selectedTable?.floor || null
           },
           customerId: customerData?.id || null,
           orderType,
@@ -4230,6 +4283,7 @@ function RestaurantPOSContent() {
                 items: cartKotItemsOffline,
                 tableNumber: roomNumber ? null : (finalTableNumber || null),
                 roomNumber: roomNumber || null,
+                floorName: selectedTable?.floor || null,
                 customerName: customerName || null,
                 orderType,
                 restaurantName: selectedRestaurant?.name || 'Restaurant',
@@ -4266,10 +4320,17 @@ function RestaurantPOSContent() {
         const savedSpecialInstructions = specialInstructions || null;
         const savedActiveSavedOrderId = activeSavedOrderId;
         const savedReturnToView = returnToView; // Capture before clearing
+        const savedTableIdentifier = selectedTable?.id
+          ? { id: selectedTable.id, name: savedTableNumber, floorId: selectedTable.floorId }
+          : null;
+        const savedFloorName = selectedTable?.floor || null;
 
         // Optimistic: mark table as occupied immediately (visual feedback on tables panel)
         if (savedTableNumber) {
-          optimisticTableStatus(savedTableNumber, 'occupied', null, orderData.finalAmount || 0);
+          optimisticTableStatus(
+            savedTableIdentifier || savedTableNumber,
+            'occupied', null, orderData.finalAmount || 0
+          );
         }
 
         // Show processing indicator (KOT summary without orderId — auto-print won't fire yet)
@@ -4285,6 +4346,7 @@ function RestaurantPOSContent() {
             items: cartKotItems,
             tableNumber: savedTableNumber,
             roomNumber: savedRoomNumber,
+            floorName: savedFloorName,
             customerName: savedCustomerName,
             orderType,
             restaurantName: savedRestaurantName,
@@ -4312,7 +4374,7 @@ function RestaurantPOSContent() {
 
             // Update optimistic table with real orderId so table card buttons work
             if (savedTableNumber) {
-              optimisticTableStatus(savedTableNumber, 'occupied', _orderId, orderData.finalAmount || 0);
+              optimisticTableStatus(savedTableIdentifier || savedTableNumber, 'occupied', _orderId, orderData.finalAmount || 0);
             }
 
             // Background refresh tables
@@ -4341,6 +4403,7 @@ function RestaurantPOSContent() {
                 items: cartKotItems,
                 tableNumber: savedTableNumber,
                 roomNumber: savedRoomNumber,
+                floorName: savedFloorName,
                 customerName: savedCustomerName,
                 orderType,
                 restaurantName: savedRestaurantName,
@@ -4493,7 +4556,7 @@ function RestaurantPOSContent() {
                 setCart(cartBackup);
                 localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
                 // Revert optimistic table status
-                if (savedTableNumber) optimisticTableStatus(savedTableNumber, 'available', null, null);
+                if (savedTableNumber) optimisticTableStatus(savedTableIdentifier || savedTableNumber, 'available', null, null);
                 setNotification({
                   type: 'error',
                   title: t('dashboard.orderFailed'),
@@ -4507,7 +4570,7 @@ function RestaurantPOSContent() {
               setCart(cartBackup);
               localStorage.setItem('dine_cart', JSON.stringify(cartBackup));
               // Revert optimistic table status
-              if (savedTableNumber) optimisticTableStatus(savedTableNumber, 'available', null, null);
+              if (savedTableNumber) optimisticTableStatus(savedTableIdentifier || savedTableNumber, 'available', null, null);
               setNotification({
                 type: 'error',
                 title: t('dashboard.orderFailed'),
@@ -4789,10 +4852,14 @@ function RestaurantPOSContent() {
   }, [isFullscreen]);
 
   // Sync event notifications — only show final result (no "syncing..." intermediate)
+  // Track last shown failure to avoid repeating the same notification on periodic retries
+  const lastSyncFailShownRef = useRef(null);
   useEffect(() => {
     if (!lastSyncEvent) return;
     if (lastSyncEvent.type === 'sync_complete') {
       if (lastSyncEvent.syncedCount > 0) {
+        // Something synced — always show success, reset failure tracker
+        lastSyncFailShownRef.current = null;
         setNotification({
           type: 'success',
           title: t('dashboard.ordersSynced'),
@@ -4801,6 +4868,9 @@ function RestaurantPOSContent() {
         });
         setTimeout(() => setNotification(null), 5000);
       } else if (lastSyncEvent.failedCount > 0) {
+        // Only failures, no progress — show once per failure count
+        if (lastSyncFailShownRef.current === lastSyncEvent.failedCount) return;
+        lastSyncFailShownRef.current = lastSyncEvent.failedCount;
         setNotification({
           type: 'error',
           title: t('dashboard.syncFailed'),
@@ -4810,6 +4880,8 @@ function RestaurantPOSContent() {
         setTimeout(() => setNotification(null), 6000);
       }
     } else if (lastSyncEvent.type === 'failed') {
+      if (lastSyncFailShownRef.current === 'failed') return;
+      lastSyncFailShownRef.current = 'failed';
       setNotification({
         type: 'error',
         title: t('dashboard.syncFailed'),
@@ -7214,12 +7286,13 @@ function RestaurantPOSContent() {
                   setOrderSuccess(null);
                   setError('');
                   setTableNumber(tbl);
-                  // Set selectedTable with floor info for multi-tier pricing auto-selection
-                  if (tableInfo?.floor) {
+                  // Set selectedTable with table ID and floor info
+                  if (tableInfo) {
                     setSelectedTable({
                       id: tableInfo.id || null,
                       name: tbl,
-                      floor: tableInfo.floor,
+                      floor: tableInfo.floor || null,
+                      floorId: tableInfo.floorId || null,
                       capacity: tableInfo.capacity || null
                     });
                   }

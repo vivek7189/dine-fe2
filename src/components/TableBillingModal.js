@@ -400,6 +400,12 @@ export default function TableBillingModal({
               error={null}
               getTotalAmount={getModalTotalAmount}
               tableNumber={order.tableNumber || table?.name || ''}
+              selectedTable={{
+                id: table?.id || null,
+                name: order.tableNumber || table?.name || '',
+                floor: order.floorName || table?.floor || null,
+                floorId: order.floorId || table?.floorId || null,
+              }}
               customerName={modalCustomerName}
               customerMobile={modalCustomerMobile}
               orderLookup=""

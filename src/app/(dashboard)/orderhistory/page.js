@@ -2860,7 +2860,7 @@ const OrderHistory = () => {
                             )}
                             <div>
                               <div className="text-xs text-gray-500">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? t('orderHistory.room') : t('orderHistory.table')}</div>
-                              <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}</div>
+                              <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}{!order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && order.customerDisplay?.floorName ? ` · ${order.customerDisplay.floorName}` : ''}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

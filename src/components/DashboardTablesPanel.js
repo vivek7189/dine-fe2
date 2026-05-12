@@ -212,14 +212,14 @@ export default function DashboardTablesPanel({
     }
   };
 
-  const handleTakeOrderGuarded = (table, floorName) => {
+  const handleTakeOrderGuarded = (table, floorName, floorId) => {
     const status = table.status?.toLowerCase();
     if (status === 'out-of-service') {
-      setOutOfServiceModal({ open: true, table, floorName });
+      setOutOfServiceModal({ open: true, table, floorName, floorId });
       return;
     }
     if (sliderOpen) handleSliderClose();
-    if (onTakeOrder) onTakeOrder(table.name || table.number, { id: table.id, floor: floorName, capacity: table.capacity });
+    if (onTakeOrder) onTakeOrder(table.name || table.number, { id: table.id, floor: floorName, floorId: floorId || null, capacity: table.capacity });
   };
 
   const closeSlider = () => {
@@ -847,7 +847,7 @@ export default function DashboardTablesPanel({
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
                             className="btn-action"
-                            onClick={() => handleTakeOrderGuarded(t, group.info?.name)}
+                            onClick={() => handleTakeOrderGuarded(t, group.info?.name, group.info?.id)}
                             style={{
                               flex: 1,
                               padding: '8px 12px',
@@ -925,7 +925,7 @@ export default function DashboardTablesPanel({
                             className="btn-action"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleTakeOrderGuarded(t, group.info?.name);
+                              handleTakeOrderGuarded(t, group.info?.name, group.info?.id);
                             }}
                             style={{
                               flex: 1,
@@ -1088,7 +1088,7 @@ export default function DashboardTablesPanel({
                               if (t.currentOrderId) {
                                 router.push(`/dashboard?orderId=${t.currentOrderId}&mode=edit&from=tables`);
                               } else {
-                                handleTakeOrderGuarded(t, group.info?.name);
+                                handleTakeOrderGuarded(t, group.info?.name, group.info?.id);
                               }
                             }}
                             style={{
@@ -1117,7 +1117,7 @@ export default function DashboardTablesPanel({
                             className="btn-action"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (t.currentOrderId) openActionsModal(t);
+                              if (t.currentOrderId) openActionsModal({ ...t, floor: group.name, floorId: group.info?.id });
                             }}
                             style={{
                               padding: '6px 10px',
@@ -1213,8 +1213,9 @@ export default function DashboardTablesPanel({
                 onClick={() => {
                   const tbl = outOfServiceModal.table;
                   const flName = outOfServiceModal.floorName;
-                  setOutOfServiceModal({ open: false, table: null, floorName: null });
-                  if (tbl) handleTakeOrderGuarded({ ...tbl, status: 'available' }, flName);
+                  const flId = outOfServiceModal.floorId;
+                  setOutOfServiceModal({ open: false, table: null, floorName: null, floorId: null });
+                  if (tbl) handleTakeOrderGuarded({ ...tbl, status: 'available' }, flName, flId);
                 }}
                 style={{
                   flex: 1,
