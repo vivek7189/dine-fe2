@@ -148,7 +148,7 @@ export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily)}</style></head><body>${headerHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${L.billLabel}#:</span><span><strong>${invoice.dailyOrderId || invoice.id || 'N/A'}</strong></span></div><div><span>${L.date}:</span><span>${dateStr}</span></div>${invoice.tableNumber ? `<div><span>${L.table}:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice.customerName ? `<div><span>${L.customer}:</span><span>${esc(invoice.customerName)}</span></div>` : ''}<div><span>${L.payment}:</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:48%;">${L.itemCol}</th><th style="text-align:center;width:12%;">${L.qtyCol}</th><th style="text-align:right;width:40%;">${L.amt}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}${walletPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${L.footer}</p><p style="font-size:10px;margin-top:4px;">${L.poweredBy}</p></div></body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${L.billLabel} #${invoice.dailyOrderId || invoice.id || 'N/A'}</title><style>${getBillPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily)}</style></head><body>${headerHtml}<div class="divider">--------------------------------</div><div class="bill-info"><div><span>${L.billLabel}#:</span><span><strong>${invoice.dailyOrderId || invoice.id || 'N/A'}</strong></span></div><div><span>${L.date}:</span><span>${dateStr}</span></div>${invoice.tableNumber ? `<div><span>${L.table}:</span><span>${invoice.tableNumber}</span></div>` : ''}${invoice.customerName ? `<div><span>${L.customer}:</span><span>${esc(invoice.customerName)}</span></div>` : ''}<div><span>${L.payment}:</span><span>${(invoice.paymentMethod || 'CASH').toUpperCase()}</span></div></div><div class="divider">--------------------------------</div><table><thead><tr><th style="text-align:left;width:52%;">${L.itemCol}</th><th style="text-align:center;width:10%;">${L.qtyCol}</th><th style="text-align:right;width:38%;">${L.amt}</th></tr></thead><tbody>${itemsHtml}</tbody></table><div class="total-section"><div class="bill-info"><div><span>${L.subtotal}:</span><span>${cs}${(invoice.subtotal || 0).toFixed(2)}</span></div>${discountHtml}</div>${taxHtml ? `<table style="margin:4px 0;"><tbody>${taxHtml}</tbody></table>` : ''}${serviceChargeHtml}${tipHtml}${roundOffHtml}<div class="total-row"><span>${L.total}:</span><span>${cs}${grandTotal.toFixed(2)}</span></div>${splitPaymentHtml}${cashReceivedHtml}${partialPayHtml}${walletPayHtml}</div><div class="divider">================================</div><div class="bill-footer"><p>${L.footer}</p><p style="font-size:10px;margin-top:4px;">${L.poweredBy}</p></div></body></html>`;
 }
 
 /**
@@ -221,7 +221,7 @@ const PAYMENT_AR = { cash: 'نقداً', card: 'بطاقة', digital: 'رقمي'
 function parkingSlipCSS() {
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; max-width: 80mm; padding: 4mm; }
+    body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; max-width: 72mm; padding: 2mm; }
     .center { text-align: center; }
     .rtl { direction: rtl; text-align: right; }
     .bold { font-weight: bold; }
@@ -237,7 +237,7 @@ function parkingSlipCSS() {
     .qr img { width: 140px; height: 140px; }
     .header-name { font-size: 16px; font-weight: bold; text-align: center; margin: 2px 0; }
     .amount { font-size: 22px; font-weight: bold; text-align: center; margin: 8px 0; }
-    @media print { body { width: 80mm; } }
+    @media print { body { width: 72mm; } }
   `;
 }
 

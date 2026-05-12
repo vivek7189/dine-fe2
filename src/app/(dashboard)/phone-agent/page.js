@@ -28,7 +28,11 @@ import {
   FaExclamationTriangle,
   FaClipboardList,
   FaCopy,
-  FaDownload
+  FaDownload,
+  FaPlug,
+  FaTrash,
+  FaLink,
+  FaUnlink
 } from 'react-icons/fa';
 
 const LANGUAGES = [
@@ -84,6 +88,16 @@ export default function PhoneAgentPage() {
   // Call logs state
   const [callLogs, setCallLogs] = useState([]);
   const [callsLoading, setCallsLoading] = useState(false);
+
+  // Telephony provider state
+  const [providers, setProviders] = useState({ vobiz: false, plivo: false, twilio: false });
+  const [connectedProviders, setConnectedProviders] = useState([]);
+  const [preferredProvider, setPreferredProvider] = useState(null);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [connectingProvider, setConnectingProvider] = useState(false);
+  const [disconnectingProvider, setDisconnectingProvider] = useState(null);
+  const [selectedProvider, setSelectedProvider] = useState('vobiz');
+  const [providerCredentials, setProviderCredentials] = useState({ authId: '', authToken: '' });
 
   // Toast
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
@@ -165,7 +179,8 @@ export default function PhoneAgentPage() {
     try {
       const response = await apiClient.post('/api/bolna/phone-number', {
         restaurantId,
-        country: 'IN'
+        country: 'IN',
+        provider: preferredProvider || undefined
       });
 
       if (response.success) {
@@ -242,6 +257,77 @@ export default function PhoneAgentPage() {
     }
   }, [activeTab, restaurantId, agentExists, loadCallLogs]);
 
+  // Load telephony providers
+  const loadProviders = useCallback(async () => {
+    setProvidersLoading(true);
+    try {
+      const response = await apiClient.get(`/api/bolna/providers?restaurantId=${restaurantId}`);
+      if (response.success) {
+        setProviders(response.providers || { vobiz: false, plivo: false, twilio: false });
+        setConnectedProviders(response.connectedProviders || []);
+        setPreferredProvider(response.preferredProvider || null);
+      }
+    } catch (error) {
+      console.error('Error loading providers:', error);
+    } finally {
+      setProvidersLoading(false);
+    }
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (activeTab === 'telephony' && restaurantId) {
+      loadProviders();
+    }
+  }, [activeTab, restaurantId, loadProviders]);
+
+  // Connect telephony provider
+  const handleConnectProvider = async () => {
+    if (!providerCredentials.authId || !providerCredentials.authToken) {
+      showNotification('Please enter both credentials', 'error');
+      return;
+    }
+    setConnectingProvider(true);
+    try {
+      const response = await apiClient.post('/api/bolna/connect-provider', {
+        provider: selectedProvider,
+        credentials: providerCredentials,
+        restaurantId
+      });
+      if (response.success) {
+        showNotification(`${selectedProvider.charAt(0).toUpperCase() + selectedProvider.slice(1)} connected successfully!`);
+        setProviderCredentials({ authId: '', authToken: '' });
+        await loadProviders();
+      } else {
+        showNotification(response.error || 'Failed to connect provider', 'error');
+      }
+    } catch (error) {
+      console.error('Error connecting provider:', error);
+      showNotification('Failed to connect provider', 'error');
+    } finally {
+      setConnectingProvider(false);
+    }
+  };
+
+  // Disconnect telephony provider
+  const handleDisconnectProvider = async (providerName) => {
+    if (!confirm(`Are you sure you want to disconnect ${providerName}?`)) return;
+    setDisconnectingProvider(providerName);
+    try {
+      const response = await apiClient.delete(`/api/bolna/provider/${providerName}?restaurantId=${restaurantId}`);
+      if (response.success) {
+        showNotification(`${providerName} disconnected`);
+        await loadProviders();
+      } else {
+        showNotification(response.error || 'Failed to disconnect', 'error');
+      }
+    } catch (error) {
+      console.error('Error disconnecting provider:', error);
+      showNotification('Failed to disconnect provider', 'error');
+    } finally {
+      setDisconnectingProvider(null);
+    }
+  };
+
   // Disable agent
   const handleDisable = async () => {
     if (!confirm('Are you sure you want to disable the AI phone agent? This will deactivate the phone number and stop answering calls.')) return;
@@ -277,6 +363,7 @@ export default function PhoneAgentPage() {
 
   const tabs = [
     { id: 'setup', label: 'Setup & Status', icon: FaPhone },
+    { id: 'telephony', label: 'Telephony', icon: FaPlug },
     { id: 'menu', label: 'Menu & Knowledge', icon: FaUtensils },
     { id: 'settings', label: 'Agent Settings', icon: FaCog },
     { id: 'calls', label: 'Call History', icon: FaHistory },
@@ -394,6 +481,24 @@ export default function PhoneAgentPage() {
               handleSetupPhone={handleSetupPhone}
               handleDisable={handleDisable}
               copyToClipboard={copyToClipboard}
+              preferredProvider={preferredProvider}
+            />
+          )}
+
+          {activeTab === 'telephony' && (
+            <TelephonyTab
+              providers={providers}
+              connectedProviders={connectedProviders}
+              preferredProvider={preferredProvider}
+              providersLoading={providersLoading}
+              connectingProvider={connectingProvider}
+              disconnectingProvider={disconnectingProvider}
+              selectedProvider={selectedProvider}
+              setSelectedProvider={setSelectedProvider}
+              providerCredentials={providerCredentials}
+              setProviderCredentials={setProviderCredentials}
+              handleConnectProvider={handleConnectProvider}
+              handleDisconnectProvider={handleDisconnectProvider}
             />
           )}
 
@@ -432,7 +537,7 @@ export default function PhoneAgentPage() {
 
 // ==================== Setup Tab ====================
 
-function SetupTab({ agentExists, agent, settings, setSettings, enabling, settingUpPhone, handleEnable, handleSetupPhone, handleDisable, copyToClipboard }) {
+function SetupTab({ agentExists, agent, settings, setSettings, enabling, settingUpPhone, handleEnable, handleSetupPhone, handleDisable, copyToClipboard, preferredProvider }) {
   if (!agentExists) {
     return (
       <div className="space-y-6">
@@ -562,8 +667,8 @@ function SetupTab({ agentExists, agent, settings, setSettings, enabling, setting
             <p className="font-semibold text-gray-900">{VOICES.find(v => v.value === agent?.voice)?.label || agent?.voice}</p>
           </div>
           <div className="p-4 bg-gray-50 rounded-xl">
-            <p className="text-sm text-gray-500 mb-1">Bolna Agent ID</p>
-            <p className="font-mono text-sm text-gray-700">{agent?.bolnaAgentId || '—'}</p>
+            <p className="text-sm text-gray-500 mb-1">Telephony Provider</p>
+            <p className="font-semibold text-gray-900">{agent?.telephonyProvider ? agent.telephonyProvider.charAt(0).toUpperCase() + agent.telephonyProvider.slice(1) : 'Bolna Default'}</p>
           </div>
         </div>
       </div>
@@ -575,7 +680,10 @@ function SetupTab({ agentExists, agent, settings, setSettings, enabling, setting
             <FaExclamationTriangle className="text-yellow-500 text-xl mt-0.5" />
             <div>
               <h4 className="font-semibold text-gray-900 mb-1">Phone Number Required</h4>
-              <p className="text-sm text-gray-600">Your agent needs a phone number to receive calls. Click below to get one.</p>
+              <p className="text-sm text-gray-600">
+                Your agent needs a phone number to receive calls.
+                {preferredProvider ? ` Using ${preferredProvider.charAt(0).toUpperCase() + preferredProvider.slice(1)} as telephony provider.` : ' Go to the Telephony tab to connect a provider first, or use the default.'}
+              </p>
             </div>
           </div>
           <button
@@ -995,6 +1103,271 @@ function CallsTab({ agentExists, callLogs, callsLoading, loadCallLogs }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ==================== Telephony Tab ====================
+
+const TELEPHONY_PROVIDERS = [
+  {
+    id: 'vobiz',
+    name: 'Vobiz',
+    badge: 'Recommended for India',
+    pricing: '₹0.65/min',
+    features: ['Indian DID numbers', 'TRAI compliant', 'INR billing', 'Low latency India'],
+    fields: { authId: 'Auth ID', authToken: 'Auth Token' }
+  },
+  {
+    id: 'plivo',
+    name: 'Plivo',
+    badge: null,
+    pricing: '~₹1.50/min',
+    features: ['Global coverage', 'Indian numbers', 'USD billing'],
+    fields: { authId: 'Auth ID', authToken: 'Auth Token' }
+  },
+  {
+    id: 'twilio',
+    name: 'Twilio',
+    badge: null,
+    pricing: '~₹2.50/min',
+    features: ['Most popular globally', 'Best documentation', 'USD billing'],
+    fields: { authId: 'Account SID', authToken: 'Auth Token' }
+  }
+];
+
+function TelephonyTab({
+  providers, connectedProviders, preferredProvider, providersLoading,
+  connectingProvider, disconnectingProvider, selectedProvider, setSelectedProvider,
+  providerCredentials, setProviderCredentials, handleConnectProvider, handleDisconnectProvider
+}) {
+  const selectedProviderInfo = TELEPHONY_PROVIDERS.find(p => p.id === selectedProvider);
+
+  return (
+    <div className="space-y-6">
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
+        <div className="flex items-start gap-3">
+          <FaInfoCircle className="text-blue-500 text-lg mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-1">Why connect a telephony provider?</h4>
+            <p className="text-sm text-gray-600">
+              Connect your own telephony provider (Vobiz, Plivo, or Twilio) to get an Indian phone number for your AI agent.
+              Vobiz is recommended for India — cheapest rates, TRAI compliant, and INR billing.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Provider Selection */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Select Provider</h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          {TELEPHONY_PROVIDERS.map(provider => {
+            const isConnected = connectedProviders.includes(provider.id) || providers[provider.id];
+            const isSelected = selectedProvider === provider.id;
+            const isPreferred = preferredProvider === provider.id;
+
+            return (
+              <button
+                key={provider.id}
+                onClick={() => !isConnected && setSelectedProvider(provider.id)}
+                className={`relative text-left p-4 rounded-xl border-2 transition-all ${
+                  isConnected
+                    ? 'border-green-300 bg-green-50'
+                    : isSelected
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                {/* Badge */}
+                {provider.badge && !isConnected && (
+                  <span className="absolute -top-2.5 left-3 px-2 py-0.5 bg-emerald-500 text-white text-xs rounded-full font-medium">
+                    {provider.badge}
+                  </span>
+                )}
+                {isConnected && (
+                  <span className="absolute -top-2.5 left-3 px-2 py-0.5 bg-green-500 text-white text-xs rounded-full font-medium flex items-center gap-1">
+                    <FaCheck className="text-[10px]" /> Connected
+                  </span>
+                )}
+                {isPreferred && isConnected && (
+                  <span className="absolute -top-2.5 right-3 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium">
+                    Active
+                  </span>
+                )}
+
+                <h4 className="font-bold text-gray-900 text-lg mt-1">{provider.name}</h4>
+                <p className="text-emerald-600 font-semibold text-sm mb-3">{provider.pricing}</p>
+
+                <ul className="space-y-1.5">
+                  {provider.features.map((f, i) => (
+                    <li key={i} className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <FaCheck className="text-emerald-400 text-[9px] flex-shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Disconnect button for connected providers */}
+                {isConnected && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDisconnectProvider(provider.id); }}
+                    disabled={disconnectingProvider === provider.id}
+                    className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                  >
+                    {disconnectingProvider === provider.id ? (
+                      <><FaSpinner className="animate-spin" /> Disconnecting...</>
+                    ) : (
+                      <><FaUnlink /> Disconnect</>
+                    )}
+                  </button>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Credentials Input — only show if selected provider is not already connected */}
+      {!connectedProviders.includes(selectedProvider) && !providers[selectedProvider] && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            Connect {selectedProviderInfo?.name}
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {selectedProvider === 'vobiz' && 'Get your credentials from Vobiz Console → Dashboard → Settings → API Keys'}
+            {selectedProvider === 'plivo' && 'Get your credentials from Plivo Console → Account → API Credentials'}
+            {selectedProvider === 'twilio' && 'Get your credentials from Twilio Console → Account → API Keys'}
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                {selectedProviderInfo?.fields.authId || 'Auth ID'}
+              </label>
+              <input
+                type="text"
+                value={providerCredentials.authId}
+                onChange={e => setProviderCredentials(prev => ({ ...prev, authId: e.target.value }))}
+                placeholder={`Enter ${selectedProviderInfo?.fields.authId || 'Auth ID'}`}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                {selectedProviderInfo?.fields.authToken || 'Auth Token'}
+              </label>
+              <input
+                type="password"
+                value={providerCredentials.authToken}
+                onChange={e => setProviderCredentials(prev => ({ ...prev, authToken: e.target.value }))}
+                placeholder={`Enter ${selectedProviderInfo?.fields.authToken || 'Auth Token'}`}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono text-sm"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleConnectProvider}
+            disabled={connectingProvider || !providerCredentials.authId || !providerCredentials.authToken}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50"
+          >
+            {connectingProvider ? (
+              <><FaSpinner className="animate-spin" /> Connecting...</>
+            ) : (
+              <><FaLink /> Connect {selectedProviderInfo?.name}</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* How it works */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">How It Works</h3>
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-sm font-bold text-emerald-600">1</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Connect your provider</p>
+              <p className="text-sm text-gray-500">Enter your Vobiz/Plivo/Twilio credentials above. This links your telephony account to the AI agent.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-sm font-bold text-emerald-600">2</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Get a phone number</p>
+              <p className="text-sm text-gray-500">Go to Setup tab and click &quot;Get Phone Number&quot;. It will use your connected provider to buy an Indian DID number.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-sm font-bold text-emerald-600">3</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Set up call forwarding</p>
+              <p className="text-sm text-gray-500">Forward your restaurant phone to the AI number. When you don&apos;t pick up, AI answers automatically.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-sm font-bold text-emerald-600">4</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">AI handles calls</p>
+              <p className="text-sm text-gray-500">Calls are routed through your provider (e.g., Vobiz at ₹0.65/min) to the AI agent. All call costs go through your provider account.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing Comparison */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Pricing Comparison</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-2 px-3 font-semibold text-gray-600">Provider</th>
+                <th className="text-left py-2 px-3 font-semibold text-gray-600">Telephony Cost</th>
+                <th className="text-left py-2 px-3 font-semibold text-gray-600">Indian Numbers</th>
+                <th className="text-left py-2 px-3 font-semibold text-gray-600">Billing</th>
+                <th className="text-left py-2 px-3 font-semibold text-gray-600">Best For</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-gray-100 bg-emerald-50">
+                <td className="py-2.5 px-3 font-semibold text-gray-900">Vobiz</td>
+                <td className="py-2.5 px-3 text-emerald-600 font-semibold">₹0.65/min</td>
+                <td className="py-2.5 px-3"><FaCheck className="text-green-500" /></td>
+                <td className="py-2.5 px-3">INR</td>
+                <td className="py-2.5 px-3 text-gray-500">India restaurants</td>
+              </tr>
+              <tr className="border-b border-gray-100">
+                <td className="py-2.5 px-3 font-semibold text-gray-900">Plivo</td>
+                <td className="py-2.5 px-3">~₹1.50/min</td>
+                <td className="py-2.5 px-3"><FaCheck className="text-green-500" /></td>
+                <td className="py-2.5 px-3">USD</td>
+                <td className="py-2.5 px-3 text-gray-500">India + Global</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-3 font-semibold text-gray-900">Twilio</td>
+                <td className="py-2.5 px-3">~₹2.50/min</td>
+                <td className="py-2.5 px-3 text-gray-400">Limited</td>
+                <td className="py-2.5 px-3">USD</td>
+                <td className="py-2.5 px-3 text-gray-500">Global / USA</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">
+          * Telephony cost is in addition to Bolna AI processing (~₹4/min). Total cost ≈ ₹4.65/min with Vobiz.
+        </p>
+      </div>
     </div>
   );
 }

@@ -211,7 +211,7 @@ const PrintKOTContent = () => {
           <title>KOT - ${order.kotId}</title>
           <style>
             @page {
-              size: 80mm auto;
+              size: 72mm auto;
               margin: 0;
             }
             * {
@@ -223,8 +223,8 @@ const PrintKOTContent = () => {
               font-family: 'Courier New', Courier, monospace;
               font-size: 12px;
               line-height: 1.4;
-              width: 80mm;
-              padding: 5mm;
+              width: 72mm;
+              padding: 3mm;
               background: white;
               color: black;
             }
@@ -1103,7 +1103,7 @@ const globalStyles = `
       position: absolute;
       left: 0;
       top: 0;
-      width: 80mm;
+      width: 72mm;
     }
     .print-button {
       display: none;
