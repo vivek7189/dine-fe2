@@ -55,14 +55,14 @@ const C = {
 const s = StyleSheet.create({
   page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica', color: C.gray900, position: 'relative' },
   // Header
-  headerBar: { height: 4, backgroundColor: C.primary, marginBottom: 16, borderRadius: 2 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logo: { width: 48, height: 48, objectFit: 'contain', borderRadius: 4 },
+  headerBar: { height: 4, backgroundColor: C.primary, marginBottom: 12, borderRadius: 2 },
+  headerBrand: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
+  logo: { width: 40, height: 40, objectFit: 'contain', borderRadius: 4 },
   orgName: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: C.gray900 },
-  reportTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: C.primary, marginBottom: 2 },
+  reportTitleRow: { marginBottom: 4 },
+  reportTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.primary, marginBottom: 2 },
   dateRange: { fontSize: 9, color: C.gray500 },
-  genDate: { fontSize: 8, color: C.gray500, marginTop: 2 },
+  genDate: { fontSize: 8, color: C.gray500, marginTop: 2, marginBottom: 14 },
   // Section
   sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: C.gray900, marginTop: 18, marginBottom: 10, paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: C.primary },
   subTitle: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: C.gray700, marginTop: 12, marginBottom: 6 },
@@ -119,16 +119,14 @@ function ReportHeader({ logoUrl, orgName, reportTitle, dateRange }) {
   return (
     <View fixed>
       <View style={s.headerBar} />
-      <View style={s.headerRow}>
-        <View>
-          <Text style={s.reportTitle}>{reportTitle}</Text>
-          {dateRange && <Text style={s.dateRange}>{dateRange}</Text>}
-          <Text style={s.genDate}>Generated on {fmtDate(new Date().toISOString())}</Text>
-        </View>
-        <View style={[s.headerLeft, { flexDirection: 'column', alignItems: 'flex-end' }]}>
-          {logoUrl && <Image src={logoUrl} style={s.logo} />}
-          {orgName && <Text style={s.orgName}>{orgName}</Text>}
-        </View>
+      <View style={s.headerBrand}>
+        {logoUrl && <Image src={logoUrl} style={s.logo} />}
+        {orgName && <Text style={s.orgName}>{orgName}</Text>}
+      </View>
+      <View style={s.reportTitleRow}>
+        <Text style={s.reportTitle}>{reportTitle}</Text>
+        {dateRange && <Text style={s.dateRange}>{dateRange}</Text>}
+        <Text style={s.genDate}>Generated on {fmtDate(new Date().toISOString())}</Text>
       </View>
     </View>
   );

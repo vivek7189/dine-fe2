@@ -2017,6 +2017,20 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
           }
         } catch {}
       }
+      // Convert logo URL to base64 data URI so @react-pdf/renderer can embed it
+      if (logoUrl) {
+        try {
+          const imgRes = await fetch(logoUrl);
+          const blob = await imgRes.blob();
+          logoUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          logoUrl = null;
+        }
+      }
       const orgName = restaurantData?.name || orgData?.name || '';
       const dateRangeStr = `${startDate} to ${endDate}`;
       const { pdf: pdfFunc } = await import('@react-pdf/renderer');
@@ -2210,13 +2224,9 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
         </div>
       </div>
 
-      <div style={styles.card}>
-        {renderActiveReport()}
-      </div>
-
-      {/* Export Dropdown */}
+      {/* Export Dropdown — above report card */}
       {!loading && !error && reportData && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <button onClick={() => setShowExportMenu(!showExportMenu)} style={{ ...styles.exportBtn, opacity: exporting ? 0.7 : 1, pointerEvents: exporting ? 'none' : 'auto' }} disabled={exporting}>
               {exporting ? <FaSpinner style={{ animation: 'hqSpin 1s linear infinite' }} /> : <FaDownload />} {exporting ? 'Exporting...' : 'Export'} <FaChevronDown size={10} />
@@ -2237,6 +2247,10 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
           </div>
         </div>
       )}
+
+      <div style={styles.card}>
+        {renderActiveReport()}
+      </div>
     </div>
   );
 }
