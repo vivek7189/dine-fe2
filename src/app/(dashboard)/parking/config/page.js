@@ -5,8 +5,9 @@ import {
   FaCog, FaSave, FaSpinner, FaCheck, FaTimes, FaPlus, FaTrash,
   FaCar, FaClock, FaGlobe, FaMoneyBillWave, FaToggleOn, FaToggleOff,
   FaCamera, FaRobot, FaPrint, FaReceipt, FaImage, FaParking,
-  FaLanguage, FaTag, FaCloudUploadAlt
+  FaLanguage, FaTag, FaCloudUploadAlt, FaArrowLeft
 } from 'react-icons/fa';
+import Link from 'next/link';
 import apiClient from '../../../../lib/api';
 
 const PRIMARY = '#0369a1';
@@ -281,6 +282,14 @@ export default function ParkingConfigPage() {
         marginBottom: 20, flexWrap: 'wrap', gap: 12
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/parking" style={{
+            width: 36, height: 36, borderRadius: 10, background: '#f1f5f9',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#475569', textDecoration: 'none', border: '1px solid #e2e8f0',
+            cursor: 'pointer', flexShrink: 0
+          }}>
+            <FaArrowLeft size={14} />
+          </Link>
           <div style={{
             width: 44, height: 44, borderRadius: 12, background: PRIMARY_BG,
             display: 'flex', alignItems: 'center', justifyContent: 'center'

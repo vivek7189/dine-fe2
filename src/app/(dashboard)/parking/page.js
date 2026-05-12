@@ -65,6 +65,14 @@ function calcElapsed(entryTime) {
   return formatDuration(mins);
 }
 
+// Extract display string from bilingual {en, ar} objects or plain strings
+function dt(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) return val.en || val.ar || Object.values(val).find(v => typeof v === 'string') || '';
+  return String(val);
+}
+
 function ticketStatusBadge(s) {
   const map = {
     active: { bg: '#dbeafe', text: '#1e40af', label: 'Active' },
@@ -104,7 +112,7 @@ export default function ParkingDashboardPage() {
   // Entry form
   const [entryForm, setEntryForm] = useState({
     vehicleNumber: '', vehicleType: 'car', vehicleColor: '',
-    zoneId: '', slotId: '', rateId: '', notes: '',
+    zoneId: '', slotId: '', notes: '',
     vehicleImageUrl: '', vehicleImageFile: null,
     aiRecognizedPlate: '', aiConfidence: 0
   });
@@ -175,10 +183,6 @@ export default function ParkingDashboardPage() {
       setRates(fetchedRates);
       if (fetchedZones.length > 0 && !entryForm.zoneId) {
         setEntryForm(f => ({ ...f, zoneId: fetchedZones[0].id }));
-      }
-      if (fetchedRates.length > 0 && !entryForm.rateId) {
-        const defaultRate = fetchedRates.find(r => r.isDefault) || fetchedRates[0];
-        setEntryForm(f => ({ ...f, rateId: defaultRate.id }));
       }
       setLastRefreshedAt(new Date());
     } catch (e) {
@@ -295,7 +299,7 @@ export default function ParkingDashboardPage() {
     if (entryForm.vehicleImageUrl?.startsWith('blob:')) URL.revokeObjectURL(entryForm.vehicleImageUrl);
     setEntryForm({
       vehicleNumber: '', vehicleType: 'car', vehicleColor: '',
-      zoneId: zones[0]?.id || '', slotId: '', rateId: rates.find(r => r.isDefault)?.id || rates[0]?.id || '',
+      zoneId: zones[0]?.id || '', slotId: '',
       notes: '', vehicleImageUrl: '', vehicleImageFile: null,
       aiRecognizedPlate: '', aiConfidence: 0
     });
@@ -558,10 +562,10 @@ export default function ParkingDashboardPage() {
           <FaParking size={24} color={PRIMARY} />
           <div>
             <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: '#1e293b', margin: 0 }}>
-              {config?.lotName || 'Parking Management'}
+              {dt(config?.lotName) || 'Parking Management'}
             </h1>
             {config?.lotNameAr && (
-              <p style={{ fontSize: 13, color: '#64748b', margin: 0, direction: 'rtl' }}>{config.lotNameAr}</p>
+              <p style={{ fontSize: 13, color: '#64748b', margin: 0, direction: 'rtl' }}>{dt(config.lotNameAr)}</p>
             )}
           </div>
         </div>
@@ -768,7 +772,7 @@ export default function ParkingDashboardPage() {
                           }}>{badge.label}</span>
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>
-                          {ticket.ticketNumber} &middot; {ticket.zoneName || 'N/A'} {ticket.slotNumber ? `/ ${ticket.slotNumber}` : ''}
+                          {ticket.ticketNumber} &middot; {dt(ticket.zoneName) || 'N/A'} {ticket.slotNumber ? `/ ${ticket.slotNumber}` : ''}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -860,31 +864,21 @@ export default function ParkingDashboardPage() {
                         color: selected ? PRIMARY_DARK : '#475569', cursor: 'pointer',
                         fontWeight: selected ? 600 : 400, fontSize: 13
                       }}>
-                      <VIcon size={14} /> {vt.label}
+                      <VIcon size={14} /> {dt(vt.label)}
                     </button>
                   );
                 })}
               </div>
             </FormField>
 
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-              <FormField label="Zone *">
-                <select value={entryForm.zoneId} onChange={e => setEntryForm(f => ({ ...f, zoneId: e.target.value, slotId: '' }))} style={inputStyle}>
-                  <option value="">Select Zone</option>
-                  {zones.filter(z => z.isActive).map(z => (
-                    <option key={z.id} value={z.id}>{z.zoneName} ({z.zoneCode}) - {(z.totalSlots || 0) - (z.occupiedSlots || 0)} free</option>
-                  ))}
-                </select>
-              </FormField>
-              <FormField label="Rate">
-                <select value={entryForm.rateId} onChange={e => setEntryForm(f => ({ ...f, rateId: e.target.value }))} style={inputStyle}>
-                  <option value="">Select Rate</option>
-                  {rates.map(r => (
-                    <option key={r.id} value={r.id}>{r.rateName} ({r.rateType}) {r.isDefault ? '(Default)' : ''}</option>
-                  ))}
-                </select>
-              </FormField>
-            </div>
+            <FormField label="Zone *">
+              <select value={entryForm.zoneId} onChange={e => setEntryForm(f => ({ ...f, zoneId: e.target.value, slotId: '' }))} style={inputStyle}>
+                <option value="">Select Zone</option>
+                {zones.filter(z => z.isActive).map(z => (
+                  <option key={z.id} value={z.id}>{dt(z.zoneName)} ({dt(z.zoneCode)}) - {(z.totalSlots || 0) - (z.occupiedSlots || 0)} free</option>
+                ))}
+              </select>
+            </FormField>
 
             <FormField label="Notes">
               <input value={entryForm.notes} onChange={e => setEntryForm(f => ({ ...f, notes: e.target.value }))}
@@ -916,10 +910,14 @@ export default function ParkingDashboardPage() {
               )}
             </FormField>
 
-            <button onClick={handleEntry} disabled={entryLoading} style={{
-              padding: '14px', background: entryLoading ? '#94a3b8' : SUCCESS,
+            <button onClick={handleEntry}
+              disabled={entryLoading || (!entryForm.vehicleNumber && !entryForm.aiRecognizedPlate) || !entryForm.zoneId}
+              style={{
+              padding: '14px',
+              background: (entryLoading || (!entryForm.vehicleNumber && !entryForm.aiRecognizedPlate) || !entryForm.zoneId) ? '#94a3b8' : SUCCESS,
               color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700,
-              fontSize: 16, cursor: entryLoading ? 'wait' : 'pointer', marginTop: 4
+              fontSize: 16, cursor: entryLoading ? 'wait' : 'pointer', marginTop: 4,
+              opacity: (!entryForm.vehicleNumber && !entryForm.aiRecognizedPlate) || !entryForm.zoneId ? 0.6 : 1
             }}>
               {entryLoading ? <><FaSpinner className="spin" /> Creating...</> : <><FaSignInAlt /> Create Entry Ticket</>}
             </button>
@@ -966,8 +964,8 @@ export default function ParkingDashboardPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <InfoRow label="Ticket" value={exitPreview.ticketNumber} />
                   <InfoRow label="Vehicle" value={exitPreview.vehicleNumber} />
-                  <InfoRow label="Type" value={exitPreview.vehicleType} />
-                  <InfoRow label="Zone" value={exitPreview.zoneName} />
+                  <InfoRow label="Type" value={dt(exitPreview.vehicleType)} />
+                  <InfoRow label="Zone" value={dt(exitPreview.zoneName)} />
                   <InfoRow label="Entry" value={formatTime(exitPreview.entryTime)} />
                   <InfoRow label="Exit" value={formatTime(exitPreview.exitTime)} />
                 </div>
@@ -1019,11 +1017,11 @@ export default function ParkingDashboardPage() {
             <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <InfoRow label="Vehicle" value={ticketDetail.vehicleNumber} />
-                <InfoRow label="Type" value={ticketDetail.vehicleType} />
+                <InfoRow label="Type" value={dt(ticketDetail.vehicleType)} />
                 <InfoRow label="Color" value={ticketDetail.vehicleColor || '-'} />
-                <InfoRow label="Zone" value={ticketDetail.zoneName || '-'} />
+                <InfoRow label="Zone" value={dt(ticketDetail.zoneName) || '-'} />
                 <InfoRow label="Slot" value={ticketDetail.slotNumber || '-'} />
-                <InfoRow label="Rate" value={ticketDetail.rateName || '-'} />
+                <InfoRow label="Rate" value={dt(ticketDetail.rateName) || '-'} />
                 <InfoRow label="Entry" value={formatDateTime(ticketDetail.entryTime?._seconds ? new Date(ticketDetail.entryTime._seconds * 1000).toISOString() : ticketDetail.entryTime)} />
                 {ticketDetail.exitTime && <InfoRow label="Exit" value={formatDateTime(ticketDetail.exitTime?._seconds ? new Date(ticketDetail.exitTime._seconds * 1000).toISOString() : ticketDetail.exitTime)} />}
                 {ticketDetail.duration && <InfoRow label="Duration" value={formatDuration(ticketDetail.duration)} />}
@@ -1110,7 +1108,7 @@ export default function ParkingDashboardPage() {
                 <select value={lostTicketForm.vehicleType}
                   onChange={e => setLostTicketForm(f => ({ ...f, vehicleType: e.target.value }))} style={inputStyle}>
                   <option value="">Any</option>
-                  {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.label}</option>)}
+                  {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{dt(vt.label)}</option>)}
                 </select>
               </FormField>
               <FormField label="Vehicle Color (optional)">
@@ -1135,8 +1133,8 @@ export default function ParkingDashboardPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     <InfoRow label="Ticket" value={lostTicketResult.ticketNumber} />
                     <InfoRow label="Vehicle" value={lostTicketResult.vehicleNumber} />
-                    <InfoRow label="Type" value={lostTicketResult.vehicleType} />
-                    <InfoRow label="Zone" value={lostTicketResult.zoneName || '-'} />
+                    <InfoRow label="Type" value={dt(lostTicketResult.vehicleType)} />
+                    <InfoRow label="Zone" value={dt(lostTicketResult.zoneName) || '-'} />
                     <InfoRow label="Entry" value={formatDateTime(lostTicketResult.entryTime?._seconds ? new Date(lostTicketResult.entryTime._seconds * 1000).toISOString() : lostTicketResult.entryTime)} />
                     <InfoRow label="Parked For" value={calcElapsed(lostTicketResult.entryTime)} />
                   </div>
@@ -1277,15 +1275,15 @@ function LiveViewTab({ stats, zones, config, isMobile, loading }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', margin: 0 }}>{zone.zoneName}</h3>
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>{zone.zoneCode} &middot; Floor {zone.floor ?? 0}</span>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', margin: 0 }}>{dt(zone.zoneName)}</h3>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>{dt(zone.zoneCode)} &middot; Floor {zone.floor ?? 0}</span>
               </div>
               <span style={{
                 padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, textTransform: 'capitalize',
                 background: zone.zoneType === 'vip' ? '#fef3c7' : zone.zoneType === 'reserved' ? '#e0f2fe' : '#f1f5f9',
                 color: zone.zoneType === 'vip' ? '#92400e' : zone.zoneType === 'reserved' ? '#0369a1' : '#475569'
               }}>
-                {zone.zoneType}
+                {dt(zone.zoneType)}
               </span>
             </div>
 

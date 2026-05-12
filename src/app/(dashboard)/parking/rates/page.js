@@ -5,8 +5,9 @@ import {
   FaPlus, FaEdit, FaTrash, FaTimes, FaCheck, FaStar,
   FaCar, FaTruck, FaMotorcycle, FaBus, FaClock, FaMoon,
   FaCalendarAlt, FaLayerGroup, FaMoneyBillWave, FaShieldAlt,
-  FaToggleOn, FaToggleOff, FaSpinner, FaExclamationTriangle
+  FaToggleOn, FaToggleOff, FaSpinner, FaExclamationTriangle, FaArrowLeft
 } from 'react-icons/fa';
+import Link from 'next/link';
 import apiClient from '../../../../lib/api';
 
 const PRIMARY = '#0369a1';
@@ -348,13 +349,23 @@ export default function ParkingRatesPage() {
         flexDirection: isMobile ? 'column' : 'row', gap: 12, marginBottom: 24,
         maxWidth: 1200, margin: '0 auto 24px',
       }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/parking" style={{
+            width: 36, height: 36, borderRadius: 10, background: '#f1f5f9',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#475569', textDecoration: 'none', border: '1px solid #e2e8f0',
+            cursor: 'pointer', flexShrink: 0
+          }}>
+            <FaArrowLeft size={14} />
+          </Link>
+          <div>
           <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: '#0f172a', margin: 0 }}>
             Parking Rates
           </h1>
           <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
             Manage pricing rules and rate structures for your parking facility
           </p>
+          </div>
         </div>
         <button
           onClick={openCreateModal}
