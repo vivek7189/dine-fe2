@@ -2914,7 +2914,31 @@ function RestaurantPOSContent() {
             });
             setCurrentOrder(null);
             setActiveSavedOrderId(null);
-            handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || currentOrder.tableNumber) });
+            if (returnToView === 'tables') {
+              if (selectedRestaurant?.id) prefetchTables(selectedRestaurant.id);
+              setTimeout(() => {
+                setViewMode('tables');
+                setReturnToView(null);
+                setSelectedTable(null);
+                setCart([]);
+                setTableNumber('');
+                setCustomerName('');
+                setCustomerMobile('');
+                setCustomerData(null);
+                localStorage.removeItem('dine_cart');
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('view', 'tables');
+                  url.searchParams.delete('orderId');
+                  url.searchParams.delete('mode');
+                  url.searchParams.delete('from');
+                  window.history.pushState({ view: 'tables' }, '', url.toString());
+                }
+                setTimeout(() => setOrderSuccess(null), 200);
+              }, 1500);
+            } else {
+              handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || currentOrder.tableNumber) });
+            }
           } catch (offErr) {
             setNotification({ type: 'error', title: t('dashboard.saveFailed'), message: t('dashboard.couldNotSaveBillingLocally'), show: true });
             setTimeout(() => setNotification(null), 4000);
@@ -2927,10 +2951,13 @@ function RestaurantPOSContent() {
         
         if (response.data) {
           // Process payment for the updated order
+          // Backend only accepts 'cash', 'card', 'upi' — normalize split/other methods
+          const _billingMethod = splitPay ? (splitPay[0]?.method || 'cash') : paymentMethod;
+          const _safeMethod = ['cash', 'card', 'upi'].includes(_billingMethod) ? _billingMethod : 'cash';
           console.log('💳 Processing payment for updated order:', currentOrder.id);
           await apiClient.verifyPayment({
             orderId: currentOrder.id,
-            paymentMethod: paymentMethod,
+            paymentMethod: _safeMethod,
             amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
             userId: currentUser.id,
             restaurantId: selectedRestaurant.id,
@@ -2970,11 +2997,42 @@ function RestaurantPOSContent() {
           setCurrentOrder(null);
           setActiveSavedOrderId(null);
           fetchSavedOrders(); // Refresh saved orders list after billing a saved order
+
           // Handle return navigation after billing complete
-          handleOrderActionComplete({
-            keepOrderSuccess: true,
-            hasTable: !!(tableToUse || currentOrder.tableNumber)
-          });
+          // If coming from tables view, delay the switch so auto-print can fire first
+          if (returnToView === 'tables') {
+            // Refresh tables data
+            if (selectedRestaurant?.id) prefetchTables(selectedRestaurant.id);
+            setTimeout(() => {
+              if (selectedTable?.id) setRecentlyUpdatedTableId(selectedTable.id);
+              setViewMode('tables');
+              setCart([]);
+              setTableNumber('');
+              setCustomerName('');
+              setCustomerMobile('');
+              setCustomerData(null);
+              setManualTableNumber('');
+              setManualRoomNumber('');
+              setOrderLookup('');
+              setReturnToView(null);
+              setSelectedTable(null);
+              localStorage.removeItem('dine_cart');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('view', 'tables');
+                url.searchParams.delete('orderId');
+                url.searchParams.delete('mode');
+                url.searchParams.delete('from');
+                window.history.pushState({ view: 'tables' }, '', url.toString());
+              }
+              setTimeout(() => setOrderSuccess(null), 200);
+            }, 1500);
+          } else {
+            handleOrderActionComplete({
+              keepOrderSuccess: true,
+              hasTable: !!(tableToUse || currentOrder.tableNumber)
+            });
+          }
 
           // Return orderId so OrderSummary can generate the invoice
           return { orderId: completedOrderId };
@@ -3113,7 +3171,31 @@ function RestaurantPOSContent() {
               show: true,
               message: t('dashboard.billingCompleteEmoji')
             });
-            handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || selectedTable?.number) });
+            if (returnToView === 'tables') {
+              if (selectedRestaurant?.id) prefetchTables(selectedRestaurant.id);
+              setTimeout(() => {
+                setViewMode('tables');
+                setReturnToView(null);
+                setSelectedTable(null);
+                setCart([]);
+                setTableNumber('');
+                setCustomerName('');
+                setCustomerMobile('');
+                setCustomerData(null);
+                localStorage.removeItem('dine_cart');
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('view', 'tables');
+                  url.searchParams.delete('orderId');
+                  url.searchParams.delete('mode');
+                  url.searchParams.delete('from');
+                  window.history.pushState({ view: 'tables' }, '', url.toString());
+                }
+                setTimeout(() => setOrderSuccess(null), 200);
+              }, 1500);
+            } else {
+              handleOrderActionComplete({ keepOrderSuccess: true, hasTable: !!(tableToUse || selectedTable?.number) });
+            }
           } catch (offErr) {
             setNotification({ type: 'error', title: t('dashboard.saveFailed'), message: t('dashboard.couldNotSaveBillingLocally'), show: true });
             setTimeout(() => setNotification(null), 4000);
@@ -3210,12 +3292,40 @@ function RestaurantPOSContent() {
       setOrderSuccess(successData);
 
       // Handle return navigation after billing complete
-      // Uses returnToView to go back to tables if user came from there
-      const hadTable = !!(tableToUse || selectedTable?.number);
-      handleOrderActionComplete({
-        keepOrderSuccess: true,
-        hasTable: hadTable
-      });
+      // If coming from tables view, delay the switch so auto-print can fire first
+      if (returnToView === 'tables') {
+        if (selectedRestaurant?.id) prefetchTables(selectedRestaurant.id);
+        setTimeout(() => {
+          if (selectedTable?.id) setRecentlyUpdatedTableId(selectedTable.id);
+          setViewMode('tables');
+          setCart([]);
+          setTableNumber('');
+          setCustomerName('');
+          setCustomerMobile('');
+          setCustomerData(null);
+          setManualTableNumber('');
+          setManualRoomNumber('');
+          setOrderLookup('');
+          setReturnToView(null);
+          setSelectedTable(null);
+          localStorage.removeItem('dine_cart');
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.set('view', 'tables');
+            url.searchParams.delete('orderId');
+            url.searchParams.delete('mode');
+            url.searchParams.delete('from');
+            window.history.pushState({ view: 'tables' }, '', url.toString());
+          }
+          setTimeout(() => setOrderSuccess(null), 200);
+        }, 1500);
+      } else {
+        const hadTable = !!(tableToUse || selectedTable?.number);
+        handleOrderActionComplete({
+          keepOrderSuccess: true,
+          hasTable: hadTable
+        });
+      }
 
         // Return order ID for invoice generation
         return { orderId };
@@ -3765,11 +3875,35 @@ function RestaurantPOSContent() {
         setCurrentOrder(null);
         setActiveSavedOrderId(null);
         fetchSavedOrders();
-        handleOrderActionComplete({
-          keepOrderSuccess: false,
-          hasTable: !!(tableNumber || selectedTable?.number),
-          keepTable: true,
-        });
+        // If came from tables, switch back after a brief delay
+        if (returnToView === 'tables') {
+          if (selectedRestaurant?.id) prefetchTables(selectedRestaurant.id);
+          setTimeout(() => {
+            setViewMode('tables');
+            setReturnToView(null);
+            setSelectedTable(null);
+            setCart([]);
+            setTableNumber('');
+            setCustomerName('');
+            setCustomerMobile('');
+            setCustomerData(null);
+            localStorage.removeItem('dine_cart');
+            if (typeof window !== 'undefined') {
+              const url = new URL(window.location.href);
+              url.searchParams.set('view', 'tables');
+              url.searchParams.delete('orderId');
+              url.searchParams.delete('mode');
+              url.searchParams.delete('from');
+              window.history.pushState({ view: 'tables' }, '', url.toString());
+            }
+          }, 500);
+        } else {
+          handleOrderActionComplete({
+            keepOrderSuccess: false,
+            hasTable: !!(tableNumber || selectedTable?.number),
+            keepTable: true,
+          });
+        }
       }
     } catch (error) {
       console.error('Update order without KOT error:', error);
@@ -3940,11 +4074,40 @@ function RestaurantPOSContent() {
           setCurrentOrder(null);
           setActiveSavedOrderId(null); // Clear active saved order since it was placed
           fetchSavedOrders(); // Refresh saved orders list
-          handleOrderActionComplete({
-            keepOrderSuccess: true,
-            hasTable: !!(tableNumber || selectedTable?.number),
-            keepTable: true,
-          });
+          // If came from tables, delay switch so auto-print can fire first
+          if (returnToView === 'tables') {
+            if (selectedRestaurant?.id) prefetchTables(selectedRestaurant.id);
+            setTimeout(() => {
+              if (selectedTable?.id) setRecentlyUpdatedTableId(selectedTable.id);
+              setViewMode('tables');
+              setCart([]);
+              setTableNumber('');
+              setCustomerName('');
+              setCustomerMobile('');
+              setCustomerData(null);
+              setManualTableNumber('');
+              setManualRoomNumber('');
+              setOrderLookup('');
+              setReturnToView(null);
+              setSelectedTable(null);
+              localStorage.removeItem('dine_cart');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('view', 'tables');
+                url.searchParams.delete('orderId');
+                url.searchParams.delete('mode');
+                url.searchParams.delete('from');
+                window.history.pushState({ view: 'tables' }, '', url.toString());
+              }
+              setTimeout(() => setOrderSuccess(null), 200);
+            }, 1500);
+          } else {
+            handleOrderActionComplete({
+              keepOrderSuccess: true,
+              hasTable: !!(tableNumber || selectedTable?.number),
+              keepTable: true,
+            });
+          }
         }
       } else {
         // Create new order
@@ -4093,7 +4256,7 @@ function RestaurantPOSContent() {
           return;
         }
 
-        // ONLINE PATH: Optimistic UI - show success immediately, fire API in background
+        // ONLINE PATH: Wait for API, then show success + auto-print, then return to tables
         const cartBackup = [...cart];
         const cartKotItems = cart.map(item => ({ name: item.name, quantity: item.quantity || 1, notes: item.notes || '' }));
         const savedTableNumber = roomNumber ? null : (finalTableNumber || null);
@@ -4102,8 +4265,14 @@ function RestaurantPOSContent() {
         const savedRestaurantName = selectedRestaurant?.name || 'Restaurant';
         const savedSpecialInstructions = specialInstructions || null;
         const savedActiveSavedOrderId = activeSavedOrderId;
+        const savedReturnToView = returnToView; // Capture before clearing
 
-        // Show KOT summary immediately with processing indicator
+        // Optimistic: mark table as occupied immediately (visual feedback on tables panel)
+        if (savedTableNumber) {
+          optimisticTableStatus(savedTableNumber, 'occupied', null, orderData.finalAmount || 0);
+        }
+
+        // Show processing indicator (KOT summary without orderId — auto-print won't fire yet)
         setOrderSuccess({
           orderId: null,
           dailyOrderId: null,
@@ -4123,20 +4292,14 @@ function RestaurantPOSContent() {
           }
         });
 
-        // Optimistic: mark table as occupied immediately
-        if (savedTableNumber) {
-          optimisticTableStatus(savedTableNumber, 'occupied', null, orderData.finalAmount || 0);
-        }
-
-        // Clear cart and reset immediately for fast next-order flow
+        // Clear cart immediately for fast next-order flow, but DON'T switch view yet
+        // (OrderSummary must remain mounted for auto-print to work)
+        setCart([]);
         setActiveSavedOrderId(null);
-        handleOrderActionComplete({
-          keepOrderSuccess: true,
-          hasTable: !!(tableNumber || selectedTable?.number),
-          keepTable: true,
-        });
+        setCurrentOrder(null);
+        localStorage.removeItem('dine_cart');
 
-        // Fire API call — don't block the UI
+        // Fire API call
         try {
           const response = await apiClient.createOrder(orderData);
           console.log('Create order response:', response);
@@ -4146,6 +4309,11 @@ function RestaurantPOSContent() {
           const _dailyOrderId = _orderObj?.dailyOrderId || null;
           if (_orderId || response.success) {
             console.log(`✅ Order created with status=confirmed. Table ${tableNumber || 'N/A'} managed by backend.`);
+
+            // Update optimistic table with real orderId so table card buttons work
+            if (savedTableNumber) {
+              optimisticTableStatus(savedTableNumber, 'occupied', _orderId, orderData.finalAmount || 0);
+            }
 
             // Background refresh tables
             if (tableNumber || selectedTable?.number) {
@@ -4160,7 +4328,7 @@ function RestaurantPOSContent() {
               show: true
             });
 
-            // Update KOT summary with real IDs and remove processing state
+            // Update KOT summary with real IDs — this triggers auto-print in OrderSummary
             setOrderSuccess({
               orderId: _orderId,
               dailyOrderId: _dailyOrderId,
@@ -4204,6 +4372,44 @@ function RestaurantPOSContent() {
             }
 
             setTimeout(() => setNotification(null), 4000);
+
+            // Return to tables view AFTER auto-print has had time to fire
+            // Auto-print effect in OrderSummary triggers on orderSuccess.kotData change with ~800ms delay
+            if (savedReturnToView === 'tables') {
+              setTimeout(() => {
+                if (selectedTable?.id) {
+                  setRecentlyUpdatedTableId(selectedTable.id);
+                }
+                // Don't use switchView here — it clears orderSuccess which kills auto-print
+                setViewMode('tables');
+                setTableNumber('');
+                setCustomerName('');
+                setCustomerMobile('');
+                setCustomerData(null);
+                setManualTableNumber('');
+                setManualRoomNumber('');
+                setOrderLookup('');
+                setReturnToView(null);
+                setSelectedTable(null);
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('view', 'tables');
+                  url.searchParams.delete('orderId');
+                  url.searchParams.delete('mode');
+                  url.searchParams.delete('from');
+                  window.history.pushState({ view: 'tables' }, '', url.toString());
+                }
+                // Clear orderSuccess after switching (auto-print already fired)
+                setTimeout(() => setOrderSuccess(null), 200);
+              }, 1500);
+            } else {
+              // Not from tables — just clear state normally
+              handleOrderActionComplete({
+                keepOrderSuccess: true,
+                hasTable: !!(tableNumber || selectedTable?.number),
+                keepTable: true,
+              });
+            }
           } else {
             console.error('Order API returned no order object:', response);
           }
@@ -4254,6 +4460,20 @@ function RestaurantPOSContent() {
               prefetchTables(selectedRestaurant?.id);
             }
             setTimeout(() => setNotification(null), 4000);
+            // Return to tables if came from there
+            if (savedReturnToView === 'tables') {
+              setTimeout(() => {
+                setViewMode('tables');
+                setReturnToView(null);
+                setSelectedTable(null);
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('view', 'tables');
+                  window.history.pushState({ view: 'tables' }, '', url.toString());
+                }
+                setTimeout(() => setOrderSuccess(null), 200);
+              }, 1500);
+            }
           } else {
             // Web: Queue for offline sync via IndexedDB
             try {

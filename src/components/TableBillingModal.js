@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FaReceipt, FaTimes, FaSpinner } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
@@ -8,6 +9,7 @@ import OrderSummary from './OrderSummary';
 /**
  * Shared billing modal used on both the Tables page and Dashboard Tables Panel.
  * Opens with a table object, fetches the order, shows OrderSummary in billing mode.
+ * Renders via createPortal so it sits above sidebar/nav without z-index conflicts.
  */
 export default function TableBillingModal({
   open,
@@ -37,6 +39,10 @@ export default function TableBillingModal({
   const [modalProcessing, setModalProcessing] = useState(false);
   const [modalCustomerName, setModalCustomerName] = useState('');
   const [modalCustomerMobile, setModalCustomerMobile] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure portal target is available (client-side only)
+  useEffect(() => { setMounted(true); }, []);
 
   // Fetch order when modal opens
   useEffect(() => {
@@ -56,7 +62,6 @@ export default function TableBillingModal({
           const ord = response.orders[0];
           setOrder(ord);
 
-          // Populate modal cart with order items (include pricingRules from menu for multi-tier pricing)
           const cartItems = (ord.items || []).map(item => {
             const menuItem = menuItems?.find(m => m.id === (item.menuItemId || item.id));
             return {
@@ -86,6 +91,14 @@ export default function TableBillingModal({
     })();
   }, [open, table?.currentOrderId, selectedRestaurant?.id]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [open]);
+
   const handleClose = () => {
     setOrder(null);
     setModalCart([]);
@@ -95,23 +108,19 @@ export default function TableBillingModal({
     onClose();
   };
 
-  // Get total amount for modal cart
   const getModalTotalAmount = () => {
     return modalCart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  // Check if manual print is enabled
   const isManualPrintEnabled = () => {
     return printSettings?.manualPrintEnabled !== false;
   };
 
-  // Handle billing process from modal OrderSummary
   const handleModalProcessOrder = async (taxData = {}) => {
     if (!order || !selectedRestaurant?.id || modalProcessing) return;
 
     setModalProcessing(true);
 
-    // Extract ALL billing data from taxData passed by OrderSummary
     const {
       taxBreakdown = [], totalTax = 0, finalAmount = null, subtotal = null,
       serviceChargeAmount, serviceChargeRate, tipAmount, tipPercentage,
@@ -124,11 +133,9 @@ export default function TableBillingModal({
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
-      // Calculate the payment amount (use taxData if provided, else use order's stored values)
       const paymentAmount = finalAmount ?? order.finalAmount ?? order.totalAmount ?? getModalTotalAmount();
       const isPartialPayment = partialPayAmount && partialPayAmount > 0 && partialPayAmount < paymentAmount;
 
-      // Update order to completed status with full billing data
       const updateData = {
         status: 'completed',
         paymentStatus: isPartialPayment ? 'partial' : 'paid',
@@ -172,113 +179,151 @@ export default function TableBillingModal({
         }
       };
 
-      // Optimistic: close modal and mark table available immediately
-      handleClose();
+      // Optimistic: mark table available immediately (but keep modal open for print)
       if (onOptimisticTableUpdate && table) {
         onOptimisticTableUpdate(table.id, 'available');
       }
 
-      await apiClient.updateOrder(order.id, updateData);
+      const completedOrderId = order.id;
 
-      // Process payment
+      await apiClient.updateOrder(completedOrderId, updateData);
+
+      // Backend only accepts 'cash', 'card', 'upi' as offline methods
+      const effectiveMethod = splitPayments
+        ? (splitPayments[0]?.method || 'cash')
+        : modalPaymentMethod;
+      const safePaymentMethod = ['cash', 'card', 'upi'].includes(effectiveMethod) ? effectiveMethod : 'cash';
+
       await apiClient.verifyPayment({
-        orderId: order.id,
-        paymentMethod: splitPayments ? 'split' : modalPaymentMethod,
+        orderId: completedOrderId,
+        paymentMethod: safePaymentMethod,
         amount: isPartialPayment ? partialPayAmount : paymentAmount,
         userId: currentUser.id,
         restaurantId: selectedRestaurant.id,
         paymentStatus: isPartialPayment ? 'partial' : 'completed'
       });
 
-      // Only send to auto-print if auto-print is enabled (manualPrint disabled)
       if (!isManualPrintEnabled()) {
         try {
-          await apiClient.requestManualPrint(order.id, 'bill');
+          await apiClient.requestManualPrint(completedOrderId, 'bill');
         } catch (printError) {
           console.error('Auto-print failed:', printError);
         }
       }
 
-      // Background refresh to sync final state from server
       if (onRefreshTables) {
         onRefreshTables();
       }
 
-      console.log('Billing completed for order:', order.id);
+      console.log('Billing completed for order:', completedOrderId);
+
+      // Delay modal close so OrderSummary can generate invoice + auto-print fires
+      // Auto-print useEffect needs invoice set + 800ms timer, so 3s is safe
+      const wantsPrint = !!window.__autoPrintBill || !!printSettings?.autoPrintOnCompleteBilling;
+      setTimeout(() => handleClose(), wantsPrint ? 3000 : 500);
+
+      // Return orderId so OrderSummary's handleProcessOrder can call generateInvoice
+      return { orderId: completedOrderId };
     } catch (error) {
       console.error('Billing error:', error);
-      // Revert: refresh tables to restore actual state from server
+      // Revert optimistic table update and close modal on error
       if (onRefreshTables) {
         onRefreshTables();
       }
+      handleClose();
       alert('Billing failed: ' + (error.message || 'Unknown error'));
     } finally {
       setModalProcessing(false);
     }
   };
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const modalContent = (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(3px)',
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 10000,
-        padding: '16px'
+        zIndex: 99999,
+        padding: 0,
       }}
       onClick={handleClose}
     >
+      <style>{`
+        @keyframes billingSlideUp {
+          from { transform: translateY(40px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .billing-modal-panel {
+          animation: billingSlideUp 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        @media (max-width: 768px) {
+          .billing-modal-panel {
+            max-width: 100% !important;
+            width: 100% !important;
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            border-radius: 0 !important;
+          }
+          .billing-modal-header {
+            border-radius: 0 !important;
+          }
+        }
+      `}</style>
       <div
-        className="table-actions-modal"
+        className="billing-modal-panel"
         style={{
           background: '#fff',
-          borderRadius: '16px',
+          borderRadius: '14px',
           width: '100%',
-          maxWidth: '580px',
-          maxHeight: '92vh',
+          maxWidth: '640px',
+          height: '96vh',
+          maxHeight: '96vh',
           overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          animation: 'modalFadeIn 0.2s ease',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.05)',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative'
+          position: 'relative',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Red Header with Close Button */}
-        <div style={{
-          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-          padding: '16px 20px',
+        {/* Header */}
+        <div className="billing-modal-header" style={{
+          background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+          padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderRadius: '16px 16px 0 0'
+          borderRadius: '14px 14px 0 0',
+          flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(255,255,255,0.2)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'rgba(255,255,255,0.15)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0,
             }}>
-              <FaReceipt size={16} style={{ color: '#ffffff' }} />
+              <FaReceipt size={14} style={{ color: '#fff' }} />
             </div>
-            <div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
-                {table?.name || table?.number || 'Table'} - Bill
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+                {table?.name || table?.number || 'Table'} — Bill
               </div>
               {order && (
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
-                  Order #{order.dailyOrderId || order.id?.slice(-6) || 'N/A'}
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
+                  #{order.dailyOrderId || order.id?.slice(-6) || '—'}
+                  {order.items?.length ? ` · ${order.items.length} item${order.items.length > 1 ? 's' : ''}` : ''}
                 </div>
               )}
             </div>
@@ -290,36 +335,43 @@ export default function TableBillingModal({
               height: '32px',
               borderRadius: '50%',
               border: 'none',
-              background: 'rgba(255,255,255,0.2)',
-              color: '#ffffff',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all 0.2s'
+              transition: 'background 0.15s',
+              flexShrink: 0,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
           >
             <FaTimes size={14} />
           </button>
         </div>
 
-        {/* Modal Content */}
+        {/* Content */}
         {loading ? (
           <div style={{
-            padding: '60px',
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '16px'
+            justifyContent: 'center',
+            gap: '14px',
           }}>
-            <FaSpinner className="animate-spin" size={28} style={{ color: '#dc2626' }} />
-            <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>Loading order...</div>
+            <FaSpinner className="animate-spin" size={24} style={{ color: '#dc2626' }} />
+            <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: 500 }}>Loading order...</div>
           </div>
         ) : order && modalCart.length > 0 ? (
-          /* OrderSummary in billing mode */
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{
+            flex: 1,
+            overflow: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}>
             <OrderSummary
               cart={modalCart}
               setCart={setModalCart}
@@ -377,27 +429,32 @@ export default function TableBillingModal({
           </div>
         ) : (
           <div style={{
-            padding: '60px',
-            textAlign: 'center',
-            background: 'linear-gradient(180deg, #fafafa 0%, #ffffff 100%)'
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px',
           }}>
             <div style={{
-              width: '64px',
-              height: '64px',
-              margin: '0 auto 20px',
+              width: '56px',
+              height: '56px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+              background: '#f3f4f6',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+              marginBottom: '16px',
             }}>
-              <FaReceipt size={28} style={{ color: '#9ca3af' }} />
+              <FaReceipt size={22} style={{ color: '#9ca3af' }} />
             </div>
-            <div style={{ fontSize: '16px', color: '#6b7280', fontWeight: 500 }}>No order found for this table</div>
+            <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>No order found for this table</div>
           </div>
         )}
       </div>
     </div>
   );
+
+  // Render via portal to escape sidebar/nav stacking context
+  return createPortal(modalContent, document.body);
 }

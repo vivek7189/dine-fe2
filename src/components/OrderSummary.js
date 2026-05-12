@@ -1417,19 +1417,20 @@ const OrderSummary = ({
   };
   
   return (
-    <div style={{ 
-      width: isMobile ? '100vw' : '100%', 
-      height: isMobile ? '100vh' : '100vh',
-      position: isMobile ? 'fixed' : 'relative',
-      top: isMobile ? 0 : 'auto',
-      left: isMobile ? 0 : 'auto',
-      zIndex: isMobile ? 1000 : 'auto',
-      backgroundColor: 'white', 
-      borderLeft: isMobile ? 'none' : '1px solid #e5e7eb',
-      display: 'flex', 
+    <div style={{
+      width: isMobile ? '100vw' : '100%',
+      height: billingMode ? 'auto' : (isMobile ? '100vh' : '100vh'),
+      ...(billingMode ? { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } : {}),
+      position: isMobile && !billingMode ? 'fixed' : 'relative',
+      top: isMobile && !billingMode ? 0 : 'auto',
+      left: isMobile && !billingMode ? 0 : 'auto',
+      zIndex: isMobile && !billingMode ? 1000 : 'auto',
+      backgroundColor: 'white',
+      borderLeft: isMobile || billingMode ? 'none' : '1px solid #e5e7eb',
+      display: 'flex',
       flexDirection: 'column',
-      boxShadow: isMobile ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
-      overflow: 'hidden'
+      boxShadow: isMobile || billingMode ? 'none' : '-2px 0 8px rgba(0, 0, 0, 0.04)',
+      ...(billingMode ? {} : { overflow: 'hidden' })
     }}>
       {/* Header - More Compact, even smaller in billing mode */}
       <div style={{
@@ -1979,18 +1980,18 @@ const OrderSummary = ({
         </div>
       )}
 
-      {/* Scrollable Content - Cart Items Only */}
+      {/* Scrollable Content - Cart Items Only (in billing mode, parent scrolls so this is static) */}
       <div style={{
-        flex: 1,
-        overflowY: 'auto',
+        flex: billingMode ? 'none' : 1,
+        overflowY: billingMode ? 'visible' : 'auto',
         overflowX: 'hidden',
         padding: '12px',
         paddingBottom: '8px',
         scrollbarWidth: 'thin',
         scrollbarColor: '#cbd5e1 transparent',
-        minHeight: 0
+        minHeight: billingMode ? 'auto' : 0
       }}
-      className="hide-scrollbar"
+      className={billingMode ? undefined : 'hide-scrollbar'}
       >
         {/* Saved Orders Chips - Always visible at top */}
         {savedOrders && savedOrders.length > 0 && (
@@ -3318,13 +3319,14 @@ const OrderSummary = ({
 
       </div>
 
-      {/* Fixed Bottom Section - Total, Customer Info, Payment, Buttons */}
+      {/* Bottom Section - Total, Customer Info, Payment, Buttons */}
+      {/* In billing mode: no flex/overflow — parent div scrolls everything as one column */}
       {cart.length > 0 && !shouldShowOrderSummary() && (
         <div style={{
           borderTop: '1px solid #e5e7eb',
           backgroundColor: 'white',
-          flexShrink: 0,
-          boxShadow: '0 -4px 12px rgba(0,0,0,0.08)'
+          flexShrink: billingMode ? 0 : 0,
+          boxShadow: billingMode ? 'none' : '0 -4px 12px rgba(0,0,0,0.08)'
         }}>
           {/* (Discount controls moved inline with special instructions below) */}
 
@@ -4462,8 +4464,17 @@ const OrderSummary = ({
             );
           })()}
 
-          {/* Action Buttons */}
-          <div style={{ padding: '6px 12px 12px 12px' }}>
+
+
+          {/* Action Buttons — sits at bottom of scroll in billing mode */}
+          <div style={{
+            padding: billingMode ? '12px 16px 16px 16px' : '6px 12px 12px 12px',
+            ...(billingMode ? {
+              backgroundColor: '#f8fafc',
+              borderTop: '2px solid #e2e8f0',
+              marginTop: '4px',
+            } : {})
+          }}>
           {/* Error Message */}
           {error && (
             <div style={{
@@ -4718,19 +4729,19 @@ const OrderSummary = ({
           )}
 
           {/* Billing Row */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: billingMode ? '10px' : '8px' }}>
             {/* Complete Billing Button */}
             <button
               onClick={handleProcessOrder}
               disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
               style={{
-                width: printSettings?.enableSaveAndPrint ? '48%' : '100%',
+                width: printSettings?.enableSaveAndPrint ? '50%' : '100%',
                 background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
                   ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                   : 'linear-gradient(135deg, #10b981, #059669)',
                 color: 'white',
-                padding: billingMode ? '14px 16px' : '12px 14px',
-                borderRadius: '8px',
+                padding: billingMode ? '16px 16px' : '12px 14px',
+                borderRadius: billingMode ? '10px' : '8px',
                 fontWeight: '700',
                 border: 'none',
                 cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
@@ -4738,19 +4749,19 @@ const OrderSummary = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                fontSize: billingMode ? '14px' : '12px',
+                fontSize: billingMode ? '15px' : '12px',
                 transition: 'all 0.2s',
                 boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(34, 197, 94, 0.35)'
               }}
             >
               {processing ? (
                 <>
-                  <FaSpinner size={billingMode ? 14 : 12} style={{ animation: 'spin 1s linear infinite' }} />
+                  <FaSpinner size={billingMode ? 16 : 12} style={{ animation: 'spin 1s linear infinite' }} />
                   {t('dashboard.paymentProcessing')}
                 </>
               ) : (
                 <>
-                  <FaCheckCircle size={billingMode ? 14 : 12} />
+                  <FaCheckCircle size={billingMode ? 16 : 12} />
                   {posSettings.completeBillingLabel || t('dashboard.completeBilling')}
                 </>
               )}
@@ -4765,13 +4776,13 @@ const OrderSummary = ({
                   }}
                   disabled={orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')}
                   style={{
-                    width: '48%',
+                    width: '50%',
                     background: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed')
                       ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                       : 'linear-gradient(135deg, #065f46, #064e3b)',
                     color: 'white',
-                    padding: billingMode ? '14px 16px' : '12px 14px',
-                    borderRadius: '8px',
+                    padding: billingMode ? '16px 16px' : '12px 14px',
+                    borderRadius: billingMode ? '10px' : '8px',
                     fontWeight: '700',
                     border: 'none',
                     cursor: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'not-allowed' : 'pointer',
@@ -4779,7 +4790,7 @@ const OrderSummary = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    fontSize: billingMode ? '14px' : '12px',
+                    fontSize: billingMode ? '15px' : '12px',
                     transition: 'all 0.2s',
                     boxShadow: orderBusy || cart.length === 0 || (currentOrder && currentOrder.status === 'completed') ? 'none' : '0 4px 12px rgba(6, 95, 70, 0.35)'
                   }}
