@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-
+//ds
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com';
 
 export default function useAITool(toolName) {

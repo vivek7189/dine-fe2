@@ -12,7 +12,7 @@ const TEMP_DIR = path.join(ROOT, '.tauri-temp');
 const KEEP_ROUTES = new Set(['(dashboard)', 'login', 'local-login']);
 const ROOT_FILES = new Set(['layout.js', 'globals.css', 'not-found.js', 'favicon.ico', 'page.js', 'HomePageClient.js', 'page-metadata.js']);
 
-// Tauri redirect page — replaces the website homepage so Tauri opens /logind
+// Tauri redirect page — replaces the website homepage so Tauri opens /loginds
 const TAURI_HOME_PAGE = `'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
