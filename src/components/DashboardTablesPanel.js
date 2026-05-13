@@ -759,6 +759,106 @@ export default function DashboardTablesPanel({
                           {t.capacity || '-'} Seats
                         </div>
                       </div>
+                      {/* Move & Print icons for occupied tables — compact, in header area */}
+                      {isOccupied && t.currentOrderId && (
+                        <div style={{ display: 'flex', gap: '3px', marginRight: '4px', flexShrink: 0 }}>
+                          {posSettings.moveOrderEnabled && (
+                            <button
+                              className="btn-action"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMoveModalTable({ ...t, floorId: group.info?.id, floorName: group.info?.name || group.name });
+                              }}
+                              style={{
+                                width: '24px', height: '24px', padding: 0,
+                                background: '#ffffff', color: '#9ca3af',
+                                border: '1px solid #e5e7eb', borderRadius: '5px',
+                                cursor: 'pointer', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                              }}
+                              title="Move Order"
+                            >
+                              <FaExchangeAlt size={9} />
+                            </button>
+                          )}
+                          {(() => {
+                            const tableId = t.id || t.currentOrderId;
+                            const isPrinting = printingTables[tableId];
+                            const isDropdownOpen = printDropdownTable === tableId;
+                            return (
+                              <div style={{ position: 'relative' }}>
+                                <button
+                                  className="btn-action"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isPrinting && t.currentOrderId) {
+                                      setPrintDropdownTable(prev => prev === tableId ? null : tableId);
+                                    }
+                                  }}
+                                  disabled={isPrinting}
+                                  style={{
+                                    width: '24px', height: '24px', padding: 0,
+                                    background: isPrinting
+                                      ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
+                                      : isDropdownOpen ? '#f3f4f6' : '#ffffff',
+                                    color: isPrinting ? '#3b82f6' : '#9ca3af',
+                                    border: isPrinting ? '1px solid #93c5fd' : '1px solid #e5e7eb',
+                                    borderRadius: '5px',
+                                    cursor: isPrinting ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    position: 'relative', overflow: 'visible',
+                                    opacity: isPrinting ? 0.85 : 1,
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                  title={isPrinting ? 'Printing...' : 'Print'}
+                                >
+                                  {isPrinting ? <FaSpinner size={9} className="animate-spin" /> : <FaPrint size={9} />}
+                                </button>
+                                {isDropdownOpen && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      position: 'absolute', top: '100%', right: 0,
+                                      marginTop: '4px', background: '#ffffff',
+                                      border: '1px solid #e5e7eb', borderRadius: '8px',
+                                      boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                                      zIndex: 50, minWidth: '130px', overflow: 'hidden',
+                                    }}
+                                  >
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handlePrintBill(t); }}
+                                      style={{
+                                        width: '100%', padding: '8px 12px', display: 'flex',
+                                        alignItems: 'center', gap: '8px', fontSize: '12px',
+                                        fontWeight: 500, color: '#374151', background: 'transparent',
+                                        border: 'none', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
+                                      }}
+                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                      <FaReceipt size={10} style={{ color: '#10b981' }} /> Print Bill
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handlePrintKOT(t); }}
+                                      style={{
+                                        width: '100%', padding: '8px 12px', display: 'flex',
+                                        alignItems: 'center', gap: '8px', fontSize: '12px',
+                                        fontWeight: 500, color: '#374151', background: 'transparent',
+                                        border: 'none', cursor: 'pointer',
+                                      }}
+                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
+                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                      <FaUtensils size={10} style={{ color: '#f59e0b' }} /> Print KOT
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                       {/* Small Status Dot for Available, Badge for others */}
                       {isAvailable ? (
                          <div style={{ 
@@ -955,156 +1055,9 @@ export default function DashboardTablesPanel({
                           </button>
                         </div>
                       ) : (
-                        /* Occupied/Reserved/Cleaning tables - Show Print, Add, More buttons */
+                        /* Occupied/Reserved/Cleaning tables - Show Add + Bill buttons; Move/Print are in top-right */
                         <div style={{ display: 'flex', gap: '6px' }}>
-                          {/* Move Order Button */}
-                          {posSettings.moveOrderEnabled && t.currentOrderId && isOccupied && (
-                            <button
-                              className="btn-action"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMoveModalTable({ ...t, floorId: group.info?.id, floorName: group.info?.name || group.name });
-                              }}
-                              style={{
-                                width: '32px', height: '32px', padding: 0,
-                                background: '#ffffff', color: '#6b7280',
-                                border: '1px solid #d1d5db', borderRadius: '6px',
-                                cursor: 'pointer', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                              }}
-                              title="Move Order"
-                            >
-                              <FaExchangeAlt size={11} />
-                            </button>
-                          )}
-                          {/* Print Button with Dropdown */}
-                          {(() => {
-                            const tableId = t.id || t.currentOrderId;
-                            const isPrinting = printingTables[tableId];
-                            const isDropdownOpen = printDropdownTable === tableId;
-                            return (
-                              <div style={{ position: 'relative' }}>
-                                <button
-                                  className="btn-action"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!isPrinting && t.currentOrderId) {
-                                      setPrintDropdownTable(prev => prev === tableId ? null : tableId);
-                                    }
-                                  }}
-                                  disabled={isPrinting}
-                                  style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    padding: 0,
-                                    background: isPrinting
-                                      ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
-                                      : isDropdownOpen ? '#f3f4f6' : '#ffffff',
-                                    color: isPrinting ? '#3b82f6' : '#6b7280',
-                                    border: isPrinting ? '1px solid #93c5fd' : isDropdownOpen ? '1px solid #9ca3af' : '1px solid #d1d5db',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                    cursor: isPrinting ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    position: 'relative',
-                                    overflow: 'visible',
-                                    opacity: isPrinting ? 0.85 : 1,
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                  title={isPrinting ? 'Printing...' : 'Print'}
-                                >
-                                  {isPrinting ? (
-                                    <FaSpinner size={11} className="animate-spin" />
-                                  ) : (
-                                    <FaPrint size={11} />
-                                  )}
-                                  {isPrinting && (
-                                    <div style={{
-                                      position: 'absolute',
-                                      top: '-4px',
-                                      right: '-4px',
-                                      width: '12px',
-                                      height: '12px',
-                                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                      borderRadius: '50%',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      boxShadow: '0 2px 4px rgba(59, 130, 246, 0.4)',
-                                      animation: 'pulse 1s infinite'
-                                    }}>
-                                      <div style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />
-                                    </div>
-                                  )}
-                                </button>
-                                {/* Print Dropdown */}
-                                {isDropdownOpen && (
-                                  <div
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{
-                                      position: 'absolute',
-                                      bottom: '100%',
-                                      left: 0,
-                                      marginBottom: '4px',
-                                      background: '#ffffff',
-                                      border: '1px solid #e5e7eb',
-                                      borderRadius: '8px',
-                                      boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                                      zIndex: 50,
-                                      minWidth: '140px',
-                                      overflow: 'hidden',
-                                    }}
-                                  >
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handlePrintBill(t); }}
-                                      style={{
-                                        width: '100%',
-                                        padding: '8px 14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        fontSize: '12px',
-                                        fontWeight: 500,
-                                        color: '#374151',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        borderBottom: '1px solid #f3f4f6',
-                                      }}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                    >
-                                      <FaReceipt size={11} style={{ color: '#10b981' }} /> Print Bill
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handlePrintKOT(t); }}
-                                      style={{
-                                        width: '100%',
-                                        padding: '8px 14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        fontSize: '12px',
-                                        fontWeight: 500,
-                                        color: '#374151',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                      }}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                    >
-                                      <FaUtensils size={11} style={{ color: '#f59e0b' }} /> Print KOT
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                          {/* Add Items Button - Gray style */}
+                          {/* Add Items Button */}
                           <button
                             className="btn-action"
                             onClick={(e) => {
@@ -1145,6 +1098,7 @@ export default function DashboardTablesPanel({
                               if (t.currentOrderId) openActionsModal({ ...t, floor: group.name, floorId: group.info?.id });
                             }}
                             style={{
+                              flex: 1,
                               padding: '6px 10px',
                               background: '#dc2626',
                               color: '#ffffff',
@@ -1157,7 +1111,6 @@ export default function DashboardTablesPanel({
                               alignItems: 'center',
                               justifyContent: 'center',
                               gap: '4px',
-                              flexShrink: 0,
                             }}
                             onMouseEnter={(e) => { e.currentTarget.style.background = '#b91c1c'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = '#dc2626'; }}

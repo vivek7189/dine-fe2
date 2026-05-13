@@ -5755,15 +5755,20 @@ const Admin = () => {
               )}
             </div>
 
-            {/* Horizontal tab bar */}
+            {/* Horizontal tab bar — scrollable so all tabs are always reachable */}
             <div style={{
               background: 'linear-gradient(135deg, #fff1f2, #ffe4e6, #fecdd3)', borderRadius: '14px', padding: '5px 6px',
               border: '1px solid #fecdd3',
-              display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap'
-            }}>
+              display: 'flex', alignItems: 'center', gap: '2px',
+              overflowX: 'auto', overflowY: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none', msOverflowStyle: 'none',
+            }}
+              className="hide-scrollbar"
+            >
               {filteredNavGroups.map(function(group, groupIdx) {
                 return (
-                  <div key={group.label} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <div key={group.label} style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
                     {groupIdx > 0 && (
                       <div style={{ width: '1px', height: '22px', backgroundColor: '#fda4af', margin: '0 6px', flexShrink: 0, opacity: 0.4 }}></div>
                     )}
@@ -5778,7 +5783,7 @@ const Admin = () => {
                             background: isItemActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent',
                             color: isItemActive ? 'white' : '#9f1239',
                             fontWeight: isItemActive ? 600 : 500, fontSize: '13px',
-                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0,
                             boxShadow: isItemActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
                           }}
                         >

@@ -623,12 +623,14 @@ function RestaurantPOSContent() {
   
   const categories = getDynamicCategories();
 
-  // Mobile detection hook
+  // Mobile detection hook — Electron uses higher breakpoint so sidebar is hidden by default
   useEffect(() => {
+    const isElectron = !!(window.electronAPI);
+    const breakpoint = isElectron ? 1200 : 768;
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= breakpoint);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
