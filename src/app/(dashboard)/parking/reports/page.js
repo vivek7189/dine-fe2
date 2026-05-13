@@ -84,9 +84,12 @@ export default function ParkingReportsPage() {
   // --- Load restaurantId ---
   useEffect(() => {
     try {
+      const saved = localStorage.getItem('selectedRestaurantId');
+      if (saved) { setRestaurantId(saved); return; }
       const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.restaurantId) setRestaurantId(user.restaurantId);
+      if (user?.restaurantId) { setRestaurantId(user.restaurantId); return; }
     } catch {}
+    setLoading(false);
   }, []);
 
   // --- Load reports ---
@@ -137,6 +140,23 @@ export default function ParkingReportsPage() {
   // ================================================================
   // RENDER
   // ================================================================
+  if (!restaurantId && !loading) {
+    return (
+      <div style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: BG, minHeight: '100vh' }}>
+        <FaChartBar size={40} style={{ color: '#d1d5db', marginBottom: 16 }} />
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#374151', marginBottom: 8 }}>No Restaurant Found</h2>
+        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 20 }}>Please log in again or select a restaurant.</p>
+        <Link href="/parking" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+          background: PRIMARY, color: '#fff', borderRadius: 10, textDecoration: 'none',
+          fontWeight: 600, fontSize: 14
+        }}>
+          <FaArrowLeft size={12} /> Back to Parking
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: BG }}>
       {/* Header */}

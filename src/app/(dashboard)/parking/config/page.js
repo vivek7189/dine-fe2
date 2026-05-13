@@ -97,8 +97,8 @@ export default function ParkingConfigPage() {
   // ─── Load config ──────────────────────────────────────
   const loadConfig = useCallback(async () => {
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const restaurantId = user?.restaurantId;
+      const restaurantId = localStorage.getItem('selectedRestaurantId')
+        || JSON.parse(localStorage.getItem('user'))?.restaurantId;
       if (!restaurantId) {
         setLoading(false);
         return;
@@ -211,8 +211,8 @@ export default function ParkingConfigPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const restaurantId = user?.restaurantId;
+      const restaurantId = localStorage.getItem('selectedRestaurantId')
+        || JSON.parse(localStorage.getItem('user'))?.restaurantId;
       if (!restaurantId) {
         showToast('No restaurant ID found', 'error');
         return;

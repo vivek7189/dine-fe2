@@ -163,9 +163,13 @@ export default function ParkingDashboardPage() {
   // ─── Init ─────────────────────────────────────────────
   useEffect(() => {
     try {
+      const saved = localStorage.getItem('selectedRestaurantId');
+      if (saved) { setRestaurantId(saved); return; }
       const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.restaurantId) setRestaurantId(user.restaurantId);
+      if (user?.restaurantId) { setRestaurantId(user.restaurantId); return; }
     } catch {}
+    // No restaurantId found — stop loading spinner
+    setLoading(false);
   }, []);
 
   // ─── Load data ────────────────────────────────────────
@@ -253,21 +257,37 @@ export default function ParkingDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // ─── No config state ─────────────────────────────────
-  if (!loading && !config) {
+  // ─── No restaurant / No config state ─────────────────
+  if (!loading && (!restaurantId || !config)) {
     return (
       <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div style={{ textAlign: 'center', maxWidth: 480 }}>
           <FaParking size={64} color={PRIMARY} style={{ marginBottom: 16 }} />
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Set Up Parking</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Configure your parking lot settings to get started.</p>
-          <Link href="/parking/config" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px',
-            background: PRIMARY, color: '#fff', borderRadius: 10, textDecoration: 'none',
-            fontWeight: 600, fontSize: 15
-          }}>
-            <FaCog /> Configure Parking
-          </Link>
+          {!restaurantId ? (
+            <>
+              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>No Restaurant Found</h2>
+              <p style={{ color: '#64748b', marginBottom: 24 }}>Please log in again or select a restaurant from the dashboard.</p>
+              <Link href="/dashboard" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px',
+                background: PRIMARY, color: '#fff', borderRadius: 10, textDecoration: 'none',
+                fontWeight: 600, fontSize: 15
+              }}>
+                Go to Dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Set Up Parking</h2>
+              <p style={{ color: '#64748b', marginBottom: 24 }}>Configure your parking lot settings to get started.</p>
+              <Link href="/parking/config" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px',
+                background: PRIMARY, color: '#fff', borderRadius: 10, textDecoration: 'none',
+                fontWeight: 600, fontSize: 15
+              }}>
+                <FaCog /> Configure Parking
+              </Link>
+            </>
+          )}
         </div>
       </div>
     );
