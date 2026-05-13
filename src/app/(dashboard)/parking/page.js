@@ -136,6 +136,10 @@ export default function ParkingDashboardPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
 
+  // Refresh state (distinct from initial loading)
+  const [refreshing, setRefreshing] = useState(false);
+  const [prevStats, setPrevStats] = useState(null);
+
   // Auto-refresh
   const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
   const [elapsedTick, setElapsedTick] = useState(0);
@@ -165,9 +169,14 @@ export default function ParkingDashboardPage() {
   }, []);
 
   // ─── Load data ────────────────────────────────────────
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isInitial = false) => {
     if (!restaurantId) return;
-    setLoading(true);
+    if (isInitial || !stats) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+      setPrevStats(stats);
+    }
     try {
       const [configRes, statsRes, zonesRes, ratesRes] = await Promise.allSettled([
         apiClient.getParkingConfig(restaurantId),
@@ -189,10 +198,11 @@ export default function ParkingDashboardPage() {
       console.error('Failed to load parking data:', e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [restaurantId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(true); }, [loadData]);
 
   // ─── Load tickets ─────────────────────────────────────
   const loadTickets = useCallback(async () => {
@@ -219,7 +229,7 @@ export default function ParkingDashboardPage() {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && restaurantId) {
-        loadData();
+        loadData(false);
         if (tab === 'tickets' || tab === 'history') loadTickets();
       }
     };
@@ -231,7 +241,7 @@ export default function ParkingDashboardPage() {
   useEffect(() => {
     if (!restaurantId) return;
     const interval = setInterval(() => {
-      loadData();
+      loadData(false);
       if (tab === 'tickets') loadTickets();
     }, 30000);
     return () => clearInterval(interval);
@@ -282,7 +292,7 @@ export default function ParkingDashboardPage() {
         showToast(`Ticket ${res.ticket.ticketNumber} created`);
         setEntryModal(false);
         resetEntryForm();
-        loadData();
+        loadData(false);
         if (tab === 'tickets') loadTickets();
         if (res.printData?.qrCodeDataUrl) {
           handlePrintEntrySlip(res.printData, res.ticket);
@@ -395,7 +405,7 @@ export default function ParkingDashboardPage() {
         setExitModal(false);
         setExitPreview(null);
         setExitForm({ ticketNumber: '', qrData: '' });
-        loadData();
+        loadData(false);
         if (tab === 'tickets' || tab === 'history') loadTickets();
       }
     } catch (e) {
@@ -418,7 +428,7 @@ export default function ParkingDashboardPage() {
       await apiClient.cancelParkingTicket(restaurantId, cancelModal, cancelReason || 'Cancelled by operator');
       showToast('Ticket cancelled');
       setCancelModal(null);
-      loadData();
+      loadData(false);
       loadTickets();
       if (ticketDetail?.id === cancelModal) setTicketDetail(null);
     } catch (e) {
@@ -516,7 +526,7 @@ export default function ParkingDashboardPage() {
 
   // ─── Manual refresh ───────────────────────────────────
   const handleRefresh = () => {
-    loadData();
+    loadData(false);
     if (tab === 'tickets' || tab === 'history') loadTickets();
   };
 
@@ -541,14 +551,26 @@ export default function ParkingDashboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: BG }}>
+      {/* Progress bar on refresh */}
+      {refreshing && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, height: 3, zIndex: 9999,
+          background: `linear-gradient(90deg, transparent, ${PRIMARY}, transparent)`,
+          backgroundSize: '200% 100%',
+          animation: 'progressSlide 1.2s ease-in-out infinite'
+        }} />
+      )}
+
       {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed', top: 20, right: 20, zIndex: 9999, padding: '12px 20px',
-          borderRadius: 10, color: '#fff', fontWeight: 600, fontSize: 14,
+          borderRadius: 12, color: '#fff', fontWeight: 600, fontSize: 14,
           background: toast.type === 'error' ? DANGER : SUCCESS,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)', animation: 'fadeIn 0.3s ease'
+          boxShadow: '0 8px 30px rgba(0,0,0,0.18)', animation: 'fadeIn 0.3s ease',
+          display: 'flex', alignItems: 'center', gap: 8,
         }}>
+          {toast.type === 'error' ? <FaExclamationTriangle size={14} /> : <FaCheck size={14} />}
           {toast.message}
         </div>
       )}
@@ -571,37 +593,42 @@ export default function ParkingDashboardPage() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button onClick={() => setEntryModal(true)} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
-            background: SUCCESS, color: '#fff', border: 'none', borderRadius: 8,
-            fontWeight: 600, fontSize: 14, cursor: 'pointer'
+            display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px',
+            background: SUCCESS, color: '#fff', border: 'none', borderRadius: 24,
+            fontWeight: 600, fontSize: 14, cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(22,163,74,0.3)', transition: 'transform 0.1s, box-shadow 0.15s'
           }}>
             <FaSignInAlt /> Vehicle Entry
           </button>
           <button onClick={() => { setExitModal(true); setExitPreview(null); setExitForm({ ticketNumber: '', qrData: '' }); }} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
-            background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8,
-            fontWeight: 600, fontSize: 14, cursor: 'pointer'
+            display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px',
+            background: PRIMARY, color: '#fff', border: 'none', borderRadius: 24,
+            fontWeight: 600, fontSize: 14, cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(3,105,161,0.3)', transition: 'transform 0.1s, box-shadow 0.15s'
           }}>
             <FaSignOutAlt /> Vehicle Exit
           </button>
           <button onClick={() => { setLostTicketModal(true); setLostTicketForm({ vehicleNumber: '', vehicleType: '', vehicleColor: '' }); setLostTicketResult(null); }} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
-            background: WARNING, color: '#fff', border: 'none', borderRadius: 8,
-            fontWeight: 600, fontSize: 14, cursor: 'pointer'
+            display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px',
+            background: WARNING, color: '#fff', border: 'none', borderRadius: 24,
+            fontWeight: 600, fontSize: 14, cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(217,119,6,0.3)', transition: 'transform 0.1s, box-shadow 0.15s'
           }}>
             <FaExclamationTriangle /> Lost Ticket
           </button>
           <button onClick={handleRefresh} title="Refresh data" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 40, height: 40, background: '#f1f5f9', border: '1px solid #e2e8f0',
-            borderRadius: 8, cursor: 'pointer'
+            width: 40, height: 40, background: refreshing ? PRIMARY_LIGHT : '#f1f5f9',
+            border: refreshing ? `1px solid ${PRIMARY}` : '1px solid #e2e8f0',
+            borderRadius: 20, cursor: 'pointer', transition: 'all 0.15s'
           }}>
-            <FaSync size={14} color="#475569" />
+            <FaSync size={14} color={refreshing ? PRIMARY : '#475569'}
+              style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
           </button>
           <Link href="/parking/config" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             width: 40, height: 40, background: '#f1f5f9', border: '1px solid #e2e8f0',
-            borderRadius: 8, textDecoration: 'none', cursor: 'pointer'
+            borderRadius: 20, textDecoration: 'none', cursor: 'pointer'
           }}>
             <FaCog size={14} color="#475569" />
           </Link>
@@ -610,25 +637,43 @@ export default function ParkingDashboardPage() {
 
       {/* Last refreshed indicator */}
       {lastRefreshedAt && (
-        <div style={{ padding: isMobile ? '4px 16px' : '4px 32px', fontSize: 11, color: '#94a3b8', background: '#fff', borderBottom: '1px solid #f1f5f9' }}>
-          Last updated: {lastRefreshedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} &middot; Auto-refreshes every 30s
+        <div style={{
+          padding: isMobile ? '6px 16px' : '6px 32px', fontSize: 11, color: '#94a3b8',
+          background: '#fff', borderBottom: '1px solid #f1f5f9',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <div style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: refreshing ? WARNING : SUCCESS,
+            animation: refreshing ? 'refreshPulse 1s infinite' : 'none',
+          }} />
+          {refreshing ? 'Updating...' : (
+            <>Last updated: {lastRefreshedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} &middot; Auto-refreshes every 30s</>
+          )}
         </div>
       )}
 
       {/* Stats Bar */}
-      {loading ? (
-        <div style={{ display: 'flex', gap: 16, padding: isMobile ? '16px' : '20px 32px', flexWrap: 'wrap' }}>
-          {[1,2,3,4].map(i => <Shimmer key={i} w={isMobile ? '45%' : 200} h={80} r={12} />)}
+      {(loading && !stats) ? (
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14, padding: isMobile ? '16px' : '20px 32px' }}>
+          {[1,2,3,4].map(i => <Shimmer key={i} w="100%" h={90} r={14} />)}
         </div>
       ) : stats && (
         <div style={{
           display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: 12, padding: isMobile ? '16px' : '20px 32px'
+          gap: 14, padding: isMobile ? '16px' : '20px 32px'
         }}>
-          <StatCard icon={FaLayerGroup} label="Total Slots" value={stats.totalSlots} color={PRIMARY} />
-          <StatCard icon={FaCar} label="Occupied" value={stats.occupiedSlots} color={OCCUPIED} />
-          <StatCard icon={FaCheck} label="Available" value={stats.availableSlots} color={AVAILABLE} />
-          <StatCard icon={FaMoneyBillWave} label="Today Revenue" value={`${config?.currency || 'AED'} ${stats.todayRevenue || 0}`} color={SUCCESS} />
+          <StatCard icon={FaLayerGroup} label="Total Slots" value={stats.totalSlots} color={PRIMARY}
+            refreshing={refreshing} changed={prevStats && prevStats.totalSlots !== stats.totalSlots} />
+          <StatCard icon={FaCar} label="Occupied" value={stats.occupiedSlots} color={OCCUPIED}
+            subtitle={stats.totalSlots ? `${Math.round((stats.occupiedSlots / stats.totalSlots) * 100)}% full` : undefined}
+            refreshing={refreshing} changed={prevStats && prevStats.occupiedSlots !== stats.occupiedSlots} />
+          <StatCard icon={FaCheck} label="Available" value={stats.availableSlots} color={AVAILABLE}
+            subtitle={stats.totalSlots ? `${Math.round((stats.availableSlots / stats.totalSlots) * 100)}% free` : undefined}
+            refreshing={refreshing} changed={prevStats && prevStats.availableSlots !== stats.availableSlots} />
+          <StatCard icon={FaMoneyBillWave} label="Today Revenue"
+            value={`${config?.currency || 'AED'} ${stats.todayRevenue || 0}`} color={SUCCESS}
+            refreshing={refreshing} changed={prevStats && prevStats.todayRevenue !== stats.todayRevenue} />
         </div>
       )}
 
@@ -642,10 +687,11 @@ export default function ParkingDashboardPage() {
           ].map(t => (
             <button key={t.id} onClick={() => { setTab(t.id); if (t.id === 'history') setStatusFilter(''); else if (t.id === 'tickets') setStatusFilter('active'); }}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '12px 20px',
-                border: 'none', borderBottom: tab === t.id ? `2px solid ${PRIMARY}` : '2px solid transparent',
+                display: 'flex', alignItems: 'center', gap: 6, padding: '14px 22px',
+                border: 'none', borderBottom: tab === t.id ? `3px solid ${PRIMARY}` : '3px solid transparent',
                 background: 'none', color: tab === t.id ? PRIMARY : '#64748b',
-                fontWeight: tab === t.id ? 600 : 400, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap'
+                fontWeight: tab === t.id ? 700 : 500, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap',
+                transition: 'color 0.15s, border-color 0.15s', letterSpacing: '0.01em'
               }}>
               <t.icon size={14} /> {t.label}
             </button>
@@ -662,7 +708,7 @@ export default function ParkingDashboardPage() {
 
       {/* Tab Content */}
       <div style={{ padding: isMobile ? '0 16px 80px' : '0 32px 40px' }}>
-        {tab === 'live' && <LiveViewTab stats={stats} zones={zones} config={config} isMobile={isMobile} loading={loading} />}
+        {tab === 'live' && <LiveViewTab stats={stats} zones={zones} config={config} isMobile={isMobile} loading={loading && !stats} refreshing={refreshing} />}
         {(tab === 'tickets' || tab === 'history') && (
           <>
             {/* Filters */}
@@ -736,9 +782,21 @@ export default function ParkingDashboardPage() {
                 {[1,2,3,4].map(i => <Shimmer key={i} h={80} r={12} />)}
               </div>
             ) : filteredTickets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
-                <FaCar size={48} style={{ marginBottom: 12, opacity: 0.4 }} />
-                <p style={{ fontSize: 16, fontWeight: 500 }}>No tickets found</p>
+              <div style={{
+                textAlign: 'center', padding: '60px 20px', color: '#94a3b8',
+                background: '#fff', borderRadius: 16, border: '1px dashed #e2e8f0',
+              }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: '50%', background: '#f8fafc',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}>
+                  <FaCar size={36} style={{ opacity: 0.3 }} />
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 600, color: '#64748b', margin: '0 0 4px' }}>No tickets found</p>
+                <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+                  {searchQuery ? 'Try a different search term' : 'No tickets for the selected filters'}
+                </p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -746,15 +804,24 @@ export default function ParkingDashboardPage() {
                   const VIcon = getVehicleIcon(ticket.vehicleType);
                   const badge = ticketStatusBadge(ticket.status);
                   const entryTime = ticket.entryTime?._seconds ? new Date(ticket.entryTime._seconds * 1000) : new Date(ticket.entryTime);
+                  const statusBorderColors = { active: '#3b82f6', completed: '#22c55e', cancelled: '#ef4444', lost_ticket: '#f59e0b' };
+                  const elapsedStr = ticket.status === 'active' ? calcElapsed(ticket.entryTime) : '';
+                  const elapsedMins = ticket.status === 'active' ? (() => {
+                    const entry = ticket.entryTime?._seconds ? new Date(ticket.entryTime._seconds * 1000) : new Date(ticket.entryTime);
+                    return Math.max(0, Math.floor((Date.now() - entry.getTime()) / 60000));
+                  })() : 0;
                   return (
                     <div key={ticket.id} style={{
                       background: '#fff', borderRadius: 12, padding: isMobile ? 14 : 18,
-                      border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center',
+                      border: '1px solid #f1f5f9',
+                      borderLeft: `4px solid ${statusBorderColors[ticket.status] || '#e2e8f0'}`,
+                      display: 'flex', alignItems: 'center',
                       gap: isMobile ? 10 : 16, flexWrap: 'wrap', cursor: 'pointer',
-                      transition: 'box-shadow 0.2s'
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                      transition: 'box-shadow 0.2s, transform 0.15s'
                     }}
-                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.07)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     onClick={() => setTicketDetail(ticket)}
                     >
                       <div style={{
@@ -779,10 +846,14 @@ export default function ParkingDashboardPage() {
                         <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 500 }}>
                           {formatTime(entryTime.toISOString())}
                         </div>
-                        {/* Live elapsed timer for active tickets */}
-                        {ticket.status === 'active' && (
-                          <div style={{ fontSize: 12, color: WARNING, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
-                            <FaClock size={10} /> {calcElapsed(ticket.entryTime)}
+                        {ticket.status === 'active' && elapsedStr && (
+                          <div style={{
+                            fontSize: 12, color: '#fff', fontWeight: 700,
+                            background: elapsedMins > 120 ? DANGER : WARNING,
+                            padding: '3px 8px', borderRadius: 6, marginTop: 4,
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                          }}>
+                            <FaClock size={10} /> {elapsedStr}
                           </div>
                         )}
                         {ticket.status === 'completed' && ticket.finalAmount !== null && (
@@ -795,15 +866,18 @@ export default function ParkingDashboardPage() {
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                           <button onClick={(e) => { e.stopPropagation(); setExitModal(true); setExitForm({ ticketNumber: ticket.ticketNumber, qrData: '' }); handleExitLookupDirect(ticket.ticketNumber); }}
                             style={{
-                              padding: '6px 12px', background: PRIMARY, color: '#fff', border: 'none',
-                              borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer'
+                              padding: '7px 16px', background: PRIMARY, color: '#fff', border: 'none',
+                              borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              boxShadow: '0 1px 4px rgba(3,105,161,0.3)', transition: 'background 0.15s'
                             }}>
-                            Exit
+                            <FaSignOutAlt size={11} /> Exit
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); openCancelModal(ticket.id); }}
                             style={{
-                              padding: '6px 10px', background: '#fee2e2', color: DANGER, border: 'none',
-                              borderRadius: 6, fontSize: 12, cursor: 'pointer'
+                              padding: '7px 10px', background: '#fee2e2', color: DANGER, border: 'none',
+                              borderRadius: 20, fontSize: 12, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', transition: 'background 0.15s'
                             }}>
                             <FaBan />
                           </button>
@@ -1195,6 +1269,9 @@ export default function ParkingDashboardPage() {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes progressSlide { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes valueChange { 0% { transform: scale(1); } 30% { transform: scale(1.12); color: #0369a1; } 100% { transform: scale(1); } }
+        @keyframes refreshPulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
       `}</style>
     </div>
   );
@@ -1220,38 +1297,71 @@ export default function ParkingDashboardPage() {
 // SUB-COMPONENTS
 // ═════════════════════════════════════════════════════════
 
-function StatCard({ icon: Icon, label, value, color }) {
+function StatCard({ icon: Icon, label, value, color, subtitle, refreshing, changed }) {
   return (
     <div style={{
-      background: '#fff', borderRadius: 12, padding: 16, border: '1px solid #e2e8f0',
-      display: 'flex', alignItems: 'center', gap: 12
-    }}>
+      background: '#fff', borderRadius: 14, padding: '18px 20px',
+      border: '1px solid #f1f5f9', borderLeft: `4px solid ${color}`,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+      display: 'flex', alignItems: 'center', gap: 14,
+      position: 'relative', overflow: 'hidden',
+      transition: 'box-shadow 0.2s, transform 0.2s',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+    onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+    >
+      {refreshing && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.6) 50%, transparent 75%)',
+          backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
+          pointerEvents: 'none', zIndex: 1,
+        }} />
+      )}
       <div style={{
-        width: 42, height: 42, borderRadius: 10,
-        background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        width: 48, height: 48, borderRadius: 12,
+        background: `${color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
       }}>
-        <Icon size={18} color={color} />
+        <Icon size={22} color={color} />
       </div>
-      <div>
-        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#1e293b' }}>{value}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
+        <div style={{
+          fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1,
+          animation: changed ? 'valueChange 0.6s ease' : 'none',
+        }}>
+          {value}
+        </div>
+        {subtitle && (
+          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{subtitle}</div>
+        )}
       </div>
     </div>
   );
 }
 
-function LiveViewTab({ stats, zones, config, isMobile, loading }) {
+function LiveViewTab({ stats, zones, config, isMobile, loading, refreshing }) {
   if (loading) {
     return <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
-      {[1,2,3].map(i => <Shimmer key={i} h={160} r={12} />)}
+      {[1,2,3].map(i => <Shimmer key={i} h={200} r={14} />)}
     </div>;
   }
 
   if (!zones || zones.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
-        <FaLayerGroup size={48} style={{ marginBottom: 12, opacity: 0.4 }} />
-        <p style={{ fontSize: 16, fontWeight: 500 }}>No zones configured</p>
+      <div style={{
+        textAlign: 'center', padding: '60px 20px', color: '#94a3b8',
+        background: '#fff', borderRadius: 16, border: '1px dashed #e2e8f0',
+      }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%', background: '#f8fafc',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px',
+        }}>
+          <FaLayerGroup size={36} style={{ opacity: 0.3 }} />
+        </div>
+        <p style={{ fontSize: 16, fontWeight: 600, color: '#64748b', margin: '0 0 4px' }}>No zones configured</p>
         <Link href="/parking/zones" style={{ color: PRIMARY, textDecoration: 'underline', fontSize: 14 }}>
           Add zones to get started
         </Link>
@@ -1260,26 +1370,45 @@ function LiveViewTab({ stats, zones, config, isMobile, loading }) {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
       {zones.filter(z => z.isActive).map(zone => {
         const total = zone.totalSlots || 0;
         const occupied = zone.occupiedSlots || 0;
         const available = total - occupied;
         const occupancyPct = total > 0 ? (occupied / total) * 100 : 0;
         const barColor = occupancyPct > 90 ? OCCUPIED : occupancyPct > 70 ? WARNING : AVAILABLE;
+        const barGradient = occupancyPct > 90
+          ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+          : occupancyPct > 70
+          ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+          : 'linear-gradient(90deg, #22c55e, #16a34a)';
 
         return (
           <div key={zone.id} style={{
-            background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0',
-            transition: 'box-shadow 0.2s'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            background: '#fff', borderRadius: 14, padding: 22,
+            border: '1px solid #f1f5f9', borderTop: `3px solid ${barColor}`,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+            transition: 'box-shadow 0.2s, transform 0.15s',
+            position: 'relative', overflow: 'hidden',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+          >
+            {refreshing && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.5) 50%, transparent 75%)',
+                backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
+                pointerEvents: 'none', zIndex: 1, borderRadius: 14,
+              }} />
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', margin: 0 }}>{dt(zone.zoneName)}</h3>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1e293b', margin: 0 }}>{dt(zone.zoneName)}</h3>
                 <span style={{ fontSize: 12, color: '#94a3b8' }}>{dt(zone.zoneCode)} &middot; Floor {zone.floor ?? 0}</span>
               </div>
               <span style={{
-                padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, textTransform: 'capitalize',
+                padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, textTransform: 'capitalize',
                 background: zone.zoneType === 'vip' ? '#fef3c7' : zone.zoneType === 'reserved' ? '#e0f2fe' : '#f1f5f9',
                 color: zone.zoneType === 'vip' ? '#92400e' : zone.zoneType === 'reserved' ? '#0369a1' : '#475569'
               }}>
@@ -1288,33 +1417,41 @@ function LiveViewTab({ stats, zones, config, isMobile, loading }) {
             </div>
 
             {/* Occupancy Bar */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b', marginBottom: 4 }}>
-                <span>{occupied} occupied</span>
-                <span>{available} available</span>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                fontSize: 12, color: '#64748b', marginBottom: 6
+              }}>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{Math.round(occupancyPct)}% occupied</span>
+                <span>{available} of {total} available</span>
               </div>
-              <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: 12, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
                 <div style={{
-                  height: '100%', width: `${occupancyPct}%`, background: barColor,
-                  borderRadius: 4, transition: 'width 0.5s ease'
+                  height: '100%', width: `${occupancyPct}%`, background: barGradient,
+                  borderRadius: 6, transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                 }} />
               </div>
             </div>
 
-            {/* Stats Row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#1e293b' }}>{total}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>Total</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: OCCUPIED }}>{occupied}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>Occupied</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: AVAILABLE }}>{available}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>Free</div>
-              </div>
+            {/* Stats Row with circular badges */}
+            <div style={{ display: 'flex', justifyContent: 'space-around', paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
+              {[
+                { label: 'Total', val: total, col: '#475569' },
+                { label: 'Occupied', val: occupied, col: OCCUPIED },
+                { label: 'Free', val: available, col: AVAILABLE },
+              ].map(s => (
+                <div key={s.label} style={{ textAlign: 'center' }}>
+                  <div style={{
+                    width: 46, height: 46, borderRadius: '50%', margin: '0 auto 4px',
+                    background: `${s.col}10`, border: `2px solid ${s.col}30`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18, fontWeight: 800, color: s.col
+                  }}>
+                    {s.val}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>{s.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -1373,8 +1510,9 @@ const inputStyle = {
 };
 
 const quickLinkStyle = {
-  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px',
-  background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px',
+  background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20,
   fontSize: 13, color: '#475569', textDecoration: 'none', fontWeight: 500,
-  cursor: 'pointer'
+  cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+  transition: 'all 0.15s',
 };
