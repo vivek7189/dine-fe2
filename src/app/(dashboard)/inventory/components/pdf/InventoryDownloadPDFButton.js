@@ -25,6 +25,15 @@ export default function InventoryDownloadPDFButton({ reportType, data, org, logo
           }
         } catch {}
       }
+      // Convert logo URL to base64 via backend proxy to avoid CORS issues with GCP Storage
+      if (logoUrl) {
+        try {
+          const proxyRes = await apiClient.imageToBase64(logoUrl);
+          if (proxyRes?.base64) logoUrl = proxyRes.base64;
+        } catch (e) {
+          console.warn('Logo base64 proxy failed:', e.message);
+        }
+      }
       // Also get restaurant name if org is empty
       const safeOrg = (org && org.name) ? org : (() => {
         try {

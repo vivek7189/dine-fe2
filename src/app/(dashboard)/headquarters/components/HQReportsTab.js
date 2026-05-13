@@ -2017,18 +2017,16 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
           }
         } catch {}
       }
-      // Convert logo URL to base64 data URI so @react-pdf/renderer can embed it
+      // Convert logo URL to base64 via backend proxy to avoid CORS issues with GCP Storage URLs
       if (logoUrl) {
         try {
-          const imgRes = await fetch(logoUrl);
-          const blob = await imgRes.blob();
-          logoUrl = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-        } catch {
-          logoUrl = null;
+          const proxyRes = await apiClient.imageToBase64(logoUrl);
+          if (proxyRes?.base64) {
+            logoUrl = proxyRes.base64;
+          }
+        } catch (e) {
+          console.warn('Logo base64 proxy failed:', e.message);
+          // Keep the original logoUrl as fallback — @react-pdf/renderer may still load it
         }
       }
       const orgName = restaurantData?.name || orgData?.name || '';

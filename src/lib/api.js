@@ -3525,6 +3525,11 @@ class ApiClient {
     const query = new URLSearchParams(filters).toString();
     return this.request(`/api/parking/reports/${restaurantId}${query ? `?${query}` : ''}`);
   }
+
+  // Convert an image URL to base64 via backend proxy (avoids CORS on GCP Storage)
+  async imageToBase64(url) {
+    return this.request(`/api/utils/image-to-base64?url=${encodeURIComponent(url)}`);
+  }
 }
 
 const apiClient = new ApiClient();
