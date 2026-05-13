@@ -424,12 +424,44 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     return () => { cancelled = true; };
   }, [restaurantId, customerContext?.customerPhone, customerContext?.customerId, customerInfo?.phone, customerInfo?.id]);
 
-  // Load offers when restaurantId changes
+  // Load offers when restaurantId changes (cache-first with 5-min staleness)
   useEffect(() => {
     if (!restaurantId) return;
     if (restaurantId === prevRestaurantIdRef.current) return;
     prevRestaurantIdRef.current = restaurantId;
 
+    const offersCacheKey = `dine_offers_${restaurantId}`;
+    const settingsCacheKey = `dine_offerSettings_${restaurantId}`;
+
+    // 1. Load from localStorage cache INSTANTLY
+    let cacheIsFresh = false;
+    try {
+      const cached = localStorage.getItem(offersCacheKey);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Array.isArray(data) && data.length > 0) {
+          setAllOffers(data);
+          if (Date.now() - timestamp < 5 * 60 * 1000) cacheIsFresh = true;
+        }
+      }
+    } catch (_) {}
+    try {
+      const cached = localStorage.getItem(settingsCacheKey);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (data?.offerSettings) setOfferSettings(prev => ({ ...prev, ...data.offerSettings }));
+        if (data?.loyaltySettings) setLoyaltySettings(prev => ({ ...prev, ...data.loyaltySettings }));
+        if (cacheIsFresh && Date.now() - timestamp < 5 * 60 * 1000) {
+          setIsLoadingOffers(false);
+          return; // Both caches fresh — skip API
+        }
+      } else if (cacheIsFresh) {
+        // Offers are cached but settings aren't — still need API for settings
+        cacheIsFresh = false;
+      }
+    } catch (_) { cacheIsFresh = false; }
+
+    // 2. Revalidate from API in background
     const loadOffers = async () => {
       setIsLoadingOffers(true);
       try {
@@ -449,6 +481,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
 
         const offers = (offersResponse.offers || offersResponse || []).filter(o => o.isActive !== false);
         setAllOffers(offers);
+        try { localStorage.setItem(offersCacheKey, JSON.stringify({ data: offers, timestamp: Date.now() })); } catch (_) {}
 
         // Load offer + loyalty settings
         try {
@@ -459,12 +492,18 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
           if (settingsRes?.settings?.loyaltySettings) {
             setLoyaltySettings(prev => ({ ...prev, ...settingsRes.settings.loyaltySettings }));
           }
+          try {
+            localStorage.setItem(settingsCacheKey, JSON.stringify({
+              data: { offerSettings: settingsRes?.settings?.offerSettings, loyaltySettings: settingsRes?.settings?.loyaltySettings },
+              timestamp: Date.now(),
+            }));
+          } catch (_) {}
         } catch (e) {
           // Ignore settings load failure
         }
       } catch (err) {
         console.error('Failed to load offers:', err);
-        setAllOffers([]);
+        if (!localStorage.getItem(offersCacheKey)) setAllOffers([]);
       } finally {
         setIsLoadingOffers(false);
       }
@@ -487,6 +526,9 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     channel.bind('offer-updated', () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(async () => {
+        // Invalidate caches so next load is fresh
+        try { localStorage.removeItem(`dine_offers_${restaurantId}`); } catch (_) {}
+        try { localStorage.removeItem(`dine_offerSettings_${restaurantId}`); } catch (_) {}
         try {
           // Re-fetch offers
           let offersResponse;
@@ -497,6 +539,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
           }
           const offers = (offersResponse.offers || offersResponse || []).filter(o => o.isActive !== false);
           setAllOffers(offers);
+          try { localStorage.setItem(`dine_offers_${restaurantId}`, JSON.stringify({ data: offers, timestamp: Date.now() })); } catch (_) {}
 
           // Re-fetch offer settings (auto-apply, multi-offer, etc.)
           try {
@@ -507,6 +550,12 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
             if (settingsRes?.settings?.loyaltySettings) {
               setLoyaltySettings(prev => ({ ...prev, ...settingsRes.settings.loyaltySettings }));
             }
+            try {
+              localStorage.setItem(`dine_offerSettings_${restaurantId}`, JSON.stringify({
+                data: { offerSettings: settingsRes?.settings?.offerSettings, loyaltySettings: settingsRes?.settings?.loyaltySettings },
+                timestamp: Date.now(),
+              }));
+            } catch (_) {}
           } catch (e) {
             // Settings fetch is best-effort
           }

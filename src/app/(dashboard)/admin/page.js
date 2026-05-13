@@ -9477,6 +9477,23 @@ const Admin = () => {
                   }}
                 />
               </div>
+
+              {/* Move Order Between Tables */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, moveOrderEnabled: !prev.moveOrderEnabled }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.moveOrderEnabled
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Move Order Between Tables</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Allow staff to move orders from one table to another</div>
+                </div>
+              </div>
             </div>
 
             {/* Divider */}

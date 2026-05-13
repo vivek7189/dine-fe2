@@ -6,6 +6,7 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import TableBillingModal from './TableBillingModal';
+import MoveOrderModal from './MoveOrderModal';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { buildTokenSlipsDocumentHTML, buildTokenSlipHTML } from '../utils/printFontSizes';
 import { generateBillHTML, generateKOTHTML } from '../utils/printHtmlGenerator';
@@ -69,6 +70,7 @@ export default function DashboardTablesPanel({
   businessType = 'restaurant',
   canDeleteTable = false,
   onDeleteTable,
+  posSettings = {},
 }) {
   const router = useRouter();
   const { formatCurrency, getCurrencySymbol } = useCurrency();
@@ -88,6 +90,9 @@ export default function DashboardTablesPanel({
   // Track which tables are currently printing
   const [printingTables, setPrintingTables] = useState({});
   const [printDropdownTable, setPrintDropdownTable] = useState(null);
+
+  // Move order modal
+  const [moveModalTable, setMoveModalTable] = useState(null);
 
   // Ref for the recently updated table card
   const updatedTableRef = useRef(null);
@@ -952,6 +957,26 @@ export default function DashboardTablesPanel({
                       ) : (
                         /* Occupied/Reserved/Cleaning tables - Show Print, Add, More buttons */
                         <div style={{ display: 'flex', gap: '6px' }}>
+                          {/* Move Order Button */}
+                          {posSettings.moveOrderEnabled && t.currentOrderId && isOccupied && (
+                            <button
+                              className="btn-action"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMoveModalTable({ ...t, floorId: group.info?.id, floorName: group.info?.name || group.name });
+                              }}
+                              style={{
+                                width: '32px', height: '32px', padding: 0,
+                                background: '#ffffff', color: '#6b7280',
+                                border: '1px solid #d1d5db', borderRadius: '6px',
+                                cursor: 'pointer', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                              }}
+                              title="Move Order"
+                            >
+                              <FaExchangeAlt size={11} />
+                            </button>
+                          )}
                           {/* Print Button with Dropdown */}
                           {(() => {
                             const tableId = t.id || t.currentOrderId;
@@ -1259,6 +1284,25 @@ export default function DashboardTablesPanel({
         onRefreshTables={onRefreshTables}
         onOptimisticTableUpdate={onOptimisticTableUpdate}
       />
+
+      {/* Move Order Modal */}
+      {moveModalTable && (
+        <MoveOrderModal
+          isOpen={!!moveModalTable}
+          onClose={() => setMoveModalTable(null)}
+          sourceTable={moveModalTable}
+          floors={floors}
+          restaurantId={selectedRestaurant?.id}
+          onMoveComplete={(oldTableId, newTableId) => {
+            if (onOptimisticTableUpdate) {
+              onOptimisticTableUpdate(oldTableId, 'available');
+              onOptimisticTableUpdate(newTableId, 'occupied');
+            }
+            if (onRefreshTables) setTimeout(onRefreshTables, 500);
+            setMoveModalTable(null);
+          }}
+        />
+      )}
 
       {/* Order Summary Slider */}
       {sliderOpen && (

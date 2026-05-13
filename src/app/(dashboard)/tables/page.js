@@ -17,13 +17,14 @@ import {
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
   FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode,
-  FaPrint, FaReceipt
+  FaPrint, FaReceipt, FaExchangeAlt
 } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { getBillPrintCSS, getBillHeaderHTML } from '../../../utils/printFontSizes';
 import { printDocument, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import TableBillingModal from '../../../components/TableBillingModal';
+import MoveOrderModal from '../../../components/MoveOrderModal';
 
 const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant }) => {
   const [qrCodes, setQrCodes] = useState(new Map());
@@ -291,6 +292,10 @@ const TableManagement = () => {
   // Billing modal state (shared component)
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [billingModalTable, setBillingModalTable] = useState(null);
+
+  // Move order modal
+  const [moveModalTable, setMoveModalTable] = useState(null);
+  const posSettings = selectedRestaurant?.posSettings || {};
 
   // Dropdown state
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -1049,6 +1054,11 @@ const TableManagement = () => {
         if (table.currentOrderId) router.push(`/dashboard?orderId=${table.currentOrderId}&mode=edit`);
         else showWarning(t('tables.noActiveOrder'));
         break;
+      case 'move-order': {
+        const floor = floors.find(f => (f.tables || []).some(t => t.id === table.id));
+        setMoveModalTable({ ...table, floorId: floor?.id, floorName: floor?.name });
+        break;
+      }
     }
   };
 
@@ -1620,6 +1630,20 @@ const TableManagement = () => {
                               )}
                               {isOccupied && (
                                 <div style={{ display: 'flex', gap: '6px', position: 'relative' }}>
+                                  {/* Move Order button */}
+                                  {posSettings.moveOrderEnabled && table.currentOrderId && (
+                                    <button className="tbl-action" onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleTableAction('move-order', table);
+                                    }} style={{
+                                      width: '32px', height: '32px', padding: 0,
+                                      background: 'white', border: '1px solid #e5e7eb', color: '#6b7280',
+                                      borderRadius: '6px', cursor: 'pointer',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }} title="Move Order">
+                                      <FaExchangeAlt size={11} />
+                                    </button>
+                                  )}
                                   {/* Print button with dropdown */}
                                   <div style={{ position: 'relative' }}>
                                     <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
@@ -2502,6 +2526,29 @@ const TableManagement = () => {
           setTableStatusesForDate(prev => ({ ...prev, [tableId]: newStatus }));
         }}
       />
+
+      {/* Move Order Modal */}
+      {moveModalTable && (
+        <MoveOrderModal
+          isOpen={!!moveModalTable}
+          onClose={() => setMoveModalTable(null)}
+          sourceTable={moveModalTable}
+          floors={floors}
+          restaurantId={selectedRestaurant?.id}
+          onMoveComplete={(oldTableId, newTableId) => {
+            setFloors(prev => prev.map(floor => ({
+              ...floor,
+              tables: (floor.tables || []).map(t => {
+                if (t.id === oldTableId) return { ...t, status: 'available', currentOrderId: null, currentOrderTotal: null, customerName: null, startTime: null };
+                if (t.id === newTableId) return { ...t, status: 'occupied', currentOrderId: moveModalTable.currentOrderId };
+                return t;
+              })
+            })));
+            setTableStatusesForDate(prev => ({ ...prev, [oldTableId]: 'available', [newTableId]: 'occupied' }));
+            setMoveModalTable(null);
+          }}
+        />
+      )}
 
       <NotificationContainer />
     </div>

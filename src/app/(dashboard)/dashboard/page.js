@@ -712,36 +712,58 @@ function RestaurantPOSContent() {
     localStorage.setItem('dine_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Load tax settings for the restaurant
+  // Load tax settings for the restaurant (cache-first with 5-min staleness)
   const loadTaxSettings = useCallback(async (restaurantId) => {
     if (!restaurantId) return;
-    
-    try {
-      console.log('🏛️ Loading tax settings for restaurant:', restaurantId);
-      const taxSettingsResponse = await apiClient.getTaxSettings(restaurantId);
-      console.log('🏛️ Tax settings response:', taxSettingsResponse);
 
-      if (taxSettingsResponse.success) {
+    // 1. Load from localStorage cache INSTANTLY (synchronous)
+    const cacheKey = `dine_tax_${restaurantId}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (data) {
+          setTaxSettings(data);
+          // If cache is fresh (< 5 min), skip API call
+          if (Date.now() - timestamp < 5 * 60 * 1000) return;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Revalidate from API in background
+    try {
+      const taxSettingsResponse = await apiClient.getTaxSettings(restaurantId);
+
+      if (taxSettingsResponse.success && taxSettingsResponse.taxSettings) {
         setTaxSettings(taxSettingsResponse.taxSettings);
-        // Cache in IndexedDB for offline use
+        // Cache in localStorage for instant load next time
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            data: taxSettingsResponse.taxSettings,
+            timestamp: Date.now(),
+          }));
+        } catch (_) {}
+        // Also keep IndexedDB for offline
         setCachedData(`tax_${restaurantId}`, taxSettingsResponse.taxSettings).catch(() => {});
         saveEssentialData(`tax_${restaurantId}`, taxSettingsResponse.taxSettings);
-        console.log('🏛️ Tax settings loaded and cached:', taxSettingsResponse.taxSettings);
-      } else {
-        console.log('🏛️ No tax settings found for restaurant');
+      } else if (!localStorage.getItem(cacheKey)) {
+        // Only set null if we have no cache at all
         setTaxSettings(null);
       }
     } catch (error) {
-      console.error('🏛️ Error loading tax settings:', error);
-      // Try IndexedDB fallback (cached_api first, then essential_data)
-      const cachedTax = await getCachedData(`tax_${restaurantId}`).catch(() => null)
-        || await getEssentialData(`tax_${restaurantId}`);
-      if (cachedTax) {
-        setTaxSettings(cachedTax);
-        console.log('🏛️ Loaded tax settings from offline cache');
-      } else {
-        setTaxSettings(null);
-      }
+      console.error('Error loading tax settings:', error);
+      // Try IndexedDB fallback if no localStorage cache was found
+      try {
+        const cachedTax = await getCachedData(`tax_${restaurantId}`).catch(() => null)
+          || await getEssentialData(`tax_${restaurantId}`);
+        if (cachedTax) {
+          setTaxSettings(cachedTax);
+          // Promote to localStorage for next instant load
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify({ data: cachedTax, timestamp: Date.now() }));
+          } catch (_) {}
+        }
+      } catch (_) {}
     }
   }, []);
 
@@ -7242,6 +7264,7 @@ function RestaurantPOSContent() {
                 setActivePricingRuleId={setActivePricingRuleId}
                 countryCode={selectedRestaurant?.countryCode || 'IN'}
                 businessType={selectedRestaurant?.businessType || 'restaurant'}
+                posSettings={posSettings}
                 canDeleteTable={false}
                 onDeleteTable={async (tableId) => {
                   try {

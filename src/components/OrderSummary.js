@@ -867,7 +867,7 @@ const OrderSummary = ({
     return globalTaxes;
   }, []);
 
-  const calculateTax = useCallback(async () => {
+  const calculateTax = useCallback(() => {
     console.log('Calculating tax for cart:', cart.length, 'items, restaurantId:', restaurantId);
     if (cart.length === 0 || !restaurantId) {
       setTaxBreakdown([]);

@@ -1036,6 +1036,13 @@ class ApiClient {
     });
   }
 
+  async moveOrderToTable(orderId, { targetTableId, targetTableName, targetFloorId, targetFloorName, restaurantId }) {
+    return this.request(`/api/orders/${orderId}/move-table`, {
+      method: 'POST',
+      body: { targetTableId, targetTableName, targetFloorId, targetFloorName, restaurantId },
+    });
+  }
+
   // Saved Carts (parked orders & templates — separate from orders, no side effects)
   async getSavedCarts(restaurantId, type = null) {
     const query = type ? `?type=${type}` : '';
