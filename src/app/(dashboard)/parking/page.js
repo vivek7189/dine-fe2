@@ -160,16 +160,29 @@ export default function ParkingDashboardPage() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // ─── Init ─────────────────────────────────────────────
+  // ─── Init — resolve restaurantId (localStorage → user → API) ───
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('selectedRestaurantId');
-      if (saved) { setRestaurantId(saved); return; }
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.restaurantId) { setRestaurantId(user.restaurantId); return; }
-    } catch {}
-    // No restaurantId found — stop loading spinner
-    setLoading(false);
+    const resolve = async () => {
+      try {
+        // 1. Fast path: already in localStorage
+        const saved = localStorage.getItem('selectedRestaurantId');
+        if (saved) { setRestaurantId(saved); return; }
+        // 2. From user object
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user?.restaurantId) { setRestaurantId(user.restaurantId); return; }
+        // 3. Fetch from API (same as dashboard)
+        const res = await apiClient.getRestaurants();
+        const list = res?.restaurants || [];
+        if (list.length > 0) {
+          const r = list.find(r => r.id === res.defaultRestaurantId) || list[0];
+          localStorage.setItem('selectedRestaurantId', r.id);
+          setRestaurantId(r.id);
+          return;
+        }
+      } catch {}
+      setLoading(false);
+    };
+    resolve();
   }, []);
 
   // ─── Load data ────────────────────────────────────────

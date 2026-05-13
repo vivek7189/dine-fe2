@@ -94,11 +94,28 @@ export default function ParkingConfigPage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
+  // ─── Resolve restaurantId ──────────────────────────────
+  const resolveRestaurantId = useCallback(async () => {
+    let id = localStorage.getItem('selectedRestaurantId')
+      || JSON.parse(localStorage.getItem('user') || '{}')?.restaurantId;
+    if (!id) {
+      try {
+        const res = await apiClient.getRestaurants();
+        const list = res?.restaurants || [];
+        if (list.length > 0) {
+          const r = list.find(r => r.id === res.defaultRestaurantId) || list[0];
+          localStorage.setItem('selectedRestaurantId', r.id);
+          id = r.id;
+        }
+      } catch {}
+    }
+    return id || null;
+  }, []);
+
   // ─── Load config ──────────────────────────────────────
   const loadConfig = useCallback(async () => {
     try {
-      const restaurantId = localStorage.getItem('selectedRestaurantId')
-        || JSON.parse(localStorage.getItem('user'))?.restaurantId;
+      const restaurantId = await resolveRestaurantId();
       if (!restaurantId) {
         setLoading(false);
         return;
@@ -116,7 +133,7 @@ export default function ParkingConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, resolveRestaurantId]);
 
   useEffect(() => { loadConfig(); }, [loadConfig]);
 
@@ -211,8 +228,7 @@ export default function ParkingConfigPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const restaurantId = localStorage.getItem('selectedRestaurantId')
-        || JSON.parse(localStorage.getItem('user'))?.restaurantId;
+      const restaurantId = await resolveRestaurantId();
       if (!restaurantId) {
         showToast('No restaurant ID found', 'error');
         return;

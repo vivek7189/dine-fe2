@@ -81,15 +81,26 @@ export default function ParkingReportsPage() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // --- Load restaurantId ---
+  // --- Load restaurantId (localStorage → user → API) ---
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('selectedRestaurantId');
-      if (saved) { setRestaurantId(saved); return; }
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.restaurantId) { setRestaurantId(user.restaurantId); return; }
-    } catch {}
-    setLoading(false);
+    const resolve = async () => {
+      try {
+        const saved = localStorage.getItem('selectedRestaurantId');
+        if (saved) { setRestaurantId(saved); return; }
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user?.restaurantId) { setRestaurantId(user.restaurantId); return; }
+        const res = await apiClient.getRestaurants();
+        const list = res?.restaurants || [];
+        if (list.length > 0) {
+          const r = list.find(r => r.id === res.defaultRestaurantId) || list[0];
+          localStorage.setItem('selectedRestaurantId', r.id);
+          setRestaurantId(r.id);
+          return;
+        }
+      } catch {}
+      setLoading(false);
+    };
+    resolve();
   }, []);
 
   // --- Load reports ---
