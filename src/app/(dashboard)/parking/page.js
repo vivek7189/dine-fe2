@@ -201,15 +201,21 @@ export default function ParkingDashboardPage() {
         apiClient.getParkingZones(restaurantId),
         apiClient.getParkingRates(restaurantId)
       ]);
-      if (configRes.status === 'fulfilled') setConfig(configRes.value.config);
+      const fetchedConfig = configRes.status === 'fulfilled' ? configRes.value.config : null;
+      if (fetchedConfig) setConfig(fetchedConfig);
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.stats);
       const fetchedZones = zonesRes.status === 'fulfilled' ? (zonesRes.value.zones || []) : [];
       const fetchedRates = ratesRes.status === 'fulfilled' ? (ratesRes.value.rates || []) : [];
       setZones(fetchedZones);
       setRates(fetchedRates);
-      if (fetchedZones.length > 0 && !entryForm.zoneId) {
-        setEntryForm(f => ({ ...f, zoneId: fetchedZones[0].id }));
-      }
+      // Sync entry form defaults with fetched config
+      const vTypes = fetchedConfig?.vehicleTypes?.filter(v => v.enabled) || [];
+      const vTypeIds = vTypes.map(v => v.id);
+      setEntryForm(f => ({
+        ...f,
+        zoneId: f.zoneId || (fetchedZones.length > 0 ? fetchedZones[0].id : ''),
+        vehicleType: vTypeIds.includes(f.vehicleType) ? f.vehicleType : (vTypes[0]?.id || f.vehicleType),
+      }));
       setLastRefreshedAt(new Date());
     } catch (e) {
       console.error('Failed to load parking data:', e);
@@ -340,8 +346,9 @@ export default function ParkingDashboardPage() {
 
   const resetEntryForm = () => {
     if (entryForm.vehicleImageUrl?.startsWith('blob:')) URL.revokeObjectURL(entryForm.vehicleImageUrl);
+    const vTypes = config?.vehicleTypes?.filter(v => v.enabled) || [];
     setEntryForm({
-      vehicleNumber: '', vehicleType: 'car', vehicleColor: '',
+      vehicleNumber: '', vehicleType: vTypes[0]?.id || 'car', vehicleColor: '',
       zoneId: zones[0]?.id || '', slotId: '',
       notes: '', vehicleImageUrl: '', vehicleImageFile: null,
       aiRecognizedPlate: '', aiConfidence: 0

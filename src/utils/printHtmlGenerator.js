@@ -4,7 +4,7 @@
 
 import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML } from './printFontSizes';
 
-const esc = (str) => (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const esc = (str) => String(str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /**
  * Build identity lines (GSTIN, FSSAI, VAT, etc.) for the bill header.
