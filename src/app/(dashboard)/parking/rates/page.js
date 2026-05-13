@@ -72,9 +72,13 @@ const emptyForm = {
   vehicleType: 'all',
   rateType: 'hourly',
   hourlyRate: '',
+  firstHourRate: '',
   minimumCharge: '',
   gracePeriodMinutes: '15',
+  freeEntryMinutes: '0',
+  applyMinInGrace: true,
   maxDailyRate: '',
+  progressiveSlabs: [{ upToHours: '', ratePerHour: '' }],
   flatRate: '',
   tiers: [{ upToMinutes: '', rate: '' }],
   nightSurcharge: false,
@@ -181,9 +185,13 @@ export default function ParkingRatesPage() {
       vehicleType: rate.vehicleType || 'all',
       rateType: rate.rateType || 'hourly',
       hourlyRate: rate.hourlyRate ?? '',
+      firstHourRate: rate.firstHourRate ?? '',
       minimumCharge: rate.minimumCharge ?? '',
       gracePeriodMinutes: rate.gracePeriodMinutes ?? '15',
+      freeEntryMinutes: rate.freeEntryMinutes ?? '0',
+      applyMinInGrace: rate.applyMinInGrace !== false,
       maxDailyRate: rate.maxDailyRate ?? '',
+      progressiveSlabs: rate.progressiveSlabs?.length ? rate.progressiveSlabs : [{ upToHours: '', ratePerHour: '' }],
       flatRate: rate.flatRate ?? '',
       tiers: rate.tiers?.length ? rate.tiers : [{ upToMinutes: '', rate: '' }],
       nightSurcharge: rate.nightSurcharge?.enabled || false,
@@ -213,9 +221,15 @@ export default function ParkingRatesPage() {
 
       if (formData.rateType === 'hourly') {
         payload.hourlyRate = parseFloat(formData.hourlyRate) || 0;
+        payload.firstHourRate = parseFloat(formData.firstHourRate) || 0;
         payload.minimumCharge = parseFloat(formData.minimumCharge) || 0;
         payload.gracePeriodMinutes = parseInt(formData.gracePeriodMinutes) || 0;
+        payload.freeEntryMinutes = parseInt(formData.freeEntryMinutes) || 0;
+        payload.applyMinInGrace = formData.applyMinInGrace;
         payload.maxDailyRate = parseFloat(formData.maxDailyRate) || undefined;
+        payload.progressiveSlabs = (formData.progressiveSlabs || [])
+          .filter(s => s.upToHours && s.ratePerHour)
+          .map(s => ({ upToHours: parseFloat(s.upToHours), ratePerHour: parseFloat(s.ratePerHour) }));
       } else if (formData.rateType === 'flat' || formData.rateType === 'daily' || formData.rateType === 'monthly') {
         payload.flatRate = parseFloat(formData.flatRate) || 0;
       } else if (formData.rateType === 'tiered') {
@@ -586,10 +600,16 @@ export default function ParkingRatesPage() {
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
                         {getRateDisplay(rate)}
                       </div>
-                      {rate.rateType === 'hourly' && rate.gracePeriodMinutes > 0 && (
+                      {rate.rateType === 'hourly' && (
                         <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                          {rate.gracePeriodMinutes} min grace period
-                          {rate.maxDailyRate ? ` \u00b7 Max ${rate.maxDailyRate}/day` : ''}
+                          {[
+                            rate.firstHourRate ? `1st hr: ${rate.firstHourRate}` : null,
+                            rate.minimumCharge ? `Min: ${rate.minimumCharge}` : null,
+                            rate.gracePeriodMinutes > 0 ? `${rate.gracePeriodMinutes}min grace` : null,
+                            rate.freeEntryMinutes > 0 ? `${rate.freeEntryMinutes}min free` : null,
+                            rate.maxDailyRate ? `Max ${rate.maxDailyRate}/day` : null,
+                            rate.progressiveSlabs?.length > 0 ? `${rate.progressiveSlabs.length} slabs` : null,
+                          ].filter(Boolean).join(' \u00b7 ')}
                         </div>
                       )}
                       {rate.rateType === 'tiered' && rate.tiers?.length > 0 && (
@@ -803,48 +823,116 @@ export default function ParkingRatesPage() {
                 </div>
 
                 {formData.rateType === 'hourly' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={labelStyle}>Hourly Rate *</label>
-                      <input
-                        type="number"
-                        value={formData.hourlyRate}
-                        onChange={e => updateForm('hourlyRate', e.target.value)}
-                        placeholder="0.00"
-                        style={inputStyle}
-                      />
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                      <div>
+                        <label style={labelStyle}>Hourly Rate *</label>
+                        <input type="number" value={formData.hourlyRate}
+                          onChange={e => updateForm('hourlyRate', e.target.value)}
+                          placeholder="0.00" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>First Hour Rate</label>
+                        <input type="number" value={formData.firstHourRate}
+                          onChange={e => updateForm('firstHourRate', e.target.value)}
+                          placeholder="Same as hourly" style={inputStyle} />
+                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Different rate for 1st hour (0 = use hourly)</span>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Minimum Charge</label>
+                        <input type="number" value={formData.minimumCharge}
+                          onChange={e => updateForm('minimumCharge', e.target.value)}
+                          placeholder="0.00" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Max Daily Rate</label>
+                        <input type="number" value={formData.maxDailyRate}
+                          onChange={e => updateForm('maxDailyRate', e.target.value)}
+                          placeholder="Optional cap" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Grace Period (min)</label>
+                        <input type="number" value={formData.gracePeriodMinutes}
+                          onChange={e => updateForm('gracePeriodMinutes', e.target.value)}
+                          placeholder="15" style={inputStyle} />
+                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Deducted from billable time</span>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Free Entry Period (min)</label>
+                        <input type="number" value={formData.freeEntryMinutes}
+                          onChange={e => updateForm('freeEntryMinutes', e.target.value)}
+                          placeholder="0" style={inputStyle} />
+                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Truly free — no charge at all</span>
+                      </div>
                     </div>
-                    <div>
-                      <label style={labelStyle}>Minimum Charge</label>
-                      <input
-                        type="number"
-                        value={formData.minimumCharge}
-                        onChange={e => updateForm('minimumCharge', e.target.value)}
-                        placeholder="0.00"
-                        style={inputStyle}
-                      />
+                    {/* Apply min charge in grace toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                      <button type="button" onClick={() => updateForm('applyMinInGrace', !formData.applyMinInGrace)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        {formData.applyMinInGrace
+                          ? <FaToggleOn size={22} color={PRIMARY} />
+                          : <FaToggleOff size={22} color="#cbd5e1" />}
+                      </button>
+                      <span style={{ fontSize: 12, color: '#475569', fontWeight: 500 }}>
+                        Apply minimum charge even within grace period
+                      </span>
                     </div>
-                    <div>
-                      <label style={labelStyle}>Grace Period (min)</label>
-                      <input
-                        type="number"
-                        value={formData.gracePeriodMinutes}
-                        onChange={e => updateForm('gracePeriodMinutes', e.target.value)}
-                        placeholder="15"
-                        style={inputStyle}
-                      />
+                    {/* Progressive Slabs */}
+                    <div style={{
+                      backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 4,
+                      border: '1px dashed #e2e8f0',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Progressive Slabs (optional)</span>
+                        <button type="button"
+                          onClick={() => updateForm('progressiveSlabs', [...formData.progressiveSlabs, { upToHours: '', ratePerHour: '' }])}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            padding: '3px 8px', borderRadius: 6, border: `1px solid ${PRIMARY}`,
+                            backgroundColor: PRIMARY_LIGHT, color: PRIMARY,
+                            fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                          }}>
+                          <FaPlus size={8} /> Add Slab
+                        </button>
+                      </div>
+                      <span style={{ fontSize: 10, color: '#94a3b8', display: 'block', marginBottom: 8 }}>
+                        Different rates per time block. If set, overrides hourly/first-hour rates.
+                      </span>
+                      {formData.progressiveSlabs.map((slab, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                          <div style={{ flex: 1 }}>
+                            {idx === 0 && <label style={{ ...labelStyle, marginBottom: 2 }}>Up to (hours)</label>}
+                            <input type="number" value={slab.upToHours}
+                              onChange={e => {
+                                const updated = [...formData.progressiveSlabs];
+                                updated[idx] = { ...updated[idx], upToHours: e.target.value };
+                                updateForm('progressiveSlabs', updated);
+                              }}
+                              placeholder={idx === formData.progressiveSlabs.length - 1 ? '∞ (leave empty)' : ''}
+                              style={{ ...inputStyle, padding: '6px 10px', fontSize: 12 }} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            {idx === 0 && <label style={{ ...labelStyle, marginBottom: 2 }}>Rate/hour</label>}
+                            <input type="number" value={slab.ratePerHour}
+                              onChange={e => {
+                                const updated = [...formData.progressiveSlabs];
+                                updated[idx] = { ...updated[idx], ratePerHour: e.target.value };
+                                updateForm('progressiveSlabs', updated);
+                              }}
+                              placeholder="0.00"
+                              style={{ ...inputStyle, padding: '6px 10px', fontSize: 12 }} />
+                          </div>
+                          {formData.progressiveSlabs.length > 1 && (
+                            <button type="button"
+                              onClick={() => updateForm('progressiveSlabs', formData.progressiveSlabs.filter((_, i) => i !== idx))}
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4, marginTop: idx === 0 ? 16 : 0 }}>
+                              <FaTrash size={11} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <label style={labelStyle}>Max Daily Rate</label>
-                      <input
-                        type="number"
-                        value={formData.maxDailyRate}
-                        onChange={e => updateForm('maxDailyRate', e.target.value)}
-                        placeholder="Optional"
-                        style={inputStyle}
-                      />
-                    </div>
-                  </div>
+                  </>
                 )}
 
                 {(formData.rateType === 'flat' || formData.rateType === 'daily' || formData.rateType === 'monthly') && (
