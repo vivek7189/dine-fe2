@@ -4062,7 +4062,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
 
 /** App Download Tab — simple Google Drive download links for Windows + Mac */
 function AppDownloadTab() {
-  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1btcVMAf3i8IjaEVk1UH8g5MGw3ere387/view?usp=sharing';
+  const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1otg7aUlHLCxeiEstIifoNK75Zp7yKFs4/view?usp=sharing';
   const MAC_DOWNLOAD_URL = 'https://drive.google.com/file/d/1q5D7zLYfn_XEBdB8AlZFOiZEkI7zeMHy/view?usp=sharing';
 
   const btnStyle = (bg, shadow) => ({
@@ -5755,39 +5755,31 @@ const Admin = () => {
               )}
             </div>
 
-            {/* Horizontal tab bar — scrollable so all tabs are always reachable */}
+            {/* Tab bar — wrapping so all tabs are visible on all screen sizes */}
             <div style={{
               background: 'linear-gradient(135deg, #fff1f2, #ffe4e6, #fecdd3)', borderRadius: '14px', padding: '5px 6px',
               border: '1px solid #fecdd3',
-              display: 'flex', alignItems: 'center', gap: '2px',
-              overflowX: 'auto', overflowY: 'hidden',
-              WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none', msOverflowStyle: 'none',
-            }}
-              className="hide-scrollbar"
-            >
+              display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px',
+            }}>
               {filteredNavGroups.map(function(group, groupIdx) {
                 return (
-                  <div key={group.label} style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
-                    {groupIdx > 0 && (
-                      <div style={{ width: '1px', height: '22px', backgroundColor: '#fda4af', margin: '0 6px', flexShrink: 0, opacity: 0.4 }}></div>
-                    )}
+                  <div key={group.label} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px' }}>
                     {group.items.map(function(item) {
                       var isItemActive = activeTab === item.id;
                       var TabIcon = item.icon;
                       return (
                         <button key={item.id} onClick={function() { setActiveTab(item.id); }}
                           style={{
-                            display: 'flex', alignItems: 'center', gap: '7px',
-                            padding: '8px 14px', border: 'none', borderRadius: '10px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '7px 12px', border: 'none', borderRadius: '10px', cursor: 'pointer',
                             background: isItemActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent',
                             color: isItemActive ? 'white' : '#9f1239',
-                            fontWeight: isItemActive ? 600 : 500, fontSize: '13px',
-                            transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0,
+                            fontWeight: isItemActive ? 600 : 500, fontSize: '12.5px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
                             boxShadow: isItemActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
                           }}
                         >
-                          <TabIcon size={13} style={{ color: isItemActive ? 'white' : '#e11d48' }} />
+                          <TabIcon size={12} style={{ color: isItemActive ? 'white' : '#e11d48' }} />
                           <span>{item.label}</span>
                         </button>
                       );
