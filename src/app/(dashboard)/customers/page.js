@@ -2466,15 +2466,33 @@ const Customers = () => {
             border: isMobileEmbed ? 'none' : '1px solid #e5e7eb',
             boxShadow: isMobileEmbed ? 'none' : '0 1px 3px rgba(0,0,0,0.06)'
           }}>
+            {/* Total count badge */}
+            {totalCustomers > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isMobile ? '10px' : '12px' }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '4px 12px', backgroundColor: '#fef2f2', borderRadius: '20px',
+                  fontSize: '13px', fontWeight: '600', color: '#dc2626',
+                }}>
+                  <FaUsers size={12} />
+                  {totalCustomers.toLocaleString()} Customers
+                </div>
+                {searchTerm && customers.length > 0 && (
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                    showing results for &ldquo;{searchTerm}&rdquo;
+                  </span>
+                )}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
               <div style={{ flex: 1, minWidth: isMobile ? '150px' : '200px' }}>
                 <div style={{ position: 'relative' }}>
-                  <FaSearch style={{ 
-                    position: 'absolute', 
-                    left: isMobile ? '8px' : '12px', 
-                    top: '50%', 
-                    transform: 'translateY(-50%)', 
+                  <FaSearch style={{
+                    position: 'absolute',
+                    left: isMobile ? '8px' : '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     color: '#9ca3af',
                     fontSize: isMobile ? '12px' : '14px'
                   }} />
@@ -3165,7 +3183,7 @@ const Customers = () => {
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button
-                  onClick={function() { if (currentPage > 1) { var p = currentPage - 1; setCurrentPage(p); loadCustomers(false, p); } }}
+                  onClick={function() { if (currentPage > 1) { var p = currentPage - 1; setCurrentPage(p); loadCustomers(false, p, searchTerm); } }}
                   disabled={currentPage <= 1}
                   style={{
                     padding: isMobile ? '6px 10px' : '8px 14px',
@@ -3198,7 +3216,7 @@ const Customers = () => {
                     return (
                       <button
                         key={p}
-                        onClick={function() { setCurrentPage(p); loadCustomers(false, p); }}
+                        onClick={function() { setCurrentPage(p); loadCustomers(false, p, searchTerm); }}
                         style={{
                           padding: isMobile ? '6px 10px' : '8px 12px',
                           backgroundColor: currentPage === p ? '#111827' : '#f3f4f6',
@@ -3217,7 +3235,7 @@ const Customers = () => {
                   });
                 })()}
                 <button
-                  onClick={function() { if (currentPage < totalPages) { var p = currentPage + 1; setCurrentPage(p); loadCustomers(false, p); } }}
+                  onClick={function() { if (currentPage < totalPages) { var p = currentPage + 1; setCurrentPage(p); loadCustomers(false, p, searchTerm); } }}
                   disabled={currentPage >= totalPages}
                   style={{
                     padding: isMobile ? '6px 10px' : '8px 14px',
